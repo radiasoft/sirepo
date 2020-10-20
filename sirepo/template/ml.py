@@ -20,11 +20,9 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_OUTPUT_FILE = PKDict(
-    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+_CLASSIFIER_OUTPUT_FILE = PKDict(
     dtClassifierClassificationFile='dt-classifier-classification.json',
     dtClassifierConfusionFile='dt-classifier-confusion.json',
-    fitCSVFile='fit.csv',
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
@@ -33,11 +31,17 @@ _OUTPUT_FILE = PKDict(
     logisticRegressionClassificationFile='logistic-regression-classification.json',
     logisticRegressionConfusionFile='logistic-regression-confusion.json',
     logisticRegressionErrorFile='logistic-regression-error.npy',
+)
+
+_OUTPUT_FILE = PKDict(
+    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+    fitCSVFile='fit.csv',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
     trainFile='train.npy',
     validateFile='validate.npy',
+    **_CLASSIFIER_OUTPUT_FILE
 )
 
 def background_percent_complete(report, run_dir, is_running):
@@ -47,9 +51,13 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     if report == 'classificationAnimation' and not is_running:
+        s = list(filter(
+            lambda path: path.basename in _CLASSIFIER_OUTPUT_FILE.values(),
+            pkio.sorted_glob(run_dir.join('*')),
+        ))
         return PKDict(
             framesForClassifier=data.models.classificationAnimation.classifier,
-            frameCount=1,
+            frameCount=1 if s else 0,
             percentComplete=100,
         )
     fit_csv_file = run_dir.join(_OUTPUT_FILE.fitCSVFile)
@@ -282,8 +290,6 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         for x, v in enumerate(r.matrix[y]):
             t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
-
-
     return template_common.heatmap(
         a,
         PKDict(histogramBins=len(r.matrix)),

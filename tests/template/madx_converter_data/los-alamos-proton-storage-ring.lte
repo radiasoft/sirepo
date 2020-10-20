@@ -4,8 +4,17 @@ execution_mode = 'serial'
 lattice_file = """
 % pi 180 / sto degrad
 % 180 pi / sto raddeg
+% 0.83333504 sto sr_alpha_x
+% -0.94425989 sto sr_alpha_y
+% 6.069332 sto sr_beta_x
+% 6.6338782 sto sr_beta_y
+% -0.0 sto sr_dp_s_coupling
+% 1 sr_alpha_x 2 pow + sr_beta_x / sto sr_gamma_x
+% 1 sr_alpha_y 2 pow + sr_beta_y / sto sr_gamma_y
+% 1000.0 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
+"B1": CSBEND,angle="36 pi * 180 /",l=2.54948
 "D1": DRIF,l=2.28646
 "D2": DRIF,l=0.45
 "D3": DRIF,l=0.3
@@ -13,7 +22,6 @@ lattice_file = """
 "M1": DRIF
 "Q1": QUAD,k1=-0.55040428581,l=0.5
 "Q2": QUAD,k1=0.40048073035,l=0.5
-"B1": CSBEND,angle="36 pi * 180 /",l=2.54948
 "S1": SEXT,k2=-0.49289936043,l=0.5
 "S2": SEXT,k2=0.32859957362,l=0.5
 "BL1": LINE=(D1,Q1,D2,B1,D2,Q2,D1)
@@ -30,14 +38,17 @@ elegant_file = """
   mpi_io_write_buffer_size = 1048576,
 &end
 
+&change_particle
+  name = "proton",
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
   centroid = "run_setup.centroid.sdds",
   lattice = "elegant.lte",
   output = "run_setup.output.sdds",
-  p_central_mev = 1001,
+  p_central_mev = 797.0,
   parameters = "run_setup.parameters.sdds",
-  print_statistics = 1,
   sigma = "run_setup.sigma.sdds",
 &end
 
@@ -49,22 +60,17 @@ elegant_file = """
 &end
 
 &bunched_beam
-  alpha_x = 1,
-  alpha_y = 1,
-  alpha_z = 0,
-  beta_x = 10,
-  beta_y = 10,
-  beta_z = 0,
+  alpha_x = 0.83333504,
+  alpha_y = -0.94425989,
+  beta_x = 6.069332,
+  beta_y = 6.6338782,
   distribution_cutoff[0] = 3, 3, 3,
   emit_x = 4.6e-08,
   emit_y = 4.6e-08,
-  emit_z = 0,
   enforce_rms_values[0] = 1, 1, 1,
-  n_particles_per_bunch = 5000,
-  one_random_bunch = 0,
-  sigma_dp = 0.001,
-  sigma_s = 0.00065,
-  symmetrize = 1,
+  n_particles_per_bunch = 1000,
+  sigma_dp = 1.4142135623730952e-07,
+  sigma_s = 1.4142135623730952e-07,
 &end
 
 &track

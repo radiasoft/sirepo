@@ -475,6 +475,29 @@
             "epsi_dz": ["Z Distance From Waist [m]", "Float"],
             "f_pol": ["Polaization Component", "PolarizationComponent", "3"]
         },
+        "geometricSource": {
+            "f_color": ["Photon Energy Distribution", "PhotonEnergyDistribution", "3"],
+            "singleEnergyValue": ["Value [eV]", "Float", 1000],
+            "ph1": ["Minimum Energy [eV]", "Float", 1000],
+            "ph2": ["Maximum Energy [eV]", "Float"],
+            "f_polar": ["Polarization", "Boolean", "1"],
+            "f_coher": ["Coherent Beam", "Boolean", "0"],
+            "pol_angle": ["Phase Difference [deg]", "Float", 0.0],
+            "pol_deg": ["Degree of Polarization [cos(phi)/(cos(phi)+sin(phi))]", "Float", 0.0],
+            "fsour": ["Spatial Type in X-Z Plane", "SpatialType", "3"],
+            "wxsou": ["Width (X) [mm]", "Float", 0.0],
+            "wzsou": ["Height (Z) [mm]", "Float", 0.0],
+            "sigmax": ["Sigma X [µm]", "Float", 0.0],
+            "sigmaz": ["Sigma Z [µm]", "Float", 0.0],
+            "fdistr": ["Angular Distribution", "AngularDistribution", "3"],
+            "sigdix": ["Horizontal Sigma (X) [mrad]", "Float", 0.0],
+            "sigdiz": ["Vertical Sigma (Z) [mrad]", "Float", 0.0],
+            "cone_min": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
+            "cone_max": ["Cone External Half-Aperture [rad]", "Float", 0.0],
+            "fsource_depth": ["Depth", "SourceDepth", "3"],
+            "wysou": ["Source Depth (y) [mm]", "Float", 0.0],
+            "sigmay": ["Sigma Y [µm]", "Float", 0.0]
+        },
         "grating": {
             "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Grating"],
@@ -543,35 +566,6 @@
             "hunt_l": ["Monochromator Length [mm]", "Float", 0.0],
             "blaze": ["Blaze Angle [deg]", "Float", 0.0]
         },
-        "sourceDivergence": {
-            "hdiv1": ["Horizontal Divergence +X [mrad]", "Float", 0.0],
-            "hdiv2": ["Horizontal Divergence -X [mrad]", "Float", 0.0],
-            "vdiv1": ["Vertical Divergence +Z [mrad]", "Float", 0.06],
-            "vdiv2": ["Vertical Divergence -Z [mrad]", "Float", 0.06]
-        },
-        "geometricSource": {
-            "f_color": ["Photon Energy Distribution", "PhotonEnergyDistribution", "3"],
-            "singleEnergyValue": ["Value [eV]", "Float", 1000],
-            "ph1": ["Minimum Energy [eV]", "Float", 1000],
-            "ph2": ["Maximum Energy [eV]", "Float"],
-            "f_polar": ["Polarization", "Boolean", "1"],
-            "f_coher": ["Coherent Beam", "Boolean", "0"],
-            "pol_angle": ["Phase Difference [deg]", "Float", 0.0],
-            "pol_deg": ["Degree of Polarization [cos(phi)/(cos(phi)+sin(phi))]", "Float", 0.0],
-            "fsour": ["Spatial Type in X-Z Plane", "SpatialType", "3"],
-            "wxsou": ["Width (X) [mm]", "Float", 0.0],
-            "wzsou": ["Height (Z) [mm]", "Float", 0.0],
-            "sigmax": ["Sigma X [µm]", "Float", 0.0],
-            "sigmaz": ["Sigma Z [µm]", "Float", 0.0],
-            "fdistr": ["Angular Distribution", "AngularDistribution", "3"],
-            "sigdix": ["Horizontal Sigma (X) [mrad]", "Float", 0.0],
-            "sigdiz": ["Vertical Sigma (Z) [mrad]", "Float", 0.0],
-            "cone_min": ["Cone Internal Half-Aperture [rad]", "Float", 0.0],
-            "cone_max": ["Cone External Half-Aperture [rad]", "Float", 0.0],
-            "fsource_depth": ["Depth", "SourceDepth", "3"],
-            "wysou": ["Source Depth (y) [mm]", "Float", 0.0],
-            "sigmay": ["Sigma Y [µm]", "Float", 0.0]
-        },
         "histogramReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "column": ["Column", "ColumnValue"],
@@ -581,6 +575,12 @@
         },
         "initialIntensityReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT"]
+        },
+        "lens": {
+            "title": ["Element Name", "String", "Lens"],
+            "position": ["Position along Optical Path [m]", "Float"],
+            "focal_x": ["Horizontal Focal Length [m]", "Float", 3],
+            "focal_z": ["Vertical Focal Length [m]", "Float", 1.0e+23]
         },
         "mirror": {
             "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
@@ -661,6 +661,12 @@
             "sourceType": ["Source Type", "SourceType", "bendingMagnet"],
             "npoint": ["Number of Rays", "Integer", 5000],
             "istar1": ["Seed", "Integer", 567656]
+        },
+        "sourceDivergence": {
+            "hdiv1": ["Horizontal Divergence +X [mrad]", "Float", 0.0],
+            "hdiv2": ["Horizontal Divergence -X [mrad]", "Float", 0.0],
+            "vdiv1": ["Vertical Divergence +Z [mrad]", "Float", 0.06],
+            "vdiv2": ["Vertical Divergence -Z [mrad]", "Float", 0.06]
         },
         "undulator": {
             "k_horizontal": ["Horizontal Deflecting Parameter (K)", "Float", 0.0],
@@ -1115,6 +1121,16 @@
         "initialIntensityReport": {
             "_super": ["_", "view", "_INTENSITY_REPORT"],
             "title": "Initial Intensity Report"
+        },
+        "lens": {
+            "title": "Lens",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "focal_x",
+                "focal_z"
+            ]
         },
         "mirror": {
             "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],

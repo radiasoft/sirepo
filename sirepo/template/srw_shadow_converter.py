@@ -68,6 +68,35 @@ class SRWShadowConverter():
             elif item.type == 'ellipsoidMirror':
                 r = self.__mirror_to_shadow(item, current_rotation, shadow)
                 current_rotation = (current_rotation + r) % 360
+            elif item.type == 'grating':
+                r = self.__grating_to_shadow(item, current_rotation, shadow)
+                current_rotation = (current_rotation + r) % 360
+            elif item.type == 'lens':
+                shadow.beamline.append(self.__copy_item(item, PKDict(
+                    type='lens',
+                    focal_x=item.horizontalFocalLength,
+                    focal_z=item.verticalFocalLength,
+                )))
+
+    def __compute_new_rotation(self, item, current_rotation, orientation):
+        if orientation == 'horizontal':
+            offset = item.horizontalOffset
+            if current_rotation == 90 or current_rotation == 270:
+                rotate = 0
+            else:
+                rotate = 90
+        elif orientation == 'vertical':
+            offset = item.verticalOffset
+            if current_rotation == 0 or current_rotation == 180:
+                rotate = 0
+            else:
+                rotate = 90
+        else:
+            #TODO(pjm): determine rotation for vectors
+            rotate = 0
+            offset = 0
+        angle = 90 - (abs(item.grazingAngle) * 180 / math.pi / 1e3)
+        return angle, rotate, offset
 
     def __copy_item(self, item, attrs):
         res = PKDict(
@@ -80,24 +109,46 @@ class SRWShadowConverter():
         res.update(attrs)
         return res
 
+    def __grating_to_shadow(self, item, current_rotation, shadow):
+        angle, rotate, offset = self.__compute_new_rotation(
+            item,
+            current_rotation,
+            'none' if item.computeParametersFrom == '3' else 'vertical',
+        )
+        shadow.beamline.append(self.__copy_item(item, PKDict(
+            type='grating',
+            fmirr='5',
+            t_incidence=angle,
+            alpha=rotate,
+            f_ruling='5',
+            rulingDensityPolynomial=item.grooveDensity0,
+            rul_a1=item.grooveDensity1,
+            rul_a2=item.grooveDensity2,
+            rul_a3=item.grooveDensity3,
+            rul_a4=item.grooveDensity4,
+            fhit_c='1',
+            fshape='1',
+            halfWidthX1=item.sagittalSize * 1e3 / 2,
+            halfWidthX2=item.sagittalSize * 1e3 / 2,
+            halfLengthY1=item.tangentialSize * 1e3 / 2,
+            halfLengthY2=item.tangentialSize * 1e3 / 2,
+            f_default='0',
+            theta=angle,
+            t_reflection=angle,
+            f_central='1',
+            order=-item.diffractionOrder,
+            f_rul_abs='1',
+            f_mono='0',
+            phot_cent=item.energyAvg,
+        )))
+        return rotate
+
     def __mirror_to_shadow(self, item, current_rotation, shadow):
-        angle = 90 - (abs(item.grazingAngle) * 180 / math.pi / 1e3)
-        if item.autocomputeVectors == 'horizontal':
-            offset = item.horizontalOffset
-            if current_rotation == 90 or current_rotation == 270:
-                rotate = 0
-            else:
-                rotate = 90
-        elif item.autocomputeVectors == 'vertical':
-            offset = item.verticalOffset
-            if current_rotation == 0 or current_rotation == 180:
-                rotate = 0
-            else:
-                rotate = 90
-        else:
-            #TODO(pjm): determine rotation for vectors
-            rotate = 0
-            offset = 0
+        angle, rotate, offset = self.__compute_new_rotation(
+            item,
+            current_rotation,
+            item.autocomputeVectors,
+        )
         shadow.beamline.append(self.__copy_item(item, PKDict(
             type='mirror',
             fmirr='2',
@@ -105,10 +156,10 @@ class SRWShadowConverter():
             alpha=rotate,
             fhit_c='1',
             fshape='1',
-            halfWidthX1=item.tangentialSize * 1e3 / 2,
-            halfWidthX2=item.tangentialSize * 1e3 / 2,
-            halfLengthY1=item.sagittalSize * 1e3 / 2,
-            halfLengthY2=item.sagittalSize * 1e3 / 2,
+            halfWidthX1=item.sagittalSize * 1e3 / 2,
+            halfWidthX2=item.sagittalSize * 1e3 / 2,
+            halfLengthY1=item.tangentialSize * 1e3 / 2,
+            halfLengthY2=item.tangentialSize * 1e3 / 2,
             f_default='0',
             ssour=item.firstFocusLength,
             simag=item.focalLength,

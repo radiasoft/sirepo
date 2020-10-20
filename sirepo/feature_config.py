@@ -40,11 +40,11 @@ _FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 #: codes for which we require dynamically loaded binaries
 _PROPRIETARY_CODES = frozenset(('flash',))
 
-#: Codes that can be enabled through cfg but aren't "normally" enabled
-_CONFIGURABLE_CODES = frozenset(('jupyterhublogin',))
+#: Codes that can be enabled but are not the "normal" set of codes
+_OTHER_CODES = frozenset(('jupyterhublogin',))
 
 #: all executable codes
-VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _CONFIGURABLE_CODES)
+VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _OTHER_CODES)
 
 
 #: Configuration
@@ -95,6 +95,7 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
+        other_sim_types=(set(), set, 'other sim types to enable'),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
@@ -116,7 +117,7 @@ def _init():
             _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
         )
     )
-    s.update(_cfg.proprietary_sim_types)
+    s.update(_cfg.proprietary_sim_types, _cfg.other_sim_types)
     # jspec imports elegant, but elegant won't work if it is not a valid
     # sim_type so need to include here. Need a better model of
     # dependencies between codes.

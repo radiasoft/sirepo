@@ -2648,6 +2648,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function setupSceneData(data) {
                 $rootScope.$broadcast('radiaViewer.loaded');
+                $rootScope.$broadcast('vtk.hideLoader');
                 sceneData = data;
                 buildScene();
                 if (! initDone) {
@@ -2709,6 +2710,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 //srdbg('getting app data...', inData);
+                $rootScope.$broadcast('vtk.showLoader');
                 radiaService.getRadiaData(
                     inData,
                     function(d) {

@@ -6,6 +6,9 @@
     <!--<div class="vtk-info-overlay" data-ng-class="{'vtk-info-overlay-move': interactionMode == vtkUtils.INTERACTION_MODE_MOVE, 'vtk-info-overlay-select': interactionMode == vtkUtils.INTERACTION_MODE_SELECT}" data-ng-attr-width="{{ canvasGeometry().size.width }}px" data-ng-attr-height="{{ canvasGeometry().size.height }}px" data-ng-attr-style="top:{{ canvasGeometry().pos.top }}px; left:{{ canvasGeometry().pos.left }}px;">-->
     <div class="vtk-info-overlay vtk-info-overlay-move" data-ng-attr-width="{{ canvasGeometry().size.width }}px" data-ng-attr-height="{{ canvasGeometry().size.height }}px" data-ng-attr-style="top:{{ canvasGeometry().pos.top }}px; left:{{ canvasGeometry().pos.left }}px;">
         <div data-vtk-axes="" data-ng-if="enableAxes" data-width="canvasGeometry().size.width" data-height="canvasGeometry().size.height" data-bound-obj="axisObj" data-axis-cfg="axisCfg"></div>
+        <div class="vtk-load-indicator" data-ng-attr-width="{{ canvasGeometry().size.width }}px" data-ng-attr-height="{{ canvasGeometry().size.height }}px">
+            <img class="sr-page-load-image" src="/static/img/sirepo_animated.gif" />
+        </div>
         <!--<div class="vtk-info-bubble">
             <svg data-popup-report="" class="popup-report" data-focus-points="focusPoints" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true">
             </svg>

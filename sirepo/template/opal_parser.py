@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
 from sirepo.template.code_variable import CodeVar
 from sirepo.template.lattice import LatticeUtil
+import math
 import os.path
 import re
 import sirepo.sim_data
@@ -23,6 +24,7 @@ _MATERIAL_CODE_TO_NAME = PKDict(
 )
 
 class OpalParser(lattice.LatticeParser):
+    _MIN_DRIFT = 1e-9
 
     def __init__(self):
         self.ignore_commands = set([
@@ -36,8 +38,8 @@ class OpalParser(lattice.LatticeParser):
         from sirepo.template import opal
         res = super().parse_file(lattice_text)
         self.__fix_pow_variables()
-        self.__add_variables_for_lattice_references()
-        cv = opal.opal_code_var(self.data.models.rpnVariables)
+        self._add_variables_for_lattice_references()
+        cv = opal.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__remove_bend_default_fmap()
         self.__remove_default_commands()
@@ -52,37 +54,6 @@ class OpalParser(lattice.LatticeParser):
         self.__dedup_elements()
         return res, input_files
 
-    def __add_variables_for_lattice_references(self):
-        # iterate all values, adding "x->y" lattice referenes as variables "x.y"
-
-        def _fix_value(value, names):
-            expr = CodeVar.infix_to_postfix(value.lower())
-            for v in expr.split(' '):
-                m = re.match(r'^(.*?)\-\>(.*)', v)
-                if m:
-                    v = re.sub(r'\-\>', '.', v)
-                    names[v] = [m.group(1), m.group(2)]
-            return re.sub(r'\-\>', '.', value)
-
-        names = {}
-        for v in self.data.models.rpnVariables:
-            if CodeVar.is_var_value(v.value):
-                v.value = _fix_value(v.value, names)
-        for el in self.data.models.elements:
-            for f in el:
-                v = el[f]
-                if CodeVar.is_var_value(v):
-                    el[f] = _fix_value(v, names)
-        for name in names:
-            for el in self.data.models.elements:
-                if el.name.lower() == names[name][0]:
-                    f = names[name][1]
-                    if f in el:
-                        self.data.models.rpnVariables.append(PKDict(
-                            name=name,
-                            value=el[f],
-                        ))
-
     def __add_drifts_to_beamlines(self, code_var):
         drifts = self._compute_drifts(code_var)
         for beamline in self.data.models.beamlines:
@@ -95,14 +66,18 @@ class OpalParser(lattice.LatticeParser):
                 else:
                     pos = 0
                 if 'type' in el and pos != current:
-                    d = self._get_drift(drifts, pos - current, allow_negative_drift=True)
-                    if d:
-                        res.append(d)
-                        current = pos
+                    if abs(pos - current) > self._MIN_DRIFT:
+                        d = self._get_drift(drifts, pos - current, allow_negative_drift=True)
+                        if d:
+                            res.append(d)
+                            current = pos
                 res.append(item)
                 if 'l' in el and not code_var.is_var_value(el.l):
                     el.l = float(el.l)
-                current += self._eval_var(code_var, el.get('l', 0))
+                if el.get('type', '') == 'SBEND':
+                    current += self.__compute_sbend_arclength(el, code_var)
+                else:
+                    current += self._eval_var(code_var, el.get('l', 0))
             beamline['items'] = res
         for el in self.data.models.elements:
             if 'elemedge' in el:
@@ -143,6 +118,25 @@ class OpalParser(lattice.LatticeParser):
                 track = cmd
             res.append(cmd)
         self.data.models.commands = res
+
+    def __compute_sbend_arclength(self, sbend, code_var):
+        # compute angle if not set
+        if code_var.eval_var_with_assert(sbend.angle) == 0 and code_var.eval_var_with_assert(sbend.k0) != 0:
+            #TODO(pjm): same calculation as opal.js bendAngle()
+            particle = self.util.find_first_command(self.data, 'beam').particle
+            mass, charge = self.schema.constants.particleMassAndCharge[particle]
+            gamma = code_var.eval_var_with_assert(sbend.designenergy) * 1e-3 / mass + 1;
+            beta_gamma = math.sqrt(math.pow(gamma, 2) - 1);
+            field_amp = charge * abs(
+                math.sqrt(
+                    math.pow(code_var.eval_var_with_assert(sbend.k0), 2)
+                    + math.pow(code_var.eval_var_with_assert(sbend.k0s), 2))
+                / charge);
+            radius = abs((beta_gamma * mass) / (self.schema.constants.clight * field_amp));
+            sbend.angle = 2 * math.asin(code_var.eval_var_with_assert(sbend.l) / (2 * radius));
+        # compute arc length from chord length
+        angle = code_var.eval_var_with_assert(sbend.angle)
+        return angle * code_var.eval_var_with_assert(sbend.l) / (2 * math.sin(angle / 2))
 
     def __convert_references_to_ids(self):
         ref_model = PKDict(

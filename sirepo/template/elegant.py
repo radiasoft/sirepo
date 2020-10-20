@@ -19,6 +19,7 @@ from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx_converter import MadxConverter
 import copy
 import glob
 import math
@@ -167,7 +168,7 @@ class LibAdapter:
         return r
 
     def _convert(self, data):
-        cv = _code_var(data.models.rpnVariables)
+        cv = code_var(data.models.rpnVariables)
 
         def _model(model, name):
             schema = _SCHEMA.model[name]
@@ -179,7 +180,7 @@ class LibAdapter:
                     v = model[k] if k in model else x[2]
                     if t == 'RPNValue':
                         t = 'Float'
-                        if code_variable.CodeVar.is_var_value(v):
+                        if cv.is_var_value(v):
                             model[k] = cv.eval_var_with_assert(v)
                             continue
                     if t == 'Float':
@@ -247,6 +248,225 @@ class OutputFileIterator(lattice.ModelIterator):
         return 'sdds'
 
 
+class ElegantMadxConverter(MadxConverter):
+    _BEAM_VARS = ['beta_x', 'beta_y', 'alpha_x', 'alpha_y', 'n_particles_per_bunch', 'dp_s_coupling'];
+    _PARTICLE_MAP = PKDict(
+        electron='electron',
+        positron='positron',
+        proton='proton',
+        muon='negmuon',
+        negmuon='muon',
+        custom='other',
+    )
+    _FIELD_MAP = [
+        ['DRIFT',
+            ['DRIF', 'l'],
+            ['CSRDRIFT', 'l'],
+            ['EDRIFT', 'l'],
+            ['LSCDRIFT', 'l'],
+        ],
+        ['SBEND',
+            ['CSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['SBEN', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['CSRCSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['KSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['NIBEND', 'l', 'angle', 'e1', 'e2', 'tilt', 'hgap', 'fint'],
+        ],
+        ['RBEND',
+            ['RBEN', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['TUBEND', 'l', 'angle'],
+        ],
+        ['QUADRUPOLE',
+            ['QUAD', 'l', 'k1', 'tilt'],
+            ['KQUAD', 'l', 'k1', 'tilt'],
+        ],
+        ['SEXTUPOLE',
+            ['SEXT', 'l', 'k2', 'tilt'],
+            ['KSEXT', 'l', 'k2', 'tilt'],
+        ],
+        ['OCTUPOLE',
+            ['OCTU', 'l', 'k3', 'tilt'],
+            ['KOCT', 'l', 'k3', 'tilt'],
+        ],
+        ['SOLENOID',
+            ['SOLE', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+         #TODO(pjm): compute knl and order from first knl value in madx
+            ['MULT', 'tilt'],
+        ],
+        ['HKICKER',
+            ['HKICK', 'l', 'kick', 'tilt'],
+            ['EHKICK', 'l', 'kick', 'tilt'],
+        ],
+        ['VKICKER',
+            ['VKICK', 'l', 'kick', 'tilt'],
+            ['EVKICK', 'l', 'kick', 'tilt'],
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'tilt'],
+            ['EKICKER', 'l', 'hkick', 'vkick', 'tilt'],
+        ],
+        ['MARKER',
+            ['MARK'],
+        ],
+        ['PLACEHOLDER',
+            ['DRIF', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['DRIF', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['RFCAVITY',
+            ['RFCA', 'l', 'volt', 'freq', 'phase=lag'],
+            ['MODRF', 'l', 'volt', 'freq', 'phase=lag'],
+            ['RAMPRF', 'l', 'volt', 'freq', 'phase=lag'],
+            ['RFCW', 'l', 'volt', 'freq', 'phase=lag'],
+        ],
+        ['TWCAVITY',
+            ['RFDF', 'l', 'voltage=volt', 'frequency=freq', 'phase=lag'],
+        ],
+        ['HMONITOR',
+            ['HMON', 'l'],
+        ],
+        ['VMONITOR',
+            ['VMON', 'l'],
+        ],
+        ['MONITOR',
+            ['MONI', 'l'],
+            ['WATCH'],
+        ],
+        ['SROTATION',
+            ['SROT', 'tilt=angle'],
+        ],
+    ]
+    _FIELD_SCALE = PKDict(
+        RFCAVITY=PKDict(
+            freq='1e6',
+            volt='1e6',
+        ),
+        TWCAVITY=PKDict(
+            freq='1e6',
+            volt='1e6',
+        ),
+    )
+
+
+    def __init__(self):
+        super().__init__(SIM_TYPE, self._FIELD_MAP, downcase_variables=True)
+
+    def from_madx(self, madx):
+        data = super().from_madx(madx)
+        eb = LatticeUtil.find_first_command(data, 'bunched_beam')
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        for f in self._BEAM_VARS:
+            v = self._find_var(madx, f)
+            if v:
+                eb[f] = v.value
+        ers = LatticeUtil.find_first_command(data, 'run_setup')
+        ers.p_central_mev = self.particle_energy.pc * 1e3
+        eb.emit_x = mb.ex
+        eb.emit_y = mb.ey
+        eb.sigma_s = mb.sigt
+        eb.sigma_dp = mb.sige
+
+        if mb.particle != 'electron':
+            data.models.commands.insert(0, PKDict(
+                _id=_SIM_DATA.elegant_max_id(data),
+                _type='change_particle',
+                name=self._PARTICLE_MAP.get(mb.particle, 'custom'),
+                #TODO(pjm): custom particle should set mass_ratio and charge_ratio
+            ))
+        return data
+
+    def to_madx(self, data):
+        madx = super().to_madx(data)
+        eb = LatticeUtil.find_first_command(data, 'bunched_beam')
+        if not eb:
+            return madx
+        self.__normalize_elegant_beam(data, eb)
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        particle = LatticeUtil.find_first_command(data, 'change_particle')
+        if particle:
+            mb.particle = self._PARTICLE_MAP.get(particle.name, 'other')
+            #TODO(pjm): other particle should set mass and charge
+        else:
+            mb.particle = 'electron'
+        mb.energy = 0
+        madx.models.bunch.beamDefinition = 'pc'
+        madx.models.bunch.longitudinalMethod = '2'
+        mb.pc = eb.p_central_mev * 1e-3
+        mb.sigt = eb.sigma_s
+        mb.sige = eb.sigma_dp
+        for f in self._BEAM_VARS:
+            self._replace_var(madx, f, eb[f])
+        for dim in ('x', 'y'):
+            mb[f'e{dim}'] = eb[f'emit_{dim}']
+            self._replace_var(
+                madx, f'gamma_{dim}',
+                '(1 + pow({}, 2)) / {}'.format(
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'beta_{dim}'),
+                ),
+            )
+        return madx
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+        if self.from_class.sim_type() == SIM_TYPE:
+            el = element_out
+            op = '/'
+        else:
+            el = element_in
+            op = '*'
+        scale = self._FIELD_SCALE.get(el.type)
+        if scale:
+            for f in scale:
+                element_out[f] = f'{element_out[f]} {op} {scale[f]}'
+
+    def __normalize_elegant_beam(self, data, beam):
+        # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set
+        # convert from other values if missing
+        def _var(v):
+            return self.vars.eval_var_with_assert(v)
+        ers = LatticeUtil.find_first_command(data, 'run_setup')
+        if not ers:
+            return
+        if not _var(ers.p_central_mev):
+            #TODO(pjm): use particle mass, don't assume electron
+            ers.p_central_mev = _var(ers.p_central) * _SCHEMA.constants.ELEGANT_ME_EV
+        beam.p_central_mev = _var(ers.p_central_mev)
+        beta_gamma = beam.p_central_mev / _SCHEMA.constants.ELEGANT_ME_EV
+        for f in ('x', 'y'):
+            emit = _var(beam[f'emit_{f}'])
+            if not emit:
+                # convert from normalized emittance
+                emit = beam[f'emit_{f}'] = _var(beam[f'emit_n{f}']) / beta_gamma
+        if str(data.models.bunch.longitudinalMethod) == '2':
+            # convert alpha_z --> dp_s_coupling
+            beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
+        elif str(data.models.bunch.longitudinalMethod) == '3':
+            # convert emit_z, beta_z, alpha_z --> sigma_s, sigma_dp, dp_s_coupling
+            beam.sigma_s = math.sqrt(_var(beam.emit_z * _var(beam.beta_z)))
+            gamma_z = (1 + _var(beam.alpha_z) ** 2) / _var(beam.beta_z)
+            beam.sigma_dp = math.sqrt(_var(beam.emit_z) * gamma_z)
+            beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
+        if _var(beam.momentum_chirp):
+            beam.sigma_dp = math.sqrt(_var(beam.sigma_dp) ** 2 + (_var(beam.sigma_s) * _var(beam.momentum_chirp)) ** 2)
+            #TODO(pjm): determine conversion from momentum_chirp to db_s_coupling
+
+
 def background_percent_complete(report, run_dir, is_running):
 
     def _percent(data, last_element, step):
@@ -270,7 +490,7 @@ def background_percent_complete(report, run_dir, is_running):
             if cmd and cmd.n_steps:
                 n_steps = 0
                 if code_variable.CodeVar.is_var_value(cmd.n_steps):
-                    n_steps = _code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
+                    n_steps = code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
                 else:
                     n_steps = int(cmd.n_steps)
                 if n_steps and n_steps > 0:
@@ -310,6 +530,10 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def code_var(variables):
+    return elegant_lattice_importer.elegant_code_var(variables)
+
+
 def copy_related_files(data, source_path, target_path):
     # copy results and log for the long-running simulations
     for m in ('animation',):
@@ -335,7 +559,7 @@ def generate_variables(data):
         visited[name] = True
         return f'% {_format_rpn_value(variables[name])} sto {name}\n'
 
-    return _code_var(data.models.rpnVariables).generate_variables(_gen, postfix=True)
+    return code_var(data.models.rpnVariables).generate_variables(_gen, postfix=True)
 
 
 def get_application_data(data, **kwargs):
@@ -345,7 +569,7 @@ def get_application_data(data, **kwargs):
                 _SIM_DATA.lib_file_abspath(data.input_file),
             )
         return data
-    if _code_var(data.variables).get_application_data(data, _SCHEMA):
+    if code_var(data.variables).get_application_data(data, _SCHEMA):
         return data
 
 
@@ -427,16 +651,12 @@ def parse_input_text(path, text=None, input_data=None):
             _map(data)
         return data
     if e == '.madx':
-        from sirepo.template import madx_converter, madx_parser
-        return madx_converter.from_madx(
-            SIM_TYPE,
-            madx_parser.parse_file(text, downcase_variables=True),
-        )
+        return ElegantMadxConverter().from_madx_text(text)
     raise IOError(f'{path.basename}: invalid file format; expecting .madx, .ele, or .lte')
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -458,12 +678,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        from sirepo.template import madx, madx_converter
-
-        return madx.python_source_for_model(
-            madx_converter.to_madx(SIM_TYPE, data),
-            None,
-        )
+        return ElegantMadxConverter().to_madx_text(data)
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
@@ -828,10 +1043,6 @@ def _build_filename_map(data):
 
 def _build_filename_map_from_util(util):
     return util.iterate_models(OutputFileIterator()).result
-
-
-def _code_var(variables):
-    return elegant_lattice_importer.elegant_code_var(variables)
 
 
 def _extract_report_data(xFilename, frame_args, page_count=0):

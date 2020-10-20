@@ -118,6 +118,15 @@ def api_authLogout(simulation_type=None):
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
+def check_user_has_role(role, raise_forbidden=True):
+    u = logged_in_user()
+    if auth_db.UserRole.has_role(u, role):
+        return True
+    if raise_forbidden:
+        util.raise_forbidden('uid={} role={} not found'.format(u, role))
+    return False
+
+
 def complete_registration(name=None):
     """Update the database with the user's display_name and sets state to logged-in.
     Guests will have no name.
@@ -146,6 +155,10 @@ def get_all_roles():
 def guest_uids():
     """All of the uids corresponding to guest users."""
     return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
+
+
+def get_module(name):
+    return _METHOD_MODULES[name]
 
 
 def init_apis(*args, **kwargs):
@@ -346,15 +359,6 @@ def require_sim_type(sim_type):
     check_user_has_role(role_for_sim_type(sim_type))
 
 
-def check_user_has_role(role, raise_forbidden=True):
-    u = logged_in_user()
-    if auth_db.UserRole.has_role(u, role):
-        return True
-    if raise_forbidden:
-        util.raise_forbidden('uid={} role={} not found'.format(u, role))
-    return False
-
-
 def require_user():
     e = None
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
@@ -431,6 +435,14 @@ def set_user(uid):
         yield
     finally:
         reset_state()
+
+
+def unchecked_get_user(uid):
+    with auth_db.thread_lock:
+        u = auth_db.UserRegistration.search_by(uid=uid)
+        if u:
+            return u.uid
+        return None
 
 
 def user_dir_not_found(user_dir, uid):

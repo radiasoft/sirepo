@@ -12,12 +12,10 @@
 
 &sdds_beam
   input = "bunchFile-sourceFile.PCG.sdds",
-  sample_fraction = 1.0,
 &end
 
 &sdds_beam
   input = "bunchFile-sourceFile.PCG.sdds",
-  sample_fraction = 1.0,
 &end
 
 &load_parameters
