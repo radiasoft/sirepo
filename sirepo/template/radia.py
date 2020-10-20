@@ -14,7 +14,6 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from scipy.spatial.transform import Rotation
-from sirepo import exporter
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template import radia_tk
@@ -24,6 +23,7 @@ import math
 import numpy
 import re
 import sdds
+import sirepo.exporter
 import sirepo.sim_data
 import sirepo.util
 import time
@@ -40,18 +40,18 @@ class DataRequester(template_common.DataRequesterBase):
             xxx (xxx):
            XXX
         """
-        self.appExporter = Exporter()
+        self.appExporter = Exporter
 
     def export(self, sim):
         """Export to file"""
-        return self.exporter.export(sim)
+        return self.appExporter.export(sim)
 
     def fetch(self, sim_id, sim_type):
         """Return data"""
         return PKDict()
 
 
-class Exporter(exporter.ExporterBase):
+class Exporter(sirepo.exporter.ExporterBase):
     """Export to file
 
 
@@ -64,7 +64,8 @@ class Exporter(exporter.ExporterBase):
            XXX
         """
 
-    def export(self, sim):
+    @classmethod
+    def export(cls, sim):
         """Export to file"""
         if sim.file_type == 'dmp':
             return sirepo.http_reply.gen_file_as_attachment(
@@ -93,7 +94,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
 #DATA_REQUESTER = DataRequester()
-EXPORTER = Exporter()
 GEOM_PYTHON_FILE = 'geom.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]

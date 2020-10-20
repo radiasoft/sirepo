@@ -61,7 +61,7 @@ class DataRequesterBase():
         Args:
             TBD
         """
-        self.appExporter = sirepo.exporter.ExporterBase()
+        self.appExporter = sirepo.exporter.ExporterBase
 
     def export(self, sim):
         """Export to file"""

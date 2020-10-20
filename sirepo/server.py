@@ -162,8 +162,37 @@ def api_exportArchive(simulation_type, simulation_id, filename):
         id=simulation_id,
         type=simulation_type,
     )
-    from sirepo import exporter
-    return exporter.create_archive(req)
+    import sirepo.exporter
+    return sirepo.exporter.create_archive(req)
+
+
+@api_perm.require_user
+def api_exportFile(simulation_type, simulation_id, filename, file_type):
+    """Export data to a file of the specified type
+
+    Args:
+        simulation_type (str): which simulation type
+        simulation_id (str): simulation instance
+        filename (str): name of the file attachment
+        file_type (str): file type (e.g. 'zip')
+
+    Returns:
+        response: file
+    """
+    import sirepo.exporter
+    #TODO(mvk): should be a POST but needs some work on the client side
+    req = http_request.parse_params(
+        template=True,
+        filename=filename,
+        file_type=file_type,
+        id=simulation_id,
+        type=simulation_type,
+    )
+    # class-based templates should obviate the need for this sort of clumsiness
+    # but here it is for now
+    return(getattr(
+        req.template, 'Exporter', None) or sirepo.exporter.ExporterBase
+    ).export(req)
 
 
 @api_perm.allow_visitor
@@ -267,33 +296,6 @@ def api_getApplicationData(filename=None):
                 content_type=req.req_data.get('contentType', None)
             )
         return http_reply.gen_json(res)
-
-
-@api_perm.require_user
-def api_exportFile(simulation_type, simulation_id, filename, file_type):
-    """Export data to a file of the specified type
-
-    Args:
-        filename (str): name of the file attachment
-        file_type (str): file type (e.g. 'zip')
-
-    Returns:
-        response: file
-    """
-    from sirepo import exporter
-    #TODO(mvk): should be a POST but needs some work on the client side
-    req = http_request.parse_params(
-        template=True,
-        filename=filename,
-        file_type=file_type,
-        id=simulation_id,
-        type=simulation_type,
-    )
-    # class-based templates should obviate the need for this sort of clumsiness
-    # but here it is for now
-    ex = req.template.EXPORTER if hasattr(req.template, 'EXPORTER') \
-        else exporter.ExporterBase()
-    return ex.export(req)
 
 
 @api_perm.allow_cookieless_require_user

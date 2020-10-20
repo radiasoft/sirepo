@@ -37,7 +37,8 @@ class ExporterBase():
             TBD
         """
 
-    def export(self, sim):
+    @classmethod
+    def export(cls, sim):
         """Export to file"""
         return create_archive(sim)
 
