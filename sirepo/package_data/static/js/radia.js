@@ -260,6 +260,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             y: [-0.025, 0.025],
             z: [-0.025, 0.025],
         },
+        preserveShape: true,
     };
 
     self.dropEnabled = true;

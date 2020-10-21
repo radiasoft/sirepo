@@ -1242,14 +1242,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function replot() {
-                // total x extent
-                // add optional fit to objects
-                var bnds = $scope.source.shapeBounds();
+                let bnds = $scope.source.shapeBounds();
                 //srdbg('bnds', bnds);
-                var newDomain = $scope.cfg.initDomian;
+                let newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
-                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
-                    var axis = axes[dim];
+                    let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    let axis = axes[dim];
                     axis.domain = newDomain[labDim];
                     if ($scope.cfg.fitToObjects) {
                         if (bnds[labDim][0] < axis.domain[0]) {
@@ -1261,6 +1259,23 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     }
                     axis.scale.domain(newDomain[labDim]);
                 });
+                // keep the size of the domains in each direction equal, in order to preserve
+                // the shapes (squares stay square, etc.(
+                if ($scope.cfg.preserveShape) {
+                    let newDomSpan = Math.max(
+                        Math.abs(newDomain.x[1] - newDomain.x[0]),
+                        Math.abs(newDomain.y[1] - newDomain.y[0])
+                    );
+                    SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
+                        let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                        let domDiff = (
+                            newDomSpan - Math.abs(newDomain[labDim][1] - newDomain[labDim][0])
+                        ) / 2;
+                        newDomain[labDim][0] = newDomain[labDim][0] - domDiff;
+                        newDomain[labDim][1] = newDomain[labDim][1] + domDiff;
+                        axes[dim].scale.domain(newDomain[labDim]);
+                    });
+                }
                 $scope.resize();
             }
 
