@@ -185,7 +185,7 @@ def get_application_data(data, **kwargs):
 def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.geometry.name = new_simulation_data.name
-    if new_simulation_data.dmpImportFile:
+    if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
 
 
