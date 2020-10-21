@@ -643,7 +643,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return groupShape;
     }
 
-    // used to the client-created object to a server-created Radia id
+    // used to map the client-created object to a server-created Radia id
     function getMapId(o) {
         return o.name + '.' + o.id;
     }
@@ -953,11 +953,12 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-dmp-import-dialog="" data-title="Dump File" data-description="Import Radia dump file"></div>',
         ].join(''),
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -969,24 +970,143 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  '<li data-ng-if="! isExampleLoaded()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
+                  '<li data-ng-if="! isImported()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-                //  '<div>App-specific setting item</div>',
+                    '<li><a href data-ng-click="exportDmp()"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>',
               '</app-settings>',
               '<app-header-right-sim-list>',
                 '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click=""><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
                 '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.isExampleLoaded = function() {
-                return (appState.models.simulation || {}).isExample;
+            $scope.exportDmp = function() {
+                requestSender.newWindow('exportArchive', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<filename>':  $scope.nav.simulationName() + '.dat',
+                });
             };
+            $scope.showImportModal = function() {
+                $('#simulation-import').modal('show');
+            };
+            $scope.isImported = function() {
+                return (appState.models.simulation || {}).isExample ||
+                    (appState.models.simulation || {}).dmpImportFile;
+            };
+        }
+    };
+});
+
+SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            description: '@',
+            title: '@',
+        },
+        template: [
+            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                        '<form>',
+                        '<div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
+                          '<div class="col-sm-6 pull-right">',
+                            '<button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
+                            ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                          '</div>',
+                        '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.inputFile = null;
+            $scope.fileURL = null;
+            $scope.isMissingImportFile = function() {
+                return ! $scope.inputFile;
+            };
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = $scope.title || 'Import Dump File';
+            $scope.description = $scope.description || 'Select File';
+
+            $scope.importDmpFile = function(inputFile) {
+                if (! inputFile) {
+                    return;
+                }
+                newSimFromDmp(inputFile);
+            };
+
+            function upload(inputFile, data) {
+                var simId = data.models.simulation.simulationId;
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    $scope.isConfirming
+                        ? {
+                            confirm: $scope.isConfirming,
+                        }
+                        : null,
+                    requestSender.formatUrl(
+                        'uploadFile',
+                        {
+                            '<simulation_id>': simId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': SIREPO.APP_SCHEMA.constants.radiaDmpFileType,
+                        }),
+                    function(d) {
+                        $('#simulation-import').modal('hide');
+                        $scope.inputFile = null;
+                        URL.revokeObjectURL($scope.fileURL);
+                        $scope.fileURL = null;
+                        requestSender.localRedirectHome(simId);
+                    }, function (err) {
+                        throw new Error(inputFile + ': Error during upload ' + err);
+                    });
+            }
+
+            function newSimFromDmp(inputFile) {
+                var url = $scope.fileURL;
+                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.dmpImportFile = inputFile.name;
+                appState.newSimulation(
+                    model,
+                    function (data) {
+                        $scope.isUploading = false;
+                        upload(inputFile, data);
+                    },
+                    function (err) {
+                        throw new Error(inputFile + ': Error creating simulation ' + err);
+                    }
+                );
+            }
+
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+                scope.isUploading = false;
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });
@@ -1889,11 +2009,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.mode = null;
 
             $scope.isViewTypeFields = function () {
-                return (appState.models.magnetDisplay || {}).viewType === VIEW_TYPE_FIELDS;
+                return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
             };
 
             $scope.isViewTypeObjects = function () {
-                return (appState.models.magnetDisplay || {}).viewType === VIEW_TYPE_OBJECTS;
+                return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects;
             };
 
             var LINEAR_SCALE_ARRAY = 'linear';
@@ -1901,12 +2021,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var ORIENTATION_ARRAY = 'orientation';
             var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
 
-            var PICKABLE_TYPES = [radiaVtkUtils.GEOM_TYPE_POLYS, radiaVtkUtils.GEOM_TYPE_VECTS];
+            var PICKABLE_TYPES = [
+                SIREPO.APP_SCHEMA.constants.geomTypePolys,
+                SIREPO.APP_SCHEMA.constants.geomTypeVectors
+            ];
 
             var SCALAR_ARRAY = 'scalars';
-
-            var VIEW_TYPE_FIELDS = 'fields';
-            var VIEW_TYPE_OBJECTS = 'objects';
 
             var actorInfo = {};
             var alphaDelegate = null;
@@ -1972,8 +2092,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             // stash the actor and associated info to avoid recalculation
-            function addActor(id, group, actor, type, pickable) {
-                //srdbg('addActor', 'id', id, 'grp', group, 'type', type, 'pcik', pickable);
+            function addActor(id, group, actor, geomType, pickable) {
+                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', type, 'pick', pickable);
                 var pData = actor.getMapper().getInputData();
                 var info = {
                     actor: actor,
@@ -1982,11 +2102,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     id: id,
                     pData: pData,
                     scalars: pData.getCellData().getScalars(),
-                    type: type,
+                    type: geomType,
                 };
 
                 if (info.scalars) {
-                    info.colorIndices = utilities.indexArray(numColors(pData, type))
+                    info.colorIndices = utilities.indexArray(numColors(pData, geomType))
                         .map(function (i) {
                             return 4 * i;
                         });
@@ -2010,7 +2130,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene', sceneData.data);
+                //srdbg('buildScene', sceneData);
+                // scene -> multiple data -> multiple actors
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -2018,6 +2139,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
+                    // ***NEED BETTER ID, KNOWN ON BOTH SIDES***
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
 
@@ -2029,9 +2151,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             continue;
                         }
-                        var isPoly = t === radiaVtkUtils.GEOM_TYPE_POLYS;
+                        var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
                         //var gObj = radiaService.getObject(id) || {};
                         var gObj = radiaService.getObject(i) || {};
+                        //srdbg('gobj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         // use colors from Radia for groups
                         if (gObj.members) {
@@ -2067,17 +2190,18 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         bundle.actor.getProperty().setLighting(isPoly);
                         var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
-                        //srdbg('add obj', gObj, isPoly);
                         if (isPoly && $.isEmptyObject(gObj)) {
-                            gObj = appState.setModelDefaults(gObj, 'geomObject');
+                            //srdbg('add poly obj', gObj);
+                            gObj = appState.setModelDefaults(gObj, 'radiaObject');
                             gObj.name = id;
                             gObj.id = id;
                             if (gColor) {
+                                // **IF GROUP COLOR USE IF NOT USE OBJECT COLOR**
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
                             }
-
-                            // temporary handling of examples until they are "builaable"
-                            if (appState.models.simulation.isExample) {
+                            // temporary handling of examples until they are "buildaable"
+                            // ***KEEPS ADDING OVER AND OVER***
+                            if (appState.models.simulation.isExample || appState.models.simulation.dmpImportFile) {
                                 if (! appState.models.geometry.objects) {
                                     appState.models.geometry.objects = [];
                                 }
@@ -2093,8 +2217,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             didModifyGeom = true;
                         }
                         if (
-                            t === radiaVtkUtils.GEOM_TYPE_LINES &&
-                            appState.models.magnetDisplay.viewType == VIEW_TYPE_FIELDS
+                            t === SIREPO.APP_SCHEMA.constants.geomTypeLines &&
+                            appState.models.magnetDisplay.viewType == SIREPO.APP_SCHEMA.constants.viewTypeFields
                         ) {
                             setEdgeColor(info, [216, 216, 216]);
                         }
@@ -2358,10 +2482,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('Picked cid', cid);
 
                 var picker;
-                if (appState.models.magnetDisplay.viewType === VIEW_TYPE_OBJECTS && cid >= 0) {
+                if (appState.models.magnetDisplay.viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects && cid >= 0) {
                     picker = cPicker;
                 }
-                else if (appState.models.magnetDisplay.viewType === VIEW_TYPE_FIELDS && pid >= 0) {
+                else if (appState.models.magnetDisplay.viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields && pid >= 0) {
                     picker = ptPicker;
                 }
                 if (! picker) {
@@ -2390,7 +2514,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 // TODO(mvk): attach pick functions to actor info?
                 // vectors
-                if (info.type === radiaVtkUtils.GEOM_TYPE_VECTS) {
+                if (info.type === SIREPO.APP_SCHEMA.constants.geomTypeVectors) {
                     var n = pts.getNumberOfComponents();
                     var coords = pts.getData().slice(n * pid, n * (pid + 1));
                     var f = actor.getMapper().getInputConnection(0).filter;
@@ -2442,12 +2566,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // objects
-                else if (info.type === radiaVtkUtils.GEOM_TYPE_POLYS) {
+                else if (info.type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
                     var j = info.colorIndices[cid];
                     selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
                    //srdbg(info.name, 'poly tup', cid, selectedColor);
 
                     var g = getGeomObj(info.id);
+                    //srdbg(info.id, 'selected', g);
                     if (selectedObj === g) {
                         selectedObj = null;
                     }
@@ -2472,7 +2597,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             getData: function () {
                                 return selectedObj;
                             },
-                            modelKey: 'geomObject',
+                            // just color etc here?
+                            modelKey: 'radiaObject',
                         } : null,
                     };
                 }
@@ -2527,10 +2653,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (radiaVtkUtils.GEOM_OBJ_TYPES.indexOf(type) < 0) {
                     return 0;
                 }
-                if (type === radiaVtkUtils.GEOM_TYPE_LINES) {
+                if (type === SIREPO.APP_SCHEMA.constants.geomTypeLines) {
                     return numDataColors(polyData.getLines().getData());
                 }
-                if (type === radiaVtkUtils.GEOM_TYPE_POLYS) {
+                if (type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
                     return numDataColors(polyData.getPolys().getData());
                 }
             }
@@ -2560,7 +2686,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         info.actor.getProperty().setOpacity(alpha);
                         continue;
                     }
-                    setColor(info, radiaVtkUtils.GEOM_TYPE_POLYS, null, Math.floor(255 * alpha));
+                    setColor(
+                        info,
+                        SIREPO.APP_SCHEMA.constants.geomTypePolys,
+                        null,
+                        Math.floor(255 * alpha)
+                    );
                 }
                 renderWindow.render();
             }
@@ -2600,7 +2731,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setColorMap() {
-                getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(function (actor) {
                     actor.getMapper().getInputConnection(0).filter
                         .setFormula(getVectFormula(
                             sceneData.data[0].vectors,
@@ -2623,11 +2754,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 //info.actor.getProperty().setEdgeColor(...color);
                 info.actor.getProperty().setEdgeColor(color[0], color[1], color[2]);
-                setColor(info, radiaVtkUtils.GEOM_TYPE_LINES, color);
+                setColor(info, SIREPO.APP_SCHEMA.constants.geomTypeLines, color);
             }
 
             function setScaling() {
-                getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(function (actor) {
                     var mapper = actor.getMapper();
                     mapper.setScaleFactor(vectorScaleFactor(renderer.computeVisiblePropBounds()));
                     var vs = appState.models.fieldDisplay.scaling;
@@ -2701,6 +2832,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     viewType: appState.models.magnetDisplay.viewType,
                     simulationId: appState.models.simulation.simulationId,
                 };
+                if (appState.models.simulation.dmpImportFile) {
+                    inData.dmpImportFile = appState.models.simulation.dmpImportFile;
+                }
                 if ($scope.isViewTypeFields()) {
                     inData.fieldType = appState.models.magnetDisplay.fieldType;
                     inData.method = 'get_field';
@@ -2787,14 +2921,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var c = vtk.Common.Core.vtkMath.hex2float(h);
                 setColor(
                     selectedInfo,
-                    radiaVtkUtils.GEOM_TYPE_POLYS,
+                    SIREPO.APP_SCHEMA.constants.geomTypePolys,
                     vtkUtils.floatToRGB(c)
                 );
                 setAlpha();
             });
 
             $scope.$on('magnetDisplay.changed', function (e, d) {
-                //srdbg('MDC', e, d);
                 // does not seem the best way...
                 var interval = null;
                 interval = $interval(function() {
@@ -2831,11 +2964,15 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
     var self = {};
 
-    self.GEOM_TYPE_LINES = 'lines';
-    self.GEOM_TYPE_POLYS = 'polygons';
-    self.GEOM_TYPE_VECTS = 'vectors';
-    self.GEOM_OBJ_TYPES = [self.GEOM_TYPE_LINES, self.GEOM_TYPE_POLYS];
-    self.GEOM_TYPES = [self.GEOM_TYPE_LINES, self.GEOM_TYPE_POLYS, self.GEOM_TYPE_VECTS];
+    self.GEOM_OBJ_TYPES = [
+        SIREPO.APP_SCHEMA.constants.geomTypeLines,
+        SIREPO.APP_SCHEMA.constants.geomTypePolys,
+    ];
+    self.GEOM_TYPES = [
+        SIREPO.APP_SCHEMA.constants.geomTypeLines,
+        SIREPO.APP_SCHEMA.constants.geomTypePolys,
+        SIREPO.APP_SCHEMA.constants.geomTypeVectors,
+    ];
 
     self.objBounds = function(json) {
         var mins = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
