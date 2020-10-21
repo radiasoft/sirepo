@@ -1089,6 +1089,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     let bs = layouts[l].filter(function (s) {
                         return `${s.id}`.split('-').length === 1;
                     });
+                    /*
                     let bdef = d3.select('.plot-viewport defs').selectAll(l)
                         .data(bs);
                     bdef.exit().remove();
@@ -1096,7 +1097,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         .append(function (d) {
                             return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
                         });
-
+                    */
                     let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
                         .data(layouts[l]);
                     ds.exit().remove();
@@ -1343,6 +1344,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function shapeOrigin(shape, dim) {
                 var labDim = shape.elev[dim].axis;
+
                 return axes[dim].scale(
                     shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
                 );
@@ -1387,11 +1389,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeSize(shape, screenDim) {
-                var labDim = shape.elev[screenDim].axis;
-                return  Math.abs(
-                    axes[screenDim].scale(shape.center[labDim] + shape.size[labDim] / 2) -
-                    axes[screenDim].scale(shape.center[labDim] - shape.size[labDim] / 2)
-                );
+                let labDim = shape.elev[screenDim].axis;
+                let c = shape.center[labDim] || 0;
+                let s = shape.size[labDim] || 0;
+                return  Math.abs(axes[screenDim].scale(c + s / 2) - axes[screenDim].scale(c - s / 2));
             }
 
             function updateShapeAttributes(selection) {
@@ -1427,9 +1428,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         var pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
                     })
-                    .attr('y2', function (d) {
+                    .attr('y2', function(d) {
                         var pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
+                    })
+                    .attr('marker-end', function(d) {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
+                    })
+                    .attr('marker-start', function(d) {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
                     })
                     .attr('width', function(d) {
                         return shapeSize(d, 'x') + 2 * (d.outlineOffset || 0);
