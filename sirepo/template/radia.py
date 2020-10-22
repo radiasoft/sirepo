@@ -23,6 +23,7 @@ import math
 import numpy
 import re
 import sdds
+import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
 import time
