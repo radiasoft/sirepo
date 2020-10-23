@@ -16,7 +16,6 @@ from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
-from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
@@ -27,7 +26,6 @@ import os
 import os.path
 import py.path
 import re
-import sdds
 import sirepo.sim_data
 import stat
 
@@ -75,13 +73,7 @@ _PLOT_TITLE = PKDict({
     't-p': 'Longitudinal',
 })
 
-_SDDS_INDEX = 0
-
-_s = sdds.SDDS(_SDDS_INDEX)
-_x = getattr(_s, 'SDDS_LONGDOUBLE', None)
-_SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
-
-_SDDS_STRING_TYPE = _s.SDDS_STRING
+_SDDS_INDEX = None
 
 _SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
 
@@ -739,6 +731,7 @@ def sim_frame(frame_args):
 def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
+        _sdds_init()
         err = 'expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns'
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
             beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
@@ -1065,6 +1058,7 @@ def _extract_report_data(xFilename, frame_args, page_count=0):
             title += ', Plot {} of {}'.format(page_index + 1, page_count)
         return title
 
+    _sdds_init()
     page_index = frame_args.frameIndex
     xfield = frame_args.x if 'x' in frame_args else frame_args[_X_FIELD]
     # x, column_names, x_def, err
@@ -1238,6 +1232,7 @@ def _output_info(run_dir):
                 return res
         except ValueError as e:
             pass
+    _sdds_init()
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
@@ -1313,8 +1308,21 @@ def _sdds_beam_type(column_names):
 
 
 def _sdds_beam_type_from_file(path):
+    _sdds_init()
     res = ''
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)
     return res
+
+def _sdds_init():
+    global _SDDS_INDEX, _SDDS_DOUBLE_TYPES, _SDDS_STRING_TYPE, sdds_util, sdds
+    if _SDDS_INDEX is not None:
+        return
+    from sirepo.template import sdds_util
+    import sdds
+    _SDDS_INDEX = 0
+    _s = sdds.SDDS(_SDDS_INDEX)
+    _x = getattr(_s, 'SDDS_LONGDOUBLE', None)
+    _SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
+    _SDDS_STRING_TYPE = _s.SDDS_STRING
