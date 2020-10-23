@@ -1486,7 +1486,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
 
                 const s = SIREPO.APP_SCHEMA.strings;
                 const f = $scope.simState.getFrameCount();
-                var c = f > 0 ? s.completionState : '';
+                let c = f > 0 ? s.completionState : '';
                 if ($scope.simState.controller.simCompletionState) {
                     c = $scope.simState.controller.simCompletionState(c);
                 }
