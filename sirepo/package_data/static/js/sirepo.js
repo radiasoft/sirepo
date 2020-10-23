@@ -1129,7 +1129,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
         var delay = isPlaying && ! isHidden
-            ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
+            ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
         var requestFunction = function() {
             requestSender.sendRequest(

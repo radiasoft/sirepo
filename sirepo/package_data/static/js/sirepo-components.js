@@ -1067,13 +1067,19 @@ SIREPO.app.directive('helpButton', function($window) {
             helpTopic: '@helpButton',
         },
         template: [
-            '<button class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
+            '<button data-ng-if="::showHelp()" class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
             $scope.openHelp = function() {
                 $window.open(
                     HELP_WIKI_ROOT + $scope.helpTopic.replace(/\s+/, '-'),
                     '_blank');
+            };
+            $scope.showHelp = function() {
+                if ('SHOW_HELP_BUTTONS' in SIREPO) {
+                    return SIREPO.SHOW_HELP_BUTTONS;
+                }
+                return false;
             };
         },
     };

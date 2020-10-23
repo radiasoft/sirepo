@@ -56,6 +56,10 @@
             "longName": "SHADOW",
             "shortName": "SHADOW"
         },
+        "silas": {
+            "longName": "SILAS",
+            "shortName": "SILAS"
+        },
         "srw": {
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"

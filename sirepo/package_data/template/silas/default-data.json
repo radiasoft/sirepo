@@ -1,0 +1,35 @@
+{
+    "models": {
+        "beamline": [
+            {
+                "icon": "lmirror.svg",
+                "id": 4,
+                "position": 0,
+                "title": "Left Mirror",
+                "type": "mirror"
+            },
+            {
+                "icon": "ti-sapphire-crystal.png",
+                "id": 5,
+                "position": 5,
+                "refractionIndex": 4.20756805e-06,
+                "title": "Ti-Sapphire Crystal",
+                "type": "crystal"
+            },
+            {
+                "icon": "rmirror.svg",
+                "id": 6,
+                "position": 10,
+                "title": "Right Mirror",
+                "type": "mirror"
+            }
+        ],
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "default",
+            "notes": ""
+        }
+    },
+    "simulationType": "silas"
+}

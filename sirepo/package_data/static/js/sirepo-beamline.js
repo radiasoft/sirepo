@@ -289,7 +289,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
                   '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)"> </div>',
-                  '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
+                  '<div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
                     'data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)" ',
                     'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
                     'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
@@ -467,7 +467,12 @@ SIREPO.app.directive('beamlineIcon', function() {
         scope: {
             item: '=',
         },
-        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        template: [
+            '<div data-ng-if="::isSVG">',
+              '<data-ng-include src="::iconUrl" data-onload="iconLoaded()"/>',
+            '</div>',
+            '<img class="srw-beamline-item-icon" data-ng-if="::! isSVG" data-ng-attr-src="{{ ::iconUrl }}"/>',
+        ].join(''),
         controller: function($scope, $element) {
             var adjustmentsByType = {
                 // height, x, y
@@ -488,9 +493,21 @@ SIREPO.app.directive('beamlineIcon', function() {
                 zonePlate: [20, -10, -5],
             };
 
-            $scope.iconUrl = function() {
-                return'/static/svg/' +  $scope.item.type + '.svg' + SIREPO.SOURCE_CACHE_KEY;
-            };
+            function iconUrl() {
+                // use <icon> or <type>.svg
+                var icon = $scope.item.icon || $scope.item.type;
+                if (icon.indexOf('.') < 0) {
+                    icon += '.svg';
+                }
+                if (icon.indexOf('.svg') >= 0) {
+                    $scope.isSVG = icon.search('.svg');
+                    icon = '/static/svg/' + icon;
+                }
+                else {
+                    icon = '/static/img/' + icon;
+                }
+                return icon + SIREPO.SOURCE_CACHE_KEY;
+            }
 
             $scope.iconLoaded = function () {
                 var vb = $($element).find('svg.srw-beamline-item-icon').prop('viewBox').baseVal;
@@ -504,6 +521,7 @@ SIREPO.app.directive('beamlineIcon', function() {
                 }
             };
 
+            $scope.iconUrl = iconUrl();
         },
     };
 });
