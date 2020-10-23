@@ -1,0 +1,23 @@
+<div class="container-fluid" data-ng-if="beamline.appState.isLoaded()">
+  <div data-ng-show="false" data-beamline-toolbar="beamline.toolbarItemNames" data-parent-controller="beamline"></div>
+  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels"></div>
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="simulationSettings"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="beamline.simState"></div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-repeat="item in beamline.wavefronts track by item.modelKey">
+      <div data-ng-if="beamline.hasFrames()" class="col-sm-4">
+        <div data-report-panel="3d" data-model-name="wavefrontAnimation" data-model-data="item" data-panel-title="{{ item.title }}"></div>
+      </div>
+    </div>
+    <div data-ng-if="beamline.hasFrames()" class="col-sm-12">
+      <div data-report-panel="parameter" data-model-name="wavefrontSummaryAnimation"></div>
+    </div>
+  </div>
+</div>

@@ -31,6 +31,7 @@ _NON_PROD_FOSS_CODES = frozenset((
     'myapp',
     'rcscon',
     'rs4pi',
+    'silas',
 ))
 
 #: All possible open source codes
