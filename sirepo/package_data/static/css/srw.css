@@ -284,6 +284,12 @@ svg.srw-beamline-item-icon {
   height: 60px;
 }
 
+img.srw-beamline-item-icon {
+  width: 70px;
+  height: 60px;
+  margin-bottom: 5px;
+}
+
 .srw-toolbar-button svg.srw-beamline-item-icon {
   width: 70px;
   height: 35px;

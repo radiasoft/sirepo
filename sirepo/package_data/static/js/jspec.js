@@ -237,8 +237,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     });
 
-    self.showCompletionState = function() {
-        return self.hasParticles;
+    self.simCompletionState = function() {
+        if (! self.hasParticles) {
+            return '';
+        }
+        return  SIREPO.APP_SCHEMA.strings.completionState;
     };
 
     self.simState = persistentSimulation.initSimulationState(self);

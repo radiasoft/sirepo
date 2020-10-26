@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+    SIREPO.SHOW_HELP_BUTTONS = true;
     SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';

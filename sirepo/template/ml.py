@@ -14,7 +14,6 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import numpy as np
-import os
 import re
 import sirepo.sim_data
 
@@ -60,14 +59,12 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=1 if s else 0,
             percentComplete=100,
         )
-    fit_csv_file = run_dir.join(_OUTPUT_FILE.fitCSVFile)
-    if fit_csv_file.exists():
-        line = _read_last_csv_line(fit_csv_file)
-        m = re.search(r'^(\d+)', line)
-        if m and int(m.group(1)) > 0:
-            max_frame = data.models.neuralNet.epochs
-            res.frameCount = int(m.group(1)) + 1
-            res.percentComplete = float(res.frameCount) * 100 / max_frame
+    line = template_common.read_last_csv_line(run_dir.join(_OUTPUT_FILE.fitCSVFile))
+    m = re.search(r'^(\d+)', line)
+    if m and int(m.group(1)) > 0:
+        max_frame = data.models.neuralNet.epochs
+        res.frameCount = int(m.group(1)) + 1
+        res.percentComplete = float(res.frameCount) * 100 / max_frame
     return res
 
 
@@ -512,19 +509,6 @@ def _read_file(run_dir, filename):
 
 def _read_file_column(run_dir, name, idx):
     return _read_file(run_dir, _OUTPUT_FILE[name])[:, idx]
-
-
-def _read_last_csv_line(path):
-    # for performance, don't read whole file if only last line is needed
-    try:
-        with open(str(path), 'rb') as f:
-            f.readline()
-            f.seek(-2, os.SEEK_END)
-            while f.read(1) != b'\n':
-                f.seek(-2, os.SEEK_CUR)
-            return pkcompat.from_bytes(f.readline())
-    except IOError:
-        return ''
 
 
 def _report_info(x, plots, title=''):
