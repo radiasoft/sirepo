@@ -5,6 +5,7 @@
         }
     },
     "constants": {
+        "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "defaultGeomColor": "#ffffff",
         "detailFields": {
             "fieldPath": {

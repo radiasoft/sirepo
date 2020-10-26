@@ -39,7 +39,7 @@ SIREPO.app.config(function() {
     ].join('');
 });
 
-SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender) {
+SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender, utilities, validationService) {
     var self = {};
 
     // why is this here? - answer: for getting frames
@@ -234,9 +234,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     var self = this;
 
     const editorFields = [
-         'geomObject.magnetization',
-         'geomObject.symmetryType',
-         'geomObject.doDivide',
+        'geomObject.magnetization',
+        'geomObject.material',
+        'geomObject.symmetryType',
+        'geomObject.doDivide',
     ];
     const groupModels = [
         'geomGroup',
@@ -794,6 +795,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'division',
             o.doDivide == '1'
         );
+
         //panelState.showField(
         //    'geomObject',
         //    'symmetryPlane',
