@@ -1,7 +1,11 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-6 col-xl-6">
-      <div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Beamline"></div>
+      <div data-simple-panel="beamline">
+        <div class="col-md-12">
+          <div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-path-to-models="externalLattice"></div>
+        </div>
+      </div>
     </div>
     <div class="col-md-6 col-xl-6">
       <div data-simple-panel="simulationStatus">

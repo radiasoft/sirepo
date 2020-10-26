@@ -13,7 +13,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        pass
+        sirepo.sim_data.get_class('madx').fixup_old_data(data.models.externalLattice)
 
     @classmethod
     def _lib_file_basenames(cls, data):

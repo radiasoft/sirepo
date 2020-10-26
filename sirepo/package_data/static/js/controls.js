@@ -5,6 +5,12 @@ var srdbg = SIREPO.srdbg;
 
 
 SIREPO.app.config(function() {
+    // TODO(pjm): copied from webcon
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
+          '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+        '</div>',
+    ].join('');
     // TODO(e-carlin): copied from madx
     SIREPO.lattice = {
         elementColor: {
@@ -46,7 +52,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.basicNames = [];
 
     self.simHandleStatus = function(data) {
-        if (data.frameCount && data.outputInfo) {
+        if (data.frameCount) {
             frameCache.setFrameCount(1);
             // TODO(e-carlin): load reports
         }
@@ -54,7 +60,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function elementForId(id) {
         var model = null;
-        appState.models.elements.some(function(m) {
+        appState.models.externalLattice.elements.some(function(m) {
             if (m._id == id) {
                 model = m;
                 return true;
@@ -66,54 +72,70 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         return model;
     }
 
-    function modelForElement(element) {
-        var modelKey = element.type + element._id;
-        if (! appState.models[modelKey]) {
-            appState.models[modelKey] = element;
-            appState.saveQuietly(modelKey);
+    function getBeamlineElements(id, elements) {
+        var found = appState.models.externalLattice.models.elements.some(function(el) {
+            if (el._id == id) {
+                elements.push(el);
+                return true;
+            }
+        });
+        if (! found) {
+            appState.models.externalLattice.models.beamlines.some(function(bl) {
+                if (bl.id == id) {
+                    bl.items.forEach(function(id2) {
+                        getBeamlineElements(id2, elements);
+                    });
+                    return true;
+                }
+            });
         }
+        return elements;
+    }
+
+    function modelForElement(element) {
         return {
-            id: element._id,
-            modelKey: modelKey,
+            modelKey: element.type,
             title: element.name.replace(/\_/g, ' '),
             viewName: element.type,
-            element: element,
             getData: function() {
-                return appState.models[modelKey];
+                return element;
             },
         };
     }
 
-    function indexOfBeamline(id) {
-        let index = null;
-        appState.models.beamlines.some((b, i) => {
-            if (b.id === id) {
-                index = i;
-                return true;
-            }
-        });
-        if (! index) {
-            throw new Error(`beamline not found with id=${id}`);
-        }
-        return index;
-    }
-
     appState.whenModelsLoaded($scope, function() {
         self.editorColumns = [];
-        var quadCount = 0;
-        latticeService.getActiveBeamline().items.forEach((id) => {
-            appState.models.beamlines[indexOfBeamline(id)].items.forEach((id) => {
-                const e = elementForId(id);
-                if ( ! ['KICKER', 'QUADRUPOLE', 'HKICKER', 'VKICKER'].includes(e.type)) {
-                    return;
-                }
-                self.editorColumns.push([modelForElement(e)]);
-            });
+        var schema = SIREPO.APP_SCHEMA.model;
+        var beamlineId = appState.models.externalLattice.models.simulation.visualizationBeamlineId;
+        getBeamlineElements(beamlineId, []).forEach(function(element) {
+            if (schema[element.type]) {
+                self.editorColumns.push([modelForElement(element)]);
+            }
         });
+    });
+
+    $scope.$on('modelChanged', function(e, name) {
+        //TODO(pjm): not a good element model detector
+        if (name == name.toUpperCase()) {
+            appState.saveQuietly('externalLattice');
+        }
     });
 
     self.simState = persistentSimulation.initSimulationState(self);
     return self;
+});
+
+SIREPO.app.directive('appFooter', function(controlsService) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
+        ].join(''),
+    };
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
