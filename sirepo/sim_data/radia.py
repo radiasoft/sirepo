@@ -35,7 +35,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def __dynamic_defaults(cls, data, model):
         """defaults that depend on the current data"""
-        if not model in ('geomObject',):
+        if model not in ('geomObject',):
             return PKDict()
         #beam_axis = data.models.simulation.beamAxis
         #return PKDict(

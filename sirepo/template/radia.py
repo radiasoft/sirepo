@@ -380,6 +380,7 @@ def _generate_parameters_file(data):
         )
     v['isExample'] = data.models.simulation.get('isExample', False)
     v['objects'] = g.get('objects', [])
+    _validate_objects(v.objects)
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
@@ -549,3 +550,12 @@ def _split_comma_field(f, type):
         return [int(x) for x in arr]
     return arr
 
+
+def _validate_objects(objects):
+    from numpy import linalg
+    for o in objects:
+        if o.material in _SCHEMA.constants.anisotropicMaterials:
+            if numpy.linalg.norm(_split_comma_field(o.magnetization, 'float')) == 0:
+                raise ValueError(
+                    f'anisotropic material {o.material} requires non-0 magnetization'
+                )

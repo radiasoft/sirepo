@@ -113,9 +113,7 @@ def build_box(center, size, material, magnetization, div):
     g_id = radia.ObjRecMag(center, size, magnetization)
     if div:
         radia.ObjDivMag(g_id, div)
-    # do not apply a material unless a magentization of some magnitude has been set
-    if n_mag > 0:
-        radia.MatApl(g_id, radia.MatStd(material, n_mag))
+    radia.MatApl(g_id, radia.MatStd(material, n_mag))
     return g_id
 
 
@@ -255,7 +253,7 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     for i in range(len(pv_arr)):
         p = pv_arr[i][0]
         v = pv_arr[i][1]
-        n = linalg.norm(v)
+        n = numpy.linalg.norm(v)
         v_max = max(v_max, n)
         v_min = min(v_min, n)
         nv = (numpy.array(v) / (n if n > 0 else 1.)).tolist()
