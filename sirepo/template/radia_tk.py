@@ -33,6 +33,7 @@ FIELD_UNITS = PKDict({
 })
 
 
+_MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
 
@@ -108,12 +109,18 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform.model](g_id, xform)
 
 
-def build_box(center, size, material, magnetization, div):
+def build_box(center, size, material, magnetization, div, h_m_curve=None):
     n_mag = numpy.linalg.norm(magnetization)
     g_id = radia.ObjRecMag(center, size, magnetization)
     if div:
         radia.ObjDivMag(g_id, div)
-    radia.MatApl(g_id, radia.MatStd(material, n_mag))
+    if material == 'custom':
+        mat = radia.MatSatIsoTab(
+            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
+        )
+    else:
+        mat = radia.MatStd(material, n_mag)
+    radia.MatApl(g_id, mat)
     return g_id
 
 

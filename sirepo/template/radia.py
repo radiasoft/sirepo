@@ -23,6 +23,7 @@ import math
 import numpy
 import re
 import sdds
+import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
 import time
@@ -187,6 +188,7 @@ def new_simulation(data, new_simulation_data):
     data.models.geometry.name = new_simulation_data.name
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+
 
 
 def python_source_for_model(data, model):
@@ -381,6 +383,11 @@ def _generate_parameters_file(data):
     v['isExample'] = data.models.simulation.get('isExample', False)
     v['objects'] = g.get('objects', [])
     _validate_objects(v.objects)
+    # read in h-m curves if applicable
+    for o in v.objects:
+        o.h_m_curve = _read_h_m_file(o.materialFile) if \
+            o.get('material', None) and o.material == 'custom' and \
+            o.get('materialFile', None) and o.materialFile else None
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
@@ -458,6 +465,20 @@ def _read_h5_path(sim_id, h5path):
         # no such path in file
         return None
     # propagate other errors
+
+
+def _read_h_m_file(file_name):
+    h_m_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
+        file_name,
+        'h-m'
+    ))
+    lines = [r for r in sirepo.csv.open_csv(h_m_file)]
+    # lines = [[float(c.strip()) for c in [r for r in sirepo.csv.open_csv(h_m_file)]
+    f_lines = []
+    for l in lines:
+        f_lines.append([float(c.strip()) for c in l])
+    #pkdp('HM LINES {}', f_lines)
+    return f_lines
 
 
 def _read_data(sim_id, view_type, field_type):

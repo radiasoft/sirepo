@@ -177,7 +177,8 @@
             ["Steel37", "Steel37"],
             ["Steel42", "Steel42"],
             ["AFK502", "Aperam 502"],
-            ["AFK1", "Aperam 1"]
+            ["AFK1", "Aperam 1"],
+            ["custom", "Custom"]
         ],
         "ObjectType": [
             ["box", "Box"],
@@ -302,6 +303,7 @@
             "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "mapId": ["_", "String", "???.0"],
             "material": ["Material", "MaterialType", "NdFeB"],
+            "materialFile": ["H-B from File", "InputFile", "0", "H, B (T)"],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
@@ -501,14 +503,15 @@
             ],
             "advanced": [
                 ["Main", [
-                "name",
-                "magnetization",
-                "material",
-                "doDivide",
-                "division",
-                "center",
-                "size",
-                "color"
+                    "name",
+                    "magnetization",
+                    "material",
+                    "materialFile",
+                    "doDivide",
+                    "division",
+                    "center",
+                    "size",
+                    "color"
             ]],
                 ["Transforms", [
                     "transforms"
