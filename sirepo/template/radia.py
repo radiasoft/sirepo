@@ -554,7 +554,7 @@ def _split_comma_field(f, type):
 def _validate_objects(objects):
     from numpy import linalg
     for o in objects:
-        if o.material in _SCHEMA.constants.anisotropicMaterials:
+        if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
             if numpy.linalg.norm(_split_comma_field(o.magnetization, 'float')) == 0:
                 raise ValueError(
                     f'anisotropic material {o.material} requires non-0 magnetization'
