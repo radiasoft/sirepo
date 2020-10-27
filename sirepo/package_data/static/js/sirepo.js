@@ -1440,6 +1440,31 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     // lazy creation/storage of field delegates
     self.fieldDelegates = {};
+
+    // if no associated view, check for a superclass that does have one
+    self.getBaseModelKey = function(modelKey) {
+        if (appState.viewInfo(modelKey)) {
+            return modelKey;
+        }
+        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
+            return modelKey;
+        }
+        var m = appState.modelInfo(modelKey);
+        if (m._super) {
+            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
+                if (appState.viewInfo(m._super[i])) {
+                    modelKey = m._super[i];
+                    return modelKey;
+                }
+            }
+        }
+        return modelKey;
+    };
+
+    self.getField = function(modelName, field) {
+        return $(fieldClass(modelName, field));
+    };
+
     self.getFieldDelegate = function(modelName, field) {
         if (! self.fieldDelegates[modelName]) {
             self.fieldDelegates[modelName] = {};
@@ -1450,6 +1475,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             };
         }
         return self.fieldDelegates[modelName][field];
+    };
+
+    self.getForm = function(model, field) {
+        return $(fieldClass(model, field)).closest('form');
     };
 
     self.fileNameFromText = function(text, extension) {
@@ -1486,27 +1515,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         return 'Waiting';
     };
-
-    // if no associated view, check for a superclass that does have one
-    self.getBaseModelKey = function(modelKey) {
-        if (appState.viewInfo(modelKey)) {
-            return modelKey;
-        }
-        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
-            return modelKey;
-        }
-        var m = appState.modelInfo(modelKey);
-        if (m._super) {
-            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
-                if (appState.viewInfo(m._super[i])) {
-                    modelKey = m._super[i];
-                    return modelKey;
-                }
-            }
-        }
-        return modelKey;
-    };
-
 
     self.isActiveField = function(model, field) {
         return $(fieldClass(model, field)).find('input').is(':focus');

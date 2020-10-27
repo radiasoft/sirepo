@@ -3,10 +3,15 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+//import {SirepoDOM, SirepoSelection, SirepoSelectionOption} from './sirepo-dom.module';
+
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
+        //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
+        //...new SirepoSelection('MaterialType', false).val,
+        //'</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
@@ -233,7 +238,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, vtkPlotting, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, vtkPlotting, $scope) {
     var self = this;
 
     const editorFields = [
@@ -832,6 +837,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'materialFile',
             o.material === 'custom'
         );
+        //angular.element(f).controller('form');
+        //srdbg('frm', angular.element(panelState.getForm('geomObject', 'magnetization')));
         //srdbg('mf', o.materialFile);
         //let form = panelState.getForm('geomObject', 'materialFile');
         //if (o.material === 'custom') {
@@ -849,9 +856,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         //    'symmetryPoint',
         //    //o.symmetryType != 'none'
         //);
-        var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
-            return parseFloat(m);
-        });
+        const mag = radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR);
+        const mfId = utilities.modelFieldID('geomObject' ,'material');
+        const f = $(`.${mfId} select`)[0];
+        if (SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) >= 0) {
+            let af = angular.element(f);
+            let ng = utilities.ngModelForElement(f);  // af.controller('ngModel');
+            srdbg('mag valid?', f, af, ng, mag, Math.hypot(...mag) > 0);
+            ng.$setValidity(mfId, Math.hypot(...mag) > 0);
+            //ng.$$parentForm.$setValidity(mfId, Math.hypot(...mag) > 0);
+
+            // overridden by angular?
+            //f.setCustomValidity("Invalid field.");
+            //angular.element(panelState.getForm('geomObject', 'magnetization')).$valid = Math.hypot(...mag) > 0;
+            //panelState.getForm('geomObject', 'magnetization'));
+        }
         //panelState.showField(
         //    'geomObject',
         //    'material',

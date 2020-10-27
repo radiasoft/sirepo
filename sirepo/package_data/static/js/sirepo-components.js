@@ -3967,11 +3967,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
 
     var self = this;
 
-    this.modelFieldID = function (modelName, fieldName) {
+    this.modelFieldID = function(modelName, fieldName) {
         return 'model-' + modelName + '-' + fieldName;
     };
 
-    this.ngModelForInput = function (modelName, fieldName) {
+    this.ngModelForElement = function(el) {
+        return angular.element(el).controller('ngModel');
+    };
+
+    this.ngModelForInput = function(modelName, fieldName) {
         return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
     };
 
