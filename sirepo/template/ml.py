@@ -71,7 +71,7 @@ def background_percent_complete(report, run_dir, is_running):
 def get_application_data(data, **kwargs):
     if data.method == 'compute_column_info':
         return _compute_column_info(data.dataFile)
-    assert False, 'unknown get_application_data: {}'.format(data)
+    raise AssertionError(f'unknown get_application_data: {data}')
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -244,19 +244,23 @@ def _classification_metrics_report(frame_args, filename):
 
 
 def _compute_column_info(dataFile):
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_filename(dataFile.file)))
-    if re.search(r'\.npy$', path):
-        return _compute_numpy_info(path)
-    return _compute_csv_info(path)
+    f = dataFile.file
+    if re.search(r'\.npy$', f):
+        return _compute_numpy_info(f)
+    return _compute_csv_info(f)
 
 
-def _compute_csv_info(path):
+def _compute_csv_info(filename):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    with open(str(path)) as f:
+    with open(
+            simulation_db.simulation_lib_dir(
+                SIM_TYPE,
+            ).join(_filename(filename)),
+    ) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -270,14 +274,38 @@ def _compute_csv_info(path):
     if list(filter(lambda x: template_common.NUMERIC_RE.search(x), row)):
         row = ['column {}'.format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
+    res.colsWithNonUniqueValues = _cols_with_non_unique_values(
+        filename,
+        res.hasHeaderRow,
+        row,
+    )
     res.header = row
     res.inputOutput = ['none' for i in range(len(row))]
     return res
 
 
-def _compute_numpy_info(path):
+def _cols_with_non_unique_values(filename, has_header_row, header):
+    # TODO(e-carlin): support npy
+    assert not re.search(r'\.npy$', str(filename)), \
+        f'numpy files are not supported path={filename}'
+    v = np.genfromtxt(
+        str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            _filename(filename),
+        )),
+        delimiter=',',
+        skip_header=True,
+    )
+    res = PKDict()
+    for i, c in enumerate(np.all(v == v[0,:], axis = 0)):
+        if not c:
+            continue
+        res[header[i]] = True
+    return res
+
+
+def _compute_numpy_info(filename):
     #TODO(pjm): compute column info from numpy file
-    assert False, 'not implemented yet'
+    raise NotImplementedError()
 
 
 def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
@@ -441,7 +469,9 @@ def _get_classification_output_col_encoding(frame_args):
         from sklearn.preprocessing import LabelEncoder
 
         # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
-        data = simulation_db.read_json(frame_args.run_dir.join(template_common.INPUT_BASE_NAME))
+        data = simulation_db.read_json(
+            frame_args.run_dir.join(template_common.INPUT_BASE_NAME),
+        )
         v = np.genfromtxt(
             str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
                 _filename(data.models.dataFile.file),
