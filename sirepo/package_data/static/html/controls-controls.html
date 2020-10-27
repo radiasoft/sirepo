@@ -15,11 +15,10 @@
   </div>
   <div class="row">
     <div data-ng-repeat="col in controls.editorColumns track by $index">
-      <div class="row" ng-show="$index % 4 == 0"></div>
+      <div class="clearfix" ng-if="$index % 4 == 0"></div>
         <div class="col-sm-6 col-md-3">
           <div data-basic-editor-panel="" data-view-name="{{ col.viewName }}" data-model-data="col" data-panel-title="{{ col.title }}"></div>
         </div>
-      </div ng-show="$index % 4 == 0">
     </div>
   </div>
 </div>
