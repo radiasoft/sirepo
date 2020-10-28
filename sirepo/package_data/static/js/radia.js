@@ -292,12 +292,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return;
         }
         deleteShapesForObject(o);
-        for (var i in (o.members || [])) {
-            self.getObject(o.members[i]).groupId = '';
+        // if object was a group, ungroup its members
+        for (let m of (o.members || [])) {
+            self.getObject(m).groupId = '';
         }
+        // if object was in a group, remove from that group
+        removeFromGroup(o);
         appState.models.geometry.objects.splice(oIdx, 1);
         appState.saveChanges('geometry');
     };
+
+    function removeFromGroup(o) {
+        const gId = o.groupId;
+        if (gId !== 0 && (! gId || gId === '')) {
+            return;
+        }
+        let g = self.getObject(gId);
+        g.members.splice(g.members.indexOf(o.id), 1);
+    }
 
     self.editItem = function(o) {
         self.editObject(o);
@@ -1547,7 +1559,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 '</tr>',
                 '<tr data-ng-repeat="mId in field">',
                     '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>',
-                    '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                    '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
                 '<tr>',
                   '<th>Ungrouped</th>',
@@ -1585,19 +1597,33 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 if ($scope.field.indexOf(oId) >= 0) {
                     return false;
                 }
+                if (groupedObjects(oId).indexOf($scope.model.id) >= 0) {
+                    return false;
+                }
                 let o = $scope.getObject(oId);
                 return oId !== $scope.model.id && (! o.groupId || o.groupId === '');
             };
 
-            $scope.removeObject = function(oId) {
-                let o = $scope.getObject(oId);
-                o.groupId = '';
-                var oIdx = $scope.field.indexOf(oId);
+            $scope.ungroupObject = function(oId) {
+                $scope.getObject(oId).groupId = '';
+                let oIdx = $scope.field.indexOf(oId);
                 if (oIdx < 0) {
                     return;
                 }
                 $scope.field.splice(oIdx, 1);
             };
+
+            function groupedObjects(oId) {
+                let o = $scope.getObject(oId);
+                if (! o) {
+                    return [];
+                }
+                let objs = [];
+                for (let mId of (o.members || [])) {
+                    objs.push(...[mId, ...groupedObjects(mId)]);
+                }
+                return objs;
+            }
         },
     };
 });
