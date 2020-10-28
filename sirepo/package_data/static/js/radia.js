@@ -274,6 +274,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.copyObject = function(o) {
         var copy = appState.clone(o);
         copy.name = newObjectName(copy);
+        copy.groupId = '';
         addObject(copy);
         self.editObject(copy);
     };
