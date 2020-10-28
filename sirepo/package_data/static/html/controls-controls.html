@@ -12,13 +12,25 @@
         <div data-sim-status-panel="controls.simState"></div>
       </div>
     </div>
-  </div>
-  <div class="row">
+    <div class="clearfix"></div>
+    <div data-ng-repeat="item in controls.commandEditors">
+      <div class="col-md-6 col-xl-6">
+        <div data-basic-editor-panel="" data-view-name="{{ item.viewName }}" data-model-data="item"></div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
     <div data-ng-repeat="col in controls.editorColumns track by $index">
       <div class="clearfix" ng-if="$index % 4 == 0"></div>
         <div class="col-sm-6 col-md-3">
           <div data-basic-editor-panel="" data-view-name="{{ col.viewName }}" data-model-data="col" data-panel-title="{{ col.title }}"></div>
         </div>
+    </div>
+  </div>
+  <div class="row">
+    <div data-ng-repeat="item in controls.watches track by $index">
+      <div class="col-sm-6 col-md-3">
+        <div data-report-panel="bpmMonitor" data-model-name="watchpointReport" data-model-data="item" data-panel-title="{{ item.title }}"></div>
+      </div>
     </div>
   </div>
 </div>

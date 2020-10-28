@@ -6,6 +6,7 @@ u"""Controls execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp
 import sirepo.template.madx
 
 
@@ -18,6 +19,7 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=1,
+        monitorValues=sirepo.template.madx.extract_monitor_values(run_dir),
     )
 
 

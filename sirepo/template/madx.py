@@ -135,6 +135,21 @@ def code_var(variables):
         case_insensitive=True,
     )
 
+def extract_monitor_values(run_dir):
+    t = madx_parser.parse_tfs_file(run_dir.join('twiss.file.tfs'))
+    l = []
+    for i, e in enumerate(t.keyword):
+        if to_string(e) == 'MONITOR':
+            l.append(i)
+    m = []
+    for i in l:
+        m.append(PKDict(
+            name=to_string(t.name[i]),
+            x=to_float(t.x[i]),
+            y=to_float(t.y[i]),
+        ))
+    return m
+
 
 def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
     t = madx_parser.parse_tfs_file(run_dir.join(filename))
@@ -241,8 +256,16 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
+def to_float(value):
+    return float(value)
+
+
 def to_floats(values):
-    return [float(v) for v in values]
+    return [to_float(v) for v in values]
+
+
+def to_string(value):
+    return value.replace('"', '')
 
 
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):

@@ -31,6 +31,9 @@ SIREPO.app.config(function() {
             zeroLength: ['BEAMBEAM', 'CHANGEREF', 'DIPEDGE', 'SROTATION', 'TRANSLATION', 'XROTATION', 'YROTATION'],
         },
     };
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    ].join('');
 });
 
 SIREPO.app.factory('controlsService', function(appState) {
@@ -43,31 +46,34 @@ SIREPO.app.factory('controlsService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, persistentSimulation, $scope) {
+// TODO(e-carlin): remove $timeout
+SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, persistentSimulation, $scope, $timeout) {
     var self = this;
     self.simScope = $scope;
     self.latticeService = latticeService;
 
     self.advancedNames = [];
     self.basicNames = [];
-
-    self.simHandleStatus = function(data) {
-        if (data.frameCount) {
-            frameCache.setFrameCount(1);
-            // TODO(e-carlin): load reports
-        }
-    };
+    self.beamPositionReports = [];
 
     function elementForId(id) {
+        return elementForValue('_id', id);
+    }
+
+    function elementForName(name) {
+        return elementForValue('name', name);
+    }
+
+    function elementForValue(key, value) {
         var model = null;
-        appState.models.externalLattice.elements.some(function(m) {
-            if (m._id == id) {
+        appState.models.externalLattice.models.elements.some(function(m) {
+            if (m[key] == value) {
                 model = m;
                 return true;
             }
         });
         if (! model) {
-            throw new Error('model not found for id: ' + id);
+            throw new Error(`model not found for ${key}: ${value}`);
         }
         return model;
     }
@@ -94,7 +100,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function modelForElement(element) {
         return {
-            modelKey: element.type,
+            modelKey: element.name,
             title: element.name.replace(/\_/g, ' '),
             viewName: element.type,
             getData: function() {
@@ -103,13 +109,63 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         };
     }
 
+    function updateFromMonitorValues(monitorValues) {
+        monitorValues.forEach((value) => {
+            // TODO(e-carlin): How can I eliminate the timeout. Needed because
+            // on first load self.watches needs to be populated before there is
+            // anyone listening to the broadcast
+            $timeout(function () {
+                // TODO(e-carlin): need a better connection between element name,
+                // monitor values and the bpmMonitorPlots
+                $scope.$broadcast(
+                    'sr-pointData-' + elementForName(value.name).name,
+                    [value.x, value.y]
+                );
+            });
+        });
+    }
+
+    self.simHandleStatus = function(data) {
+        if (data.monitorValues) {
+            frameCache.setFrameCount(1);
+            updateFromMonitorValues(data.monitorValues);
+        }
+    };
+
     appState.whenModelsLoaded($scope, function() {
+        self.commandEditors = [];
         self.editorColumns = [];
+        self.watches = [];
+        // TODO(e-carlin): twiss_command the fields aren't all populated correctly
+        // ex (file)
+        // TODO(e-carlin): changing a boolean value (ex twiss.crhom) doesn't cause
+        // the 'save changes' button to appear. It is only saved if another field that
+        // causes the button to appear is changed and save is pressed.
+        ['beam', 'twiss'].forEach((command) => {
+            self.commandEditors.push({
+                modelKey: 'externalLattice',
+                getData:  function() {
+                    const c = appState.models.externalLattice.models.commands;
+                    for (let i = 0; i < c.length; i++) {
+                        if (c[i]._type === command) {
+                            return c[i];
+                        }
+                    }
+                    throw new Error(`no ${command} command found. commands=${c}`);
+                },
+                viewName: `command_${command}`,
+            });
+        });
         var schema = SIREPO.APP_SCHEMA.model;
         var beamlineId = appState.models.externalLattice.models.simulation.visualizationBeamlineId;
         getBeamlineElements(beamlineId, []).forEach(function(element) {
             if (schema[element.type]) {
-                self.editorColumns.push(modelForElement(element));
+                const m = modelForElement(element);
+                if (element.type === 'MONITOR') {
+                    self.watches.push(m);
+                    return;
+                }
+                self.editorColumns.push(m);
             }
         });
     });
@@ -160,5 +216,82 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
+    };
+});
+
+SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope) {
+            var points;
+
+            $scope.isClientOnly = true;
+            $scope.isZoomXY = true;
+
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    margin: {top: 50, right: 10, bottom: 50, left: 75},
+                });
+                $scope.load();
+            };
+
+            $scope.load = function() {
+                //TODO(pjm): compute BPM positions
+                points = [];
+                $scope.aspectRatio = 1;
+                ['x', 'y'].forEach(function(dim) {
+                    $scope.axes[dim].domain = [-1, 1];
+                    $scope.axes[dim].scale.domain([-0.0015, 0.0015]).nice();
+                });
+                $scope.updatePlot({
+                    x_label: 'x [m]',
+                    y_label: 'y [m]',
+                    title: $scope.modelName,
+                });
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], []);
+            };
+
+            $scope.refresh = function() {
+                plotting.refreshConvergencePoints($scope.select, '.plot-viewport', $scope.graphLine);
+                $scope.select('.plot-viewport').selectAll('.webcon-scatter-point')
+                    .data(points)
+                    .enter().append('circle')
+                    .attr('class', 'webcon-scatter-point')
+                    .attr('r', 8);
+                $scope.select('.plot-viewport').selectAll('.webcon-scatter-point')
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y())
+                    .attr('style', function(d) {
+                        return 'fill: rgba(0, 0, 255, 0.4); stroke-width: 2; stroke: black';
+                    });
+            };
+
+            function pushAndTrim(p) {
+                var MAX_BPM_POINTS = 10;
+                points.push(p);
+                if (points.length > MAX_BPM_POINTS) {
+                    points = points.slice(points.length - MAX_BPM_POINTS);
+                }
+            }
+
+            $scope.$on('sr-pointData-' + $scope.modelName, function(event, point) {
+                if (! point) {
+                    return;
+                }
+                if (point[0] === undefined) {
+                    return;
+                }
+                pushAndTrim(point);
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
+                $scope.refresh();
+            });
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
     };
 });
