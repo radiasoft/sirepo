@@ -293,8 +293,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         deleteShapesForObject(o);
         // if object was a group, ungroup its members
-        for (let m of (o.members || [])) {
-            self.getObject(m).groupId = '';
+        for (let mId of (o.members || [])) {
+            self.getObject(mId).groupId = '';
         }
         // if object was in a group, remove from that group
         removeFromGroup(o);
