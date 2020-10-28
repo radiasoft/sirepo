@@ -238,7 +238,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, vtkPlotting, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
     var self = this;
 
     const editorFields = [
@@ -862,8 +862,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) >= 0) {
             let af = angular.element(f);
             let ng = utilities.ngModelForElement(f);  // af.controller('ngModel');
-            srdbg('mag valid?', f, af, ng, mag, Math.hypot(...mag) > 0);
+            let ngf = af.controller('form');
+            let ngm = af.controller('ngModel');
+            //srdbg('af', af, 'ng', ng, 'ngf', ngf, 'ngm', ngm);
+            //srdbg('mag valid?', mag, Math.hypot(...mag) > 0);
             ng.$setValidity(mfId, Math.hypot(...mag) > 0);
+            ngf.$valid = false; //Math.hypot(...mag) > 0;
             //ng.$$parentForm.$setValidity(mfId, Math.hypot(...mag) > 0);
 
             // overridden by angular?
@@ -895,6 +899,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
+        const mfId = utilities.modelFieldID('geomObject' ,'material');
+        const f = $(`.${mfId} select`)[0];
+        let af = angular.element(f);
+        let ng = utilities.ngModelForElement(f);
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
         });
