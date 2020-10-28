@@ -109,7 +109,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         var beamlineId = appState.models.externalLattice.models.simulation.visualizationBeamlineId;
         getBeamlineElements(beamlineId, []).forEach(function(element) {
             if (schema[element.type]) {
-                self.editorColumns.push([modelForElement(element)]);
+                self.editorColumns.push(modelForElement(element));
             }
         });
     });
