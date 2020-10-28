@@ -309,6 +309,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         let g = self.getObject(gId);
         g.members.splice(g.members.indexOf(o.id), 1);
+        appState.models.geomGroup = g;
+        appState.saveQuietly('geomGroup');
     }
 
     self.editItem = function(o) {
