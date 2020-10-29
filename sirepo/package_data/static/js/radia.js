@@ -12,6 +12,11 @@ SIREPO.app.config(function() {
         //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
         //...new SirepoSelection('MaterialType', false).val,
         //'</div>',
+        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+            '<div class="sr-input-warning">',
+            '</div>',
+        '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
@@ -241,6 +246,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
     var self = this;
 
+    const anisotropicMaterialMsg = 'Anisotropic materials require non-zero magnetization';
     const editorFields = [
         'geomObject.magnetization',
         'geomObject.material',
@@ -852,39 +858,22 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'materialFile',
             o.material === 'custom'
         );
-        //angular.element(f).controller('form');
-        //srdbg('frm', angular.element(panelState.getForm('geomObject', 'magnetization')));
-        //srdbg('mf', o.materialFile);
-        //let form = panelState.getForm('geomObject', 'materialFile');
-        //if (o.material === 'custom') {
-        //    if (! o.materialFile) {
-        //        form.$valid = false;
-        //    }
-        //}
-        //panelState.showField(
-        //    'geomObject',
-        //    'symmetryPlane',
-        //    //o.symmetryType != 'none'
-        //);
-        //panelState.showField(
-        //    'geomObject',
-        //    'symmetryPoint',
-        //    //o.symmetryType != 'none'
-        //);
-        const mag = radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR);
+
+        const mag = Math.hypot(
+            ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
+        );
         const mfId = utilities.modelFieldID('geomObject' ,'material');
+        $(`.${mfId} .sr-input-warning`).text(anisotropicMaterialMsg);
         const f = $(`.${mfId} select`)[0];
+        const fWarn = $(`.${mfId} .sr-input-warning`);
         f.setCustomValidity('');
+        fWarn.hide();
         if (SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) >= 0) {
-            if (Math.hypot(...mag) === 0) {
-                f.setCustomValidity('Anisotropic materials require non-zero magnetization');
+            if (mag === 0) {
+                f.setCustomValidity(anisotropicMaterialMsg);
+                fWarn.show();
             }
         }
-        //panelState.showField(
-        //    'geomObject',
-        //    'material',
-        //    true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
-        //);
     }
 
     function updateToolEditor(toolItem) {
@@ -904,10 +893,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
-        const mfId = utilities.modelFieldID('geomObject' ,'material');
-        const f = $(`.${mfId} select`)[0];
-        let af = angular.element(f);
-        let ng = utilities.ngModelForElement(f);
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
         });
