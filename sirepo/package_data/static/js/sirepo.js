@@ -1461,10 +1461,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return modelKey;
     };
 
-    self.getField = function(modelName, field) {
-        return $(fieldClass(modelName, field));
-    };
-
     self.getFieldDelegate = function(modelName, field) {
         if (! self.fieldDelegates[modelName]) {
             self.fieldDelegates[modelName] = {};
@@ -1475,10 +1471,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             };
         }
         return self.fieldDelegates[modelName][field];
-    };
-
-    self.getForm = function(model, field) {
-        return $(fieldClass(model, field)).closest('form');
     };
 
     self.fileNameFromText = function(text, extension) {
