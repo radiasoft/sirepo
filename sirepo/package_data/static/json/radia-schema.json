@@ -169,10 +169,10 @@
             ["J", "J"]
         ],
         "MaterialType": [
-            ["NdFeB", "Neodymium Iron Boron"],
-            ["SmCo5", "Samarium Cobalt (SmCo5)"],
-            ["Sm2Co17", "Samarium Cobalt (Sm2Co17)"],
-            ["Ferrite", "Ferrite"],
+            ["NdFeB", "Neodymium Iron Boron (anisotropic)"],
+            ["SmCo5", "Samarium Cobalt (SmCo5 anisotropic)"],
+            ["Sm2Co17", "Samarium Cobalt (Sm2Co17 anisotropic)"],
+            ["Ferrite", "Ferrite (anisotropic)"],
             ["Xc06", "Industeel"],
             ["Steel37", "Steel37"],
             ["Steel42", "Steel42"],
