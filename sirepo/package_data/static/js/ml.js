@@ -371,7 +371,6 @@ SIREPO.app.directive('columnReports', function(appState, mlService) {
 
             function setReports() {
                 $scope.reports = [];
-                var info = appState.models.columnInfo;
                 appState.models.columnReports.forEach(function(idx) {
                     var modelKey = mlService.columnReportName(idx);
                     $scope.reports.push(mlService.reportInfo(modelKey, 'Column ' + (idx + 1), idx));
@@ -419,18 +418,18 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                   '</tr>',
                 '</thead>',
                 '<tbody>',
-                  '<tr data-ng-repeat="col in model.header track by $index">',
+                  '<tr data-ng-repeat="col in cols">',
                     '<td class="form-group form-group-sm">',
-                      '<input data-ng-model="model.header[$index]" class="form-control" data-lpignore="true" required />',
+                      '<input data-ng-model="col[0]" class="form-control" data-lpignore="true" required />',
                     '</td>',
                     '<td data-ng-if="! isAnalysis()" class="text-center">',
-                      '<input data-ng-model="model.inputOutput[$index]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
+                      '<input data-ng-model="model.inputOutput[col[1]]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td data-ng-if="! isAnalysis()" class="text-center">',
-                      '<input data-ng-model="model.inputOutput[$index]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
+                      '<input data-ng-model="model.inputOutput[col[1]]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td>',
-                      '<a class="media-middle" href data-ng-click="togglePlot($index)">{{ showOrHideText($index) }}</a>',
+                      '<a class="media-middle" href data-ng-click="togglePlot(col[1])">{{ showOrHideText(col[1]) }}</a>',
                     '</td>',
                   '</tr>',
                 '</tbody>',
@@ -442,18 +441,25 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
             $scope.modelName = 'columnInfo';
             $scope.fields = ['header', 'inputOutput'];
 
+
             function setModel() {
-                $scope.model = appState.models.columnInfo;
-                if (! $scope.model.header) {
+                const cols = [];
+                const c = appState.models.columnInfo;
+                if (! c.header) {
                     return;
                 }
-                $scope.model.header.forEach(function(header, idx) {
-                    var modelKey = mlService.columnReportName(idx);
-                    appState.models[modelKey] = {
-                        columnNumber: idx,
+                for (let i = 0; i < c.header.length; i++) {
+                    if (c.colsWithNonUniqueValues.hasOwnProperty(c.header[i])) {
+                        continue;
+                    }
+                    cols.push([c.header[i], i]);
+                    const m = mlService.columnReportName(i);
+                    appState.models[m] = {
+                        columnNumber: i,
                     };
-                    appState.saveQuietly(modelKey);
-                });
+                    appState.saveQuietly(m);
+                }
+                $scope.cols = cols;
             }
 
             $scope.isAnalysis = mlService.isAnalysis;

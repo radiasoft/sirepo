@@ -1,0 +1,93 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "controls"
+        }
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "controls.js",
+                "sirepo-lattice.js"
+            ],
+             "css": [
+                 "lattice.css"
+            ]
+        }
+    },
+    "enum": {
+    },
+    "localRoutes": {
+        "controls": {
+            "route": "/controls/:simulationId",
+            "config": {
+                "controller": "ControlsController as controls",
+                "templateUrl": "/static/html/controls-controls.html"
+          }
+        }
+    },
+    "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "HKICKER": {
+            "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
+        },
+        "KICKER": {
+            "hkick": ["HKICK", "MiniFloat", 0.0, "The horizontal momentum change $\\delta PX$"],
+            "vkick": ["VKICK", "MiniFloat", 0.0, "The vertical momentum change $\\delta PY$"]
+        },
+        "QUADRUPOLE": {
+            "k1": ["K1 [$\\bf m^{-2}$]", "MiniFloat", 0.0, "The normal quadrupole coefficient"]
+        },
+        "VKICKER": {
+            "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PY$"]
+        }
+    },
+    "strings": {
+        "completionState": ""
+    },
+    "view": {
+        "beamline": {
+            "title": "Beamline",
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "HKICKER": {
+            "title": "HKICKER",
+            "description": "Horizontal Corrector",
+            "advanced": [],
+            "basic": [
+                "kick"
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "description": "Corrector",
+            "basic": [
+                "hkick",
+                "vkick"
+            ],
+            "advanced": []
+        },
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
+            "description": "Quadrupole",
+            "basic": [
+                "k1"
+            ],
+            "advanced": []
+        },
+        "VKICKER": {
+            "title": "VKICKER",
+            "description": "Vertical Corrector",
+            "advanced": [],
+            "basic": [
+                "kick"
+            ]
+        }
+    }
+}

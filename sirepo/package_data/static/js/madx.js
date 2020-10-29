@@ -240,7 +240,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     }
 
     self.simHandleStatus = function(data) {
-        self.simulationAlerts = data.alert || '';
         if (data.frameCount && data.outputInfo) {
             frameCache.setFrameCount(1);
             loadElementReports(data.outputInfo);
@@ -314,10 +313,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     }
 
     self.simState = persistentSimulation.initSimulationState(self);
-
-    self.simState.errorMessage = function() {
-        return self.errorMessage;
-    };
 });
 
 SIREPO.app.directive('appFooter', function() {

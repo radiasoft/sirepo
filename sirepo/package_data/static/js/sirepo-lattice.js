@@ -60,20 +60,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         };
     }
 
-    function findBeamline(id) {
-        if (! appState.isLoaded()) {
-            return null;
-        }
-        var res = null;
-        var beamlines = appState.models.beamlines;
-        for (var i = 0; i < beamlines.length; i++) {
-            if (beamlines[i].id == id) {
-                return beamlines[i];
-            }
-        }
-        return null;
-    }
-
     function fixModelName(modelName) {
         var m = appState.models[modelName];
         // remove invalid characters
@@ -245,17 +231,18 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         $rootScope.$broadcast('activeBeamlineChanged', updateNoWait);
     };
 
-    self.elementForId = function(id) {
+    self.elementForId = function(id, models) {
+        models = models || appState.models;
         var i;
         id = Math.abs(id);
-        for (i = 0; i < appState.models.beamlines.length; i++) {
-            var b = appState.models.beamlines[i];
+        for (i = 0; i < models.beamlines.length; i++) {
+            var b = models.beamlines[i];
             if (b.id == id) {
                 return b;
             }
         }
-        for (i = 0; i < appState.models.elements.length; i++) {
-            var e = appState.models.elements[i];
+        for (i = 0; i < models.elements.length; i++) {
+            var e = models.elements[i];
             if (e._id == id) {
                 return e;
             }
@@ -264,12 +251,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.getActiveBeamline = function() {
-        return findBeamline(self.activeBeamlineId);
+        return self.elementForId(self.activeBeamlineId);
     };
 
     self.getSimulationBeamline = function() {
         if (appState.isLoaded()) {
-            return findBeamline(appState.applicationState().simulation.visualizationBeamlineId);
+            return self.elementForId(
+                appState.applicationState().simulation.visualizationBeamlineId);
         }
         return null;
     };
@@ -1119,6 +1107,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
         scope: {
             modelName: '@',
             flatten: '@',
+            pathToModels: '@',
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
@@ -1487,7 +1476,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
                 if (! beamlineCache) {
                     beamlineCache = {};
-                    appState.models.beamlines.forEach(function(b) {
+                    $scope.models.beamlines.forEach(function(b) {
                         beamlineCache[b.id] = b.items;
                     });
                 }
@@ -1513,7 +1502,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
 
             function calculateInitialBeamlineMetrics() {
                 // when lattice is initially loaded after import, calculate stats for all beamlines
-                var beamlines = appState.models.beamlines;
+                var beamlines = $scope.models.beamlines;
                 if (beamlines.length && ! angular.isDefined(beamlines[0].count)) {
                     beamlines.forEach(function(beamline) {
                         loadItemsFromBeamline(true, beamline);
@@ -1572,7 +1561,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
                 for (var i = 0; i < items.length; i++) {
                     var id = items[i];
-                    var item = appState.clone(latticeService.elementForId(id));
+                    var item = appState.clone(latticeService.elementForId(id, $scope.models));
                     item.beamlineIndex = beamlineIndex === undefined ? i : beamlineIndex;
                     item.indexClass = 'sr-beamline-' + item.beamlineIndex;
                     if (item.type) {
@@ -1624,6 +1613,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function loadItemsFromBeamline(forceUpdate, beamline) {
+                if ($scope.pathToModels) {
+                    beamline = latticeService.elementForId(
+                        appState.models[$scope.pathToModels].models.simulation.visualizationBeamlineId,
+                        $scope.models);
+                }
                 beamline = beamline || ($scope.flatten && $scope.modelName != 'twissReport'
                     ? latticeService.getSimulationBeamline()
                     : latticeService.getActiveBeamline());
@@ -1749,6 +1743,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.itemDblClicked = function(item) {
+                if ($scope.pathToModels) {
+                    return;
+                }
                 latticeService.editElement(item.type, item);
             };
 
@@ -1820,7 +1817,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     return;
                 }
                 // only show the loading message for simulations with a lot of elements
-                $scope.isLoading = appState.models.elements.length > 25;
+                $scope.isLoading = $scope.models.elements.length > 25;
                 panelState.waitForUI(function() {
                     $scope.isLoading = false;
                     loadItemsFromBeamline(forceUpdate);
@@ -1828,6 +1825,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             appState.whenModelsLoaded($scope, function() {
+                $scope.models = $scope.pathToModels ? appState.models[$scope.pathToModels].models : appState.models;
                 calculateInitialBeamlineMetrics();
                 renderBeamline();
 
@@ -1838,8 +1836,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (name == 'rpnVariables') {
                         renderBeamline(true);
                     }
-                    if (appState.models[name] && appState.models[name]._id) {
-                        if (beamlineContainsElement(beamlineItems, appState.models[name]._id)) {
+                    if ($scope.models[name] && $scope.models[name]._id) {
+                        if (beamlineContainsElement(beamlineItems, $scope.models[name]._id)) {
                             renderBeamline(true);
                         }
                     }
