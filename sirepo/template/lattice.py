@@ -83,7 +83,7 @@ class InputFileIterator(ModelIterator):
         self.sim_data = sim_data
 
     def field(self, model, field_schema, field):
-        if model[field] and field_schema[1].startswith('InputFile'):
+        if model[field] and field_schema[1].startswith(('InputFile', 'BeamInputFile')):
             self.result.append(self.sim_data.lib_file_name_with_model_field(
                 LatticeUtil.model_name_for_data(model), field, model[field]))
 
