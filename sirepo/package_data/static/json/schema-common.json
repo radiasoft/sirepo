@@ -223,6 +223,7 @@
             },
             "sirepoLibs": {
                 "js": [
+                    "sirepo-dom.module.js",
                     "sirepo-common.js",
                     "sirepo-components.js",
                     "sirepo-plotting.js",
