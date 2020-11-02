@@ -27,7 +27,7 @@
     </div>
   </div>
   <div class="row">
-    <div data-ng-repeat="item in controls.watches track by $index">
+    <div data-ng-if="controls.simState.hasFrames()" data-ng-repeat="item in controls.watches track by $index">
       <div class="col-sm-6 col-md-3">
         <div data-report-panel="bpmMonitor" data-model-name="watchpointReport" data-model-data="item" data-panel-title="{{ item.title }}"></div>
       </div>
