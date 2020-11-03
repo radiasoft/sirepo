@@ -5,6 +5,7 @@ u"""Test lib.Importer
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp
 import pytest
 
 def test_elegant():

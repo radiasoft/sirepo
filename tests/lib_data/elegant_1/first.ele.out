@@ -138,7 +138,7 @@
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
+  input = "PCG.sdds",
   reuse_bunch = 1,
   sample_fraction = 0.1,
 &end
