@@ -4,9 +4,19 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    // test enums
+    let f = new SIREPO.DOM.SREnum('FieldType', 'sr-radia-field-type', null, false, false);
+    let s = new SIREPO.DOM.SREnum('FieldScaling', 'sr-radia-field-scaling', null, true, false);
+
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="FieldType" data-ng-class="fieldClass">',
+          f.toString(),
+        '</div>',
+        '<div data-ng-switch-when="FieldScaling" data-ng-class="fieldClass">',
+          s.toString(),
+        '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
