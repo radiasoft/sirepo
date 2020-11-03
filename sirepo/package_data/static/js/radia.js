@@ -1689,7 +1689,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             '<div data-toolbar="toolbarSections" data-item-filter="itemFilter" data-parent-controller="parentController"></div>',
             '<div class="sr-object-table">',
               '<p class="lead text-center"><small><em>drag and drop {{ itemClass.toLowerCase() }}s or use arrows to reorder the list</em></small></p>',
-              '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
+              '<table class="table table-hover" style="width: 100%; table-layout: fixed; overflow-y: scroll">',
                 '<tr data-ng-repeat="item in loadItems()">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
                     '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
