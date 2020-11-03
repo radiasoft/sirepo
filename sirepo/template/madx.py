@@ -139,14 +139,14 @@ def extract_monitor_values(run_dir):
     t = madx_parser.parse_tfs_file(run_dir.join('twiss.file.tfs'))
     l = []
     for i, e in enumerate(t.keyword):
-        if to_string(e) == 'MONITOR':
-            l.append(i)
+        if to_string(e) in ('MONITOR', 'HMONITOR', 'VMONITOR'):
+            l.append([i, to_string(e)])
     m = []
     for i in l:
         m.append(PKDict(
-            name=to_string(t.name[i]),
-            x=to_float(t.x[i]),
-            y=to_float(t.y[i]),
+            name=to_string(t.name[i[0]]),
+            x=0 if i[1] == 'VMONITOR' else to_float(t.x[i[0]]),
+            y=0 if i[1] == 'HMONITOR' else to_float(t.y[i[0]]),
         ))
     return m
 

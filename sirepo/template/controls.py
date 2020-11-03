@@ -23,6 +23,10 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def python_source_for_model(data, model):
+    return sirepo.template.madx.python_source_for_model(data.models.externalLattice, model)
+
+
 def write_parameters(data, run_dir, is_parallel):
     data.models.externalLattice.report = ''
     sirepo.template.madx.write_parameters(data.models.externalLattice, run_dir, is_parallel)

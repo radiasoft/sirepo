@@ -41,118 +41,33 @@
             "name": ["Name", "ValidatedString"]
         },
         "command_beam": {
-            "particle": ["PARTICLE", "ParticleType", "positron", "The name of particles in the beam."],
-            "mass": ["MASS [GeV]", "RPNValue", 0.0005109989461, "The restmass of the particles in the beam."],
-            "charge": ["CHARGE [qp]", "RPNValue", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
-            "energy": ["ENERGY [GeV]", "RPNValue", 0.0, "Total energy per particle."],
-            "pc": ["PC [GeV/c]", "RPNValue", 0.0, "Momentum per particle."],
-            "gamma": ["GAMMA", "RPNValue", 0.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles."],
-            "beta": ["BETA [v/c]", "RPNValue", 0.0, "Ratio between the speed of the particles and the speed of light."],
-            "brho": ["BRHO [P/abs(q)]", "RPNValue", 0.0, "Magnetic rigidity of the particles."],
-            "ex": ["EX [m]", "RPNValue", 1.0, "The horizontal emittance."],
-            "exn": ["EXN", "RPNValue", 0.0, "The normalised horizontal emittance."],
-            "ey": ["EY [m]", "RPNValue", 1.0, "The vertical emittance."],
-            "eyn": ["EYN", "RPNValue", 0.0, "The normalised vertical emittance."],
-            "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance $\\epsilon_t$"],
-            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Attaches the beam command to a specific sequence."],
-            "sigt": ["SIGT [m]", "RPNValue", 1.0, "The bunch length $c\\space \\sigma_t$."],
-            "sige": ["SIGE", "RPNValue", 0.001, "The relative energy spread $\\sigma_E / E$."],
-            "kbunch": ["KBUNCH", "Integer", 1, "The number of particle bunches in the machine."],
-            "npart": ["NPART", "Integer", 1, "The number of particles per bunch."],
-            "bcurrent": ["BCURRENT", "RPNValue", 0.0, "The bunch current."],
-            "bunched": ["BUNCHED", "Boolean", "1", "The beam is treated as bunched whenever this makes sense."],
-            "radiate": ["RADIATE", "Boolean", "0", "Synchrotron radiation is considered in all bipolar magnets."],
-            "bv": ["BV", "Integer", 1, "The direction of the particle movement in a beam line."]
+            "particle": ["PARTICLE", "ParticleType", "electron", "The name of particles in the beam."],
+            "mass": ["MASS [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
+            "charge": ["CHARGE [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
+            "pc": ["PC [GeV/c]", "Float", 0.0, "Momentum per particle."],
+            "ex": ["Horizontal Emittance [m]", "Float", 1.0],
+            "ey": ["Vertical Emittance [m]", "Float", 1.0],
+            "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
+            "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
         },
         "command_twiss": {
-            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
-            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
-            "beta0": ["BETA0", "OptionalString", "", "The name of a BETA0 block containing the Twiss parameters to be used as input"],
-            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$"],
-            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$"],
-            "centre": ["CENTRE", "Boolean", "0", "Enforce the calculation of the linear lattice functions at the center of the element instead of the end of the element."],
-            "chrom": ["CHROM", "Boolean", "0", "A logical flag to trigger computation of the chromatic functions as well as the radiation synchrotron integrals."],
-            "ddpx": ["DDPX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_{px}$"],
-            "ddpy": ["DDPY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_{py}$"],
-            "ddx": ["DDX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_x$"],
-            "ddy": ["DDY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_y$"],
-            "deltap": ["DELTAP", "RPNValue", 0.0, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
-            "dmux": ["DMUX [2$\\pi$]", "RPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
-            "dmuy": ["DMUY [2$\\pi$]", "RPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
-            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $p_x$: $D_{px}$"],
-            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $p_y$: $D_{py}$"],
-            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of $x$"],
-            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of $y$"],
-            "energy": ["ENERGY [GeV]", "RPNValue", 0.0, "The total energy per particle."],
-            "file": ["FILE", "OutputFile", "", "The name of the file TWISS output will be written to"],
-            "keeporbit": ["KEEPORBIT", "OptionalString", "", "Store the orbit under this name at the start, and at all monitors."],
-            "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of a valid beamline for which the calculation of optical functions should be performed. "],
-            "mux": ["MUX [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
-            "muy": ["MUY [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
-            "phix": ["PHIX", "RPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
-            "phiy": ["PHIY", "RPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
-            "pt": ["PT", "RPNValue", 0.0, "Energy difference, divided by the reference momentum times the velocity of light."],
-            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$"],
-            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$"],
-            "r11": ["R11", "RPNValue", 0.0, "Coupling matrix"],
-            "r12": ["R12", "RPNValue", 0.0, "Coupling matrix"],
-            "r21": ["R21", "RPNValue", 0.0, "Coupling matrix"],
-            "r22": ["R22", "RPNValue", 0.0, "Coupling matrix"],
-            "range": ["RANGE", "OptionalString", "", "The TWISS calculation is restricted to the specified range."],
-            "re11": ["RE11", "RPNValue", 1.0, "Coupling matrix"],
-            "re12": ["RE12", "RPNValue", 0.0, "Coupling matrix"],
-            "re13": ["RE13", "RPNValue", 0.0, "Coupling matrix"],
-            "re14": ["RE14", "RPNValue", 0.0, "Coupling matrix"],
-            "re15": ["RE15", "RPNValue", 0.0, "Coupling matrix"],
-            "re16": ["RE16", "RPNValue", 0.0, "Coupling matrix"],
-            "re21": ["RE21", "RPNValue", 0.0, "Coupling matrix"],
-            "re22": ["RE22", "RPNValue", 1.0, "Coupling matrix"],
-            "re23": ["RE23", "RPNValue", 0.0, "Coupling matrix"],
-            "re24": ["RE24", "RPNValue", 0.0, "Coupling matrix"],
-            "re25": ["RE25", "RPNValue", 0.0, "Coupling matrix"],
-            "re26": ["RE26", "RPNValue", 0.0, "Coupling matrix"],
-            "re31": ["RE31", "RPNValue", 0.0, "Coupling matrix"],
-            "re32": ["RE32", "RPNValue", 0.0, "Coupling matrix"],
-            "re33": ["RE33", "RPNValue", 1.0, "Coupling matrix"],
-            "re34": ["RE34", "RPNValue", 0.0, "Coupling matrix"],
-            "re35": ["RE35", "RPNValue", 0.0, "Coupling matrix"],
-            "re36": ["RE36", "RPNValue", 0.0, "Coupling matrix"],
-            "re41": ["RE41", "RPNValue", 0.0, "Coupling matrix"],
-            "re42": ["RE42", "RPNValue", 0.0, "Coupling matrix"],
-            "re43": ["RE43", "RPNValue", 0.0, "Coupling matrix"],
-            "re44": ["RE44", "RPNValue", 1.0, "Coupling matrix"],
-            "re45": ["RE45", "RPNValue", 0.0, "Coupling matrix"],
-            "re46": ["RE46", "RPNValue", 0.0, "Coupling matrix"],
-            "re51": ["RE51", "RPNValue", 0.0, "Coupling matrix"],
-            "re52": ["RE52", "RPNValue", 0.0, "Coupling matrix"],
-            "re53": ["RE53", "RPNValue", 0.0, "Coupling matrix"],
-            "re54": ["RE54", "RPNValue", 0.0, "Coupling matrix"],
-            "re55": ["RE55", "RPNValue", 1.0, "Coupling matrix"],
-            "re56": ["RE56", "RPNValue", 0.0, "Coupling matrix"],
-            "re61": ["RE61", "RPNValue", 0.0, "Coupling matrix"],
-            "re62": ["RE62", "RPNValue", 0.0, "Coupling matrix"],
-            "re63": ["RE63", "RPNValue", 0.0, "Coupling matrix"],
-            "re64": ["RE64", "RPNValue", 0.0, "Coupling matrix"],
-            "re65": ["RE65", "RPNValue", 0.0, "Coupling matrix"],
-            "re66": ["RE66", "RPNValue", 1.0, "Coupling matrix"],
-            "ripken": ["RIPKEN", "Boolean", "0", "Calculate the Ripken-Mais Twiss parameters."],
-            "rmatrix": ["RMATRIX", "Boolean", "0", "If this flag is used the the one-turn map at the location of every element is calculated and prepared for storage in the twiss table."],
-            "sectoracc": ["SECTORACC", "Boolean", "0", "Save composition of maps instead of individual maps of a sector map."],
-            "sectorfile": ["SECTORFILE", "OutputFile", "0", "Name of the file to which the SECTORMAP is written."],
-            "sectormap": ["SECTORMAP", "Boolean", "0", "Initiate the calculation of a sector map."],
-            "sectorpure": ["SECTORPURE", "Boolean", "0", "Save the transfer map Rij without effects from higher order map (Tijk)."],
-            "sectortable": ["SECTORTABLE", "OptionalString", "", "Name of the table containing the SECTORMAP values."],
-            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of a valid sequence for which the calculation of optical functions should be performed. "],
-            "t": ["T [m]", "RPNValue", 0.0, "Velocity of light times the negative time difference with respect to the reference particle. A positive T means that the particle arrives ahead of the reference particle."],
-            "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "The maximum closed orbit error, for all six orbit components, that can be tolerated during the closed orbit search. The value given in the TWISS command is only valid for the current calculation; the COGUESS command allows to change the default value for all subsequent closed orbit search calculations."],
-            "useorbit": ["USEORBIT", "OptionalString", "", "Use the start value provided for the closed orbit search."],
-            "wx": ["WX [m]", "RPNValue", 0.0, "The horizontal Courant-Snyder invariant "],
-            "wy": ["WY [m]", "RPNValue", 0.0, "The vertical Courant-Snyder invariant "],
-            "x": ["X", "RPNValue", 0.0, "Canonical coordinate $x$"],
-            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$"]
+            "alfx": ["Horizontal Alpha", "Float", 0.0],
+            "alfy": ["Vertical Alpha", "Float", 0.0],
+            "betx": ["Horizontal Beta [m]", "Float", 0.0],
+            "bety": ["Vertical Beta [m]", "Float", 0.0],
+            "dpx": ["Horizontal Dispersion Derivative", "Float", 0.0],
+            "dpy": ["Vertical Dispersion Derivative", "Float", 0.0],
+            "dx": ["Horizontal Dispersion [m]", "Float", 0.0],
+            "dy": ["Vertical Dispersion [m]", "Float", 0.0],
+            "px": ["Horizontal Centroid Derivative [2$\\pi$]", "Float", 0.0],
+            "py": ["Vertical Centroid Derivative [2$\\pi$]", "Float", 0.0],
+            "x": ["Horizontal Centroid [m]", "Float", 0.0],
+            "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
         "HKICKER": {
             "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
+        },
+        "HMONITOR": {
         },
         "KICKER": {
             "hkick": ["HKICK", "MiniFloat", 0.0, "The horizontal momentum change $\\delta PX$"],
@@ -166,12 +81,7 @@
         "VKICKER": {
             "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PY$"]
         },
-        "watchpointReport": {
-            "plotRangeType": ["Range", "PlotRangeType", "fixed"],
-            "horizontalSize": ["Horizontal Size", "Float", 0.003],
-            "verticalSize": ["Vertical Size", "Float", 0.003],
-            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset", "Float", 0.0]
+        "VMONITOR": {
         }
     },
     "strings": {
@@ -183,90 +93,47 @@
             "advanced": []
         },
         "command_beam": {
-            "title": "Beam",
-            "description": "The BEAM statement defines data for the particles in a beam.",
-            "fieldsPerTab": 8,
+            "title": "Beam Settings",
             "advanced": [],
             "basic": [
-                "particle",
-                "mass",
-                "charge",
-                "energy",
-                "pc",
-                "gamma",
-                "beta",
-                "brho",
-                "ex",
-                "exn",
-                "ey",
-                "eyn",
-                "et",
-                "sequence",
-                "sigt",
-                "sige",
-                "kbunch",
-                "npart",
-                "bcurrent",
-                "bunched",
-                "radiate",
-                "bv"
-            ]
-        },
-        "command_twiss": {
-            "title": "twiss",
-            "description": "The TWISS command calculates the linear lattice functions, and optionally the chromatic functions. The coupled functions are calculated in the sense of Edwards and Teng. For the uncoupled cases they reduce to the C and S functions.",
-            "fieldsPerTab": 8,
-            "advanced": [],
-            "basic": [
-                "line",
-                "range",
-                "deltap",
-                "chrom",
-                "centre",
-                "tolerance",
-                "file",
-                "rmatrix",
-                "sectormap",
-                "sectortable",
-                "sectorfile",
-                "sectorpure",
-                "keeporbit",
-                "useorbit",
-                "ripken",
-
-                "betx",
-                "alfx",
-                "mux",
-                "dx",
-                "dpx",
-                "bety",
-                "muy",
-                "alfy",
-                "dy",
-                "dpy",
-
-                "x",
-                "px",
-                "y",
-                "py",
-                "t",
-                "pt",
-
-                "wx",
-                "phix",
-                "dmux",
-                "ddx",
-                "ddpx",
-                "wy",
-                "phiy",
-                "dmuy",
-                "ddy",
-                "ddpy",
-
-                "r11",
-                "r12",
-                "r21",
-                "r22"
+                ["Main", [
+                    "particle",
+                    "mass",
+                    "charge",
+                    "pc"
+                ]],
+                ["Twiss", [
+                    [
+                        ["Horizontal", [
+                            "ex",
+                            "command_twiss.betx",
+                            "command_twiss.alfx",
+                            "command_twiss.dx",
+                            "command_twiss.dpx"
+                        ]],
+                        ["Vertical", [
+                            "ey",
+                            "command_twiss.bety",
+                            "command_twiss.alfy",
+                            "command_twiss.dy",
+                            "command_twiss.dpy"
+                        ]]
+                    ],
+                    "sigt",
+                    "sige"
+                ]],
+                ["Position", [
+                    [
+                        ["Horizontal", [
+                            "command_twiss.x",
+                            "command_twiss.px"
+                        ]],
+                        ["Vertical", [
+                            "command_twiss.y",
+                            "command_twiss.py"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "simulationStatus": {
@@ -281,6 +148,10 @@
                 "kick"
             ]
         },
+        "HMONITOR": {
+            "title": "MONITOR",
+            "advanced": []
+        },
         "KICKER": {
             "title": "KICKER",
             "description": "Corrector",
@@ -292,7 +163,6 @@
         },
         "MONITOR": {
             "title": "MONITOR",
-            "description": "A beam monitor has no specific effect on the beam and behaves like a drift space. In addition it serves to record the beam position for closed orbit correction.",
             "advanced": []
         },
         "QUADRUPOLE": {
@@ -311,7 +181,9 @@
                 "kick"
             ]
         },
-        "watchpointReport": {
+        "VMONITOR": {
+            "title": "MONITOR",
+            "advanced": []
         }
     }
 }

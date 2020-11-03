@@ -33,6 +33,8 @@ SIREPO.app.config(function() {
     };
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="bpmHMonitor" data-bpm-monitor-plot="Horizontal" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="bpmVMonitor" data-bpm-monitor-plot="Vertical" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
     ].join('');
 });
 
@@ -46,10 +48,10 @@ SIREPO.app.factory('controlsService', function(appState) {
     return self;
 });
 
-// TODO(e-carlin): remove $timeout
-SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, persistentSimulation, $scope, $timeout) {
+SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, panelState, persistentSimulation, $scope) {
     var self = this;
     self.simScope = $scope;
+    self.appState = appState;
     self.latticeService = latticeService;
 
     self.advancedNames = [];
@@ -76,6 +78,18 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             throw new Error(`model not found for ${key}: ${value}`);
         }
         return model;
+    }
+
+    function findExternalCommand(name) {
+        var res;
+        name = name.replace('command_', '');
+        appState.models.externalLattice.models.commands.some(function(cmd) {
+            if (cmd._type == name) {
+                res = cmd;
+                return true;
+            }
+        });
+        return res;
     }
 
     function getBeamlineElements(id, elements) {
@@ -111,73 +125,57 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function updateFromMonitorValues(monitorValues) {
         monitorValues.forEach((value) => {
-            // TODO(e-carlin): How can I eliminate the timeout. Needed because
-            // on first load self.watches needs to be populated before there is
-            // anyone listening to the broadcast
-            $timeout(function () {
-                // TODO(e-carlin): need a better connection between element name,
-                // monitor values and the bpmMonitorPlots
-                $scope.$broadcast(
-                    'sr-pointData-' + elementForName(value.name).name,
-                    [value.x, value.y]
-                );
-            });
+            // TODO(e-carlin): need a better connection between element name,
+            // monitor values and the bpmMonitorPlots
+            $scope.$broadcast(
+                'sr-pointData-' + elementForName(value.name).name,
+                [value.x, value.y]
+            );
         });
     }
 
     self.simHandleStatus = function(data) {
         if (data.monitorValues) {
             frameCache.setFrameCount(1);
-            updateFromMonitorValues(data.monitorValues);
+            panelState.waitForUI(function() {
+                updateFromMonitorValues(data.monitorValues);
+            });
         }
     };
 
     appState.whenModelsLoaded($scope, function() {
-        self.commandEditors = [];
         self.editorColumns = [];
         self.watches = [];
-        // TODO(e-carlin): twiss_command the fields aren't all populated correctly
-        // ex (file)
-        // TODO(e-carlin): changing a boolean value (ex twiss.crhom) doesn't cause
-        // the 'save changes' button to appear. It is only saved if another field that
-        // causes the button to appear is changed and save is pressed.
-        ['beam', 'twiss'].forEach((command) => {
-            self.commandEditors.push({
-                modelKey: 'externalLattice',
-                getData:  function() {
-                    const c = appState.models.externalLattice.models.commands;
-                    for (let i = 0; i < c.length; i++) {
-                        if (c[i]._type === command) {
-                            return c[i];
-                        }
-                    }
-                    throw new Error(`no ${command} command found. commands=${c}`);
-                },
-                viewName: `command_${command}`,
-            });
-        });
         var schema = SIREPO.APP_SCHEMA.model;
         var beamlineId = appState.models.externalLattice.models.simulation.visualizationBeamlineId;
         getBeamlineElements(beamlineId, []).forEach(function(element) {
             if (schema[element.type]) {
                 const m = modelForElement(element);
-                if (element.type === 'MONITOR') {
+                if (element.type.indexOf('MONITOR') >= 0) {
+                    m.plotType = element.type == 'MONITOR' ? 'bpmMonitor'
+                        : (element.type == 'HMONITOR'
+                           ? 'bpmHMonitor'
+                           : 'bpmVMonitor');
                     self.watches.push(m);
                     return;
                 }
                 self.editorColumns.push(m);
             }
         });
-    });
-
-    $scope.$on('modelChanged', function(e, name) {
-        //TODO(pjm): not a good element model detector
-        if (name == name.toUpperCase()) {
-            appState.saveQuietly('externalLattice');
-        }
+        $scope.$on('modelChanged', function(e, name) {
+            //TODO(pjm): not a good element model detector
+            if (name == name.toUpperCase()) {
+                appState.saveQuietly('externalLattice');
+            }
+            if (['command_beam', 'command_twiss'].includes(name)) {
+                $.extend(findExternalCommand(name), appState.models[name]);
+                appState.saveQuietly('externalLattice');
+            }
+        });
     });
 
     self.simState = persistentSimulation.initSimulationState(self);
+
     return self;
 });
 
@@ -223,6 +221,7 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
     return {
         restrict: 'A',
         scope: {
+            bpmMonitorPlot: '@',
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
@@ -240,17 +239,17 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
             };
 
             $scope.load = function() {
-                //TODO(pjm): compute BPM positions
                 points = [];
                 $scope.aspectRatio = 1;
                 ['x', 'y'].forEach(function(dim) {
                     $scope.axes[dim].domain = [-1, 1];
-                    $scope.axes[dim].scale.domain([-0.0015, 0.0015]).nice();
+                    //TODO(pjm): set the domain intelligently
+                    $scope.axes[dim].scale.domain([-0.0021, 0.0021]).nice();
                 });
                 $scope.updatePlot({
                     x_label: 'x [m]',
                     y_label: 'y [m]',
-                    title: $scope.modelName,
+                    title: $scope.bpmMonitorPlot + ' Monitor',
                 });
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', [], []);
             };
@@ -294,4 +293,18 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
             plotting.linkPlot(scope, element);
         },
     };
+});
+
+SIREPO.viewLogic('commandBeamView', function(appState, panelState, $scope) {
+
+    function updateParticleFields() {
+        panelState.showFields('command_beam', [
+            ['mass', 'charge'], appState.models.command_beam.particle == 'other',
+        ]);
+    }
+
+    $scope.whenSelected = updateParticleFields;
+    $scope.watchFields = [
+        ['command_beam.particle'], updateParticleFields,
+    ];
 });
