@@ -50,7 +50,11 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             var i;
 
             function camelToKebabCase(v) {
+                if (v.toUpperCase() == v) {
+                    return v.toLowerCase();
+                }
                 v = v.charAt(0).toLowerCase() + v.slice(1);
+                v = v.replace(/\_/g, '-');
                 return v.replace(/([A-Z])/g, '-$1').toLowerCase();
             }
 
