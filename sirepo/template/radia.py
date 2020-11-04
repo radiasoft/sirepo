@@ -369,14 +369,15 @@ def _generate_obj_data(g_id, name):
     return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
 
 
-def _generate_parameters_file(data, include_external):
+def _generate_parameters_file(data, for_export):
+    import jinja2
+
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
-    v['includeExternal'] = include_external or False
-    v['radiaLib'] = '' if v.includeExternal else 'radia_tk.'
+    v['forExport'] = for_export or False
     v['dmpFile'] = _dmp_file(sim_id)
     if 'dmpImportFile' in data.models.simulation:
         v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -422,6 +423,7 @@ def _generate_parameters_file(data, include_external):
         SIM_TYPE,
         v,
         GEOM_PYTHON_FILE,
+        jinja_env=PKDict(loader=jinja2.PackageLoader('sirepo', 'template'))
     )
 
 

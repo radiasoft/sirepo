@@ -487,7 +487,7 @@ def read_sequential_result(run_dir):
     )
 
 
-def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
+def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     """Render the values into a jinja template.
 
     Args:
@@ -502,6 +502,7 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
         # append .jinja, because file may already have an extension
         d.join(name) + '.jinja',
         v,
+        jinja_env=jinja_env
     )
 
 

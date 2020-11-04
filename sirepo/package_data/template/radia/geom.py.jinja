@@ -4,9 +4,6 @@ import h5py
 import os
 import re
 from pykern.pkcollections import PKDict
-{% if not includeExternal %}
-from sirepo.template import radia_tk
-{% endif %}
 from sirepo.template import radia_examples
 
 
@@ -39,10 +36,8 @@ def _split_comma_field(f, type):
         return [int(x) for x in arr]
     return arr
 
-{% if includeExternal %}
-# copy methods from external files like radia_tk
+# include external files like radia_tk
 {% include 'radia_tk.py' %}
-{% endif %}
 
 
 def _add_object(o):
@@ -51,9 +46,9 @@ def _add_object(o):
         sz = _split_comma_field(o.size, 'float')
         m = _split_comma_field(o.magnetization, 'float')
         div = _split_comma_field(o.division, 'int') if o.doDivide != '0' else None
-        g_id = {{ radiaLib }}build_box(ctr, sz, o.material, m, div, h_m_curve=o.h_m_curve)
+        g_id = build_box(ctr, sz, o.material, m, div, h_m_curve=o.h_m_curve)
         if o.color:
-            {{ radiaLib }}apply_color(g_id, _hex_to_rgb(o.color))
+            apply_color(g_id, _hex_to_rgb(o.color))
     if o.model in _GROUP_MODELS:
         grp = []
         for obj_id in o.members:
@@ -64,9 +59,9 @@ def _add_object(o):
                 grp.append(_add_object(m))
             else:
                 grp.append(id_map[m.mapId] )
-        g_id = {{ radiaLib }}build_container(grp)
+        g_id = build_container(grp)
     for transform in o.transforms:
-        {{ radiaLib }}apply_transform(g_id, PKDict(transform))
+        apply_transform(g_id, PKDict(transform))
     id_map[o.mapId] = g_id
     radia_objs.append(g_id)
     return g_id
@@ -88,21 +83,21 @@ for obj in sirepo_objs:
     id_map[o.mapId] = g_id
     radia_objs.append(g_id)
 # put all objects in a container for now
-g_id = {{ radiaLib }}build_container(radia_objs)
+g_id = build_container(radia_objs)
 {% endif %}
 
 
 # always store the object and id map
-g_data = {{ radiaLib }}geom_to_data(g_id, name='{{ geomName }}')
-{% if not includeExternal %}
+g_data = geom_to_data(g_id, name='{{ geomName }}')
+{% if not forExport %}
 with h5py.File('{{ dataFile }}', 'a') as hf:
     template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
     template_common.dict_to_h5(id_map, hf, path='idMap')
 {% endif %}
 
 {% if doSolve %}
-res = {{ radiaLib }}solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-{% if not includeExternal %}
+res = solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+{% if not forExport %}
 with h5py.File('{{ dataFile }}', 'a') as hf:
     template_common.dict_to_h5(res, hf, path='solution')
 {% endif %}
@@ -110,13 +105,13 @@ with h5py.File('{{ dataFile }}', 'a') as hf:
 
 if '{{ viewType }}' == VIEW_TYPE_FIELD:
     f_type = '{{ fieldType }}'
-    if f_type == {{ radiaLib }}FIELD_TYPE_MAG_M:
-        f = {{ radiaLib }}get_magnetization(g_id)
-    elif f_type in {{ radiaLib }}POINT_FIELD_TYPES:
-        f = {{ radiaLib }}get_field(g_id, f_type, {{ fieldPoints }})
-    g_data = {{ radiaLib }}vector_field_to_data(g_id, '{{ geomName }}', f, {{ radiaLib }}FIELD_UNITS[f_type])
+    if f_type == FIELD_TYPE_MAG_M:
+        f = get_magnetization(g_id)
+    elif f_type in POINT_FIELD_TYPES:
+        f = get_field(g_id, f_type, {{ fieldPoints }})
+    g_data = vector_field_to_data(g_id, '{{ geomName }}', f, FIELD_UNITS[f_type])
 
-{% if not includeExternal %}
+{% if not forExport %}
     with h5py.File('{{ dataFile }}', 'a') as hf:
         template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
 
