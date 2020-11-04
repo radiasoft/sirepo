@@ -1,7 +1,12 @@
+{% if not forExport %}
+from __future__ import absolute_import, division, print_function
+{% endif %}
+
 import h5py
 import os
 import re
 from pykern.pkcollections import PKDict
+from sirepo import util
 from sirepo.template import radia_examples
 from sirepo.template import template_common
 
@@ -23,25 +28,16 @@ def _hex_to_rgb(h_color):
     h = h_color.lstrip('#')
     return [c / 255.0 for c in tuple(int(h[i:i+2], 16) for i in (0, 2, 4))]
 
-
-def _split_comma_field(f, type):
-    arr = re.split(r'\s*,\s*', f)
-    if type == 'float':
-        return [float(x) for x in arr]
-    if type == 'int':
-        return [int(x) for x in arr]
-    return arr
-
 # include external files like radia_tk
 {% include 'radia_tk.py' %}
 
 
 def _add_object(o):
     if o.model == _MODEL_BOX:
-        ctr = _split_comma_field(o.center, 'float')
-        sz = _split_comma_field(o.size, 'float')
-        m = _split_comma_field(o.magnetization, 'float')
-        div = _split_comma_field(o.division, 'int') if o.doDivide != '0' else None
+        ctr = util.split_comma_delimited_string(o.center, 'float')
+        sz = util.split_comma_delimited_string(o.size, 'float')
+        m = util.split_comma_delimited_string(o.magnetization, 'float')
+        div = util.split_comma_delimited_string(o.division, 'int') if o.doDivide != '0' else None
         g_id = build_box(ctr, sz, o.material, m, div, h_m_curve=o.h_m_curve)
         if o.color:
             apply_color(g_id, _hex_to_rgb(o.color))
@@ -69,7 +65,7 @@ g_id = radia_examples.build('{{ geomName }}')
 if not os.path.isfile('{{ dmpFile }}'):
     with open('{{ dmpImportFile }}', 'rb') as f:
         b = f.read()
-        g_id = radia_tk.load_bin(b)
+        g_id = load_bin(b)
 {% else %}
 for obj in sirepo_objs:
     o = PKDict(obj)
@@ -112,5 +108,5 @@ if '{{ viewType }}' == VIEW_TYPE_FIELD:
         template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
 
 with open('{{ dmpFile }}', 'wb') as f:
-    f.write(radia_tk.dump_bin(g_id))
+    f.write(dump_bin(g_id))
 {% endif %}

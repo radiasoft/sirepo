@@ -6,7 +6,6 @@ import sys
 from numpy import linalg
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-from sirepo.template import template_common
 
 FIELD_TYPE_MAG_A = 'A'
 FIELD_TYPE_MAG_B = 'B'

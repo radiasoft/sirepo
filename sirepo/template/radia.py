@@ -229,8 +229,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = _split_comma_field(f_path.begin, 'float')
-    p2 = _split_comma_field(f_path.end, 'float')
+    p1 = sirepo.util.split_comma_delimited_string(f_path.begin, 'float')
+    p2 = sirepo.util.split_comma_delimited_string(f_path.end, 'float')
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -338,8 +338,8 @@ def _generate_field_integrals(g_id, f_paths):
         res = PKDict()
         for p in l_paths:
             res[p.name] = PKDict()
-            p1 = _split_comma_field(p.begin, 'float')
-            p2 = _split_comma_field(p.end, 'float')
+            p1 = sirepo.util.split_comma_delimited_string(p.begin, 'float')
+            p2 = sirepo.util.split_comma_delimited_string(p.end, 'float')
             for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
         return res
@@ -377,7 +377,11 @@ def _generate_parameters_file(data, for_export):
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
-    v['forExport'] = for_export or False
+    v['forExport'] = for_export
+
+    # this is used in the jinja to visually indicate the radia_tk functions
+    v['radia_tk'] = ''
+
     v['dmpFile'] = _dmp_file(sim_id)
     if 'dmpImportFile' in data.models.simulation:
         v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -564,13 +568,4 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
-
-
-def _split_comma_field(f, type):
-    arr = re.split(r'\s*,\s*', f)
-    if type == 'float':
-        return [float(x) for x in arr]
-    if type == 'int':
-        return [int(x) for x in arr]
-    return arr
 
