@@ -192,7 +192,7 @@ def new_simulation(data, new_simulation_data):
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
+    return _generate_parameters_file(data, True)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -200,7 +200,7 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, False),
     )
 
 
@@ -369,12 +369,14 @@ def _generate_obj_data(g_id, name):
     return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, include_external):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
+    v['includeExternal'] = include_external or False
+    v['radiaLib'] = '' if v.includeExternal else 'radia_tk.'
     v['dmpFile'] = _dmp_file(sim_id)
     if 'dmpImportFile' in data.models.simulation:
         v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -412,7 +414,7 @@ def _generate_parameters_file(data):
     if 'reset' in report:
         radia_tk.reset()
         data.report = 'geometry'
-        return _generate_parameters_file(data)
+        return _generate_parameters_file(data, False)
     v['h5ObjPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v['h5FieldPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
 

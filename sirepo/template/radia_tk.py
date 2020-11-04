@@ -130,7 +130,6 @@ def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-# these methods pulled out so as not to depend on a manager
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')
 
