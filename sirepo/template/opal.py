@@ -21,6 +21,7 @@ import h5py
 import math
 import numpy as np
 import re
+import sirepo.lib
 import sirepo.sim_data
 
 
@@ -58,6 +59,45 @@ _OPAL_CONSTANTS = PKDict(
     p0=1,
     seed=123456789,
 )
+
+
+class LibAdapter(template_common.LibFileMixin, template_common.LibCodeVarMixin):
+
+    def parse_file(self, path):
+        from sirepo.template import opal_parser
+
+        data, input_files = opal_parser.parse_file(
+            pkio.read_text(path),
+            filename=path.basename,
+        )
+        self._verify_files(path, [f.filename for f in input_files])
+        return self._convert(data, code_var, _SCHEMA)
+
+    def write_files(self, data, source_path, dest_dir):
+        """writes files for the simulation
+
+
+        Returns:
+            PKDict: structure of files written (debugging only)
+        """
+
+        g = _Generate(data)
+        r = PKDict(commands=dest_dir.join(source_path.basename))
+        pkio.write_text(r.commands, g.sim())
+        for f in set(
+            LatticeUtil(data, _SCHEMA).iterate_models(
+                lattice.InputFileIterator(_SIM_DATA),
+            ).result,
+        ):
+            dest_dir.join(f).mksymlinkto(source_path.new(
+                basename=_SIM_DATA.lib_file_name_without_type(f),
+            ), absolute=False)
+            r.output_files = [
+                f[k] for k in LatticeUtil(data, _SCHEMA).iterate_models(
+                    OpalOutputFileIterator(),
+                ).result.keys_in_order
+            ]
+            return r
 
 
 class OpalElementIterator(lattice.ElementIterator):
@@ -289,6 +329,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
 
 def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
+
     text = pkcompat.from_bytes(req.file_stream.read())
     if re.search(r'\.in$', req.filename, re.IGNORECASE):
         data, input_files = opal_parser.parse_file(
@@ -345,7 +386,7 @@ def prepare_sequential_output_file(run_dir, data):
 def python_source_for_model(data, model):
     if model == 'madx':
         return OpalMadxConverter().to_madx_text(data)
-    return _generate_parameters_file(data)
+    return _generate_parameters_file(data, is_parallel=True)
 
 
 def save_sequential_report_data(data, run_dir):
@@ -448,8 +489,77 @@ def sim_frame_plot2Animation(frame_args):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(OPAL_INPUT_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, is_parallel),
     )
+
+
+class _Generate(template_common.LibLatticeUtilMixin):
+
+    def __init__(self, data):
+        self.data = data
+        self._schema = _SCHEMA
+
+    def sim(self, full=True):
+        d = self.data
+        r, v = template_common.generate_parameters_file(d)
+        self.jinja_env = v
+        self._code_var = code_var(d.models.rpnVariables)
+        if full or 'bunchReport' not in d.get('report'):
+            return r + self._full_simulation()
+        return r + self._bunch_simulation()
+
+    def _bunch_simulation(self):
+        v = self.jinja_env
+        # keep only first distribution and beam in command list
+        beam = LatticeUtil.find_first_command(self.data, 'beam')
+        distribution = LatticeUtil.find_first_command(self.data, 'distribution')
+        v.beamName = beam.name
+        v.distributionName = distribution.name
+        # these need to get set to default or distribution won't generate in 1 step
+        # for emitted distributions
+        distribution.nbin = 0
+        distribution.emissionsteps = 1
+        distribution.offsetz = 0
+        self.data.models.commands = [
+            LatticeUtil.find_first_command(self.data, 'option'),
+            beam,
+            distribution,
+        ]
+        self._generate_commands_and_variables()
+        return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
+
+    def _full_simulation(self):
+        v = self.jinja_env
+        v.lattice = _generate_lattice(
+            self.util,
+            self._code_var,
+            LatticeUtil.find_first_command(
+                self.util.data,
+                'track',
+            ).line or self.util.select_beamline().id,
+        )
+        v.use_beamline = self.util.select_beamline().name
+        self._generate_commands_and_variables()
+        return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
+
+    def _generate_commands_and_variables(self):
+        self.jinja_env.update(dict(
+            variables=self._code_var.generate_variables(_generate_variable),
+            header_commands=_generate_commands(self.util, True),
+            commands=_generate_commands(self.util, False),
+        ))
+
+
+def _generate_parameters_file(data, is_parallel=False):
+    return _Generate(data).sim(full=is_parallel)
+
+
+def _generate_variable(name, variables, visited):
+    res = ''
+    if name not in visited:
+        res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
+        visited[name] = True
+    return res
 
 
 def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
@@ -661,50 +771,6 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
             text, edge = _generate_beamline(util, code_var, count_by_name, item_id, edge, names)
             res += text
     return res, edge
-
-
-def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
-    util = LatticeUtil(data, _SCHEMA)
-    cv = code_var(data.models.rpnVariables)
-    report = data.get('report', '')
-
-    if 'bunchReport' in report:
-        # keep only first distribution and beam in command list
-        beam = LatticeUtil.find_first_command(data, 'beam')
-        distribution = LatticeUtil.find_first_command(data, 'distribution')
-        v.beamName = beam.name
-        v.distributionName = distribution.name
-        # these need to get set to default or distribution won't generate in 1 step
-        # for emitted distributions
-        distribution.nbin = 0
-        distribution.emissionsteps = 1
-        distribution.offsetz = 0
-        data.models.commands = [
-            LatticeUtil.find_first_command(data, 'option'),
-            beam,
-            distribution,
-        ]
-    else:
-        beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
-        v.lattice = _generate_lattice(util, cv, beamline_id)
-        v.use_beamline = util.select_beamline().name
-    v.update(dict(
-        variables=cv.generate_variables(_generate_variable),
-        header_commands=_generate_commands(util, True),
-        commands=_generate_commands(util, False),
-    ))
-    if 'bunchReport' in report:
-        return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
-    return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
-
-
-def _generate_variable(name, variables, visited):
-    res = ''
-    if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
-        visited[name] = True
-    return res
 
 
 def _iterate_hdf5_steps(path, callback, state):

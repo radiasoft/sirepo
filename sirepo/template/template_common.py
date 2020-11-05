@@ -47,6 +47,70 @@ _HISTOGRAM_BINS_MAX = 500
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 
+class LibFileMixin:
+    """Verify lib filenames and existence"""
+
+    def _verify_files(self, path, filenames):
+        for f in filenames:
+            assert sirepo.util.secure_filename(f) == f, \
+                f'file={f} must be a simple name'
+            p = path.dirpath().join(f)
+            assert p.check(file=True), \
+                f'file={f} missing'
+
+
+class LibCodeVarMixin:
+    """Convert RPNs to their values"""
+
+    def _convert(self, data, code_var, schema):
+        from sirepo.template.lattice import LatticeUtil
+
+        cv = code_var(data.models.rpnVariables)
+
+        def _model(model, name):
+            s = schema.model[name]
+
+            k = x = v = None
+            try:
+                for k, x in s.items():
+                    t = x[1]
+                    v = model[k] if k in model else x[2]
+                    if t == 'RPNValue':
+                        t = 'Float'
+                        if cv.is_var_value(v):
+                            model[k] = cv.eval_var_with_assert(v)
+                            continue
+                    if t == 'Float':
+                        model[k] = float(v) if v else 0.
+                    elif t == 'Integer':
+                        model[k] = int(v) if v else 0
+            except Exception as e:
+                pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+                raise
+
+        for x in  data.models.rpnVariables:
+            x.value = cv.eval_var_with_assert(x.value)
+        for k, v in data.models.items():
+            if k in schema.model:
+                _model(v, k)
+        for x in ('elements', 'commands'):
+            for m in data.models[x]:
+                _model(m, LatticeUtil.model_name_for_data(m))
+        return data
+
+
+class LibLatticeUtilMixin:
+
+    @property
+    def util(self):
+        from sirepo.template.lattice import LatticeUtil
+
+        if not hasattr(self, '_util'):
+            self._util = LatticeUtil(self.data, self._schema)
+        return self._util
+
+
+
 class ModelUnits():
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 

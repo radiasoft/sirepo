@@ -9,8 +9,8 @@ Use this to call sirepo from other packages or Python notebooks.
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import pykern.pkio
 import copy
+import pykern.pkio
 
 
 class Importer:
