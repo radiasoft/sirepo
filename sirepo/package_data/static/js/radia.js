@@ -5,8 +5,8 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     // test enums
-    let f = new SIREPO.DOM.SREnum('FieldType', 'sr-radia-field-type', null, false, false);
-    let s = new SIREPO.DOM.SREnum('FieldScaling', 'sr-radia-field-scaling', null, true, false);
+    let f = new SIREPO.DOM.UIEnum('FieldType', null, false, false);
+    let s = new SIREPO.DOM.UIEnum('FieldScaling', null, true, false);
 
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];

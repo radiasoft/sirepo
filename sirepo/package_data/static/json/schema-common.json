@@ -223,6 +223,7 @@
             },
             "sirepoLibs": {
                 "js": [
+                    "sirepo-utils.js",
                     "sirepo-dom.js",
                     "sirepo-common.js",
                     "sirepo-components.js",

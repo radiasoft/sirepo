@@ -1,6 +1,6 @@
 // will get rid of angular stuff like but need it initially
 
-class SRAttribute {
+class UIAttribute {
     constructor(name, value) {
         this.name = name;
         this.value = value;
@@ -19,7 +19,7 @@ class SRAttribute {
     }
 }
 
-class SRElement {
+class UIElement {
     // tag name, id, attrs array
     // even though id is an attribute, give it its own parameter
     constructor(tag, id, attrs) {
@@ -41,7 +41,7 @@ class SRElement {
             a.value = value;
         }
         else {
-            this.attrs.push(new SRAttribute(name, value));
+            this.attrs.push(new UIAttribute(name, value));
         }
     }
 
@@ -121,7 +121,7 @@ class SRElement {
     }
 
     toString() {
-        let s = `<${this.tag} ${SRAttribute.attrsToString(this.attrs)}>`;
+        let s = `<${this.tag} ${UIAttribute.attrsToString(this.attrs)}>`;
         s += this.text;
         for (let c of this.children) {
             s += `${c.toString()}`;
@@ -136,20 +136,21 @@ class SRElement {
 }
 
 
-class SRInput extends SRElement {
+class UIInput extends UIElement {
     constructor(tag, id, attrs, isValidated) {
         super(tag, id, attrs);
         if (isValidated) {
-            this.addSibling(new SRWarning());
+            this.addSibling(new UIWarning());
         }
     }
 }
 
-class SREnum extends SRInput {
-    constructor(enumName, id, attrs, asButtons, isValidated) {
+class UIEnum extends UIInput {
+    constructor(enumName, attrs, asButtons, isValidated) {
         if (! SIREPO.APP_SCHEMA.enum[enumName]) {
             throw new Error(`${enumName}: no such enum in schema`);
         }
+        let id = `sr-${SIREPO.UTILS.camelToKebabCase(enumName)}`;
         if (asButtons) {
             super('div', id, attrs, isValidated);
             this.addClasses('btn-group');
@@ -160,16 +161,16 @@ class SREnum extends SRInput {
             this.addAttribute('data-ng-model', 'model[field]');
         }
         for (let e of SIREPO.APP_SCHEMA.enum[enumName]) {
-            this.addChild(asButtons ? new SREnumButton(e) : new SREnumOption(e));
+            this.addChild(asButtons ? new UIEnumButton(e) : new UIEnumOption(e));
         }
     }
 }
 
-class SREnumButton extends SRElement {
+class UIEnumButton extends UIElement {
     constructor(enumItem) {
         super('button', null, [
-            new SRAttribute('class', 'btn sr-enum-button'),
-            new SRAttribute('data-ng-click', `model[field] = '${enumItem[SIREPO.ENUM_INDEX_VALUE]}'`),
+            new UIAttribute('class', 'btn sr-enum-button'),
+            new UIAttribute('data-ng-click', `model[field] = '${enumItem[SIREPO.ENUM_INDEX_VALUE]}'`),
         ]);
         this.setText(`${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
     }
@@ -186,7 +187,7 @@ class SREnumButton extends SRElement {
     }
 }
 
-class SREnumOption extends SRElement {
+class UIEnumOption extends UIElement {
     constructor(enumItem) {
         super('option');
         this.addAttribute('label', `${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
@@ -195,10 +196,10 @@ class SREnumOption extends SRElement {
 }
 
 // build selection DOM for an enum from the schema
-class SRWarning extends SRElement {
+class UIWarning extends UIElement {
     constructor(msg) {
         super('div', null, [
-            new SRAttribute('class', 'sr-input-warning')
+            new UIAttribute('class', 'sr-input-warning')
         ]);
         this.setMsg(msg || '');
     }
@@ -209,10 +210,10 @@ class SRWarning extends SRElement {
 }
 
 SIREPO.DOM = {
-    SRAttribute: SRAttribute,
-    SRElement: SRElement,
-    SREnum: SREnum,
-    SREnumOption: SREnumOption,
-    SRInput: SRInput,
-    SRWarning: SRWarning,
+    UIAttribute: UIAttribute,
+    UIElement: UIElement,
+    UIEnum: UIEnum,
+    UIEnumOption: UIEnumOption,
+    UIInput: UIInput,
+    UIWarning: UIWarning,
 };
