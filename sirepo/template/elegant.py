@@ -123,7 +123,6 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
 
-
         Returns:
             PKDict: structure of files written (debugging only)
         """

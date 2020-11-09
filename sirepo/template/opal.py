@@ -76,7 +76,6 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
 
-
         Returns:
             PKDict: structure of files written (debugging only)
         """
@@ -89,9 +88,12 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
                 lattice.InputFileIterator(_SIM_DATA),
             ).result,
         ):
-            dest_dir.join(f).mksymlinkto(source_path.new(
-                basename=_SIM_DATA.lib_file_name_without_type(f),
-            ), absolute=False)
+            dest_dir.join(f).mksymlinkto(
+                source_path.new(
+                    basename=_SIM_DATA.lib_file_name_without_type(f),
+                ),
+                absolute=False,
+            )
             r.output_files = [
                 f[k] for k in LatticeUtil(data, _SCHEMA).iterate_models(
                     OpalOutputFileIterator(),
