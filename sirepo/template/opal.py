@@ -61,7 +61,7 @@ _OPAL_CONSTANTS = PKDict(
 )
 
 
-class LibAdapter(template_common.LibFileMixin, template_common.LibCodeVarMixin):
+class LibAdapter(sirepo.lib.LibAdapterBase):
 
     def parse_file(self, path):
         from sirepo.template import opal_parser
@@ -493,7 +493,7 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-class _Generate(template_common.LibLatticeUtilMixin):
+class _Generate(sirepo.lib.GenerateBase):
 
     def __init__(self, data):
         self.data = data

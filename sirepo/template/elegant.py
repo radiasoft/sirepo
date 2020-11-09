@@ -26,6 +26,7 @@ import os
 import os.path
 import py.path
 import re
+import sirepo.lib
 import sirepo.sim_data
 import stat
 
@@ -89,7 +90,7 @@ class CommandIterator(lattice.ElementIterator):
             self.fields.append(['mpi_io_write_buffer_size', _MPI_IO_WRITE_BUFFER_SIZE])
 
 
-class LibAdapter(template_common.LibFileMixin, template_common.LibCodeVarMixin):
+class LibAdapter(sirepo.lib.LibAdapterBase):
 
     def parse_file(self, path):
 
@@ -733,7 +734,7 @@ def write_parameters(data, run_dir, is_parallel):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
 
-class _Generate(template_common.LibLatticeUtilMixin):
+class _Generate(sirepo.lib.GenerateBase):
 
     def __init__(self, data, validate=True):
         self.data = data
