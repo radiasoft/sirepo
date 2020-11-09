@@ -388,7 +388,7 @@ def prepare_sequential_output_file(run_dir, data):
 def python_source_for_model(data, model):
     if model == 'madx':
         return OpalMadxConverter().to_madx_text(data)
-    return _generate_parameters_file(data, is_parallel=True)
+    return _generate_parameters_file(data)
 
 
 def save_sequential_report_data(data, run_dir):
@@ -491,7 +491,7 @@ def sim_frame_plot2Animation(frame_args):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(OPAL_INPUT_FILE),
-        _generate_parameters_file(data, is_parallel),
+        _generate_parameters_file(data),
     )
 
 
@@ -501,14 +501,14 @@ class _Generate(sirepo.lib.GenerateBase):
         self.data = data
         self._schema = _SCHEMA
 
-    def sim(self, full=True):
+    def sim(self):
         d = self.data
         r, v = template_common.generate_parameters_file(d)
         self.jinja_env = v
         self._code_var = code_var(d.models.rpnVariables)
-        if full or 'bunchReport' not in d.get('report'):
-            return r + self._full_simulation()
-        return r + self._bunch_simulation()
+        if 'bunchReport' in d.get('report', ''):
+            return r + self._bunch_simulation()
+        return r + self._full_simulation()
 
     def _bunch_simulation(self):
         v = self.jinja_env
@@ -552,8 +552,8 @@ class _Generate(sirepo.lib.GenerateBase):
         ))
 
 
-def _generate_parameters_file(data, is_parallel=False):
-    return _Generate(data).sim(full=is_parallel)
+def _generate_parameters_file(data):
+    return _Generate(data).sim()
 
 
 def _generate_variable(name, variables, visited):
