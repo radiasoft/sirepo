@@ -8,13 +8,23 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 def test_elegant():
-    _code('run_setup.acceptance.sdds')
+    from pykern import pkunit
+
+    f = _code()
+    e = ['run_setup.acceptance.sdds']
+    pkunit.pkok(
+        set(e).issubset(set(f)),
+        'expecting files={} to be subset of output_files={}',
+        e,
+        f,
+    )
 
 
 def test_opal():
     _code()
 
-def _code(*args):
+
+def _code():
     from pykern import pkunit, pkio, pkjson
     from pykern.pkdebug import pkdp
     import inspect
@@ -34,11 +44,6 @@ def _code(*args):
         pkunit.file_eq(s.join('out.json'), d2)
         w = pkunit.work_dir().join(s.basename)
         r = d.write_files(w)
-        pkunit.pkok(
-            set(args).issubset(set(r.output_files)),
-            'expecting files={} to be subset of output_files={}',
-            args,
-            r.output_files,
-        )
         for o in pkio.sorted_glob(pkunit.data_dir().join(s.basename, '*.out')):
             pkunit.file_eq(o, actual_path=w.join(o.basename).new(ext=''))
+        return r.output_files
