@@ -6,15 +6,15 @@ class UIAttribute {
         this.value = value;
     }
 
-    static attrsToString(arr) {
+    static attrsToTempate(arr) {
         let s = '';
         for (let attr of arr) {
-            s += `${attr.toString()} `;
+            s += `${attr.toTemplate()} `;
         }
         return s;
     }
 
-    toString() {
+    toTemplate() {
         return `${this.name}="${this.value}"`;
     }
 }
@@ -31,6 +31,7 @@ class UIElement {
         this.children = [];
         this.id = id;
         this.parent = null;
+        this.siblings = [];
         this.tag = tag;
         this.text = '';
     }
@@ -52,6 +53,9 @@ class UIElement {
     addChild(el) {
         el.parent = this;
         this.children.push(el);
+        for (let s of el.siblings || []) {
+            this.addChild(s);
+        }
     }
 
     // add a class to the existing list, or set it.  Can be space-delimited
@@ -71,10 +75,15 @@ class UIElement {
     }
 
     addSibling(el) {
-        if (! this.parent) {
-            throw new Error(`${this}: cannot add sibling to element with no parent`);
+        this.siblings.push(el);
+        //if (! this.parent) {
+        //    console.log('ADD TO SIBS, NOT DOM');
+        //    return;
+        //    //throw new Error(`${this}: cannot add sibling to element with no parent`);
+        //}
+        if (this.parent) {
+            this.parent.addChild(el);
         }
-        this.parent.addChild(el);
     }
 
     getAttr(name) {
@@ -120,11 +129,11 @@ class UIElement {
         this.text = str;
     }
 
-    toString() {
-        let s = `<${this.tag} ${UIAttribute.attrsToString(this.attrs)}>`;
+    toTemplate() {
+        let s = `<${this.tag} ${UIAttribute.attrsToTempate(this.attrs)}>`;
         s += this.text;
         for (let c of this.children) {
-            s += `${c.toString()}`;
+            s += `${c.toTemplate()}`;
         }
         s += `</${this.tag}>`;
         return s;
@@ -137,34 +146,67 @@ class UIElement {
 
 
 class UIInput extends UIElement {
-    constructor(tag, id, attrs, isValidated) {
+    constructor(tag, id, attrs) {
         super(tag, id, attrs);
-        if (isValidated) {
-            this.addSibling(new UIWarning());
-        }
+        this.addSibling(new UIWarning());
     }
 }
 
 class UIEnum extends UIInput {
-    constructor(enumName, attrs, asButtons, isValidated) {
-        if (! SIREPO.APP_SCHEMA.enum[enumName]) {
-            throw new Error(`${enumName}: no such enum in schema`);
-        }
-        let id = `sr-${SIREPO.UTILS.camelToKebabCase(enumName)}`;
-        if (asButtons) {
-            super('div', id, attrs, isValidated);
+    //constructor(enumName, attrs, asButtons) {
+    constructor(em) {
+        //if (! SIREPO.APP_SCHEMA.enum[enumName]) {
+        //let em = SIREPO.APP_SCHEMA.enumModels[enumName];
+        //if (! em) {
+        //    throw new Error(`${enumName}: no such enum in schema`);
+        //}
+        //let id = `sr-${SIREPO.UTILS.camelToKebabCase(enumName)}`;
+        let id = `sr-${SIREPO.UTILS.camelToKebabCase(em.name)}`;
+
+        //if (asButtons) {
+        if (em.layout === 'buttons') {
+            super('div', id);
             this.addClasses('btn-group');
         }
+        else {
+            super('select', id);
+            this.addClasses('form-control');
+            this.addAttribute('data-ng-model', 'model[field]');
+        }
+        this.layout = em.layout;
+        //for (let e of SIREPO.APP_SCHEMA.enum[enumName]) {
+        for (let e of em.entries) {
+            this.addChild(ENUM_LAYOUT_ELEMENTS[this.layout](e) || this.autoLayout());
+        }
+    }
+
+    // will need to know about the size of the columns etc. but for now just use number of
+    // entries
+    autoLayout() {
+        return;
+    }
+}
+
+
+/*
+class UIEnum extends UIInput {
+    constructor(e) {
+        let id = `sr-${SIREPO.UTILS.camelToKebabCase(e)}`;
+        //if (asButtons) {
+        //    super('div', id, attrs, isValidated);
+        //    this.addClasses('btn-group');
+        //}
         else {
             super('select', id, attrs, isValidated);
             this.addClasses('form-control');
             this.addAttribute('data-ng-model', 'model[field]');
         }
-        for (let e of SIREPO.APP_SCHEMA.enum[enumName]) {
+        for (let e in SIREPO.application.enums) {
             this.addChild(asButtons ? new UIEnumButton(e) : new UIEnumOption(e));
         }
     }
 }
+*/
 
 class UIEnumButton extends UIElement {
     constructor(enumItem) {
@@ -194,6 +236,11 @@ class UIEnumOption extends UIElement {
         this.addAttribute('value', `${enumItem[SIREPO.ENUM_INDEX_VALUE]}`);
     }
 }
+
+const ENUM_LAYOUT_ELEMENTS = {
+    'buttons': UIEnumButton,
+    'dropdown': UIEnumOption,
+};
 
 // build selection DOM for an enum from the schema
 class UIWarning extends UIElement {

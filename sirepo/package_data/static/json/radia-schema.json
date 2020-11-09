@@ -140,6 +140,50 @@
             "js": ["radia.js"]
         }
     },
+    "enumModels": {
+        "FieldScaling": {
+            "layout": "buttons",
+            "entries": [
+                {
+                    "label": "Uniform",
+                    "value": "uniform"
+                },
+                {
+                    "label": "Linear",
+                    "value": "linear"
+                },
+                {
+                    "label": "Log",
+                    "value": "log"
+                }
+            ]
+        },
+        "FieldType": {
+            "layout": "dropdown",
+            "entries": [
+                {
+                    "label": "M",
+                    "value": "M"
+                },
+                {
+                    "label": "B",
+                    "value": "B"
+                },
+                {
+                    "label": "A",
+                    "value": "A"
+                },
+                {
+                    "label": "H",
+                    "value": "H"
+                },
+                {
+                    "label": "J",
+                    "value": "J"
+                }
+            ]
+        }
+    },
     "enum": {
         "AutoManual": [
             ["auto", "Auto"],
