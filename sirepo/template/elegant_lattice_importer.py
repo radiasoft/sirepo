@@ -69,7 +69,8 @@ def import_file(text, data=None):
     models = elegant_lattice_parser.parse_file(
         text,
         data.models.rpnVariables,
-        _SIM_DATA.elegant_max_id(data))
+        lattice.LatticeUtil.max_id(data),
+    )
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]

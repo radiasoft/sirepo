@@ -507,8 +507,12 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         if (self.isCaseInsensitive) {
             v = v.toLowerCase ? v.toLowerCase() : v;
         }
-        if (appState.models.rpnCache && v in appState.models.rpnCache) {
-            return appState.models.rpnCache[v];
+        // TODO(e-carlin): This is the crux. rpnCache is now under externalLattice
+        const c = appState.models.externalLattice ? appState.models.externalLattice.models.rpnCache : appState.models.rpnCache;
+        // if (appState.models.rpnCache && v in appState.models.rpnCache) {
+        if (c && v in c) {
+            return c[v];
+            // return appState.models.rpnCache[v];
         }
         var value = parseFloat(v);
         if (isNaN(value)) {

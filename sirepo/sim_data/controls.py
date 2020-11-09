@@ -7,10 +7,15 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import sirepo.sim_data
 from sirepo.template.lattice import LatticeUtil
+import sirepo.sim_data
+import sirepo.simulation_db
 
 class SimData(sirepo.sim_data.SimDataBase):
+
+    @classmethod
+    def controls_madx_dir(cls):
+        return sirepo.simulation_db.simulation_dir('madx')
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -21,6 +26,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             (
                 'command_beam',
                 'command_twiss',
+                'dataFile',
             ),
         )
         dm.externalLattice.models.bunch.beamDefinition = 'pc'

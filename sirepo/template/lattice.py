@@ -525,6 +525,18 @@ class LatticeUtil(object):
         return iterator
 
     @classmethod
+    def max_id(cls, data):
+        max_id = 1
+        for model_type in 'elements', 'beamlines', 'commands':
+            if model_type not in data.models:
+                continue
+            for m in data.models[model_type]:
+                i = m._id if '_id' in m else m.id
+                if i > max_id:
+                    max_id = i
+        return max_id
+
+    @classmethod
     def model_name_for_data(cls, model):
         """Returns the model's schema name.
         """

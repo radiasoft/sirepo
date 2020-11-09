@@ -3967,6 +3967,51 @@ SIREPO.app.service('sbatchLoginStatusService', function($rootScope) {
 
 });
 
+SIREPO.app.directive('simList', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            code: '@',
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div style="white-space: nowrap">',
+              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
+              ' ',
+              '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.simList = null;
+            $scope.openSimulation = function() {
+                if ($scope.model && $scope.model[$scope.field]) {
+                    //TODO(e-carlin): this depends on the visualization route
+                    // being present in both the caller and callee apps.
+                    // Need meta data for a page in another app
+                    requestSender.newLocalWindow(
+                        'visualization',
+                        {':simulationId': $scope.model[$scope.field]},
+                        $scope.code);
+                }
+            };
+            appState.whenModelsLoaded($scope, function() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'get_' + $scope.code + '_sim_list'
+                    },
+                    function(data) {
+                        if (appState.isLoaded() && data.simList) {
+                            $scope.simList = data.simList.sort(function(a, b) {
+                                return a.name.localeCompare(b.name);
+                            });
+                        }
+                    });
+            });
+        },
+    };
+});
+
 SIREPO.app.service('utilities', function($window, $interval) {
 
     var self = this;
