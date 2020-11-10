@@ -169,6 +169,10 @@ class UIEnum extends UIInput {
         };
     }
 
+    static enumMatch(name) {
+        return new UIMatch(name, new UIEnum(new SIREPO.APP.SREnum(name)));
+    }
+
     constructor(model) {
         const lp = UIEnum.ENUM_LAYOUT_PROPS();
         let props = lp[model.layout] || UIEnum.autoLayout(model);

@@ -6,7 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     // test enums
     let tst = ['FieldType', 'FieldScaling'].map(function (e) {
-        return new SIREPO.DOM.UIMatch(e, new SIREPO.DOM.UIEnum(new SIREPO.APP.SREnum(e))).toTemplate();
+        return (SIREPO.DOM.UIEnum.enumMatch(e)).toTemplate();
     }).join('');
 
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
