@@ -80,11 +80,6 @@ class UIElement {
 
     addSibling(el) {
         this.siblings.push(el);
-        //if (! this.parent) {
-        //    console.log('ADD TO SIBS, NOT DOM');
-        //    return;
-        //    //throw new Error(`${this}: cannot add sibling to element with no parent`);
-        //}
         if (this.parent) {
             this.parent.addChild(el);
         }
@@ -182,38 +177,14 @@ class UIEnum extends UIInput {
         };
     }
 
-    //constructor(enumName, attrs, asButtons) {
     constructor(model) {
         const lp = UIEnum.ENUM_LAYOUT_PROPS();
-        //if (! SIREPO.APP_SCHEMA.enum[enumName]) {
-        //let em = SIREPO.APP_SCHEMA.enumModels[enumName];
-        //if (! em) {
-        //    throw new Error(`${enumName}: no such enum in schema`);
-        //}
-        //let id = `sr-${SIREPO.UTILS.camelToKebabCase(enumName)}`;
-        //let id = `sr-${SIREPO.UTILS.camelToKebabCase(model.name)}`;
-
-        //if (asButtons) {
-        /*
-        if (em.layout === 'buttons') {
-            super('div', id);
-            this.addClasses('btn-group');
-        }
-        else {
-            super('select', id);
-            this.addClasses('form-control');
-            this.addAttribute('data-ng-model', 'model[field]');
-        }
-
-         */
         let props = lp[model.layout] || UIEnum.autoLayout(model);
         super(props.element, `sr-${SIREPO.UTILS.camelToKebabCase(model.name)}`);
         this.addClasses(props.elementClasses);
-        //this.addAttributes(props.attrs);
         if (model.layout === 'buttons') {
             this.addAttribute('data-ng-model', 'model[field]');
         }
-        //for (let e of SIREPO.APP_SCHEMA.enum[enumName]) {
         for (let e of model.entries) {
             this.addChild(new props.entryClass(e));
         }
@@ -232,35 +203,17 @@ class UIEnum extends UIInput {
     }
 }
 
-
-/*
-class UIEnum extends UIInput {
-    constructor(e) {
-        let id = `sr-${SIREPO.UTILS.camelToKebabCase(e)}`;
-        //if (asButtons) {
-        //    super('div', id, attrs, isValidated);
-        //    this.addClasses('btn-group');
-        //}
-        else {
-            super('select', id, attrs, isValidated);
-            this.addClasses('form-control');
-            this.addAttribute('data-ng-model', 'model[field]');
-        }
-        for (let e in SIREPO.application.enums) {
-            this.addChild(asButtons ? new UIEnumButton(e) : new UIEnumOption(e));
-        }
-    }
-}
-*/
-
 class UIEnumButton extends UIElement {
     constructor(enumItem) {
+        let v = `${enumItem.value}`;
         super('button', null, [
             new UIAttribute('class', 'btn sr-enum-button'),
-            //new UIAttribute('data-ng-click', `model[field] = '${enumItem[SIREPO.ENUM_INDEX_VALUE]}'`),
-            new UIAttribute('data-ng-click', `model[field] = '${enumItem.value}'`),
+            new UIAttribute('data-ng-click', `model[field] = '${v}'`),
+            new UIAttribute(
+                'data-ng-class',
+                `{'active btn-primary': isSelectedValue('${v}'), 'btn-default': ! isSelectedValue('${v}')}`
+            ),
         ]);
-        //this.setText(`${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
         this.setText(`${enumItem.label}`);
     }
 
@@ -279,8 +232,6 @@ class UIEnumButton extends UIElement {
 class UIEnumOption extends UIElement {
     constructor(enumItem) {
         super('option');
-        //this.addAttribute('label', `${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
-        //this.addAttribute('value', `${enumItem[SIREPO.ENUM_INDEX_VALUE]}`);
         this.addAttribute('label', `${enumItem.label}`);
         this.addAttribute('value', `${enumItem.value}`);
     }

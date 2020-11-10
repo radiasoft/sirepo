@@ -8,20 +8,11 @@ SIREPO.app.config(function() {
     let tst = ['FieldType', 'FieldScaling'].map(function (e) {
         return new SIREPO.DOM.UIMatch(e, new SIREPO.DOM.UIEnum(new SIREPO.APP.SREnum(e))).toTemplate();
     }).join('');
-    srdbg(tst);
-    //let f = new SIREPO.DOM.UIEnum('FieldType', null, false);
-    //let s = new SIREPO.DOM.UIEnum('FieldScaling', null, true);
 
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
-    //SIREPO.appFieldEditors += tst;
+    SIREPO.appFieldEditors += tst;
     SIREPO.appFieldEditors += [
-        //'<div data-ng-switch-when="FieldType" data-ng-class="fieldClass">',
-        //  f.toTemplate(),
-        //'</div>',
-        //'<div data-ng-switch-when="FieldScaling" data-ng-class="fieldClass">',
-        //  s.toTemplate(),
-        //'</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
