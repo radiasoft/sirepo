@@ -22,7 +22,7 @@ class SREnum {
     }
 }
 
-SIREPO.APP_MODEL = {
+SIREPO.APP = {
     SRApp: SRApp,
     SREnum: SREnum,
 };

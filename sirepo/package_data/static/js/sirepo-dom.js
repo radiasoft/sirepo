@@ -6,6 +6,10 @@ class UIAttribute {
         this.value = value;
     }
 
+    static fromDict(d) {
+        return new UIAttribute(d.name, d.value);
+    }
+
     static attrsToTempate(arr) {
         let s = '';
         for (let attr of arr) {
@@ -144,6 +148,16 @@ class UIElement {
 
 }
 
+// wrap an element with conditional element
+class UIMatch extends UIElement {
+    constructor(value, el) {
+        super('div', null, [
+            new UIAttribute('data-ng-switch-when', value),
+            new UIAttribute('data-ng-class', 'fieldClass'),
+        ]);
+        this.addChild(el);
+    }
+}
 
 class UIInput extends UIElement {
     constructor(tag, id, attrs) {
@@ -153,17 +167,34 @@ class UIInput extends UIElement {
 }
 
 class UIEnum extends UIInput {
+    static ENUM_LAYOUT_PROPS() {
+        return {
+            buttons: {
+                entryClass: UIEnumButton,
+                element: 'div',
+                elementClasses: 'btn-group',
+            },
+            dropdown: {
+                entryClass: UIEnumOption,
+                element: 'select',
+                elementClasses: 'form-control',
+            },
+        };
+    }
+
     //constructor(enumName, attrs, asButtons) {
-    constructor(em) {
+    constructor(model) {
+        const lp = UIEnum.ENUM_LAYOUT_PROPS();
         //if (! SIREPO.APP_SCHEMA.enum[enumName]) {
         //let em = SIREPO.APP_SCHEMA.enumModels[enumName];
         //if (! em) {
         //    throw new Error(`${enumName}: no such enum in schema`);
         //}
         //let id = `sr-${SIREPO.UTILS.camelToKebabCase(enumName)}`;
-        let id = `sr-${SIREPO.UTILS.camelToKebabCase(em.name)}`;
+        //let id = `sr-${SIREPO.UTILS.camelToKebabCase(model.name)}`;
 
         //if (asButtons) {
+        /*
         if (em.layout === 'buttons') {
             super('div', id);
             this.addClasses('btn-group');
@@ -173,17 +204,31 @@ class UIEnum extends UIInput {
             this.addClasses('form-control');
             this.addAttribute('data-ng-model', 'model[field]');
         }
-        this.layout = em.layout;
+
+         */
+        let props = lp[model.layout] || UIEnum.autoLayout(model);
+        super(props.element, `sr-${SIREPO.UTILS.camelToKebabCase(model.name)}`);
+        this.addClasses(props.elementClasses);
+        //this.addAttributes(props.attrs);
+        if (model.layout === 'buttons') {
+            this.addAttribute('data-ng-model', 'model[field]');
+        }
         //for (let e of SIREPO.APP_SCHEMA.enum[enumName]) {
-        for (let e of em.entries) {
-            this.addChild(ENUM_LAYOUT_ELEMENTS[this.layout](e) || this.autoLayout());
+        for (let e of model.entries) {
+            this.addChild(new props.entryClass(e));
         }
     }
 
     // will need to know about the size of the columns etc. but for now just use number of
     // entries
-    autoLayout() {
-        return;
+    static autoLayout(model) {
+        const lp = UIEnum.ENUM_LAYOUT_PROPS();
+        if (model.entries.length < 4) {
+            return lp.buttons;
+        }
+        else {
+            return lp.dropdown;
+        }
     }
 }
 
@@ -212,9 +257,11 @@ class UIEnumButton extends UIElement {
     constructor(enumItem) {
         super('button', null, [
             new UIAttribute('class', 'btn sr-enum-button'),
-            new UIAttribute('data-ng-click', `model[field] = '${enumItem[SIREPO.ENUM_INDEX_VALUE]}'`),
+            //new UIAttribute('data-ng-click', `model[field] = '${enumItem[SIREPO.ENUM_INDEX_VALUE]}'`),
+            new UIAttribute('data-ng-click', `model[field] = '${enumItem.value}'`),
         ]);
-        this.setText(`${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
+        //this.setText(`${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
+        this.setText(`${enumItem.label}`);
     }
 
     setActive(isActive) {
@@ -232,15 +279,13 @@ class UIEnumButton extends UIElement {
 class UIEnumOption extends UIElement {
     constructor(enumItem) {
         super('option');
-        this.addAttribute('label', `${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
-        this.addAttribute('value', `${enumItem[SIREPO.ENUM_INDEX_VALUE]}`);
+        //this.addAttribute('label', `${enumItem[SIREPO.ENUM_INDEX_LABEL]}`);
+        //this.addAttribute('value', `${enumItem[SIREPO.ENUM_INDEX_VALUE]}`);
+        this.addAttribute('label', `${enumItem.label}`);
+        this.addAttribute('value', `${enumItem.value}`);
     }
 }
 
-const ENUM_LAYOUT_ELEMENTS = {
-    'buttons': UIEnumButton,
-    'dropdown': UIEnumOption,
-};
 
 // build selection DOM for an enum from the schema
 class UIWarning extends UIElement {
@@ -258,6 +303,7 @@ class UIWarning extends UIElement {
 
 SIREPO.DOM = {
     UIAttribute: UIAttribute,
+    UIMatch: UIMatch,
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,

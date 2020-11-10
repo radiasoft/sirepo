@@ -6,13 +6,15 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     // test enums
     let tst = ['FieldType', 'FieldScaling'].map(function (e) {
-        return SIREPO.APP_MODEL.SREnum(e);
-    });
+        return new SIREPO.DOM.UIMatch(e, new SIREPO.DOM.UIEnum(new SIREPO.APP.SREnum(e))).toTemplate();
+    }).join('');
+    srdbg(tst);
     //let f = new SIREPO.DOM.UIEnum('FieldType', null, false);
     //let s = new SIREPO.DOM.UIEnum('FieldScaling', null, true);
 
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
+    //SIREPO.appFieldEditors += tst;
     SIREPO.appFieldEditors += [
         //'<div data-ng-switch-when="FieldType" data-ng-class="fieldClass">',
         //  f.toTemplate(),
