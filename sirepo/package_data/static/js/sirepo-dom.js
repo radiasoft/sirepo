@@ -6,10 +6,6 @@ class UIAttribute {
         this.value = value;
     }
 
-    static fromDict(d) {
-        return new UIAttribute(d.name, d.value);
-    }
-
     static attrsToTempate(arr) {
         let s = '';
         for (let attr of arr) {
@@ -137,10 +133,6 @@ class UIElement {
         s += `</${this.tag}>`;
         return s;
     }
-
-    show(doShow) {
-    }
-
 }
 
 // wrap an element with conditional element
@@ -215,17 +207,6 @@ class UIEnumButton extends UIElement {
             ),
         ]);
         this.setText(`${enumItem.label}`);
-    }
-
-    setActive(isActive) {
-        if (isActive) {
-            this.removeClasses('btn-default');
-            this.addClasses('active btn-primary');
-        }
-        else {
-            this.removeClasses('active btn-primary');
-            this.addClasses('btn-default');
-        }
     }
 }
 
