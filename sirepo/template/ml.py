@@ -256,11 +256,7 @@ def _compute_csv_info(filename):
         rowCount=0,
     )
     row = None
-    with open(
-            simulation_db.simulation_lib_dir(
-                SIM_TYPE,
-            ).join(_filename(filename)),
-    ) as f:
+    with open(_filepath(filename)) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
@@ -289,9 +285,7 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     assert not re.search(r'\.npy$', str(filename)), \
         f'numpy files are not supported path={filename}'
     v = np.genfromtxt(
-        str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            _filename(filename),
-        )),
+        str(_filepath(filename)),
         delimiter=',',
         skip_header=True,
     )
@@ -315,13 +309,16 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         for x, v in enumerate(r.matrix[y]):
             t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
+    labels = _get_classification_output_col_encoding(frame_args)
+    if labels:
+        labels = list(labels.values())
+    else:
+        labels = r.labels
     return template_common.heatmap(
         a,
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
-            labels=list(
-                _get_classification_output_col_encoding(frame_args).values(),
-            ),
+            labels=labels,
             title=title.format(**r),
             x_label='Predicted',
             y_label='True',
@@ -399,6 +396,10 @@ def _filename(name):
     return _SIM_DATA.lib_file_name_with_model_field('dataFile', 'file', name)
 
 
+def _filepath(name):
+    return _SIM_DATA.lib_file_abspath(_filename(name))
+
+
 def _fit_animation(frame_args):
     idx = int(frame_args.columnNumber)
     frame_args.histogramBins = 30
@@ -461,47 +462,14 @@ def _generate_parameters_file(data):
 
 
 def _get_classification_output_col_encoding(frame_args):
-    """Create _OUTPUT_FILE.classificationOutputColEncodingFile if not found.
-
-    This file is a "new" addition so "older" runs may not have it.
-    """
-    def _create_file():
-        from sklearn.preprocessing import LabelEncoder
-
-        # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
-        data = simulation_db.read_json(
-            frame_args.run_dir.join(template_common.INPUT_BASE_NAME),
-        )
-        v = np.genfromtxt(
-            str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                _filename(data.models.dataFile.file),
-            )),
-            delimiter=',',
-            skip_header=data.models.columnInfo.hasHeaderRow,
-            dtype=None,
-            encoding='utf-8',
-        )
-        o = data.models.columnInfo.inputOutput.index('output')
-        c = v[f'f{o}']
-        e = LabelEncoder().fit(c)
-        res = PKDict(
-            zip(
-                e.transform(e.classes_).astype(np.float).tolist(),
-                e.classes_,
-            ),
-        )
-        pkjson.dump_pretty(
-            res,
-            filename=_OUTPUT_FILE.classificationOutputColEncodingFile,
-        )
-        return res
     try:
         return simulation_db.read_json(
             frame_args.run_dir.join(_OUTPUT_FILE.classificationOutputColEncodingFile),
         )
     except Exception as e:
         if pkio.exception_is_not_found(e):
-            return _create_file()
+            # no file exists, data may be only numeric values
+            return PKDict()
         raise e
 
 
