@@ -443,6 +443,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
 
 
             function setModel() {
+                $scope.model = appState.models.columnInfo;
                 const cols = [];
                 const c = appState.models.columnInfo;
                 if (! c.header) {
