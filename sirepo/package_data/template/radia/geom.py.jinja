@@ -6,7 +6,7 @@ import h5py
 import os
 import re
 from pykern.pkcollections import PKDict
-from sirepo import util
+import sirepo.util
 from sirepo.template import radia_examples
 from sirepo.template import template_common
 
@@ -34,10 +34,10 @@ def _hex_to_rgb(h_color):
 
 def _add_object(o):
     if o.model == _MODEL_BOX:
-        ctr = util.split_comma_delimited_string(o.center, 'float')
-        sz = util.split_comma_delimited_string(o.size, 'float')
-        m = util.split_comma_delimited_string(o.magnetization, 'float')
-        div = util.split_comma_delimited_string(o.division, 'int') if o.doDivide != '0' else None
+        ctr = sirepo.util.split_comma_delimited_string(o.center, float)
+        sz = sirepo.util.split_comma_delimited_string(o.size, float)
+        m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
+        div = sirepo.util.split_comma_delimited_string(o.division, int) if o.doDivide != '0' else None
         g_id = build_box(ctr, sz, o.material, m, div, h_m_curve=o.h_m_curve)
         if o.color:
             apply_color(g_id, _hex_to_rgb(o.color))

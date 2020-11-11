@@ -229,8 +229,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = sirepo.util.split_comma_delimited_string(f_path.begin, 'float')
-    p2 = sirepo.util.split_comma_delimited_string(f_path.end, 'float')
+    p1 = sirepo.util.split_comma_delimited_string(f_path.begin, float)
+    p2 = sirepo.util.split_comma_delimited_string(f_path.end, float)
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -338,8 +338,8 @@ def _generate_field_integrals(g_id, f_paths):
         res = PKDict()
         for p in l_paths:
             res[p.name] = PKDict()
-            p1 = sirepo.util.split_comma_delimited_string(p.begin, 'float')
-            p2 = sirepo.util.split_comma_delimited_string(p.end, 'float')
+            p1 = sirepo.util.split_comma_delimited_string(p.begin, float)
+            p2 = sirepo.util.split_comma_delimited_string(p.end, float)
             for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
         return res
