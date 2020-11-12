@@ -1,6 +1,7 @@
 import numpy
 import radia
 import re
+import sirepo.util
 import sys
 
 from numpy import linalg
@@ -34,27 +35,18 @@ _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
 
-def _split_comma_field(f, type):
-    arr = re.split(r'\s*,\s*', f)
-    if type == 'float':
-        return [float(x) for x in arr]
-    if type == 'int':
-        return [int(x) for x in arr]
-    return arr
-
-
 def _apply_clone(g_id, xform):
     # start with 'identity'
     xf = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
         if cxf.model == 'translateClone':
-            txf = radia.TrfTrsl(_split_comma_field(cxf.distance, 'float'))
+            txf = radia.TrfTrsl(sirepo.util.split_comma_delimited_string(cxf.distance, float))
             xf = radia.TrfCmbL(xf, txf)
         if cxf.model == 'rotateClone':
             rxf = radia.TrfRot(
-                _split_comma_field(cxf.center, 'float'),
-                _split_comma_field(cxf.axis, 'float'),
+                sirepo.util.split_comma_delimited_string(cxf.center, float),
+                sirepo.util.split_comma_delimited_string(cxf.axis, float),
                 numpy.pi * float(cxf.angle) / 180.
             )
             xf = radia.TrfCmbL(xf, rxf)
@@ -67,16 +59,16 @@ def _apply_rotation(g_id, xform):
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
-            _split_comma_field(xform.center, 'float'),
-            _split_comma_field(xform.axis, 'float'),
+            sirepo.util.split_comma_delimited_string(xform.center, float),
+            sirepo.util.split_comma_delimited_string(xform.axis, float),
             numpy.pi * float(xform.angle) / 180.
         )
     )
 
 
 def _apply_symmetry(g_id, xform):
-    plane = _split_comma_field(xform.symmetryPlane, 'float')
-    point = _split_comma_field(xform.symmetryPoint, 'float')
+    plane = sirepo.util.split_comma_delimited_string(xform.symmetryPlane, float)
+    point = sirepo.util.split_comma_delimited_string(xform.symmetryPoint, float)
     if xform.symmetryType == 'parallel':
         radia.TrfZerPara(g_id, point, plane)
     if xform.symmetryType == 'perpendicular':
@@ -86,7 +78,7 @@ def _apply_symmetry(g_id, xform):
 def _apply_translation(g_id, xform):
     radia.TrfOrnt(
         g_id,
-        radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
+        radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float))
     )
 
 

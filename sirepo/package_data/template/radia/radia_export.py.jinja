@@ -84,12 +84,8 @@ for obj in sirepo_objs:
 g_id = build_container(radia_objs)
 {% endif %}
 
-# always store the object and id map
-g_data = geom_to_data(g_id, name='{{ geomName }}')
-with h5py.File('{{ dataFile }}', 'a') as hf:
-    template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
 
-print('Solving...')
+print(f'Solving {g_id}...')
 res = solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
 print(f'done: {res}')
 
@@ -101,10 +97,9 @@ if '{{ viewType }}' == VIEW_TYPE_FIELD:
         f = get_field(g_id, f_type, {{ fieldPoints }})
     g_data = vector_field_to_data(g_id, '{{ geomName }}', f, FIELD_UNITS[f_type])
 
-{% if not forExport %}
     with h5py.File('{{ dataFile }}', 'a') as hf:
         template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
-{% endif %}
 
+print('Writing to {{ dmpFile }}')
 with open('{{ dmpFile }}', 'wb') as f:
     f.write(dump_bin(g_id))

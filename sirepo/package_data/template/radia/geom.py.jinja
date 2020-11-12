@@ -55,7 +55,7 @@ def _add_object(o):
 
 id_map = PKDict()
 {% if isExample %}
-g_id = radia_examples.build('{{ geomName }}')
+g_id = radia_examples.EXAMPLES['{{ geomName }}']()
 {% elif dmpImportFile %}
 if not os.path.isfile('{{ dmpFile }}'):
     with open('{{ dmpImportFile }}', 'rb') as f:
