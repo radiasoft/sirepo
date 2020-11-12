@@ -45,6 +45,7 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
 GEOM_PYTHON_FILE = 'geom.py'
+RADIA_EXPORT_FILE = 'radia_export.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
 
@@ -332,7 +333,7 @@ def _generate_field_data(g_id, name, field_type, field_paths):
 def _generate_field_integrals(g_id, f_paths):
     l_paths = [fp for fp in f_paths if fp.type == 'line']
     if len(l_paths) == 0:
-        # return something or server.py will throw an exception
+        # return something or server.py will raise an exception
         return PKDict(warning='No paths')
     try:
         res = PKDict()
@@ -377,56 +378,52 @@ def _generate_parameters_file(data, for_export):
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
-    v['forExport'] = for_export
-
-    # this is used in the jinja to visually indicate the radia_tk functions
-    v['radia_tk'] = ''
-
-    v['dmpFile'] = _dmp_file(sim_id)
+    j_file = RADIA_EXPORT_FILE if for_export else GEOM_PYTHON_FILE
+    v.dmpFile = _dmp_file(sim_id)
     if 'dmpImportFile' in data.models.simulation:
-        v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
+        v.dmpImportFile = simulation_db.simulation_lib_dir(SIM_TYPE).join(
             f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
         )
-    v['isExample'] = data.models.simulation.get('isExample', False)
+    v.isExample = data.models.simulation.get('isExample', False)
     v.objects = g.get('objects', [])
     # read in h-m curves if applicable
     for o in v.objects:
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
             o.get('material', None) and o.material == 'custom' and \
             o.get('materialFile', None) and o.materialFile else None
-    v['geomName'] = g.name
+    v.geomName = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
     f_type = None
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
-    v['viewType'] = v_type
-    v['dataFile'] = _geom_file(sim_id)
+    v.viewType = v_type
+    v.dataFile = _GEOM_FILE if for_export else _geom_file(sim_id)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
             raise ValueError(
                 'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
-        v['fieldType'] = f_type
-        v['fieldPoints'] = _build_field_points(data.models.fieldPaths.get('paths', []))
+        v.fieldType = f_type
+        v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
     if 'solver' in report:
-        v['doSolve'] = True
+        v.doSolve = True
         s = data.models.solver
-        v['solvePrec'] = s.precision
-        v['solveMaxIter'] = s.maxIterations
-        v['solveMethod'] = s.method
+        v.solvePrec = s.precision
+        v.solveMaxIter = s.maxIterations
+        v.solveMethod = s.method
     if 'reset' in report:
         radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data, False)
-    v['h5ObjPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
-    v['h5FieldPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
+    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
+    v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
 
     return template_common.render_jinja(
         SIM_TYPE,
         v,
-        GEOM_PYTHON_FILE,
+        j_file,
         jinja_env=PKDict(loader=jinja2.PackageLoader('sirepo', 'template'))
     )
 
