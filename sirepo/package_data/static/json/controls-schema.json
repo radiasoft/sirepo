@@ -16,6 +16,16 @@
         }
     },
     "enum": {
+        "ParticleType": [
+            ["positron", "Positron"],
+            ["electron", "Electron"],
+            ["proton", "Proton"],
+            ["antiproton", "Anti-proton"],
+            ["posmuon", "Positive Muon"],
+            ["negmuon", "Negative Muon"],
+            ["ion", "Ion"],
+            ["other", "Other"]
+        ]
     },
     "localRoutes": {
         "controls": {
@@ -30,18 +40,48 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
+        "command_beam": {
+            "particle": ["PARTICLE", "ParticleType", "electron", "The name of particles in the beam."],
+            "mass": ["MASS [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
+            "charge": ["CHARGE [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
+            "pc": ["PC [GeV/c]", "Float", 0.0, "Momentum per particle."],
+            "ex": ["Horizontal Emittance [m]", "Float", 1.0],
+            "ey": ["Vertical Emittance [m]", "Float", 1.0],
+            "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
+            "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
+        },
+        "command_twiss": {
+            "alfx": ["Horizontal Alpha", "Float", 0.0],
+            "alfy": ["Vertical Alpha", "Float", 0.0],
+            "betx": ["Horizontal Beta [m]", "Float", 0.0],
+            "bety": ["Vertical Beta [m]", "Float", 0.0],
+            "dpx": ["Horizontal Dispersion Derivative", "Float", 0.0],
+            "dpy": ["Vertical Dispersion Derivative", "Float", 0.0],
+            "dx": ["Horizontal Dispersion [m]", "Float", 0.0],
+            "dy": ["Vertical Dispersion [m]", "Float", 0.0],
+            "px": ["Horizontal Centroid Derivative [2$\\pi$]", "Float", 0.0],
+            "py": ["Vertical Centroid Derivative [2$\\pi$]", "Float", 0.0],
+            "x": ["Horizontal Centroid [m]", "Float", 0.0],
+            "y": ["Vertical Centroid [m]", "Float", 0.0]
+        },
         "HKICKER": {
             "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
+        },
+        "HMONITOR": {
         },
         "KICKER": {
             "hkick": ["HKICK", "MiniFloat", 0.0, "The horizontal momentum change $\\delta PX$"],
             "vkick": ["VKICK", "MiniFloat", 0.0, "The vertical momentum change $\\delta PY$"]
+        },
+        "MONITOR": {
         },
         "QUADRUPOLE": {
             "k1": ["K1 [$\\bf m^{-2}$]", "MiniFloat", 0.0, "The normal quadrupole coefficient"]
         },
         "VKICKER": {
             "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PY$"]
+        },
+        "VMONITOR": {
         }
     },
     "strings": {
@@ -51,6 +91,50 @@
         "beamline": {
             "title": "Beamline",
             "advanced": []
+        },
+        "command_beam": {
+            "title": "Beam Settings",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "particle",
+                    "mass",
+                    "charge",
+                    "pc"
+                ]],
+                ["Twiss", [
+                    [
+                        ["Horizontal", [
+                            "ex",
+                            "command_twiss.betx",
+                            "command_twiss.alfx",
+                            "command_twiss.dx",
+                            "command_twiss.dpx"
+                        ]],
+                        ["Vertical", [
+                            "ey",
+                            "command_twiss.bety",
+                            "command_twiss.alfy",
+                            "command_twiss.dy",
+                            "command_twiss.dpy"
+                        ]]
+                    ],
+                    "sigt",
+                    "sige"
+                ]],
+                ["Position", [
+                    [
+                        ["Horizontal", [
+                            "command_twiss.x",
+                            "command_twiss.px"
+                        ]],
+                        ["Vertical", [
+                            "command_twiss.y",
+                            "command_twiss.py"
+                        ]]
+                    ]
+                ]]
+            ]
         },
         "simulationStatus": {
             "title": "Simulation Status",
@@ -64,6 +148,10 @@
                 "kick"
             ]
         },
+        "HMONITOR": {
+            "title": "MONITOR",
+            "advanced": []
+        },
         "KICKER": {
             "title": "KICKER",
             "description": "Corrector",
@@ -71,6 +159,10 @@
                 "hkick",
                 "vkick"
             ],
+            "advanced": []
+        },
+        "MONITOR": {
+            "title": "MONITOR",
             "advanced": []
         },
         "QUADRUPOLE": {
@@ -88,6 +180,10 @@
             "basic": [
                 "kick"
             ]
+        },
+        "VMONITOR": {
+            "title": "MONITOR",
+            "advanced": []
         }
     }
 }
