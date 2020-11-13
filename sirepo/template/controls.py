@@ -93,7 +93,6 @@ def _dedup_elements(data):
     def _set_element_name(elem, index):
         elem['name'] = f'{elem.type[0]}{index}'
 
-
     max_id = sirepo.template.lattice.LatticeUtil.max_id(data)
     beamline_map = PKDict(
         {
