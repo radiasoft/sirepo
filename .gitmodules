@@ -1,0 +1,3 @@
+[submodule "sirepo/package_data/template/ml/lib"]
+	path = sirepo/package_data/template/ml/lib
+	url = https://github.com/radiasoft/sirepo-sim-lib-ml

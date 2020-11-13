@@ -38,6 +38,7 @@ build_as_run_user() {
     if [[ ${TRAVIS_COMMIT:+1} ]]; then
         git checkout -qf "$TRAVIS_COMMIT"
     fi
+    git submodule update --init
     local p
     sirepo_fix_srw
     cd ../pykern
