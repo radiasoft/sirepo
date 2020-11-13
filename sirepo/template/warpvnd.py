@@ -782,7 +782,8 @@ def _generate_parameters_file(data):
     v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _SIM_DATA.warpvnd_is_3d(data)
-    v['anode'] = _prepare_anode(data)
+    for e in 'anode', 'cathode':
+        v[e] = _prepare_electrode(e, data)
     v['saveIntercept'] = v['anode']['isReflector']
     for c in data.models.conductors:
         if c.conductor_type.type == 'stl':
@@ -950,11 +951,11 @@ def _prepare_conductors(data):
     return data.models.conductors
 
 
-def _prepare_anode(data):
+def _prepare_electrode(electrode, data):
     return {
-        'isReflector': data.models.anode['isReflector'] == '1',
-        'specProb': data.models.anode['specProb'],
-        'diffProb': data.models.anode['diffProb'],
+        'isReflector': data.models[electrode].isReflector == '1',
+        'specProb': data.models[electrode].specProb,
+        'diffProb': data.models[electrode].diffProb,
     }
 
 

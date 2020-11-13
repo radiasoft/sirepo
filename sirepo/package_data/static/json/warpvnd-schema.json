@@ -153,6 +153,12 @@
         "box": {
             "_super": ["_", "model", "conductor"]
         },
+        "cathode": {
+            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
+        },
         "conductor": {
             "name": ["Name", "String"],
             "xLength": ["Width (X) [µm]", "OptFloat"],
@@ -285,17 +291,13 @@
                 "beam.anode_voltage",
                 "beam.anode_work_function",
                 "isReflector",
-                "diffProb"
+                "diffProb",
+                "specProb"
             ]
         },
         "beam": {
-            "title": "Beam",
+            "title": "Emitter and Reflector Properties",
             "basic": [
-                "currentMode",
-                "beam_current",
-                "species"
-            ],
-            "advanced": [
                 "currentMode",
                 "beam_current",
                 "species",
@@ -304,6 +306,8 @@
                 "cathode_work_function",
                 "anode_voltage",
                 "anode_work_function"
+            ],
+            "advanced": [
             ]
         },
         "box": {
@@ -336,7 +340,10 @@
             "title": "Cathode",
             "advanced": [
                 "beam.cathode_temperature",
-                "beam.cathode_work_function"
+                "beam.cathode_work_function",
+                "isReflector",
+                "diffProb",
+                "specProb"
             ]
         },
         "conductorGridReport": {

@@ -387,8 +387,24 @@ wp.installconductor(plate, dfill=wp.largepos)
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept={{ saveIntercept }})
 
 {% if anode.isReflector %}
-reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
-particlereflector.installparticlereflector(reflector)
+particlereflector.installparticlereflector(
+    particlereflector.ParticleReflector(
+        scraper=scraper,
+        conductor=plate,
+        spref=wp.Species(type=wp.Electron, name='Electron'),
+        srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }}),
+)
+{% endif %}
+
+{% if cathode.isReflector %}
+particlereflector.installparticlereflector(
+    particlereflector.ParticleReflector(
+        scraper=scraper,
+        conductor=plate,
+        spref=wp.Species(type=wp.Electron, name='Electron'),
+        srefprob={{ cathode.specProb }}, drefprob={{ cathode.diffProb }},
+    )
+)
 {% endif %}
 
 # Ignore specular probability and reflection scheme for now
