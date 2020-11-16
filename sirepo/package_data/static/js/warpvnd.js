@@ -1150,7 +1150,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
     };
 });
 
-SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelState, plotting, warpvndService) {
+SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelState, plotting, stringsService, warpvndService) {
     return {
         restrict: 'A',
         scope: {
@@ -1435,6 +1435,30 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function drawCathodeAndAnode(elev) {
+                function draw(element) {
+                    const reflects = appState.models[element[0]].isReflector === '1';
+                    const ar = viewport.append('rect')
+                          .attr('class', 'warpvnd-plate')
+                          .classed(element[2], ! reflects);
+                    if (reflects) {
+                        ar.attr('fill', `url(#reflectionPattern-${element[0]})`)
+                            .attr(
+                                'stroke',
+                                SIREPO.APP_SCHEMA.constants.elementStroke[element[0]],
+                            );
+                    }
+                    ar.attr('x', axes.x.scale(element[1]))
+                        .attr('y', info.axis.scale(channel))
+                        .attr('width', w)
+                        .attr('height', h)
+                        .on('dblclick', function() { editPlate(element[0]); })
+                        .append('title').text(
+                            stringsService.ucfirst(
+                                element[0],
+                            ) + (reflects ? ' (reflector)' : ''),
+                        );
+                }
+
                 var grid = appState.models.simulationGrid;
                 var info = plotInfoForElevation(elev);
                 var viewport = select(info.viewportClass);
@@ -1442,29 +1466,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var channel = toMicron(grid[info.heightField] / 2.0);
                 var h = info.axis.scale(-channel) - info.axis.scale(channel);
                 var w = axes.x.scale(0) - axes.x.scale(-plateSize);
-                // TODO(e-carlin): need to do the same for cathode
-                var reflects = appState.models.anode.isReflector === '1';
-                viewport.append('rect')
-                    .attr('class', 'warpvnd-plate warpvnd-plate-no-voltage')
-                    .attr('x', axes.x.scale(-plateSize))
-                    .attr('y', info.axis.scale(channel))
-                    .attr('width', w)
-                    .attr('height', h)
-                    .on('dblclick', function() { editPlate('cathode'); })
-                    .append('title').text('Cathode');
-                var ar = viewport.append('rect')
-                    .attr('class', 'warpvnd-plate')
-                    .classed('warpvnd-plate-voltage', ! reflects);
-                if (reflects) {
-                    ar.attr('fill', 'url(#reflectionPattern-anode)')
-                        .attr('stroke', SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
-                }
-                ar.attr('x', axes.x.scale(toMicron(plateSpacing)))
-                    .attr('y', info.axis.scale(channel))
-                    .attr('width', w)
-                    .attr('height', h)
-                    .on('dblclick', function() { editPlate('anode'); })
-                    .append('title').text('Anode' + (reflects ? ' (reflector)' : ''));
+                [
+                    ['cathode', -plateSize, 'warpvnd-plate-no-voltage'],
+                    ['anode', toMicron(plateSpacing), 'warpvnd-plate-voltage'],
+                ].forEach((e) => draw(e));
             }
 
             function drawCathodeAndAnodes() {
