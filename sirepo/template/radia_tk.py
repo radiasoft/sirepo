@@ -36,6 +36,7 @@ _ZERO = [0, 0, 0]
 
 
 def _apply_clone(g_id, xform):
+    xform = PKDict(xform)
     # start with 'identity'
     xf = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
@@ -56,6 +57,7 @@ def _apply_clone(g_id, xform):
 
 
 def _apply_rotation(g_id, xform):
+    xform = PKDict(xform)
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
@@ -67,6 +69,7 @@ def _apply_rotation(g_id, xform):
 
 
 def _apply_symmetry(g_id, xform):
+    xform = PKDict(xform)
     plane = sirepo.util.split_comma_delimited_string(xform.symmetryPlane, float)
     point = sirepo.util.split_comma_delimited_string(xform.symmetryPoint, float)
     if xform.symmetryType == 'parallel':
@@ -76,18 +79,19 @@ def _apply_symmetry(g_id, xform):
 
 
 def _apply_translation(g_id, xform):
+    xform = PKDict(xform)
     radia.TrfOrnt(
         g_id,
         radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float))
     )
 
 
-_TRANSFORMS = {
-    'cloneTransform': _apply_clone,
-    'symmetryTransform': _apply_symmetry,
-    'rotate': _apply_rotation,
-    'translate': _apply_translation
-}
+_TRANSFORMS = PKDict(
+    cloneTransform=_apply_clone,
+    symmetryTransform=_apply_symmetry,
+    rotate=_apply_rotation,
+    translate=_apply_translation
+)
 
 
 def apply_color(g_id, color):
@@ -95,7 +99,7 @@ def apply_color(g_id, color):
 
 
 def apply_transform(g_id, xform):
-    _TRANSFORMS[xform.model](g_id, xform)
+    _TRANSFORMS[xform['model']](g_id, xform)
 
 
 def build_box(center, size, material, magnetization, div, h_m_curve=None):
