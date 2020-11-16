@@ -94,15 +94,14 @@
         ],
         "CRLMethod": [
             ["server", "Server http://henke.lbl.gov"],
-            ["file", "Saved data file"],
-            ["calculation", "Calculate analytically"]
+            ["file", "Saved data file"]
         ],
         "CRLShape": [
             ["1", "Parabolic"],
             ["2", "Circular"]
         ],
         "CrystalMaterial": [
-            ["Unknown", "Unknown"],
+            ["Unknown", "User-defined"],
             ["Si (SRW)", "Silicon (SRW)"],
             ["Silicon (X0h)", "Silicon (X0h server)"],
             ["Germanium (X0h)", "Germanium (X0h server)"],
