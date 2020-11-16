@@ -163,7 +163,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     self.addSummaryDataListener = function(scope) {
         scope.$on('summaryData', function(e, modelKey, info) {
             // update plot size info from summaryData
-            console.log("on summaryData", appState.isLoaded(), modelKey, info);
             if (appState.isLoaded()) {
                 var range = info.fieldRange;
                 // var intensityRange = info.fieldIntensityRange;
@@ -177,7 +176,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     appState.saveQuietly(modelKey);
                 }
                 if (m && 'useIntensityLimits' in m && m.useIntensityLimits == '0') {
-                    console.log(info)
                     m.minIntensityLimit = info.fieldIntensityRange[0]; // intensityRange[0];
                     m.maxIntensityLimit = info.fieldIntensityRange[1]; // intensityRange[1];
                     appState.saveQuietly(modelKey);
@@ -856,7 +854,7 @@ var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
     SIREPO.beamlineItemLogic(m, srwGrazingAngleLogic);
 });
 
-var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) {
+var srwIntensityLimitLogic = function(panelState, srwService, $scope) {
 
     function updateIntensityLimit() {
         srwService.updateIntensityLimit(
@@ -913,8 +911,6 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
 ].forEach(function(view) {
     SIREPO.viewLogic(view, srwIntensityLimitLogic);
 });
-
-
 
 SIREPO.viewLogic('brillianceReportView', function(appState, panelState, $scope) {
 
@@ -989,7 +985,6 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, srwServic
                 'psiHBr', 'psiHBi', 'orientation',
             ]);
         }
-
     }
 
     function computeCrystalOrientation(item) {
