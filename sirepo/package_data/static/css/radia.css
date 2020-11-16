@@ -5,5 +5,5 @@
 }
 
 .table-hover > tbody > tr:hover {
-  border-width: medium;
+  border-width: 2px;
 }
