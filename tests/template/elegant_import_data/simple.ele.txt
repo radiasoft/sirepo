@@ -11,11 +11,11 @@
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
+  input = "PCG.sdds",
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
+  input = "PCG.sdds",
 &end
 
 &load_parameters

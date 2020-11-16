@@ -896,7 +896,7 @@ class _Generate:
             if el_type == 'InputFileXY':
                 value += '={}+{}'.format(model[field + 'X'], model[field + 'Y'])
         elif el_type == 'BeamInputFile':
-            value = 'bunchFile-sourceFile.{}'.format(value)
+            value = self._input_file('bunchFile', 'sourceFile', value)
         elif el_type == 'LatticeBeamlineList':
             value = state.id_map[int(value)].name
         elif el_type == 'ElegantLatticeList':
