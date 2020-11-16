@@ -603,7 +603,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         models.forEach((m) => {
             f(m);
             probFields.forEach(function (f) {
-                panelState.showField(m, f, showProbs);
+                panelState.showRow(m, f, showProbs)
+                panelState.showField(m, f, showProbs)
             });
         })
     }
