@@ -135,7 +135,7 @@
     },
     "model": {
         "anode": {
-            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "isReflector": ["Particle Reflector", "Boolean", "0"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
@@ -154,7 +154,7 @@
             "_super": ["_", "model", "conductor"]
         },
         "cathode": {
-            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "isReflector": ["Particle Reflector", "Boolean", "0"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
@@ -167,7 +167,7 @@
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "isReflector": ["Particle Reflector", "Boolean", "0"],
             "color": ["Color", "Color", "#6992ff"],
             "type": ["Type", "ConductorType", "box"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
@@ -296,18 +296,36 @@
             ]
         },
         "beam": {
-            "title": "Emitter and Reflector Properties",
+            "title": "Emitter and Collector Properties",
             "basic": [
                 "currentMode",
                 "beam_current",
                 "species",
-                "x_radius",
-                "cathode_temperature",
-                "cathode_work_function",
-                "anode_voltage",
-                "anode_work_function"
+                [
+                    ["Cathode", [
+                        "cathode_temperature",
+                        "cathode_work_function",
+                        "cathode.isReflector"
+                    ]],
+                    ["Anode", [
+                        "anode_voltage",
+                        "anode_work_function",
+                        "anode.isReflector"
+                    ]]
+                ]
             ],
             "advanced": [
+                "x_radius",
+                [
+                    ["Cathode", [
+                        "cathode.diffProb",
+                        "cathode.specProb"
+                    ]],
+                    ["Anode", [
+                        "anode.diffProb",
+                        "anode.specProb"
+                    ]]
+                ]
             ]
         },
         "box": {
@@ -322,6 +340,7 @@
                 "permittivity",
                 "isReflector",
                 "diffProb",
+                "specProb",
                 "color"
             ]
         },

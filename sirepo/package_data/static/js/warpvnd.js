@@ -467,8 +467,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return true;
     }
 
-    //var probFields = ['specProb', 'diffProb'];
-    var probFields = ['diffProb'];
+    var probFields = ['specProb', 'diffProb'];
     function probValidator(modelName, field) {
         return function() {
             var isValid = checkProbSum(modelName);
@@ -545,8 +544,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         updateBeamRadius();
         updateParticleZMin();
         updateParticlesPerStep();
-        updateReflection('anode');
-        updateReflection('box');
+        updateReflection(['cathode', 'anode']);
+        updateReflection(['box']);
     }
 
     function updateBeamCurrent() {
@@ -592,21 +591,21 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     function reflectionUpdator(modelName) {
         return function () {
-            updateReflection(modelName);
+            updateReflection([modelName]);
         };
     }
 
-    function updateReflection(modelName) {
-        var showProbs = (appState.models[modelName] || {}).isReflector === '1';
-        if (showProbs) {
-            reloadReflectorValidator(modelName);
-        }
-        else {
-            removeReflectorValidator(modelName);
-        }
-        probFields.forEach(function (f) {
-            panelState.showField(modelName, f, showProbs);
-        });
+    function updateReflection(models) {
+        const showProbs = models.some(
+            (m) => (appState.models[m] || {}).isReflector === '1'
+        );
+        const f = showProbs ? reloadReflectorValidator : removeReflectorValidator;
+        models.forEach((m) => {
+            f(m);
+            probFields.forEach(function (f) {
+                panelState.showField(m, f, showProbs);
+            });
+        })
     }
 
     function updateSimulationMode() {
@@ -812,6 +811,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
         appState.watchModelFields($scope, ['anode.isReflector'], reflectionUpdator('anode'));
+        appState.watchModelFields($scope, ['cathode.isReflector'], reflectionUpdator('cathode'));
         appState.watchModelFields($scope, ['box.isReflector'], reflectionUpdator('box'));
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, ['fieldComparisonAnimation.dimension'], updateFieldComparison);
@@ -824,7 +824,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSimulationMode);
 
 
-        ['anode', 'box'].forEach(function (m) {
+        ['anode', 'cathode', 'box'].forEach(function (m) {
             $scope.$on(m + '.editor.show', function () {
                 initModal(m, $('#' + panelState.modalId(m)));
             });
@@ -1442,6 +1442,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var channel = toMicron(grid[info.heightField] / 2.0);
                 var h = info.axis.scale(-channel) - info.axis.scale(channel);
                 var w = axes.x.scale(0) - axes.x.scale(-plateSize);
+                // TODO(e-carlin): need to do the same for cathode
                 var reflects = appState.models.anode.isReflector === '1';
                 viewport.append('rect')
                     .attr('class', 'warpvnd-plate warpvnd-plate-no-voltage')
