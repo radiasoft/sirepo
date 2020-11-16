@@ -30,7 +30,7 @@ def _add_object(o):
         div = _split_comma_delimited_string(o['division'], int) if o['doDivide'] != '0' else None
         g_id = build_box(ctr, sz, o['material'], m, div, h_m_curve=o['h_m_curve'])
         if o['color']:
-            apply_color(
+            radia.ObjDrwAtr(
                 g_id,
                 [c / 255.0 for c in tuple(int(o['color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4))]
             )
@@ -43,7 +43,7 @@ def _add_object(o):
                 grp.append(_add_object(m))
             else:
                 grp.append(id_map[obj['mapId']] )
-        g_id = build_container(grp)
+        g_id = radia.ObjCnt(grp)
     for transform in o['transforms']:
         apply_transform(g_id, transform)
     id_map[o['mapId']] = g_id
@@ -61,22 +61,22 @@ g_id = EXAMPLES['{{ geomName }}']()
 {% elif dmpImportFile %}
 with open('{{ dmpImportFile }}', 'rb') as f:
     b = f.read()
-    g_id = load_bin(b)
+    g_id = radia.UtiDmpPrs(b)
 {% else %}
 id_map = {}
-for obj in model_objs:
-    if obj['model'] not in _MODELS or obj['mapId'] in id_map:
-        continue
-    g_id = _add_object(obj)
-    id_map[obj['mapId']] = g_id
+{% for obj in objects %}
+if '{{ obj['mapId'] }}' not in id_map:
+    g_id = _add_object({{ obj }})
+    id_map['{{ obj['mapId'] }}'] = g_id
     radia_objs.append(g_id)
-g_id = build_container(radia_objs)
+{% endfor %}
+g_id = radia.ObjCnt(radia_objs)
 {% endif %}
 
 
 print(f'Solving {g_id}...')
 res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-print(f'done: {res[3]} steps ({1000 * res[0]}ms); max |M| {res[1]}A/m; max |H| {res[2]}A/m')
+print(f'done: {res[3]} steps ({1000 * res[0]}ms); max |M| {res[1]} A/m; max |H| {res[2]} A/m')
 
 {% if viewType == VIEW_TYPE_FIELD %}
 
@@ -91,9 +91,8 @@ print(f'{{ fieldType }} field: {f}')
 
 {% for fp in fieldPaths %}
 {% if fp['type'] == 'line' %}
-p1 = _split_comma_delimited_string('{{ fp['begin'] }}', float)
-p2 = _split_comma_delimited_string('{{ fp['end'] }}', float)
-
+p1 = [{{ fp['begin'] }}]
+p2 = [{{ fp['end'] }}]
 {% for i_type in INTEGRABLE_FIELD_TYPES %}
 print(f"Integral of {{ i_type }} from {p1} to {p2}: {radia.FldInt(g_id, 'inf', '{{ i_type }}', p1, p2)}")
 {% endfor %}
