@@ -1,14 +1,12 @@
-from __future__ import absolute_import, division, print_function
-
 import numpy
 import radia
 import re
+import sirepo.util
 import sys
 
 from numpy import linalg
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-from sirepo.template import template_common
 
 FIELD_TYPE_MAG_A = 'A'
 FIELD_TYPE_MAG_B = 'B'
@@ -37,27 +35,19 @@ _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
 
-def _split_comma_field(f, type):
-    arr = re.split(r'\s*,\s*', f)
-    if type == 'float':
-        return [float(x) for x in arr]
-    if type == 'int':
-        return [int(x) for x in arr]
-    return arr
-
-
 def _apply_clone(g_id, xform):
+    xform = PKDict(xform)
     # start with 'identity'
     xf = radia.TrfTrsl([0, 0, 0])
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
         if cxf.model == 'translateClone':
-            txf = radia.TrfTrsl(_split_comma_field(cxf.distance, 'float'))
+            txf = radia.TrfTrsl(sirepo.util.split_comma_delimited_string(cxf.distance, float))
             xf = radia.TrfCmbL(xf, txf)
         if cxf.model == 'rotateClone':
             rxf = radia.TrfRot(
-                _split_comma_field(cxf.center, 'float'),
-                _split_comma_field(cxf.axis, 'float'),
+                sirepo.util.split_comma_delimited_string(cxf.center, float),
+                sirepo.util.split_comma_delimited_string(cxf.axis, float),
                 numpy.pi * float(cxf.angle) / 180.
             )
             xf = radia.TrfCmbL(xf, rxf)
@@ -67,19 +57,21 @@ def _apply_clone(g_id, xform):
 
 
 def _apply_rotation(g_id, xform):
+    xform = PKDict(xform)
     radia.TrfOrnt(
         g_id,
         radia.TrfRot(
-            _split_comma_field(xform.center, 'float'),
-            _split_comma_field(xform.axis, 'float'),
+            sirepo.util.split_comma_delimited_string(xform.center, float),
+            sirepo.util.split_comma_delimited_string(xform.axis, float),
             numpy.pi * float(xform.angle) / 180.
         )
     )
 
 
 def _apply_symmetry(g_id, xform):
-    plane = _split_comma_field(xform.symmetryPlane, 'float')
-    point = _split_comma_field(xform.symmetryPoint, 'float')
+    xform = PKDict(xform)
+    plane = sirepo.util.split_comma_delimited_string(xform.symmetryPlane, float)
+    point = sirepo.util.split_comma_delimited_string(xform.symmetryPoint, float)
     if xform.symmetryType == 'parallel':
         radia.TrfZerPara(g_id, point, plane)
     if xform.symmetryType == 'perpendicular':
@@ -87,18 +79,19 @@ def _apply_symmetry(g_id, xform):
 
 
 def _apply_translation(g_id, xform):
+    xform = PKDict(xform)
     radia.TrfOrnt(
         g_id,
-        radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
+        radia.TrfTrsl(sirepo.util.split_comma_delimited_string(xform.distance, float))
     )
 
 
-_TRANSFORMS = {
-    'cloneTransform': _apply_clone,
-    'symmetryTransform': _apply_symmetry,
-    'rotate': _apply_rotation,
-    'translate': _apply_translation
-}
+_TRANSFORMS = PKDict(
+    cloneTransform=_apply_clone,
+    symmetryTransform=_apply_symmetry,
+    rotate=_apply_rotation,
+    translate=_apply_translation
+)
 
 
 def apply_color(g_id, color):
@@ -106,7 +99,7 @@ def apply_color(g_id, color):
 
 
 def apply_transform(g_id, xform):
-    _TRANSFORMS[xform.model](g_id, xform)
+    _TRANSFORMS[xform['model']](g_id, xform)
 
 
 def build_box(center, size, material, magnetization, div, h_m_curve=None):
@@ -130,7 +123,6 @@ def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-# these methods pulled out so as not to depend on a manager
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')
 
@@ -285,77 +277,3 @@ def _geom_bnds(g_id):
         center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
         size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
     )
-
-
-class RadiaGeomMgr:
-    """Manager for multiple geometries (Radia objects)"""
-
-    def _get_all_geom(self, g_id):
-        g_arr = []
-        for g in radia.ObjCntStuf(g_id):
-            if len(radia.ObjCntStuf(g)) > 0:
-                g_arr.extend(self._get_all_geom(g))
-            else:
-                g_arr.append(g)
-        return g_arr
-
-    def add_geom(self, name, g_id):
-        self._geoms[name] = PKDict(g=g_id, solved=False)
-
-    # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
-    def get_field(self, name, f_type, path):
-        pv_arr = []
-        p = numpy.reshape(path, (-1, 3)).tolist()
-        b = []
-        # get every component
-        f = radia.Fld(self.get_geom(name), f_type, path)
-        b.extend(f)
-        b = numpy.reshape(b, (-1, 3)).tolist()
-        for p_idx, pt in enumerate(p):
-            pv_arr.append([pt, b[p_idx]])
-        return get_field(self.get_geom(name), f_type, path)
-
-    def get_magnetization(self, name):
-        return get_magnetization(self.get_geom(name))
-
-    def is_geom_solved(self, name):
-        return self.get_geom(name).solved
-
-    def vector_field_to_data(self, name, pv_arr, units):
-        return vector_field_to_data(self.get_geom(name), name, pv_arr, units)
-
-    def geom_to_data(self, name, divide=True):
-        return geom_to_data(self.get_geom(name), name, divide)
-
-    def get_geom(self, name):
-        return self._geoms[name].g if name in self._geoms else None
-
-    def get_geom_list(self):
-        return [n for n in self._geoms]
-
-    def get_geoms(self):
-        return self._geoms
-
-    # A container is also a geometry
-    def make_container(self, *args):
-        ctr = {
-            'geoms': []
-        }
-        for g_name in args:
-            # key error if does not exist
-            g = self.get_geom(g_name)
-            ctr['geoms'].append(g)
-
-    def reset_geom(self, g_name):
-        self.remove_geom(g_name)
-        return radia.UtiDelAll()
-
-    def remove_geom(self, g_name):
-        del self._geoms[g_name]
-
-    def solve_geom(self, g_name, prec, max_iter, solve_method):
-        return solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
-
-
-    def __init__(self):
-        self._geoms = PKDict({})
