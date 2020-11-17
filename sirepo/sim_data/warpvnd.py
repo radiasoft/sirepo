@@ -70,7 +70,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'particle3d',
                 'particleAnimation',
                 'simulation',
-                'cathode'
+                'cathode',
+                'conductor',
             ),
             dynamic=lambda m: cls.__dynamic_defaults(data, m),
         )

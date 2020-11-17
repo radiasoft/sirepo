@@ -140,6 +140,7 @@
     "model": {
         "anode": {
             "isReflector": ["Particle Reflector", "Boolean", "0"],
+            "isSpecular": ["Specular Reflector", "Boolean", "0"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
@@ -159,6 +160,7 @@
         },
         "cathode": {
             "isReflector": ["Particle Reflector", "Boolean", "0"],
+            "isSpecular": ["Specular Reflector", "Boolean", "0"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
@@ -172,6 +174,7 @@
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
             "isReflector": ["Particle Reflector", "Boolean", "0"],
+            "isSpecular": ["Specular Reflector", "Boolean", "0"],
             "color": ["Color", "Color", "#6992ff"],
             "type": ["Type", "ConductorType", "box"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
@@ -295,8 +298,9 @@
                 "beam.anode_voltage",
                 "beam.anode_work_function",
                 "isReflector",
-                "diffProb",
-                "specProb"
+                "isSpecular",
+                "specProb",
+                "diffProb"
             ]
         },
         "beam": {
@@ -322,12 +326,14 @@
                 "x_radius",
                 [
                     ["Cathode", [
-                        "cathode.diffProb",
-                        "cathode.specProb"
+                        "cathode.isSpecular",
+                        "cathode.specProb",
+                        "cathode.diffProb"
                     ]],
                     ["Anode", [
-                        "anode.diffProb",
-                        "anode.specProb"
+                        "anode.isSpecular",
+                        "anode.specProb",
+                        "anode.diffProb"
                     ]]
                 ]
             ]
@@ -343,8 +349,9 @@
                 "isConductor",
                 "permittivity",
                 "isReflector",
-                "diffProb",
+                "isSpecular",
                 "specProb",
+                "diffProb",
                 "color"
             ]
         },
@@ -365,8 +372,9 @@
                 "beam.cathode_temperature",
                 "beam.cathode_work_function",
                 "isReflector",
-                "diffProb",
-                "specProb"
+                "isSpecular",
+                "specProb",
+                "diffProb"
             ]
         },
         "conductorGridReport": {

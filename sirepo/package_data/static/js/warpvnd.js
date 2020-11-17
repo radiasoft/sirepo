@@ -367,6 +367,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
         return t[SIREPO.ENUM_INDEX_VALUE];
     });
+    const probFields = ['specProb', 'diffProb'];
 
     function importedConductorTypes(f) {
         return appState.models.conductorTypes.filter(function (t) {
@@ -467,7 +468,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return true;
     }
 
-    var probFields = ['specProb', 'diffProb'];
     function probValidator(modelName, field) {
         return function() {
             var isValid = checkProbSum(modelName);
@@ -596,17 +596,20 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     function updateReflection(models) {
-        const showProbs = models.some(
+        const p = models.some(
             (m) => (appState.models[m] || {}).isReflector === '1'
         );
-        const f = showProbs ? reloadReflectorValidator : removeReflectorValidator;
+        const f = p ? reloadReflectorValidator : removeReflectorValidator;
         models.forEach((m) => {
             f(m);
-            probFields.forEach(function (f) {
-                panelState.showRow(m, f, showProbs)
-                panelState.showField(m, f, showProbs)
+            const r = (appState.models[m] || {}).isReflector === '1' ;
+            const s = (appState.models[m] || {}).isSpecular === '1' ;
+            ['specProb', 'diffProb', 'isSpecular'].forEach(function (f) {
+                panelState.showRow(m, f, p);
+                panelState.showField(m, f, p);
+                panelState.enableField(m, f, r && (f === 'specProb' ? s : !s));
             });
-        })
+        });
     }
 
     function updateSimulationMode() {
@@ -811,9 +814,11 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
-        appState.watchModelFields($scope, ['anode.isReflector'], reflectionUpdator('anode'));
-        appState.watchModelFields($scope, ['cathode.isReflector'], reflectionUpdator('cathode'));
-        appState.watchModelFields($scope, ['box.isReflector'], reflectionUpdator('box'));
+        ['anode', 'cathode', 'box'].forEach((c) => {
+            ['isReflector', 'isSpecular'].forEach((f) => {
+                appState.watchModelFields($scope, [`${c}.${f}`], reflectionUpdator(c));
+            });
+        });
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, ['fieldComparisonAnimation.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
@@ -1445,7 +1450,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         ar.attr('fill', `url(#reflectionPattern-${element[0]})`)
                             .attr(
                                 'stroke',
-                                SIREPO.APP_SCHEMA.constants.elementStroke[element[0]],
+                                SIREPO.APP_SCHEMA.constants.elementStroke[element[0]]
                             );
                     }
                     ar.attr('x', axes.x.scale(element[1]))
@@ -1455,8 +1460,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         .on('dblclick', function() { editPlate(element[0]); })
                         .append('title').text(
                             stringsService.ucfirst(
-                                element[0],
-                            ) + (reflects ? ' (reflector)' : ''),
+                                element[0]
+                            ) + (reflects ? ' (reflector)' : '')
                         );
                 }
 
