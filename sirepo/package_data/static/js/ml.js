@@ -418,18 +418,18 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                   '</tr>',
                 '</thead>',
                 '<tbody>',
-                  '<tr data-ng-repeat="col in cols">',
+                  '<tr data-ng-repeat="col in cols track by col">',
                     '<td class="form-group form-group-sm">',
-                      '<input data-ng-model="col[0]" class="form-control" data-lpignore="true" required />',
+                      '<input data-ng-model="model.header[col]" class="form-control" data-lpignore="true" required />',
                     '</td>',
                     '<td data-ng-if="! isAnalysis()" class="text-center">',
-                      '<input data-ng-model="model.inputOutput[col[1]]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
+                      '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td data-ng-if="! isAnalysis()" class="text-center">',
-                      '<input data-ng-model="model.inputOutput[col[1]]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
+                      '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td>',
-                      '<a class="media-middle" href data-ng-click="togglePlot(col[1])">{{ showOrHideText(col[1]) }}</a>',
+                      '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
                     '</td>',
                   '</tr>',
                 '</tbody>',
@@ -441,10 +441,9 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
             $scope.modelName = 'columnInfo';
             $scope.fields = ['header', 'inputOutput'];
 
-
             function setModel() {
                 $scope.model = appState.models.columnInfo;
-                const cols = [];
+                $scope.cols = [];
                 const c = appState.models.columnInfo;
                 if (! c.header) {
                     return;
@@ -453,14 +452,13 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     if (c.colsWithNonUniqueValues.hasOwnProperty(c.header[i])) {
                         continue;
                     }
-                    cols.push([c.header[i], i]);
+                    $scope.cols.push(i);
                     const m = mlService.columnReportName(i);
                     appState.models[m] = {
                         columnNumber: i,
                     };
                     appState.saveQuietly(m);
                 }
-                $scope.cols = cols;
             }
 
             $scope.isAnalysis = mlService.isAnalysis;
