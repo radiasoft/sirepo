@@ -142,4 +142,5 @@ def _get_external_lattice(simulation_id):
     _delete_unused_models(d)
     _delete_unused_commands(d)
     _dedup_elements(d)
+    sirepo.template.madx.eval_code_var(d)
     return PKDict(d)
