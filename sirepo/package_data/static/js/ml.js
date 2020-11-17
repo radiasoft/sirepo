@@ -193,7 +193,77 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('dataFile.changed', dataFileChanged);
         //TODO(pjm): enable when analysis tab is completed
-        panelState.showEnum('dataFile', 'appMode', 'analysis', false);
+        //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
+    });
+});
+
+SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope) {
+    var self = this;
+    var currentFile = null;
+    self.subplots = null;
+
+    function buildSubplots() {
+        if (! currentFile) {
+            self.subplots = null;
+            return;
+        }
+        self.subplots = [];
+        mlService.getSubreports().forEach(function(id, idx) {
+            var modelKey = 'analysisReport' + id;
+            self.subplots.push({
+                id: id,
+                modelKey: modelKey,
+                title: 'Analysis Subplot #' + (idx + 1),
+                getData: function() {
+                    return appState.models[modelKey];
+                },
+            });
+        });
+    }
+
+    function updateAnalysisParameters() {
+        requestSender.getApplicationData(
+            {
+                method: 'column_info',
+                analysisData: appState.models.analysisData,
+            },
+            function(data) {
+                if (appState.isLoaded() && data.columnInfo) {
+                    appState.models.analysisData.columnInfo = data.columnInfo;
+                    appState.saveChanges('analysisData');
+                }
+            });
+    }
+
+    self.hasFile = function() {
+        return appState.isLoaded() && appState.applicationState().analysisData.file;
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        currentFile = appState.models.analysisData.file;
+        if (currentFile && ! appState.models.analysisData.columnInfo) {
+            updateAnalysisParameters();
+        }
+        $scope.$on('analysisData.changed', function() {
+            var analysisData = appState.models.analysisData;
+            if (currentFile != analysisData.file) {
+                currentFile = analysisData.file;
+                if (currentFile) {
+                    updateAnalysisParameters();
+                    mlService.removeAllSubreports();
+                    appState.models.analysisReport.action = null;
+                    appState.saveChanges(['analysisReport', 'hiddenReport']);
+                }
+            }
+        });
+        $scope.$on('modelChanged', function(e, name) {
+            if (name.indexOf('analysisReport') >= 0) {
+                // invalidate the corresponding fftReport
+                appState.saveChanges('fftReport' + (appState.models[name].id || ''));
+            }
+        });
+        $scope.$on('hiddenReport.changed', buildSubplots);
+        buildSubplots();
     });
 });
 
