@@ -1828,6 +1828,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 function getModels() {
                     $scope.models = $scope.pathToModels ? appState.models[$scope.pathToModels].models : appState.models;
                 }
+
                 getModels();
                 calculateInitialBeamlineMetrics();
                 renderBeamline();

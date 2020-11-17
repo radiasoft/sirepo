@@ -182,9 +182,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             });
         }
         $scope.$on('dataFile.changed', dataFileChanged);
-        $scope.$on('externalLattice.changed', function() {
-            buildEditorColumns();
-        });
+        $scope.$on('externalLattice.changed', buildEditorColumns);
         self.editorColumns = [];
         self.watches = [];
         buildEditorColumns();
