@@ -48,6 +48,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'isReflector' not in m:
                 return
             if m.isReflector == '1':
+                for f in 'specProb', 'diffProb':
+                    m[f] = float(m[f])
                 if m.specProb > 0:
                     m.reflectorType = 'specular'
                     m.reflectorProbability = m.specProb
