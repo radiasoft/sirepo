@@ -782,9 +782,7 @@ def _generate_parameters_file(data):
     v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _SIM_DATA.warpvnd_is_3d(data)
-    for e in 'anode', 'cathode':
-        v[e] = _prepare_electrode(e, data)
-    v['saveIntercept'] = v['anode']['isReflector']
+    v['saveIntercept'] = v['anode_reflectorType'] != 'none' or v['cathode_reflectorType'] != 'none'
     for c in data.models.conductors:
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
@@ -793,7 +791,7 @@ def _generate_parameters_file(data):
                 _stl_polygon_file(c.conductor_type.name),
             )
             break
-        if c.conductor_type.isReflector:
+        if c.conductor_type.reflectorType != 'none':
             v['saveIntercept'] = True
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
@@ -939,7 +937,6 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
         ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if 'file' in ct else 'None'
-        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -949,14 +946,6 @@ def _prepare_conductors(data):
         if not _SIM_DATA.warpvnd_is_3d(data):
             c.yCenter = 0
     return data.models.conductors
-
-
-def _prepare_electrode(electrode, data):
-    return {
-        'isReflector': data.models[electrode].isReflector == '1',
-        'specProb': data.models[electrode].specProb,
-        'diffProb': data.models[electrode].diffProb,
-    }
 
 
 def _read_optimizer_output(run_dir):
