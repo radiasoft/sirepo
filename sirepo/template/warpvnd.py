@@ -955,7 +955,7 @@ def _read_optimizer_output(run_dir):
         return None, None
     try:
         values = np.loadtxt(str(opt_file))
-        if values:
+        if values.any():
             if len(values.shape) == 1:
                 values = np.array([values])
         else:
