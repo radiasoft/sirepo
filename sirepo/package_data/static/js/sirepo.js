@@ -1479,8 +1479,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.getStatusText = function(name) {
         if (self.isRunning(name)) {
             var count = (queueItems[name] && queueItems[name].runStatusCount) || 0;
-            var progressText = SIREPO.APP_SCHEMA.constants.inProgressText ||
-                (appState.models[name] || {}).inProgressText ||
+            var progressText = (appState.models[name] || {}).inProgressText  ||
+                SIREPO.APP_SCHEMA.constants.inProgressText ||
                 'Simulating';
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
