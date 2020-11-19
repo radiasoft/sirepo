@@ -7,20 +7,101 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'blues';
     SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
+          '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Equation" class="col-sm-7">',
+          '<div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>',
+          '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+        '</div>',
+        '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
+          '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>',
+        '</div>',
+        '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
+          '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ClusterFields" class="col-sm-7">',
+          '<div data-cluster-fields="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="PlotActionButtons" class="col-sm-12">',
+          '<div data-plot-action-buttons="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="TrimButton" class="col-sm-5">',
+          '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="classificationMetrics" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
         '<div data-ng-switch-when="confusionMatrix" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
     ].join('');
 });
 
-SIREPO.app.factory('mlService', function(appState) {
+SIREPO.app.factory('mlService', function(appState, panelState) {
     var self = {};
+    var parameterCache = {
+        analysisParameters: null,
+        parameterValues: null,
+        optionalParameterValues: null,
+    };
+
+    self.addSubreport = function(parent, action) {
+        let report = appState.clone(parent);
+        let subreports = self.getSubreports();
+        report.id = subreports.length
+            ? (Math.max.apply(null, subreports) + 1)
+            : 1;
+        report.action = null;
+        report.history.push(action);
+        let name = 'analysisReport' + report.id;
+        let fftName = 'fftReport' + report.id;
+        appState.models[name] = report;
+        appState.models[fftName] = {
+            'analysisReport': name,
+        };
+        subreports.push(report.id);
+        appState.saveChanges([name, fftName, 'hiddenReport']);
+    };
 
     self.appModeIn = function(modes) {
         if(! appState.isLoaded()) {
             return;
         }
         return modes.includes(appState.applicationState().dataFile.appMode);
+    };
+
+    self.buildParameterList = function(includeOptional) {
+        if (! appState.isLoaded()) {
+            return null;
+        }
+        var name = includeOptional ? 'optionalParameterValues' : 'parameterValues';
+        // use cached list unless the columnInfo changes
+        if (parameterCache.analysisParameters == appState.models.columnInfo) {
+            if (parameterCache[name]) {
+                return parameterCache[name];
+            }
+        }
+        parameterCache.analysisParameters = appState.models.columnInfo;
+        if (! parameterCache.analysisParameters) {
+            return null;
+        }
+        var parameterValues = [];
+        var visited = {};
+        (parameterCache.analysisParameters.header || []).forEach(function(name, idx) {
+            // skip duplicate columns
+            if (! visited[name]) {
+                parameterValues.push(['' + idx, name]);
+                visited[name] = true;
+            }
+        });
+        parameterValues.sort(function(a, b) {
+            return a[1].localeCompare(b[1]);
+        });
+        if (includeOptional) {
+            parameterValues.unshift(['none', 'None']);
+        }
+        parameterCache[name] = parameterValues;
+        return parameterValues;
     };
 
     self.columnReportName = function(idx) {
@@ -45,12 +126,33 @@ SIREPO.app.factory('mlService', function(appState) {
         return 'animation';
     };
 
-    self.partitionReportName = function(idx) {
-        return 'partitionColumnReport' + idx;
+    self.getSubreports = function() {
+        // subreports are kept on a report which is never shown.
+        // This avoids refreshing all reports when a subreport is added or removed.
+        return appState.models.hiddenReport.subreports;
     };
 
     self.isAnalysis = function() {
         return appState.isLoaded() && appState.applicationState().dataFile.appMode == 'analysis';
+    };
+
+    self.partitionReportName = function(idx) {
+        return 'partitionColumnReport' + idx;
+    };
+
+    self.removeAllSubreports = function() {
+        var subreports = self.getSubreports();
+        while (subreports.length) {
+            self.removeSubreport(subreports[0]);
+        }
+    };
+
+    self.removeSubreport = function(id) {
+        var subreports = self.getSubreports();
+        subreports.splice(subreports.indexOf(id), 1);
+        appState.removeModel('analysisReport' + id);
+        appState.removeModel('fftReport' + id);
+        panelState.clear('analysisReport' + id);
     };
 
     self.reportInfo = function(modelKey, title, idx) {
@@ -64,6 +166,20 @@ SIREPO.app.factory('mlService', function(appState) {
                 },
             },
         };
+    };
+
+    self.tokenizeEquation = function(eq) {
+        return (eq || '').split(/[-+*/^|%().0-9\s]/)
+            .filter(function (t) {
+                return t.length > 0 &&
+                    SIREPO.APP_SCHEMA.constants.allowedEquationOps.indexOf(t) < 0;
+        });
+    };
+
+    self.tokenizeParams = function(val) {
+        return (val || '').split(/\s*,\s*/).filter(function (t) {
+            return t.length > 0;
+        });
     };
 
     appState.setAppService(self);
@@ -130,6 +246,76 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
     };
 });
 
+SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope) {
+    var self = this;
+    var currentFile = null;
+    self.subplots = null;
+
+    function buildSubplots() {
+        if (! currentFile) {
+            self.subplots = null;
+            return;
+        }
+        self.subplots = [];
+        (mlService.getSubreports() || []).forEach(function(id, idx) {
+            var modelKey = 'analysisReport' + id;
+            self.subplots.push({
+                id: id,
+                modelKey: modelKey,
+                title: 'Analysis Subplot #' + (idx + 1),
+                getData: function() {
+                    return appState.models[modelKey];
+                },
+            });
+        });
+    }
+
+    function updateAnalysisParameters() {
+        requestSender.getApplicationData(
+            {
+                method: 'column_info',
+                dataFile: appState.models.dataFile,
+            },
+            function(data) {
+                if (appState.isLoaded() && data.columnInfo) {
+                    appState.models.columnInfo = data.columnInfo;
+                    appState.saveChanges('columnInfo');
+                }
+            });
+    }
+
+    self.hasFile = function() {
+        return appState.isLoaded() && appState.applicationState().dataFile.file;
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        currentFile = appState.models.dataFile.file;
+        if (currentFile && ! appState.models.columnInfo) {
+            updateAnalysisParameters();
+        }
+        $scope.$on('dataFile.changed', function() {
+            let dataFile = appState.models.dataFile;
+            if (currentFile != dataFile.file) {
+                currentFile = dataFile.file;
+                if (currentFile) {
+                    updateAnalysisParameters();
+                    mlService.removeAllSubreports();
+                    appState.models.analysisReport.action = null;
+                    appState.saveChanges(['analysisReport', 'hiddenReport']);
+                }
+            }
+        });
+        $scope.$on('modelChanged', function(e, name) {
+            if (name.indexOf('analysisReport') >= 0) {
+                // invalidate the corresponding fftReport
+                appState.saveChanges('fftReport' + (appState.models[name].id || ''));
+            }
+        });
+        $scope.$on('hiddenReport.changed', buildSubplots);
+        buildSubplots();
+    });
+});
+
 SIREPO.app.controller('DataController', function (appState, panelState, requestSender, $scope) {
     var self = this;
 
@@ -194,76 +380,6 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
         $scope.$on('dataFile.changed', dataFileChanged);
         //TODO(pjm): enable when analysis tab is completed
         //panelState.showEnum('dataFile', 'appMode', 'analysis', false);
-    });
-});
-
-SIREPO.app.controller('AnalysisController', function (appState, mlService, panelState, requestSender, $scope) {
-    var self = this;
-    var currentFile = null;
-    self.subplots = null;
-
-    function buildSubplots() {
-        if (! currentFile) {
-            self.subplots = null;
-            return;
-        }
-        self.subplots = [];
-        mlService.getSubreports().forEach(function(id, idx) {
-            var modelKey = 'analysisReport' + id;
-            self.subplots.push({
-                id: id,
-                modelKey: modelKey,
-                title: 'Analysis Subplot #' + (idx + 1),
-                getData: function() {
-                    return appState.models[modelKey];
-                },
-            });
-        });
-    }
-
-    function updateAnalysisParameters() {
-        requestSender.getApplicationData(
-            {
-                method: 'column_info',
-                analysisData: appState.models.analysisData,
-            },
-            function(data) {
-                if (appState.isLoaded() && data.columnInfo) {
-                    appState.models.analysisData.columnInfo = data.columnInfo;
-                    appState.saveChanges('analysisData');
-                }
-            });
-    }
-
-    self.hasFile = function() {
-        return appState.isLoaded() && appState.applicationState().analysisData.file;
-    };
-
-    appState.whenModelsLoaded($scope, function() {
-        currentFile = appState.models.analysisData.file;
-        if (currentFile && ! appState.models.analysisData.columnInfo) {
-            updateAnalysisParameters();
-        }
-        $scope.$on('analysisData.changed', function() {
-            var analysisData = appState.models.analysisData;
-            if (currentFile != analysisData.file) {
-                currentFile = analysisData.file;
-                if (currentFile) {
-                    updateAnalysisParameters();
-                    mlService.removeAllSubreports();
-                    appState.models.analysisReport.action = null;
-                    appState.saveChanges(['analysisReport', 'hiddenReport']);
-                }
-            }
-        });
-        $scope.$on('modelChanged', function(e, name) {
-            if (name.indexOf('analysisReport') >= 0) {
-                // invalidate the corresponding fftReport
-                appState.saveChanges('fftReport' + (appState.models[name].id || ''));
-            }
-        });
-        $scope.$on('hiddenReport.changed', buildSubplots);
-        buildSubplots();
     });
 });
 
@@ -406,6 +522,26 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
     };
 });
 
+SIREPO.app.directive('analysisParameter', function(appState, mlService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            isOptional: '@',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            srdbg('analysisParameter');
+            $scope.parameterValues = function() {
+                return mlService.buildParameterList($scope.isOptional);
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('columnReports', function(appState, mlService) {
     return {
         restrict: 'A',
@@ -498,7 +634,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     '<td data-ng-if="! isAnalysis()" class="text-center">',
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
-                    '<td>',
+                    '<td data-ng-if="! isAnalysis()">',
                       '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
                     '</td>',
                   '</tr>',

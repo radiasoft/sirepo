@@ -15,6 +15,7 @@ from sirepo.template import template_common
 import csv
 import numpy as np
 import re
+import sirepo.analysis
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -43,6 +44,13 @@ _OUTPUT_FILE = PKDict(
     **_CLASSIFIER_OUTPUT_FILE
 )
 
+_REPORTS = [
+    'analysisReport',
+    'fileColumnReport',
+    'partitionColumnReport',
+    'partitionSelectionReport'
+]
+
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = PKDict(
@@ -66,6 +74,47 @@ def background_percent_complete(report, run_dir, is_running):
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
     return res
+
+
+def get_analysis_report(run_dir, data):
+    import math
+
+    report, col_info, plot_data = _report_info(run_dir, data)
+    clusters = None
+    if 'action' in report:
+        if report.action == 'fit':
+            return _get_fit_report(report, plot_data, col_info)
+        elif report.action == 'cluster':
+            clusters = _compute_clusters(report, plot_data, col_info)
+    x_idx = _set_index_within_cols(col_info, report.x)
+    x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        if f != 'y1':
+            continue
+        if f not in report or report[f] == 'none':
+            continue
+        y_idx = _set_index_within_cols(col_info, report[f])
+        y = plot_data[:, y_idx]
+        if len(y) <= 0 or math.isnan(y[0]):
+            continue
+        plots.append(PKDict(
+            points=(y * col_info['scale'][y_idx]).tolist(),
+            label=_label(col_info, y_idx),
+            style='line' if 'action' in report and report.action == 'fft' else 'scatter',
+        ))
+    return template_common.parameter_plot(
+        x,
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label='',
+            x_label=_label(col_info, x_idx),
+            clusters=clusters,
+            summaryData=PKDict(),
+        ),
+    )
 
 
 def get_application_data(data, **kwargs):
@@ -92,14 +141,15 @@ def python_source_for_model(data, model):
 
 
 def save_sequential_report_data(run_dir, sim_in):
+    assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
     if 'fileColumnReport' in sim_in.report:
         _extract_file_column_report(run_dir, sim_in)
     elif 'partitionColumnReport' in sim_in.report:
         _extract_partition_report(run_dir, sim_in)
     elif sim_in.report == 'partitionSelectionReport':
         _extract_partition_selection(run_dir, sim_in)
-    else:
-        assert False, 'unknown report: {}'.format(sim_in.report)
+    elif sim_in.report == 'analysisReport':
+        _extract_partition_selection(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -297,6 +347,37 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     return res
 
 
+def _compute_clusters(report, plot_data, col_info):
+
+    method_params = PKDict(
+        agglomerative=f'{report.clusterCount}',
+        dbscan=f'{report.clusterDbscanEps}',
+        gmix=f'{report.clusterCount}, {report.clusterRandomSeed}',
+        kmeans=f'{report.clusterCount}, {report.clusterRandomSeed}, {report.clusterKmeansInit}',
+    )
+
+    cols = []
+    if 'clusterFields' not in report:
+        if len(cols) <= 1:
+            raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
+    for idx in range(len(report.clusterFields)):
+        if report.clusterFields[idx] and idx < len(col_info.header):
+            cols.append(idx)
+    if len(cols) <= 1:
+        raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
+    x_scale = sirepo.analysis.ml.scale_data(plot_data[:, cols], [
+            report.clusterScaleMin,
+            report.clusterScaleMax,
+        ])
+    group = sirepo.analysis.ml[report.clusterMethod](x_scale, method_params[
+        report.clusterMethod])
+    count = len(set(group)) if report.clusterMethod == 'dbscan' else report.clusterCount
+    return PKDict(
+        group=group.tolist(),
+        count=count,
+    )
+
+
 def _compute_numpy_info(filename):
     #TODO(pjm): compute column info from numpy file
     raise NotImplementedError()
@@ -338,6 +419,14 @@ def _error_rate_report(frame_args, filename, x_label):
         x_label=x_label,
     ))
 
+def _extract_analysis_report(run_dir, sim_in):
+    idx = sim_in.models[sim_in.report].columnNumber
+    x, y = _extract_column(run_dir, sim_in, idx)
+    _write_report(
+        x,
+        [_plot_info(y)],
+        sim_in.models.columnInfo.header[idx],
+    )
 
 def _extract_column(run_dir, sim_in, idx):
     y = _read_file_column(run_dir, 'scaledFile', idx)
@@ -436,6 +525,9 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
+    if 'analysisReport' in report:
+        res += template_common.render_jinja(SIM_TYPE, v, 'analysis.py')
+        return res
     v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
         or v.partition_section1 == 'train_and_test' \
         or v.partition_section2 == 'train_and_test'
@@ -472,6 +564,59 @@ def _get_classification_output_col_encoding(frame_args):
             return PKDict()
         raise e
 
+
+def _get_fit_report(report, plot_data, col_info):
+    col1 = _set_index_within_cols(col_info, report.x)
+    col2 = _set_index_within_cols(col_info, report.y1)
+    x_vals = plot_data[:, col1] * col_info.scale[col1]
+    y_vals = plot_data[:, col2] * col_info.scale[col2]
+    fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = \
+        sirepo.analysis.fit_to_equation(
+            x_vals,
+            y_vals,
+            report.fitEquation,
+            report.fitVariable,
+            report.fitParameters,
+        )
+    plots = [
+        PKDict(
+            points=y_vals.tolist(),
+            label='data',
+            style='scatter',
+        ),
+        PKDict(
+            points=fit_y.tolist(),
+            x_points=fit_x.tolist(),
+            label='fit',
+        ),
+        PKDict(
+            points=fit_y_min.tolist(),
+            x_points=fit_x.tolist(),
+            label='confidence',
+            _parent='confidence'
+        ),
+        PKDict(
+            points=fit_y_max.tolist(),
+            x_points=fit_x.tolist(),
+            label='',
+            _parent='confidence'
+        ),
+    ]
+    return template_common.parameter_plot(
+        x_vals.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            x_label='X',  #_label(col_info, col1),
+            y_label='Y',  #_label(col_info, col2),
+            summaryData=PKDict(
+                p_vals=param_vals.tolist(),
+                p_errs=param_sigmas.tolist(),
+            ),
+            latex_label=latex_label
+        ),
+    )
 
 def _histogram_plot(values, vrange):
     hist = np.histogram(values, bins=20, range=vrange)
@@ -520,6 +665,11 @@ def _report_info(x, plots, title=''):
         y_range=template_common.compute_plot_color_and_range(plots),
     )
 
+def _set_index_within_cols(col_info, idx):
+    idx = int(idx or 0)
+    if idx >= len(col_info.names):
+        idx = 1
+    return idx
 
 def _update_range(vrange, values):
     minv = min(values)
