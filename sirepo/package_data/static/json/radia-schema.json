@@ -27,6 +27,9 @@
         "geomTypeLines": "lines",
         "geomTypePolys": "polygons",
         "geomTypeVectors": "vectors",
+        "getDataMethods": [
+            "get_field", "get_field_integrals", "get_geom", "get_kick_map", "save_field"
+        ],
         "inProgressText": "Solving",
         "objectScale": 0.001,
         "pathPtsFileType": "path-pts",
@@ -315,6 +318,18 @@
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
         },
+        "kickMap": {
+            "begin": ["Start", "FloatStringArray", "0, 0, 0", "Start point", "x, y, z"],
+            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Longitudinal direction", "x, y, z"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "numPeriods": ["Number of Periods Along Path ", "Integer", 1],
+            "numTransPoints1": ["Number of Points Transverse to Path", "Integer", 10, "", 2],
+            "numTransPoints2": ["Num Points transverse to path", "Integer", 10, "", 2],
+            "periodLength": ["Period (mmm)", "Float", 1.0],
+            "transverseDirection": ["Transverse Direction", "FloatStringArray", "0, 1, 0", "Any transverse direction", "x, y, z"],
+            "transverseRange1": ["Range in Transverse Direction (mm)", "Float", 1.0, ""],
+            "transverseRange2": ["Range in Other Transverse Direction (mm)", "Float", 1.0]
+        },
         "layoutObject": {
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
@@ -518,6 +533,21 @@
             ]
         },
         "invert": {},
+        "kickMap": {
+            "title": "Kick Map",
+            "basic": [],
+            "advanced": [
+                "begin",
+                "direction",
+                "numPeriods",
+                "numTransPoints1",
+                "numTransPoints2",
+                "periodLength",
+                "transverseDirection",
+                "transverseRange1",
+                "transverseRange2"
+            ]
+        },
         "linePath": {
             "title": "Line",
             "basic": [

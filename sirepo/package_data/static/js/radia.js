@@ -1633,6 +1633,58 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
+SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            direction: '@',
+            viewName: '@',
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div class="panel panel-info">',
+                    '<div class="panel-heading">',
+                        '<span class="sr-panel-heading">Kick Maps</span>',
+                    '</div>',
+                    '<div class="panel-body">',
+                    '<div data-plot3d="" class="sr-plot" data-model-name="kickMapHoriz"></div>',
+                    //'<div data-report-panel="heatmap" data-panel-title="Kick Map (Horizontal)" data-model-name="kickMap"></div>',
+                    '</div>',
+                '</div>',
+            '</div>',
+            //'<div class="col-md-6">',
+            //'<div data-report-panel="heatmap" data-panel-title="Kick Map (Horizontal)" data-model-name="kickMap"></div>',
+            //'<div data-advanced-editor-pane="" data-view-name="viewName"></div>',
+            //'</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            function updateKickMaps() {
+                let inData = {
+                    model: $scope.model,
+                    method: 'get_kick_map',
+                    simulationId: appState.models.simulation.simulationId,
+                };
+                radiaService.getRadiaData(inData, function(d) {
+                    srdbg('got km data', d);
+                    $scope.data = d;
+                    appState.models.kickMapHoriz = {};
+                    appState.saveChanges('kickMapHoriz');
+                });
+            }
+            appState.whenModelsLoaded($scope, function() {
+               $scope.model = appState.models.kickMap;
+               // wait until we have some data to update
+               $scope.$on('radiaViewer.loaded', function () {
+                    updateKickMaps();
+               });
+            });
+
+        },
+    };
+});
+
+
 SIREPO.app.directive('numberList', function() {
     return {
         restrict: 'A',

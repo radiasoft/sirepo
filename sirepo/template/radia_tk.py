@@ -220,6 +220,16 @@ def get_magnetization(g_id):
     return radia.ObjM(g_id)
 
 
+def kick_map(
+        g_id, begin, dir_long, num_periods, period_length, dir_trans, range_trans_1,
+        num_pts_trans_1, range_trans_2, num_pts_trans_2
+    ):
+    return radia.FldFocKickPer(
+        g_id, begin, dir_long, period_length, num_periods, dir_trans, range_trans_1,
+        num_pts_trans_1, range_trans_2, num_pts_trans_2
+    )
+
+
 def load_bin(data):
     return radia.UtiDmpPrs(data)
 

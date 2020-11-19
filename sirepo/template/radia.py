@@ -39,8 +39,10 @@ _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
-_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
-_REPORTS = ['geometry', 'reset']
+_H5_PATH_KICK_MAP = 'kickMap'
+_H5_PATH_SOLUTION = 'solution'
+_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
+_REPORTS = ['geometry', 'kickMapHoriz', 'reset']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
@@ -92,6 +94,11 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
+    if 'kickMapHoriz' in sim_in.report:
+        template_common.write_sequential_result(
+            _kick_map_plot(sim_in.simulationId, 'h'),
+            run_dir=run_dir,
+        )
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
@@ -99,7 +106,7 @@ def extract_report_data(run_dir, sim_in):
 def get_application_data(data, **kwargs):
     if 'method' not in data:
         raise RuntimeError('no application data method')
-    if data.method not in _METHODS:
+    if data.method not in _SCHEMA.constants.getDataMethods:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
@@ -148,6 +155,8 @@ def get_application_data(data, **kwargs):
 
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
+    if data.method == 'get_kick_map':
+        return _read_or_generate_kick_map(g_id, data)
     if data.method == 'get_geom':
         g_types = data.get(
             'geomTypes',
@@ -366,6 +375,24 @@ def _generate_data(g_id, in_data, add_lines=True):
         return PKDict(error=e.message)
 
 
+def _generate_kick_map(g_id, model):
+    km = radia_tk.kick_map(
+        g_id, sirepo.util.split_comma_delimited_string(model.begin, float),
+        sirepo.util.split_comma_delimited_string(model.direction, float),
+        int(model.numPeriods), float(model.periodLength),
+        sirepo.util.split_comma_delimited_string(model.transverseDirection, float),
+        float(model.transverseRange1), int(model.numTransPoints1),
+        float(model.transverseRange2), int(model.numTransPoints2)
+    )
+    return PKDict(
+        h=km[0],
+        v=km[1],
+        lmsqr=km[2],
+        x=km[3],
+        y=km[4]
+    )
+
+
 def _generate_obj_data(g_id, name):
     return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
 
@@ -416,6 +443,7 @@ def _generate_parameters_file(data, for_export):
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
+    v.kickMap = data.models.get('kickMap', None)
     if 'solver' in report or for_export:
         v.doSolve = True
         s = data.models.solver
@@ -426,8 +454,10 @@ def _generate_parameters_file(data, for_export):
         radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data, False)
-    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
+    v.h5KickMapPath = _geom_h5_path(_H5_PATH_KICK_MAP)
+    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
+    v.h5SolutionPath = _geom_h5_path(_H5_PATH_SOLUTION)
 
     j_file = RADIA_EXPORT_FILE if for_export else GEOM_PYTHON_FILE
     return template_common.render_jinja(
@@ -487,11 +517,9 @@ def _read_h_m_file(file_name):
         'h-m'
     ))
     lines = [r for r in sirepo.csv.open_csv(h_m_file)]
-    # lines = [[float(c.strip()) for c in [r for r in sirepo.csv.open_csv(h_m_file)]
     f_lines = []
     for l in lines:
         f_lines.append([float(c.strip()) for c in l])
-    #pkdp('HM LINES {}', f_lines)
     return f_lines
 
 
@@ -499,11 +527,44 @@ def _read_data(sim_id, view_type, field_type):
     res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
     if res:
         res.solution = _read_solution(sim_id)
+        #res.kickMapHoriz = _read_kick_map(sim_id, 'h')
     return res
 
 
 def _read_id_map(sim_id):
     return _read_h5_path(sim_id, 'idMap')
+
+
+def _read_kick_map(sim_id):
+    return _read_h5_path(sim_id, _H5_PATH_KICK_MAP)
+
+
+def _read_or_generate_kick_map(g_id, data):
+    res = _read_kick_map(data.simulationId)
+    if res:
+        return res
+    km = _generate_kick_map(g_id, data.model)
+    #pkdp('GOT KM {} WRITE TO {}', km, _geom_h5_path(_H5_PATH_KICK_MAP))
+    with h5py.File(_geom_file(data.simulationId), 'a') as hf:
+        template_common.dict_to_h5(
+            km, #_generate_kick_map(g_id, data.model),
+            hf,
+            path=_geom_h5_path(_H5_PATH_KICK_MAP)
+        )
+    return _read_kick_map(data.simulationId)
+
+
+def _kick_map_plot(sim_id, direction):
+    km = _read_kick_map(sim_id)
+    if not km:
+        return None
+    return PKDict(
+        x_range=[km.x[0], km.x[-1]],
+        y_range=[km.y[0], km.y[-1]],
+        x_label='x',
+        y_label='y',
+        z_matrix=km[direction],
+    )
 
 
 def _read_or_generate(g_id, data):
@@ -522,7 +583,7 @@ def _read_or_generate(g_id, data):
 
 
 def _read_solution(sim_id):
-    s = _read_h5_path(sim_id, 'solution')
+    s = _read_h5_path(sim_id, _H5_PATH_SOLUTION)
     if not s:
         return None
     return PKDict(
