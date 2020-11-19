@@ -28,7 +28,8 @@
         "CurrentMode": [
             ["1", "User Specified"],
             ["2", "Child-Langmuir Emission"],
-            ["3", "Thermionic Emission"]
+            ["3", "Thermionic Emission"],
+            ["4", "Schottky Emission"]
         ],
         "Dimension": [
             ["x", "X"],
