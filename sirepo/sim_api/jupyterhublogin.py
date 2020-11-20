@@ -60,17 +60,18 @@ def jupyterhub_user_name(have_simulation_db=True):
 def init_apis(*args, **kwargs):
     global cfg
 
+    d = pkio.py_path(sirepo.srdb.root()).join('jupyterhub')
     cfg = pkconfig.init(
         dst_db_root=(
-            pkio.py_path(sirepo.srdb.root()).join('jupyterhub'),
+            d,
             pkio.py_path,
             'new jupyter user db',
         ),
         rs_jupyter_migrate=(False, bool, 'give user option to migrate data from jupyter.radiasoft.org'),
         src_db_root=(
-            pkio.py_path('/var/empty'),
+            d,
             pkio.py_path,
-            'existing jupyter user db (ex /srv/jupyterhub)',
+            'existing jupyter user db (ex /srv/jupyterhub/user)',
         ),
         uri_root=('jupyter', str, 'the root uri of jupyterhub'),
     )
@@ -94,10 +95,13 @@ def _create_user():
             logged_in_user_name.split('@')[0],
         )
         u = JupyterhubUser.search_by(user_name=n)
-        if u:
+        if u or pkio.sorted_glob(_user_dir(n)):
             # The username already exists. Add a random letter to try and create
             # a unique user name.
             n += _HUB_USER_SEP + random.choice(string.ascii_lowercase)
+
+        assert not pkio.sorted_glob(_user_dir(n)), \
+            f'conflict with existing username={n}'
         return n
 
     if jupyterhub_user_name():
@@ -136,7 +140,7 @@ def _event_github_authorized(kwargs):
         s = cfg.src_db_root.join(kwargs.user_name)
         u = jupyterhub_user_name()
         assert u, 'need logged in JupyterhubUser'
-        d = cfg.dst_db_root.join(u)
+        d = _user_dir(u)
         try:
             s.rename(d)
         except (py.error.ENOTDIR, py.error.ENOENT):
@@ -167,3 +171,6 @@ def _init_model(base):
             nullable=False,
             unique=True,
         )
+
+def _user_dir(username):
+    return cfg.dst_db_root.join(username)
