@@ -95,13 +95,13 @@ def _create_user():
             logged_in_user_name.split('@')[0],
         )
         u = JupyterhubUser.search_by(user_name=n)
-        if u or pkio.sorted_glob(_user_dir(n)):
+        if u or _user_dir(n).exists():
             # The username already exists. Add a random letter to try and create
             # a unique user name.
-            n += _HUB_USER_SEP + random.choice(string.ascii_lowercase)
+            n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
 
-        assert not pkio.sorted_glob(_user_dir(n)), \
-            f'conflict with existing username={n}'
+        assert not _user_dir(n).exists(), \
+            f'conflict with existing user_dir={n}'
         return n
 
     if jupyterhub_user_name():
