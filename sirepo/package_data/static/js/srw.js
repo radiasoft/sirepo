@@ -32,6 +32,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
+        '<div data-ng-switch-when="MLFields" class="col-sm-7">',
+          '<div data-ml-fields="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
           '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
         '</div>',
@@ -1734,6 +1737,32 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
                     el.off();
                 });
             };
+        },
+    };
+});
+
+SIREPO.app.directive('mlField', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            field: '=',
+            model: '=',
+        },
+        template: [
+            '<div data-ng-repeat="mlf in mlFields">',
+            '{{ mlf }}',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.mlFields = [];
+            appState.whenModelsLoaded($scope, function () {
+                for (let m in SIREPO.APP_SCHEMA.model) {
+                    if (SIREPO.APP_SCHEMA.model[m]._super === 'mlBeamlineElement') {
+                        $scope.mlFields.push(m);
+                    }
+                }
+            });
         },
     };
 });
