@@ -17,7 +17,6 @@ import json
 import numpy as np
 import pydicom
 import sirepo.sim_data
-import sirepo.template.irad as template
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -26,12 +25,11 @@ _DICOM_CLASS = PKDict(
     RT_DOSE='1.2.840.10008.5.1.4.1.1.481.2',
     RT_STRUCT='1.2.840.10008.5.1.4.1.1.481.3',
 )
-_DVH_FILE_NAME = 'dvh-data.json'
 _PIXEL_DATA_DIR = 'data'
 _PIXEL_DATA_FILE = '{}/out.bin'.format(_PIXEL_DATA_DIR)
-_ROI_FILE_NAME = template.RTSTRUCT_FILE
-_VTI_CT_ZIP_FILE = template.CT_FILE
-_VTI_RTDOSE_ZIP_FILE = template.RTDOSE_FILE
+_ROI_FILE_NAME = _SIM_DATA.RTSTRUCT_FILE
+_VTI_CT_ZIP_FILE = _SIM_DATA.CT_FILE
+_VTI_RTDOSE_ZIP_FILE = _SIM_DATA.RTDOSE_FILE
 _VTI_TEMPLATE = PKDict(
     cellData=PKDict(
         arrays=[],
@@ -62,30 +60,44 @@ _VTI_TEMPLATE = PKDict(
     ),
 )
 
-def process_dicom_files(cfg_dir):
+def dicom_info(filename):
+    ds = pydicom.read_file(filename)
+    return 'file_meta:\n{}\n\n{}\n'.format(ds.file_meta, ds)
+
+
+def process_dicom_files(cfg_dir, lib_file_prefix):
     # convert dicom files into ct.zip, rt.zip, rtdose.json and rtstruct.json
     files = _dicom_files(cfg_dir)
-    ctinfo = _write_ct_vti_file(files)
+    ctinfo = _write_ct_vti_file(files, lib_file_prefix)
     pkdlog('ct: {}', ctinfo)
-    rtdose = _write_rtdose_file(files, files.rtdose)
+    rtdose = _write_rtdose_file(files, files.rtdose, lib_file_prefix)
     pkdlog('rtdose 1: {}', rtdose)
     for idx in range(len(files.additional_rtdose)):
-        rtdose = _write_rtdose_file(files, files.additional_rtdose[idx], 'rtdose{}.zip'.format(idx + 2))
+        rtdose = _write_rtdose_file(
+            files,
+            files.additional_rtdose[idx],
+            lib_file_prefix,
+            'rtdose{}.zip'.format(idx + 2))
         pkdlog('rtdose {}: {}', idx + 2, rtdose)
     pkdlog('creating rtstruct')
-    rois = _write_rtstruct_file(files)
+    rois = _write_rtstruct_file(files, lib_file_prefix)
     pkdlog('computing dvh')
-    _write_dvh_file(files, rois, files.rtdose)
+    _write_dvh_file(files, rois, files.rtdose, lib_file_prefix)
     for idx in range(len(files.additional_rtdose)):
-        _write_dvh_file(files, rois, files.additional_rtdose[idx], 'dvh-data{}.json'.format(idx + 2))
+        _write_dvh_file(
+            files,
+            rois,
+            files.additional_rtdose[idx],
+            lib_file_prefix,
+            'dvh-data{}.json'.format(idx + 2),
+        )
     pkdlog('done')
 
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == 'dvhReport':
-        filename = _SIM_DATA.lib_file_for_sim(data, _DVH_FILE_NAME)
-        template_common.write_sequential_result(simulation_db.read_json(filename))
+        template_common.write_sequential_result(_dvh_report(data))
     elif data.report == 'dicom3DReport':
         template_common.write_sequential_result({})
     else:
@@ -202,11 +214,31 @@ def _extract_dcm_info(files, info, frame):
     return info
 
 
+def _dvh_report(data):
+    filename = _SIM_DATA.lib_file_for_sim(data, _SIM_DATA.DVH_FILE)
+    res = simulation_db.read_json(filename)
+    settings = data.models.dicomSettings
+    if 'roiNames' in settings:
+        selected_names = []
+        for num in settings.selectedROIs:
+            if settings.selectedROIs[num] == '1':
+                if num in settings.roiNames:
+                    selected_names.append(settings.roiNames[num])
+        if selected_names:
+            plots = []
+            for p in res.plots:
+                if p.label in selected_names:
+                    plots.append(p)
+            if plots:
+                res.plots = plots
+    return res
+
+
 def _float_list(ar):
     return [float(x) for x in ar]
 
 
-def _write_ct_vti_file(files):
+def _write_ct_vti_file(files, prefix):
     ctinfo = None
     #instance_numbers = sorted(files.ctmap.keys()) if files.position == 'HFS' else reversed(sorted(files.ctmap.keys()))
     instance_numbers = sorted(files.ctmap.keys())
@@ -223,21 +255,20 @@ def _write_ct_vti_file(files):
             pixels = frame.pixel_array
             if is_flipped_lr:
                 pixels = np.fliplr(pixels)
-            pixels = pixels.astype(np.uint16)
+            #pixels = pixels.astype(np.uint16)
             pixels.tofile(f)
     origin = ctinfo.ImagePositionPatient
     if is_flipped_lr:
         origin[0] = first.ImagePositionPatient[0] - first.PixelSpacing[0] * (first.Columns - 1)
-    _write_vti_file(_VTI_CT_ZIP_FILE, ctinfo, origin)
+    _write_vti_file(_VTI_CT_ZIP_FILE, ctinfo, prefix, origin)
     return ctinfo
 
 
-def _write_dvh_file(files, rois, rtdose, filename=_DVH_FILE_NAME):
-    with open (filename, 'w') as f:
+def _write_dvh_file(files, rois, rtdose, prefix, filename=_SIM_DATA.DVH_FILE):
+    with open (f'{prefix}-{filename}', 'w') as f:
         json.dump(_compute_dvh(rois.keys(), files.rtstruct, rtdose), f)
 
-
-def _write_rtdose_file(files, rtdose_path, filename=_VTI_RTDOSE_ZIP_FILE):
+def _write_rtdose_file(files, rtdose_path, prefix, filename=_VTI_RTDOSE_ZIP_FILE):
     rtdose = pydicom.dcmread(rtdose_path)
     doseinfo = _extract_dcm_info(files, None, rtdose)
     doseinfo.DoseMax = int(rtdose.pixel_array.max())
@@ -254,13 +285,14 @@ def _write_rtdose_file(files, rtdose_path, filename=_VTI_RTDOSE_ZIP_FILE):
         #for di in reversed(range(rtdose.pixel_array.shape[0])):
         for di in range(rtdose.pixel_array.shape[0]):
             for yi in range(rtdose.pixel_array.shape[1]):
-                pixels = rtdose.pixel_array[di][yi].astype(np.uint16)
+                pixels = rtdose.pixel_array[di][yi]
+                # pixels = pixels.astype(np.uint16)
                 pixels.tofile(f)
-    _write_vti_file(filename, doseinfo)
+    _write_vti_file(filename, doseinfo, prefix)
     return doseinfo
 
 
-def _write_rtstruct_file(files):
+def _write_rtstruct_file(files, prefix):
     rtstruct = pydicom.dcmread(files.rtstruct)
     rois = {}
     for roi in rtstruct.StructureSetROISequence:
@@ -283,13 +315,13 @@ def _write_rtstruct_file(files):
             data = _float_list(contour.ContourData)
             del data[2::3]
             roi['contour'][ct_z].append(data)
-    with open (_ROI_FILE_NAME, 'w') as f:
+    with open (f'{prefix}-{_ROI_FILE_NAME}', 'w') as f:
         json.dump({
             'regionOfInterest': rois,
         }, f)
     return rois
 
-def _write_vti_file(filename, info, origin=None):
+def _write_vti_file(filename, info, prefix, origin=None):
     vti = copy.deepcopy(_VTI_TEMPLATE)
     vti.spacing = [
         info.PixelSpacing[0],
@@ -309,10 +341,10 @@ def _write_vti_file(filename, info, origin=None):
             vti.metadata[f] = info[f]
     vti.origin = origin or info.ImagePositionPatient
     vti.pointData.arrays[0].data.size = info.Rows * info.Columns * info.Count
-    #vti.pointData.arrays[0].data.dataType = 'Int{}Array'.format(info.BitsAllocated)
-    vti.pointData.arrays[0].data.dataType = 'Uint16Array'
+    vti.pointData.arrays[0].data.dataType = 'Int{}Array'.format(info.BitsAllocated)
+    #vti.pointData.arrays[0].data.dataType = 'Uint16Array'
     pkio.unchecked_remove(filename)
-    with ZipFile(filename, 'w') as vti_zip:
+    with ZipFile(f'{prefix}-{filename}', 'w') as vti_zip:
         vti_zip.writestr('index.json', json.dumps(vti))
         vti_zip.write(_PIXEL_DATA_FILE)
     #pkdp('vti json: {}', vti)
