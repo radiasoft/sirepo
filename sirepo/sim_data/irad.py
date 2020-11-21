@@ -10,8 +10,12 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 import sirepo.sim_data
 
-
 class SimData(sirepo.sim_data.SimDataBase):
+    CT_FILE = 'ct.zip'
+    DVH_FILE = 'dvh-data.json'
+    RTDOSE_FILE = 'rtdose.zip'
+    RTDOSE2_FILE = 'rtdose2.zip'
+    RTSTRUCT_FILE = 'rtstruct-data.json'
 
     @classmethod
     def _compute_model(cls, analysis_model, data):
@@ -27,6 +31,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'dicomSettings',
                 'dicomWindow',
                 'doseWindow',
+                'doseDifferenceWindow',
             ),
         )
 
@@ -39,6 +44,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
+        if r == 'dvhReport':
+            return [r, data.models.dicomSettings.selectedROIs]
         return [r]
 
     @classmethod
@@ -46,12 +53,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         r = data.get('report')
         res = []
         if not r:
-            #TODO(pjm): share filenames with template.irad
-            res += ['dvh-data.json', 'ct.zip','rtdose.zip','rtdose2.zip', 'rtstruct-data.json']
+            res += [cls.DVH_FILE, cls.CT_FILE, cls.RTDOSE_FILE, cls.RTDOSE2_FILE, cls.RTSTRUCT_FILE]
         elif r == 'dvhReport':
-            res += ['dvh-data.json']
+            res += [cls.DVH_FILE]
         elif r == 'dicom3DReport':
-            res += ['ct.zip','rtdose.zip','rtdose2.zip', 'rtstruct-data.json']
+            res += [cls.CT_FILE, cls.RTDOSE_FILE, cls.RTDOSE2_FILE, cls.RTSTRUCT_FILE]
         else:
             assert False, 'unknown report: {}'.format(r)
         return [cls.lib_file_for_sim(data, v) for v in res]
