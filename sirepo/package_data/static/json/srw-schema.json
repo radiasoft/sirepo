@@ -407,8 +407,9 @@
             "notes": ["Notes", "Text", ""]
         },
         "aperture": {
-            "_super": ["_", "model", "mlBeamlineElement"],
+            "isMLElement": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Aperture"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 1, "", 1e-99],
             "verticalSize": ["Vertical Size [mm]", "Float", 1, "", 1e-99],
@@ -451,12 +452,15 @@
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
         "mlBeamlineElement": {
-            "_super": ["_", "model", "beamlineElement"],
+            "id": ["_", "Integer", -1],
             "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"]
+            "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
+            "title": ["_", "String", ""]
         },
         "mlExport": {
-            "fields": ["_", "MLFields", []]
+            "elements": ["Beamline Elements", "MLElements", []],
+            "numCores": ["Number of Cores", "Integer", 4],
+            "numRuns": ["Number of Runs", "Integer", 100]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -547,8 +551,9 @@
             "drift": ["Drift [m]", "Float"]
         },
         "ellipsoidMirror": {
-            "_super": ["_", "model", "beamlineElement"],
+            "isMLElement": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
             "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
@@ -727,8 +732,9 @@
             "verticalMaskCoordinate": ["Vertical Center Position", "Float", 0]
         },
         "mirror": {
-            "_super": ["_", "model", "beamlineElement"],
+            "isMLElement": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Planar Mirror"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", "mirror_1d.dat"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
@@ -890,8 +896,9 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "sphericalMirror": {
-            "_super": ["_", "model", "beamlineElement"],
+            "isMLElement": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
@@ -917,8 +924,9 @@
             "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
         },
         "toroidalMirror": {
-            "_super": ["_", "model", "beamlineElement"],
+            "isMLElement": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Toroid Mirror"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
             "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
@@ -1602,6 +1610,23 @@
             "title": "Mirror",
             "basic": [],
             "advanced": ["notes"]
+        },
+        "mlBeamlineElement": {
+            "title": "Ml Element",
+            "basic": [
+                "offsetRanges",
+                "rotationRanges"
+            ],
+            "advanced": []
+        },
+        "mlExport": {
+            "title": "Generate Machine Learning Data",
+            "basic": [
+                "elements",
+                "numCores",
+                "numRuns"
+            ],
+            "advanced": []
         },
         "multipole": {
             "title": "Dipole",

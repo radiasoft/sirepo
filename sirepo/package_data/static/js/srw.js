@@ -17,6 +17,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="BeamList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
+        '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
+            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+        '</div>',
         '<div data-ng-switch-when="UndulatorList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
@@ -32,8 +35,8 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
-        '<div data-ng-switch-when="MLFields" class="col-sm-7">',
-          '<div data-ml-fields="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '<div data-ng-switch-when="MLElements" class="col-sm-7">',
+          '<div data-ml-elements="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
           '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
@@ -326,6 +329,30 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return self.formatFloat(v, 12);
     };
 
+    self.buildMlElements = function() {
+        for (let item of (appState.models.beamline || []).filter(function(i) {
+            return i.isMLElement === '1';
+        })) {
+            if (! self.findMLElement(item.id)) {
+                continue;
+            }
+            let e = appState.setModelDefaults({}, 'mlBeamlineElement');
+            e.title = item.title;
+            e.id = item.id;
+            appState.models.mlExport.elements.push(e);
+        }
+        return appState.models.mlExport.elements;
+    };
+
+    self.findMLElement = function(id) {
+        for (let e of appState.models.mlExport.elements) {
+            if (e.id === id) {
+                return e;
+            }
+        }
+        return null;
+    };
+
     self.getReportTitle = function(modelName, itemId) {
         if (! appState.isLoaded()) {
             return '';
@@ -472,6 +499,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 'verticalPointCount', ! isAutomatic,
             ]);
         });
+    };
+
+    self.updateMLElements = function() {
+        self.buildMlElements();
     };
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
@@ -784,6 +815,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             '<div data-common-footer="nav"></div>',
             '<div data-import-python=""></div>',
             '<div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>',
+            //'<div data-confirmation-modal="" data-id="sr-mlExport-dialog" data-title="export" data-ok-text="OK" data-ok-clicked="exportML()"><div data-ml-export="" data-model-name="mlExport"></div></div>',
         ].join(''),
         controller: function($scope) {
 
@@ -1322,6 +1354,10 @@ SIREPO.viewLogic('simulationGridView', function($scope, srwService) {
     ];
 });
 
+SIREPO.viewLogic('mlExport', function($scope, srwService) {
+    srdbg('viewLogic for mlExport');
+});
+
 SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, srwService, $scope) {
     if ($scope.fieldDef == 'basic') {
         return;
@@ -1481,6 +1517,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
           '</app-header-right-sim-loaded>',
           '<app-settings>',
             '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
+            '<div><a href data-ng-click="openMLExport()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1553,6 +1590,11 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
 
             $scope.openShadowConfirm = function() {
                 $('#sr-shadow-dialog').modal('show');
+            };
+
+            $scope.openMLExport = function() {
+                panelState.showModalEditor('mlExport');
+                //$('#sr-ml-export-dialog').modal('show');
             };
 
             $scope.showImportModal = function() {
@@ -1741,27 +1783,62 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('mlField', function(appState, panelState) {
+SIREPO.app.directive('mlElements', function(appState, panelState, srwService) {
     return {
         restrict: 'A',
         scope: {
-            modelName: '=',
-            field: '=',
-            model: '=',
         },
         template: [
-            '<div data-ng-repeat="mlf in mlFields">',
-            '{{ mlf }}',
+            '<div data-ng-repeat="mle in mlElements">',
+                //'<div>{{ mle.title }}</div>',
+                '<div data-model-field="offsetRanges" data-model-name="mlModel" data-model="mle"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.mlFields = [];
-            appState.whenModelsLoaded($scope, function () {
-                for (let m in SIREPO.APP_SCHEMA.model) {
-                    if (SIREPO.APP_SCHEMA.model[m]._super === 'mlBeamlineElement') {
-                        $scope.mlFields.push(m);
-                    }
+            $scope.appState = appState;
+            $scope.srwService = srwService;
+            $scope.mlModel = 'mlBeamlineElement';
+            $scope.offsetRanges = 'offsetRanges';
+            $scope.mlElements = [];
+            appState.whenModelsLoaded($scope, function() {
+                $scope.mlElements = appState.models.mlExport.elements;
+            });
+
+            function getBLForML(ml) {
+            }
+
+        },
+    };
+});
+
+SIREPO.app.directive('mlExport', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div>MLEXPORT</div>',
+            //'<div basic-editor-panel="" data-view-name="mlExport"></div>',
+            //'<div advanced-editor-pane="" data-field-def="basic" data-want-buttons="false" data-view-name="viewName"></div>',
+        ].join(''),
+        controller: function($scope) {
+            srdbg('mlExport', $scope);
+            $scope.viewName = 'mlExport';
+            $scope.mlElements = [];
+            appState.whenModelsLoaded($scope, function() {
+                /*
+                $scope.model = appState.models[$scope.modelName];
+                for (let item of appState.models.beamline.filter(function(i) {
+                    return i._super === 'mlBeamlineElement';
+                })) {
+                    $scope.mlElements.push(item);
                 }
+                srdbg(appState.models, $scope.mlElements);
+                appState.models.mlExport.elements = $scope.mlElements;
+                appState.saveChanges('mlExport');
+
+                 */
             });
         },
     };
@@ -2938,6 +3015,49 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('numberList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            info: '<',
+            type: '@',
+            count: '@',
+        },
+        template: [
+            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
+                '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '</div>'
+        ].join(''),
+        controller: function($scope, $element) {
+
+            let lastModel = null;
+            // NOTE: does not appear to like 'model.field' format
+            $scope.values = null;
+            $scope.numberType = $scope.type.toLowerCase();
+            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
+            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                // values were sticking around when the model changed
+                if (! lastModel || lastModel !== $scope.model) {
+                    lastModel = $scope.model;
+                    $scope.values = null;
+                }
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
+            };
         },
     };
 });

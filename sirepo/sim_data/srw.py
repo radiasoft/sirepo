@@ -90,6 +90,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'initialIntensityReport',
             'intensityReport',
             'mirrorReport',
+            'mlExport',
             'powerDensityReport',
             'simulation',
             'sourceIntensityReport',
