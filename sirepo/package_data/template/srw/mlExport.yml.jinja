@@ -1,0 +1,29 @@
+codes:
+  - srw:
+      settings:
+      parameters:
+        {% for e in mlElements %}
+        {{ e.title }}.position:
+          min: {{ e.offestZMin }}
+          max: {{ e.offestZMax }}
+          start: {{ e.position }}
+        {{ e.title }}.horizontalOffset:
+          min: {{ e.offestXMin }}
+          max: {{ e.offestXMax }}
+          start: {{ e.position }}
+        {{ e.title }}.verticalOffset:
+          min: {{ e.offestXMin }}
+          max: {{ e.offestXMax }}
+          start: {{ e.position }}
+        {% endfor %}
+      setup:
+        input_file: {{ simType }}.py
+        execution_type: parallel
+        cores: {{ numCores }}
+options:
+  software: nlopt
+  method: LN_SBPLX
+  software_options: {'ftol_abs': 1.0e-6}
+  objective_function: None
+  exit_criteria:
+    sim_max: {{ numRuns }}
