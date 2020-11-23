@@ -18,9 +18,7 @@ SIREPO.appPanelHeadingButtons = [
 ].join('');
 
 SIREPO.app.factory('iradService', function(appState, panelState, requestSender, simulationQueue, utilities, $rootScope) {
-    var self = {
-        maxDose: 0,
-    };
+    var self = {};
     var dicomReader, doseFrames, doseReader, dose2Reader, roiPoints;
     var doseComparisonTriggerPerPlane = {
         s: doseComparisonTrigger('s'),
@@ -188,7 +186,6 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
 
     $rootScope.$on('modelsUnloaded', function() {
         dicomReader = doseFrames = doseReader = dose2Reader = roiPoints = null;
-        self.maxDose = 0;
         self.downloadStatus = '';
     });
 
@@ -1228,7 +1225,6 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                 var yStep = Math.min(y1Step, y2Step);
 
                 var dosePixels = [];
-                var maxDose = 0;
                 var yIdx = 0;
                 var offset = 0;
                 if (dicomPlane == 'c' || dicomPlane == 's') {
@@ -1268,14 +1264,11 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                         }
                         var diff = Math.abs(v2 - v1);
                         row.push(diff);
-                        if (diff > maxDose) {
-                            maxDose = diff;
-                        }
                         xIdx++;
                     }
                     yIdx++;
                 }
-                renderDose(dosePixels, maxDose);
+                renderDose(dosePixels);
                 refresh();
             }
 
@@ -1444,10 +1437,7 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                         zFrame,
                         dosePixels,
                         domainForPlane(dose3d));
-                    //TODO(pjm): use one maxDose
-                    renderDose(
-                        dosePixels,
-                        dose3d.metadata.DoseMax * dose3d.metadata.DoseGridScaling);
+                    renderDose(dosePixels);
                 }
 
                 var preserveZoom = dicomDomain ? true : false;
@@ -1468,14 +1458,12 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                 $scope.resize();
             }
 
-            function renderDose(dosePixels, maxDose) {
-                if (maxDose > iradService.maxDose) {
-                    iradService.maxDose = maxDose;
-                }
-                maxDose = iradService.maxDose;
+            function renderDose(dosePixels) {
                 //var colorMap = plotting.colorMapFromModel($scope.modelName);
                 var colorMap = plotting.colorMapOrDefault('jet');
-                var doseWindow = appState.models.doseWindow;
+                var doseWindow = $scope.isDifferencePlot
+                    ? appState.models.doseDifferenceWindow
+                    : appState.models.doseWindow;
                 var halfWidth = doseWindow.width / 2;
                 var colorScale = d3.scale.linear()
                     .domain(plotting.linearlySpacedArray(doseWindow.center - halfWidth, doseWindow.center + halfWidth, colorMap.length))
@@ -1485,7 +1473,7 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                 var transparency = appState.models.dicomSettings.showCT == '1' ? 56 : 100;
                 doseFeature.setColorScale(colorScale, transparency);
                 doseFeature.load(dosePixels);
-                doseFeature.prepareImage({}, appState.models.doseWindow);
+                doseFeature.prepareImage({}, doseWindow);
             }
 
             function resetZoom() {
@@ -1599,9 +1587,28 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                     dicomDomain[0][1] + dicomDomain[1][1] - yAxisScale.invert(p[1]),
                 ];
                 var dose = null;
-                if ($scope.model.dicomPlane == 't') {
-                    //TODO(pjm): dose value currently broken in c and s planes
-                    dose = doseFeature.getValueAtPoint(p2, dicomDomain);
+                if (dose3d || $scope.isDifferencePlot) {
+                    var doseDomain;
+                    if ($scope.isDifferencePlot) {
+                        doseDomain = [
+                            [xdomain[0], ydomain[0]],
+                            [xdomain[1], ydomain[1]],
+                        ];
+                    }
+                    else {
+                        doseDomain = domainForPlane(dose3d);
+                    }
+                    //TODO(pjm) consolidate or remove offset
+                    var offset = 0;
+                    if ($scope.model.dicomPlane == 't') {
+                        offset = (dicomDomain[1][1] - doseDomain[1][1])
+                            - (doseDomain[0][1] - dicomDomain[0][1]);
+                    }
+                    var doseP = [
+                        xAxisScale.invert(p[0]),
+                        doseDomain[0][1] + doseDomain[1][1] + offset - yAxisScale.invert(p[1]),
+                    ];
+                    dose = doseFeature.getValueAtPoint(doseP, doseDomain);
                 }
                 broadcastDicomPoint({
                     event: 'mousemove',
@@ -1706,6 +1713,10 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
                     doseFeature.clearColorScale();
                     renderData();
                 });
+                $scope.$on('doseDifferenceWindow.changed', function() {
+                    doseFeature.clearColorScale();
+                    renderData();
+                });
                 $scope.$on('irad-compute-dose-comparison', computeDoseComparison);
             };
         },
@@ -1718,7 +1729,7 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
     };
 });
 
-SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
+SIREPO.app.directive('dicomObjectSelector', function(activeSection, appState, iradService) {
     return {
         restrict: 'A',
         scope: {},
@@ -1756,6 +1767,7 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
                   '<div data-ng-switch-when="RTDose" style="padding-left: 18px;">',
                     '<div>GY: {{ pointInfo.dose | number: 4 }}</div>',
                     '<div data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="doseWindow" style="margin-left: -18px; border: 1px solid lightgray;"></div>',
+                    '<div data-ng-show="showDoseDifference()" data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="doseDifferenceWindow" style="margin-top: 10px; margin-left: -18px; border: 1px solid lightgray;"></div>',
                   '</div>',
                 '</div>',
               '</div>',
@@ -1805,9 +1817,11 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
             }
 
             function loadROIs() {
-                if (! appState.models.dicomSettings.selectedROIs) {
-                    appState.models.dicomSettings.selectedROIs = {};
-                }
+                ['selectedROIs', 'roiNames'].forEach(function(n) {
+                    if (! appState.models.dicomSettings[n]) {
+                        appState.models.dicomSettings[n] = {};
+                    }
+                });
                 var rois = iradService.getROIPoints();
                 var items = [];
                 Object.keys(rois).forEach(function(roiNumber) {
@@ -1823,7 +1837,8 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
                         name: roi.name,
                         //TODO(pjm): why index 0?
                         color: roi.color[0],
-                      });
+                    });
+                    appState.models.dicomSettings.roiNames[roiNumber] = roi.name;
                 });
                 items.sort(function(a, b) {
                     return a.name.localeCompare(b.name);
@@ -1839,6 +1854,10 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
                     },
                 ];
             }
+
+            $scope.showDoseDifference = function() {
+                return activeSection.getActiveSection() == 'dose';
+            };
 
             $scope.toggleExpanded = function(row) {
                 row.isExpanded = ! row.isExpanded;
@@ -1925,6 +1944,7 @@ SIREPO.app.directive('colorScaleSelector', function(appState, iradService, plott
             windowModelName: '@',
         },
         template: [
+            '<div style="margin-left: 5px; margin-bottom: -15px;" data-ng-if="windowModelName == \'doseDifferenceWindow\'">Dose Difference:</div>',
             '<svg class="sr-plot sr-histogram" width="100%" ng-attr-height="{{ height + margin.top + margin.bottom }}">',
               '<g class="plot-g" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
                 '<g class="x axis" ng-attr-transform="translate(0, {{ height }})">',
