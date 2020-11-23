@@ -261,29 +261,20 @@ if USER_INJECT == 2:
 {% endif %}
 
 elif USER_INJECT == 3:
-{% if is3D %}
-    # True Thermionic injection
+    # Thermionic injection according to Richardson Dushmann
+
     wp.top.inject = 1
-
-    # Set both beams to same npinject to keep weights the same
-    beam.npinject = PTCL_PER_STEP
-
     wp.w3d.l_inj_exact = True
 
-    # Specify thermal properties
+    # Specify thermal properties and compute current
     beam.vthz = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
     beam.vthperp = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
     wp.top.lhalfmaxwellinject = 1  # inject z velocities as half Maxwellian
-
     beam_current = sources.j_rd(CATHODE_TEMP, CATHODE_PHI) * cathode_area  # steady state current in Amps
-    #print('beam current expected: {}, current density {}'.format(beam_current, beam_current / cathode_area))
 
-    #Compute Child-Langmuir limit for this setup A/m^2
-    cl_limit = sources.cl_limit(CATHODE_PHI, ANODE_WF, GRID_BIAS, PLATE_SPACING)
-    jcl = cl_limit*cathode_area
-
-    #print('child-langmuir  limit: {}, current density {}'.format(jcl, cl_limit))
+    #specify other beam properties
     beam.ibeam = beam_current
+    beam.npinject = PTCL_PER_STEP
     beam.a0 = SOURCE_RADIUS_1
     beam.b0 = SOURCE_RADIUS_1
     beam.ap0 = .0e0
