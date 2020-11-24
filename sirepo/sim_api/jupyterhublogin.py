@@ -60,21 +60,16 @@ def unchecked_jupyterhub_user_name(have_simulation_db=True):
 def init_apis(*args, **kwargs):
     global cfg
 
-    d = pkio.py_path(sirepo.srdb.root()).join('jupyterhub')
     cfg = pkconfig.init(
-        dst_db_root=(
-            d,
+        user_db_root=(
+            pkio.py_path(sirepo.srdb.root()).join('jupyterhub', 'user'),
             pkio.py_path,
-            'new jupyter user db',
+            'Jupyterhub user db',
         ),
         rs_jupyter_migrate=(False, bool, 'give user option to migrate data from jupyter.radiasoft.org'),
-        src_db_root=(
-            d,
-            pkio.py_path,
-            'existing jupyter user db (ex /srv/jupyterhub/user)',
-        ),
         uri_root=('jupyter', str, 'the root uri of jupyterhub'),
     )
+    pkio.mkdir_parent(cfg.user_db_root)
     sirepo.auth_db.init_model(_init_model)
     sirepo.events.register({
         'auth_logout': _event_auth_logout,
@@ -95,12 +90,12 @@ def _create_user_if_not_found():
             logged_in_user_name.split('@')[0],
         )
         u = JupyterhubUser.search_by(user_name=n)
-        if u or _user_dir(n).exists():
+        if u or _user_dir(user_name=n).exists():
             # The username already exists. Add a random letter to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
 
-        assert not _user_dir(n).exists(), \
+        assert not _user_dir(user_name=n).exists(), \
             f'conflict with existing user_dir={n}'
         return n
 
@@ -135,11 +130,7 @@ def _event_end_api_call(kwargs):
 
 
 def _event_github_authorized(kwargs):
-    if not cfg.rs_jupyter_migrate:
-        return
-    with sirepo.auth_db.thread_lock:
-        s = cfg.src_db_root.join(kwargs.user_name)
-        d = _user_dir()
+    def _migrate():
         try:
             s.rename(d)
         except (py.error.ENOTDIR, py.error.ENOENT):
@@ -148,6 +139,14 @@ def _event_github_authorized(kwargs):
                 s,
             )
             pkio.mkdir_parent(d)
+
+    if not cfg.rs_jupyter_migrate:
+        return
+    with sirepo.auth_db.thread_lock:
+        s = _user_dir(user_name=kwargs.user_name)
+        d = _user_dir()
+        if not s == d:
+            _migrate()
     raise sirepo.util.Redirect('jupyter')
 
 
@@ -172,7 +171,8 @@ def _unchecked_hub_user(uid):
         return None
 
 
-def _user_dir():
-    u = unchecked_jupyterhub_user_name()
-    assert u, 'must have user to get dir'
-    return cfg.dst_db_root.join(u)
+def _user_dir(user_name=None):
+    if not user_name:
+        user_name = unchecked_jupyterhub_user_name()
+        assert user_name, 'must have user to get dir'
+    return cfg.user_db_root.join(user_name)
