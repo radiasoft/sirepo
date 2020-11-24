@@ -279,26 +279,6 @@ elif USER_INJECT == 3:
     beam.b0 = SOURCE_RADIUS_1
     beam.ap0 = .0e0
     beam.bp0 = .0e0
-{% else %}
-    wp.top.lambdarinject = 1.0
-    wp.top.inject = 4
-    electric_field = {{ maxConductorVoltage }} / 4.495e-06
-    delta_w = np.sqrt(constants.elementary_charge **3 * electric_field / (4 * np.pi * constants.epsilon_0))
-    A0 = 1.20173e6
-    rd_current = A0 * CATHODE_TEMP**2 * np.exp( - (CATHODE_PHI * constants.elementary_charge - delta_w) / (CATHODE_TEMP * constants.k)) * cathode_area
-    electrons_per_second = rd_current / constants.elementary_charge
-    electrons_per_step = electrons_per_second * wp.top.dt
-
-    beam.sw = electrons_per_step / PTCL_PER_STEP / 2.
-
-    wp.top.tempinject = CATHODE_TEMP
-    wp.top.workinject = np.asarray([[CATHODE_PHI * constants.elementary_charge]])
-    wp.top.npinject = 0
-    wp.top.lhalfmaxwellinject = 1
-    beam.a0 = SOURCE_RADIUS_1
-    beam.b0 = SOURCE_RADIUS_2
-    beam.vthz = np.sqrt(CATHODE_TEMP * constants.k / beam.mass)
-{% endif %}
 
 elif USER_INJECT == 4:
     def schottky_emission():
