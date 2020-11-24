@@ -61,7 +61,7 @@ def init_apis(*args, **kwargs):
     global cfg
 
     cfg = pkconfig.init(
-        user_db_root=(
+        user_db_root_d=(
             pkio.py_path(sirepo.srdb.root()).join('jupyterhub', 'user'),
             pkio.py_path,
             'Jupyterhub user db',
@@ -69,7 +69,7 @@ def init_apis(*args, **kwargs):
         rs_jupyter_migrate=(False, bool, 'give user option to migrate data from jupyter.radiasoft.org'),
         uri_root=('jupyter', str, 'the root uri of jupyterhub'),
     )
-    pkio.mkdir_parent(cfg.user_db_root)
+    pkio.mkdir_parent(cfg.user_db_root_d)
     sirepo.auth_db.init_model(_init_model)
     sirepo.events.register({
         'auth_logout': _event_auth_logout,
@@ -175,4 +175,4 @@ def _user_dir(user_name=None):
     if not user_name:
         user_name = unchecked_jupyterhub_user_name()
         assert user_name, 'must have user to get dir'
-    return cfg.user_db_root.join(user_name)
+    return cfg.user_db_root_d.join(user_name)
