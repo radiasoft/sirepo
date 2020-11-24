@@ -2973,7 +2973,7 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
         },
         template: [
             // keep the field the same dimensions as regular float, but offset width by button size
-            '<div class="input-group input-group-sm" style="margin-right: -30px">',
+            '<div class="input-group input-group-sm">',
               '<input data-string-to-number="" data-ng-model="model[field]" data-min="min" data-max="max" class="form-control" style="text-align: right" data-lpignore="true" required />',
               '<div class="input-group-btn">',
                 '<button data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" type="button" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>',

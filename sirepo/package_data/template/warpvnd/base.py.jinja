@@ -1,3 +1,4 @@
+# -*- python -*-
 from __future__ import absolute_import, division, print_function
 import warpoptions
 warpoptions.ignoreUnknownArgs = True
@@ -398,10 +399,8 @@ stl_conductors = {
 reflectors = [
 {% for c in conductors %}
     {
-        'isReflector': {{ c.conductor_type.isReflector }},
-        'specProb': {{ c.conductor_type.specProb }},
-        'diffProb': {{ c.conductor_type.diffProb }},
-        'refScheme': '{{ c.conductor_type.refScheme }}'
+        'reflectorType': '{{ c.conductor_type.reflectorType }}',
+        'reflectorProbability': {{ c.conductor_type.reflectorProbability }},
     },
 {% endfor %}
 ]
@@ -409,7 +408,7 @@ reflectors = [
 # Install reflecting conductors regardless of voltage
 for c_idx, c in enumerate(conductors):
     r = reflectors[c_idx]
-    if c.voltage != 0 or r['isReflector']:
+    if c.voltage != 0 or r['reflectorType'] != 'none':
         wp.installconductor(c, dfill=wp.largepos)
 
 max_c_id = max([c.condid for c in conductors]) if len(conductors) > 0 else 0
@@ -426,17 +425,45 @@ wp.installconductor(plate, dfill=wp.largepos)
 
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept={{ saveIntercept }})
 
-{% if anode.isReflector %}
-reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
-particlereflector.installparticlereflector(reflector)
+{% if anode_reflectorType != 'none' %}
+particlereflector.installparticlereflector(
+    particlereflector.ParticleReflector(
+        scraper=scraper,
+        conductor=plate,
+        spref=wp.Species(type=wp.Electron, name='Electron'),
+        srefprob={{ anode_reflectorProbability if anode_reflectorType == 'specular' else 0 }},
+        drefprob={{ anode_reflectorProbability if anode_reflectorType == 'diffuse' else 0 }},
+        refscheme='uniform',
+    ),
+)
 {% endif %}
 
-# Ignore specular probability and reflection scheme for now
+{% if cathode_reflectorType != 'none' %}
+particlereflector.installparticlereflector(
+    particlereflector.ParticleReflector(
+        scraper=scraper,
+        conductor=source,
+        spref=wp.Species(type=wp.Electron, name='Electron'),
+        srefprob={{ cathode_reflectorProbability if cathode_reflectorType == 'specular' else 0 }},
+        drefprob={{ cathode_reflectorProbability if cathode_reflectorType == 'diffuse' else 0 }},
+        refscheme='uniform',
+    )
+)
+{% endif %}
+
 for r_idx, r in enumerate(reflectors):
     c = conductors[r_idx]
-    if r['isReflector']:
-        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob=0., drefprob=r['diffProb'], refscheme='uniform')
-        particlereflector.installparticlereflector(reflector)
+    if r['reflectorType'] != 'none':
+        particlereflector.installparticlereflector(
+            particlereflector.ParticleReflector(
+                scraper=scraper,
+                conductor=c,
+                spref=wp.Species(type=wp.Electron, name='Electron'),
+                srefprob=r['reflectorProbability'] if r['reflectorType'] == 'specular' else 0,
+                drefprob=r['reflectorProbability'] if r['reflectorType'] == 'diffuse' else 0,
+                refscheme='uniform',
+            )
+        )
 
 #------
 
