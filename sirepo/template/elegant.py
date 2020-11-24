@@ -24,6 +24,7 @@ import glob
 import math
 import os
 import os.path
+import py.error
 import py.path
 import re
 import sirepo.sim_data
@@ -154,7 +155,10 @@ class LibAdapter:
             LatticeUtil(data, _SCHEMA).iterate_models(lattice.InputFileIterator(_SIM_DATA)).result,
         ):
             f = _SIM_DATA.lib_file_name_without_type(f)
-            dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+            try:
+                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+            except py.error.EEXIST:
+                pass
         f = g.filename_map
         r.output_files = [f[k] for k in f.keys_in_order]
         return r
