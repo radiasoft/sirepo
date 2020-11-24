@@ -407,7 +407,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "aperture": {
-            "isMLElement": ["_", "Boolean", "1"],
+            "useForRSOpt": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Position along Optical Path [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
@@ -451,14 +451,15 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
-        "mlBeamlineElement": {
+        "rsOptElement": {
             "id": ["_", "Integer", -1],
+            "enabled": ["Enabled", "Boolean", "0"],
             "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
             "title": ["_", "String", ""]
         },
-        "mlExport": {
-            "elements": ["Beamline Elements", "MLElements", []],
+        "exportRsOpt": {
+            "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
             "numRuns": ["Number of Runs", "Integer", 100]
         },
@@ -551,7 +552,7 @@
             "drift": ["Drift [m]", "Float"]
         },
         "ellipsoidMirror": {
-            "isMLElement": ["_", "Boolean", "1"],
+            "useForRSOpt": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
@@ -732,7 +733,7 @@
             "verticalMaskCoordinate": ["Vertical Center Position", "Float", 0]
         },
         "mirror": {
-            "isMLElement": ["_", "Boolean", "1"],
+            "useForRSOpt": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Planar Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", "mirror_1d.dat"],
@@ -896,7 +897,7 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "sphericalMirror": {
-            "isMLElement": ["_", "Boolean", "1"],
+            "useForRSOpt": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
             "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
@@ -924,7 +925,7 @@
             "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
         },
         "toroidalMirror": {
-            "isMLElement": ["_", "Boolean", "1"],
+            "useForRSOpt": ["_", "Boolean", "1"],
             "title": ["Element Name", "String", "Toroid Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
             "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
@@ -1611,22 +1612,23 @@
             "basic": [],
             "advanced": ["notes"]
         },
-        "mlBeamlineElement": {
-            "title": "Ml Element",
+        "rsOptElement": {
+            "title": "rsopt Element",
             "basic": [
                 "offsetRanges",
                 "rotationRanges"
             ],
             "advanced": []
         },
-        "mlExport": {
+        "exportRsOpt": {
             "title": "Generate Machine Learning Data",
             "basic": [
+            ],
+            "advanced": [
                 "elements",
                 "numCores",
                 "numRuns"
-            ],
-            "advanced": []
+            ]
         },
         "multipole": {
             "title": "Dipole",

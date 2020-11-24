@@ -621,6 +621,11 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data, plot_reports=True)
 
 
+def export_rsopt_config(data):
+    data['report'] = 'exportRsOpt'
+    return _generate_parameters_file(data)
+
+
 def remove_last_frame(run_dir):
     pass
 

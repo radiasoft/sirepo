@@ -565,6 +565,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
+            srdbg('fe', $scope.model);
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -1277,6 +1278,7 @@ SIREPO.app.directive('modelField', function(appState) {
             '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
         ].join(''),
         controller: function($scope) {
+            srdbg('mf', $scope.modelName);
             var modelName = $scope.modelName;
             var field = $scope.field;
             var modelField = appState.parseModelField(field);

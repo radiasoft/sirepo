@@ -35,8 +35,8 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
-        '<div data-ng-switch-when="MLElements" class="col-sm-7">',
-          '<div data-ml-elements="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '<div data-ng-switch-when="RSOptElements" class="col-sm-7">',
+          '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
           '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
@@ -329,23 +329,24 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return self.formatFloat(v, 12);
     };
 
-    self.buildMlElements = function() {
+    self.updateRSOptElements = function() {
         for (let item of (appState.models.beamline || []).filter(function(i) {
-            return i.isMLElement === '1';
+            return i.useForRSOpt === '1';
         })) {
-            if (! self.findMLElement(item.id)) {
+            if (self.findRSOptElement(item.id)) {
                 continue;
             }
-            let e = appState.setModelDefaults({}, 'mlBeamlineElement');
+            let e = appState.setModelDefaults({}, 'rsOptElement');
             e.title = item.title;
             e.id = item.id;
-            appState.models.mlExport.elements.push(e);
+            appState.models.exportRsOpt.elements.push(e);
         }
-        return appState.models.mlExport.elements;
+        appState.saveChanges('exportRsOpt');
+        return appState.models.exportRsOpt.elements;
     };
 
-    self.findMLElement = function(id) {
-        for (let e of appState.models.mlExport.elements) {
+    self.findRSOptElement = function(id) {
+        for (let e of appState.models.exportRsOpt.elements) {
             if (e.id === id) {
                 return e;
             }
@@ -499,10 +500,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 'verticalPointCount', ! isAutomatic,
             ]);
         });
-    };
-
-    self.updateMLElements = function() {
-        self.buildMlElements();
     };
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
@@ -815,7 +812,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             '<div data-common-footer="nav"></div>',
             '<div data-import-python=""></div>',
             '<div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>',
-            //'<div data-confirmation-modal="" data-id="sr-mlExport-dialog" data-title="export" data-ok-text="OK" data-ok-clicked="exportML()"><div data-ml-export="" data-model-name="mlExport"></div></div>',
+            //'<div data-confirmation-modal="" data-id="sr-mlExport-dialog" data-title="export" data-ok-text="OK" data-ok-clicked="exportML()"><div data-ml-export="" data-model-name="exportRSOpt"></div></div>',
         ].join(''),
         controller: function($scope) {
 
@@ -1354,8 +1351,9 @@ SIREPO.viewLogic('simulationGridView', function($scope, srwService) {
     ];
 });
 
-SIREPO.viewLogic('mlExport', function($scope, srwService) {
-    srdbg('viewLogic for mlExport');
+SIREPO.viewLogic('exportRsOptView', function($scope, srwService) {
+    //$scope.fieldDef = 'basic';
+    //srdbg('viewLogic for exportRsOpt', $scope);
 });
 
 SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, srwService, $scope) {
@@ -1517,7 +1515,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
           '</app-header-right-sim-loaded>',
           '<app-settings>',
             '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
-            '<div><a href data-ng-click="openMLExport()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
+            '<div><a href data-ng-click="openExportRsOpt()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1592,8 +1590,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                 $('#sr-shadow-dialog').modal('show');
             };
 
-            $scope.openMLExport = function() {
-                panelState.showModalEditor('mlExport');
+            $scope.openExportRsOpt = function() {
+                panelState.showModalEditor('exportRsOpt');
                 //$('#sr-ml-export-dialog').modal('show');
             };
 
@@ -1783,25 +1781,32 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('mlElements', function(appState, panelState, srwService) {
+SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService) {
     return {
         restrict: 'A',
         scope: {
         },
         template: [
-            '<div data-ng-repeat="mle in mlElements">',
-                //'<div>{{ mle.title }}</div>',
-                '<div data-model-field="offsetRanges" data-model-name="mlModel" data-model="mle"></div>',
+            '<div data-ng-repeat="e in rsOptElements">',
+                '<div>',
+                //'<div>{{ e.title }}</div>',
+                //'<div data-model-field="enabled" data-model-name="modelName" data-model="e"></div>',
+                //'<div data-model-field="offsetRanges" data-model-name="modelName" data-model="e"></div>',
+                //'<div data-model-field="rotationRanges" data-model-name="modelName" data-model="e"></div>',
+                '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
             $scope.srwService = srwService;
-            $scope.mlModel = 'mlBeamlineElement';
+            $scope.modelName = 'rsOptElement';
+            $scope.enabled = 'enabled';
             $scope.offsetRanges = 'offsetRanges';
-            $scope.mlElements = [];
+            $scope.rotationRanges = 'rotationRanges';
+            $scope.rsOptElements = [];
             appState.whenModelsLoaded($scope, function() {
-                $scope.mlElements = appState.models.mlExport.elements;
+                srwService.updateRSOptElements();
+                $scope.rsOptElements = appState.models.exportRsOpt.elements;
             });
 
             function getBLForML(ml) {
@@ -1811,38 +1816,6 @@ SIREPO.app.directive('mlElements', function(appState, panelState, srwService) {
     };
 });
 
-SIREPO.app.directive('mlExport', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '@',
-        },
-        template: [
-            '<div>MLEXPORT</div>',
-            //'<div basic-editor-panel="" data-view-name="mlExport"></div>',
-            //'<div advanced-editor-pane="" data-field-def="basic" data-want-buttons="false" data-view-name="viewName"></div>',
-        ].join(''),
-        controller: function($scope) {
-            srdbg('mlExport', $scope);
-            $scope.viewName = 'mlExport';
-            $scope.mlElements = [];
-            appState.whenModelsLoaded($scope, function() {
-                /*
-                $scope.model = appState.models[$scope.modelName];
-                for (let item of appState.models.beamline.filter(function(i) {
-                    return i._super === 'mlBeamlineElement';
-                })) {
-                    $scope.mlElements.push(item);
-                }
-                srdbg(appState.models, $scope.mlElements);
-                appState.models.mlExport.elements = $scope.mlElements;
-                appState.saveChanges('mlExport');
-
-                 */
-            });
-        },
-    };
-});
 
 SIREPO.app.directive('mobileAppTitle', function(srwService) {
     function mobileTitle(mode, modeTitle) {
@@ -3036,7 +3009,7 @@ SIREPO.app.directive('numberList', function() {
             '</div>'
         ].join(''),
         controller: function($scope, $element) {
-
+            srdbg('srw snumberlist', $scope.model);
             let lastModel = null;
             // NOTE: does not appear to like 'model.field' format
             $scope.values = null;
@@ -3056,6 +3029,7 @@ SIREPO.app.directive('numberList', function() {
                 if ($scope.field && ! $scope.values) {
                     $scope.values = $scope.field.split(/\s*,\s*/);
                 }
+                srdbg('vals', $scope.values, $scope.field);
                 return $scope.values;
             };
         },
