@@ -150,7 +150,8 @@ class LibAdapter:
             lattice=self._lattice_path(dest_dir, data),
         )
         pkio.write_text(r.commands, v.commands)
-        pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
+        if not r.lattice.exists():
+            pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
         for f in set(
             LatticeUtil(data, _SCHEMA).iterate_models(lattice.InputFileIterator(_SIM_DATA)).result,
         ):
