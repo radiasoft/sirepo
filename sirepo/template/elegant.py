@@ -108,12 +108,13 @@ class LibAdapter:
                 assert p.check(file=True), \
                     f'file={f} missing from {category}={model_name} type={model_type}'
 
-        d = parse_input_text(path)
+        d = parse_input_text(path, update_filenames=False)
         r = self._run_setup(d)
         l = r.lattice
         d = parse_input_text(
             self._lattice_path(path.dirpath(), d),
             input_data=d,
+            update_filenames=False,
         )
         for i in d.models.elements:
             _verify_files(i, i.type, i.name, 'element')
@@ -133,7 +134,7 @@ class LibAdapter:
 
         class _G(_Generate):
 
-            def _abspath(basename):
+            def _abspath(self, basename):
                 return source_path.new(basename=basename)
 
             def _input_file(self, model_name, field, filename):
@@ -142,7 +143,7 @@ class LibAdapter:
             def _lattice_filename(self, value):
                 return value
 
-        g = _G(data)
+        g = _G(data, update_output_filenames=False)
         g.sim()
         v = g.jinja_env
         r = PKDict(
@@ -153,7 +154,9 @@ class LibAdapter:
         if not r.lattice.exists():
             pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
         for f in set(
-            LatticeUtil(data, _SCHEMA).iterate_models(lattice.InputFileIterator(_SIM_DATA)).result,
+            LatticeUtil(data, _SCHEMA).iterate_models(
+                lattice.InputFileIterator(_SIM_DATA, update_filenames=False),
+            ).result,
         ):
             f = _SIM_DATA.lib_file_name_without_type(f)
             try:
@@ -207,24 +210,29 @@ class LibAdapter:
 
 class OutputFileIterator(lattice.ModelIterator):
 
-    def __init__(self):
+    def __init__(self, update_filenames):
         self.result = PKDict(
             keys_in_order=[],
         )
         self.model_index = PKDict()
+        self._update_filenames = update_filenames
 
     def field(self, model, field_schema, field):
         self.field_index += 1
-        if field_schema[1] == 'OutputFile':
-            if LatticeUtil.is_command(model):
-                suffix = self._command_file_extension(model)
-                filename = '{}{}.{}.{}'.format(
-                    model._type,
-                    self.model_index[self.model_name] if self.model_index[self.model_name] > 1 else '',
-                    field,
-                    suffix)
+        if field_schema[1] == 'OutputFile' and model[field]:
+            if self._update_filenames:
+                if LatticeUtil.is_command(model):
+                    suffix = self._command_file_extension(model)
+                    filename = '{}{}.{}.{}'.format(
+                        model._type,
+                        self.model_index[self.model_name] if self.model_index[self.model_name] > 1 else '',
+                        field,
+                        suffix,
+                    )
+                else:
+                    filename = '{}.{}.sdds'.format(model.name, field)
             else:
-                filename = '{}.{}.sdds'.format(model.name, field)
+                filename = model[field]
             k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = filename
             self.result.keys_in_order.append(k)
@@ -622,7 +630,7 @@ def import_file(req, test_data=None, **kwargs):
     return res
 
 
-def parse_input_text(path, text=None, input_data=None):
+def parse_input_text(path, text=None, input_data=None, update_filenames=True):
 
     def _map(data):
         for cmd in data.models.commands:
@@ -641,9 +649,9 @@ def parse_input_text(path, text=None, input_data=None):
         text = pkio.read_text(path)
     e = path.ext.lower()
     if e == '.ele':
-        return elegant_command_importer.import_file(text)
+        return elegant_command_importer.import_file(text, update_filenames)
     if e == '.lte':
-        data = elegant_lattice_importer.import_file(text, input_data)
+        data = elegant_lattice_importer.import_file(text, input_data, update_filenames)
         if input_data:
             _map(data)
         return data
@@ -776,17 +784,21 @@ def write_parameters(data, run_dir, is_parallel):
 
 class _Generate:
 
-    def __init__(self, data, validate=True):
+    def __init__(self, data, validate=True, update_output_filenames=True):
         self.data = data
         self._util = None
         self._filename_map = None
+        self._update_output_filenames = update_output_filenames
         if validate:
             self._validate_data()
 
     @property
     def filename_map(self):
         if not self._filename_map:
-            self._filename_map = _build_filename_map_from_util(self.util)
+            self._filename_map = _build_filename_map_from_util(
+                self.util,
+                self._update_output_filenames,
+            )
         return self._filename_map
 
     def lattice_only(self):
@@ -1039,8 +1051,8 @@ def _build_filename_map(data):
     return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
 
 
-def _build_filename_map_from_util(util):
-    return util.iterate_models(OutputFileIterator()).result
+def _build_filename_map_from_util(util, update_filenames=True):
+    return util.iterate_models(OutputFileIterator(update_filenames)).result
 
 
 def _extract_report_data(xFilename, frame_args, page_count=0):
