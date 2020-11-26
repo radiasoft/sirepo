@@ -10,7 +10,9 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
 from sirepo.template import template_common
 import ast
+import inspect
 import math
+import operator
 import re
 
 
@@ -284,23 +286,21 @@ class CodeVarDeleteIterator(lattice.ModelIterator):
 class PurePythonEval():
 
     _OPS = PKDict({
-        '+': lambda a, b: a + b,
-        '/': lambda a, b: a / b,
-        '*': lambda a, b: a * b,
-        '-': lambda a, b: a - b,
-        'pow': lambda a, b: a ** b,
-        'sqrt': lambda a: math.sqrt(a),
-        'cos': lambda a: math.cos(a),
-        'sin': lambda a: math.sin(a),
-        'asin': lambda a: math.asin(a),
-        'acos': lambda a: math.acos(a),
-        'tan': lambda a: math.tan(a),
-        'atan': lambda a: math.atan(a),
-        'abs': lambda a: abs(a),
-        'chs': lambda a: -a,
+        '*': operator.mul,
+        '+': operator.add,
+        '-': operator.sub,
+        '/': operator.truediv,
+        'abs': operator.abs,
+        'acos': math.acos,
+        'asin': math.asin,
+        'atan': math.atan,
+        'chs': operator.neg,
+        'cos': math.cos,
+        'pow': operator.pow,
+        'sin': math.sin,
+        'sqrt': math.sqrt,
+        'tan': math.tan,
     })
-
-    _KEYWORDS = _OPS.keys()
 
     def __init__(self, constants=None):
         self.constants = constants or []
@@ -329,10 +329,10 @@ class PurePythonEval():
         values = str(expr).split(' ')
         stack = []
         for v in values:
-            if v in PurePythonEval._KEYWORDS:
+            if v in cls._OPS:
                 try:
-                    op = PurePythonEval._OPS[v]
-                    args = list(reversed([stack.pop() for _ in range(op.__code__.co_argcount)]))
+                    op = cls._OPS[v]
+                    args = list(reversed([stack.pop() for _ in range(_get_arg_count(op))]))
                     if v == 'chs':
                         stack.append('-{}'.format(args[0]))
                     elif re.search(r'\w', v):
@@ -356,11 +356,11 @@ class PurePythonEval():
                 stack.append(variables[v])
             elif v in self.constants:
                 stack.append(self.constants[v])
-            elif v in PurePythonEval._KEYWORDS:
+            elif v in self._OPS:
                 try:
-                    op = PurePythonEval._OPS[v]
+                    op = self._OPS[v]
                     args = reversed(
-                        [float(stack.pop()) for _ in range(op.__code__.co_argcount)],
+                        [float(stack.pop()) for _ in range(_get_arg_count(op))],
                     )
                     stack.append(op(*args))
                 except IndexError:
@@ -373,3 +373,7 @@ class PurePythonEval():
                 except ValueError:
                     return None, 'unknown token: {}'.format(v)
         return stack[-1], None
+
+
+def _get_arg_count(fn):
+    return len(inspect.signature(fn).parameters)

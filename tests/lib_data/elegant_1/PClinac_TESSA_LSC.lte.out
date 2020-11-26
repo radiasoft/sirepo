@@ -12,15 +12,15 @@
 "TC_BC1.1": CSRCSBEND,angle=-0.0165,bins=500.0,l=0.146,n_kicks=100.0,sg_halfwidth=1.0,slice_analysis_interval=50.0
 "TC_BC1.2": CSRCSBEND,angle=0.033,bins=500.0,l=0.146,n_kicks=100.0,sg_halfwidth=1.0,slice_analysis_interval=50.0
 "TC_BC1.3": CSRCSBEND,angle=-0.0165,bins=500.0,l=0.146,n_kicks=100.0,sg_halfwidth=1.0,slice_analysis_interval=50.0
-"L3BM1L": CSRDRIFT,dz=0.01,l=0.120565622789519,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
+"L3BM1L": CSRDRIFT,dz=0.01,l=0.12056562278951899,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3BM2L": CSRDRIFT,dz=0.01,l=0.125921,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3BM3L": CSRDRIFT,dz=0.01,l=0.989706785653688,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3BM4L": CSRDRIFT,dz=0.01,l=0.159257,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
-"L3FS2L": CSRDRIFT,dz=0.01,l=0.11079515,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
+"L3FS2L": CSRDRIFT,dz=0.01,l=0.11079515000000001,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3PM1L": CSRDRIFT,dz=0.01,l=0.1245,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3PM2L": CSRDRIFT,dz=0.01,l=0.085916,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3QM1L": CSRDRIFT,dz=0.01,l=0.396144985602385,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
-"L3QM2L": CSRDRIFT,dz=0.01,l=0.122349946400042,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
+"L3QM2L": CSRDRIFT,dz=0.01,l=0.12234994640004199,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3QM3L": CSRDRIFT,l=0.21575475,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "L3SCR1L": CSRDRIFT,dz=0.01,l=0.120176,lsc_bins=1024,slice_analysis_interval=50.0,use_stupakov=1
 "LTUL2": CSRDRIFT,dz=0.01,l=1.66173004,slice_analysis_interval=50.0,use_stupakov=1
@@ -172,9 +172,9 @@
 "L3FS4L": LSCDRIFT,bins=1024.0,l=0.236197902
 "L3FS5L": LSCDRIFT,bins=1024.0,l=0.153313
 "L3PM3L": LSCDRIFT,bins=1024.0,l=0.085912
-"L3QM4L": LSCDRIFT,bins=1024.0,l=0.1384868
-"L3QM5L": LSCDRIFT,bins=1024.0,l=0.2769996
-"L3QM6L": LSCDRIFT,bins=1024.0,l=0.1096852
+"L3QM4L": LSCDRIFT,bins=1024.0,l=0.13848680000000002
+"L3QM5L": LSCDRIFT,bins=1024.0,l=0.27699959999999996
+"L3QM6L": LSCDRIFT,bins=1024.0,l=0.10968520000000001
 "L3SC1L": LSCDRIFT,bins=1024.0,l=0.1385128
 "L3SC2L": LSCDRIFT,bins=1024.0,l=0.307238
 "L42L5D1": LSCDRIFT,bins=1024.0,l=0.079662
@@ -193,7 +193,7 @@
 "L5AS34D1": LSCDRIFT,bins=1024.0,l=0.122103
 "L5AS34D2": LSCDRIFT,bins=1024.0,l=0.10277399999999998
 "L5CM": LSCDRIFT,bins=1024.0,l=0.05
-"L5CMM": LSCDRIFT,bins=1024.0,l=0.04695
+"L5CMM": LSCDRIFT,bins=1024.0,l=0.046950000000000006
 "L5PM2L": LSCDRIFT,bins=1024.0,l=0.0975601999994
 "L5PM3L": LSCDRIFT,bins=1024.0,l=0.1075638
 "L5SC1L": LSCDRIFT,bins=1024.0,l=0.197029199999228
@@ -246,7 +246,7 @@
 "LIFS6L": LSCDRIFT,bins=1024.0,l=0.2427749991
 "LIFS7L": LSCDRIFT,bins=1024.0,l=0.2422407990006
 "LIFS8L": LSCDRIFT,bins=1024.0,l=0.226149199
-"LIS1C1L": LSCDRIFT,bins=1024.0,l=0.152758666333333
+"LIS1C1L": LSCDRIFT,bins=1024.0,l=0.15275866633333307
 "LIS1C2L": LSCDRIFT,bins=1024.0,l=0.175881998433333
 "LTPAMQ": LSCDRIFT,bins=1024.0,l=1.332796
 "LTPH42TCAV": LSCDRIFT,bins=1024.0,l=0.5331
@@ -279,7 +279,7 @@
 "LTPLQC": LSCDRIFT,bins=1024.0,l=0.12017
 "LTPLQC1": LSCDRIFT,bins=1024.0,l=0.10525
 "LTPQAM": LSCDRIFT,bins=1024.0,l=0.353
-"LTUL0A": LSCDRIFT,bins=1024.0,l=1.38047
+"LTUL0A": LSCDRIFT,bins=1024.0,l=1.3804699999999999
 "LTUL0B": LSCDRIFT,bins=1024.0,l=0.37435
 "LTUL0C": LSCDRIFT,bins=1024.0,l=0.43785
 "PL:QM1": LSCDRIFT,bins=1024.0,l=0.15
@@ -290,7 +290,7 @@
 "PTBL11": LSCDRIFT,bins=1024.0,l=0.5969501
 "PTBL12A": LSCDRIFT,bins=1024.0,l=0.13
 "PTBL12B": LSCDRIFT,bins=1024.0,l=1.782643
-"PTBL13A": LSCDRIFT,bins=1024.0,l=0.53275
+"PTBL13A": LSCDRIFT,bins=1024.0,l=0.5327500000000001
 "PTBL13B": LSCDRIFT,bins=1024.0,l=0.28495
 "PTBL14": LSCDRIFT,bins=1024.0,l=0.12695
 "PTBL15A": LSCDRIFT,bins=1024.0,l=0.13
