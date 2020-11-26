@@ -261,7 +261,7 @@ def _compute_csv_info(filename):
             if not row:
                 row = r
             res.rowCount += 1
-    if not row:
+    if not row or len(row) == 1:
         return PKDict(
             error='Invalid CSV file: no columns detected'
         )
@@ -345,11 +345,19 @@ def _extract_column(run_dir, sim_in, idx):
 
 
 def _extract_file_column_report(run_dir, sim_in):
-    idx = sim_in.models[sim_in.report].columnNumber
+    m = sim_in.models[sim_in.report]
+    idx = m.columnNumber
     x, y = _extract_column(run_dir, sim_in, idx)
+    if np.isnan(y).any():
+        template_common.write_sequential_result(PKDict(
+            error='Column values are not numeric',
+        ))
+        return
+    if 'x' in m and m.x is not None and m.x >= 0:
+        _, x = _extract_column(run_dir, sim_in, m.x)
     _write_report(
         x,
-        [_plot_info(y)],
+        [_plot_info(y, style='scatter')],
         sim_in.models.columnInfo.header[idx],
     )
 
@@ -425,14 +433,15 @@ def _fit_animation(frame_args):
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    v.dataFile = _filename(data.models.dataFile.file)
+    v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
-        neuralNetLayers=data.models.neuralNet.layers,
-        inputDim=data.models.columnInfo.inputOutput.count('input'),
+        neuralNetLayers=dm.neuralNet.layers,
+        inputDim=dm.columnInfo.inputOutput.count('input'),
     ).pkupdate(_OUTPUT_FILE)
-    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in data.models.columnInfo.inputOutput]) + ']'
+    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in dm.columnInfo.inputOutput]) + ']'
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
@@ -443,7 +452,7 @@ def _generate_parameters_file(data):
     if 'partitionColumnReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
         return res
-    if data.models.dataFile.appMode == 'classification':
+    if dm.dataFile.appMode == 'classification':
         res += template_common.render_jinja(SIM_TYPE, v, 'classification-base.py')
         d = PKDict(
             decisionTree='decision-tree',
@@ -454,7 +463,7 @@ def _generate_parameters_file(data):
         return res + template_common.render_jinja(
             SIM_TYPE,
             v,
-            f'{d[data.models.classificationAnimation.classifier]}.py',
+            f'{d[dm.classificationAnimation.classifier]}.py',
         )
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
@@ -494,8 +503,8 @@ def _layer_implementation_list(data):
     return res.keys()
 
 
-def _plot_info(y, label=''):
-    return PKDict(points=list(y), label=label)
+def _plot_info(y, label='', style=None):
+    return PKDict(points=list(y), label=label, style=style)
 
 
 def _read_file(run_dir, filename):
