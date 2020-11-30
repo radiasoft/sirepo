@@ -42,6 +42,7 @@ _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
 _H5_PATH_KICK_MAP = 'kickMap'
 _H5_PATH_SOLUTION = 'solution'
+_KICK_FILE = 'kickMap.h5'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _REPORTS = ['geometry', 'kickMapHoriz', 'reset']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -206,6 +207,7 @@ def python_source_for_model(data, model):
 
 def write_parameters(data, run_dir, is_parallel):
     # remove centrailzed geom files
+    pkdp('DELETING GEOM AMD DUMP')
     pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -458,9 +460,9 @@ def _generate_parameters_file(data, for_export):
         data.report = 'geometry'
         return _generate_parameters_file(data, False)
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
-    v.h5KickMapPath = _geom_h5_path(_H5_PATH_KICK_MAP)
+    v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
-    v.h5SolutionPath = _geom_h5_path(_H5_PATH_SOLUTION)
+    v.h5SolutionPath = _H5_PATH_SOLUTION
 
     j_file = RADIA_EXPORT_FILE if for_export else GEOM_PYTHON_FILE
     return template_common.render_jinja(
@@ -652,3 +654,10 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s.save(str(path))
     return path
 
+
+_DATA_FILES = PKDict(
+    geometry=_GEOM_FILE,
+    kickMap=_KICK_FILE
+)
+_H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
+_H5_PATH_SOLUTION = _geom_h5_path('solution')

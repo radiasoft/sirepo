@@ -1654,7 +1654,6 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
             //'</div>',
         ].join(''),
         controller: function($scope) {
-            srdbg('km scope', $scope);
             $scope.reportId = utilities.reportId();
             $scope.modelKey = 'kickMap';
 
