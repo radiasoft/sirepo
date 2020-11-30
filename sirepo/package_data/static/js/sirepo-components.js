@@ -3981,7 +3981,7 @@ SIREPO.app.service('utilities', function($window, $interval) {
 
     this.reportId = function() {
         return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-    }
+    };
 
     this.isWide = function() {
         return $window.innerWidth > 767;
