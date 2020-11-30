@@ -28,7 +28,7 @@
         "geomTypePolys": "polygons",
         "geomTypeVectors": "vectors",
         "getDataMethods": [
-            "get_field", "get_field_integrals", "get_geom", "get_kick_map", "save_field"
+            "get_field", "get_field_integrals", "get_geom", "get_kick_map_plot", "save_field"
         ],
         "inProgressText": "Solving",
         "objectScale": 0.001,
@@ -42,7 +42,7 @@
                         "isButton": false,
                         "layoutShape": "rect",
                         "model": "box",
-                        "title": "Box",
+                        "title": "Cuboid",
                         "type": "box"
                     },
                     {
@@ -170,6 +170,10 @@
             ["H", "H"],
             ["J", "J"]
         ],
+        "KickMapComponent": [
+            ["h", "Horizontal"],
+            ["v", "Vertical"]
+        ],
         "MaterialType": [
             ["NdFeB", "Neodymium Iron Boron"],
             ["SmCo5", "Samarium Cobalt (SmCo5)"],
@@ -183,7 +187,7 @@
             ["custom", "Custom"]
         ],
         "ObjectType": [
-            ["box", "Box"],
+            ["box", "Cuboid"],
             ["racetrack", "RaceTrack"]
         ],
         "PathType": [
@@ -320,6 +324,8 @@
         },
         "kickMap": {
             "begin": ["Start", "FloatStringArray", "0, 0, 0", "Start point", "x, y, z"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "component": ["Component", "KickMapComponent", "h"],
             "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Longitudinal direction", "x, y, z"],
             "inProgressText": ["_", "String", "Calculating"],
             "numPeriods": ["Number of Periods Along Path ", "Integer", 1],
@@ -537,6 +543,8 @@
             "title": "Kick Map",
             "basic": [],
             "advanced": [
+                "component",
+                "colorMap",
                 "begin",
                 "direction",
                 "numPeriods",

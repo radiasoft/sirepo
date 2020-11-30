@@ -1642,15 +1642,11 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         },
         template: [
             '<div class="col-md-6">',
-                '<div class="panel panel-info">',
-                    '<div class="panel-heading">',
-                        '<span class="sr-panel-heading">Kick Maps</span>',
-                    '</div>',
-                    '<div class="panel-body">',
-                    '<div data-plot3d="" class="sr-plot" data-model-name="kickMapHoriz"></div>',
-                    //'<div data-report-panel="heatmap" data-panel-title="Kick Map (Horizontal)" data-model-name="kickMap"></div>',
-                    '</div>',
-                '</div>',
+                //'<div data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+                //'<div class="panel panel-info data-ng-attr-id="{{ ::reportId }}">',
+                //    '<div class="panel-heading clearfix" data-panel-heading="Kick Maps" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>',
+                //    '<div data-report-content="3d" data-model-key="{{ modelKey }}" data-report-id="reportId"></div>',
+                //'</div>',
             '</div>',
             //'<div class="col-md-6">',
             //'<div data-report-panel="heatmap" data-panel-title="Kick Map (Horizontal)" data-model-name="kickMap"></div>',
@@ -1658,25 +1654,34 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
             //'</div>',
         ].join(''),
         controller: function($scope) {
+            srdbg('km scope', $scope);
+            $scope.reportId = utilities.reportId();
+            $scope.modelKey = 'kickMap';
 
             function updateKickMaps() {
+                //appState.saveChanges('kickMap');
+
                 let inData = {
                     model: $scope.model,
-                    method: 'get_kick_map',
+                    method: 'get_kick_map_plot',
                     simulationId: appState.models.simulation.simulationId,
                 };
                 radiaService.getRadiaData(inData, function(d) {
                     srdbg('got km data', d);
-                    $scope.data = d;
-                    appState.models.kickMapHoriz = {};
-                    appState.saveChanges('kickMapHoriz');
+                    //$scope.data = d;
+                    //panelState.requestData('kickMap', function (d) {
+                    //});
+                    //appState.saveChanges('kickMap');
                 });
+
+
             }
             appState.whenModelsLoaded($scope, function() {
                $scope.model = appState.models.kickMap;
                // wait until we have some data to update
                $scope.$on('radiaViewer.loaded', function () {
-                    updateKickMaps();
+                   //appState.saveChanges('kickMap');
+                    //updateKickMaps();
                });
             });
 

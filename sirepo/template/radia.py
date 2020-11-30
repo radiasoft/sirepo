@@ -33,6 +33,7 @@ _BEAM_AXIS_ROTATIONS = PKDict(
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
+
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
@@ -94,9 +95,9 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
-    if 'kickMapHoriz' in sim_in.report:
+    if 'kickMap' in sim_in.report:
         template_common.write_sequential_result(
-            _kick_map_plot(sim_in.simulationId, 'h'),
+            _kick_map_plot(sim_in.simulationId, sim_in.models.kickMap),
             run_dir=run_dir,
         )
 
@@ -112,9 +113,7 @@ def get_application_data(data, **kwargs):
     g_id = -1
     sim_id = data.simulationId
     try:
-        with open(str(_dmp_file(sim_id)), 'rb') as f:
-            b = f.read()
-            g_id = radia_tk.load_bin(b)
+        g_id = _get_g_id(sim_id)
     except IOError as e:
         if pkio.exception_is_not_found(e):
             # No Radia dump file
@@ -377,12 +376,16 @@ def _generate_data(g_id, in_data, add_lines=True):
 
 def _generate_kick_map(g_id, model):
     km = radia_tk.kick_map(
-        g_id, sirepo.util.split_comma_delimited_string(model.begin, float),
+        g_id,
+        sirepo.util.split_comma_delimited_string(model.begin, float),
         sirepo.util.split_comma_delimited_string(model.direction, float),
-        int(model.numPeriods), float(model.periodLength),
+        int(model.numPeriods),
+        float(model.periodLength),
         sirepo.util.split_comma_delimited_string(model.transverseDirection, float),
-        float(model.transverseRange1), int(model.numTransPoints1),
-        float(model.transverseRange2), int(model.numTransPoints2)
+        float(model.transverseRange1),
+        int(model.numTransPoints1),
+        float(model.transverseRange2),
+        int(model.numTransPoints2)
     )
     return PKDict(
         h=km[0],
@@ -479,6 +482,11 @@ def _geom_h5_path(view_type, field_type=None):
     return p
 
 
+def _get_g_id(sim_id):
+    with open(str(_dmp_file(sim_id)), 'rb') as f:
+        return radia_tk.load_bin(f.read())
+
+
 def _get_res_file(sim_id, filename):
     return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
         .join(_GEOM_DIR).join(filename)
@@ -527,7 +535,6 @@ def _read_data(sim_id, view_type, field_type):
     res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
     if res:
         res.solution = _read_solution(sim_id)
-        #res.kickMapHoriz = _read_kick_map(sim_id, 'h')
     return res
 
 
@@ -535,35 +542,43 @@ def _read_id_map(sim_id):
     return _read_h5_path(sim_id, 'idMap')
 
 
-def _read_kick_map(sim_id):
-    return _read_h5_path(sim_id, _H5_PATH_KICK_MAP)
+#def _read_kick_map(sim_id):
+#    return _read_h5_path(sim_id, _H5_PATH_KICK_MAP)
 
 
 def _read_or_generate_kick_map(g_id, data):
-    res = _read_kick_map(data.simulationId)
-    if res:
-        return res
-    km = _generate_kick_map(g_id, data.model)
+    #res = None  #_read_kick_map(data.simulationId)
+    #if res:
+    #    return res
+    return _generate_kick_map(g_id, data.model)
+    #km = _generate_kick_map(g_id, data.model)
+    #p = _geom_h5_path(_H5_PATH_KICK_MAP)
     #pkdp('GOT KM {} WRITE TO {}', km, _geom_h5_path(_H5_PATH_KICK_MAP))
-    with h5py.File(_geom_file(data.simulationId), 'a') as hf:
-        template_common.dict_to_h5(
-            km, #_generate_kick_map(g_id, data.model),
-            hf,
-            path=_geom_h5_path(_H5_PATH_KICK_MAP)
-        )
-    return _read_kick_map(data.simulationId)
+    #with h5py.File(_geom_file(data.simulationId), 'a') as hf:
+    #    template_common.dict_to_h5(
+    #        km, #_generate_kick_map(g_id, data.model),
+    #        hf,
+    #        path=p
+    #    )
+    #return _read_kick_map(data.simulationId)
 
 
-def _kick_map_plot(sim_id, direction):
-    km = _read_kick_map(sim_id)
+#def _kick_map_plot(sim_id, component):
+def _kick_map_plot(sim_id, model):
+    from sirepo import srschema
+    g_id = _get_g_id(sim_id)
+    component = model.component
+    km = _generate_kick_map(g_id, model)
     if not km:
         return None
+    z = km[component]
     return PKDict(
-        x_range=[km.x[0], km.x[-1]],
-        y_range=[km.y[0], km.y[-1]],
-        x_label='x',
-        y_label='y',
-        z_matrix=km[direction],
+        title=f'{srschema.get_enums(_SCHEMA, "KickMapComponent")[component]} (T2m2)',
+        x_range=[km.x[0], km.x[-1], len(z)],
+        y_range=[km.y[0], km.y[-1], len(z[0])],
+        x_label='x [mm]',
+        y_label='y [mm]',
+        z_matrix=z,
     )
 
 

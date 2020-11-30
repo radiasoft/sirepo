@@ -1914,7 +1914,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
     };
 });
 
-SIREPO.app.directive('reportPanel', function(appState) {
+SIREPO.app.directive('reportPanel', function(appState, utilities) {
     return {
         restrict: 'A',
         transclude: true,
@@ -1934,7 +1934,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
         ].join(''),
         controller: function($scope) {
             // random id for the keypress service to track
-            $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+            $scope.reportId = utilities.reportId();  //Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 
             $scope.modelKey = $scope.modelName;
             if ($scope.modelData) {
@@ -3978,6 +3978,10 @@ SIREPO.app.service('utilities', function($window, $interval) {
     this.ngModelForInput = function (modelName, fieldName) {
         return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
     };
+
+    this.reportId = function() {
+        return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+    }
 
     this.isWide = function() {
         return $window.innerWidth > 767;
