@@ -664,7 +664,8 @@
             "advanced": [
                 "name",
                 "folder",
-                "beamAxis"
+                "beamAxis",
+                "enableKickMaps"
             ]
         },
         "solver": {

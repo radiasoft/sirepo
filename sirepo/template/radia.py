@@ -40,9 +40,8 @@ _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geometry.h5'
-_H5_PATH_KICK_MAP = 'kickMap'
-_H5_PATH_SOLUTION = 'solution'
 _KICK_FILE = 'kickMap.h5'
+_KICK_FLAT_FILE = 'kickMap.csv'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _SIM_REPORTS = ['geometry', 'reset', 'solver']
 _REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
@@ -195,8 +194,15 @@ def get_application_data(data, **kwargs):
         return res
 
 
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    assert model in _REPORTS, 'unknown report: {}'.format(model)
+    if model == 'kickMap':
+        return _KICK_FLAT_FILE
+
+
 def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
+    data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     data.models.geometry.name = new_simulation_data.name
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
@@ -463,6 +469,7 @@ def _generate_parameters_file(data, for_export):
         radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data, False)
+    v.flatFile = _KICK_FLAT_FILE
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
@@ -569,7 +576,6 @@ def _read_or_generate_kick_map(g_id, data):
     #return _read_kick_map(data.simulationId)
 
 
-#def _kick_map_plot(sim_id, component):
 def _kick_map_plot(sim_id, model):
     from sirepo import srschema
     g_id = _get_g_id(sim_id)

@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
-    SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = false;
+    //SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
@@ -35,7 +35,7 @@ SIREPO.app.config(function() {
     ].join('');
     SIREPO.appPanelHeadingButtons = [
         '<div style="display: inline-block">',
-        '<a data-ng-click="download()" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+        //'<a data-ng-click="download()" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
         //'<ul class="dropdown-menu dropdown-menu-right">',
         //'<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
         //'</ul>',
@@ -957,6 +957,32 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.solution = null;
 
+    self.download = function() {
+        srdbg('VZ DL');
+        /*
+        var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
+        var data = [$scope.CSV_HEADING];
+        $scope.linePaths().forEach(function (p) {
+            var row = [];
+            var begin = radiaService.stringToFloatArray(p.begin);
+            var end = radiaService.stringToFloatArray(p.end);
+            row.push(
+                p.name,
+                begin[0], begin[1], begin[2],
+                end[0], end[1], end[2]
+            );
+            $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
+                row = row.concat(
+                    $scope.integrals[p.name][t]
+                );
+            });
+            data.push(row);
+        });
+        saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
+
+         */
+    };
+
     self.enableKickMaps = function() {
         return (appState.models.simulation || {}).enableKickMaps === '1';
     };
@@ -1661,6 +1687,32 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         controller: function($scope) {
             $scope.reportId = utilities.reportId();
             $scope.modelKey = 'kickMap';
+
+            $scope.download = function() {
+                srdbg('DL KM');
+                /*
+                var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
+                var data = [$scope.CSV_HEADING];
+                $scope.linePaths().forEach(function (p) {
+                    var row = [];
+                    var begin = radiaService.stringToFloatArray(p.begin);
+                    var end = radiaService.stringToFloatArray(p.end);
+                    row.push(
+                        p.name,
+                        begin[0], begin[1], begin[2],
+                        end[0], end[1], end[2]
+                    );
+                    $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
+                        row = row.concat(
+                            $scope.integrals[p.name][t]
+                        );
+                    });
+                    data.push(row);
+                });
+                saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
+
+                 */
+            };
 
             function updateKickMaps() {
                 //appState.saveChanges('kickMap');
