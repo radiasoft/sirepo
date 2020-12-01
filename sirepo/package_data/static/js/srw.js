@@ -619,7 +619,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
                 ];
             }
             var p = propagation[beamline[i].id];
-            if (beamline[i].type == 'grating' || beamline[i].type == 'crystal'){
+            if (p[0][17] && (beamline[i].type == 'grating' || beamline[i].type == 'crystal')){
                 p[0][12] = beamline[i].outoptvx;
                 p[0][13] = beamline[i].outoptvy;
                 p[0][14] = beamline[i].outoptvz;
@@ -1915,7 +1915,7 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
             $scope.parametersBySection = [
                 [3, 4, 5, 6, 7, 8],
                 [0, 1, 2],
-                [12, 13, 14, 15, 16],
+                [12, 13, 14, 15, 16, 17],
                 [9,10,11],
             ];
 

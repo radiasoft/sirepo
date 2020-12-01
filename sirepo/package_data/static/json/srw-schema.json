@@ -789,7 +789,8 @@
             "13": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
             "14": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nLongitudinal Coordinate", "Float", 0],
             "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
-            "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0]
+            "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
+            "17": ["Set Nominal Values", "Boolean", "1"]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
