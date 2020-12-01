@@ -1,5 +1,6 @@
-import numpy as np
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import Shadow
+import numpy as np
 
 def shadow_src_beam(n_rays=10000, ran_seed=15829, dist_type=3, sigx=4.42e-05, sigz=2.385e-05, sigdix=3.52e-05, sigdiz = 2.875e-05, hdiv1 = 0.0, hdiv2 = 0.0, vdiv1 =0.0, vdiv2=0.0, ph_energy = 1e3):
     """
@@ -112,7 +113,7 @@ def create_shadow_ellip_mir(alpha = 0.0, t_source = 2850.0, t_image = 0.0, ssour
     #oe.Y_ROT = 0
     #oe.Z_ROT = 0
     if mirinfo == 1:
-        print(oe.mirinfo())
+        pkdlog(oe.mirinfo())
 
     return oe
 
@@ -159,7 +160,7 @@ def shadow_ellip_mir_trace(beam, oe_num = 1, alpha = 0.0, t_source = 2850.0, t_i
     #oe.Y_ROT = 0
     #oe.Z_ROT = 0
     if mirinfo == 1:
-        print(oe.mirinfo())
+        pkdlog(oe.mirinfo())
 
     beam.traceOE(oe, oe_num)
     return beam
