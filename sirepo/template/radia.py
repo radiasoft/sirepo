@@ -367,7 +367,7 @@ def _generate_data(g_id, in_data, add_lines=True):
 
 
 def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
+    return radia_tk.geom_to_data(g_id, name=name)
 
 
 def _generate_parameters_file(data, for_export):
