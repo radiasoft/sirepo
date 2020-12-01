@@ -24,6 +24,27 @@ import re
 import shutil
 
 
+def add_jupyterhub_role():
+    """Adds jupyterhub role to all users"""
+    import sirepo.server
+
+    sirepo.server.init()
+    import sirepo.auth
+    import sirepo.auth_db
+    import sirepo.pkcli.roles
+    import sirepo.template
+    import sqlalchemy.exc
+
+    sirepo.template.assert_sim_type('jupyterhublogin')
+    r = sirepo.auth.role_for_sim_type('jupyterhublogin')
+    # TODO(e-carlin): locking
+    for u in sirepo.auth_db.all_uids():
+        try:
+            sirepo.pkcli.roles.add(u, r)
+        except sqlalchemy.exc.IntegrityError:
+            pass
+
+
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
@@ -39,7 +60,7 @@ def audit_proprietary_lib_files(*uid):
     import sirepo.auth
 
     #TODO(robnagler) locking
-    for u in uid or all_uids():
+    for u in uid or sirepo.auth_db.all_uids():
         sirepo.auth_db.audit_proprietary_lib_files(u)
 
 

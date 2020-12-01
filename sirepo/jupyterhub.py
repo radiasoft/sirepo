@@ -14,6 +14,7 @@ import sirepo.cookie
 import sirepo.server
 import sirepo.util
 import tornado.web
+import werkzeug.exceptions
 
 _JUPYTERHUBLOGIN_ROUTE = '/jupyterhublogin'
 
@@ -34,6 +35,9 @@ class Authenticator(jupyterhub.auth.Authenticator):
         _set_cookie(handler)
         try:
             sirepo.auth.require_user()
+            sirepo.auth.require_sim_type('jupyterhublogin')
+        except werkzeug.exceptions.Forbidden:
+            return None
         except sirepo.util.SRException as e:
             r = e.sr_args.get('routeName')
             if r not in ('login', 'loginFail'):

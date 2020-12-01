@@ -64,12 +64,9 @@ def audit_proprietary_lib_files(uid):
             sirepo.auth.role_for_sim_type(t),
         )
         d = sirepo.srdb.proprietary_code_dir(t)
-        assert d.exists(), \
-            f'{d} proprietary_code_dir must exist' \
-            + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
-
+        if not d.exists():
+            return
         for f in pykern.pkio.sorted_glob(d.join('*')):
-
 #TODO(robnagler) ensure no collision on names with uploaded files
 # (restrict suffixes in user uploads)
             p = sirepo.simulation_db.simulation_lib_dir(t, uid=uid).join(f.basename)
