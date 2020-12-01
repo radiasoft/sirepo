@@ -34,12 +34,12 @@ _BEAM_AXIS_ROTATIONS = PKDict(
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
 
-_DMP_FILE = 'geom.dat'
+_DMP_FILE = 'geometry.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
-_GEOM_FILE = 'geom.h5'
+_GEOM_FILE = 'geometry.h5'
 _H5_PATH_KICK_MAP = 'kickMap'
 _H5_PATH_SOLUTION = 'solution'
 _KICK_FILE = 'kickMap.h5'
@@ -49,7 +49,7 @@ _REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
-GEOM_PYTHON_FILE = 'geom.py'
+GEOM_PYTHON_FILE = 'geometry.py'
 KICK_PYTHON_FILE = 'kickMap.py'
 RADIA_EXPORT_FILE = 'radia_export.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
@@ -200,7 +200,6 @@ def new_simulation(data, new_simulation_data):
     data.models.geometry.name = new_simulation_data.name
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
-
 
 
 def python_source_for_model(data):
@@ -411,8 +410,6 @@ def _generate_parameters_file(data, for_export):
     import jinja2
 
     report = data.get('report', '')
-    data_file = _DATA_FILES.get(report, _GEOM_FILE)
-    py_file = _PY_FILES.get(report, GEOM_PYTHON_FILE)
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
@@ -445,7 +442,7 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else data_file
+    v.dataFile = _GEOM_FILE if for_export else f'{report}.h5'
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -471,7 +468,7 @@ def _generate_parameters_file(data, for_export):
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
 
-    j_file = RADIA_EXPORT_FILE if for_export else py_file
+    j_file = RADIA_EXPORT_FILE if for_export else f'{report}.py'
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -662,13 +659,5 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     return path
 
 
-_DATA_FILES = PKDict(
-    geometry=_GEOM_FILE,
-    kickMap=_KICK_FILE
-)
-_PY_FILES = PKDict(
-    geometry=GEOM_PYTHON_FILE,
-    kickMap=KICK_PYTHON_FILE
-)
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
 _H5_PATH_SOLUTION = _geom_h5_path('solution')

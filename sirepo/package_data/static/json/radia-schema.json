@@ -400,7 +400,8 @@
             "name": ["Name", "String", "Rotate"]
         },
         "simulation": {
-            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"]
+            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
+            "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"]
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],

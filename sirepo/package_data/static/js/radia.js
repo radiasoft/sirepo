@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
+    SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = false;
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
@@ -956,6 +957,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.solution = null;
 
+    self.enableKickMaps = function() {
+        return (appState.models.simulation || {}).enableKickMaps === '1';
+    };
+
     self.simHandleStatus = function(data) {
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
@@ -1666,7 +1671,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
                     simulationId: appState.models.simulation.simulationId,
                 };
                 radiaService.getRadiaData(inData, function(d) {
-                    srdbg('got km data', d);
+                    //srdbg('got km data', d);
                     //$scope.data = d;
                     //panelState.requestData('kickMap', function (d) {
                     //});
