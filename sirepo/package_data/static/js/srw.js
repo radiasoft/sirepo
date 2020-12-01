@@ -1559,27 +1559,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             $scope.showOpenShadow = function() {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
                     && $scope.nav.isActive('beamline')
-                    && srwService.isGaussianBeam();
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            reportTitle: '@',
-        },
-        template: [
-            '<a href data-ng-click="exportPython()">Export Python Code</a>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.exportPython = function() {
-                panelState.pythonSource(
-                    appState.models.simulation.simulationId,
-                    panelState.findParentAttribute($scope, 'modelKey'),
-                    $scope.reportTitle);
+                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator());
             };
         },
     };

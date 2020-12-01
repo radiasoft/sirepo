@@ -449,6 +449,26 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
     };
 });
 
+SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            reportTitle: '@',
+        },
+        template: [
+            '<a href data-ng-click="exportPython()">Export Python Code</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.exportPython = function() {
+                panelState.pythonSource(
+                    appState.models.simulation.simulationId,
+                    panelState.findParentAttribute($scope, 'modelKey'),
+                    $scope.reportTitle);
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $interpolate) {
     return {
         restrict: 'A',

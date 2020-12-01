@@ -16,6 +16,7 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+BEAM_STATS_FILE = 'beam_stats.json'
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
 _CENTIMETER_FIELDS = {
@@ -23,6 +24,7 @@ _CENTIMETER_FIELDS = {
     'crl': ['position', 'pilingThickness', 'rmirr', 'focalDistance', 'lensThickness', 'lensDiameter'],
     'crystal': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'thickness', 'r_johansson', 'offx', 'offy', 'offz'],
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
+    'emptyElement': ['position'],
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
     'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensityCenter', 'holo_r1', 'holo_r2', 'dist_fan', 'hunt_h', 'hunt_l', 'offx', 'offy', 'offz'],
     'histogramReport': ['distanceFromSource'],
@@ -77,6 +79,8 @@ def get_application_data(data, **kwargs):
         return _compute_harmonic_photon_energy(data)
 
 def get_data_file(run_dir, model, frame, **kwargs):
+    if model == 'beamStatisticsReport':
+        return BEAM_STATS_FILE
     return _SHADOW_OUTPUT_FILE
 
 
@@ -92,15 +96,17 @@ def post_execution_processing(
 
 
 def python_source_for_model(data, model):
-    beamline = data.models.beamline
-    watch_id = None
-    for b in beamline:
-        if b.type == 'watch':
-            watch_id = b.id
-    if watch_id:
-        data.report = '{}{}'.format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
-    else:
-        data.report = 'plotXYReport'
+    data.report = model
+    if not model:
+        beamline = data.models.beamline
+        watch_id = None
+        for b in beamline:
+            if b.type == 'watch':
+                watch_id = b.id
+        if watch_id:
+            data.report = '{}{}'.format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
+        else:
+            data.report = 'plotXYReport'
     return '''
 {}
 
@@ -192,7 +198,7 @@ def _generate_autotune_element(item):
     return res
 
 
-def _generate_beamline_optics(models, last_id):
+def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
     beamline = models.beamline
     res = ''
     prev_position = 0
@@ -216,7 +222,7 @@ def _generate_beamline_optics(models, last_id):
             and item.f_default == '1' and item.f_central == '1' \
             and item.fmirr != '5'
         if item.type == 'crl':
-            count, res = _generate_crl(item, source_distance, count, res)
+            count, res = _generate_crl(item, source_distance, count, res, calc_beam_stats)
         else:
             res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
             if item.type == 'aperture' or item.type == 'obstacle':
@@ -224,6 +230,12 @@ def _generate_beamline_optics(models, last_id):
             elif item.type == 'crystal':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_crystal(item)
+            elif item.type == 'emptyElement':
+                # item.f_refrac = '2'
+                # item.t_incidence = '0'
+                # item.t_reflection = '180'
+                # res += _item_field(item, ['alpha', 'f_refrac', 't_incidence', 't_reflection'])
+                res += "\n" + 'oe.set_empty(ALPHA={})'.format(item.alpha)
             elif item.type == 'grating':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_grating(item)
@@ -255,6 +267,8 @@ oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
                    + _field_value('oe', 't_image', 0.0) \
                    + _field_value('oe', 't_source', source_distance) \
                    + "\n" + 'beam.{}(oe, {})'.format(trace_method, count)
+            if calc_beam_stats:
+                res += '\n' + 'pos = calculate_stats(pos, oe)'
         if last_element:
             break
         prev_position = item.position
@@ -271,7 +285,7 @@ def _generate_bending_magnet(data):
           + _field_value('source', 'r_aladdin', 'source.R_MAGNET * 100')
 
 
-def _generate_crl(item, source_distance, count, res):
+def _generate_crl(item, source_distance, count, res, calc_beam_stats):
     for n in range(item.numberOfLenses):
         res += _generate_crl_lens(
             item,
@@ -279,12 +293,13 @@ def _generate_crl(item, source_distance, count, res):
             n == (item.numberOfLenses - 1),
             count,
             source_distance,
+            calc_beam_stats,
         )
         count += 2
     return count - 1, res
 
 
-def _generate_crl_lens(item, is_first, is_last, count, source):
+def _generate_crl_lens(item, is_first, is_last, count, source, calc_beam_stats):
 
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
@@ -325,10 +340,13 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
                 t_source=half_lens,
             )
         fields = sorted(values.keys())
-        return '''
+        res = '''
 
 oe = Shadow.OE(){}
 beam.traceOE(oe, {})'''.format(_fields('oe', values, fields), count + is_obj)
+        if calc_beam_stats:
+            res += '\n' + 'pos = calculate_stats(pos, oe)'
+        return res
 
     common = PKDict(
         dummy=1.0,
@@ -529,8 +547,12 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
 
     if r == 'initialIntensityReport':
         v.distanceFromSource = beamline[0].position if beamline else template_common.DEFAULT_INTENSITY_DISTANCE
+    elif r == 'beamStatisticsReport':
+        v.beamlineOptics = _generate_beamline_optics(data.models, calc_beam_stats=True)
+        v.beamStatsFile = BEAM_STATS_FILE
+        return template_common.render_jinja(SIM_TYPE, v, 'beam_statistics.py')
     elif _SIM_DATA.is_watchpoint(r):
-        v.beamlineOptics = _generate_beamline_optics(data.models, _SIM_DATA.watchpoint_id(r))
+        v.beamlineOptics = _generate_beamline_optics(data.models, last_id=_SIM_DATA.watchpoint_id(r))
     else:
         v.distanceFromSource = report_model.distanceFromSource
 
