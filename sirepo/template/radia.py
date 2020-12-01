@@ -44,11 +44,13 @@ _H5_PATH_KICK_MAP = 'kickMap'
 _H5_PATH_SOLUTION = 'solution'
 _KICK_FILE = 'kickMap.h5'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
-_REPORTS = ['geometry', 'kickMapHoriz', 'reset']
+_SIM_REPORTS = ['geometry', 'reset', 'solver']
+_REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
 GEOM_PYTHON_FILE = 'geom.py'
+KICK_PYTHON_FILE = 'kickMap.py'
 RADIA_EXPORT_FILE = 'radia_export.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
@@ -172,7 +174,7 @@ def get_application_data(data, **kwargs):
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            sim_id + '_' + res.name + '.' + data.fileType
+            f'{sim_id}_{res.name}.{data.fileType}'
         )
         # we save individual field paths, so there will be one item in the list
         vectors = res.data[0].vectors
@@ -201,14 +203,17 @@ def new_simulation(data, new_simulation_data):
 
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data):
     return _generate_parameters_file(data, True)
 
 
 def write_parameters(data, run_dir, is_parallel):
-    # remove centrailzed geom files
-    pkdp('DELETING GEOM AMD DUMP')
-    pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
+    sim_id = data.simulationId
+    if data.report in _SIM_REPORTS:
+        # remove centrailzed geom files
+        pkio.unchecked_remove(_geom_file(sim_id), _dmp_file(sim_id))
+    if data.report == 'kickMap':
+        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, False),
@@ -406,6 +411,8 @@ def _generate_parameters_file(data, for_export):
     import jinja2
 
     report = data.get('report', '')
+    data_file = _DATA_FILES.get(report, _GEOM_FILE)
+    py_file = _PY_FILES.get(report, GEOM_PYTHON_FILE)
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
@@ -438,7 +445,7 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else _geom_file(sim_id)
+    v.dataFile = _GEOM_FILE if for_export else data_file
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -464,7 +471,7 @@ def _generate_parameters_file(data, for_export):
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
 
-    j_file = RADIA_EXPORT_FILE if for_export else GEOM_PYTHON_FILE
+    j_file = RADIA_EXPORT_FILE if for_export else py_file
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -478,9 +485,9 @@ def _geom_file(sim_id):
 
 
 def _geom_h5_path(view_type, field_type=None):
-    p = 'geometry/' + view_type
+    p = f'geometry/{view_type}'
     if field_type is not None:
-        p += '/' + field_type
+        p += f'/{field_type}'
     return p
 
 
@@ -489,9 +496,9 @@ def _get_g_id(sim_id):
         return radia_tk.load_bin(f.read())
 
 
-def _get_res_file(sim_id, filename):
+def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
     return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
-        .join(_GEOM_DIR).join(filename)
+        .join(run_dir).join(filename)
 
 
 def _get_sdds():
@@ -617,7 +624,7 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
     # reserve first line for a header
-    data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
+    data = [f'x,y,z,{field_type}x,{field_type}y,{field_type}z']
     # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
     mags = numpy.array(vectors.magnitudes)
@@ -633,7 +640,7 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 
 def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s = _get_sdds()
-    s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
+    s.setDescription(f'Field Map for {name}', 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
     # mm -> m
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
@@ -658,6 +665,10 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
 _DATA_FILES = PKDict(
     geometry=_GEOM_FILE,
     kickMap=_KICK_FILE
+)
+_PY_FILES = PKDict(
+    geometry=GEOM_PYTHON_FILE,
+    kickMap=KICK_PYTHON_FILE
 )
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
 _H5_PATH_SOLUTION = _geom_h5_path('solution')

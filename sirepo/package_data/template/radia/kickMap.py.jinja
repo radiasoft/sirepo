@@ -1,0 +1,26 @@
+from __future__ import absolute_import, division, print_function
+
+import h5py
+from pykern.pkcollections import PKDict
+from sirepo.template import radia_tk
+from sirepo.template import template_common
+
+g_id = -1
+with open('{{ dmpOutputFile }}', 'rb') as f:
+    g_id = radia_tk.load_bin(f.read())
+
+km = radia_tk.kick_map(
+    g_id, [{{ kickMap.begin }}], [{{ kickMap.direction }}], {{ kickMap.numPeriods }}, {{ kickMap.periodLength }},
+    [{{ kickMap.transverseDirection }}], {{ kickMap.transverseRange1 }}, {{ kickMap.numTransPoints1 }},
+    {{ kickMap.transverseRange2 }}, {{ kickMap.numTransPoints2 }}
+)
+km_dict = PKDict(
+    h=km[0],
+    v=km[1],
+    lmsqr=km[2],
+    x=km[3],
+    y=km[4]
+)
+with h5py.File('{{ dataFile }}', 'a') as hf:
+    template_common.dict_to_h5(km_dict, hf, path='{{ h5KickMapPath }}')
+

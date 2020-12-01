@@ -1642,7 +1642,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         },
         template: [
             '<div class="col-md-6">',
-                //'<div data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+                '<div data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
                 //'<div class="panel panel-info data-ng-attr-id="{{ ::reportId }}">',
                 //    '<div class="panel-heading clearfix" data-panel-heading="Kick Maps" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>',
                 //    '<div data-report-content="3d" data-model-key="{{ modelKey }}" data-report-id="reportId"></div>',

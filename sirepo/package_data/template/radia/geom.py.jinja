@@ -73,7 +73,6 @@ g_id = radia_tk.build_container(radia_objs)
 {% endif %}
 
 
-# always store the object and id map
 g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
 with h5py.File('{{ dataFile }}', 'a') as hf:
     template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
@@ -97,23 +96,6 @@ if f:
     g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
     with h5py.File('{{ dataFile }}', 'a') as hf:
         template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
-{% endif %}
-
-{% if kickMap %}
-km = radia_tk.kick_map(
-    g_id, [{{ kickMap.begin }}], [{{ kickMap.direction }}], {{ kickMap.numPeriods }}, {{ kickMap.periodLength }},
-    [{{ kickMap.transverseDirection }}], {{ kickMap.transverseRange1 }}, {{ kickMap.numTransPoints1 }},
-    {{ kickMap.transverseRange2 }}, {{ kickMap.numTransPoints2 }}
-)
-km_dict = PKDict(
-    h=km[0],
-    v=km[1],
-    lmsqr=km[2],
-    x=km[3],
-    y=km[4]
-)
-with h5py.File('{{ dataFile }}', 'a') as hf:
-    template_common.dict_to_h5(km_dict, hf, path='{{ h5KickMapPath }}')
 {% endif %}
 
 with open('{{ dmpOutputFile }}', 'wb') as f:
