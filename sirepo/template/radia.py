@@ -37,11 +37,14 @@ _BEAM_AXIS_ROTATIONS = PKDict(
 _DMP_FILE = 'geometry.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
+_KICK_MAP_COLS = ['x', 'y', 'h', 'v']
+_KICK_MAP_UNITS = ['m', 'm', 'T2m2', 'T2m2']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geometry.h5'
 _KICK_FILE = 'kickMap.h5'
 _KICK_FLAT_FILE = 'kickMap.csv'
+_KICK_SDDS_FILE = 'kickMap.sdds'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _SIM_REPORTS = ['geometry', 'reset', 'solver']
 _REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
@@ -197,7 +200,13 @@ def get_application_data(data, **kwargs):
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     assert model in _REPORTS, 'unknown report: {}'.format(model)
     if model == 'kickMap':
-        return _KICK_FLAT_FILE
+        f = f'{run_dir}/{_KICK_FILE}'
+        p = pkio.py_path(f)
+        sim_id = simulation_db.sid_from_compute_file(p)
+        km_dict = _read_kick_map(sim_id)
+        #pkdp('DICT {}', km_dict.h)
+        _save_kick_map_sdds('KM', km_dict.x, km_dict.y, km_dict.h, km_dict.v, _KICK_SDDS_FILE)
+        return _KICK_SDDS_FILE
 
 
 def new_simulation(data, new_simulation_data):
@@ -505,22 +514,22 @@ def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
         .join(run_dir).join(filename)
 
 
-def _get_sdds():
+def _get_sdds(cols, units):
     if _cfg.sdds is None:
         _cfg.sdds = sdds.SDDS(_SDDS_INDEX)
         # TODO(mvk): elegant cannot read these binary files; figure that out
         # _cfg.sdds = sd.SDDS_BINARY
-        for i, n in enumerate(_FIELD_MAP_COLS):
+        for i, n in enumerate(cols):
             # name, symbol, units, desc, format, type, len)
             _cfg.sdds.defineColumn(
-                n, '', _FIELD_MAP_UNITS[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
+                n, '', units[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
             )
     return _cfg.sdds
 
 
-def _read_h5_path(sim_id, h5path):
+def _read_h5_path(sim_id, run_dir, filename, h5path):
     try:
-        with h5py.File(_geom_file(sim_id), 'r') as hf:
+        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
@@ -545,18 +554,18 @@ def _read_h_m_file(file_name):
 
 
 def _read_data(sim_id, view_type, field_type):
-    res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
+    res = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _geom_h5_path(view_type, field_type))
     if res:
         res.solution = _read_solution(sim_id)
     return res
 
 
 def _read_id_map(sim_id):
-    return _read_h5_path(sim_id, 'idMap')
+    return _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, 'idMap')
 
 
-#def _read_kick_map(sim_id):
-#    return _read_h5_path(sim_id, _H5_PATH_KICK_MAP)
+def _read_kick_map(sim_id):
+    return _read_h5_path(sim_id, 'kickMap', _KICK_FILE, _H5_PATH_KICK_MAP)
 
 
 def _read_or_generate_kick_map(g_id, data):
@@ -610,7 +619,7 @@ def _read_or_generate(g_id, data):
 
 
 def _read_solution(sim_id):
-    s = _read_h5_path(sim_id, _H5_PATH_SOLUTION)
+    s = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _H5_PATH_SOLUTION)
     if not s:
         return None
     return PKDict(
@@ -642,7 +651,7 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 
 
 def _save_fm_sdds(name, vectors, scipy_rotation, path):
-    s = _get_sdds()
+    s = _get_sdds(_FIELD_MAP_COLS, _FIELD_MAP_UNITS)
     s.setDescription(f'Field Map for {name}', 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
     # mm -> m
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
@@ -652,14 +661,41 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
-    # can we use tmp_dir before it gets deleted?
-    # with simulation_db.tmp_dir(True) as out_dir:
     col_data = []
     for i in range(3):
         col_data.append([pts[:, i].tolist()])
     for i in range(3):
         col_data.append([fld[:, i].tolist()])
     for i, n in enumerate(_FIELD_MAP_COLS):
+        s.setColumnValueLists(n, col_data[i])
+    s.save(str(path))
+    return path
+
+
+def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
+    s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
+    s.setDescription(f'Kick Map for {name}', 'x(m), y(m), z(m), h(T2m2), v(T2m2)')
+    col_data = []
+    x = []
+    y = []
+    h = []
+    v = []
+    #TODO: better way to do this...
+    for i in range(len(x_vals)):
+        for j in range(len(x_vals)):
+            x.append(0.001 * x_vals[j])
+    for i in range(len(y_vals)):
+        for j in range(len(y_vals)):
+            y.append(0.001 * y_vals[i])
+    for i in range(len(x_vals)):
+        for j in range(len(y_vals)):
+            h.append(h_vals[i][j])
+            v.append(v_vals[i][j])
+    col_data.append([x])
+    col_data.append([y])
+    col_data.append([h])
+    col_data.append([v])
+    for i, n in enumerate(_KICK_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path

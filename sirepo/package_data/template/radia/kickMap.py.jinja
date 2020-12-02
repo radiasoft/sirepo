@@ -24,7 +24,3 @@ km_dict = PKDict(
 with h5py.File('{{ dataFile }}', 'a') as hf:
     template_common.dict_to_h5(km_dict, hf, path='{{ h5KickMapPath }}')
 
-with open('{{ flatFile }}', 'w') as f:
-    f.write(km[5])
-
-
