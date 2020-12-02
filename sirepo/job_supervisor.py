@@ -536,6 +536,13 @@ class _ComputeJob(PKDict):
     def _is_running_pending(self):
         return self.db.status in (job.RUNNING, job.PENDING)
 
+    def _init_db_missing_repsonse(self, req):
+        self.__db_init(req, prev_db=self.db)
+        self.__db_write()
+        assert self.db.status == job.MISSING, \
+            'expecting missing status={}'.format(self.db.status)
+        return PKDict(state=self.db.status)
+
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
             sirepo.util.raise_not_found('purged or missing {}', req)
@@ -738,11 +745,14 @@ class _ComputeJob(PKDict):
         r = self._status_reply(req)
         if r:
             return r
-        return await self._send_with_single_reply(
+        r = await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
             jobCmd='sequential_result',
         )
+        if r.state == job.ERROR:
+            return self._init_db_missing_repsonse(req)
+        return r
 
     async def _receive_api_sbatchLogin(self, req):
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
@@ -848,13 +858,9 @@ class _ComputeJob(PKDict):
                     # POSIT: any api_* that could run into runDirNotFound
                     # will call _send_with_single_reply() and this will
                     # properly format the reply
-                    if not r.get('runDirNotFound'):
-                        return r
-                    self.__db_init(req, prev_db=self.db)
-                    self.__db_write()
-                    assert self.db.status == job.MISSING, \
-                        'expecting missing status={}'.format(self.db.status)
-                    return PKDict(state=self.db.status)
+                    if r.get('runDirNotFound'):
+                        return self._init_db_missing_repsonse(req)
+                    return r
                 except Awaited:
                     pass
             else:
