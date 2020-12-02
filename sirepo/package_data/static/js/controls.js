@@ -7,7 +7,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="MadxSimList" data-ng-class="fieldClass">',
-          '<div data-sim-list="" data-model="model" data-field="field" data-code="madx"></div>',
+          '<div data-sim-list="" data-model="model" data-field="field" data-code="madx" data-route="lattice"></div>',
         '</div>',
         // TODO(pjm): copied from webcon
         '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
@@ -67,7 +67,12 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             simulationId: appState.models.dataFile.madxSirepo
         }, function(data) {
             appState.models.externalLattice = data;
-            appState.saveChanges(['externalLattice']);
+            data.models.bunch.beamDefinition = 'pc';
+            var twiss = findExternalCommand('twiss');
+            twiss.file = '1';
+            $.extend(appState.models.command_twiss, twiss);
+            $.extend(appState.models.command_beam, findExternalCommand('beam'));
+            appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice']);
         });
     }
 
@@ -148,7 +153,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     self.hasMadxLattice = function() {
-        return appState.isLoaded() && appState.applicationState().dataFile.madxSirepo;
+        return appState.isLoaded() && appState.applicationState().externalLattice;
     };
 
     self.simHandleStatus = function(data) {
@@ -181,11 +186,13 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 }
             });
         }
+
+        if (appState.models.externalLattice) {
+            buildEditorColumns();
+        }
+
         $scope.$on('dataFile.changed', dataFileChanged);
         $scope.$on('externalLattice.changed', buildEditorColumns);
-        self.editorColumns = [];
-        self.watches = [];
-        buildEditorColumns();
         $scope.$on('modelChanged', function(e, name) {
             //TODO(pjm): not a good element model detector
             if (name == name.toUpperCase()) {

@@ -35,8 +35,8 @@
                 "templateUrl": "/static/html/controls-controls.html"
           }
         },
-        "visualization": {
-            "route": "/visualization/:simulationId"
+        "lattice": {
+            "route": "/lattice/:simulationId"
         }
     },
     "model": {

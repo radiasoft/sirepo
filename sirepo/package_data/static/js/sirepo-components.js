@@ -3974,6 +3974,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
             code: '@',
             model: '=',
             field: '=',
+            route: '@',
         },
         template: [
             '<div style="white-space: nowrap">',
@@ -3990,7 +3991,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                     // being present in both the caller and callee apps.
                     // Need meta data for a page in another app
                     requestSender.newLocalWindow(
-                        'visualization',
+                        $scope.route || 'visualization',
                         {':simulationId': $scope.model[$scope.field]},
                         $scope.code);
                 }

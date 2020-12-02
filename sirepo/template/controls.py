@@ -123,6 +123,7 @@ def _delete_unused_models(data):
         if m not in [
                 *_SCHEMA.model.keys(),
                 'beamlines',
+                'bunch',
                 'commands',
                 'elements',
                 'report',

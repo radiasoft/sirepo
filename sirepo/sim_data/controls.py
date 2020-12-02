@@ -20,7 +20,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        sirepo.sim_data.get_class('madx').fixup_old_data(dm.externalLattice)
         cls._init_models(
             dm,
             (
@@ -29,12 +28,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'dataFile',
             ),
         )
-        dm.externalLattice.models.bunch.beamDefinition = 'pc'
-        twiss = LatticeUtil.find_first_command(dm.externalLattice, 'twiss')
-        twiss.file = '1'
-        dm.command_beam.update(LatticeUtil.find_first_command(dm.externalLattice, 'beam'))
-        dm.command_twiss.update(twiss)
-
+        if 'externalLattice' in dm:
+            sirepo.sim_data.get_class('madx').fixup_old_data(dm.externalLattice)
 
     @classmethod
     def _lib_file_basenames(cls, data):
