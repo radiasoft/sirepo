@@ -73,6 +73,10 @@
             "center": ["Window Center", "Float", 25.0],
             "width": ["Window Width", "Float", 50.0]
         },
+        "doseDifferenceWindow": {
+            "center": ["Window Center", "Float", 12.0],
+            "width": ["Window Width", "Float", 10.0]
+        },
         "simulation": {
             "libFilePrefix": ["", "String"]
         }

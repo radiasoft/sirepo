@@ -20,9 +20,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
         if 'colsWithNonUniqueValues' not in dm.columnInfo:
             dm.columnInfo.colsWithNonUniqueValues = PKDict()
-
-
-
+        for m in dm:
+            if 'fileColumnReport' in m:
+                cls.update_model_defaults(dm[m], 'fileColumnReport')
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):

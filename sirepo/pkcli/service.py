@@ -125,14 +125,14 @@ def nginx_proxy():
 
     Used for development only.
     """
-    import sirepo.feature_config
+    import sirepo.template
 
     assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join('default.conf')
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
-        if 'jupyterhublogin' in sirepo.feature_config.cfg().sim_types:
+        if sirepo.template.is_sim_type('jupyterhublogin'):
             import sirepo.sim_api.jupyterhublogin
             import sirepo.server
 

@@ -45,6 +45,7 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
 GEOM_PYTHON_FILE = 'geom.py'
+RADIA_EXPORT_FILE = 'radia_export.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
 
@@ -192,7 +193,7 @@ def new_simulation(data, new_simulation_data):
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
+    return _generate_parameters_file(data, True)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -200,7 +201,7 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, False),
     )
 
 
@@ -229,8 +230,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = _split_comma_field(f_path.begin, 'float')
-    p2 = _split_comma_field(f_path.end, 'float')
+    p1 = sirepo.util.split_comma_delimited_string(f_path.begin, float)
+    p2 = sirepo.util.split_comma_delimited_string(f_path.end, float)
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -332,14 +333,14 @@ def _generate_field_data(g_id, name, field_type, field_paths):
 def _generate_field_integrals(g_id, f_paths):
     l_paths = [fp for fp in f_paths if fp.type == 'line']
     if len(l_paths) == 0:
-        # return something or server.py will throw an exception
+        # return something or server.py will raise an exception
         return PKDict(warning='No paths')
     try:
         res = PKDict()
         for p in l_paths:
             res[p.name] = PKDict()
-            p1 = _split_comma_field(p.begin, 'float')
-            p2 = _split_comma_field(p.end, 'float')
+            p1 = sirepo.util.split_comma_delimited_string(p.begin, float)
+            p2 = sirepo.util.split_comma_delimited_string(p.end, float)
             for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
         return res
@@ -366,60 +367,74 @@ def _generate_data(g_id, in_data, add_lines=True):
 
 
 def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
+    return radia_tk.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, for_export):
+    import jinja2
+
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
-    v['dmpFile'] = _dmp_file(sim_id)
+    v.dmpOutputFile = _DMP_FILE if for_export else _dmp_file(sim_id)
     if 'dmpImportFile' in data.models.simulation:
-        v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
-        )
-    v['isExample'] = data.models.simulation.get('isExample', False)
+        v.dmpImportFile = data.models.simulation.dmpImportFile if for_export else \
+            simulation_db.simulation_lib_dir(SIM_TYPE).join(
+                f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
+            )
+    v.isExample = data.models.simulation.get('isExample', False)
     v.objects = g.get('objects', [])
     # read in h-m curves if applicable
     for o in v.objects:
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
             o.get('material', None) and o.material == 'custom' and \
             o.get('materialFile', None) and o.materialFile else None
-    v['geomName'] = g.name
+    v.geomName = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
+
+    # for rendering conveneince
+    v.VIEW_TYPE_OBJ = _SCHEMA.constants.viewTypeObjects
+    v.VIEW_TYPE_FIELD = _SCHEMA.constants.viewTypeFields
+    v.FIELD_TYPE_MAG_M = radia_tk.FIELD_TYPE_MAG_M
+    v.POINT_FIELD_TYPES = radia_tk.POINT_FIELD_TYPES
+    v.INTEGRABLE_FIELD_TYPES = radia_tk.INTEGRABLE_FIELD_TYPES
+
     f_type = None
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
-    v['viewType'] = v_type
-    v['dataFile'] = _geom_file(sim_id)
+    v.viewType = v_type
+    v.dataFile = _GEOM_FILE if for_export else _geom_file(sim_id)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
             raise ValueError(
                 'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
-        v['fieldType'] = f_type
-        v['fieldPoints'] = _build_field_points(data.models.fieldPaths.get('paths', []))
-    if 'solver' in report:
-        v['doSolve'] = True
+        v.fieldType = f_type
+        v.fieldPaths = data.models.fieldPaths.get('paths', [])
+        v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
+    if 'solver' in report or for_export:
+        v.doSolve = True
         s = data.models.solver
-        v['solvePrec'] = s.precision
-        v['solveMaxIter'] = s.maxIterations
-        v['solveMethod'] = s.method
+        v.solvePrec = s.precision
+        v.solveMaxIter = s.maxIterations
+        v.solveMethod = s.method
     if 'reset' in report:
         radia_tk.reset()
         data.report = 'geometry'
-        return _generate_parameters_file(data)
-    v['h5ObjPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
-    v['h5FieldPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
+        return _generate_parameters_file(data, False)
+    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
+    v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
 
+    j_file = RADIA_EXPORT_FILE if for_export else GEOM_PYTHON_FILE
     return template_common.render_jinja(
         SIM_TYPE,
         v,
-        GEOM_PYTHON_FILE,
+        j_file,
+        jinja_env=PKDict(loader=jinja2.PackageLoader('sirepo', 'template'))
     )
 
 
@@ -560,13 +575,4 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
-
-
-def _split_comma_field(f, type):
-    arr = re.split(r'\s*,\s*', f)
-    if type == 'float':
-        return [float(x) for x in arr]
-    if type == 'int':
-        return [int(x) for x in arr]
-    return arr
 

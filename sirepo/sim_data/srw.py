@@ -492,6 +492,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ).items():
                     if k not in i:
                         i[k] = v
+                if i.method == 'calculation':
+                    i.method = 'file'
             if t == 'crystal':
                 # this is a hack for existing bad data
                 for k in ['outframevx', 'outframevy', 'outoptvx', 'outoptvy', 'outoptvz',

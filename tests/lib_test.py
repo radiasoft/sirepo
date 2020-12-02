@@ -5,13 +5,14 @@ u"""Test lib.Importer
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp
 import pytest
 
 def test_elegant():
     from pykern import pkunit
 
     f = _code()
-    e = ['run_setup.acceptance.sdds']
+    e = ['%s.cen']
     pkunit.pkok(
         set(e).issubset(set(f)),
         'expecting files={} to be subset of output_files={}',

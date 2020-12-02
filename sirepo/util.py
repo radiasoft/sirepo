@@ -230,6 +230,11 @@ def setattr_imports(imports):
         setattr(m, k, v)
 
 
+def split_comma_delimited_string(s, f_type):
+    import re
+    return [f_type(x) for x in re.split(r'\s*,\s*', s)]
+
+
 def _raise(exc, fmt, *args, **kwargs):
     import werkzeug.exceptions
 
