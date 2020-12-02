@@ -35,10 +35,12 @@ _BEAM_AXIS_ROTATIONS = PKDict(
 )
 
 _DMP_FILE = 'geometry.dat'
+
+# Note that these column names and units are required by elegant
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
-_KICK_MAP_COLS = ['x', 'y', 'h', 'v']
-_KICK_MAP_UNITS = ['m', 'm', 'T2m2', 'T2m2']
+_KICK_MAP_COLS = ['x', 'y', 'xpFactor', 'ypFactor']
+_KICK_MAP_UNITS = ['m', 'm', '(T*m)$a2$n', '(T*m)$a2$n']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geometry.h5'
@@ -674,7 +676,7 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
 
 def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
-    s.setDescription(f'Kick Map for {name}', 'x(m), y(m), z(m), h(T2m2), v(T2m2)')
+    s.setDescription(f'Kick Map for {name}', 'x(m), y(m), h(T2m2), v(T2m2)')
     col_data = []
     x = []
     y = []
