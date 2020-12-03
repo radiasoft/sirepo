@@ -388,7 +388,7 @@ class ElegantMadxConverter(MadxConverter):
 
         if mb.particle != 'electron':
             data.models.commands.insert(0, PKDict(
-                _id=_SIM_DATA.elegant_max_id(data),
+                _id=LatticeUtil.max_id(data),
                 _type='change_particle',
                 name=self._PARTICLE_MAP.get(mb.particle, 'custom'),
                 #TODO(pjm): custom particle should set mass_ratio and charge_ratio
@@ -935,7 +935,7 @@ class _Generate:
             d.models.commands.insert(
                 0,
                 PKDict(
-                    _id=_SIM_DATA.elegant_max_id(d) + 1,
+                    _id=LatticeUtil.max_id(d) + 1,
                     _type='global_settings',
                 ),
             )
@@ -1002,7 +1002,7 @@ class _Generate:
 
     def _twiss_simulation(self):
         d = self.data
-        max_id = _SIM_DATA.elegant_max_id(d)
+        max_id = LatticeUtil.max_id(d)
         sim = d.models.simulation
         sim.simulationMode = 'serial'
         run_setup = LatticeUtil.find_first_command(d, 'run_setup') or PKDict(

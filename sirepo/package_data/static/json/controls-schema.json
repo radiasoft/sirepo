@@ -34,6 +34,9 @@
                 "controller": "ControlsController as controls",
                 "templateUrl": "/static/html/controls-controls.html"
           }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId"
         }
     },
     "model": {
@@ -63,6 +66,9 @@
             "py": ["Vertical Centroid Derivative [2$\\pi$]", "Float", 0.0],
             "x": ["Horizontal Centroid [m]", "Float", 0.0],
             "y": ["Vertical Centroid [m]", "Float", 0.0]
+        },
+        "dataFile": {
+            "madxSirepo": ["Madx Simulation", "MadxSimList", true]
         },
         "HKICKER": {
             "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
@@ -135,6 +141,13 @@
                     ]
                 ]]
             ]
+        },
+        "dataFile": {
+            "title": "Existing Madx Simulation",
+            "basic": [
+                "madxSirepo"
+            ],
+            "advanced": []
         },
         "simulationStatus": {
             "title": "Simulation Status",

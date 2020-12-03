@@ -135,6 +135,41 @@ def code_var(variables):
         case_insensitive=True,
     )
 
+def eval_code_var(data):
+    # TODO(e-carlin): When #3111 is merged use the code in LibAdapterBase._convert
+    # to do this work. It is copied from there.
+    cv = code_var(data.models.rpnVariables)
+
+    def _model(model, name):
+        schema = _SCHEMA.model[name]
+
+        k = x = v = None
+        try:
+            for k, x in schema.items():
+                t = x[1]
+                v = model[k] if k in model else x[2]
+                if t == 'RPNValue':
+                    t = 'Float'
+                    if cv.is_var_value(v):
+                        model[k] = cv.eval_var_with_assert(v)
+                        continue
+                if t == 'Float':
+                    model[k] = float(v) if v else 0.
+                elif t == 'Integer':
+                    model[k] = int(v) if v else 0
+        except Exception as e:
+            pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+            raise
+
+    for x in  data.models.rpnVariables:
+        x.value = cv.eval_var_with_assert(x.value)
+    for k, v in data.models.items():
+        if k in _SCHEMA.model:
+            _model(v, k)
+    for x in ('elements', 'commands'):
+        for m in data.models[x]:
+            _model(m, LatticeUtil.model_name_for_data(m))
+
 def extract_monitor_values(run_dir):
     t = madx_parser.parse_tfs_file(run_dir.join('twiss.file.tfs'))
     l = []
