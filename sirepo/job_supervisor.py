@@ -536,7 +536,7 @@ class _ComputeJob(PKDict):
     def _is_running_pending(self):
         return self.db.status in (job.RUNNING, job.PENDING)
 
-    def _init_db_missing_repsonse(self, req):
+    def _init_db_missing_response(self, req):
         self.__db_init(req, prev_db=self.db)
         self.__db_write()
         assert self.db.status == job.MISSING, \
@@ -751,7 +751,7 @@ class _ComputeJob(PKDict):
             jobCmd='sequential_result',
         )
         if r.state == job.ERROR:
-            return self._init_db_missing_repsonse(req)
+            return self._init_db_missing_response(req)
         return r
 
     async def _receive_api_sbatchLogin(self, req):
@@ -859,7 +859,7 @@ class _ComputeJob(PKDict):
                     # will call _send_with_single_reply() and this will
                     # properly format the reply
                     if r.get('runDirNotFound'):
-                        return self._init_db_missing_repsonse(req)
+                        return self._init_db_missing_response(req)
                     return r
                 except Awaited:
                     pass
