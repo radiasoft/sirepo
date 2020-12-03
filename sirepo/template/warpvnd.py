@@ -782,8 +782,7 @@ def _generate_parameters_file(data):
     v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _SIM_DATA.warpvnd_is_3d(data)
-    v['anode'] = _prepare_anode(data)
-    v['saveIntercept'] = v['anode']['isReflector']
+    v['saveIntercept'] = v['anode_reflectorType'] != 'none' or v['cathode_reflectorType'] != 'none'
     for c in data.models.conductors:
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
@@ -792,7 +791,7 @@ def _generate_parameters_file(data):
                 _stl_polygon_file(c.conductor_type.name),
             )
             break
-        if c.conductor_type.isReflector:
+        if c.conductor_type.reflectorType != 'none':
             v['saveIntercept'] = True
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
@@ -938,7 +937,6 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
         ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if 'file' in ct else 'None'
-        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -950,14 +948,6 @@ def _prepare_conductors(data):
     return data.models.conductors
 
 
-def _prepare_anode(data):
-    return {
-        'isReflector': data.models.anode['isReflector'] == '1',
-        'specProb': data.models.anode['specProb'],
-        'diffProb': data.models.anode['diffProb'],
-    }
-
-
 def _read_optimizer_output(run_dir):
     # only considers unique points as steps
     opt_file = run_dir.join(_OPTIMIZER_OUTPUT_FILE)
@@ -965,7 +955,7 @@ def _read_optimizer_output(run_dir):
         return None, None
     try:
         values = np.loadtxt(str(opt_file))
-        if values:
+        if values.any():
             if len(values.shape) == 1:
                 values = np.array([values])
         else:

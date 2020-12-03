@@ -5,8 +5,11 @@ var srdbg = SIREPO.srdbg;
 
 
 SIREPO.app.config(function() {
-    // TODO(pjm): copied from webcon
     SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="MadxSimList" data-ng-class="fieldClass">',
+          '<div data-sim-list="" data-model="model" data-field="field" data-code="madx" data-route="lattice"></div>',
+        '</div>',
+        // TODO(pjm): copied from webcon
         '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
           '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
         '</div>',
@@ -48,7 +51,7 @@ SIREPO.app.factory('controlsService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, panelState, persistentSimulation, requestSender, $scope) {
     var self = this;
     self.simScope = $scope;
     self.appState = appState;
@@ -57,6 +60,21 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.advancedNames = [];
     self.basicNames = [];
     self.beamPositionReports = [];
+
+    function dataFileChanged() {
+        requestSender.getApplicationData({
+            method: 'get_external_lattice',
+            simulationId: appState.models.dataFile.madxSirepo
+        }, function(data) {
+            appState.models.externalLattice = data;
+            data.models.bunch.beamDefinition = 'pc';
+            var twiss = findExternalCommand('twiss');
+            twiss.file = '1';
+            $.extend(appState.models.command_twiss, twiss);
+            $.extend(appState.models.command_beam, findExternalCommand('beam'));
+            appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice']);
+        });
+    }
 
     function elementForId(id) {
         return elementForValue('_id', id);
@@ -134,6 +152,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         });
     }
 
+    self.hasMadxLattice = function() {
+        return appState.isLoaded() && appState.applicationState().externalLattice;
+    };
+
     self.simHandleStatus = function(data) {
         if (data.monitorValues) {
             frameCache.setFrameCount(1);
@@ -144,24 +166,33 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     };
 
     appState.whenModelsLoaded($scope, function() {
-        self.editorColumns = [];
-        self.watches = [];
-        var schema = SIREPO.APP_SCHEMA.model;
-        var beamlineId = appState.models.externalLattice.models.simulation.visualizationBeamlineId;
-        getBeamlineElements(beamlineId, []).forEach(function(element) {
-            if (schema[element.type]) {
-                const m = modelForElement(element);
-                if (element.type.indexOf('MONITOR') >= 0) {
-                    m.plotType = element.type == 'MONITOR' ? 'bpmMonitor'
-                        : (element.type == 'HMONITOR'
-                           ? 'bpmHMonitor'
-                           : 'bpmVMonitor');
-                    self.watches.push(m);
-                    return;
+        function buildEditorColumns() {
+            self.editorColumns = [];
+            self.watches = [];
+            var schema = SIREPO.APP_SCHEMA.model;
+            var beamlineId = appState.models.externalLattice.models.simulation.visualizationBeamlineId;
+            getBeamlineElements(beamlineId, []).forEach(function(element) {
+                if (schema[element.type]) {
+                    const m = modelForElement(element);
+                    if (element.type.indexOf('MONITOR') >= 0) {
+                        m.plotType = element.type == 'MONITOR' ? 'bpmMonitor'
+                            : (element.type == 'HMONITOR'
+                            ? 'bpmHMonitor'
+                            : 'bpmVMonitor');
+                        self.watches.push(m);
+                        return;
+                    }
+                    self.editorColumns.push(m);
                 }
-                self.editorColumns.push(m);
-            }
-        });
+            });
+        }
+
+        if (appState.models.externalLattice) {
+            buildEditorColumns();
+        }
+
+        $scope.$on('dataFile.changed', dataFileChanged);
+        $scope.$on('externalLattice.changed', buildEditorColumns);
         $scope.$on('modelChanged', function(e, name) {
             //TODO(pjm): not a good element model detector
             if (name == name.toUpperCase()) {

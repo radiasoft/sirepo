@@ -7,6 +7,11 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'blues';
     SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="XColumn" data-field-class="fieldClass">',
+          '<div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="classificationMetrics" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
         '<div data-ng-switch-when="confusionMatrix" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
@@ -348,6 +353,9 @@ SIREPO.app.directive('columnReports', function(appState, mlService) {
                     '<span>&times;</span>',
                   '</button>',
                   '<div>{{ computeHeight() }}</div>',
+                  '<form class="form-horizontal">',
+                    '<div class="form-group form-group-sm" data-model-field="\'x\'" data-model-name="\'fileColumnReport\'" data-model-data="report.data" data-label-size="4" data-field-size="8"></div>',
+                  '</form>',
                 '</div>',
               '</div>',
             '</div>',
@@ -396,6 +404,52 @@ SIREPO.app.directive('columnReports', function(appState, mlService) {
     };
 });
 
+SIREPO.app.directive('xColumn', function(appState, mlService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="col-sm-8">',
+            '<select class="form-control" data-ng-model="model[field]" data-ng-change="columnChanged()" data-ng-options="item as header(item) for item in getItems()"></select>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.columnChanged = function() {
+                appState.saveChanges(mlService.columnReportName($scope.model.columnNumber));
+            };
+            $scope.header = function(item) {
+                if (appState.isLoaded()) {
+                    if (item == -1) {
+                        return 'occurrence';
+                    }
+                    return appState.models.columnInfo.header[item];
+                }
+            };
+            $scope.getItems = function() {
+                if (appState.isLoaded()) {
+                    if (! $scope.items) {
+                        $scope.items = [-1];
+                        var info = appState.models.columnInfo;
+                        info.header.forEach(function(h, idx) {
+                            if (! info.colsWithNonUniqueValues[h]) {
+                                $scope.items.push(idx);
+                            }
+                        });
+                    }
+                }
+                return $scope.items;
+            };
+            $scope.$on('modelChanged', function() {
+                $scope.items = null;
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('columnSelector', function(appState, mlService, panelState) {
     return {
         restrict: 'A',
@@ -404,6 +458,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
             '<form name="form">',
               '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
                 '<colgroup>',
+                  '<col style="width: 3em">',
                   '<col style="width: 100%">',
                   '<col style="width: 6em">',
                   '<col style="width: 6em">',
@@ -411,21 +466,24 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                 '</colgroup>',
                 '<thead>',
                   '<tr>',
+                    '<th> </th>',
                     '<th>Column Name</th>',
-                    '<th data-ng-if="! isAnalysis()" class="text-center">Input</th>',
-                    '<th data-ng-if="! isAnalysis()" class="text-center">Output</th>',
+                    '<th data-ng-show="! isAnalysis" class="text-center">Input</th>',
+                    '<th data-ng-show="! isAnalysis" class="text-center">Output</th>',
                     '<th></th>',
                   '</tr>',
                 '</thead>',
                 '<tbody>',
                   '<tr data-ng-repeat="col in cols track by col">',
+                    '<td class="form-group form-group-sm"><p class="form-control-static">{{ col + 1 }}</p></td>',
                     '<td class="form-group form-group-sm">',
                       '<input data-ng-model="model.header[col]" class="form-control" data-lpignore="true" required />',
                     '</td>',
-                    '<td data-ng-if="! isAnalysis()" class="text-center">',
+
+                    '<td data-ng-show="! isAnalysis" class="text-center">',
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
-                    '<td data-ng-if="! isAnalysis()" class="text-center">',
+                    '<td data-ng-show="! isAnalysis" class="text-center">',
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td>',
@@ -440,6 +498,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
         controller: function($scope) {
             $scope.modelName = 'columnInfo';
             $scope.fields = ['header', 'inputOutput'];
+            $scope.isAnalysis = false;
 
             function setModel() {
                 $scope.model = appState.models.columnInfo;
@@ -454,14 +513,18 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     }
                     $scope.cols.push(i);
                     const m = mlService.columnReportName(i);
-                    appState.models[m] = {
-                        columnNumber: i,
-                    };
-                    appState.saveQuietly(m);
+                    if (! appState.models[m]) {
+                        appState.models[m] = appState.setModelDefaults({
+                            columnNumber: i,
+                        }, 'fileColumnReport');
+                        appState.saveQuietly(m);
+                    }
                 }
             }
 
-            $scope.isAnalysis = mlService.isAnalysis;
+            function updateIsAnalysis() {
+                $scope.isAnalysis = mlService.isAnalysis();
+            }
 
             $scope.showOrHideText = function(idx) {
                 return appState.models.columnReports.indexOf(idx) >= 0
@@ -486,12 +549,14 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
 
             appState.whenModelsLoaded($scope, function() {
                 setModel();
+                updateIsAnalysis();
                 $scope.$on('columnInfo.changed', setModel);
                 $scope.$on('cancelChanges', function(evt, name) {
                     if (name == 'columnInfo') {
                         setModel();
                     }
                 });
+                $scope.$on('dataFile.changed', updateIsAnalysis);
             });
 
         },

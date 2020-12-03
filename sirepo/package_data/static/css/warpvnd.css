@@ -11,8 +11,8 @@
   cursor: pointer;
 }
 .warpvnd-plate-no-voltage {
-  stroke: rgb(228, 176, 95);
   fill: rgba(255, 146, 105, 0.3);
+  stroke: rgb(228, 176, 95);
 }
 .warpvnd-plate-voltage {
   fill: rgba(105, 146, 255, 0.3);
