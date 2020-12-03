@@ -1754,8 +1754,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
                   '<li data-ng-if="::hasDataFile" role="separator" class="divider"></li>',
-                  '<li data-ng-if="::hasDataFile"><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  '<li data-ng-if="::hasDataFile"><a data-ng-href="{{ dataFileURL() }}" target="_blank">{{ dataDownloadTitle }}</a></li>',
                   SIREPO.appDownloadLinks || '',
+                  '<li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>',
                 '</ul>',
               '</div>',
               '<a href data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
@@ -1764,9 +1765,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         controller: function($scope, $element) {
             $scope.panelState = panelState;
             $scope.utilities = utilities;
+            let viewKey = $scope.viewName || $scope.modelKey;
+            let dl = SIREPO.APP_SCHEMA.constants.dataDownloads || {};
+            let df = ((dl._default || [])[0] || {});
+            $scope.panelDownloadLinks = dl[viewKey] || [];
+            $scope.dataDownloadTitle = df.title  || 'Raw Data File';
+            $scope.dataDownloadSuffix = df.suffix  || '';
 
             // modelKey may not exist in viewInfo, assume it has an editor in that case
-            var view = appState.viewInfo($scope.viewName || $scope.modelKey);
+            var view = appState.viewInfo(viewKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
             $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
 

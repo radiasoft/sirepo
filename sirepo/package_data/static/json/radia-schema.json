@@ -34,6 +34,20 @@
         "objectScale": 0.001,
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
+        "dataDownloads": {
+            "_default": [
+                {
+                    "title": "Save as SDDS",
+                    "suffix": ""
+                }
+            ],
+            "kickMap": [
+                {
+                    "title": "Save as Text",
+                    "suffix": "txt"
+                }
+            ]
+        },
         "toolbarItems": [
             {
                 "canDrag": true,
