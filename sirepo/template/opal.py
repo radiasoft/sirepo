@@ -305,9 +305,18 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def code_var(variables):
+    class _P(code_variable.PurePythonEval):
+        def __init__(self):
+            super().__init__(_OPAL_CONSTANTS)
+
+        def eval_var(self, expr, depends, variables):
+            if re.match(r'^\{.+\}$', expr):
+                # It is an array of values
+                return expr, None
+            return super().eval_var(expr, depends, variables)
     return code_variable.CodeVar(
         variables,
-        code_variable.PurePythonEval(_OPAL_CONSTANTS),
+        _P(),
         case_insensitive=True,
     )
 
