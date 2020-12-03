@@ -45,8 +45,8 @@ _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geometry.h5'
 _KICK_FILE = 'kickMap.h5'
-_KICK_FLAT_FILE = 'kickMap.csv'
 _KICK_SDDS_FILE = 'kickMap.sdds'
+_KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _SIM_REPORTS = ['geometry', 'reset', 'solver']
 _REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
@@ -200,15 +200,22 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    assert model in _REPORTS, 'unknown report: {}'.format(model)
+    assert model in _REPORTS, f'unknown report: {model}'
+    name = simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models.simulation.name
     if model == 'kickMap':
-        f = f'{run_dir}/{_KICK_FILE}'
-        p = pkio.py_path(f)
-        sim_id = simulation_db.sid_from_compute_file(p)
+        sfx = (options.suffix or 'sdds') if options and 'suffix' in options else 'sdds'
+        sim_id = simulation_db.sid_from_compute_file(
+            pkio.py_path(f'{run_dir}/{_KICK_FILE}')
+        )
         km_dict = _read_kick_map(sim_id)
-        #pkdp('DICT {}', km_dict.h)
-        _save_kick_map_sdds('KM', km_dict.x, km_dict.y, km_dict.h, km_dict.v, _KICK_SDDS_FILE)
-        return _KICK_SDDS_FILE
+        f = f'{model}.{sfx}'
+        if sfx == 'sdds':
+            _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
+        if sfx == 'txt':
+            pkio.write_text(f'{run_dir}/{f}', km_dict.txt)
+        return f
 
 
 def new_simulation(data, new_simulation_data):
@@ -480,7 +487,6 @@ def _generate_parameters_file(data, for_export):
         radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data, False)
-    v.flatFile = _KICK_FLAT_FILE
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
@@ -571,20 +577,10 @@ def _read_kick_map(sim_id):
 
 
 def _read_or_generate_kick_map(g_id, data):
-    #res = None  #_read_kick_map(data.simulationId)
-    #if res:
-    #    return res
+    res = _read_kick_map(data.simulationId)
+    if res:
+        return res
     return _generate_kick_map(g_id, data.model)
-    #km = _generate_kick_map(g_id, data.model)
-    #p = _geom_h5_path(_H5_PATH_KICK_MAP)
-    #pkdp('GOT KM {} WRITE TO {}', km, _geom_h5_path(_H5_PATH_KICK_MAP))
-    #with h5py.File(_geom_file(data.simulationId), 'a') as hf:
-    #    template_common.dict_to_h5(
-    #        km, #_generate_kick_map(g_id, data.model),
-    #        hf,
-    #        path=p
-    #    )
-    #return _read_kick_map(data.simulationId)
 
 
 def _kick_map_plot(sim_id, model):

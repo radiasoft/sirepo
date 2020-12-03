@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
-    //SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
@@ -25,20 +24,6 @@ SIREPO.app.config(function() {
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        '</div>',
-        //'<div data-ng-switch-when="HMFile" data-ng-class="HMFile">',
-        //  '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        //'</div>',
-        //'<div data-ng-switch-when="HMFile" class="fieldClass">',
-        //  '<div data-file-field="field" data-model="model" data-file-type="h-m" data-empty-selection-text="No File Selected"></div>',
-        //'</div>',
-    ].join('');
-    SIREPO.appPanelHeadingButtons = [
-        '<div style="display: inline-block">',
-        //'<a data-ng-click="download()" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-        //'<ul class="dropdown-menu dropdown-menu-right">',
-        //'<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-        //'</ul>',
         '</div>',
     ].join('');
 });
@@ -957,32 +942,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.solution = null;
 
-    self.download = function() {
-        srdbg('VZ DL');
-        /*
-        var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
-        var data = [$scope.CSV_HEADING];
-        $scope.linePaths().forEach(function (p) {
-            var row = [];
-            var begin = radiaService.stringToFloatArray(p.begin);
-            var end = radiaService.stringToFloatArray(p.end);
-            row.push(
-                p.name,
-                begin[0], begin[1], begin[2],
-                end[0], end[1], end[2]
-            );
-            $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
-                row = row.concat(
-                    $scope.integrals[p.name][t]
-                );
-            });
-            data.push(row);
-        });
-        saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
-
-         */
-    };
-
     self.enableKickMaps = function() {
         return (appState.models.simulation || {}).enableKickMaps === '1';
     };
@@ -1673,70 +1632,28 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
-                //'<div class="panel panel-info data-ng-attr-id="{{ ::reportId }}">',
-                //    '<div class="panel-heading clearfix" data-panel-heading="Kick Maps" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>',
-                //    '<div data-report-content="3d" data-model-key="{{ modelKey }}" data-report-id="reportId"></div>',
-                //'</div>',
+                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
             '</div>',
-            //'<div class="col-md-6">',
-            //'<div data-report-panel="heatmap" data-panel-title="Kick Map (Horizontal)" data-model-name="kickMap"></div>',
-            //'<div data-advanced-editor-pane="" data-view-name="viewName"></div>',
-            //'</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.reportId = utilities.reportId();
-            $scope.modelKey = 'kickMap';
 
-            $scope.download = function() {
-                srdbg('DL KM');
-                /*
-                var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
-                var data = [$scope.CSV_HEADING];
-                $scope.linePaths().forEach(function (p) {
-                    var row = [];
-                    var begin = radiaService.stringToFloatArray(p.begin);
-                    var end = radiaService.stringToFloatArray(p.end);
-                    row.push(
-                        p.name,
-                        begin[0], begin[1], begin[2],
-                        end[0], end[1], end[2]
-                    );
-                    $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
-                        row = row.concat(
-                            $scope.integrals[p.name][t]
-                        );
-                    });
-                    data.push(row);
-                });
-                saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
-
-                 */
-            };
-
+            $scope.dataCleared = true;
+            // not needed unless/until we change from heatmap to a vtk plot
             function updateKickMaps() {
-                //appState.saveChanges('kickMap');
-
                 let inData = {
                     model: $scope.model,
                     method: 'get_kick_map_plot',
                     simulationId: appState.models.simulation.simulationId,
                 };
                 radiaService.getRadiaData(inData, function(d) {
-                    //srdbg('got km data', d);
                     //$scope.data = d;
-                    //panelState.requestData('kickMap', function (d) {
-                    //});
-                    //appState.saveChanges('kickMap');
                 });
-
-
             }
             appState.whenModelsLoaded($scope, function() {
                $scope.model = appState.models.kickMap;
                // wait until we have some data to update
                $scope.$on('radiaViewer.loaded', function () {
-                   //appState.saveChanges('kickMap');
+                   $scope.dataCleared = false;
                     //updateKickMaps();
                });
             });

@@ -86,6 +86,14 @@ def _apply_translation(g_id, xform):
     )
 
 
+def _geom_bnds(g_id):
+    bnds = radia.ObjGeoLim(g_id)
+    return PKDict(
+        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
+        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
+    )
+
+
 _TRANSFORMS = PKDict(
     cloneTransform=_apply_clone,
     symmetryTransform=_apply_symmetry,
@@ -278,12 +286,4 @@ def vector_field_to_data(g_id, name, pv_arr, units):
         name=name + '.Field',
         id=g_id, data=[v_data],
         bounds=radia.ObjGeoLim(g_id)
-    )
-
-
-def _geom_bnds(g_id):
-    bnds = radia.ObjGeoLim(g_id)
-    return PKDict(
-        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
-        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
     )
