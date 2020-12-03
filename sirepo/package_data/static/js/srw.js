@@ -35,7 +35,7 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
-        '<div data-ng-switch-when="RSOptElements" class="col-sm-7">',
+        '<div data-ng-switch-when="RSOptElements" class="col-sm-12">',
           '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
@@ -1787,14 +1787,37 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService)
         scope: {
         },
         template: [
+
+            '<div class="sr-object-table">',
+              '<div>',
+              '<table class="table table-hover">',
+                '<thead>',
+                    '<tr>',
+                        '<td style="font-weight: bold">Element</td>',
+                        '<td style="font-weight: bold" data-ng-repeat="f in rsElementFields">{{ f }}</td>',
+                    '</tr>',
+                '</thead>',
+                '<tbody>',
+                    '<tr data-ng-repeat="e in rsOptElements track by $index">',
+                      '<td>{{ e.title }} <input type="checkbox" data-ng-model="e.enabled" data-ng-change=""></td>',
+                      '<td><div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td><div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                    '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+
+            /*
             '<div data-ng-repeat="e in rsOptElements">',
                 '<div>',
-                //'<div>{{ e.title }}</div>',
+                '<div>{{ e.title }} <input type="checkbox" data-ng-model="e.enabled" data-ng-change=""></div>',
                 //'<div data-model-field="enabled" data-model-name="modelName" data-model="e"></div>',
-                //'<div data-model-field="offsetRanges" data-model-name="modelName" data-model="e"></div>',
-                //'<div data-model-field="rotationRanges" data-model-name="modelName" data-model="e"></div>',
+                '<div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]"></div>',
+                '<div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]"></div>',
                 '</div>',
             '</div>',
+
+             */
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
@@ -1804,13 +1827,29 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService)
             $scope.offsetRanges = 'offsetRanges';
             $scope.rotationRanges = 'rotationRanges';
             $scope.rsOptElements = [];
+            $scope.rsElementFields = [
+                SIREPO.APP_SCHEMA.model.rsOptElement.offsetRanges[SIREPO.INFO_INDEX_LABEL],
+                SIREPO.APP_SCHEMA.model.rsOptElement.rotationRanges[SIREPO.INFO_INDEX_LABEL],
+            ];
             appState.whenModelsLoaded($scope, function() {
                 srwService.updateRSOptElements();
                 $scope.rsOptElements = appState.models.exportRsOpt.elements;
+                for (let e of $scope.rsOptElements) {
+                    $scope.elementData.push({
+                        getData: function() {
+                            return e;
+                        }
+                    });
+                }
             });
+
+            $scope.elementData = [];
+
 
             function getBLForML(ml) {
             }
+
+
 
         },
     };
@@ -2992,7 +3031,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
     };
 });
 
-SIREPO.app.directive('numberList', function() {
+SIREPO.app.directive('numberList', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -3009,7 +3048,6 @@ SIREPO.app.directive('numberList', function() {
             '</div>'
         ].join(''),
         controller: function($scope, $element) {
-            srdbg('srw snumberlist', $scope.model);
             let lastModel = null;
             // NOTE: does not appear to like 'model.field' format
             $scope.values = null;
@@ -3029,7 +3067,6 @@ SIREPO.app.directive('numberList', function() {
                 if ($scope.field && ! $scope.values) {
                     $scope.values = $scope.field.split(/\s*,\s*/);
                 }
-                srdbg('vals', $scope.values, $scope.field);
                 return $scope.values;
             };
         },
