@@ -15,23 +15,17 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-CT_FILE = 'ct.zip'
-RTDOSE_FILE = 'rtdose.zip'
-RTSTRUCT_FILE = 'rtstruct-data.json'
-
 _FRAME_FILENAME = PKDict({
-    _SCHEMA.constants.dicomFrameId: CT_FILE,
-    _SCHEMA.constants.doseFrameId: RTDOSE_FILE,
-    _SCHEMA.constants.roiFrameId: RTSTRUCT_FILE,
-    _SCHEMA.constants.dose2FrameId: 'rtdose2.zip',
+    _SCHEMA.constants.dicomFrameId: _SIM_DATA.CT_FILE,
+    _SCHEMA.constants.doseFrameId: _SIM_DATA.RTDOSE_FILE,
+    _SCHEMA.constants.roiFrameId: _SIM_DATA.RTSTRUCT_FILE,
+    _SCHEMA.constants.dose2FrameId: _SIM_DATA.RTDOSE2_FILE,
 })
+
 
 def get_data_file(run_dir, model, frame, **kwargs):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     path = pkio.py_path(_SIM_DATA.lib_file_for_sim(data, _FRAME_FILENAME[frame]))
-    if not path.exists() and frame == _SCHEMA.constants.dose2FrameId:
-        # no alternate dose exists, use main dose instead
-        path = pkio.py_path(_SIM_DATA.lib_file_for_sim(data, RTDOSE_FILE))
     return PKDict(filename=path);
 
 

@@ -6,10 +6,10 @@
 &run_setup
   semaphore_file = run_setup.semaphore,
   default_order = 1,
-  final = "run_setup.final.sdds",
+  final = "%s.fin",
   lattice = "spectrometer1.ele.lte",
   p_central_mev = 100.0,
-  parameters = "run_setup.parameters.sdds",
+  parameters = "%s.param",
   use_beamline = "BL",
 &end
 
@@ -22,7 +22,7 @@
 &end
 
 &optimization_setup
-  log_file = "optimization_setup.log_file.sdds",
+  log_file = "/dev/tty",
   n_evaluations = 1500,
   n_passes = 3,
   n_restarts = 2,
@@ -95,21 +95,21 @@
 &end
 
 &save_lattice
-  filename = "save_lattice.filename.lte",
+  filename = "%s.new",
 &end
 
 &run_setup
   semaphore_file = run_setup.semaphore,
-  lattice = "save_lattice",
-  magnets = "run_setup2.magnets.sdds",
-  output = "run_setup2.output.sdds",
+  lattice = "run.new",
+  magnets = "%s.mag",
+  output = "%s.out",
   p_central_mev = 100.0,
-  sigma = "run_setup2.sigma.sdds",
+  sigma = "%s.sig",
   use_beamline = "BL",
 &end
 
 &twiss_output
-  filename = "twiss_output2.filename.sdds",
+  filename = "%s.twi",
 &end
 
 &run_control

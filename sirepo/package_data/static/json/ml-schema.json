@@ -28,17 +28,17 @@
             ["neuralnet", "Neural Network"]
         ],
         "NeuralNetActivation": [
-            ["elu", "Exponential Linear Unit (elu)"],
-            ["softmax", "Softmax"],
-            ["selu", "Scaled Exponential Linear Unit (selu)"],
-            ["softplus", "Softplus"],
-            ["softsign", "Softsign"],
-            ["relu", "Rectified Linear Unit (relu)"],
-            ["tanh", "Hyperbolic Tangent"],
-            ["sigmoid", "Sigmoid"],
-            ["hard_sigmoid", "Hard Sigmoid"],
             ["exponential", "Exponential (base e)"],
-            ["linear", "Linear (identity)"]
+            ["elu", "Exponential Linear Unit (elu)"],
+            ["hard_sigmoid", "Hard Sigmoid"],
+            ["tanh", "Hyperbolic Tangent"],
+            ["linear", "Linear (identity)"],
+            ["relu", "Rectified Linear Unit (relu)"],
+            ["selu", "Scaled Exponential Linear Unit (selu)"],
+            ["sigmoid", "Sigmoid"],
+            ["softmax", "Softmax"],
+            ["softplus", "Softplus"],
+            ["softsign", "Softsign"]
         ],
         "NeuralNetLayer": [
             ["Activation", "Activation Funciton"],
@@ -198,7 +198,9 @@
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
         "fftReport": {},
-        "fileColumnReport": {},
+        "fileColumnReport": {
+            "x": ["VS", "XColumn", -1]
+        },
         "fitAnimation": {
             "columnNumber": ["Column Number", "Integer", 0],
             "histogramBins": ["Histogram Bins", "Integer", 30],

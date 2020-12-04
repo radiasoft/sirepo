@@ -138,7 +138,7 @@ def test_warpvnd_2(fc):
         PKDict(
             currentAnimation=PKDict(
                 frame_index=0,
-                expect_y_range='0.0, 3.*e-05',
+                expect_y_range='0.0, 2.*e-05',
             ),
             fieldAnimation=PKDict(
                 frame_index=0,

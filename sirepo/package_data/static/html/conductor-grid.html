@@ -23,12 +23,10 @@
               <svg class="plot-viewport" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
                   <defs>
                       <pattern id="reflectionPattern-anode" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                          <path d="M0,0 l20,20" stroke="{{  source.conductorColors.nonZero }}" stroke-width="1.5" stroke-opacity="{{ source.getReflectOpacity('anode', 'd') }}"></path>
-                          <!--<circle cx="2" cy="12" r="2" fill="{{  source.conductorColors.nonZero }}" fill-opacity="{{ source.getReflectOpacity('anode', 'd') }}"></circle>-->
+                          <path d="M0,0 l20,20" stroke="{{  source.conductorColors.nonZero }}" stroke-width="1.5" stroke-opacity="{{ source.getReflectOpacity('anode') }}"></path>
                       </pattern>
                       <pattern data-ng-repeat="conductorType in source.conductorTypes() track by conductorType.id" id="reflectionPattern-{{ conductorType.id }}" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                          <path d="M0,0 l20,20" stroke="{{ conductorType.color }}" stroke-width="1.5" stroke-opacity="{{ source.getReflectOpacity(conductorType.id, 'd') }}"></path>
-                          <!--<circle cx="2" cy="12" r="2" fill="{{ conductorType.color }}" fill-opacity="{{ source.getReflectOpacity(conductorType.id, 'd') }}"></circle>-->
+                          <path d="M0,0 l20,20" stroke="{{ conductorType.color }}" stroke-width="1.5" stroke-opacity="{{ source.getReflectOpacity(conductorType.id) }}"></path>
                       </pattern>
                   </defs>
                   <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>

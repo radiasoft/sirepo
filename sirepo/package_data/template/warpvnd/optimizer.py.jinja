@@ -44,6 +44,8 @@ def wrapper(parameters, bounds, constraints, cache):
         #TODO(pjm): put sr-opt somewhere common
         # read warp output, parse out lines beginning with sr-opt
         for line in iter(run_warp.stdout.readline, b''):
+            if not line:
+                break
             if re.search(r'^sr-opt:\s*', line):
                 line = re.sub(r'^sr-opt:\s*|\n$', '', line)
                 print(' {}'.format(line))
