@@ -584,6 +584,6 @@ def _validate_objects(objects):
         if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
                 raise ValueError(
-                    f'anisotropic material {o.material} requires non-0 magnetization'
+                    f'{o.name}: anisotropic material {o.material} requires non-0 magnetization'
                 )
 
