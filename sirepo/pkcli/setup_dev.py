@@ -41,8 +41,8 @@ def _proprietary_codes():
 
     for s in sirepo.feature_config.cfg().proprietary_sim_types:
         f = sirepo.sim_data.get_class(s).proprietary_code_rpm()
-        assert f, \
-            f'sim_type={s} has no proprietary rpm'
+        if not f:
+            return
         r = pkio.mkdir_parent(
             sirepo.srdb.proprietary_code_dir(s),
         ).join(f)
