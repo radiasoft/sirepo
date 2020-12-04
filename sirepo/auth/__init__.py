@@ -613,12 +613,10 @@ def _auth_state():
 
 def _create_roles_for_user(uid, method):
     r = []
-    if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
-        if not sirepo.template.is_sim_type('jupyterhublogin'):
-            return
-        # Every user gets the jupyterhub role initially
-        r.append(role_for_sim_type('jupyterhublogin'))
-    auth_db.UserRole.add_roles(uid, r or get_all_roles())
+    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
+        auth_db.UserRole.add_roles(uid, get_all_roles())
+    elif sirepo.template.is_sim_type('jupyterhublogin'):
+        auth_db.UserRole.add_roles(uid, [role_for_sim_type('jupyterhublogin')])
 
 
 def _get_user():

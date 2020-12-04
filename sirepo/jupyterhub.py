@@ -40,7 +40,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
             return None
         except sirepo.util.SRException as e:
             r = e.sr_args.get('routeName')
-            if r not in ('login', 'loginFail'):
+            if r not in ('completeRegistration', 'login', 'loginFail'):
                 raise
             handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}')
             raise tornado.web.Finish()
