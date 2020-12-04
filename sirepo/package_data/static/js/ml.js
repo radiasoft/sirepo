@@ -537,7 +537,6 @@ SIREPO.app.directive('analysisParameter', function(appState, mlService) {
             '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
         ].join(''),
         controller: function($scope) {
-            srdbg('analysisParameter');
             $scope.parameterValues = function() {
                 return mlService.buildParameterList($scope.isOptional);
             };
@@ -690,7 +689,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     '<td data-ng-show="! isAnalysis" class="text-center">',
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
-                    '<td data-ng-if="! isAnalysis()">',
+                    '<td data-ng-if="! isAnalysis">',
                       '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
                     '</td>',
                   '</tr>',
