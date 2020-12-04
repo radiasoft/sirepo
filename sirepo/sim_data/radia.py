@@ -12,7 +12,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'name', 'notes', 'scaling'))
-    GEOM_FILE = 'geom.h5'
+    GEOM_FILE = 'geometry.h5'
     BEAM_TO_SYMMETRY = PKDict(
         x='0.0, 0.0, 1.0',
         y='0.0, 0.0, 1.0',

@@ -25,20 +25,6 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
-        //'<div data-ng-switch-when="HMFile" data-ng-class="HMFile">',
-        //  '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        //'</div>',
-        //'<div data-ng-switch-when="HMFile" class="fieldClass">',
-        //  '<div data-file-field="field" data-model="model" data-file-type="h-m" data-empty-selection-text="No File Selected"></div>',
-        //'</div>',
-    ].join('');
-    SIREPO.appPanelHeadingButtons = [
-        '<div style="display: inline-block">',
-        '<a data-ng-click="download()" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-        //'<ul class="dropdown-menu dropdown-menu-right">',
-        //'<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-        //'</ul>',
-        '</div>',
     ].join('');
 });
 
@@ -956,6 +942,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.solution = null;
 
+    self.enableKickMaps = function() {
+        return (appState.models.simulation || {}).enableKickMaps === '1';
+    };
+
     self.simHandleStatus = function(data) {
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
@@ -1632,6 +1622,46 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
         },
     };
 });
+
+SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            direction: '@',
+            viewName: '@',
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.dataCleared = true;
+            // not needed unless/until we change from heatmap to a vtk plot
+            function updateKickMaps() {
+                let inData = {
+                    model: $scope.model,
+                    method: 'get_kick_map_plot',
+                    simulationId: appState.models.simulation.simulationId,
+                };
+                radiaService.getRadiaData(inData, function(d) {
+                    //$scope.data = d;
+                });
+            }
+            appState.whenModelsLoaded($scope, function() {
+               $scope.model = appState.models.kickMap;
+               // wait until we have some data to update
+               $scope.$on('radiaViewer.loaded', function () {
+                   $scope.dataCleared = false;
+                    //updateKickMaps();
+               });
+            });
+
+        },
+    };
+});
+
 
 SIREPO.app.directive('numberList', function() {
     return {
