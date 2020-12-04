@@ -141,3 +141,40 @@ SIREPO.beamlineItemLogic('mirrorView', function(appState, panelState, $scope) {
         panelState.enableField('mirror', 'position', false);
     };
 });
+
+SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, requestSender, $scope) {
+
+    function computeRMSSize(field, saveChanges) {
+        var beamline = appState.applicationState().beamline;
+        requestSender.getApplicationData({
+            method: 'compute_rms_size',
+            gaussianBeam: appState.models.gaussianBeam,
+            simulationSettings: appState.models.simulationSettings,
+            mirror: beamline[0],
+            crystal: beamline[1],
+        }, function(data) {
+            if (data.rmsSize) {
+                appState.models.gaussianBeam.rmsSize = appState.formatFloat(data.rmsSize * 1e6, 4);
+                if (saveChanges) {
+                    appState.saveQuietly('gaussianBeam');
+                }
+            }
+        });
+    }
+
+    $scope.whenSelected = function() {
+        panelState.enableField('gaussianBeam', 'rmsSize', false);
+    };
+    $scope.watchFields = [
+        [
+            'simulationSettings.cavity_length',
+            'gaussianBeam.photonEnergy',
+        ], computeRMSSize,
+    ];
+
+    $scope.$on('modelChanged', function(e, name) {
+        if (name == 'beamline') {
+            computeRMSSize(name, true);
+        }
+    });
+});
