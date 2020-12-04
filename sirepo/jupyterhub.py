@@ -37,6 +37,8 @@ class Authenticator(jupyterhub.auth.Authenticator):
             sirepo.auth.require_user()
             sirepo.auth.require_sim_type('jupyterhublogin')
         except werkzeug.exceptions.Forbidden:
+            # returning None means the user is forbidden (403)
+            # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.authenticate
             return None
         except sirepo.util.SRException as e:
             r = e.sr_args.get('routeName')
