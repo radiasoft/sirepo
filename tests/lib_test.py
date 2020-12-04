@@ -5,6 +5,7 @@ u"""Test lib.Importer
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp
 import pytest
 
 def test_elegant():
@@ -26,6 +27,6 @@ def test_elegant():
         w = pkunit.work_dir().join(s.basename)
         r = d.write_files(w)
         #TODO(robnagler) may not exist in all cases
-        pkunit.pkeq('run_setup.acceptance.sdds', r.output_files[0])
+        pkunit.pkeq('%s.cen', r.output_files[0])
         for o in pkio.sorted_glob(pkunit.data_dir().join(s.basename, '*.out')):
             pkunit.file_eq(o, actual_path=w.join(o.basename).new(ext=''))

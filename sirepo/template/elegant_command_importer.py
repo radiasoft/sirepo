@@ -24,8 +24,8 @@ _TYPES = set([n[len(p):] for n in _SCHEMA['model'] if n.startswith(p)])
 del p
 
 
-def import_file(text):
-    commands = elegant_command_parser.parse_file(text)
+def import_file(text, update_filenames=True):
+    commands = elegant_command_parser.parse_file(text, update_filenames)
     if not commands:
         raise IOError('no commands found in file')
     _verify_lattice_name(commands)
@@ -35,7 +35,11 @@ def import_file(text):
         cmd_type = cmd['_type']
         if not cmd_type in _TYPES:
             raise IOError('unknown command: {}'.format(cmd_type))
-        elegant_lattice_importer.validate_fields(cmd, PKDict())
+        elegant_lattice_importer.validate_fields(
+            cmd,
+            PKDict(),
+            update_filenames=update_filenames,
+        )
         # convert macro variables into rpnVariables
         n = lattice.LatticeUtil.model_name_for_data(cmd)
         for field in cmd:

@@ -933,7 +933,7 @@ ul.sr-nav-sidebar-root {
   cursor: move;
 }
 
-    .sr-item-text {
+.sr-item-text {
   display: inline-block;
   max-height: 60px;
   overflow: hidden;

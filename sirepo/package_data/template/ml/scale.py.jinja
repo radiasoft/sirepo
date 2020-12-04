@@ -17,37 +17,44 @@ def read_data(path, **kwargs):
     )
 
 
-{% if dataFile_appMode == 'classification' %}
+{% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
 def read_data_and_encode_output_column(path, column_types):
     from sklearn.preprocessing import LabelEncoder
+    _DATA_TYPE = np.float
 
-    def _encode_output_column():
-        v[f'f{o}'] = e.transform(c)
-        t = v.dtype.descr
-        t[-1] = (t[-1][0], _DATA_TYPE)
-        return np.array(v.astype(t).tolist())
-
-    def save_encoding_file():
+    def save_encoding_file(encoder):
         from pykern import pkjson
         from pykern.pkcollections import PKDict
-
         pkjson.dump_pretty(
             PKDict(
                 zip(
-                    e.transform(e.classes_).astype(_DATA_TYPE).tolist(),
-                    e.classes_,
+                    encoder.transform(encoder.classes_).astype(_DATA_TYPE).tolist(),
+                    encoder.classes_,
                 ),
             ),
             filename='{{ classificationOutputColEncodingFile }}',
         )
 
-    _DATA_TYPE = np.float
     v = read_data(path, dtype=None, encoding='utf=8')
-    o = column_types.index('output')
-    c = v[f'f{o}']
-    e = LabelEncoder().fit(c)
-    save_encoding_file()
-    return _encode_output_column()
+    if len(v.dtype.descr) > 1:
+        descr = v.dtype.descr
+        output_encoding = None
+        for idx in range(len(descr)):
+            ft = descr[idx]
+            if np.dtype(ft[1]).kind == 'U':
+                if column_types[idx] == 'none':
+                    v[ft[0]] = 0
+                    descr[idx] = (ft[0], np.float)
+                else:
+                    encoder = LabelEncoder().fit(v[ft[0]])
+                    v[ft[0]] = encoder.transform(v[ft[0]])
+                    descr[idx] = (ft[0], _DATA_TYPE)
+                    if output_encoding is None and column_types[idx] == 'output':
+                        output_encoding = encoder
+        v = np.array(v.astype(descr).tolist())
+        if output_encoding:
+            save_encoding_file(output_encoding)
+    return v
 {% endif %}
 
 def scale_columns(values, column_types, col_type, scaler):
@@ -58,7 +65,7 @@ def scale_columns(values, column_types, col_type, scaler):
 
 
 def scale_file(path, column_types, inputs_scaler, outputs_scaler):
-    {% if dataFile_appMode == 'classification' %}
+    {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
     v = read_data_and_encode_output_column(path, column_types)
     {% else %}
     v = read_data(path)

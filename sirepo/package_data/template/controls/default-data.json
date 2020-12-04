@@ -1,0 +1,14 @@
+{
+    "models": {
+        "beamlines": [],
+        "commands": [],
+        "dataFile": {
+            "madxSirepo": null
+        },
+        "elements": [],
+        "simulation": {
+            "name": ""
+        }
+    },
+    "simulationType": "controls"
+}

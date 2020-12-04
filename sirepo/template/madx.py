@@ -135,6 +135,56 @@ def code_var(variables):
         case_insensitive=True,
     )
 
+def eval_code_var(data):
+    # TODO(e-carlin): When #3111 is merged use the code in LibAdapterBase._convert
+    # to do this work. It is copied from there.
+    cv = code_var(data.models.rpnVariables)
+
+    def _model(model, name):
+        schema = _SCHEMA.model[name]
+
+        k = x = v = None
+        try:
+            for k, x in schema.items():
+                t = x[1]
+                v = model[k] if k in model else x[2]
+                if t == 'RPNValue':
+                    t = 'Float'
+                    if cv.is_var_value(v):
+                        model[k] = cv.eval_var_with_assert(v)
+                        continue
+                if t == 'Float':
+                    model[k] = float(v) if v else 0.
+                elif t == 'Integer':
+                    model[k] = int(v) if v else 0
+        except Exception as e:
+            pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+            raise
+
+    for x in  data.models.rpnVariables:
+        x.value = cv.eval_var_with_assert(x.value)
+    for k, v in data.models.items():
+        if k in _SCHEMA.model:
+            _model(v, k)
+    for x in ('elements', 'commands'):
+        for m in data.models[x]:
+            _model(m, LatticeUtil.model_name_for_data(m))
+
+def extract_monitor_values(run_dir):
+    t = madx_parser.parse_tfs_file(run_dir.join('twiss.file.tfs'))
+    l = []
+    for i, e in enumerate(t.keyword):
+        if to_string(e) in ('MONITOR', 'HMONITOR', 'VMONITOR'):
+            l.append([i, to_string(e)])
+    m = []
+    for i in l:
+        m.append(PKDict(
+            name=to_string(t.name[i[0]]),
+            x=0 if i[1] == 'VMONITOR' else to_float(t.x[i[0]]),
+            y=0 if i[1] == 'HMONITOR' else to_float(t.y[i[0]]),
+        ))
+    return m
+
 
 def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
     t = madx_parser.parse_tfs_file(run_dir.join(filename))
@@ -241,8 +291,16 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
+def to_float(value):
+    return float(value)
+
+
 def to_floats(values):
-    return [float(v) for v in values]
+    return [to_float(v) for v in values]
+
+
+def to_string(value):
+    return value.replace('"', '')
 
 
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):

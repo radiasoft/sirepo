@@ -78,14 +78,38 @@ class ElementIterator(ModelIterator):
 class InputFileIterator(ModelIterator):
     """Iterate and extract all InputFile filenames.
     """
-    def __init__(self, sim_data):
+    def __init__(self, sim_data, update_filenames=True):
         self.result = []
         self.sim_data = sim_data
+        self._update_filenames = update_filenames
 
     def field(self, model, field_schema, field):
-        if model[field] and field_schema[1].startswith('InputFile'):
+        def _beam_input_file():
+            self.result.append(
+                self.sim_data.lib_file_name_with_model_field(
+                    'bunchFile',
+                    'sourceFile',
+                    model[field],
+                ),
+            )
+
+        def _input_file():
             self.result.append(self.sim_data.lib_file_name_with_model_field(
                 LatticeUtil.model_name_for_data(model), field, model[field]))
+
+        t = PKDict({'InputFile': _input_file, 'BeamInputFile': _beam_input_file})
+        s = field_schema[1]
+        f = None
+        for k in t:
+            if s.startswith(k):
+                f = t[k]
+                break
+        if not model[field] or not f:
+            return
+        if not self._update_filenames:
+            self.result.append(model[field])
+        else:
+           f()
 
 
 class LatticeIterator(ElementIterator):
@@ -523,6 +547,18 @@ class LatticeUtil(object):
                         iterator.field(m, model_schema[k], k)
                 iterator.end(m)
         return iterator
+
+    @classmethod
+    def max_id(cls, data):
+        max_id = 1
+        for model_type in 'elements', 'beamlines', 'commands':
+            if model_type not in data.models:
+                continue
+            for m in data.models[model_type]:
+                i = m._id if '_id' in m else m.id
+                if i > max_id:
+                    max_id = i
+        return max_id
 
     @classmethod
     def model_name_for_data(cls, model):

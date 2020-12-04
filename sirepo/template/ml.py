@@ -256,16 +256,12 @@ def _compute_csv_info(filename):
         rowCount=0,
     )
     row = None
-    with open(
-            simulation_db.simulation_lib_dir(
-                SIM_TYPE,
-            ).join(_filename(filename)),
-    ) as f:
+    with open(_filepath(filename)) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
             res.rowCount += 1
-    if not row:
+    if not row or len(row) == 1:
         return PKDict(
             error='Invalid CSV file: no columns detected'
         )
@@ -289,9 +285,7 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     assert not re.search(r'\.npy$', str(filename)), \
         f'numpy files are not supported path={filename}'
     v = np.genfromtxt(
-        str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            _filename(filename),
-        )),
+        str(_filepath(filename)),
         delimiter=',',
         skip_header=True,
     )
@@ -315,13 +309,16 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         for x, v in enumerate(r.matrix[y]):
             t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
+    labels = _get_classification_output_col_encoding(frame_args)
+    if labels:
+        labels = list(labels.values())
+    else:
+        labels = r.labels
     return template_common.heatmap(
         a,
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
-            labels=list(
-                _get_classification_output_col_encoding(frame_args).values(),
-            ),
+            labels=labels,
             title=title.format(**r),
             x_label='Predicted',
             y_label='True',
@@ -348,11 +345,19 @@ def _extract_column(run_dir, sim_in, idx):
 
 
 def _extract_file_column_report(run_dir, sim_in):
-    idx = sim_in.models[sim_in.report].columnNumber
+    m = sim_in.models[sim_in.report]
+    idx = m.columnNumber
     x, y = _extract_column(run_dir, sim_in, idx)
+    if np.isnan(y).any():
+        template_common.write_sequential_result(PKDict(
+            error='Column values are not numeric',
+        ))
+        return
+    if 'x' in m and m.x is not None and m.x >= 0:
+        _, x = _extract_column(run_dir, sim_in, m.x)
     _write_report(
         x,
-        [_plot_info(y)],
+        [_plot_info(y, style='scatter')],
         sim_in.models.columnInfo.header[idx],
     )
 
@@ -399,6 +404,10 @@ def _filename(name):
     return _SIM_DATA.lib_file_name_with_model_field('dataFile', 'file', name)
 
 
+def _filepath(name):
+    return _SIM_DATA.lib_file_abspath(_filename(name))
+
+
 def _fit_animation(frame_args):
     idx = int(frame_args.columnNumber)
     frame_args.histogramBins = 30
@@ -424,14 +433,15 @@ def _fit_animation(frame_args):
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    v.dataFile = _filename(data.models.dataFile.file)
+    v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
-        neuralNetLayers=data.models.neuralNet.layers,
-        inputDim=data.models.columnInfo.inputOutput.count('input'),
+        neuralNetLayers=dm.neuralNet.layers,
+        inputDim=dm.columnInfo.inputOutput.count('input'),
     ).pkupdate(_OUTPUT_FILE)
-    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in data.models.columnInfo.inputOutput]) + ']'
+    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in dm.columnInfo.inputOutput]) + ']'
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
@@ -442,7 +452,7 @@ def _generate_parameters_file(data):
     if 'partitionColumnReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
         return res
-    if data.models.dataFile.appMode == 'classification':
+    if dm.dataFile.appMode == 'classification':
         res += template_common.render_jinja(SIM_TYPE, v, 'classification-base.py')
         d = PKDict(
             decisionTree='decision-tree',
@@ -453,7 +463,7 @@ def _generate_parameters_file(data):
         return res + template_common.render_jinja(
             SIM_TYPE,
             v,
-            f'{d[data.models.classificationAnimation.classifier]}.py',
+            f'{d[dm.classificationAnimation.classifier]}.py',
         )
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
@@ -461,47 +471,14 @@ def _generate_parameters_file(data):
 
 
 def _get_classification_output_col_encoding(frame_args):
-    """Create _OUTPUT_FILE.classificationOutputColEncodingFile if not found.
-
-    This file is a "new" addition so "older" runs may not have it.
-    """
-    def _create_file():
-        from sklearn.preprocessing import LabelEncoder
-
-        # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
-        data = simulation_db.read_json(
-            frame_args.run_dir.join(template_common.INPUT_BASE_NAME),
-        )
-        v = np.genfromtxt(
-            str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                _filename(data.models.dataFile.file),
-            )),
-            delimiter=',',
-            skip_header=data.models.columnInfo.hasHeaderRow,
-            dtype=None,
-            encoding='utf-8',
-        )
-        o = data.models.columnInfo.inputOutput.index('output')
-        c = v[f'f{o}']
-        e = LabelEncoder().fit(c)
-        res = PKDict(
-            zip(
-                e.transform(e.classes_).astype(np.float).tolist(),
-                e.classes_,
-            ),
-        )
-        pkjson.dump_pretty(
-            res,
-            filename=_OUTPUT_FILE.classificationOutputColEncodingFile,
-        )
-        return res
     try:
         return simulation_db.read_json(
             frame_args.run_dir.join(_OUTPUT_FILE.classificationOutputColEncodingFile),
         )
     except Exception as e:
         if pkio.exception_is_not_found(e):
-            return _create_file()
+            # no file exists, data may be only numeric values
+            return PKDict()
         raise e
 
 
@@ -526,8 +503,8 @@ def _layer_implementation_list(data):
     return res.keys()
 
 
-def _plot_info(y, label=''):
-    return PKDict(points=list(y), label=label)
+def _plot_info(y, label='', style=None):
+    return PKDict(points=list(y), label=label, style=style)
 
 
 def _read_file(run_dir, filename):

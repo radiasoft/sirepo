@@ -50,7 +50,11 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             var i;
 
             function camelToKebabCase(v) {
+                if (v.toUpperCase() == v) {
+                    return v.toLowerCase();
+                }
                 v = v.charAt(0).toLowerCase() + v.slice(1);
+                v = v.replace(/\_/g, '-');
                 return v.replace(/([A-Z])/g, '-$1').toLowerCase();
             }
 
@@ -2992,7 +2996,7 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
         },
         template: [
             // keep the field the same dimensions as regular float, but offset width by button size
-            '<div class="input-group input-group-sm" style="margin-right: -30px">',
+            '<div class="input-group input-group-sm">',
               '<input data-string-to-number="" data-ng-model="model[field]" data-min="min" data-max="max" class="form-control" style="text-align: right" data-lpignore="true" required />',
               '<div class="input-group-btn">',
                 '<button data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" type="button" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>',
@@ -3984,6 +3988,52 @@ SIREPO.app.service('sbatchLoginStatusService', function($rootScope) {
         $rootScope.$broadcast('sbatchLoginSuccess');
     };
 
+});
+
+SIREPO.app.directive('simList', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            code: '@',
+            model: '=',
+            field: '=',
+            route: '@',
+        },
+        template: [
+            '<div style="white-space: nowrap">',
+              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
+              ' ',
+              '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.simList = null;
+            $scope.openSimulation = function() {
+                if ($scope.model && $scope.model[$scope.field]) {
+                    //TODO(e-carlin): this depends on the visualization route
+                    // being present in both the caller and callee apps.
+                    // Need meta data for a page in another app
+                    requestSender.newLocalWindow(
+                        $scope.route || 'visualization',
+                        {':simulationId': $scope.model[$scope.field]},
+                        $scope.code);
+                }
+            };
+            appState.whenModelsLoaded($scope, function() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'get_' + $scope.code + '_sim_list'
+                    },
+                    function(data) {
+                        if (appState.isLoaded() && data.simList) {
+                            $scope.simList = data.simList.sort(function(a, b) {
+                                return a.name.localeCompare(b.name);
+                            });
+                        }
+                    });
+            });
+        },
+    };
 });
 
 SIREPO.app.service('utilities', function($window, $interval) {

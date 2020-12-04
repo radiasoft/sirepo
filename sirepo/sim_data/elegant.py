@@ -31,19 +31,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def elegant_max_id(cls, data):
-        #TODO(pjm): move into lattice.LatticeUtil
-        max_id = 1
-        for model_type in 'elements', 'beamlines', 'commands':
-            if model_type not in data.models:
-                continue
-            for m in data.models[model_type]:
-                i = m._id if '_id' in m else m.id
-                if i > max_id:
-                    max_id = i
-        return max_id
-
-    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
         if compute_model in ('twissReport', 'bunchReport'):

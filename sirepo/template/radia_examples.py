@@ -4,16 +4,10 @@ u"""Radia examples.
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import division
-
 import math
 import radia
 
-from sirepo.template import radia_tk
 
-_EXAMPLES = ['Dipole', 'Wiggler', 'Undulator']
-
-# eventually all these steps will come from the model and this will go away
 def dipole_example():
 
     # Geometry Parameters
@@ -350,13 +344,9 @@ def wiggler_example():
     return geom
 
 
-def build(name):
-    if name not in _EXAMPLES:
-        raise KeyError('{}: No such example'.format(name))
-    if name == 'Dipole':
-        return dipole_example()
-    if name == 'Wiggler':
-        return wiggler_example()
-    if name == 'Undulator':
-        return undulator_example()
+EXAMPLES = {
+    'Dipole': dipole_example,
+    'Wiggler': wiggler_example,
+    'Undulator': undulator_example
+}
 
