@@ -1788,9 +1788,9 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService)
         },
         template: [
 
-            '<div class="sr-object-table">',
-              '<div>',
-              '<table class="table table-hover">',
+            '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
+              '<div style="overflow-y: scroll; overflow-x: hidden; height: 250px;">',
+              '<table class="table table-hover" style="border-width: 1px; border-color: #00a2c5;">',
                 '<thead>',
                     '<tr>',
                         '<td style="font-weight: bold">Element</td>',
@@ -1805,19 +1805,8 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService)
                     '</tr>',
                 '</tbody>',
               '</table>',
+              '</div>',
             '</div>',
-
-            /*
-            '<div data-ng-repeat="e in rsOptElements">',
-                '<div>',
-                '<div>{{ e.title }} <input type="checkbox" data-ng-model="e.enabled" data-ng-change=""></div>',
-                //'<div data-model-field="enabled" data-model-name="modelName" data-model="e"></div>',
-                '<div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]"></div>',
-                '<div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]"></div>',
-                '</div>',
-            '</div>',
-
-             */
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
