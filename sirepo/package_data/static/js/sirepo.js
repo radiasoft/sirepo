@@ -552,6 +552,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };
 
+    self.formatFloat = function(v, decimals) {
+        return +parseFloat(v).toFixed(decimals);
+    };
+
     self.formatTime = function(unixTime) {
         function format(val) {
             return leftPadZero(Math.floor(val));
