@@ -446,6 +446,7 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False)
     v.objects = g.get('objects', [])
+    _validate_objects(v.objects)
     # read in h-m curves if applicable
     for o in v.objects:
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
@@ -668,6 +669,16 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
+
+
+def _validate_objects(objects):
+    from numpy import linalg
+    for o in objects:
+        if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
+            if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
+                raise ValueError(
+                    f'{o.name}: anisotropic material {o.material} requires non-0 magnetization'
+                )
 
 
 def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):

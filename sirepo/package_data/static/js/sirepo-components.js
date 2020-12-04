@@ -270,7 +270,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
         },
         template: [
             '<div data-ng-show="isFormDirty()">',
-              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
+              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! isFormValid()">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
             '</div>',
         ].join(''),
@@ -285,6 +285,17 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
                 $scope.form.$setPristine();
             }
 
+            // returns an array of form elements (the DOM elements attribute is an
+            // HTMLCollection)
+            function getControls(form) {
+                let els = form.$$element[0].elements;
+                let ctls = [];
+                for (let el of els) {
+                    ctls.push(el);
+                }
+                return ctls;
+            }
+
             $scope.cancelChanges = function() {
                 appState.cancelChanges(Object.keys(fieldsByModel));
             };
@@ -296,7 +307,19 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
                 return appState.areFieldsDirty(fieldsByModel);
             };
 
-            $scope.saveChanges = function() {
+            $scope.isFormValid = function() {
+                // this is a first step in using HTML5 field validation
+                let ctlsValid = getControls($scope.form)
+                    .map(function (el) {
+                        return el.validity.valid;
+                    })
+                    .reduce(function (prev, curr) {
+                        return prev && curr;
+                    }, true);
+                return ctlsValid && $scope.form.$valid;
+            };
+
+           $scope.saveChanges = function() {
                 if ($scope.form.$valid) {
                     appState.saveChanges(Object.keys(fieldsByModel));
                 }
@@ -4033,11 +4056,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
 
     var self = this;
 
-    this.modelFieldID = function (modelName, fieldName) {
+    this.modelFieldID = function(modelName, fieldName) {
         return 'model-' + modelName + '-' + fieldName;
     };
 
-    this.ngModelForInput = function (modelName, fieldName) {
+    this.ngModelForElement = function(el) {
+        return angular.element(el).controller('ngModel');
+    };
+
+    this.ngModelForInput = function(modelName, fieldName) {
         return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
     };
 
