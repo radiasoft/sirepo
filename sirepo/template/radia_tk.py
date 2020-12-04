@@ -86,6 +86,14 @@ def _apply_translation(g_id, xform):
     )
 
 
+def _geom_bnds(g_id):
+    bnds = radia.ObjGeoLim(g_id)
+    return PKDict(
+        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
+        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
+    )
+
+
 _TRANSFORMS = PKDict(
     cloneTransform=_apply_clone,
     symmetryTransform=_apply_symmetry,
@@ -107,15 +115,13 @@ def build_box(center, size, material, magnetization, div, h_m_curve=None):
     g_id = radia.ObjRecMag(center, size, magnetization)
     if div:
         radia.ObjDivMag(g_id, div)
-    # do not apply a material unless a magentization of some magnitude has been set
-    if n_mag > 0:
-        if material == 'custom':
-            mat = radia.MatSatIsoTab(
-                [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
-            )
-        else:
-            mat = radia.MatStd(material, n_mag)
-        radia.MatApl(g_id, mat)
+    if material == 'custom':
+        mat = radia.MatSatIsoTab(
+            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
+        )
+    else:
+        mat = radia.MatStd(material, n_mag)
+    radia.MatApl(g_id, mat)
     return g_id
 
 
@@ -220,6 +226,16 @@ def get_magnetization(g_id):
     return radia.ObjM(g_id)
 
 
+def kick_map(
+        g_id, begin, dir_long, num_periods, period_length, dir_trans, range_trans_1,
+        num_pts_trans_1, range_trans_2, num_pts_trans_2
+    ):
+    return radia.FldFocKickPer(
+        g_id, begin, dir_long, period_length, num_periods, dir_trans, range_trans_1,
+        num_pts_trans_1, range_trans_2, num_pts_trans_2
+    )
+
+
 def load_bin(data):
     return radia.UtiDmpPrs(data)
 
@@ -254,7 +270,7 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     for i in range(len(pv_arr)):
         p = pv_arr[i][0]
         v = pv_arr[i][1]
-        n = linalg.norm(v)
+        n = numpy.linalg.norm(v)
         v_max = max(v_max, n)
         v_min = min(v_min, n)
         nv = (numpy.array(v) / (n if n > 0 else 1.)).tolist()
@@ -268,12 +284,4 @@ def vector_field_to_data(g_id, name, pv_arr, units):
         name=name + '.Field',
         id=g_id, data=[v_data],
         bounds=radia.ObjGeoLim(g_id)
-    )
-
-
-def _geom_bnds(g_id):
-    bnds = radia.ObjGeoLim(g_id)
-    return PKDict(
-        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
-        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
     )

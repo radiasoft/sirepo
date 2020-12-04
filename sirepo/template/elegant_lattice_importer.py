@@ -51,6 +51,9 @@ class ElegantRPNEval(object):
         # sleep                       sleep for number of seconds
         # @                       push command input file
         pkdc('rpn variables={} expr="{}"', var_list, expr)
+        if re.match(r'^\{.+\}$', expr):
+            # It is a shell command
+            return expr, None
         out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, expr)])
         if out is None:
             return None, 'invalid'
@@ -63,13 +66,14 @@ def elegant_code_var(variables):
     return code_variable.CodeVar(variables, ElegantRPNEval())
 
 
-def import_file(text, data=None):
+def import_file(text, data=None, update_filenames=True):
     if not data:
         data = simulation_db.default_data(elegant_common.SIM_TYPE)
     models = elegant_lattice_parser.parse_file(
         text,
         data.models.rpnVariables,
-        _SIM_DATA.elegant_max_id(data))
+        lattice.LatticeUtil.max_id(data),
+    )
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
@@ -80,7 +84,7 @@ def import_file(text, data=None):
     for el in models['elements']:
         el['type'] = _validate_type(el, element_names)
         element_names[el['name'].upper()] = el
-        validate_fields(el, rpn_cache, code_var)
+        validate_fields(el, rpn_cache, code_var, update_filenames)
 
     for bl in models['beamlines']:
         bl['items'] = _validate_beamline(bl, name_to_id, element_names)
@@ -102,11 +106,11 @@ def import_file(text, data=None):
     return data
 
 
-def validate_fields(el, rpn_cache, code_var=None):
+def validate_fields(el, rpn_cache, code_var=None, update_filenames=True):
     if code_var is None:
         code_var = elegant_code_var([])
     for field in el.copy():
-        _validate_field(el, field, rpn_cache, code_var)
+        _validate_field(el, field, rpn_cache, code_var, update_filenames)
     model_name = lattice.LatticeUtil.model_name_for_data(el)
     for field in _SCHEMA['model'][model_name]:
         if field not in el:
@@ -182,7 +186,7 @@ def _validate_enum(el, field, field_type):
         raise IOError('{} unknown value: "{}"'.format(field, search))
 
 
-def _validate_field(el, field, rpn_cache, code_var):
+def _validate_field(el, field, rpn_cache, code_var, update_filenames):
     if field in ['_id', '_type']:
         return
     if '_type' not in el and field == 'type':
@@ -190,11 +194,12 @@ def _validate_field(el, field, rpn_cache, code_var):
     field_type = _field_type_for_field(el, field)
     if not field_type:
         return
-    if field_type == 'OutputFile':
-        el[field] = '1'
-    elif field_type == 'InputFile':
-        el[field] = ntpath.basename(el[field])
-    elif field_type == "InputFileXY":
+    if update_filenames:
+        if field_type == 'OutputFile':
+            el[field] = '1'
+        elif field_type == 'InputFile':
+            el[field] = ntpath.basename(el[field])
+    if field_type == "InputFileXY":
         _validate_input_file(el, field)
     elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and \
          code_var.is_var_value(el[field]):

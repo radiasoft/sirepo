@@ -2,6 +2,9 @@
     "models": {
         "beamlines": [],
         "commands": [],
+        "dataFile": {
+            "madxSirepo": true
+        },
         "elements": [],
         "externalLattice": {
             "models": {
