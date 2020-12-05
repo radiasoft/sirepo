@@ -71,11 +71,14 @@ def init_apis(*args, **kwargs):
     )
     pkio.mkdir_parent(cfg.user_db_root_d)
     sirepo.auth_db.init_model(_init_model)
-    sirepo.events.register({
-        'auth_logout': _event_auth_logout,
-        'end_api_call': _event_end_api_call,
-        'github_authorized': _event_github_authorized,
-    })
+    sirepo.events.register(PKDict(
+        auth_logout=_event_auth_logout,
+        end_api_call=_event_end_api_call,
+    ))
+    if cfg.rs_jupyter_migrate:
+        sirepo.events.register(PKDict(
+            github_authorized=_event_github_authorized,
+        ))
 
 
 def _create_user_if_not_found():
@@ -130,23 +133,15 @@ def _event_end_api_call(kwargs):
 
 
 def _event_github_authorized(kwargs):
-    def _migrate():
-        try:
-            s.rename(d)
-        except (py.error.ENOTDIR, py.error.ENOENT):
-            pkdlog(
-                'Tried to migrate existing rs jupyter directory={} but not found. Ignoring.',
-                s,
-            )
-            pkio.mkdir_parent(d)
-
-    if not cfg.rs_jupyter_migrate:
-        return
-    with sirepo.auth_db.thread_lock:
-        s = _user_dir(user_name=kwargs.user_name)
-        d = _user_dir()
-        if not s == d:
-            _migrate()
+    d = _user_dir()
+    JupyterhubUser.update_user_name(
+        sirepo.auth.logged_in_user(),
+        kwargs.user_name,
+    )
+    pkio.unchecked_remove(d)
+    # User may not have been a user originally so need to create their dir.
+    # If it exists (they were a user) it is a no-op.
+    pkio.mkdir_parent(_user_dir())
     raise sirepo.util.Redirect('jupyter')
 
 
@@ -162,6 +157,11 @@ def _init_model(base):
             unique=True,
         )
 
+        @classmethod
+        def update_user_name(cls, uid, user_name):
+            with sirepo.auth_db.thread_lock:
+                cls._session.query(cls).get(uid).user_name = user_name
+                cls._session.commit()
 
 def _unchecked_hub_user(uid):
     with sirepo.auth_db.thread_lock:
