@@ -46,6 +46,7 @@
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
+            "enableKickMaps": false,
             "folder": "/Examples",
             "isExample": true,
             "name": "Dipole",

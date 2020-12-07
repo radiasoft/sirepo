@@ -33,18 +33,28 @@ _BEAM_AXIS_ROTATIONS = PKDict(
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
-_DMP_FILE = 'geom.dat'
+
+_DMP_FILE = 'geometry.dat'
+
+# Note that these column names and units are required by elegant
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
+_KICK_MAP_COLS = ['x', 'y', 'xpFactor', 'ypFactor']
+_KICK_MAP_UNITS = ['m', 'm', '(T*m)$a2$n', '(T*m)$a2$n']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
-_GEOM_FILE = 'geom.h5'
-_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
-_REPORTS = ['geometry', 'reset']
+_GEOM_FILE = 'geometry.h5'
+_KICK_FILE = 'kickMap.h5'
+_KICK_SDDS_FILE = 'kickMap.sdds'
+_KICK_TEXT_FILE = 'kickMap.txt'
+_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
+_SIM_REPORTS = ['geometry', 'reset', 'solver']
+_REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
-GEOM_PYTHON_FILE = 'geom.py'
+GEOM_PYTHON_FILE = 'geometry.py'
+KICK_PYTHON_FILE = 'kickMap.py'
 RADIA_EXPORT_FILE = 'radia_export.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
@@ -92,6 +102,11 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
+    if 'kickMap' in sim_in.report:
+        template_common.write_sequential_result(
+            _kick_map_plot(sim_in.simulationId, sim_in.models.kickMap),
+            run_dir=run_dir,
+        )
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
@@ -99,15 +114,13 @@ def extract_report_data(run_dir, sim_in):
 def get_application_data(data, **kwargs):
     if 'method' not in data:
         raise RuntimeError('no application data method')
-    if data.method not in _METHODS:
+    if data.method not in _SCHEMA.constants.getDataMethods:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
     sim_id = data.simulationId
     try:
-        with open(str(_dmp_file(sim_id)), 'rb') as f:
-            b = f.read()
-            g_id = radia_tk.load_bin(b)
+        g_id = _get_g_id(sim_id)
     except IOError as e:
         if pkio.exception_is_not_found(e):
             # No Radia dump file
@@ -148,6 +161,8 @@ def get_application_data(data, **kwargs):
 
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
+    if data.method == 'get_kick_map':
+        return _read_or_generate_kick_map(g_id, data)
     if data.method == 'get_geom':
         g_types = data.get(
             'geomTypes',
@@ -163,7 +178,7 @@ def get_application_data(data, **kwargs):
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            sim_id + '_' + res.name + '.' + data.fileType
+            f'{sim_id}_{res.name}.{data.fileType}'
         )
         # we save individual field paths, so there will be one item in the list
         vectors = res.data[0].vectors
@@ -184,21 +199,44 @@ def get_application_data(data, **kwargs):
         return res
 
 
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    assert model in _REPORTS, f'unknown report: {model}'
+    name = simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models.simulation.name
+    if model == 'kickMap':
+        sfx = (options.suffix or 'sdds') if options and 'suffix' in options else 'sdds'
+        sim_id = simulation_db.sid_from_compute_file(
+            pkio.py_path(f'{run_dir}/{_KICK_FILE}')
+        )
+        km_dict = _read_kick_map(sim_id)
+        f = f'{model}.{sfx}'
+        if sfx == 'sdds':
+            _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
+        if sfx == 'txt':
+            pkio.write_text(f'{run_dir}/{f}', km_dict.txt)
+        return f
+
+
 def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
+    data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     data.models.geometry.name = new_simulation_data.name
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
 
 
-
-def python_source_for_model(data, model):
+def python_source_for_model(data):
     return _generate_parameters_file(data, True)
 
 
 def write_parameters(data, run_dir, is_parallel):
-    # remove centrailzed geom files
-    pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
+    sim_id = data.simulationId
+    if data.report in _SIM_REPORTS:
+        # remove centrailzed geom files
+        pkio.unchecked_remove(_geom_file(sim_id), _dmp_file(sim_id))
+    if data.report == 'kickMap':
+        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, False),
@@ -366,8 +404,30 @@ def _generate_data(g_id, in_data, add_lines=True):
         return PKDict(error=e.message)
 
 
+def _generate_kick_map(g_id, model):
+    km = radia_tk.kick_map(
+        g_id,
+        sirepo.util.split_comma_delimited_string(model.begin, float),
+        sirepo.util.split_comma_delimited_string(model.direction, float),
+        int(model.numPeriods),
+        float(model.periodLength),
+        sirepo.util.split_comma_delimited_string(model.transverseDirection, float),
+        float(model.transverseRange1),
+        int(model.numTransPoints1),
+        float(model.transverseRange2),
+        int(model.numTransPoints2)
+    )
+    return PKDict(
+        h=km[0],
+        v=km[1],
+        lmsqr=km[2],
+        x=km[3],
+        y=km[4]
+    )
+
+
 def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
+    return radia_tk.geom_to_data(g_id, name=name)
 
 
 def _generate_parameters_file(data, for_export):
@@ -386,6 +446,7 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False)
     v.objects = g.get('objects', [])
+    _validate_objects(v.objects)
     # read in h-m curves if applicable
     for o in v.objects:
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
@@ -406,7 +467,7 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else _geom_file(sim_id)
+    v.dataFile = _GEOM_FILE if for_export else f'{report}.h5'
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -416,6 +477,7 @@ def _generate_parameters_file(data, for_export):
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
+    v.kickMap = data.models.get('kickMap', None)
     if 'solver' in report or for_export:
         v.doSolve = True
         s = data.models.solver
@@ -426,10 +488,12 @@ def _generate_parameters_file(data, for_export):
         radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data, False)
-    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
+    v.h5KickMapPath = _H5_PATH_KICK_MAP
+    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
+    v.h5SolutionPath = _H5_PATH_SOLUTION
 
-    j_file = RADIA_EXPORT_FILE if for_export else GEOM_PYTHON_FILE
+    j_file = RADIA_EXPORT_FILE if for_export else f'{report}.py'
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -443,33 +507,38 @@ def _geom_file(sim_id):
 
 
 def _geom_h5_path(view_type, field_type=None):
-    p = 'geometry/' + view_type
+    p = f'geometry/{view_type}'
     if field_type is not None:
-        p += '/' + field_type
+        p += f'/{field_type}'
     return p
 
 
-def _get_res_file(sim_id, filename):
+def _get_g_id(sim_id):
+    with open(str(_dmp_file(sim_id)), 'rb') as f:
+        return radia_tk.load_bin(f.read())
+
+
+def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
     return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
-        .join(_GEOM_DIR).join(filename)
+        .join(run_dir).join(filename)
 
 
-def _get_sdds():
+def _get_sdds(cols, units):
     if _cfg.sdds is None:
         _cfg.sdds = sdds.SDDS(_SDDS_INDEX)
         # TODO(mvk): elegant cannot read these binary files; figure that out
         # _cfg.sdds = sd.SDDS_BINARY
-        for i, n in enumerate(_FIELD_MAP_COLS):
+        for i, n in enumerate(cols):
             # name, symbol, units, desc, format, type, len)
             _cfg.sdds.defineColumn(
-                n, '', _FIELD_MAP_UNITS[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
+                n, '', units[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
             )
     return _cfg.sdds
 
 
-def _read_h5_path(sim_id, h5path):
+def _read_h5_path(sim_id, run_dir, filename, h5path):
     try:
-        with h5py.File(_geom_file(sim_id), 'r') as hf:
+        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
@@ -487,23 +556,50 @@ def _read_h_m_file(file_name):
         'h-m'
     ))
     lines = [r for r in sirepo.csv.open_csv(h_m_file)]
-    # lines = [[float(c.strip()) for c in [r for r in sirepo.csv.open_csv(h_m_file)]
     f_lines = []
     for l in lines:
         f_lines.append([float(c.strip()) for c in l])
-    #pkdp('HM LINES {}', f_lines)
     return f_lines
 
 
 def _read_data(sim_id, view_type, field_type):
-    res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
+    res = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _geom_h5_path(view_type, field_type))
     if res:
         res.solution = _read_solution(sim_id)
     return res
 
 
 def _read_id_map(sim_id):
-    return _read_h5_path(sim_id, 'idMap')
+    return _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, 'idMap')
+
+
+def _read_kick_map(sim_id):
+    return _read_h5_path(sim_id, 'kickMap', _KICK_FILE, _H5_PATH_KICK_MAP)
+
+
+def _read_or_generate_kick_map(g_id, data):
+    res = _read_kick_map(data.simulationId)
+    if res:
+        return res
+    return _generate_kick_map(g_id, data.model)
+
+
+def _kick_map_plot(sim_id, model):
+    from sirepo import srschema
+    g_id = _get_g_id(sim_id)
+    component = model.component
+    km = _generate_kick_map(g_id, model)
+    if not km:
+        return None
+    z = km[component]
+    return PKDict(
+        title=f'{srschema.get_enums(_SCHEMA, "KickMapComponent")[component]} (T2m2)',
+        x_range=[km.x[0], km.x[-1], len(z)],
+        y_range=[km.y[0], km.y[-1], len(z[0])],
+        x_label='x [mm]',
+        y_label='y [mm]',
+        z_matrix=z,
+    )
 
 
 def _read_or_generate(g_id, data):
@@ -522,7 +618,7 @@ def _read_or_generate(g_id, data):
 
 
 def _read_solution(sim_id):
-    s = _read_h5_path(sim_id, 'solution')
+    s = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _H5_PATH_SOLUTION)
     if not s:
         return None
     return PKDict(
@@ -539,7 +635,7 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
     # reserve first line for a header
-    data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
+    data = [f'x,y,z,{field_type}x,{field_type}y,{field_type}z']
     # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
     mags = numpy.array(vectors.magnitudes)
@@ -554,8 +650,8 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 
 
 def _save_fm_sdds(name, vectors, scipy_rotation, path):
-    s = _get_sdds()
-    s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
+    s = _get_sdds(_FIELD_MAP_COLS, _FIELD_MAP_UNITS)
+    s.setDescription(f'Field Map for {name}', 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
     # mm -> m
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
@@ -564,8 +660,6 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
-    # can we use tmp_dir before it gets deleted?
-    # with simulation_db.tmp_dir(True) as out_dir:
     col_data = []
     for i in range(3):
         col_data.append([pts[:, i].tolist()])
@@ -576,3 +670,45 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s.save(str(path))
     return path
 
+
+def _validate_objects(objects):
+    from numpy import linalg
+    for o in objects:
+        if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
+            if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
+                raise ValueError(
+                    f'{o.name}: anisotropic material {o.material} requires non-0 magnetization'
+                )
+
+
+def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
+    s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
+    s.setDescription(f'Kick Map for {name}', 'x(m), y(m), h(T2m2), v(T2m2)')
+    col_data = []
+    x = []
+    y = []
+    h = []
+    v = []
+    #TODO: better way to do this...
+    for i in range(len(x_vals)):
+        for j in range(len(x_vals)):
+            x.append(0.001 * x_vals[j])
+    for i in range(len(y_vals)):
+        for j in range(len(y_vals)):
+            y.append(0.001 * y_vals[i])
+    for i in range(len(x_vals)):
+        for j in range(len(y_vals)):
+            h.append(h_vals[i][j])
+            v.append(v_vals[i][j])
+    col_data.append([x])
+    col_data.append([y])
+    col_data.append([h])
+    col_data.append([v])
+    for i, n in enumerate(_KICK_MAP_COLS):
+        s.setColumnValueLists(n, col_data[i])
+    s.save(str(path))
+    return path
+
+
+_H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
+_H5_PATH_SOLUTION = _geom_h5_path('solution')

@@ -107,7 +107,7 @@
 &twiss_output
   alpha_x = -1.609709872915761,
   alpha_y = -1.653138844198896,
-  beta_x = 4.034896311524342,
+  beta_x = "({sddsanalyzebeam whruby.sdds -pipe=out | sdds2stream -pipe -column=betax})",
   beta_y = 4.199343696609461,
   filename = "%s.twi",
   matched = 0,

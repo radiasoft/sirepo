@@ -49,6 +49,12 @@ def elegant_code_var(variables):
             **code_variable.PurePythonEval._OPS
         })
 
+        def eval_var(self, expr, depends, variables):
+            if re.match(r'^\{.+\}$', expr):
+                # It is a shell command
+                return expr, None
+            return super().eval_var(expr, depends, variables)
+
     return code_variable.CodeVar(
         variables,
         _P(
@@ -79,7 +85,8 @@ def import_file(text, data=None, update_filenames=True):
     models = elegant_lattice_parser.parse_file(
         text,
         data.models.rpnVariables,
-        _SIM_DATA.elegant_max_id(data))
+        lattice.LatticeUtil.max_id(data),
+    )
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]

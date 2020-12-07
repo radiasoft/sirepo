@@ -92,7 +92,7 @@
       ! alpha_y = -5.4,
 	!	reference_file = twiss.input,
 	!Twiss Parameters from twiss.input (from S.Shin\..\Method_SShin)
-	beta_x = 4.034896311524342,
+	beta_x = "{sddsanalyzebeam whruby.sdds -pipe=out | sdds2stream -pipe -column=betax}",
 	beta_y = 4.199343696609461,
 	alpha_x = -1.609709872915761,
 	alpha_y = -1.653138844198896

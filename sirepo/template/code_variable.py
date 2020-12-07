@@ -69,7 +69,10 @@ class CodeVar():
     def eval_var_with_assert(self, expr):
         (v, err) = self.eval_var(expr)
         assert not err, f'expr={expr} err={err}'
-        return float(v)
+        try:
+            return float(v)
+        except ValueError:
+            return v
 
     def get_application_data(self, args, schema, ignore_array_values=False):
         from sirepo import simulation_db
