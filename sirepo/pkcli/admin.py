@@ -39,7 +39,7 @@ def audit_proprietary_lib_files(*uid):
     import sirepo.auth
 
     #TODO(robnagler) locking
-    for u in uid or all_uids():
+    for u in uid or sirepo.auth_db.all_uids():
         sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
