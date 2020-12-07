@@ -15,6 +15,7 @@ from sirepo.template import elegant_lattice_parser
 from sirepo.template import lattice
 import math
 import ntpath
+import operator
 import re
 import sirepo.sim_data
 import subprocess
@@ -39,13 +40,24 @@ def elegant_code_var(variables):
 
     class _P(code_variable.PurePythonEval):
         _OPS = PKDict({
+            '<': operator.lt,
+            '>': operator.gt,
             'beta.p': lambda a: a / (math.sqrt((1 + (a * a)))),
+            'dacos': lambda a: math.acos(a) * 180 / _PI,
             'dasin': lambda a: math.asin(a) * 180 / _PI,
+            'datan': lambda a: math.atan(a) * 180 / _PI,
+            'dcos': lambda a: math.cos(a * _PI / 180),
+            'dsin': lambda a: math.sin(a * _PI / 180),
+            'dtan': lambda a: math.tan(a * _PI / 180),
+            'gamma.beta': lambda a: 1 / math.sqrt(1 - (a * a)),
+            'gamma.p': lambda a: math.sqrt(1 + (a * a)),
             # TODO(e-carlin): Should not need lambda.
             # https://bugs.python.org/issue29299
             'ln': lambda a: math.log(a),
-            'mult': lambda a, b: a * b,
-            '<': lambda a, b: a < b,
+            'mod': operator.mod,
+            'mult': operator.mul,
+            'p.beta': lambda a: a / math.sqrt(1 - (a * a)),
+            'p.gamma': lambda a: math.sqrt((a * a) - 1),
             **code_variable.PurePythonEval._OPS
         })
 
