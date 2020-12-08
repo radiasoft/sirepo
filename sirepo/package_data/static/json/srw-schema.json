@@ -454,14 +454,16 @@
         "rsOptElement": {
             "id": ["_", "Integer", -1],
             "enabled": ["Enabled", "Boolean", "0"],
-            "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "h, v, b"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
             "title": ["_", "String", ""]
         },
         "exportRsOpt": {
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
-            "numRuns": ["Number of Runs", "Integer", 100]
+            "numRuns": ["Number of Runs", "Integer", 100],
+            "numWorkers": ["Number of Workers", "Integer", 1]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -1621,12 +1623,13 @@
             "advanced": []
         },
         "exportRsOpt": {
-            "title": "Generate Machine Learning Data",
+            "title": "Generate Machine Learning Data Script",
             "basic": [
             ],
             "advanced": [
                 "elements",
                 "numCores",
+                "numWorkers",
                 "numRuns"
             ]
         },

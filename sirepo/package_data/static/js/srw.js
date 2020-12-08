@@ -333,15 +333,20 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         for (let item of (appState.models.beamline || []).filter(function(i) {
             return i.useForRSOpt === '1';
         })) {
-            if (self.findRSOptElement(item.id)) {
-                continue;
+            let e = self.findRSOptElement(item.id);
+            let newEl = ! e;
+            if (newEl) {
+                //e = appState.setModelDefaults(item, 'rsOptElement');
+                e = appState.setModelDefaults({}, 'rsOptElement');
             }
-            let e = appState.setModelDefaults({}, 'rsOptElement');
             e.title = item.title;
             e.id = item.id;
-            appState.models.exportRsOpt.elements.push(e);
+            e.position = `${item.horizontalOffset || 0.0}, ${item.verticalOffset || 0.0}, ${item.position}`;
+            if (newEl) {
+                appState.models.exportRsOpt.elements.push(e);
+            }
         }
-        appState.saveChanges('exportRsOpt');
+        appState.saveQuietly('exportRsOpt');
         return appState.models.exportRsOpt.elements;
     };
 
@@ -1781,13 +1786,12 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService) {
+SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService) {
     return {
         restrict: 'A',
         scope: {
         },
         template: [
-
             '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
               '<div style="overflow-y: scroll; overflow-x: hidden; height: 250px;">',
               '<table class="table table-hover" style="border-width: 1px; border-color: #00a2c5;">',
@@ -1810,6 +1814,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService)
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            $scope.elementData = [];
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
             $scope.enabled = 'enabled';
@@ -1821,25 +1826,24 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, srwService)
                 SIREPO.APP_SCHEMA.model.rsOptElement.rotationRanges[SIREPO.INFO_INDEX_LABEL],
             ];
             appState.whenModelsLoaded($scope, function() {
-                srwService.updateRSOptElements();
-                $scope.rsOptElements = appState.models.exportRsOpt.elements;
-                for (let e of $scope.rsOptElements) {
-                    $scope.elementData.push({
-                        getData: function() {
+                $scope.rsOptElements = srwService.updateRSOptElements();
+                $scope.elementData = $scope.rsOptElements.map(function(e) {
+                    return {
+                        getData: function () {
                             return e;
                         }
-                    });
-                }
+                    };
+                });
+                $scope.$on('exportRsOpt.changed', function(e, d) {
+                    srwService.updateRSOptElements();
+                    const args = {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.yml`,
+                    };
+                    requestSender.newWindow('exportRSOptConfig', args);
+                });
             });
-
-            $scope.elementData = [];
-
-
-            function getBLForML(ml) {
-            }
-
-
-
         },
     };
 });

@@ -329,6 +329,21 @@ def extract_report_data(filename, sim_in):
     return info
 
 
+def export_rsopt_config(data):
+    res, v = template_common.generate_parameters_file(data)
+    m = data.models.exportRsOpt
+    v.pyFileName = f'{data.models.simulation.name}-rsOptExport.py'
+    v.numCores = int(m.numCores)
+    v.numRuns = int(m.numRuns)
+    v.numWorkers = int(m.numWorkers)
+    v.mlElements = [e for e in m.elements if e.enabled and e.enabled != '0']
+    for e in v.mlElements:
+        e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
+        e.position = sirepo.util.split_comma_delimited_string(e.position, float)
+        #e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
+    return template_common.render_jinja(SIM_TYPE, v, 'mlExport.yml')
+
+
 def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
@@ -620,10 +635,6 @@ def python_source_for_model(data, model):
     data['report'] = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     return _generate_parameters_file(data, plot_reports=True)
 
-
-def export_rsopt_config(data):
-    data['report'] = 'exportRsOpt'
-    return _generate_parameters_file(data)
 
 
 def remove_last_frame(run_dir):
