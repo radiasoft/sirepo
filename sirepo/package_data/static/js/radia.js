@@ -3,10 +3,20 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+//import {SirepoDOM, SirepoSelection, SirepoSelectionOption} from './sirepo-dom.module';
+
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
+        //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
+        //...new SirepoSelection('MaterialType', false).val,
+        //'</div>',
+        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+            '<div class="sr-input-warning">',
+            '</div>',
+        '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
@@ -25,24 +35,10 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
-        //'<div data-ng-switch-when="HMFile" data-ng-class="HMFile">',
-        //  '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        //'</div>',
-        //'<div data-ng-switch-when="HMFile" class="fieldClass">',
-        //  '<div data-file-field="field" data-model="model" data-file-type="h-m" data-empty-selection-text="No File Selected"></div>',
-        //'</div>',
-    ].join('');
-    SIREPO.appPanelHeadingButtons = [
-        '<div style="display: inline-block">',
-        '<a data-ng-click="download()" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-        //'<ul class="dropdown-menu dropdown-menu-right">',
-        //'<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-        //'</ul>',
-        '</div>',
     ].join('');
 });
 
-SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender) {
+SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender, utilities, validationService) {
     var self = {};
 
     // why is this here? - answer: for getting frames
@@ -233,9 +229,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, vtkPlotting, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
     var self = this;
 
+    const anisotropicMaterialMsg = 'Anisotropic materials require non-zero magnetization';
     const editorFields = [
         'geomObject.magnetization',
         'geomObject.material',
@@ -847,31 +844,22 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'materialFile',
             o.material === 'custom'
         );
-        //srdbg('mf', o.materialFile);
-        //let form = panelState.getForm('geomObject', 'materialFile');
-        //if (o.material === 'custom') {
-        //    if (! o.materialFile) {
-        //        form.$valid = false;
-        //    }
-        //}
-        //panelState.showField(
-        //    'geomObject',
-        //    'symmetryPlane',
-        //    //o.symmetryType != 'none'
-        //);
-        //panelState.showField(
-        //    'geomObject',
-        //    'symmetryPoint',
-        //    //o.symmetryType != 'none'
-        //);
-        var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
-            return parseFloat(m);
-        });
-        //panelState.showField(
-        //    'geomObject',
-        //    'material',
-        //    true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
-        //);
+
+        const mag = Math.hypot(
+            ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
+        );
+        const mfId = utilities.modelFieldID('geomObject' ,'material');
+        $(`.${mfId} .sr-input-warning`).text(anisotropicMaterialMsg);
+        const f = $(`.${mfId} select`)[0];
+        const fWarn = $(`.${mfId} .sr-input-warning`);
+        f.setCustomValidity('');
+        fWarn.hide();
+        if (SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) >= 0) {
+            if (mag === 0) {
+                f.setCustomValidity(anisotropicMaterialMsg);
+                fWarn.show();
+            }
+        }
     }
 
     function updateToolEditor(toolItem) {
@@ -955,6 +943,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.svc = radiaService;
 
     self.solution = null;
+
+    self.enableKickMaps = function() {
+        return (appState.models.simulation || {}).enableKickMaps === '1';
+    };
 
     self.simHandleStatus = function(data) {
         if (data.error) {
@@ -1632,6 +1624,46 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
         },
     };
 });
+
+SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            direction: '@',
+            viewName: '@',
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.dataCleared = true;
+            // not needed unless/until we change from heatmap to a vtk plot
+            function updateKickMaps() {
+                let inData = {
+                    model: $scope.model,
+                    method: 'get_kick_map_plot',
+                    simulationId: appState.models.simulation.simulationId,
+                };
+                radiaService.getRadiaData(inData, function(d) {
+                    //$scope.data = d;
+                });
+            }
+            appState.whenModelsLoaded($scope, function() {
+               $scope.model = appState.models.kickMap;
+               // wait until we have some data to update
+               $scope.$on('radiaViewer.loaded', function () {
+                   $scope.dataCleared = false;
+                    //updateKickMaps();
+               });
+            });
+
+        },
+    };
+});
+
 
 SIREPO.app.directive('numberList', function() {
     return {

@@ -2,7 +2,7 @@
 set -eou pipefail
 
 export SIREPO_AUTH_METHODS=email
-export SIREPO_FEATURE_CONFIG_OTHER_SIM_TYPES=jupyterhublogin
+export SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES=jupyterhublogin
 
 if [[ ${SIREPO_AUTH_GITHUB_KEY:-} || ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
     export SIREPO_AUTH_GITHUB_METHOD_VISIBLE=0

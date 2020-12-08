@@ -153,13 +153,13 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
     self.latticeService = latticeService;
     self.advancedNames = [
         'CCOLLIMATOR', 'CYCLOTRON', 'DEGRADER', 'FLEXIBLECOLLIMATOR',
-        'HKICKER', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE', 'PROBE', 'RBEND',
-        'RBEND3D', 'RCOLLIMATOR', 'RFCAVITY', 'RINGDEFINITION', 'SBEND3D',
-        'SCALINGFFAMAGNET', 'SEPTUM', 'SOLENOID', 'SOURCE', 'TRAVELINGWAVE',
+        'HKICKER', 'KICKER', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE', 'PROBE', 'RBEND',
+        'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
+        'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
         'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
     ];
     self.basicNames = [
-        'DRIFT', 'ECOLLIMATOR', 'KICKER', 'MARKER', 'QUADRUPOLE', 'SBEND', 'SEXTUPOLE',
+        'DRIFT', 'ECOLLIMATOR', 'MARKER', 'QUADRUPOLE', 'RFCAVITY', 'SOLENOID', 'SOURCE',
     ];
     var constants = SIREPO.APP_SCHEMA.constants;
 

@@ -463,7 +463,7 @@ class SimDataBase(object):
 
     @classmethod
     def proprietary_code_rpm(cls):
-        return f'{cls.sim_type()}.rpm'
+        return None
 
     @classmethod
     def resource_dir(cls):
@@ -653,6 +653,11 @@ class SimDataBase(object):
         dm = data.models
         if dm.simulation.get('isExample') and dm.simulation.folder == '/':
             dm.simulation.folder = '/Examples'
+
+    @classmethod
+    def _proprietary_code_rpm(cls):
+        return f'{cls.sim_type()}.rpm'
+
 
 
 def split_jid(jid):

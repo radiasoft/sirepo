@@ -5,6 +5,7 @@
         }
     },
     "constants": {
+        "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "defaultGeomColor": "#ffffff",
         "detailFields": {
             "fieldPath": {
@@ -27,10 +28,27 @@
         "geomTypeLines": "lines",
         "geomTypePolys": "polygons",
         "geomTypeVectors": "vectors",
+        "getDataMethods": [
+            "get_field", "get_field_integrals", "get_geom", "get_kick_map_plot", "save_field"
+        ],
         "inProgressText": "Solving",
         "objectScale": 0.001,
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
+        "dataDownloads": {
+            "_default": [
+                {
+                    "title": "Save as SDDS",
+                    "suffix": ""
+                }
+            ],
+            "kickMap": [
+                {
+                    "title": "Save as Text",
+                    "suffix": "txt"
+                }
+            ]
+        },
         "toolbarItems": [
             {
                 "canDrag": true,
@@ -39,7 +57,7 @@
                         "isButton": false,
                         "layoutShape": "rect",
                         "model": "box",
-                        "title": "Box",
+                        "title": "Cuboid",
                         "type": "box"
                     },
                     {
@@ -167,11 +185,15 @@
             ["H", "H"],
             ["J", "J"]
         ],
+        "KickMapComponent": [
+            ["h", "Horizontal"],
+            ["v", "Vertical"]
+        ],
         "MaterialType": [
-            ["NdFeB", "Neodymium Iron Boron"],
-            ["SmCo5", "Samarium Cobalt (SmCo5)"],
-            ["Sm2Co17", "Samarium Cobalt (Sm2Co17)"],
-            ["Ferrite", "Ferrite"],
+            ["NdFeB", "Neodymium Iron Boron (anisotropic)"],
+            ["SmCo5", "Samarium Cobalt (SmCo5 anisotropic)"],
+            ["Sm2Co17", "Samarium Cobalt (Sm2Co17 anisotropic)"],
+            ["Ferrite", "Ferrite (anisotropic)"],
             ["Xc06", "Industeel"],
             ["Steel37", "Steel37"],
             ["Steel42", "Steel42"],
@@ -180,7 +202,7 @@
             ["custom", "Custom"]
         ],
         "ObjectType": [
-            ["box", "Box"],
+            ["box", "Cuboid"],
             ["racetrack", "RaceTrack"]
         ],
         "PathType": [
@@ -315,6 +337,20 @@
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
         },
+        "kickMap": {
+            "begin": ["Start", "FloatStringArray", "0, 0, 0", "Start point", "x, y, z"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "component": ["Component", "KickMapComponent", "h"],
+            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Longitudinal direction", "x, y, z"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "numPeriods": ["Number of Periods Along Path ", "Integer", 1],
+            "numTransPoints1": ["Number of Points Transverse to Path", "Integer", 10, "", 2],
+            "numTransPoints2": ["Num Points transverse to path", "Integer", 10, "", 2],
+            "periodLength": ["Period (mmm)", "Float", 1.0],
+            "transverseDirection": ["Transverse Direction", "FloatStringArray", "0, 1, 0", "Any transverse direction", "x, y, z"],
+            "transverseRange1": ["Range in Transverse Direction (mm)", "Float", 1.0, ""],
+            "transverseRange2": ["Range in Other Transverse Direction (mm)", "Float", 1.0]
+        },
         "layoutObject": {
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
@@ -379,7 +415,8 @@
             "name": ["Name", "String", "Rotate"]
         },
         "simulation": {
-            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"]
+            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
+            "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"]
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],
@@ -518,6 +555,23 @@
             ]
         },
         "invert": {},
+        "kickMap": {
+            "title": "Kick Map",
+            "basic": [],
+            "advanced": [
+                "component",
+                "colorMap",
+                "begin",
+                "direction",
+                "numPeriods",
+                "numTransPoints1",
+                "numTransPoints2",
+                "periodLength",
+                "transverseDirection",
+                "transverseRange1",
+                "transverseRange2"
+            ]
+        },
         "linePath": {
             "title": "Line",
             "basic": [
@@ -625,7 +679,8 @@
             "advanced": [
                 "name",
                 "folder",
-                "beamAxis"
+                "beamAxis",
+                "enableKickMaps"
             ]
         },
         "solver": {

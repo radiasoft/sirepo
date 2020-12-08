@@ -51,6 +51,9 @@ class ElegantRPNEval(object):
         # sleep                       sleep for number of seconds
         # @                       push command input file
         pkdc('rpn variables={} expr="{}"', var_list, expr)
+        if re.match(r'^\{.+\}$', expr):
+            # It is a shell command
+            return expr, None
         out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, expr)])
         if out is None:
             return None, 'invalid'
