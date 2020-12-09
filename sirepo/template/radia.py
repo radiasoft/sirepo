@@ -50,6 +50,10 @@ _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _SIM_REPORTS = ['geometry', 'reset', 'solver']
 _REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
+_REPORT_RES_MAP = PKDict(
+    reset='geometry',
+    solver='geometry',
+)
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
@@ -434,6 +438,7 @@ def _generate_parameters_file(data, for_export):
     import jinja2
 
     report = data.get('report', '')
+    rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
@@ -467,7 +472,8 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else f'{report}.h5'
+    v.dataFile = _GEOM_FILE if for_export else \
+        _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -493,7 +499,7 @@ def _generate_parameters_file(data, for_export):
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
 
-    j_file = RADIA_EXPORT_FILE if for_export else f'{report}.py'
+    j_file = RADIA_EXPORT_FILE if for_export else f'{rpt_out}.py'
     return template_common.render_jinja(
         SIM_TYPE,
         v,
