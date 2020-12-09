@@ -238,7 +238,11 @@ def write_parameters(data, run_dir, is_parallel):
     sim_id = data.simulationId
     if data.report in _SIM_REPORTS:
         # remove centrailzed geom files
-        pkio.unchecked_remove(_geom_file(sim_id), _dmp_file(sim_id))
+        pkio.unchecked_remove(
+            _geom_file(sim_id),
+            _get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
+            _dmp_file(sim_id)
+        )
     if data.report == 'kickMap':
         pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
     pkio.write_text(
@@ -472,8 +476,7 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else \
-        _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
+    v.dataFile = _GEOM_FILE if for_export else f'{rpt_out}.h5'
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -624,7 +627,12 @@ def _read_or_generate(g_id, data):
 
 
 def _read_solution(sim_id):
-    s = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _H5_PATH_SOLUTION)
+    s = _read_h5_path(
+        sim_id,
+        _SIM_DATA.compute_model('solver'),
+        _GEOM_FILE,
+        _H5_PATH_SOLUTION
+    )
     if not s:
         return None
     return PKDict(
