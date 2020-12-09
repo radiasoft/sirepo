@@ -640,7 +640,7 @@ def _read_solution(sim_id):
         time=s[0],
         maxM=s[1],
         maxH=s[2]
-    ) if s else s
+    )
 
 
 def _rotate_flat_vector_list(vectors, scipy_rotation):
