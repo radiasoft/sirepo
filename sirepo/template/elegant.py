@@ -24,7 +24,6 @@ import glob
 import math
 import os
 import os.path
-import py.error
 import py.path
 import re
 import sirepo.lib
@@ -120,7 +119,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         for i in d.models.commands:
             _verify_files(i, lattice.LatticeUtil.model_name_for_data(i))
         r.lattice = l
-        return self._convert(d, code_var, _SCHEMA)
+        return self._convert(d)
 
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
@@ -151,16 +150,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         pkio.write_text(r.commands, v.commands)
         if not r.lattice.exists():
             pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
-        for f in set(
-            LatticeUtil(data, _SCHEMA).iterate_models(
-                lattice.InputFileIterator(_SIM_DATA, update_filenames=False),
-            ).result,
-        ):
-            f = _SIM_DATA.lib_file_name_without_type(f)
-            try:
-                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
-            except py.error.EEXIST:
-                pass
+        self._write_input_files(data, source_path, dest_dir)
         f = g.filename_map
         r.output_files = [f[k] for k in f.keys_in_order]
         return r

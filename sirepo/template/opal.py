@@ -71,7 +71,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             filename=path.basename,
         )
         self._verify_files(path, [f.filename for f in input_files])
-        return self._convert(data, code_var, _SCHEMA)
+        return self._convert(data)
 
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
@@ -83,23 +83,11 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         g = _Generate(data)
         r = PKDict(commands=dest_dir.join(source_path.basename))
         pkio.write_text(r.commands, g.sim())
-        for f in set(
-            LatticeUtil(data, _SCHEMA).iterate_models(
-                lattice.InputFileIterator(_SIM_DATA),
-            ).result,
-        ):
-            dest_dir.join(f).mksymlinkto(
-                source_path.new(
-                    basename=_SIM_DATA.lib_file_name_without_type(f),
-                ),
-                absolute=False,
-            )
-            r.output_files = [
-                f[k] for k in LatticeUtil(data, _SCHEMA).iterate_models(
-                    OpalOutputFileIterator(),
-                ).result.keys_in_order
-            ]
-            return r
+        self._write_input_files(data, source_path, dest_dir)
+        r.output_files = LatticeUtil(data, _SCHEMA).iterate_models(
+            OpalOutputFileIterator(),
+        ).result.keys_in_order
+        return r
 
 
 class OpalElementIterator(lattice.ElementIterator):

@@ -9,21 +9,27 @@ Use this to call sirepo from other packages or Python notebooks.
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo.template import lattice
+from sirepo.template.lattice import LatticeUtil
 import copy
+import inspect
+import py.error
 import pykern.pkio
+import sirepo.sim_data
 import sirepo.util
 
 
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def _convert(self, data, code_var, schema):
-        from sirepo.template.lattice import LatticeUtil
+    def __init__(self):
+        m = inspect.getmodule(self)
+        self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
+        self._code_var = m.code_var
 
-        cv = code_var(data.models.rpnVariables)
-
+    def _convert(self, data):
         def _model(model, name):
-            s = schema.model[name]
+            s = self._schema.model[name]
 
             k = x = v = None
             try:
@@ -43,10 +49,11 @@ class LibAdapterBase:
                 pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
                 raise
 
+        cv = self._code_var(data.models.rpnVariables)
         for x in  data.models.rpnVariables:
             x.value = cv.eval_var_with_assert(x.value)
         for k, v in data.models.items():
-            if k in schema.model:
+            if k in self._schema.model:
                 _model(v, k)
         for x in ('elements', 'commands'):
             for m in data.models[x]:
@@ -60,6 +67,18 @@ class LibAdapterBase:
             p = path.dirpath().join(f)
             assert p.check(file=True), \
                 f'file={f} missing'
+
+    def _write_input_files(self, data, source_path, dest_dir):
+        for f in set(
+            LatticeUtil(data, self._schema).iterate_models(
+                lattice.InputFileIterator(self._sim_data, update_filenames=False),
+            ).result,
+        ):
+            f = self._sim_data.lib_file_name_without_type(f)
+            try:
+                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+            except py.error.EEXIST:
+                pass
 
 
 class GenerateBase:
