@@ -159,6 +159,30 @@ def _compute_harmonic_photon_energy(data):
     )
 
 
+def _divide_drifts(beamline, count):
+    pos = 0
+    res = []
+    current_id = 1e5
+    for item in beamline:
+        if _is_disabled(item):
+            continue
+        if item.position - pos > 1e-3:
+            delta = (item.position - pos) / count
+            while (pos + delta) < item.position:
+                pos += delta
+                res.append(PKDict(
+                    alpha=0,
+                    id=current_id,
+                    position=pos,
+                    title='D',
+                    type='emptyElement',
+                ))
+                current_id += 1
+        res.append(item)
+        pos = item.position
+    return res
+
+
 def _eq(item, field, *values):
     t = _SCHEMA.model[item.type][field][1]
     for v, n in _SCHEMA.enum[t]:
@@ -200,6 +224,8 @@ def _generate_autotune_element(item):
 
 def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
     beamline = models.beamline
+    if calc_beam_stats:
+        beamline = _divide_drifts(beamline, models.beamStatisticsReport.driftDivisions)
     res = ''
     prev_position = 0
     last_element = False
@@ -231,10 +257,6 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_crystal(item)
             elif item.type == 'emptyElement':
-                # item.f_refrac = '2'
-                # item.t_incidence = '0'
-                # item.t_reflection = '180'
-                # res += _item_field(item, ['alpha', 'f_refrac', 't_incidence', 't_reflection'])
                 res += "\n" + 'oe.set_empty(ALPHA={})'.format(item.alpha)
             elif item.type == 'grating':
                 res += _generate_element(item, source_distance, image_distance)
@@ -548,6 +570,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     if r == 'initialIntensityReport':
         v.distanceFromSource = beamline[0].position if beamline else template_common.DEFAULT_INTENSITY_DISTANCE
     elif r == 'beamStatisticsReport':
+        v.simulation_npoint = 10000
+        v.undulatorSettings = template_common.render_jinja(SIM_TYPE, v, 'undulator.py')
         v.beamlineOptics = _generate_beamline_optics(data.models, calc_beam_stats=True)
         v.beamStatsFile = BEAM_STATS_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'beam_statistics.py')
@@ -566,6 +590,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v.wigglerTrajectoryInput = ''
         if data.models.wiggler.b_from in ('1', '2'):
             v.wigglerTrajectoryInput = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
+    elif v.simulation_sourceType == 'undulator':
+        v.undulatorSettings = template_common.render_jinja(SIM_TYPE, v, 'undulator.py')
     return template_common.render_jinja(SIM_TYPE, v)
 
 

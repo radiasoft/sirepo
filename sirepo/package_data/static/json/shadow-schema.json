@@ -395,6 +395,7 @@
         },
         "beamStatisticsReport": {
             "epsilon": ["Epsilon", "Float", 1e-6],
+            "driftDivisions": ["Drift Divisions", "Integer", 100, "", 1, 1000],
             "y1": ["Value to Plot 1", "BeamStatisticsParameter", "sigmax"],
             "y2": ["Value to Plot 2", "BeamStatisticsParameter", "sigmaz"],
             "y3": ["Value to Plot 3", "BeamStatisticsParameter", "none"],
@@ -791,10 +792,11 @@
             "title": "Beam Statistics",
             "basic": [],
             "advanced": [
-                "epsilon",
                 "y1",
                 "y2",
                 "y3",
+                "epsilon",
+                "driftDivisions",
                 "notes"
             ]
         },
