@@ -13,7 +13,9 @@ from sirepo.template import code_variable
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_parser
 from sirepo.template import lattice
+import math
 import ntpath
+import operator
 import re
 import sirepo.sim_data
 import subprocess
@@ -33,37 +35,60 @@ _ELEGANT_TYPE_RE = re.compile(r'^[A-Z]+$')
 _ELEGANT_TYPES = set(n for n in _SCHEMA.model if _ELEGANT_TYPE_RE.search(n))
 
 
-class ElegantRPNEval(object):
-
-    def eval_var(self, expr, depends, variables):
-        #TODO(robnagler) scan variable values for strings. Need to be parsable
-        var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
-        #TODO(pjm): security - need to scrub field value
-        #     execn  send top of string stack to UNIX and put result on numerical stack
-        #     execs     send top of string stack to UNIX and put output on string stack
-        # csh                       start and enter C shell subprocess
-        # cshs                       send top of string stack to C shell
-        # gets                       get string from input file
-        # seems like this would be bad, because you could construct a string that could be executed
-        # mudf    make user defined function from string stack (name commands mudf)
-        # open                       open input/output file
-        # puts                       put string to file
-        # sleep                       sleep for number of seconds
-        # @                       push command input file
-        pkdc('rpn variables={} expr="{}"', var_list, expr)
-        if re.match(r'^\{.+\}$', expr):
-            # It is a shell command
-            return expr, None
-        out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, expr)])
-        if out is None:
-            return None, 'invalid'
-        if out:
-            return float(out.strip()), None
-        return None, 'empty'
-
-
 def elegant_code_var(variables):
-    return code_variable.CodeVar(variables, ElegantRPNEval())
+    _PI = 4 * math.atan(1)
+
+    class _P(code_variable.PurePythonEval):
+        _OPS = PKDict({
+            '<': operator.lt,
+            '>': operator.gt,
+            'beta.p': lambda a: a / (math.sqrt((1 + (a * a)))),
+            'dacos': lambda a: math.acos(a) * 180 / _PI,
+            'dasin': lambda a: math.asin(a) * 180 / _PI,
+            'datan': lambda a: math.atan(a) * 180 / _PI,
+            'dcos': lambda a: math.cos(a * _PI / 180),
+            'dsin': lambda a: math.sin(a * _PI / 180),
+            'dtan': lambda a: math.tan(a * _PI / 180),
+            'gamma.beta': lambda a: 1 / math.sqrt(1 - (a * a)),
+            'gamma.p': lambda a: math.sqrt(1 + (a * a)),
+            # TODO(e-carlin): Should not need lambda.
+            # https://bugs.python.org/issue29299
+            'ln': lambda a: math.log(a),
+            'mod': operator.mod,
+            'mult': operator.mul,
+            'p.beta': lambda a: a / math.sqrt(1 - (a * a)),
+            'p.gamma': lambda a: math.sqrt((a * a) - 1),
+            **code_variable.PurePythonEval._OPS
+        })
+
+        def eval_var(self, expr, depends, variables):
+            if re.match(r'^\{.+\}$', expr):
+                # It is a shell command
+                return expr, None
+            return super().eval_var(expr, depends, variables)
+
+    return code_variable.CodeVar(
+        variables,
+        _P(
+            constants=PKDict(
+                c_gs=2.99792458e10,
+                c_mks=2.99792458e8,
+                e_cgs=4.80325e-10,
+                e_mks=1.60217733e-19,
+                hbar_MeVs=6.582173e-22,
+                hbar_mks=1.0545887e-34,
+                kb_cgs=1.380658e-16,
+                kb_mks=1.380658e-23,
+                me_cgs=9.1093897e-28,
+                me_mks=9.1093897e-31,
+                mev=0.51099906,
+                mp_mks=1.6726485e-27,
+                pi=_PI,
+                re_cgs=2.81794092e-13,
+                re_mks=2.81794092e-15,
+            ),
+        ),
+    )
 
 
 def import_file(text, data=None, update_filenames=True):
@@ -241,9 +266,10 @@ def _validate_rpn_field(el, field, rpn_cache, code_var):
         if m:
             el[field] = m.group(1)
         return
+    el[field] = re.sub(r'\s+', ' ', el[field]).strip()
     value, error = code_var.eval_var(el[field])
     if error:
-        raise IOError('invalid rpn: "{}"'.format(el[field]))
+        raise IOError(f'invalid rpn="{el[field]}" error="{error}"')
     rpn_cache[el[field]] = value
 
 
