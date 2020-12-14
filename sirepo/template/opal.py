@@ -80,7 +80,12 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             PKDict: structure of files written (debugging only)
         """
 
-        g = _Generate(data)
+        class _G(_Generate):
+
+            def _input_file(self, model_name, field, filename):
+                return f'"{filename}"'
+
+        g = _G(data)
         r = PKDict(commands=dest_dir.join(source_path.basename))
         pkio.write_text(r.commands, g.sim())
         self._write_input_files(data, source_path, dest_dir)
@@ -527,9 +532,36 @@ class _Generate(sirepo.lib.GenerateBase):
         self._generate_commands_and_variables()
         return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
 
+    def _format_field_value(self, state, model, field, el_type):
+        value = model[field]
+        if el_type == 'Boolean':
+            value = 'true' if value == '1' else 'false'
+        elif el_type == 'RPNValue':
+            value = _fix_opal_float(value)
+        elif el_type == 'InputFile':
+            value = self._input_file(LatticeUtil.model_name_for_data(model), field, value)
+        elif el_type == 'OutputFile':
+            ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
+            value = '"{}.{}.{}"'.format(model.name, field, ext)
+        elif re.search(r'List$', el_type):
+            value = state.id_map[int(value)].name
+        elif re.search(r'String', el_type):
+            if str(value):
+                if not re.search(r'^\s*\{.*\}$', value):
+                    value = '"{}"'.format(value)
+        elif LatticeUtil.is_command(model):
+            if el_type != 'RPNValue' and str(value):
+                value = '"{}"'.format(value)
+        elif not LatticeUtil.is_command(model):
+            if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
+                return ['type', value]
+        if str(value):
+            return [field, value]
+        return None
+
     def _full_simulation(self):
         v = self.jinja_env
-        v.lattice = _generate_lattice(
+        v.lattice = self._generate_lattice(
             self.util,
             self._code_var,
             LatticeUtil.find_first_command(
@@ -541,24 +573,83 @@ class _Generate(sirepo.lib.GenerateBase):
         self._generate_commands_and_variables()
         return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
 
+    def _generate_commands(self, util, is_header):
+        # reorder command so OPTION and list commands come first
+        commands = []
+        key = None
+        if is_header:
+            key = 'header_commands'
+            # add header commands in order, with option first
+            for ctype in _HEADER_COMMANDS:
+                for c in util.data.models.commands:
+                    if c._type == ctype:
+                        commands.append(c)
+        else:
+            key = 'other_commands'
+            for c in util.data.models.commands:
+                if c._type not in _HEADER_COMMANDS:
+                    commands.append(c)
+        util.data.models[key] = commands
+        res = util.render_lattice(
+            util.iterate_models(
+                OpalElementIterator(None, self._format_field_value),
+                key,
+            ).result,
+            want_semicolon=True)
+        # separate run from track, add endtrack
+        #TODO(pjm): better to have a custom element generator for this case
+        lines = []
+        for line in res.splitlines():
+            m = re.match('(.*?: track,.*?)(run_.*?)(;|,[^r].*)', line)
+            if m:
+                lines.append('{}{}'.format(re.sub(r',$', '', m.group(1)), m.group(3)))
+                lines.append(' run, {};'.format(re.sub(r'run_', '', m.group(2))))
+                lines.append('endtrack;')
+            else:
+                lines.append(line)
+        return '\n'.join(lines)
+
     def _generate_commands_and_variables(self):
         self.jinja_env.update(dict(
-            variables=self._code_var.generate_variables(_generate_variable),
-            header_commands=_generate_commands(self.util, True),
-            commands=_generate_commands(self.util, False),
+            variables=self._code_var.generate_variables(self._generate_variable),
+            header_commands=self._generate_commands(self.util, True),
+            commands=self._generate_commands(self.util, False),
         ))
+
+    def _generate_lattice(self, util, code_var, beamline_id):
+        res = util.render_lattice(
+            util.iterate_models(
+                OpalElementIterator(None, self._format_field_value),
+                'elements',
+            ).result,
+            want_semicolon=True) + '\n'
+        count_by_name = PKDict()
+        names = []
+        res += _generate_beamline(util, code_var, count_by_name, beamline_id, 0, names)[0]
+        res += '{}: LINE=({});\n'.format(
+            util.id_map[beamline_id].name,
+            ','.join(names),
+        )
+        return res
+
+    def _generate_variable(self, name, variables, visited):
+        res = ''
+        if name not in visited:
+            res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
+            visited[name] = True
+        return res
+
+    def _input_file(self, model_name, field, filename):
+        return '"{}"'.format(_SIM_DATA.lib_file_name_with_model_field(
+            model_name,
+            field,
+            filename,
+        ))
+
 
 
 def _generate_parameters_file(data):
     return _Generate(data).sim()
-
-
-def _generate_variable(name, variables, visited):
-    res = ''
-    if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
-        visited[name] = True
-    return res
 
 
 def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
@@ -649,89 +740,6 @@ def _fix_opal_float(value):
         # need to format values as floats, OPAL has overflow issues with large integers
         return float(value)
     return value
-
-
-def _format_field_value(state, model, field, el_type):
-    value = model[field]
-    if el_type == 'Boolean':
-        value = 'true' if value == '1' else 'false'
-    elif el_type == 'RPNValue':
-        value = _fix_opal_float(value)
-    elif el_type == 'InputFile':
-        value = '"{}"'.format(
-            _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value))
-    elif el_type == 'OutputFile':
-        ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
-        value = '"{}.{}.{}"'.format(model.name, field, ext)
-    elif re.search(r'List$', el_type):
-        value = state.id_map[int(value)].name
-    elif re.search(r'String', el_type):
-        if str(value):
-            if not re.search(r'^\s*\{.*\}$', value):
-                value = '"{}"'.format(value)
-    elif LatticeUtil.is_command(model):
-        if el_type != 'RPNValue' and str(value):
-            value = '"{}"'.format(value)
-    elif not LatticeUtil.is_command(model):
-        if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
-            return ['type', value]
-    if str(value):
-        return [field, value]
-    return None
-
-
-def _generate_commands(util, is_header):
-    # reorder command so OPTION and list commands come first
-    commands = []
-    key = None
-    if is_header:
-        key = 'header_commands'
-        # add header commands in order, with option first
-        for ctype in _HEADER_COMMANDS:
-            for c in util.data.models.commands:
-                if c._type == ctype:
-                    commands.append(c)
-    else:
-        key = 'other_commands'
-        for c in util.data.models.commands:
-            if c._type not in _HEADER_COMMANDS:
-                commands.append(c)
-    util.data.models[key] = commands
-    res = util.render_lattice(
-        util.iterate_models(
-            OpalElementIterator(None, _format_field_value),
-            key,
-        ).result,
-        want_semicolon=True)
-    # separate run from track, add endtrack
-    #TODO(pjm): better to have a custom element generator for this case
-    lines = []
-    for line in res.splitlines():
-        m = re.match('(.*?: track,.*?)(run_.*?)(;|,[^r].*)', line)
-        if m:
-            lines.append('{}{}'.format(re.sub(r',$', '', m.group(1)), m.group(3)))
-            lines.append(' run, {};'.format(re.sub(r'run_', '', m.group(2))))
-            lines.append('endtrack;')
-        else:
-            lines.append(line)
-    return '\n'.join(lines)
-
-
-def _generate_lattice(util, code_var, beamline_id):
-    res = util.render_lattice(
-        util.iterate_models(
-            OpalElementIterator(None, _format_field_value),
-            'elements',
-        ).result,
-        want_semicolon=True) + '\n'
-    count_by_name = PKDict()
-    names = []
-    res += _generate_beamline(util, code_var, count_by_name, beamline_id, 0, names)[0]
-    res += '{}: LINE=({});\n'.format(
-        util.id_map[beamline_id].name,
-        ','.join(names),
-    )
-    return res
 
 
 def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):

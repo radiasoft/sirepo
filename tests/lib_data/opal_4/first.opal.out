@@ -43,6 +43,6 @@ GEN_DIST: distribution,cutofflong=4.0,ekin=0.2,emissionmodel="ASTRA",emissionste
 COLD_GAUSSIAN: distribution,inputmounits="EV",sigmapx=50.0,sigmapy=50.0,sigmapz=1100000.0,sigmax=0.0014,sigmay=0.0014,sigmaz=0.0014,type="GAUSS",writetofile=true;
 FS_SC: fieldsolver,bboxincr=1.0,fstype="FFT",mt=32.0,mx=32.0,my=32.0;
 BEAM1: beam,bcurrent=0.8568,bfreq=2856.0,charge=-1.0,npart=100000.0,particle="ELECTRON",pc=1.1961600796052967e-06;
-TR1: track,beam=BEAM1,dt={1.0e-13, 5.0e-13},line=LINAC,maxsteps=10000000.0,zstop={0.4, 5.5};
+TR1: track,beam=BEAM1,dt=5e-13,line=LINAC,maxsteps=10000000.0,zstop=5.5;
  run, beam=BEAM1,distribution=gen_dist,fieldsolver=FS_SC,method="PARALLEL-T";
 endtrack;

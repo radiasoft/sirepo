@@ -17,9 +17,9 @@ OPT1: option,autophase=4.0,psdumpfreq=100.0,version=10900.0;
 DR1: DRIFT,l=10.0;
 DR2: DRIFT,l=-0.2927;
 DR3: DRIFT,l=-0.5;
-GUN: RFCAVITY,fmapfn="RFCAVITY-fmapfn.DriveGun_2D.T7",freq=1300.0,l=0.2927,volt=60.0;
-BF: SOLENOID,fmapfn="SOLENOID-fmapfn.BF_550_2D.T7",ks=0.12017,l=0.5;
-M: SOLENOID,fmapfn="SOLENOID-fmapfn.M_440_2D.T7",ks=0.3792590454545455,l=0.5;
+GUN: RFCAVITY,fmapfn="DriveGun_2D.T7",freq=1300.0,l=0.2927,volt=60.0;
+BF: SOLENOID,fmapfn="BF_550_2D.T7",ks=0.12017,l=0.5;
+M: SOLENOID,fmapfn="M_440_2D.T7",ks=0.3792590454545455,l=0.5;
 
 "GUN#0": GUN,elemedge=0;
 "BF#0": BF,elemedge=0.0;

@@ -26,7 +26,7 @@ DRIFT_QUAD2QUAD: DRIFT,l=0.03;
 DRIFT_UND2QUADS: DRIFT,l=1.0;
 Q_DEF: QUADRUPOLE,k1=21.808275280025114,l=0.074;
 Q_FOC: QUADRUPOLE,k1=-21.808275280025114,l=0.074;
-SPECTR_DIPOLE: SBEND,angle=0.5235987755982988,designenergy=139.489,fmapfn="SBEND-fmapfn.hard_edge_profile.txt",l=0.49430796473268457;
+SPECTR_DIPOLE: SBEND,angle=0.5235987755982988,designenergy=139.489,fmapfn="hard_edge_profile.txt",l=0.49430796473268457;
 
 "drift_und2quads#0": drift_und2quads,elemedge=0;
 "q_def#0": q_def,elemedge=1.0;
