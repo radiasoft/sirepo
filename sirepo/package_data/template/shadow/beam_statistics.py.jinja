@@ -8,25 +8,26 @@ from sirepo.template import transfer_mat_bl
 from pykern.pkcollections import PKDict
 from pykern import pkjson
 
-beam_stats = []
-epsilon = {{beamStatisticsReport_epsilon}}
-beam = transfer_mat_bl.create_mat_rays(epsilon)
-
 {% if simulation_sourceType == 'geometricSource' %}
 sigmax = {{ geometricSource_sigmax }}
 sigdix = {{ geometricSource_sigdix }}
 sigmaz = {{ geometricSource_sigmaz }}
 sigdiz = {{ geometricSource_sigdiz }}
 {% elif simulation_sourceType == 'undulator' %}
-emit_x = {{ undulatorBeam_emittance_x }}
-sigmax = math.sqrt({{ undulatorBeam_beta_x }} * emit_x)
-gamma_x = ({{ undulatorBeam_alpha_x }} ** 2 + 1) / {{ undulatorBeam_beta_x }}
-sigdix = math.sqrt(gamma_x * emit_x)
-emit_z = {{ undulatorBeam_emittance_y }}
-sigmaz = math.sqrt({{ undulatorBeam_beta_y }} * emit_z)
-gamma_z = ({{ undulatorBeam_alpha_y }} ** 2 + 1) / {{ undulatorBeam_beta_y }}
-sigdiz = math.sqrt(gamma_z * emit_z)
+{{undulatorSettings}}
+
+def rays_sigma(rays, idx):
+    return numpy.sqrt(numpy.mean(rays[:, idx] ** 2))
+
+sigmax = rays_sigma(rays, 0)
+sigdix = rays_sigma(rays, 3)
+sigmaz = rays_sigma(rays, 2)
+sigdiz = rays_sigma(rays, 5)
 {% endif %}
+
+beam_stats = []
+epsilon = {{beamStatisticsReport_epsilon}}
+beam = transfer_mat_bl.create_mat_rays(epsilon)
 
 sigma_mat = numpy.matrix([
     [sigmax ** 2, 0, 0, 0],

@@ -6,68 +6,7 @@ from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
 from srxraylib.sources import srfunc
 
 {% if simulation_sourceType == 'undulator' -%}
-from orangecontrib.shadow.util.undulator.source_undulator import SourceUndulator
-from syned.storage_ring.electron_beam import ElectronBeam
-from syned.storage_ring.magnetic_structures.undulator import Undulator
-
-# need to prime seed prior to calculate_rays SEED to get reproducible results
-numpy.random.seed(1)
-
-ebeam = ElectronBeam(
-    energy_in_GeV={{ undulatorBeam_energy }},
-    energy_spread={{ undulatorBeam_energy_spread }},
-    current={{ undulatorBeam_current }},
-    number_of_bunches={{ undulatorBeam_number_of_bunches }},
-)
-ebeam.set_twiss_all(
-  {{ undulatorBeam_emittance_x }}, # emitx
-  {{ undulatorBeam_alpha_x }}, # alphax
-  {{ undulatorBeam_beta_x }}, # betax
-  {{ undulatorBeam_eta_x }}, # etax
-  {{ undulatorBeam_etap_x }}, # etapx
-  {{ undulatorBeam_emittance_y }}, # emity
-  {{ undulatorBeam_alpha_y }}, # alphay
-  {{ undulatorBeam_beta_y }}, # betay
-  {{ undulatorBeam_eta_y }}, # etay
-  {{ undulatorBeam_etap_y }}, # etapy
-)
-sourceundulator = SourceUndulator(
-    syned_electron_beam=ebeam,
-    syned_undulator=Undulator(
-        K_horizontal={{ undulator_k_horizontal }},
-        K_vertical={{ undulator_k_vertical }},
-        period_length={{ undulator_period }},
-        number_of_periods={{ (undulator_length / undulator_period) | int }},
-    ),
-    flag_emittance=1,
-    flag_size=1,
-    # emin={{ undulator_emin }},
-    # emax={{ undulator_emax }},
-    # ng_e={{ undulator_ng_e }},
-    # maxangle={{ undulator_maxangle }},
-    ng_t={{ undulator_ng_t }},
-    ng_p={{ undulator_ng_p }},
-    ng_j={{ undulator_ng_j }},
-    code_undul_phot="internal",
-)
-
-{% if undulator_select_energy == 'harmonic' %}
-sourceundulator.set_energy_monochromatic_at_resonance({{ undulator_energy_harmonic }})
-{% else %}
-sourceundulator._EMIN = {{ undulator_emin }}
-sourceundulator._EMAX = {{ undulator_emax }}
-sourceundulator._NG_E = {{ undulator_ng_e }}
-sourceundulator._MAXANGLE = {{ undulator_maxangle }}
-{% endif %}
-
-rays = sourceundulator.calculate_rays(
-    user_unit_to_m=0.01,
-    F_COHER={{ undulator_f_coher }},
-    SEED={{ simulation_istar1 }},
-    NRAYS={{ simulation_npoint }},
-)
-beam = Shadow.Beam(N=rays.shape[0])
-beam.rays = rays
+{{undulatorSettings}}
 {% else %}
 source = Shadow.Source()
 beam = Shadow.Beam()

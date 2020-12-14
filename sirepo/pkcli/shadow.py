@@ -92,10 +92,15 @@ def _run_beam_statistics(cfg_dir, data):
     for y in ('y1', 'y2', 'y3'):
         if report[y] == 'none':
             continue
+        label = report[y]
+        if label in ('sigmax', 'sigmaz'):
+            label += ' [m]'
+        elif label in ('sigdix', 'sigdiz'):
+            label += ' [rad]'
         plots.append(PKDict(
             field=report[y],
             points=[],
-            label=report[y],
+            label=label,
         ))
     for item in d:
         x.append(item.s)
