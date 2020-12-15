@@ -85,7 +85,7 @@ def init_apis(*args, **kwargs):
         ))
 
 
-def _create_user(github_handle=None, add_randomness=True):
+def _create_user(github_handle=None):
     """Create a Jupyter user and possibly migrate their data from old jupyter.
 
     Keywords:
@@ -93,7 +93,7 @@ def _create_user(github_handle=None, add_randomness=True):
       jupyter user: The user of new jupyter
 
     A few interesting cases to keep in mind:
-      1. User selects to migrate and they have old data. We should never add
+      1. User selects to migrate and they have old data. We should never
          uniquify the user's github handle because the user dir is identified
          and exists.
       2. User signs into sirepo under one@any.com. They migrate their data using
@@ -104,24 +104,23 @@ def _create_user(github_handle=None, add_randomness=True):
          given the username one. two@any.com signs up for jupyter and they
          migrate their data. They have the github handle one. They should be
          alerted that they can't migrate that GitHub handle.
-      4. A new user signs in with one@any.com and they do not select to
+      4. A new user signs in with foo@any.com and they do not select to
          migrate. There is an existing foo migration user which has not registered
          yet. We should uniquify the new user (foo_xyz) to ensure the name
          doesn't collide with the existing (yet to register) user.
 
     Args:
         github_handle (str): The user's github handle
-        add_randomness (bool): Whether or not to add_randomness to the username if needed
 
     """
-    def __existing_migration_user_new_jupyter_user(github_handle):
+    def __existing_migration_user_new_jupyter_user():
         return github_handle and _user_dir(user_name=github_handle).exists() \
             and not JupyterhubUser.search_by(user_name=github_handle)
 
     def __user_name():
         n = github_handle or sirepo.auth.user_name()
         assert n, 'must supply a name'
-        if __existing_migration_user_new_jupyter_user(github_handle):
+        if __existing_migration_user_new_jupyter_user():
             # TODO(e-carlin): If the new jupyter user changes their handle to be
             # the handle of an existing but unmigrated migration user then the
             # new jupyter user will get the data of the existing migration user.
@@ -136,7 +135,7 @@ def _create_user(github_handle=None, add_randomness=True):
                 # user name, handle, etc.
                 n.split('@')[0],
             )
-        if __user_name_exists(n) and add_randomness:
+        if __user_name_exists(n) and not github_handle:
             # The username already exists. Add some randomness to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
@@ -155,11 +154,6 @@ def _create_user(github_handle=None, add_randomness=True):
         return JupyterhubUser.search_by(user_name=user_name) \
             or _user_dir(user_name=user_name).exists()
 
-    # Only add randomness when specified or to GitHub handles that we don't have
-    # record of. *DO NOT* add randomness to handles we have record of. The handle
-    # needs to be used to identify the user dir.
-    add_randomness = add_randomness or \
-        (github_handle and not __user_name_exists(github_handle))
     with sirepo.auth_db.thread_lock:
         JupyterhubUser(
             uid=sirepo.auth.logged_in_user(),
@@ -189,7 +183,7 @@ def _event_end_api_call(kwargs):
 
 def _event_github_authorized(kwargs):
     n = kwargs.user_name
-    _create_user(github_handle=n, add_randomness=False)
+    _create_user(github_handle=n)
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.
     pkio.mkdir_parent(_user_dir())
