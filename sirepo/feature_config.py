@@ -108,7 +108,7 @@ def _init():
             beamline3d=b('Show 3D beamline plot'),
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
-            show_open_shadow=(False, bool, 'Show "Open as a New Shadow Simulation" menu item'),
+            show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),

@@ -25,7 +25,7 @@ def test_rpn():
     # rpndef variable
     assert _rpn_value({
         'value': 'pi',
-    })['result'] == 3.14159265358979
+    })['result'] == 3.141592653589793
     # mix of infix and postfix with variables
     assert _rpn_value({
         'value': 'vlong',
@@ -47,11 +47,11 @@ def test_rpn():
                 'value': 'pi16 + pi32',
             }),
         ],
-    })['result'] == 0.951424752459004
+    })['result'] == 0.9514247524590036
     # error
     assert _rpn_value({
         'value': 'badvalue',
-    })['error'] == 'invalid'
+    })['error'] == 'unknown token: badvalue'
 
 
 def _rpn_value(v):

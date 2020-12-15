@@ -87,13 +87,28 @@ class SRWShadowConverter():
             ssour='firstFocusLength',
             simag='focalLength',
         )],
+        ['mirror', 'sphericalMirror', PKDict(
+            halfWidthX1=['sagittalSize', 1e3 / 2],
+            halfWidthX2=['sagittalSize', 1e3 / 2],
+            halfLengthY1=['tangentialSize', 1e3 / 2],
+            halfLengthY2=['tangentialSize', 1e3 / 2],
+            rmirr=['radius', 1e3],
+        )],
+        ['mirror', 'toroidalMirror', PKDict(
+            halfWidthX1=['sagittalSize', 1e3 / 2],
+            halfWidthX2=['sagittalSize', 1e3 / 2],
+            halfLengthY1=['tangentialSize', 1e3 / 2],
+            halfLengthY2=['tangentialSize', 1e3 / 2],
+            r_maj='tangentialRadius',
+            r_min='sagittalRadius',
+        )],
         #TODO(pjm): srw "mirror" is only mirror errors, not reflective
-        # ['mirror', 'mirror', PKDict(
-        #     halfWidthX1=['horizontalTransverseSize', 1e3 / 2],
-        #     halfWidthX2=['horizontalTransverseSize', 1e3 / 2],
-        #     halfLengthY1=['verticalTransverseSize', 1e3 / 2],
-        #     halfLengthY2=['verticalTransverseSize', 1e3 / 2],
-        # )],
+        ['mirror', 'mirror', PKDict(
+            halfWidthX1=['horizontalTransverseSize', 1e3 / 2],
+            halfWidthX2=['horizontalTransverseSize', 1e3 / 2],
+            halfLengthY1=['verticalTransverseSize', 1e3 / 2],
+            halfLengthY2=['verticalTransverseSize', 1e3 / 2],
+        )],
         ['obstacle', 'obstacle', PKDict(
             shape='shape',
             horizontalSize='horizontalSize',
@@ -152,7 +167,7 @@ class SRWShadowConverter():
                 self.beamline.append(ap)
             elif item.type == 'crl':
                 self.beamline.append(self.__crl_to_shadow(item))
-            elif item.type in ('ellipsoidMirror'):
+            elif item.type in ('mirror', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'):
                 self.__mirror_to_shadow(item, shadow)
             elif item.type == 'grating':
                 self.__grating_to_shadow(item, shadow)
@@ -192,7 +207,7 @@ class SRWShadowConverter():
             fcyl='0',
             fhit_c='1',
             fmirr='4' if item.shape == '1' else '1',
-            focalDistance=item.position * float(item.focalDistance) / (item.position - float(item.focalDistance)),
+            focalDistance=float(item.position) * float(item.focalDistance) / (float(item.position) - float(item.focalDistance)),
             pilingThickness=0,
             refractionIndex=1 - float(item.refractiveIndex),
         ))
@@ -202,12 +217,12 @@ class SRWShadowConverter():
         offset = 0
         if orientation == 'horizontal':
             vector_x = item.get('normalVectorX', item.get('nvx', 0))
-            rotate = 90 if vector_x > 0 else 270
-            offset = item.horizontalOffset
+            rotate = 90 if vector_x >= 0 else 270
+            offset = item.get('horizontalOffset', item.get('horizontalPosition', 0))
         if orientation == 'vertical':
             vector_y = item.get('normalVectorY', item.get('nvy', 0))
-            rotate = 0 if vector_y > 0 else 180
-            offset = item.verticalOffset
+            rotate = 0 if vector_y >= 0 else 180
+            offset = item.get('verticalOffset', item.get('verticalPosition', 0))
         angle = 90 - (abs(float(item.grazingAngle)) * 180 / math.pi / 1e3)
         return angle, rotate, offset
 
@@ -276,14 +291,20 @@ class SRWShadowConverter():
         self.__reset_rotation(rotate, item.position)
 
     def __mirror_to_shadow(self, item, shadow):
-        angle, rotate, offset = self.__compute_angle(
-            item.autocomputeVectors,
-            item,
-        )
-        if item.type == 'ellipsoidMirror':
+        orientation = item.get('autocomputeVectors')
+        if item.type == 'mirror':
+            orientation = 'horizontal' if item.orientation == 'x' else 'vertical'
+        angle, rotate, offset = self.__compute_angle(orientation, item)
+        if item.type in ('mirror', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'):
+            mirror_shape = PKDict(
+                mirror='5',
+                ellipsoidMirror='2',
+                sphericalMirror='1',
+                toroidalMirror='3',
+            )
             self.beamline.append(self.__copy_item(item, PKDict(
                 type='mirror',
-                fmirr='2',
+                fmirr=mirror_shape[item.type],
                 t_incidence=angle,
                 alpha=rotate,
                 fhit_c='1',
@@ -291,6 +312,7 @@ class SRWShadowConverter():
                 f_default='0',
                 theta=angle,
                 offz=offset,
+                f_ext='0' if item.type == 'ellipsoidMirror' else '1',
             )))
         self.__reset_rotation(rotate, item.position)
         #TODO(pjm): set vars: offx, offy, x_rot, y_rot, z_rot, cil_ang

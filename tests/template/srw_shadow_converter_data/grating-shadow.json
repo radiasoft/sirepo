@@ -1,6 +1,7 @@
 {
     "models": {
         "beamStatisticsReport": {
+            "driftDivisions": 100,
             "epsilon": 1e-06,
             "notes": "",
             "y1": "sigmax",

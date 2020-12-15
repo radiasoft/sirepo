@@ -542,7 +542,7 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
-def subprocess_output(cmd, env):
+def subprocess_output(cmd, env=None):
     """Run cmd and return output or None, logging errors.
 
     Args:

@@ -1,1 +1,1 @@
-invalid rpn: "48e6 10 /x"
+invalid rpn="48e6 10 /x" error="unknown token: /x"
