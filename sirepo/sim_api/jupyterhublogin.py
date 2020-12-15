@@ -93,9 +93,9 @@ def _create_user(github_handle=None, add_randomness=True):
       jupyter user: The user of new jupyter
 
     A few interesting cases to keep in mind:
-      1. User selects to migrate and they have old data. We should
-         never add randomness to the user's github handle because the
-         user dir is identified and exists.
+      1. User selects to migrate and they have old data. We should never add
+         uniquify the user's github handle because the user dir is identified
+         and exists.
       2. User signs into sirepo under one@any.com. They migrate their data using
          GitHub handle y. They sign into sirepo under two@any.com. They choose
          to migrate GitHub handle y again. We should let them know that they
@@ -104,6 +104,10 @@ def _create_user(github_handle=None, add_randomness=True):
          given the username one. two@any.com signs up for jupyter and they
          migrate their data. They have the github handle one. They should be
          alerted that they can't migrate that GitHub handle.
+      4. A new user signs in with one@any.com and they do not select to
+         migrate. There is an existing foo migration user which has not registered
+         yet. We should uniquify the new user (foo_xyz) to ensure the name
+         doesn't collide with the existing (yet to register) user.
 
     Args:
         github_handle (str): The user's github handle
