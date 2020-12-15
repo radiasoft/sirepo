@@ -22,23 +22,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
-
-
-def background_percent_complete(report, run_dir, is_running):
-    files = _h5_file_list(run_dir)
-    count = len(files)
-    if is_running and count:
-        count -= 1
-    res = PKDict(
-        percentComplete=0 if is_running else 100,
-        frameCount=count,
-    )
-    c = _grid_evolution_columns(run_dir)
-    if c:
-        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
-    return res
-
-
 _DEFAULT_VALUES = {
     'RTFlame': {
         'Driver': {
@@ -504,6 +487,21 @@ _DEFAULT_VALUES = {
 }
 
 
+def background_percent_complete(report, run_dir, is_running):
+    files = _h5_file_list(run_dir)
+    count = len(files)
+    if is_running and count:
+        count -= 1
+    res = PKDict(
+        percentComplete=0 if is_running else 100,
+        frameCount=count,
+    )
+    c = _grid_evolution_columns(run_dir)
+    if c:
+        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
+    return res
+
+
 def new_simulation(data, new_simulation_data):
     flash_type = new_simulation_data['flashType']
     data.models.simulation.flashType = flash_type
@@ -519,6 +517,18 @@ def remove_last_frame(run_dir):
     files = _h5_file_list(run_dir)
     if len(files) > 0:
         pkio.unchecked_remove(files[-1])
+
+
+def setup_command(data):
+    return [
+        './setup',
+        data.models.simulation.flashType,
+        f'-objdir={data.models.simulation.flashType}',
+        '-2d',
+        '-auto',
+        '-nxb=16',
+        '-nyb=16',
+    ]
 
 def sim_frame_gridEvolutionAnimation(frame_args):
     c = _grid_evolution_columns(frame_args.run_dir)

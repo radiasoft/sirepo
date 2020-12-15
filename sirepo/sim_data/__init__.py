@@ -334,6 +334,32 @@ class SimDataBase(object):
 
         return simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
 
+    # TODO(e-carlin): sort
+    @classmethod
+    def sim_file_write_path(cls, basename, data):
+        # cls._assert_server_side() # TODO(e-carlin): ??
+        from sirepo import simulation_db
+
+        return simulation_db.simulation_dir(
+            cls.sim_type(),
+            data.models.simulation.simulationId,
+        ).join(basename)
+
+    # TODO(e-carlin): sort
+    @classmethod
+    def sim_file_copy(cls, path, basename, data):
+        """Copy file to simulation dir
+
+        Args:
+            path (py.path): file to copy
+            basename (str): basename of destination file
+        """
+        # TODO(e-carlin): implement put over http (NERSC)
+        import shutil
+
+        shutil.copy2(path, cls.sim_file_write_path(basename, data))
+
+
     @classmethod
     def lib_files_for_export(cls, data):
         cls._assert_server_side()
@@ -376,6 +402,72 @@ class SimDataBase(object):
             s = cls.lib_file_abspath(b, data=data)
             if t != s:
                 t.mksymlinkto(s, absolute=False)
+
+    # TODO(e-carlin): sort, lots of copied code from lib_files_to_run_dir
+    @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir):
+        for b in cls.sim_file_basenames(data):
+            # TODO(e-carlin): lib_files_to_run_dir has t!=s check. Why?
+            s = cls.sim_file_abspath(b, data=data)
+            if s:
+                run_dir.join(b).mksymlinkto(s, absolute=False)
+
+
+    # TODO(e-carlin): sort, lots of copied code from lib_files_to_run_dir
+    @classmethod
+    def sim_file_basenames(cls, data):
+        return sorted(set(cls._sim_file_basenames(data)))
+
+
+    # TODO(e-carlin): sort
+    @classmethod
+    def sim_file_abspath(cls, basename, data=None):
+        return cls._sim_file_abspath(basename, data=data)
+
+    # TODO(e-carlin): sort
+    @classmethod
+    def _sim_file_abspath(cls, basename, data=None):
+        import sirepo.simulation_db
+        import sirepo.job
+
+        p = sirepo.simulation_db.simulation_dir(
+            cls.sim_type(),
+            data.models.simulation.simulationId,
+        ).join(basename)
+        if p.check(file=True):
+            return p
+        return None
+        # p = [cls.lib_file_resource_dir().join(basename)]
+        # TODO(e-carlin): get over the wire
+        # if cfg.lib_file_uri:
+        #     if basename in cfg.lib_file_list:
+        #         p = pkio.py_path(basename)
+        #         r = requests.get(
+        #             cfg.lib_file_uri + basename,
+        #             verify=sirepo.job.cfg.verify_tls,
+        #         )
+        #         r.raise_for_status()
+        #         p.write_binary(r.content)
+        #         return p
+        # elif not cfg.lib_file_resource_only:
+        #     p.append(
+        #         sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+        #     )
+        # for f in p:
+        #     if f.check(file=True):
+        #         return f
+        # return None
+
+
+    # TODO(e-carlin): sort
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        return []
+
+    @classmethod
+    def local_src_path(cls):
+        # TODO(e-carlin): home/vagrant ? nersc?
+        return pkio.py_path('/home/vagrant/.local/src/').join(cls.sim_type())
 
     @classmethod
     def model_defaults(cls, name):

@@ -101,6 +101,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     ]
 
 
+    # TODO(e-carlin): conflict with new _sim_file_basenames
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):
         from pykern import pkio
@@ -118,6 +119,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def flash_setup_units_path(cls, data):
+        # TODO(e-carlin): we should create an abstraction that let's us talk
+        # about ~/.local because this is in there and I think the flash source
+        # code will be somewhere like ~/.local/src/flash
         return cls.flash_exe_path(data).join(
             '..',
             '..',
@@ -154,3 +158,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ))
             return r
         raise AssertionError('invalid flashType: {}'.format(t))
+
+    # TODO(e-carlin): sort
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        def _hash():
+            # TODO(e-carlin): get data and create a hash of the compilation
+            # params
+            return '123'
+        return [f'{cls._FLASH_PREFIX}-{_hash()}']
