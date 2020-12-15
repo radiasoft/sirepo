@@ -2598,7 +2598,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         scope: {},
         template: [
             '<div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">',
-            'We’re improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.',
+            'We\'re improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.',
             '</div>',
             '<form class="form-horizontal" autocomplete="off" novalidate>',
               '<div class="form-group">',
