@@ -125,7 +125,7 @@ def _create_user(github_handle=None, add_randomness=True):
             return n
         if not github_handle:
             n = re.sub(
-                '\W+',
+                r'\W+',
                 _HUB_USER_SEP,
                 # Get the local part of the email. Or in the case of another auth
                 # method (ex github) it won't have an '@' so it will just be their
