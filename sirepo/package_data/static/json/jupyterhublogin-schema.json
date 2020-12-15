@@ -17,11 +17,11 @@
                 "templateUrl": "/static/html/jupyterhub-migrate.html"
             }
         },
-        "nameConflict": {
-            "route": "/name-conflict/:isMigration",
+        "jupyterNameConflict": {
+            "route": "/jupyter-name-conflict/:isMigration",
             "config": {
                 "controller": "NameConflictController as nameConflict",
-                "templateUrl": "/static/html/name-conflict.html"
+                "templateUrl": "/static/html/jupyter-name-conflict.html"
             }
         }
     }

@@ -141,7 +141,7 @@ def _create_user(github_handle=None, add_randomness=True):
         if __user_name_exsits(n):
             pkdlog(f'conflict with existing user_name={n}')
             raise sirepo.util.SRException(
-                'nameConflict',
+                'jupyterNameConflict',
                 PKDict(
                     sim_type='jupyterhublogin',
                     isMigration=bool(github_handle),
