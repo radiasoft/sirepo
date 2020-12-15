@@ -132,11 +132,11 @@ def _create_user(github_handle=None, add_randomness=True):
                 # user name, handle, etc.
                 n.split('@')[0],
             )
-        if __user_name_exsits(n) and add_randomness:
+        if __user_name_exists(n) and add_randomness:
             # The username already exists. Add some randomness to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
-        if __user_name_exsits(n):
+        if __user_name_exists(n):
             pkdlog(f'conflict with existing user_name={n}')
             raise sirepo.util.SRException(
                 'jupyterNameConflict',
@@ -147,7 +147,7 @@ def _create_user(github_handle=None, add_randomness=True):
             )
         return n
 
-    def __user_name_exsits(user_name):
+    def __user_name_exists(user_name):
         return JupyterhubUser.search_by(user_name=user_name) \
             or _user_dir(user_name=user_name).exists()
 
@@ -155,7 +155,7 @@ def _create_user(github_handle=None, add_randomness=True):
     # record of. *DO NOT* add randomness to handles we have record of. The handle
     # needs to be used to identify the user dir.
     add_randomness = add_randomness or \
-        (github_handle and not __user_name_exsits(github_handle))
+        (github_handle and not __user_name_exists(github_handle))
     with sirepo.auth_db.thread_lock:
         JupyterhubUser(
             uid=sirepo.auth.logged_in_user(),
