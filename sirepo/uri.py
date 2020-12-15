@@ -47,13 +47,7 @@ def app_root(sim_type):
 
 
 def default_local_route_name(schema):
-    for k, v in schema.localRoutes.items():
-        if v.get('isDefault'):
-            return k
-    else:
-        raise AssertionError(
-            'no isDefault in localRoutes for {}'.format(schema.simulationType),
-        )
+    return schema.appDefaults.route
 
 
 def init(**imports):

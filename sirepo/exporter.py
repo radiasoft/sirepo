@@ -31,6 +31,10 @@ def create_archive(sim):
     Returns:
         py.path.Local: zip file name
     """
+    if hasattr(sim.template, 'create_archive'):
+        res = sim.template.create_archive(sim)
+        if res:
+            return res
     if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
         raise sirepo.util.NotFound(
             'unknown file type={}; expecting html or zip'.format(sim.filename)

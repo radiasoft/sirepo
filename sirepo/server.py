@@ -21,6 +21,7 @@ import flask
 import importlib
 import os
 import re
+import sirepo.events
 import sirepo.sim_data
 import sirepo.srdb
 import sirepo.template
@@ -32,7 +33,7 @@ import werkzeug.exceptions
 
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'radia', 'synergia', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'radia', 'synergia', 'silas', 'warppba', 'warpvnd')):
     import h5py
 
 #: If google_tag_manager_id set, string to insert in landing pages for google analytics
@@ -156,6 +157,7 @@ def api_errorLogging():
 @api_perm.require_user
 def api_exportArchive(simulation_type, simulation_id, filename):
     req = http_request.parse_params(
+        template=True,
         filename=filename,
         id=simulation_id,
         type=simulation_type,

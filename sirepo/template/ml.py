@@ -14,17 +14,14 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import numpy as np
-import os
 import re
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_OUTPUT_FILE = PKDict(
-    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+_CLASSIFIER_OUTPUT_FILE = PKDict(
     dtClassifierClassificationFile='dt-classifier-classification.json',
     dtClassifierConfusionFile='dt-classifier-confusion.json',
-    fitCSVFile='fit.csv',
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
@@ -33,11 +30,17 @@ _OUTPUT_FILE = PKDict(
     logisticRegressionClassificationFile='logistic-regression-classification.json',
     logisticRegressionConfusionFile='logistic-regression-confusion.json',
     logisticRegressionErrorFile='logistic-regression-error.npy',
+)
+
+_OUTPUT_FILE = PKDict(
+    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+    fitCSVFile='fit.csv',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
     trainFile='train.npy',
     validateFile='validate.npy',
+    **_CLASSIFIER_OUTPUT_FILE
 )
 
 def background_percent_complete(report, run_dir, is_running):
@@ -47,26 +50,28 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     if report == 'classificationAnimation' and not is_running:
+        s = list(filter(
+            lambda path: path.basename in _CLASSIFIER_OUTPUT_FILE.values(),
+            pkio.sorted_glob(run_dir.join('*')),
+        ))
         return PKDict(
             framesForClassifier=data.models.classificationAnimation.classifier,
-            frameCount=1,
+            frameCount=1 if s else 0,
             percentComplete=100,
         )
-    fit_csv_file = run_dir.join(_OUTPUT_FILE.fitCSVFile)
-    if fit_csv_file.exists():
-        line = _read_last_csv_line(fit_csv_file)
-        m = re.search(r'^(\d+)', line)
-        if m and int(m.group(1)) > 0:
-            max_frame = data.models.neuralNet.epochs
-            res.frameCount = int(m.group(1)) + 1
-            res.percentComplete = float(res.frameCount) * 100 / max_frame
+    line = template_common.read_last_csv_line(run_dir.join(_OUTPUT_FILE.fitCSVFile))
+    m = re.search(r'^(\d+)', line)
+    if m and int(m.group(1)) > 0:
+        max_frame = data.models.neuralNet.epochs
+        res.frameCount = int(m.group(1)) + 1
+        res.percentComplete = float(res.frameCount) * 100 / max_frame
     return res
 
 
 def get_application_data(data, **kwargs):
     if data.method == 'compute_column_info':
         return _compute_column_info(data.dataFile)
-    assert False, 'unknown get_application_data: {}'.format(data)
+    raise AssertionError(f'unknown get_application_data: {data}')
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -171,7 +176,7 @@ def sim_frame_linearSvcErrorRateAnimation(frame_args):
             points=v[:, 1].tolist(),
             label='Mean Error',
         )],
-    ).update(PKDict(
+    ).pkupdate(PKDict(
         x_label='Tolerance',
     ))
 
@@ -239,24 +244,24 @@ def _classification_metrics_report(frame_args, filename):
 
 
 def _compute_column_info(dataFile):
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_filename(dataFile.file)))
-    if re.search(r'\.npy$', path):
-        return _compute_numpy_info(path)
-    return _compute_csv_info(path)
+    f = dataFile.file
+    if re.search(r'\.npy$', f):
+        return _compute_numpy_info(f)
+    return _compute_csv_info(f)
 
 
-def _compute_csv_info(path):
+def _compute_csv_info(filename):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    with open(str(path)) as f:
+    with open(_filepath(filename)) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
             res.rowCount += 1
-    if not row:
+    if not row or len(row) == 1:
         return PKDict(
             error='Invalid CSV file: no columns detected'
         )
@@ -265,14 +270,36 @@ def _compute_csv_info(path):
     if list(filter(lambda x: template_common.NUMERIC_RE.search(x), row)):
         row = ['column {}'.format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
+    res.colsWithNonUniqueValues = _cols_with_non_unique_values(
+        filename,
+        res.hasHeaderRow,
+        row,
+    )
     res.header = row
     res.inputOutput = ['none' for i in range(len(row))]
     return res
 
 
-def _compute_numpy_info(path):
+def _cols_with_non_unique_values(filename, has_header_row, header):
+    # TODO(e-carlin): support npy
+    assert not re.search(r'\.npy$', str(filename)), \
+        f'numpy files are not supported path={filename}'
+    v = np.genfromtxt(
+        str(_filepath(filename)),
+        delimiter=',',
+        skip_header=True,
+    )
+    res = PKDict()
+    for i, c in enumerate(np.all(v == v[0,:], axis = 0)):
+        if not c:
+            continue
+        res[header[i]] = True
+    return res
+
+
+def _compute_numpy_info(filename):
     #TODO(pjm): compute column info from numpy file
-    assert False, 'not implemented yet'
+    raise NotImplementedError()
 
 
 def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
@@ -282,15 +309,16 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         for x, v in enumerate(r.matrix[y]):
             t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
-
-
+    labels = _get_classification_output_col_encoding(frame_args)
+    if labels:
+        labels = list(labels.values())
+    else:
+        labels = r.labels
     return template_common.heatmap(
         a,
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
-            labels=list(
-                _get_classification_output_col_encoding(frame_args).values(),
-            ),
+            labels=labels,
             title=title.format(**r),
             x_label='Predicted',
             y_label='True',
@@ -306,7 +334,7 @@ def _error_rate_report(frame_args, filename, x_label):
             points=v[:, 1].tolist(),
             label='Mean Error',
         )],
-    ).update(PKDict(
+    ).pkupdate(PKDict(
         x_label=x_label,
     ))
 
@@ -317,11 +345,19 @@ def _extract_column(run_dir, sim_in, idx):
 
 
 def _extract_file_column_report(run_dir, sim_in):
-    idx = sim_in.models[sim_in.report].columnNumber
+    m = sim_in.models[sim_in.report]
+    idx = m.columnNumber
     x, y = _extract_column(run_dir, sim_in, idx)
+    if np.isnan(y).any():
+        template_common.write_sequential_result(PKDict(
+            error='Column values are not numeric',
+        ))
+        return
+    if 'x' in m and m.x is not None and m.x >= 0:
+        _, x = _extract_column(run_dir, sim_in, m.x)
     _write_report(
         x,
-        [_plot_info(y)],
+        [_plot_info(y, style='scatter')],
         sim_in.models.columnInfo.header[idx],
     )
 
@@ -368,6 +404,10 @@ def _filename(name):
     return _SIM_DATA.lib_file_name_with_model_field('dataFile', 'file', name)
 
 
+def _filepath(name):
+    return _SIM_DATA.lib_file_abspath(_filename(name))
+
+
 def _fit_animation(frame_args):
     idx = int(frame_args.columnNumber)
     frame_args.histogramBins = 30
@@ -393,14 +433,15 @@ def _fit_animation(frame_args):
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    v.dataFile = _filename(data.models.dataFile.file)
+    v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
-        neuralNetLayers=data.models.neuralNet.layers,
-        inputDim=data.models.columnInfo.inputOutput.count('input'),
+        neuralNetLayers=dm.neuralNet.layers,
+        inputDim=dm.columnInfo.inputOutput.count('input'),
     ).pkupdate(_OUTPUT_FILE)
-    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in data.models.columnInfo.inputOutput]) + ']'
+    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in dm.columnInfo.inputOutput]) + ']'
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
@@ -411,7 +452,7 @@ def _generate_parameters_file(data):
     if 'partitionColumnReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
         return res
-    if data.models.dataFile.appMode == 'classification':
+    if dm.dataFile.appMode == 'classification':
         res += template_common.render_jinja(SIM_TYPE, v, 'classification-base.py')
         d = PKDict(
             decisionTree='decision-tree',
@@ -422,7 +463,7 @@ def _generate_parameters_file(data):
         return res + template_common.render_jinja(
             SIM_TYPE,
             v,
-            f'{d[data.models.classificationAnimation.classifier]}.py',
+            f'{d[dm.classificationAnimation.classifier]}.py',
         )
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
@@ -430,45 +471,14 @@ def _generate_parameters_file(data):
 
 
 def _get_classification_output_col_encoding(frame_args):
-    """Create _OUTPUT_FILE.classificationOutputColEncodingFile if not found.
-
-    This file is a "new" addition so "older" runs may not have it.
-    """
-    def _create_file():
-        from sklearn.preprocessing import LabelEncoder
-
-        # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
-        data = simulation_db.read_json(frame_args.run_dir.join(template_common.INPUT_BASE_NAME))
-        v = np.genfromtxt(
-            str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                _filename(data.models.dataFile.file),
-            )),
-            delimiter=',',
-            skip_header=data.models.columnInfo.hasHeaderRow,
-            dtype=None,
-            encoding='utf-8',
-        )
-        o = data.models.columnInfo.inputOutput.index('output')
-        c = v[f'f{o}']
-        e = LabelEncoder().fit(c)
-        res = PKDict(
-            zip(
-                e.transform(e.classes_).astype(np.float).tolist(),
-                e.classes_,
-            ),
-        )
-        pkjson.dump_pretty(
-            res,
-            filename=_OUTPUT_FILE.classificationOutputColEncodingFile,
-        )
-        return res
     try:
         return simulation_db.read_json(
             frame_args.run_dir.join(_OUTPUT_FILE.classificationOutputColEncodingFile),
         )
     except Exception as e:
         if pkio.exception_is_not_found(e):
-            return _create_file()
+            # no file exists, data may be only numeric values
+            return PKDict()
         raise e
 
 
@@ -493,8 +503,8 @@ def _layer_implementation_list(data):
     return res.keys()
 
 
-def _plot_info(y, label=''):
-    return PKDict(points=list(y), label=label)
+def _plot_info(y, label='', style=None):
+    return PKDict(points=list(y), label=label, style=style)
 
 
 def _read_file(run_dir, filename):
@@ -506,19 +516,6 @@ def _read_file(run_dir, filename):
 
 def _read_file_column(run_dir, name, idx):
     return _read_file(run_dir, _OUTPUT_FILE[name])[:, idx]
-
-
-def _read_last_csv_line(path):
-    # for performance, don't read whole file if only last line is needed
-    try:
-        with open(str(path), 'rb') as f:
-            f.readline()
-            f.seek(-2, os.SEEK_END)
-            while f.read(1) != b'\n':
-                f.seek(-2, os.SEEK_CUR)
-            return pkcompat.from_bytes(f.readline())
-    except IOError:
-        return ''
 
 
 def _report_info(x, plots, title=''):

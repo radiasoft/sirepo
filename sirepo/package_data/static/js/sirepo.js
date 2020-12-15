@@ -237,17 +237,21 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.cssClassDirectivesEnabled(false);
     SIREPO.appFieldEditors = '';
 
+    let defaultRoute = null;
     function addRoute(routeName) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
         if (! routeInfo.config) {
             // the route isn't configured for the current app
             return;
         }
+        const cfg = routeInfo.config;
         localRoutes[routeName] = routeInfo.route;
-        var cfg = routeInfo.config;
-        cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        if (cfg.templateUrl) {
+            cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        }
         $routeProvider.when(routeInfo.route, cfg);
-        if (routeInfo.isDefault) {
+        if (routeName === SIREPO.APP_SCHEMA.appDefaults.route) {
+            defaultRoute = routeName;
             if (routeInfo.route.indexOf(':') >= 0) {
                 throw new Error('default route must not have params: ' + routeInfo.route);
             }
@@ -258,6 +262,9 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
 
     for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
         addRoute(routeName);
+    }
+    if (! defaultRoute) {
+        throw new Error('at least one route must be the default route');
     }
 });
 
@@ -609,6 +616,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             return null;
         }
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
+    };
+
+    self.formatFloat = function(v, decimals) {
+        return +parseFloat(v).toFixed(decimals);
     };
 
     self.formatTime = function(unixTime) {
@@ -1188,7 +1199,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
         var delay = isPlaying && ! isHidden
-            ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
+            ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
         var requestFunction = function() {
             requestSender.sendRequest(
@@ -1499,6 +1510,27 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     // lazy creation/storage of field delegates
     self.fieldDelegates = {};
+
+    // if no associated view, check for a superclass that does have one
+    self.getBaseModelKey = function(modelKey) {
+        if (appState.viewInfo(modelKey)) {
+            return modelKey;
+        }
+        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
+            return modelKey;
+        }
+        var m = appState.modelInfo(modelKey);
+        if (m._super) {
+            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
+                if (appState.viewInfo(m._super[i])) {
+                    modelKey = m._super[i];
+                    return modelKey;
+                }
+            }
+        }
+        return modelKey;
+    };
+
     self.getFieldDelegate = function(modelName, field) {
         if (! self.fieldDelegates[modelName]) {
             self.fieldDelegates[modelName] = {};
@@ -1538,34 +1570,13 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.getStatusText = function(name) {
         if (self.isRunning(name)) {
             var count = (queueItems[name] && queueItems[name].runStatusCount) || 0;
-            var progressText = SIREPO.APP_SCHEMA.constants.inProgressText ||
-                (appState.models[name] || {}).inProgressText ||
+            var progressText = (appState.models[name] || {}).inProgressText  ||
+                SIREPO.APP_SCHEMA.constants.inProgressText ||
                 'Simulating';
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
         return 'Waiting';
     };
-
-    // if no associated view, check for a superclass that does have one
-    self.getBaseModelKey = function(modelKey) {
-        if (appState.viewInfo(modelKey)) {
-            return modelKey;
-        }
-        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
-            return modelKey;
-        }
-        var m = appState.modelInfo(modelKey);
-        if (m._super) {
-            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
-                if (appState.viewInfo(m._super[i])) {
-                    modelKey = m._super[i];
-                    return modelKey;
-                }
-            }
-        }
-        return modelKey;
-    };
-
 
     self.isActiveField = function(model, field) {
         return $(fieldClass(model, field)).find('input').is(':focus');
@@ -2137,7 +2148,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
                 1
             );
         }
-        //srdbg('req url/data', url, data);
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);

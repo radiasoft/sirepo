@@ -59,9 +59,9 @@
 "L3PM3L": DRIF,l=0.085912
 "L3QM1L": DRIF,l="0.396944985602385 0.076 0.0776 - 2 / +"
 "L3QM2L": DRIF,l="0.123149946400042 0.076 0.0776 - 2 / +"
-"L3QM3L": DRIF,l="0.2140696 0.23 2.245597e-01 - 2 / +    0.1 0.10207 - 2 / +"
+"L3QM3L": DRIF,l="0.2140696 0.23 2.245597e-01 - 2 / + 0.1 0.10207 - 2 / +"
 "L3QM4L": DRIF,l="0.1395218 0.1 0.10207 - 2 / +"
-"L3QM5L": DRIF,l="0.2790696 0.1 0.10207 - 2 / + 0.1 0.10207 - 2 / + "
+"L3QM5L": DRIF,l="0.2790696 0.1 0.10207 - 2 / + 0.1 0.10207 - 2 / +"
 "L3QM6L": DRIF,l="0.1107202 0.1 0.10207 - 2 / +"
 "L3SC1L": DRIF,l="0.1395478 0.1 0.10207 - 2 / +"
 "L3SC2L": DRIF,l=0.307238
@@ -215,7 +215,7 @@
 "UNDL29": DRIF,l=.2403
 "VCOR": DRIF,l=.06
 "VCOR1": DRIF,l=.03
-"VMON": DRIF,l=0.
+"VMON": DRIF
 "LAP": ECOL,x_max=0.008,y_max=0.008
 "L1:RG2:SC1H": HKICK
 "L1:RG2:SC2H": HKICK
@@ -395,7 +395,7 @@
 "UND8M": MARK
 "UND9M": MARK
 "ID10": MATR,filename="MATR-filename.und.matrix",l=0.2343
-"NTUBE": MAXAMP,x_max=0,y_max=0
+"NTUBE": MAXAMP
 "TUBE": MAXAMP,elliptical=1,x_max=0.01905,y_max=0.01905
 "L1:PM1": MONI
 "L2:PM1": MONI
@@ -411,7 +411,7 @@
 "L5:PM3": MONI
 "L5:PM4": MONI
 "L3SC1PFIL": PFILTER
-"RG2PFIL": PFILTER,lowerfraction=0.4,upperfraction=0
+"RG2PFIL": PFILTER,lowerfraction=0.4
 "BB:Q1": QUAD,k1=1.64715754844526,l=0.1527
 "BB:Q2": QUAD,k1=-1.48129904,l=0.1527
 "BB:Q3": QUAD,k1=+.927768361,l=0.1527
@@ -512,10 +512,10 @@
 "L5CELL2": RFCA,change_p0=1,end1_focus=1,end2_focus=1,freq=2856000000,l=0.07000000000000001,phase=96
 "L5CELL4": RFCA,change_p0=1,end1_focus=1,end2_focus=1,freq=2856000000,l=0.14,phase=96
 "L5CELL8": RFCA,change_p0=1,end1_focus=1,end2_focus=1,freq=2856000000,l=0.28,phase=96
-"RFBLM": RFCW,cell_length=1e-12,change_p0=1,freq=2856e6,interpolate=1,l="86e-12 8 *",phase=0,tcolumn="t",volt=165e6,wzcolumn="W",zwakefile="RFCW-zwakefile.Sz_1um_200um.sdds"
+"RFBLM": RFCW,cell_length=1e-12,change_p0=1,freq=2856e6,interpolate=1,l="86e-12 8 *",tcolumn="t",volt=165e6,wzcolumn="W",zwakefile="RFCW-zwakefile.Sz_1um_200um.sdds"
 "B:IS": SBEN,angle=-0.271795124688,e1=-0.135897562344,e2=-0.135897562344,hgap=0.01,l=0.8
 "BBM": SBEN,angle=0.09239978,e1=0.04619989,e2=0.04619989,l=3.077
-"DMAG": SBEN,angle=.20072,e1=.0,e2=.20072,l=.40269858,tilt=1.570796
+"DMAG": SBEN,angle=.20072,e2=.20072,l=.40269858,tilt=1.570796
 "L3:AM1": SBEN,angle=0.24,b2=6.31,e2=0.24,fint=0.288,hgap=0.02,l=0.193,tilt=1.570796326794897,use_bn=1
 "L3:BM1": SBEN,angle=0.234823537033513,b2=6.31,e2=0.234823537033513,fint=0.288,hgap=0.02,l=0.193775965132665,use_bn=1
 "L3:BM2": SBEN,angle=-0.234823537033513,b2=6.31,e1=-0.234823537033513,fint=0.288,hgap=0.02,l=0.193775965132665,use_bn=1

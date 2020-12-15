@@ -224,6 +224,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'NSLS-II CSX-1 beamline'):
             dm.electronBeamPosition.driftCalculationMethod = 'manual'
             dm.electronBeamPosition.drift = -1.8 if 'HXN' in dm.simulation.name else -1.0234
+        if cls.srw_is_gaussian_source(dm.simulation):
+            cls.__fixup_gaussian_divergence(dm.gaussianBeam)
         cls._organize_example(data)
 
     @classmethod
@@ -457,6 +459,22 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
+    def __fixup_gaussian_divergence(cls, beam):
+        #TODO(pjm): keep in sync with srw.js convertGBSize()
+        def convert_gb_size(field, energy):
+            energy = float(energy)
+            value = float(beam[field])
+            if not value or not energy:
+                return 0
+            waveLength = (1239.84193e-9) / energy
+            factor = waveLength / (4 * math.pi)
+            return factor / (value * 1e-6) * 1e6
+
+        if beam.sizeDefinition == '1' and not beam.rmsDivergenceX:
+            beam.rmsDivergenceX = convert_gb_size('rmsSizeX', beam.photonEnergy)
+            beam.rmsDivergenceY = convert_gb_size('rmsSizeY', beam.photonEnergy)
+
+    @classmethod
     def __fixup_old_data_by_template(cls, data):
         import sirepo.template.srw_fixup
         import sirepo.template.srw
@@ -492,6 +510,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ).items():
                     if k not in i:
                         i[k] = v
+                if i.method == 'calculation':
+                    i.method = 'file'
             if t == 'crystal':
                 # this is a hack for existing bad data
                 for k in ['outframevx', 'outframevy', 'outoptvx', 'outoptvy', 'outoptvz',

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="32" height="34" viewBox="0, 0, 32, 34">
+  <g id="Layer_1" transform="translate(-187.579, -2.339)">
+    <g id="Add_Symmetry">
+      <path d="M203.391,3.339 L203.391,35.339" fill-opacity="0" stroke="#000000" stroke-width="0.75" stroke-dasharray="2.25,1.5" id="Axis"/>
+      <g id="Triangle">
+        <path d="M193.34,9.649 L201.708,19.339 L193.34,29.029 z" fill="#97B6D5"/>
+        <path d="M190.337,29.029 L193.34,29.029 L193.34,9.649 L190.337,9.649 L190.337,29.029 z" fill="#526374"/>
+      </g>
+      <g id="Triangle" opacity="0.505">
+        <path d="M214.045,9.649 L205.676,19.339 L214.045,29.029 z" fill="#97B6D5"/>
+        <path d="M217.047,29.029 L214.045,29.029 L214.045,9.649 L217.047,9.649 L217.047,29.029 z" fill="#526374"/>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,106 @@
+from __future__ import absolute_import, division, print_function
+
+import radia
+
+_MODEL_BOX = 'box'
+_MODEL_GROUP = 'geomGroup'
+_MODEL_GROUP_UND = 'geomUndulatorGroup'
+_MODEL_OBJECT = 'geomObject'
+_GROUP_MODELS = (_MODEL_GROUP, _MODEL_GROUP_UND)
+_OBJ_MODELS = (_MODEL_BOX, _MODEL_OBJECT)
+_MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
+
+{% if not isExample and not dmpImportFile %}
+radia_objs = []
+model_objs = {{ objects }}
+
+{% include 'radia_tk.py' %}
+{% endif %}
+
+{% if isExample %}
+{% include 'radia_examples.py' %}
+{% endif %}
+
+{% if not isExample and not dmpImportFile  %}
+def _add_object(o):
+    if o['model'] == _MODEL_BOX:
+        ctr = _split_comma_delimited_string(o['center'], float)
+        sz = _split_comma_delimited_string(o['size'], float)
+        m = _split_comma_delimited_string(o['magnetization'], float)
+        div = _split_comma_delimited_string(o['division'], int) if o['doDivide'] != '0' else None
+        g_id = build_box(ctr, sz, o['material'], m, div, h_m_curve=o['h_m_curve'])
+        if o['color']:
+            radia.ObjDrwAtr(
+                g_id,
+                [c / 255.0 for c in tuple(int(o['color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4))]
+            )
+    if o['model'] in _GROUP_MODELS:
+        grp = []
+        for obj_id in o['members']:
+            obj = [mobj for mobj in model_objs if mobj['id'] == obj_id][0]
+            if obj['mapId'] not in id_map:
+                # have not added this object yet, do so now
+                grp.append(_add_object(m))
+            else:
+                grp.append(id_map[obj['mapId']] )
+        g_id = radia.ObjCnt(grp)
+    for transform in o['transforms']:
+        apply_transform(g_id, transform)
+    id_map[o['mapId']] = g_id
+    radia_objs.append(g_id)
+    return g_id
+
+def _split_comma_delimited_string(s, f_type):
+    import re
+    return [f_type(x) for x in re.split(r'\s*,\s*', s)]
+{% endif %}
+
+# ** BEGIN **
+{% if isExample %}
+g_id = EXAMPLES['{{ geomName }}']()
+{% elif dmpImportFile %}
+with open('{{ dmpImportFile }}', 'rb') as f:
+    b = f.read()
+    g_id = radia.UtiDmpPrs(b)
+{% else %}
+id_map = {}
+{% for obj in objects %}
+if '{{ obj['mapId'] }}' not in id_map:
+    g_id = _add_object({{ obj }})
+    id_map['{{ obj['mapId'] }}'] = g_id
+    radia_objs.append(g_id)
+{% endfor %}
+g_id = radia.ObjCnt(radia_objs)
+{% endif %}
+
+
+print(f'Solving {g_id}...')
+res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+print(f'done: {res[3]} steps ({1000 * res[0]}ms); max |M| {res[1]} A/m; max |H| {res[2]} A/m')
+
+{% if viewType == VIEW_TYPE_FIELD %}
+
+{% if fieldType == FIELD_TYPE_MAG_M %}
+f = radia.ObjM(g_id)
+{% elif fieldType in POINT_FIELD_TYPES %}
+f = radia.Fld(g_id, '{{ fieldType }}', {{ fieldPoints }})
+{% else %}
+f = None
+{% endif %}
+print(f'{{ fieldType }} field: {f}')
+
+{% for fp in fieldPaths %}
+{% if fp['type'] == 'line' %}
+p1 = [{{ fp['begin'] }}]
+p2 = [{{ fp['end'] }}]
+{% for i_type in INTEGRABLE_FIELD_TYPES %}
+print(f"Integral of {{ i_type }} from {p1} to {p2}: {radia.FldInt(g_id, 'inf', '{{ i_type }}', p1, p2)}")
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+
+print('Dumping to {{ dmpOutputFile }}')
+with open('{{ dmpOutputFile }}', 'wb') as f:
+    f.write(radia.UtiDmp(g_id, 'bin'))

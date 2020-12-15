@@ -1,0 +1,135 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "beamline"
+        }
+    },
+    "enum": {
+        "GaussianBeamPolarization": [
+            ["1", "Linear Horizontal"],
+            ["2", "Linear Vertical"],
+            ["3", "Linear 45 degrees"],
+            ["4", "Linear 135 degrees"],
+            ["5", "Circular Right"],
+            ["6", "Circular Left"]
+        ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "dom-to-image.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "silas.js",
+                "sirepo-beamline.js"
+            ],
+            "css": [
+                "srw.css",
+                "silas.css"
+            ]
+        }
+    },
+    "localRoutes": {
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "BeamlineController as beamline",
+                "templateUrl": "/static/html/silas-beamline.html"
+            }
+        }
+    },
+    "frameIdFields": {
+        "animation": ["id"],
+        "wavefrontSummaryAnimation": []
+    },
+    "model": {
+        "crystal": {
+            "title": ["Element Name", "String", "Crystal"],
+            "position": ["Central Position [m]", "Float"],
+            "radius": ["Radial Variation", "Float", 0.02, "Radial variation of index of refraction"],
+            "width": ["Width [m]", "Float", 4.0],
+            "refractionIndex": ["Index of Refraction", "Float", 2.0, "Index of refraction along the optical axis", 1e-24]
+        },
+        "gaussianBeam": {
+            "energyPerPulse": ["Energy per Pulse [J]", "Float", 0.001],
+            "initialPropagationLength": ["Initial Propagation Length [m]", "Float", 15],
+            "photonEnergy": ["Average Photon Energy [eV]", "Float", 1.55],
+            "polarization": ["Polarization", "GaussianBeamPolarization", "1"],
+            "rmsSize": ["RMS Waist [µm]", "Float", 200]
+        },
+        "mirror": {
+            "title": ["Element Name", "String", "Planar Mirror"],
+            "position": ["Central Position [m]", "Float"],
+            "focusingError": ["Focusing Error [m]", "Float", 0]
+        },
+        "simulationSettings": {
+            "n_reflections": ["Number of Reflections", "Integer", 15, "", 1, 10000],
+            "cavity_length": ["Cavity Distance [m]", "Float", 10.0, "", 1e-6],
+            "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30]
+        },
+        "wavefrontSummaryAnimation": {
+        },
+        "wavefrontAnimation": {
+            "position": ["Position", "Float", 0]
+        }
+    },
+    "view": {
+        "crystal": {
+            "title": "Crystal",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "width",
+                "refractionIndex",
+                "radius"
+            ]
+        },
+        "mirror": {
+            "title": "Mirror",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "focusingError"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "n_reflections",
+                "cavity_length",
+                "gaussianBeam.rmsSize",
+                "sample_factor"
+            ],
+            "advanced": [
+                ["Main", [
+                    "n_reflections",
+                    "cavity_length",
+                    "sample_factor"
+                ]],
+                ["Beam", [
+                    "gaussianBeam.photonEnergy",
+                    "gaussianBeam.rmsSize",
+                    "gaussianBeam.polarization",
+                    "gaussianBeam.energyPerPulse",
+                    "gaussianBeam.initialPropagationLength"
+                ]]
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "wavefrontAnimation": {
+            "title": "Wavefront",
+            "advanced": []
+        },
+        "wavefrontSummaryAnimation": {
+            "title": "Wavefront Summary",
+            "advanced": []
+        }
+    }
+}

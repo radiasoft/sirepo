@@ -7,6 +7,11 @@ u"""List of features available
 from __future__ import absolute_import, division, print_function
 # defer all imports so *_CODES is available to testing functions
 
+#: Codes that depend on other codes. [x][0] depends on [x][1]
+_DEPENDENT_CODES = [
+    ['jspec', 'elegant'],
+    ['controls', 'madx'],
+]
 
 #: Codes on prod
 _PROD_FOSS_CODES = frozenset((
@@ -15,6 +20,7 @@ _PROD_FOSS_CODES = frozenset((
     'madx',
     'ml',
     'opal',
+    'radia',
     'shadow',
     'srw',
     'synergia',
@@ -26,11 +32,12 @@ _PROD_FOSS_CODES = frozenset((
 
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
+    'controls',
     'irad',
     'myapp',
-    'radia',
     'rcscon',
     'rs4pi',
+    'silas',
 ))
 
 #: All possible open source codes
@@ -38,7 +45,7 @@ _FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
 
 #: codes for which we require dynamically loaded binaries
-_PROPRIETARY_CODES = frozenset(('flash',))
+_PROPRIETARY_CODES = frozenset(('flash', 'jupyterhublogin'))
 
 #: all executable codes
 VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES)
@@ -101,7 +108,7 @@ def _init():
             beamline3d=b('Show 3D beamline plot'),
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
-            show_open_shadow=(False, bool, 'Show "Open as a New Shadow Simulation" menu item'),
+            show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
@@ -114,11 +121,9 @@ def _init():
         )
     )
     s.update(_cfg.proprietary_sim_types)
-    # jspec imports elegant, but elegant won't work if it is not a valid
-    # sim_type so need to include here. Need a better model of
-    # dependencies between codes.
-    if 'jspec' in s and 'elegant' not in s:
-        s.add('elegant')
+    for v in _DEPENDENT_CODES:
+        if v[0] in s:
+            s.add(v[1])
     x = s.difference(VALID_CODES)
     assert not x, \
         'sim_type(s) invalid={} expected={}'.format(x, VALID_CODES)

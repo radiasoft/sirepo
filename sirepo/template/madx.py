@@ -46,8 +46,6 @@ _FIELD_UNITS = PKDict(
     s='m',
     x='m',
     y='m',
-    px='rad',
-    py='rad',
 )
 
 _PI = 4 * math.atan(1)
@@ -130,10 +128,98 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def code_var(variables):
+    return code_variable.CodeVar(
+        variables,
+        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        case_insensitive=True,
+    )
+
+def eval_code_var(data):
+    # TODO(e-carlin): When #3111 is merged use the code in LibAdapterBase._convert
+    # to do this work. It is copied from there.
+    cv = code_var(data.models.rpnVariables)
+
+    def _model(model, name):
+        schema = _SCHEMA.model[name]
+
+        k = x = v = None
+        try:
+            for k, x in schema.items():
+                t = x[1]
+                v = model[k] if k in model else x[2]
+                if t == 'RPNValue':
+                    t = 'Float'
+                    if cv.is_var_value(v):
+                        model[k] = cv.eval_var_with_assert(v)
+                        continue
+                if t == 'Float':
+                    model[k] = float(v) if v else 0.
+                elif t == 'Integer':
+                    model[k] = int(v) if v else 0
+        except Exception as e:
+            pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+            raise
+
+    for x in  data.models.rpnVariables:
+        x.value = cv.eval_var_with_assert(x.value)
+    for k, v in data.models.items():
+        if k in _SCHEMA.model:
+            _model(v, k)
+    for x in ('elements', 'commands'):
+        for m in data.models[x]:
+            _model(m, LatticeUtil.model_name_for_data(m))
+
+def extract_monitor_values(run_dir):
+    t = madx_parser.parse_tfs_file(run_dir.join('twiss.file.tfs'))
+    l = []
+    for i, e in enumerate(t.keyword):
+        if to_string(e) in ('MONITOR', 'HMONITOR', 'VMONITOR'):
+            l.append([i, to_string(e)])
+    m = []
+    for i in l:
+        m.append(PKDict(
+            name=to_string(t.name[i[0]]),
+            x=0 if i[1] == 'VMONITOR' else to_float(t.x[i[0]]),
+            y=0 if i[1] == 'HMONITOR' else to_float(t.y[i[0]]),
+        ))
+    return m
+
+
+def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
+    t = madx_parser.parse_tfs_file(run_dir.join(filename))
+    plots = []
+    m = data.models[data.report]
+    for f in ('y1', 'y2', 'y3'):
+        if m[f] == 'None':
+            continue
+        plots.append(
+            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
+        )
+    x = m.get('x') or 's'
+    res = template_common.parameter_plot(
+        to_floats(t[x]),
+        plots,
+        m,
+        PKDict(
+            y_label='',
+            x_label=_field_label(x),
+        )
+    )
+    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
+        res.initialTwissParameters = PKDict(
+            betx=t.betx[0],
+            bety=t.bety[0],
+            alfx=t.alfx[0],
+            alfy=t.alfx[0],
+        )
+    return res
+
+
 def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
-    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
@@ -152,7 +238,6 @@ def import_file(req, **kwargs):
     assert re.search(r'\.madx$', req.filename, re.IGNORECASE), \
         'invalid file extension, expecting .madx'
     data = madx_parser.parse_file(text, downcase_variables=True)
-    _fixup_madx(data)
     # TODO(e-carlin): need to clean this up. copied from elegant
     data.models.simulation.name = re.sub(
         r'\.madx$',
@@ -163,10 +248,6 @@ def import_file(req, **kwargs):
     return data
 
 
-def madx_code_var(variables):
-    return _code_var(variables)
-
-
 def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     if success_exit:
         return None
@@ -174,7 +255,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -210,8 +291,16 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
+def to_float(value):
+    return float(value)
+
+
 def to_floats(values):
-    return [float(v) for v in values]
+    return [to_float(v) for v in values]
+
+
+def to_string(value):
+    return value.replace('"', '')
 
 
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
@@ -260,7 +349,7 @@ def _build_filename_map_from_util(util):
 def _calc_bunch_parameters(bunch, beam, variables):
     try:
         field = bunch.beamDefinition
-        cv = _code_var(variables)
+        cv = code_var(variables)
         energy = template_common.ParticleEnergy.compute_energy(
             SIM_TYPE,
             beam.particle,
@@ -279,14 +368,6 @@ def _calc_bunch_parameters(bunch, beam, variables):
     except AssertionError:
         pass
     return PKDict(command_beam=beam)
-
-
-def _code_var(variables):
-    return code_variable.CodeVar(
-        variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
-        case_insensitive=True,
-    )
 
 
 def _extract_report_bunchReport(data, run_dir):
@@ -322,8 +403,8 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_elementAnimation(data, run_dir, filename):
-    if re.search('twiss', filename):
-        return _extract_report_twissReport(data, run_dir, filename)
+    if _is_parameter_report_file(filename):
+        return extract_parameter_report(data, run_dir, filename)
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
@@ -381,38 +462,8 @@ def _extract_report_twissEllipseReport(data, run_dir):
     )
 
 
-def extract_report_twissReport(data, run_dir):
-    return _extract_report_twissReport(data, run_dir)
-
-
-def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
-    t = madx_parser.parse_tfs_file(run_dir.join(filename))
-    plots = []
-    m = data.models[data.report]
-    for f in ('y1', 'y2', 'y3'):
-        if m[f] == 'None':
-            continue
-        plots.append(
-            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
-        )
-    x = m.get('x') or 's'
-    res = template_common.parameter_plot(
-        to_floats(t[x]),
-        plots,
-        m,
-        PKDict(
-            y_label='',
-            x_label=_field_label(x),
-        )
-    )
-    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
-        res.initialTwissParameters = PKDict(
-            betx=t.betx[0],
-            bety=t.bety[0],
-            alfx=t.alfx[0],
-            alfy=t.alfx[0],
-        )
-    return res
+def _extract_report_twissReport(data, run_dir):
+    return extract_parameter_report(data, run_dir)
 
 
 def _field_label(field):
@@ -438,7 +489,7 @@ def _file_info(filename, run_dir, file_id):
     return PKDict(
         modelKey='elementAnimation{}'.format(file_id),
         filename=filename,
-        isHistogram='twiss' not in filename,
+        isHistogram=not _is_parameter_report_file(filename),
         plottableColumns=plottable,
         pageCount=count,
     )
@@ -463,31 +514,6 @@ def _first_beam_command(data):
     return m
 
 
-def _fixup_madx(madx):
-    # move imported beam over default-data.json beam
-    # remove duplicate twiss
-    # remove "call" and "use" commands
-    beam_idx = None
-    first_twiss = True
-    res = []
-    for cmd in madx.models.commands:
-        if cmd._type == 'call' or cmd._type == 'use':
-            continue
-        if cmd._type == 'beam':
-            if beam_idx is None:
-                beam_idx = madx.models.commands.index(cmd)
-            else:
-                res[beam_idx] = cmd
-                _update_beam_and_bunch(cmd, madx.models.bunch)
-                continue
-        elif cmd._type == 'twiss':
-            if first_twiss:
-                first_twiss = False
-                continue
-        res.append(cmd)
-    madx.models.commands = res
-
-
 def _format_field_value(state, model, field, el_type):
     v = model[field]
     if el_type == 'Boolean' or el_type == 'OptionalBoolean':
@@ -496,8 +522,14 @@ def _format_field_value(state, model, field, el_type):
         v = state.id_map[int(v)].name
     elif el_type == 'OutputFile':
         v = '"{}"'.format(state.filename_map[LatticeUtil.file_id(model._id, state.field_index)].filename)
+    elif el_type == 'RPNValue':
+        v = _format_rpn_value(v)
     return [field, v]
 
+
+def _format_rpn_value(value):
+    return code_variable.PurePythonEval.postfix_to_infix(value
+    )
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
@@ -528,10 +560,9 @@ def _generate_parameters_file(data):
     util = LatticeUtil(data, _SCHEMA)
     filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
-    code_var = _code_var(data.models.rpnVariables)
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
     v.lattice = _generate_lattice(filename_map, util)
-    v.variables = code_var.generate_variables(_generate_variable)
+    v.variables = code_var(data.models.rpnVariables).generate_variables(_generate_variable)
     v.useBeamline = util.select_beamline().name
     if report == 'twissReport' or _is_report('bunchReport', report):
         v.twissOutputFilename = _TWISS_OUTPUT_FILE
@@ -547,13 +578,17 @@ def _generate_parameters_file(data):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, variables[name])
+        res += 'REAL {} = {};\n'.format(name, _format_rpn_value(variables[name]))
         visited[name] = True
     return res
 
 
 def _get_filename_for_element_id(file_id, data):
     return _build_filename_map(data)[file_id]
+
+
+def _is_parameter_report_file(filename):
+    return 'twiss' in filename or 'touschek' in filename
 
 
 def _is_report(name, report):
@@ -637,22 +672,6 @@ def _twiss_ellipse_rotation(alpha, beta):
     )
 
 
-def _update_beam_and_bunch(beam, bunch):
-    if 'particle' in beam:
-        beam.particle = beam.particle.lower()
-        found = False
-        for pt in _SCHEMA.enum.ParticleType:
-            if pt[0] == beam.particle:
-                found = True
-                break
-        if not found:
-            beam.particle = 'other'
-    for bd in _SCHEMA.enum.BeamDefinition:
-        if bd[0] in beam and beam[bd[0]]:
-            bunch.beamDefinition = bd[0]
-            break
-
-
 def _update_beam_energy(data):
     beam = _first_beam_command(data)
     bunch = data.models.bunch
@@ -660,3 +679,8 @@ def _update_beam_energy(data):
         for e in _SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
+    if bunch.longitudinalMethod == '1':
+        beam.sigt = _SCHEMA.model.command_beam.sigt[2]
+        beam.sige = _SCHEMA.model.command_beam.sige[2]
+    if bunch.longitudinalMethod == '2':
+        beam.et = _SCHEMA.model.command_beam.et[2]

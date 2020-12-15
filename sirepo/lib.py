@@ -9,8 +9,88 @@ Use this to call sirepo from other packages or Python notebooks.
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import pykern.pkio
+from sirepo.template import lattice
+from sirepo.template.lattice import LatticeUtil
 import copy
+import inspect
+import py.error
+import pykern.pkio
+import sirepo.sim_data
+import sirepo.util
+
+
+class LibAdapterBase:
+    """Common functionality between code specific LibAdapter implementations."""
+
+    def __init__(self):
+        m = inspect.getmodule(self)
+        self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
+        self._code_var = m.code_var
+
+    def _convert(self, data):
+        def _model(model, name):
+            s = self._schema.model[name]
+
+            k = x = v = None
+            try:
+                for k, x in s.items():
+                    t = x[1]
+                    v = model[k] if k in model else x[2]
+                    if t == 'RPNValue':
+                        t = 'Float'
+                        if cv.is_var_value(v):
+                            model[k] = cv.eval_var_with_assert(v)
+                            continue
+                    if t == 'Float':
+                        model[k] = float(v) if v else 0.
+                    elif t == 'Integer':
+                        model[k] = int(v) if v else 0
+            except Exception as e:
+                pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+                raise
+
+        cv = self._code_var(data.models.rpnVariables)
+        for x in  data.models.rpnVariables:
+            x.value = cv.eval_var_with_assert(x.value)
+        for k, v in data.models.items():
+            if k in self._schema.model:
+                _model(v, k)
+        for x in ('elements', 'commands'):
+            for m in data.models[x]:
+                _model(m, LatticeUtil.model_name_for_data(m))
+        return data
+
+    def _verify_files(self, path, filenames):
+        for f in filenames:
+            assert sirepo.util.secure_filename(f) == f, \
+                f'file={f} must be a simple name'
+            p = path.dirpath().join(f)
+            assert p.check(file=True), \
+                f'file={f} missing'
+
+    def _write_input_files(self, data, source_path, dest_dir):
+        for f in set(
+            LatticeUtil(data, self._schema).iterate_models(
+                lattice.InputFileIterator(self._sim_data, update_filenames=False),
+            ).result,
+        ):
+            f = self._sim_data.lib_file_name_without_type(f)
+            try:
+                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+            except py.error.EEXIST:
+                pass
+
+
+class GenerateBase:
+    """Common functionality between code specific Generate implementations."""
+
+    @property
+    def util(self):
+        from sirepo.template.lattice import LatticeUtil
+
+        if not hasattr(self, '_util'):
+            self._util = LatticeUtil(self.data, self._schema)
+        return self._util
 
 
 class Importer:

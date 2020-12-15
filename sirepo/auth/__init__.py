@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth_db
 from sirepo import cookie
+from sirepo import events
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import job
@@ -111,9 +112,19 @@ def api_authLogout(simulation_type=None):
         except AssertionError:
             pass
     if _is_logged_in():
+        events.emit('auth_logout', PKDict(uid=_get_user()))
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_app_root(req and req.type)
+
+
+def check_user_has_role(role, raise_forbidden=True):
+    u = logged_in_user()
+    if auth_db.UserRole.has_role(u, role):
+        return True
+    if raise_forbidden:
+        util.raise_forbidden('uid={} role={} not found'.format(u, role))
+    return False
 
 
 def complete_registration(name=None):
@@ -144,6 +155,10 @@ def get_all_roles():
 def guest_uids():
     """All of the uids corresponding to guest users."""
     return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
+
+
+def get_module(name):
+    return _METHOD_MODULES[name]
 
 
 def init_apis(*args, **kwargs):
@@ -344,15 +359,6 @@ def require_sim_type(sim_type):
     check_user_has_role(role_for_sim_type(sim_type))
 
 
-def check_user_has_role(role, raise_forbidden=True):
-    u = logged_in_user()
-    if auth_db.UserRole.has_role(u, role):
-        return True
-    if raise_forbidden:
-        util.raise_forbidden('uid={} role={} not found'.format(u, role))
-    return False
-
-
 def require_user():
     e = None
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
@@ -431,6 +437,14 @@ def set_user(uid):
         reset_state()
 
 
+def unchecked_get_user(uid):
+    with auth_db.thread_lock:
+        u = auth_db.UserRegistration.search_by(uid=uid)
+        if u:
+            return u.uid
+        return None
+
+
 def user_dir_not_found(user_dir, uid):
     """Called by simulation_db when user_dir is not found
 
@@ -468,6 +482,18 @@ def user_if_logged_in(method):
     if m != method:
         return None
     return _get_user()
+
+
+def user_name():
+    u = getattr(
+        _METHOD_MODULES[cookie.unchecked_get_value(
+            _COOKIE_METHOD,
+        )],
+        'UserModel',
+    )
+    if u:
+        with auth_db.thread_lock:
+            return  u.search_by(uid=logged_in_user()).user_name
 
 
 def user_registration(uid):
@@ -586,10 +612,11 @@ def _auth_state():
     return v
 
 def _create_roles_for_user(uid, method):
-    if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
-        return
-
-    auth_db.UserRole.add_roles(uid, get_all_roles())
+    r = []
+    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
+        auth_db.UserRole.add_roles(uid, get_all_roles())
+    elif sirepo.template.is_sim_type('jupyterhublogin'):
+        auth_db.UserRole.add_roles(uid, [role_for_sim_type('jupyterhublogin')])
 
 
 def _get_user():

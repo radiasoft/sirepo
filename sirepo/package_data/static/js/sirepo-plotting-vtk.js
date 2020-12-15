@@ -1089,6 +1089,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     let bs = layouts[l].filter(function (s) {
                         return `${s.id}`.split('-').length === 1;
                     });
+                    /*
                     let bdef = d3.select('.plot-viewport defs').selectAll(l)
                         .data(bs);
                     bdef.exit().remove();
@@ -1096,7 +1097,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         .append(function (d) {
                             return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
                         });
-
+                    */
                     let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
                         .data(layouts[l]);
                     ds.exit().remove();
@@ -1242,14 +1243,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function replot() {
-                // total x extent
-                // add optional fit to objects
-                var bnds = $scope.source.shapeBounds();
+                let bnds = $scope.source.shapeBounds();
                 //srdbg('bnds', bnds);
-                var newDomain = $scope.cfg.initDomian;
+                let newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
-                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
-                    var axis = axes[dim];
+                    let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    let axis = axes[dim];
                     axis.domain = newDomain[labDim];
                     if ($scope.cfg.fitToObjects) {
                         if (bnds[labDim][0] < axis.domain[0]) {
@@ -1261,6 +1260,23 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     }
                     axis.scale.domain(newDomain[labDim]);
                 });
+                // keep the size of the domains in each direction equal, in order to preserve
+                // the shapes (squares stay square, etc.(
+                if ($scope.cfg.preserveShape) {
+                    let newDomSpan = Math.max(
+                        Math.abs(newDomain.x[1] - newDomain.x[0]),
+                        Math.abs(newDomain.y[1] - newDomain.y[0])
+                    );
+                    SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
+                        let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                        let domDiff = (
+                            newDomSpan - Math.abs(newDomain[labDim][1] - newDomain[labDim][0])
+                        ) / 2;
+                        newDomain[labDim][0] = newDomain[labDim][0] - domDiff;
+                        newDomain[labDim][1] = newDomain[labDim][1] + domDiff;
+                        axes[dim].scale.domain(newDomain[labDim]);
+                    });
+                }
                 $scope.resize();
             }
 
@@ -1328,6 +1344,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function shapeOrigin(shape, dim) {
                 var labDim = shape.elev[dim].axis;
+
                 return axes[dim].scale(
                     shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
                 );
@@ -1372,11 +1389,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeSize(shape, screenDim) {
-                var labDim = shape.elev[screenDim].axis;
-                return  Math.abs(
-                    axes[screenDim].scale(shape.center[labDim] + shape.size[labDim] / 2) -
-                    axes[screenDim].scale(shape.center[labDim] - shape.size[labDim] / 2)
-                );
+                let labDim = shape.elev[screenDim].axis;
+                let c = shape.center[labDim] || 0;
+                let s = shape.size[labDim] || 0;
+                return  Math.abs(axes[screenDim].scale(c + s / 2) - axes[screenDim].scale(c - s / 2));
             }
 
             function updateShapeAttributes(selection) {
@@ -1412,9 +1428,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         var pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
                     })
-                    .attr('y2', function (d) {
+                    .attr('y2', function(d) {
                         var pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
+                    })
+                    .attr('marker-end', function(d) {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
+                    })
+                    .attr('marker-start', function(d) {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
                     })
                     .attr('width', function(d) {
                         return shapeSize(d, 'x') + 2 * (d.outlineOffset || 0);
@@ -1997,6 +2023,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function setBgColor(hexColor) {
                 renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
+                renderWindow.render();
             }
 
             function setCam(pos, vu) {
@@ -2198,6 +2225,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     $scope.$applyAsync(function () {
                         $scope.selection = d;
                     });
+                });
+                $scope.$on('vtk.showLoader', function (e, d) {
+                    setBgColor('#dddddd');
+                    $($element).find('.vtk-load-indicator img').css('display', 'block');
+                });
+                $scope.$on('vtk.hideLoader', function (e, d) {
+                    setBgColor('#ffffff');
+                    $($element).find('.vtk-load-indicator img').css('display', 'none');
                 });
                 $scope.init();
             });

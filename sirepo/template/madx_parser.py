@@ -17,7 +17,7 @@ class MadXParser(lattice.LatticeParser):
     def __init__(self):
         self.ignore_commands = set([
             'aperture', 'assign', 'call', 'coguess',
-            'correct', 'create', 'ealign', 'efcomp', 'emit',
+            'correct', 'create', 'ealign', 'efcomp',
             'endedit', 'eoption', 'esave', 'exec', 'exit', 'fill',
             'install',
             'plot', 'print', 'quit',
@@ -33,8 +33,10 @@ class MadXParser(lattice.LatticeParser):
 
     def parse_file(self, lattice_text, downcase_variables=False):
         from sirepo.template import madx
+        lattice_text = re.sub(r',\s*,', ',', lattice_text)
         res = super().parse_file(lattice_text)
-        cv = madx.madx_code_var(self.data.models.rpnVariables)
+        self._add_variables_for_lattice_references()
+        cv = madx.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
         self._set_default_beamline('use', 'sequence', 'period')
@@ -47,7 +49,7 @@ class MadXParser(lattice.LatticeParser):
         util = lattice.LatticeUtil(self.data, self.schema)
         name_to_id = PKDict()
         for id in util.id_map:
-            name = util.id_map[id].name
+            name = util.id_map[id].get('name')
             if not name:
                 continue
             name = name.upper()
@@ -68,6 +70,8 @@ class MadXParser(lattice.LatticeParser):
                             el[f] = el[f].lower()
                             if 'Boolean' in el_schema[1]:
                                 if el[f] == '1' or el[f] == '0':
+                                    pass
+                                elif el_schema[1] == 'OptionalBoolean' and el[f] == '':
                                     pass
                                 elif el[f].lower() == 'true':
                                     el[f] = '1'
@@ -115,8 +119,36 @@ class MadXParser(lattice.LatticeParser):
         util.sort_elements_and_beamlines()
 
 
+#TODO(pjm): move into parser class
+def _fixup_madx(madx):
+    # move imported beam over default-data.json beam
+    # remove duplicate twiss
+    # remove "call" and "use" commands
+    beam_idx = None
+    first_twiss = True
+    res = []
+    for cmd in madx.models.commands:
+        if cmd._type == 'call' or cmd._type == 'use':
+            continue
+        if cmd._type == 'beam':
+            if beam_idx is None:
+                beam_idx = madx.models.commands.index(cmd)
+            else:
+                res[beam_idx] = cmd
+                _update_beam_and_bunch(cmd, madx)
+                continue
+        elif cmd._type == 'twiss':
+            if first_twiss:
+                first_twiss = False
+                continue
+        res.append(cmd)
+    madx.models.commands = res
+
+
 def parse_file(lattice_text, downcase_variables=False):
-    return MadXParser().parse_file(lattice_text, downcase_variables)
+    res = MadXParser().parse_file(lattice_text, downcase_variables)
+    _fixup_madx(res)
+    return res
 
 
 def parse_tfs_page_info(tfs_file):
@@ -173,3 +205,34 @@ def parse_tfs_file(tfs_file, header_only=False, want_page=-1):
             for row in rows:
                 res[name].append(row[i])
     return res
+
+_TWISS_VARS = PKDict(
+    sr_twiss_beta_x='betx',
+    sr_twiss_beta_y='bety',
+    sr_twiss_alpha_x='alfx',
+    sr_twiss_alpha_y='alfy',
+)
+
+def _update_beam_and_bunch(beam, data):
+    bunch = data.models.bunch
+    schema = sirepo.sim_data.get_class('madx').schema()
+    if 'particle' in beam:
+        beam.particle = beam.particle.lower()
+        found = False
+        for pt in schema.enum.ParticleType:
+            if pt[0] == beam.particle:
+                found = True
+                break
+        if not found:
+            beam.particle = 'other'
+    for bd in schema.enum.BeamDefinition:
+        if bd[0] in beam and beam[bd[0]]:
+            bunch.beamDefinition = bd[0]
+            break
+    for v in data.models.rpnVariables:
+        if v.name in _TWISS_VARS:
+            bunch[_TWISS_VARS[v.name]] = v.value
+    beam_info = schema.model.command_beam
+    if beam.et == beam_info.et[2] and \
+       (beam.sigt != beam_info.sigt[2] or beam.sige != beam_info.sige[2]):
+        bunch.longitudinalMethod = '2'

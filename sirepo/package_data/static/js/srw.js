@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+    SIREPO.SHOW_HELP_BUTTONS = true;
     SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
@@ -157,6 +158,30 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         //TODO(pjm): replace jquery
         var tag = $($("div[data-model-name='" + modelName + "']").find('.sr-panel-heading')[0]);
         tag.text(repName);
+    };
+
+    self.addSummaryDataListener = function(scope) {
+        scope.$on('summaryData', function(e, modelKey, info) {
+            // update plot size info from summaryData
+            if (appState.isLoaded()) {
+                var range = info.fieldRange;
+                // var intensityRange = info.fieldIntensityRange;
+                var m = appState.models[modelKey];
+                // only set the default plot range if no override is currently used
+                if (m && 'usePlotRange' in m && m.usePlotRange == '0') {
+                    m.horizontalSize = (range[4] - range[3]) *1e3;
+                    m.horizontalOffset = (range[3] + range[4]) *1e3 / 2;
+                    m.verticalSize = (range[7] - range[6]) *1e3;
+                    m.verticalOffset = (range[6] + range[7]) *1e3 / 2;
+                    appState.saveQuietly(modelKey);
+                }
+                if (m && 'useIntensityLimits' in m && m.useIntensityLimits == '0') {
+                    m.minIntensityLimit = info.fieldIntensityRange[0]; // intensityRange[0];
+                    m.maxIntensityLimit = info.fieldIntensityRange[1]; // intensityRange[1];
+                    appState.saveQuietly(modelKey);
+                }
+            }
+        });
     };
 
     self.computeBeamParameters = function() {
@@ -406,6 +431,13 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             ['minIntensityLimit', 'maxIntensityLimit'],
             appState.models[modelKey || modelName].useIntensityLimits == '1',
         ]);
+    };
+
+    self.updatePlotRange = function(modelName, modelKey) {
+        panelState.showRow(
+            modelName,
+            'horizontalOffset',
+            appState.models[modelKey || modelName].usePlotRange == '1');
     };
 
     self.updateIntensityReport = function(modelName) {
@@ -676,6 +708,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         $scope.$on('simulation.changed', syncDistanceFromSourceToFirstElementPosition);
         $scope.$on('multiElectronAnimation.changed', updateMultiElectronWatchpoint);
         $scope.$on('initialIntensityReport.changed', copyIntensityReportCharacteristics);
+        srwService.addSummaryDataListener($scope);
     });
 
     $scope.$on('$destroy', function() {
@@ -734,6 +767,7 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     appState.whenModelsLoaded($scope, function() {
         srwService.changeFluxReportName('fluxAnimation.fluxType');
         srwService.changeFluxReportName('fluxReport.fluxType');
+        srwService.addSummaryDataListener($scope);
     });
 });
 
@@ -827,9 +861,15 @@ var srwIntensityLimitLogic = function(panelState, srwService, $scope) {
             $scope.modelName,
             $scope.modelData ? $scope.modelData.modelKey : null);
     }
+    function updatePlotRange() {
+        srwService.updatePlotRange(
+            $scope.modelName,
+            $scope.modelData ? $scope.modelData.modelKey : null);
+    }
 
     function updateSelected() {
         updateIntensityLimit();
+        updatePlotRange();
         panelState.showField($scope.modelName, 'fieldUnits', srwService.isGaussianBeam());
 
         var schemaModel = SIREPO.APP_SCHEMA.model[$scope.modelName];
@@ -845,12 +885,16 @@ var srwIntensityLimitLogic = function(panelState, srwService, $scope) {
         }
     }
 
+    var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
         [
-            ($scope.modelData ? $scope.modelData.modelKey : $scope.modelName)
-                + '.useIntensityLimits',
+            modelKey + '.useIntensityLimits',
         ], updateIntensityLimit,
+        [
+            ($scope.modelData ? $scope.modelData.modelKey : $scope.modelName)
+                + '.usePlotRange',
+        ], updatePlotRange,
     ];
     if ($scope.modelName == 'sourceIntensityReport') {
         $scope.watchFields.push(
@@ -929,13 +973,13 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, srwService, $
 SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, srwService, $scope) {
 
     function computeCrystalInit(item) {
-        if (item.material != 'Unknown') {
-            panelState.enableFields(item.type, [
+        panelState.enableFields(item.type, [
                 [
                     'dSpacing', 'psi0r', 'psi0i', 'psiHr',
                     'psiHi', 'psiHBr', 'psiHBi',
-                ], false,
+                ], item.material == 'Unknown',
             ]);
+        if (item.material != 'Unknown') {
             srwService.computeFields('compute_crystal_init', item, [
                 'dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi',
                 'psiHBr', 'psiHBi', 'orientation',
@@ -1515,27 +1559,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             $scope.showOpenShadow = function() {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
                     && $scope.nav.isActive('beamline')
-                    && srwService.isGaussianBeam();
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            reportTitle: '@',
-        },
-        template: [
-            '<a href data-ng-click="exportPython()">Export Python Code</a>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.exportPython = function() {
-                panelState.pythonSource(
-                    appState.models.simulation.simulationId,
-                    panelState.findParentAttribute($scope, 'modelKey'),
-                    $scope.reportTitle);
+                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator());
             };
         },
     };

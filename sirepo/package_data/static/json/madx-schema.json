@@ -48,7 +48,7 @@
             "pi", "twopi", "raddeg", "degrad", "e", "emass", "pmass",
             "nmass", "mumass", "clight", "qelect", "hbar", "erad", "prad"
         ],
-        "particleInfo": {
+        "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
             "electron": [0.510998928e-03, -1],
             "proton": [0.938272046, 1],
@@ -118,6 +118,10 @@
             ["1", "Increase"],
             ["-1", "Decrease"],
             ["-none-", "None"]
+        ],
+        "LongitudinalBunchMethod": [
+            ["1", "Longitudinal emittance (ET)"],
+            ["2", "Bunch length and relative energy spread (SIGT, SIGE)"]
         ],
         "ParticleType": [
             ["positron", "Positron"],
@@ -214,12 +218,11 @@
             "matchTwissParameters": ["Match Twiss Parameters", "Boolean", "0", "Use twiss parameters computed from the selected beamline"],
             "numberOfParticles": ["Number Of Particles", "Integer", 1000, "Number of particles to track.", 1, 10000],
             "randomSeed": ["Random Number Seed", "Integer", 123456789, "The seed for the random number generator for particles"],
-            "ex": ["Horizontal Emittance [m]", "Float", 1e-6],
-            "ey": ["Vertical Emittance [m]", "Float", 1e-6],
             "betx": ["Horizontal Beta [m]", "Float", 1.0],
             "bety": ["Vertical Beta [m]", "Float", 1.0],
             "alfx": ["Horizontal Alpha", "Float", 0.0],
-            "alfy": ["Vertical Alpha", "Float", 0.0]
+            "alfy": ["Vertical Alpha", "Float", 0.0],
+            "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod", "1"]
         },
         "simulation": {
             "enableParticleTracking": ["Particle Tracking", "Boolean", "1"],
@@ -246,17 +249,17 @@
             "beta": ["BETA [v/c]", "RPNValue", 0.0, "Ratio between the speed of the particles and the speed of light."],
             "brho": ["BRHO [P/abs(q)]", "RPNValue", 0.0, "Magnetic rigidity of the particles."],
             "ex": ["EX [m]", "RPNValue", 1.0, "The horizontal emittance."],
-            "exn": ["EXN [m]", "RPNValue", 0.0, "The normalised horizontal emittance."],
+            "exn": ["EXN", "RPNValue", 0.0, "The normalised horizontal emittance."],
             "ey": ["EY [m]", "RPNValue", 1.0, "The vertical emittance."],
-            "eyn": ["EYN [m]", "RPNValue", 0.0, "The normalised vertical emittance."],
-            "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance"],
+            "eyn": ["EYN", "RPNValue", 0.0, "The normalised vertical emittance."],
+            "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance $\\epsilon_t$"],
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Attaches the beam command to a specific sequence."],
-            "sigt": ["SIGT [m]", "RPNValue", 1.0, "The bunch length c sigma(t)."],
-            "sige": ["SIGE [m]", "RPNValue", 0.001, "The relative energy spread sigma(E)/E."],
+            "sigt": ["SIGT [m]", "RPNValue", 1.0, "The bunch length $c\\space \\sigma_t$."],
+            "sige": ["SIGE", "RPNValue", 0.001, "The relative energy spread $\\sigma_E / E$."],
             "kbunch": ["KBUNCH", "Integer", 1, "The number of particle bunches in the machine."],
             "npart": ["NPART", "Integer", 1, "The number of particles per bunch."],
             "bcurrent": ["BCURRENT", "RPNValue", 0.0, "The bunch current."],
-            "bunched": ["BUNCHED", "Boolean", "1", "The beam is treated as bunched whenever this makes sense. "],
+            "bunched": ["BUNCHED", "Boolean", "1", "The beam is treated as bunched whenever this makes sense."],
             "radiate": ["RADIATE", "Boolean", "0", "Synchrotron radiation is considered in all bipolar magnets."],
             "bv": ["BV", "Integer", 1, "The direction of the particle movement in a beam line."]
         },
@@ -327,6 +330,10 @@
             "mscaly": ["MSCALY", "RPNValue", 0.0, "The relative vertical scaling error for a monitor. This is ignored if the element is not a monitor."],
             "arex": ["AREX [m]", "RPNValue", 0.0, "The misalignment in the x-direction for the entry of an aperture limit."],
             "arey": ["AREY [m]", "RPNValue", 0.0, "The misalignment in the y-direction for the entry of an aperture limit."]
+        },
+        "command_emit": {
+            "deltap": ["DELTAP", "RPNValue", 0, "The average energy error"],
+            "tol": ["TOL", "RPNValue", 1.000001, "The tolerance attribute is for the distinction between static and dynamic cases: if for the eigenvalues of the one-turn matrix, |e_val_5| <tol and |e_val_6| <tol, then the longitudinal motion is not considered, otherwise it is."]
         },
         "command_endmatch": {},
         "command_global": {
@@ -526,6 +533,10 @@
             "print_at_end": ["PRINT_AT_END", "Boolean", "0", "If true, the files and internal tables containing results at the end of the position range will be generated"],
             "start_stop": ["START_STOP", "Float2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"]
         },
+        "command_touschek": {
+            "tolerance": ["TOLERANCE", "RPNValue", 1e-7, "the tolerance for the numerical integrator DGAUSS"],
+            "file": ["FILE", "OutputFile", "", "The name of the output file"]
+        },
         "command_twiss": {
             "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
             "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
@@ -688,7 +699,7 @@
         "CRABCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the cavity"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage"],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage"],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "rv1": ["RV1", "Integer", 0, "Number of initial turns with zero voltage."],
@@ -727,7 +738,7 @@
         "HACDIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the device."],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The amplitude of the kick."],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The amplitude of the kick."],
             "freq": ["FREQ [2$\\pi$]", "RPNValue", 0.0, "Tune of the oscillation."],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The phase lag."],
             "ramp1": ["RAMP1", "Integer", 0, "Starting turn of amplitude ramp-up."],
@@ -1082,14 +1093,14 @@
         "RFCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the cavity"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage"],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage"],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "harmon": ["HARMON", "Integer", 0, "The harmonic number."]
         },
         "RFMULTIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage."],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage."],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The phase lag."],
             "harmon": ["HARMON", "Integer", 0, "The harmonic number."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
@@ -1142,7 +1153,7 @@
         "TWCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the cavity"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage"],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage"],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "psi": ["PSI", "RPNValue", 0.0],
@@ -1151,7 +1162,7 @@
         "VACDIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the device."],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The amplitude of the kick."],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The amplitude of the kick."],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "ramp1": ["RAMP1", "Integer", 0, "Starting turn of amplitude ramp-up."],
@@ -1214,17 +1225,20 @@
                     "simulation.visualizationBeamlineId",
                     [
                         ["Horizontal", [
-                            "ex",
+                            "command_beam.ex",
                             "betx",
                             "alfx"
                         ]],
                         ["Vertical", [
-                            "ey",
+                            "command_beam.ey",
                             "bety",
                             "alfy"
                         ]]
                     ],
-                    "command_beam.et"
+                    "longitudinalMethod",
+                    "command_beam.et",
+                    "command_beam.sigt",
+                    "command_beam.sige"
                 ]],
                 ["Particle Count", [
                     "numberOfParticles",
@@ -1399,6 +1413,14 @@
                 "mscaly",
                 "arex",
                 "arey"
+            ]
+        },
+        "command_emit": {
+            "title": "emit",
+            "description": "EMIT calculates the equilibrium emittances",
+            "advanced": [
+                "deltap",
+                "tol"
             ]
         },
         "command_endmatch": {
@@ -1702,6 +1724,14 @@
                 "print_all",
                 "print_at_end",
                 "start_stop"
+            ]
+        },
+        "command_touschek": {
+            "title": "touschek",
+            "description": "The TOUSCHEK module computes the Touschek lifetime and the scattering rates around a lepton or hadron storage ring.",
+            "advanced": [
+                "tolerance",
+                "file"
             ]
         },
         "command_twiss": {

@@ -15,6 +15,7 @@ SIREPO.app.config(function() {
         '<li data-lineout-csv-link="x"></li>',
         '<li data-lineout-csv-link="y"></li>',
         '<li data-lineout-csv-link="full"></li>',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
 });
 
@@ -128,9 +129,11 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService)
     self.beamlineService = beamlineService;
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
-    //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
-    self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'crl', 'mirror', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
     self.prepareToSave = function() {};
+    self.showBeamStatisticsReport = function() {
+        return ['geometricSource', 'undulator'].indexOf(appState.models.simulation.sourceType) >= 0;
+    };
 });
 
 SIREPO.app.controller('SourceController', function(appState, shadowService) {

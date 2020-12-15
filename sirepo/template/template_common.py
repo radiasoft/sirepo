@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
 import math
 import numpy
+import os
 import pykern.pkrunpy
 import re
 import sirepo.http_reply
@@ -21,7 +22,6 @@ import sirepo.sim_data
 import sirepo.template
 import sirepo.util
 import subprocess
-import sys
 import types
 
 
@@ -77,6 +77,7 @@ class ModelUnits():
     # handler for common units, native --> sirepo scale
     _COMMON_HANDLERS = PKDict(
         cm_to_m=1e-2,
+        mm_to_cm=1e-1,
         mrad_to_rad=1e-3,
         deg_to_rad=math.pi / 180,
     )
@@ -134,35 +135,21 @@ class ParticleEnergy():
         madx=['energy', 'pc', 'gamma', 'beta', 'brho'],
     )
 
-    PARTICLE = PKDict(
+    # defaults unless constants.particleMassAndCharge is set in the schema
+    PARTICLE_MASS_AND_CHARGE = PKDict(
         # mass [GeV]
-        antiproton=PKDict(
-            mass=0.938272046,
-            charge=-1,
-        ),
-        electron=PKDict(
-            mass=5.10998928e-4,
-            charge=-1,
-        ),
-        muon=PKDict(
-            mass=0.1056583755,
-            charge=-1.0,
-        ),
-        positron=PKDict(
-            mass=5.10998928e-4,
-            charge=1,
-        ),
-        proton=PKDict(
-            mass=0.938272046,
-            charge=1,
-        ),
+        antiproton=[0.938272046, -1],
+        electron=[5.10998928e-4,-1],
+        muon=[0.1056583755, -1],
+        positron=[5.10998928e-4, 1],
+        proton=[0.938272046, 1],
     )
 
     @classmethod
     def compute_energy(cls, sim_type, particle, energy):
-        p = cls.PARTICLE[particle] if particle in cls.PARTICLE else PKDict(
-            mass=energy.mass,
-            charge=energy.charge
+        p = PKDict(
+            mass=cls.get_mass(sim_type, particle, energy),
+            charge=cls.get_charge(sim_type, particle, energy),
         )
         for f in cls.ENERGY_PRIORITY[sim_type]:
             if f in energy and energy[f] != 0:
@@ -172,6 +159,24 @@ class ParticleEnergy():
                 energy[f] = v
                 return energy
         assert False, 'missing energy field: {}'.format(energy)
+
+    @classmethod
+    def get_charge(cls, sim_type, particle, beam):
+        return cls.__particle_info(sim_type, particle, beam)[1]
+
+    @classmethod
+    def get_mass(cls, sim_type, particle, beam):
+        return cls.__particle_info(sim_type, particle, beam)[0]
+
+    @classmethod
+    def __particle_info(cls, sim_type, particle, beam):
+        mass_and_charge = sirepo.sim_data.get_class(sim_type).schema().constants.get(
+            'particleMassAndCharge',
+            cls.PARTICLE_MASS_AND_CHARGE,
+        )
+        if particle in mass_and_charge:
+            return mass_and_charge[particle]
+        return [beam.mass, beam.charge]
 
     @classmethod
     def __set_from_beta(cls, particle, energy):
@@ -268,13 +273,13 @@ def dict_to_h5(d, hf, path=None):
     try:
         for i in range(len(d)):
             try:
-                p = '{}/{}'.format(path, i)
+                p = f'{path}/{i}'
                 hf.create_dataset(p, data=d[i])
             except TypeError:
                 dict_to_h5(d[i], hf, path=p)
     except KeyError:
         for k in d:
-            p = '{}/{}'.format(path, k)
+            p = f'{path}/{k}'
             try:
                 hf.create_dataset(p, data=d[k])
             except TypeError:
@@ -298,6 +303,38 @@ def exec_parameters_with_mpi():
     return sirepo.mpi.run_script(pkio.read_text(PARAMETERS_PYTHON_FILE))
 
 
+def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
+    """Determine whether a file has an acceptable extension
+
+    Args:
+        file_path (str): name of the file to examine
+        white_list ([str]): list of file types allowed (defaults to empty list)
+        black_list ([str]): list of file types rejected (defaults to
+            ['py', 'pyc']). Ignored if white_list is not empty
+    Returns:
+        If file is a directory: True
+        If white_list non-empty: True if the file's extension matches any in
+        the list, otherwise False
+        If white_list is empty: False if the file's extension matches any in
+        black_list, otherwise True
+    """
+    import os
+
+    if os.path.isdir(file_path):
+        return True
+    if white_list:
+        in_list = False
+        for ext in white_list:
+            in_list = in_list or pkio.has_file_extension(file_path, ext)
+        if not in_list:
+            return False
+        return True
+    for ext in black_list:
+        if pkio.has_file_extension(file_path, ext):
+            return False
+    return True
+
+
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with
     flattened keys."""
@@ -316,42 +353,6 @@ def generate_parameters_file(data):
     v = flatten_data(data['models'], PKDict())
     v['notes'] = _get_notes(v)
     return render_jinja(None, v, name='common-header.py'), v
-
-
-def sim_frame(frame_id, op):
-    f, s = sirepo.sim_data.parse_frame_id(frame_id)
-    # document parsing the request
-    sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
-    try:
-        x = op(f)
-    except Exception as e:
-        pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
-        raise sirepo.util.convert_exception(e, display_text='Report not generated')
-    r = sirepo.http_reply.gen_json(x)
-    if 'error' not in x and s.want_browser_frame_cache():
-        r.headers['Cache-Control'] = 'private, max-age=31536000'
-    else:
-        sirepo.http_reply.headers_for_no_cache(r)
-    return r
-
-
-def sim_frame_dispatch(frame_args):
-    from sirepo import simulation_db
-
-    frame_args.pksetdefault(
-        run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
-    ).pksetdefault(
-        sim_in=lambda: simulation_db.read_json(
-            frame_args.run_dir.join(INPUT_BASE_NAME),
-        ),
-    )
-    t = sirepo.template.import_module(frame_args.simulationType)
-    o = getattr(t, 'sim_frame_' + frame_args.frameReport, None) \
-        or getattr(t, 'sim_frame')
-    res = o(frame_args)
-    if res is None:
-        raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
-    return res
 
 
 def h5_to_dict(hf, path=None):
@@ -455,7 +456,38 @@ def parse_enums(enum_schema):
     return res
 
 
-def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
+def read_last_csv_line(path):
+    # for performance, don't read whole file if only last line is needed
+    if not path.exists():
+        return ''
+    try:
+        with open(str(path), 'rb') as f:
+            f.readline()
+            f.seek(-2, os.SEEK_END)
+            while f.read(1) != b'\n':
+                f.seek(-2, os.SEEK_CUR)
+            return pkcompat.from_bytes(f.readline())
+    except IOError:
+        return ''
+
+
+def read_sequential_result(run_dir):
+    """Read result data file from simulation
+
+    Args:
+        run_dir (py.path): where to find output
+
+    Returns:
+        dict: result
+    """
+    from sirepo import simulation_db
+
+    return simulation_db.read_json(
+        simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
+    )
+
+
+def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     """Render the values into a jinja template.
 
     Args:
@@ -470,7 +502,74 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
         # append .jinja, because file may already have an extension
         d.join(name) + '.jinja',
         v,
+        jinja_env=jinja_env
     )
+
+
+def sim_frame(frame_id, op):
+    f, s = sirepo.sim_data.parse_frame_id(frame_id)
+    # document parsing the request
+    sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
+    try:
+        x = op(f)
+    except Exception as e:
+        pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
+        raise sirepo.util.convert_exception(e, display_text='Report not generated')
+    r = sirepo.http_reply.gen_json(x)
+    if 'error' not in x and s.want_browser_frame_cache():
+        r.headers['Cache-Control'] = 'private, max-age=31536000'
+    else:
+        sirepo.http_reply.headers_for_no_cache(r)
+    return r
+
+
+def sim_frame_dispatch(frame_args):
+    from sirepo import simulation_db
+
+    frame_args.pksetdefault(
+        run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
+    ).pksetdefault(
+        sim_in=lambda: simulation_db.read_json(
+            frame_args.run_dir.join(INPUT_BASE_NAME),
+        ),
+    )
+    t = sirepo.template.import_module(frame_args.simulationType)
+    o = getattr(t, 'sim_frame_' + frame_args.frameReport, None) \
+        or getattr(t, 'sim_frame')
+    res = o(frame_args)
+    if res is None:
+        raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
+    return res
+
+
+def subprocess_output(cmd, env=None):
+    """Run cmd and return output or None, logging errors.
+
+    Args:
+        cmd (list): what to run
+    Returns:
+        str: output is None on error else a stripped string
+    """
+    err = None
+    out = None
+    try:
+
+        p = subprocess.Popen(
+            cmd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        out, err = p.communicate()
+        if p.wait() != 0:
+            raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
+    except subprocess.CalledProcessError as e:
+        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
+        return None
+    if out:
+        out = pkcompat.from_bytes(out)
+        return out.strip()
+    return ''
 
 
 def validate_model(model_data, model_schema, enum_info):
@@ -495,7 +594,7 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             v = float(value)
-            if re.search(r'\[m(m|rad)]', label) or re.search(r'\[Lines/mm', label):
+            if re.search(r'\[m(m|rad)]', label):
                 v /= 1000
             elif re.search(r'\[n(m|rad)]', label) or re.search(r'\[nm/pixel\]', label):
                 v /= 1e09
@@ -530,84 +629,6 @@ def validate_models(model_data, model_schema):
         for m in model_data['models']['beamline']:
             validate_model(m, model_schema['model'][m['type']], enum_info)
     return enum_info
-
-
-def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
-    """Determine whether a file has an acceptable extension
-
-    Args:
-        file_path (str): name of the file to examine
-        white_list ([str]): list of file types allowed (defaults to empty list)
-        black_list ([str]): list of file types rejected (defaults to
-            ['py', 'pyc']). Ignored if white_list is not empty
-    Returns:
-        If file is a directory: True
-        If white_list non-empty: True if the file's extension matches any in
-        the list, otherwise False
-        If white_list is empty: False if the file's extension matches any in
-        black_list, otherwise True
-    """
-    import os
-
-    if os.path.isdir(file_path):
-        return True
-    if white_list:
-        in_list = False
-        for ext in white_list:
-            in_list = in_list or pkio.has_file_extension(file_path, ext)
-        if not in_list:
-            return False
-        return True
-    for ext in black_list:
-        if pkio.has_file_extension(file_path, ext):
-            return False
-    return True
-
-
-def read_sequential_result(run_dir):
-    """Read result data file from simulation
-
-    Args:
-        run_dir (py.path): where to find output
-
-    Returns:
-        dict: result
-    """
-    from sirepo import simulation_db
-
-    return simulation_db.read_json(
-        simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
-    )
-
-
-def subprocess_output(cmd, env):
-    """Run cmd and return output or None, logging errors.
-
-    Args:
-        cmd (list): what to run
-    Returns:
-        str: output is None on error else a stripped string
-    """
-    err = None
-    out = None
-    try:
-
-        p = subprocess.Popen(
-            cmd,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        out, err = p.communicate()
-        if p.wait() != 0:
-            raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
-    except subprocess.CalledProcessError as e:
-        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
-        return None
-    if out:
-        out = pkcompat.from_bytes(out)
-        return out.strip()
-    return ''
 
 
 def write_sequential_result(result, run_dir=None):

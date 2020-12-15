@@ -1,8 +1,22 @@
 {
     "models": {
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "linear"
+        },
          "fieldPaths": {
             "path": "line",
-            "paths": []
+            "paths": [
+                {
+                    "_super": "fieldPath",
+                    "begin": "0, -125, 0",
+                    "end": "0, 125, 0",
+                    "id": 0,
+                    "name": "Y Axis",
+                    "numPoints": 251,
+                    "type": "line"
+                }
+            ]
         },
         "geometry": {
             "name": "Undulator",
@@ -46,16 +60,30 @@
                 }
             ]
         },
+        "kickMap": {
+            "begin": "0, -52.5, 0",
+            "component": "h",
+            "direction": "0, 1, 0",
+            "inProgressText": "Calculating",
+            "numPeriods": 3,
+            "numTransPoints1": 21,
+            "numTransPoints2": 21,
+            "periodLength": 35,
+            "transverseDirection": "1, 0, 0",
+            "transverseRange1": 15,
+            "transverseRange2": 15
+        },
         "magnetDisplay": {
             "bgColor": "#ffffff",
             "fieldPoints": [],
-            "fieldType": "M",
+            "fieldType": "B",
             "notes": "",
             "viewType": "objects"
         },
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
+            "enableKickMaps": true,
             "folder": "/Examples",
             "isExample": true,
             "name": "Undulator",

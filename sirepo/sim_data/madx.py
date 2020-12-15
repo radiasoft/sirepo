@@ -20,12 +20,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             (
                 'bunch',
                 'simulation',
+                'twissReport',
             ),
         )
         for container in ('commands', 'elements'):
             for m in dm[container]:
                 cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
-
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

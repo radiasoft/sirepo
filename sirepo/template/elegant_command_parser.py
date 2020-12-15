@@ -14,7 +14,7 @@ import re
 _SKIP_COMMANDS = ['subprocess']
 
 
-def parse_file(command_text):
+def parse_file(command_text, update_filenames):
     parser = LineParser(0)
     lines = command_text.replace('\r', '').split('\n')
     prev_line = ''
@@ -38,7 +38,8 @@ def parse_file(command_text):
             pass
     if prev_line and re.search(r'\&', prev_line):
         parser.raise_error('missing &end for command: {}'.format(prev_line))
-    _update_lattice_names(commands)
+    if update_filenames:
+        _update_lattice_names(commands)
     return commands
 
 
@@ -116,7 +117,7 @@ def _parse_line(parser, line, commands):
 
 
 def _update_lattice_names(commands):
-    # preserve the name of the first run_setup.lattic
+    # preserve the name of the first run_setup.lattice
     # others may map to previous save_lattice names
     is_first_run_setup = True
     save_lattices = []

@@ -11,13 +11,11 @@
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
-  sample_fraction = 1.0,
+  input = "PCG.sdds",
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
-  sample_fraction = 1.0,
+  input = "PCG.sdds",
 &end
 
 &load_parameters

@@ -1869,7 +1869,6 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
                         background: [1, 1, 1, 1],
                         container: rw[0],
                     });
-                fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
             }
 
             function showActiveRoi() {
@@ -1930,6 +1929,9 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
                 var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
                 actor = vtk.Rendering.Core.vtkActor.newInstance();
                 actor.getProperty().setColor(0.3, 0.4, 0.9);
+                actor.getProperty().set({
+                        lighting: true,
+                });
                 //actor.getProperty().setEdgeVisibility(true);
                 //actor.getProperty().setPointSize(2);
                 mapper.setInputData(pd);

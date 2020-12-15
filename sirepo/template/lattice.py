@@ -58,6 +58,7 @@ class ElementIterator(ModelIterator):
         self.fields = []
 
     def __is_default(self, model, field_schema, field):
+        from sirepo.template.code_variable import CodeVar
         if len(field_schema) < 3:
             return True
         default_value = field_schema[2]
@@ -65,6 +66,9 @@ class ElementIterator(ModelIterator):
         if value is not None and default_value is not None:
             if value == default_value:
                 return True
+            if field_schema[1] == 'RPNValue':
+                if value and not CodeVar.is_var_value(value):
+                    return float(value) == default_value
             return str(value) == str(default_value)
         if value is not None:
             return False
@@ -74,14 +78,38 @@ class ElementIterator(ModelIterator):
 class InputFileIterator(ModelIterator):
     """Iterate and extract all InputFile filenames.
     """
-    def __init__(self, sim_data):
+    def __init__(self, sim_data, update_filenames=True):
         self.result = []
         self.sim_data = sim_data
+        self._update_filenames = update_filenames
 
     def field(self, model, field_schema, field):
-        if model[field] and field_schema[1].startswith('InputFile'):
+        def _beam_input_file():
+            self.result.append(
+                self.sim_data.lib_file_name_with_model_field(
+                    'bunchFile',
+                    'sourceFile',
+                    model[field],
+                ),
+            )
+
+        def _input_file():
             self.result.append(self.sim_data.lib_file_name_with_model_field(
                 LatticeUtil.model_name_for_data(model), field, model[field]))
+
+        t = PKDict({'InputFile': _input_file, 'BeamInputFile': _beam_input_file})
+        s = field_schema[1]
+        f = None
+        for k in t:
+            if s.startswith(k):
+                f = t[k]
+                break
+        if not model[field] or not f:
+            return
+        if not self._update_filenames:
+            self.result.append(model[field])
+        else:
+           f()
 
 
 class LatticeIterator(ElementIterator):
@@ -110,6 +138,39 @@ class LatticeParser(object):
         lines = lattice_text.replace('\r', '').split('\n')
         self.__parse_lines(lines)
         return self.data
+
+    def _add_variables_for_lattice_references(self):
+        # iterate all values, adding "x->y" lattice referenes as variables "x.y"
+        from sirepo.template.code_variable import CodeVar
+
+        def _fix_value(value, names):
+            value = re.sub(r'\-\>', '.', value)
+            expr = CodeVar.infix_to_postfix(value.lower())
+            for v in expr.split(' '):
+                if CodeVar.is_var_value(v):
+                    m = re.match(r'^(.*?)\.(.*)', v)
+                    if m:
+                        names[v] = [m.group(1), m.group(2)]
+            return value
+
+        names = {}
+        for v in self.data.models.rpnVariables:
+            if CodeVar.is_var_value(v.value):
+                v.value = _fix_value(v.value, names)
+        for el in self.data.models.elements:
+            for f in el:
+                v = el[f]
+                if CodeVar.is_var_value(v):
+                    el[f] = _fix_value(v, names)
+        for name in names:
+            for el in self.data.models.elements:
+                if el.name.lower() == names[name][0]:
+                    f = names[name][1]
+                    if f in el:
+                        self.data.models.rpnVariables.append(PKDict(
+                            name=name,
+                            value=el[f],
+                        ))
 
     def _code_variables_to_float(self, code_var):
         for v in self.data.models.rpnVariables:
@@ -230,12 +291,13 @@ class LatticeParser(object):
             if v[0] == '-':
                 reverse = True
                 v = v[1:]
-            el = self.elements_by_name[v.upper()]
-            assert el, 'line: {} element not found: {}'.format(label, v)
+            el = self.elements_by_name.get(v.upper())
+            assert el, 'line: {}, element not found: {}'.format(label, v)
             el_id = el._id if '_id' in el else el.id
             for _ in range(count):
                 res['items'].append(-el_id if reverse else el_id)
-        assert label.upper() not in self.elements_by_name
+        assert label.upper() not in self.elements_by_name, \
+            'duplicate beamline: {}'.format(label)
         self.elements_by_name[label.upper()] = res
         self.data.models.beamlines.append(res)
 
@@ -249,9 +311,12 @@ class LatticeParser(object):
             assert 'at' in res, 'sequence element missing "at": {}'.format(values)
             at = res.at
             del res['at']
-            assert label, 'unlabeled element: {}'.format(values)
-            assert label.upper() not in self.elements_by_name, \
-                'duplicate element in sequence: {}'.format(label)
+            #assert label, 'unlabeled element: {}'.format(values)
+            if not label:
+                label = cmd
+            else:
+                assert label.upper() not in self.elements_by_name, \
+                    'duplicate element in sequence: {}'.format(label)
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
@@ -274,8 +339,8 @@ class LatticeParser(object):
             assert label in self.elements_by_name, 'no element for label: {}: {}'.format(label, values)
             self.elements_by_name[label].update(res)
         else:
-            assert label.upper() not in self.elements_by_name, \
-                'duplicate element labeled: {}'.format(label)
+            # assert label.upper() not in self.elements_by_name, \
+            #     'duplicate element labeled: {}'.format(label)
             self.elements_by_name[label.upper()] = res
         self.data.models.elements.append(res)
 
@@ -386,10 +451,12 @@ class LatticeParser(object):
     def __parse_values(self, values):
         if not values:
             return
-        if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=\s*\(', values[0].lower()):
+        if (re.search(r'^\s*REAL\s', values[0], re.IGNORECASE) or len(values) == 1) \
+           and '=' in values[0] and not re.search(r'\Wline\s*\:?=\s*\(', values[0].lower()):
             # a variable assignment
-            m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', values[0])
-            assert m, 'invalid variable assignment: {}'.format(values)
+            val = ', '.join(values)
+            m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', val)
+            assert m, 'invalid variable assignment: {}'.format(val)
             name = m.group(1)
             v = m.group(2)
             if name not in self.data.models.rpnVariables:
@@ -413,7 +480,7 @@ class LatticeParser(object):
         while item:
             item = item.strip()
             m = re.match(
-                r'^\s*((?:[\w.\']+\s*:?=\s*)?(?:(?:".*?")|(?:\'.*?\')|(?:\{.*?\})|(?:\w+\(.*?\))))(?:,(.*))?$',
+                r'^\s*((?:[\w.\']+\s*:?=\s*)?(?:(?:".*?")|(?:\'.*?\')|(?:\{.*?\})|(?:\w+\(.*?\).*?)))(?:,(.*))?$',
                 item)
             if m:
                 values.append(m.group(1))
@@ -480,6 +547,18 @@ class LatticeUtil(object):
                         iterator.field(m, model_schema[k], k)
                 iterator.end(m)
         return iterator
+
+    @classmethod
+    def max_id(cls, data):
+        max_id = 1
+        for model_type in 'elements', 'beamlines', 'commands':
+            if model_type not in data.models:
+                continue
+            for m in data.models[model_type]:
+                i = m._id if '_id' in m else m.id
+                if i > max_id:
+                    max_id = i
+        return max_id
 
     @classmethod
     def model_name_for_data(cls, model):
