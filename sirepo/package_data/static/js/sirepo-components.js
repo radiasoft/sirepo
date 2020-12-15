@@ -2609,7 +2609,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
               '<div class="form-group">',
               '<div class="col-sm-offset-2 col-sm-10 text-center">',
                 '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
-                '<p class="help-block">By signing up for Sirepo you agree to Sirepo’s <a href="https://www.sirepo.com/en/privacy.html">privacy policy</a> and <a href="https://www.sirepo.com/en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>',
+                '<p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>',
               '</div>',
               '</div>',
             '</form>',
