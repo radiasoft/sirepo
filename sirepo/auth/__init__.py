@@ -612,10 +612,11 @@ def _auth_state():
     return v
 
 def _create_roles_for_user(uid, method):
-    if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
-        return
-
-    auth_db.UserRole.add_roles(uid, get_all_roles())
+    r = []
+    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
+        auth_db.UserRole.add_roles(uid, get_all_roles())
+    elif sirepo.template.is_sim_type('jupyterhublogin'):
+        auth_db.UserRole.add_roles(uid, [role_for_sim_type('jupyterhublogin')])
 
 
 def _get_user():

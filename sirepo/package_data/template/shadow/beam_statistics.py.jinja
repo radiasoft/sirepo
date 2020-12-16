@@ -1,0 +1,66 @@
+# -*- python -*-
+import math
+import numpy
+import Shadow
+from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
+from srxraylib.sources import srfunc
+from sirepo.template import transfer_mat_bl
+from pykern.pkcollections import PKDict
+from pykern import pkjson
+
+{% if simulation_sourceType == 'geometricSource' %}
+sigmax = {{ geometricSource_sigmax }}
+sigdix = {{ geometricSource_sigdix }}
+sigmaz = {{ geometricSource_sigmaz }}
+sigdiz = {{ geometricSource_sigdiz }}
+{% elif simulation_sourceType == 'undulator' %}
+{{undulatorSettings}}
+
+def rays_sigma(rays, idx):
+    return numpy.sqrt(numpy.mean(rays[:, idx] ** 2))
+
+sigmax = rays_sigma(rays, 0)
+sigdix = rays_sigma(rays, 3)
+sigmaz = rays_sigma(rays, 2)
+sigdiz = rays_sigma(rays, 5)
+{% endif %}
+
+beam_stats = []
+epsilon = {{beamStatisticsReport_epsilon}}
+beam = transfer_mat_bl.create_mat_rays(epsilon)
+
+sigma_mat = numpy.matrix([
+    [sigmax ** 2, 0, 0, 0],
+    [0, sigdix ** 2, 0, 0],
+    [0, 0, sigmaz ** 2, 0],
+    [0, 0, 0, sigdiz ** 2],
+])
+alpha = 0
+
+def calculate_stats(pos, oe):
+    global alpha
+    Tmat, x_prop_cen, xp_prop_cen, z_prop_cen, zp_prop_cen = transfer_mat_bl.tmat_calc(beam.duplicate(), epsilon)
+    res = Tmat * sigma_mat * numpy.transpose(Tmat)
+    pos += (oe.T_SOURCE if oe else 0)
+    if oe:
+        # oe.ALPHA is in radians after traceOE()
+        alpha = int(alpha + 180 / math.pi * oe.ALPHA) % 360
+    beam_stats.append(PKDict(
+        isRotated=True if alpha == 90 or alpha == 270 else False,
+        s=pos * 1e-2,
+        x=x_prop_cen,
+        xp=xp_prop_cen,
+        z=z_prop_cen,
+        zp=zp_prop_cen,
+        matrix=Tmat.tolist(),
+        sigmax=math.sqrt(res[0, 0]) * 1e-2,
+        sigdix=math.sqrt(res[1, 1]),
+        sigmaz=math.sqrt(res[2, 2]) * 1e-2,
+        sigdiz=math.sqrt(res[3, 3]),
+    ))
+    return pos
+
+pos = calculate_stats(0, None)
+{{beamlineOptics}}
+
+pkjson.dump_pretty(beam_stats, filename='{{beamStatsFile}}')

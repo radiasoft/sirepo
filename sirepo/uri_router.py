@@ -269,6 +269,7 @@ def _register_sim_api_modules():
             continue
         if not sirepo.template.is_sim_type(n):
             pkdc(f'not adding apis for unknown sim_type={n}')
+            continue
         register_api_module(importlib.import_module(f'sirepo.sim_api.{n}'))
 
 

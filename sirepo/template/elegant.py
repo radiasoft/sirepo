@@ -24,9 +24,9 @@ import glob
 import math
 import os
 import os.path
-import py.error
 import py.path
 import re
+import sirepo.lib
 import sirepo.sim_data
 import stat
 
@@ -90,23 +90,21 @@ class CommandIterator(lattice.ElementIterator):
             self.fields.append(['mpi_io_write_buffer_size', _MPI_IO_WRITE_BUFFER_SIZE])
 
 
-class LibAdapter:
+class LibAdapter(sirepo.lib.LibAdapterBase):
 
     def parse_file(self, path):
 
         def _input_files(model_type):
             return [k for k, v in _SCHEMA.model[model_type].items() if 'InputFile' in v[1]];
 
-        def _verify_files(model, model_type, model_name, category):
-            for i in _input_files(model_type):
-                f = model.get(i)
-                if not f:
-                    continue
-                assert sirepo.util.secure_filename(f) == f, \
-                    f'file={f} must be a simple name'
-                p = path.dirpath().join(f)
-                assert p.check(file=True), \
-                    f'file={f} missing from {category}={model_name} type={model_type}'
+        def _verify_files(model, model_type):
+            self._verify_files(
+                path,
+                [model[x] for x in filter(
+                    lambda f: model[f],
+                    _input_files(model_type),
+                )],
+            )
 
         d = parse_input_text(path, update_filenames=False)
         r = self._run_setup(d)
@@ -117,15 +115,14 @@ class LibAdapter:
             update_filenames=False,
         )
         for i in d.models.elements:
-            _verify_files(i, i.type, i.name, 'element')
+            _verify_files(i, i.type)
         for i in d.models.commands:
-            _verify_files(i, lattice.LatticeUtil.model_name_for_data(i), i._type, 'command')
+            _verify_files(i, lattice.LatticeUtil.model_name_for_data(i))
         r.lattice = l
         return self._convert(d)
 
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
-
 
         Returns:
             PKDict: structure of files written (debugging only)
@@ -153,53 +150,10 @@ class LibAdapter:
         pkio.write_text(r.commands, v.commands)
         if not r.lattice.exists():
             pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
-        for f in set(
-            LatticeUtil(data, _SCHEMA).iterate_models(
-                lattice.InputFileIterator(_SIM_DATA, update_filenames=False),
-            ).result,
-        ):
-            f = _SIM_DATA.lib_file_name_without_type(f)
-            try:
-                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
-            except py.error.EEXIST:
-                pass
+        self._write_input_files(data, source_path, dest_dir)
         f = g.filename_map
         r.output_files = [f[k] for k in f.keys_in_order]
         return r
-
-    def _convert(self, data):
-        cv = code_var(data.models.rpnVariables)
-
-        def _model(model, name):
-            schema = _SCHEMA.model[name]
-
-            k = x = v = None
-            try:
-                for k, x in schema.items():
-                    t = x[1]
-                    v = model[k] if k in model else x[2]
-                    if t == 'RPNValue':
-                        t = 'Float'
-                        if cv.is_var_value(v):
-                            model[k] = cv.eval_var_with_assert(v)
-                            continue
-                    if t == 'Float':
-                        model[k] = float(v) if v else 0.
-                    elif t == 'Integer':
-                        model[k] = int(v) if v else 0
-            except Exception as e:
-                pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
-                raise
-
-        for x in  data.models.rpnVariables:
-            x.value = cv.eval_var_with_assert(x.value)
-        for k, v in data.models.items():
-            if k in _SCHEMA.model:
-                _model(v, k)
-        for x in ('elements', 'commands'):
-            for m in data.models[x]:
-                _model(m, LatticeUtil.model_name_for_data(m))
-        return data
 
     def _lattice_path(self, dest_dir, data):
         return dest_dir.join(self._run_setup(data).lattice)
@@ -782,12 +736,12 @@ def write_parameters(data, run_dir, is_parallel):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
 
-class _Generate:
+class _Generate(sirepo.lib.GenerateBase):
 
     def __init__(self, data, validate=True, update_output_filenames=True):
         self.data = data
-        self._util = None
         self._filename_map = None
+        self._schema = _SCHEMA
         self._update_output_filenames = update_output_filenames
         if validate:
             self._validate_data()
@@ -814,12 +768,6 @@ class _Generate:
         if d.get('report', '') == 'twissReport':
             return r + self._twiss_simulation()
         return r + self._bunch_simulation()
-
-    @property
-    def util(self):
-        if not self._util:
-            self._util = LatticeUtil(self.data, _SCHEMA)
-        return self._util
 
     def _abspath(self, basename):
         return _SIM_DATA.lib_file_abspath(basename)

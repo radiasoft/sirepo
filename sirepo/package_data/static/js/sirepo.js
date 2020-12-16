@@ -552,6 +552,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };
 
+    self.formatFloat = function(v, decimals) {
+        return +parseFloat(v).toFixed(decimals);
+    };
+
     self.formatTime = function(unixTime) {
         function format(val) {
             return leftPadZero(Math.floor(val));
@@ -1440,6 +1444,27 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     // lazy creation/storage of field delegates
     self.fieldDelegates = {};
+
+    // if no associated view, check for a superclass that does have one
+    self.getBaseModelKey = function(modelKey) {
+        if (appState.viewInfo(modelKey)) {
+            return modelKey;
+        }
+        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
+            return modelKey;
+        }
+        var m = appState.modelInfo(modelKey);
+        if (m._super) {
+            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
+                if (appState.viewInfo(m._super[i])) {
+                    modelKey = m._super[i];
+                    return modelKey;
+                }
+            }
+        }
+        return modelKey;
+    };
+
     self.getFieldDelegate = function(modelName, field) {
         if (! self.fieldDelegates[modelName]) {
             self.fieldDelegates[modelName] = {};
@@ -1479,34 +1504,13 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.getStatusText = function(name) {
         if (self.isRunning(name)) {
             var count = (queueItems[name] && queueItems[name].runStatusCount) || 0;
-            var progressText = SIREPO.APP_SCHEMA.constants.inProgressText ||
-                (appState.models[name] || {}).inProgressText ||
+            var progressText = (appState.models[name] || {}).inProgressText  ||
+                SIREPO.APP_SCHEMA.constants.inProgressText ||
                 'Simulating';
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
         return 'Waiting';
     };
-
-    // if no associated view, check for a superclass that does have one
-    self.getBaseModelKey = function(modelKey) {
-        if (appState.viewInfo(modelKey)) {
-            return modelKey;
-        }
-        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
-            return modelKey;
-        }
-        var m = appState.modelInfo(modelKey);
-        if (m._super) {
-            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
-                if (appState.viewInfo(m._super[i])) {
-                    modelKey = m._super[i];
-                    return modelKey;
-                }
-            }
-        }
-        return modelKey;
-    };
-
 
     self.isActiveField = function(model, field) {
         return $(fieldClass(model, field)).find('input').is(':focus');
@@ -3182,7 +3186,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     }
 
     self.cancelButton = function() {
-        requestSender.localRedirect('simulations');
+        requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
     };
 
     self.copyButton = function() {
@@ -3212,7 +3216,7 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     self.authService = authService;
 
     if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
-        requestSender.localRedirect('simulations');
+        requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
         return;
     }
 
@@ -3273,7 +3277,7 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
             return;
         }
         if (! SIREPO.authState.needCompleteRegistration) {
-            requestSender.localRedirect('simulations');
+            requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
             return;
         }
         self.submit = function() {
