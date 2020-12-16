@@ -313,7 +313,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
         },
 
         addWatermark: function(authState) {
-            if (true) {
+            if (! authState.isPremiumUser()) {
                 $('svg.sr-plot').find('g.radia-watermark-group').append(SIREPO.BLOCKS.watermark);
             }
         },
