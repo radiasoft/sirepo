@@ -407,10 +407,11 @@ class SimDataBase(object):
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         for b in cls.sim_file_basenames(data):
-            # TODO(e-carlin): lib_files_to_run_dir has t!=s check. Why?
+            t = run_dir.join(b)
             s = cls.sim_file_abspath(b, data=data)
-            if s:
-                run_dir.join(b).mksymlinkto(s, absolute=False)
+            if t != s:
+                # TODO(e-carlin): verify that this code path gets executed and works?
+                t.mksymlinkto(s, absolute=False)
 
 
     # TODO(e-carlin): sort, lots of copied code from lib_files_to_run_dir
@@ -430,6 +431,19 @@ class SimDataBase(object):
         import sirepo.simulation_db
         import sirepo.job
 
+        if cfg.sim_file_uri:
+            if basename in cfg.sim_file_list:
+                p = pkio.py_path(basename)
+                pkdp('rrrrrrrrrrrrrrrrrr={}', cfg.sim_file_uri + basename)
+                r = requests.get(
+                    cfg.sim_file_uri + basename,
+                    verify=sirepo.job.cfg.verify_tls,
+                )
+                r.raise_for_status()
+                p.write_binary(r.content)
+                # TODO(e-carlin): What if we pull non executables over?
+                p.chmod(0o755)
+                return p
         p = sirepo.simulation_db.simulation_dir(
             cls.sim_type(),
             data.models.simulation.simulationId,
@@ -437,26 +451,6 @@ class SimDataBase(object):
         if p.check(file=True):
             return p
         return None
-        # p = [cls.lib_file_resource_dir().join(basename)]
-        # TODO(e-carlin): get over the wire
-        # if cfg.lib_file_uri:
-        #     if basename in cfg.lib_file_list:
-        #         p = pkio.py_path(basename)
-        #         r = requests.get(
-        #             cfg.lib_file_uri + basename,
-        #             verify=sirepo.job.cfg.verify_tls,
-        #         )
-        #         r.raise_for_status()
-        #         p.write_binary(r.content)
-        #         return p
-        # elif not cfg.lib_file_resource_only:
-        #     p.append(
-        #         sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
-        #     )
-        # for f in p:
-        #     if f.check(file=True):
-        #         return f
-        # return None
 
 
     # TODO(e-carlin): sort
@@ -770,9 +764,11 @@ def _init():
     global cfg
 
     cfg = pkconfig.init(
-        lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
+        lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
+        sim_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote sim'),
+        sim_file_uri=(None, str, 'where to get sim files from when remote'),
     )
 
 

@@ -398,6 +398,14 @@ class _Cmd(PKDict):
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
         self._lib_file_uri = self.msg.get('libFileUri', '')
+        self._sim_file_uri = self.msg.get('simFileUri', '')
+        # TODO(e-carlin): all of sim_file_* and lib_file_* share tons of repeated code
+        self._sim_file_list_f = ''
+        if self._sim_file_uri:
+            f = self.run_dir.join('sirepo-sim-file-list.txt')
+            pkio.write_text(f, '\n'.join(self.msg.simFileList))
+            self._sim_file_list_f = str(f)
+
         self._lib_file_list_f = ''
         if self._lib_file_uri:
             f = self.run_dir.join('sirepo-lib-file-list.txt')
@@ -435,6 +443,8 @@ class _Cmd(PKDict):
                 SIREPO_MPI_CORES=self.msg.get('mpiCores', 1),
                 SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
+                SIREPO_SIM_DATA_SIM_FILE_URI=self._sim_file_uri,
+                SIREPO_SIM_DATA_SIM_FILE_LIST=self._sim_file_list_f,
             ),
         )
 

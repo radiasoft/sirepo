@@ -140,6 +140,27 @@ class DriverBase(PKDict):
                 libFileList=[f.basename for f in d.listdir()],
             )
 
+    # TODO(e-carlin): sort, lots of copied code from make_lib_dir_symlink
+    def make_sim_dir_symlink(self, op):
+        import os
+
+        m = op.msg
+        with sirepo.auth.set_user(m.uid):
+            # TODO(e-carlin): need to add simulationId
+            d = sirepo.simulation_db.simulation_dir(m.simulationType, sid='B9dxH941')
+            op.sim_dir_symlink = job.SIM_FILE_ROOT.join(
+                job.unique_key()
+            )
+            op.sim_dir_symlink.mksymlinkto(d, absolute=True)
+            m.pkupdate(
+                simFileUri=job.supervisor_file_uri(
+                    self.cfg.supervisor_uri,
+                    job.SIM_FILE_URI,
+                    op.sim_dir_symlink.basename,
+                ),
+                simFileList=[f.basename for f in d.listdir(fil=os.path.isfile)],
+            )
+
     def op_is_untimed(self, op):
         return op.opName in _UNTIMED_OPS
 

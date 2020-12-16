@@ -707,6 +707,7 @@ class _ComputeJob(PKDict):
                     await o.prepare_send()
                     self.run_op = o
                     o.make_lib_dir_symlink()
+                    o.make_sim_dir_symlink()
                     o.send()
                     r = self._status_reply(req)
                     assert r
@@ -948,6 +949,10 @@ class _Op(PKDict):
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
+
+    # TODO(e-carlin): sort
+    def make_sim_dir_symlink(self):
+        self.driver.make_sim_dir_symlink(self)
 
     def pkdebug_str(self):
         return pkdformat('_Op({}, {:.4})', self.opName, self.opId)
