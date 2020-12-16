@@ -225,6 +225,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             : ((cmd.emit_z !== 0 || cmd.beta_z !== 0)
                ? 3 // emit z, beta z, alpha z
                : 2); // sigma s, sigma dp, alpha z
+        updateTwissFromBunch(bunch);
     }
 
     function updateCommandFromBunch(cmd, bunch) {
@@ -248,6 +249,19 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             cmd.sigma_dp = 0;
             cmd.sigma_s = 0;
             cmd.dp_s_coupling = 0;
+        }
+        updateTwissFromBunch(bunch);
+    }
+
+    function updateTwissFromBunch(bunch) {
+        var cmd = self.findFirstCommand('twiss_output');
+        if (cmd) {
+            ['beta', 'alpha', 'eta', 'etap'].forEach(function(prefix) {
+                ['_x', '_y'].forEach(function(suffix) {
+                    var f = prefix + suffix;
+                    cmd[f] = bunch[f];
+                });
+            });
         }
     }
 
