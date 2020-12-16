@@ -3186,7 +3186,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     }
 
     self.cancelButton = function() {
-        requestSender.localRedirect('simulations');
+        requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
     };
 
     self.copyButton = function() {
@@ -3216,7 +3216,7 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     self.authService = authService;
 
     if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
-        requestSender.localRedirect('simulations');
+        requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
         return;
     }
 
@@ -3277,7 +3277,7 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
             return;
         }
         if (! SIREPO.authState.needCompleteRegistration) {
-            requestSender.localRedirect('simulations');
+            requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
             return;
         }
         self.submit = function() {
