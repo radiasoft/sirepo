@@ -43,19 +43,17 @@ DATA_FILE_URI = '/job-cmd-data-file'
 #: how jobs request lib files
 LIB_FILE_URI = '/job-cmd-lib-file'
 
-# TODO(e-carlin): sort
-#: how jobs request sim files
-SIM_FILE_URI = '/job-cmd-sim-file'
-
 #: how jobs request list of files (relative to `LIB_FILE_URI`)
 LIB_FILE_LIST_URI = '/list.json'
 
 #: where user lib file directories are linked for static download (job_supervisor)
 LIB_FILE_ROOT = None
 
-# TODO(e-carlin): sort
 #: where user sim file directories are linked for static download (job_supervisor)
 SIM_FILE_ROOT = None
+
+#: how jobs request sim files
+SIM_FILE_URI = '/job-cmd-sim-file'
 
 # POSIT: These are the same queues as in schema-common.common.enum.SbatchQueue
 NERSC_QUEUES = frozenset(('debug', 'premium', 'realtime', 'regular'))
@@ -225,13 +223,12 @@ def init():
         ),
         verify_tls=(not pkconfig.channel_in('dev'), bool, 'do not validate (self-signed) certs'),
     )
-    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, SIM_FILE_ROOT
+    global DATA_FILE_ROOT, LIB_FILE_ROOT, SIM_FILE_ROOT, SUPERVISOR_SRV_ROOT
 
-    SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
-    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
-    # TODO(e-carlin): sort
-    SIM_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(SIM_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
+    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
+    SIM_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(SIM_FILE_URI[1:])
+    SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
 
 
 def init_by_server(app):
