@@ -644,8 +644,9 @@ def _cell_size(f, refine_max):
 def _extract_rpm(data):
     import subprocess
 
-    if _SIM_DATA.flash_exe_path(data, unchecked=True):
-        return
+    # TODO(e-carlin): test both of these paths
+    if _SIM_DATA.local_path('src').exists():
+       return
     subprocess.check_output(
         "rpm2cpio '{}' | cpio --extract --make-directories".format(
             _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),

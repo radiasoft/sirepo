@@ -457,9 +457,12 @@ class SimDataBase(object):
         return []
 
     @classmethod
-    def local_src_path(cls):
+    def local_path(cls, subdir):
+        v = set(('src', 'share'))
+        assert subdir in v, \
+            f'subdir {subdir} not known {v}'
         # TODO(e-carlin): home/vagrant ? nersc?
-        return pkio.py_path('/home/vagrant/.local/src/').join(cls.sim_type())
+        return pkio.py_path(f'/home/vagrant/.local/{subdir}/').join(cls.sim_type())
 
     @classmethod
     def model_defaults(cls, name):

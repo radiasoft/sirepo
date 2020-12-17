@@ -16,7 +16,8 @@ import sirepo.util
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    _FLASH_PREFIX = 'flash4'
+    FLASH_PREFIX = 'flash4'
+    # TODO(e-carlin): Where are we going to put these files?
     _FLASH_SETUP_UNITS_PREFIX = 'setup_units'
 
     @classmethod
@@ -100,33 +101,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                         'surface area flam=0.9',
                     ]
 
-
-    # TODO(e-carlin): conflict with new _sim_file_basenames
-    @classmethod
-    def flash_exe_path(cls, data, unchecked=False):
-        from pykern import pkio
-        import distutils.spawn
-        n = '{}-{}'.format(
-            cls._FLASH_PREFIX,
-            data.models.simulation.flashType,
-        )
-        p = distutils.spawn.find_executable(n)
-        if p:
-            return pkio.py_path(p)
-        if unchecked:
-            return  None
-        raise AssertionError(f'unable to find executable={n}')
-
     @classmethod
     def flash_setup_units_path(cls, data):
-        # TODO(e-carlin): we should create an abstraction that let's us talk
-        # about ~/.local because this is in there and I think the flash source
-        # code will be somewhere like ~/.local/src/flash
-        return cls.flash_exe_path(data).join(
-            '..',
-            '..',
-            'share',
-            cls._FLASH_PREFIX,
+        # TODO(e-carlin): I've moved ~/.local/share/flash4 to ~/.local/share/flash
+        # I did this manually on my machine. Need to update the RPM code.
+        # Also, after compilation need to start putting the setup_units files in the
+        # sim_dir and pulling them in in prepare_simulation.
+        return cls.local_path('share').join(
             f'{cls._FLASH_SETUP_UNITS_PREFIX}-{data.models.simulation.flashType}',
         )
 
@@ -166,4 +147,4 @@ class SimData(sirepo.sim_data.SimDataBase):
             # TODO(e-carlin): get data and create a hash of the compilation
             # params
             return '123'
-        return [f'{cls._FLASH_PREFIX}-{_hash()}']
+        return [f'{cls.FLASH_PREFIX}-{_hash()}']

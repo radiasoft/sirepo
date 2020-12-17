@@ -19,7 +19,7 @@ _SIM_DATA = sirepo.sim_data.get_class('flash')
 def run_background(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    s = _SIM_DATA.local_src_path()
+    s = _SIM_DATA.local_path('src')
 
     e = _SIM_DATA.sim_file_basenames(data)
     assert len(e) == 1, \
@@ -29,10 +29,12 @@ def run_background(cfg_dir):
         import shutil
         pkdlog('flash binary {} not found. Compiling', e)
         t = s.join(data.models.simulation.flashType)
-        # TODO(e-carlin): pksubprocess? Doesn't support cwd so not using for now
         subprocess.run(template.setup_command(data), cwd=s)
         subprocess.run(['make'], cwd=t)
-        # TODO(e-carlin): flash4 from somehwere. is sim_data._FLASH_PREFIX
-        _SIM_DATA.sim_file_copy(t.join('flash4'), e.basename, data)
+        _SIM_DATA.sim_file_copy(
+            t.join(_SIM_DATA.FLASH_PREFIX),
+            e.basename,
+            data,
+        )
         _SIM_DATA.sim_files_to_run_dir(data, cfg_dir)
     mpi.run_program([e])

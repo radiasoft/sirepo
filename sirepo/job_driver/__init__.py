@@ -304,8 +304,9 @@ class DriverBase(PKDict):
                 getattr(job, f'{sim_or_lib.upper()}_FILE_URI'),
                 op[s].basename,
             ),
-            # TODO(e-carlin): added filter for isFile. libFileList didn't have before. That ok?
-            f'{sim_or_lib}FileList': [f.basename for f in src_dir.listdir(fil=os.path.isfile)],
+            f'{sim_or_lib}FileList': [
+                f.basename for f in src_dir.listdir(fil=os.path.isfile)
+            ],
         }))
 
     def _receive(self, msg):
