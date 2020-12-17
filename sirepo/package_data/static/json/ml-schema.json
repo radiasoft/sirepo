@@ -81,6 +81,12 @@
             ["validate", "Valiation"],
             ["train_and_test", "Training and Testing"]
         ],
+        "PlotAction": [
+            ["cluster", "Cluster"],
+            ["fft", "FFT"],
+            ["fit", "Fit"],
+            ["trim", "Trim"]
+        ],
         "PlotScale": [
             ["linear", "Linear"],
             ["log10", "Base-10 Logarithm"]
@@ -156,6 +162,47 @@
         "logisticRegressionErrorRateAnimation": []
     },
     "model": {
+        "analysisCluster": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "clusterMethod",
+                "clusterCount",
+                "clusterFields"
+            ],
+            "advanced": []
+        },
+        "analysisData": {
+            "title": "Archive Data File",
+            "basic": [
+                "file"
+            ],
+            "advanced": []
+        },
+        "analysisFFT": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisFit": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "fitEquation",
+                "fitVariable",
+                "fitParameters"
+            ],
+            "advanced": []
+        },
+        "analysisNone": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
@@ -179,6 +226,16 @@
             "y2": ["Y2 Value", "AnalysisOptionalParameter", "none"],
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
+        },
+        "analysisTrim": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "trimMin",
+                "trimMax",
+                "trimButton"
+            ],
+            "advanced": []
         },
         "columnInfo": {},
         "classificationAnimation": {

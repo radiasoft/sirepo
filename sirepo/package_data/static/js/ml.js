@@ -525,6 +525,215 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
     };
 });
 
+SIREPO.app.directive('analysisActions', function(appState, panelState, mlService) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            modelData: '=',
+        },
+        template: [
+            //TODO(pjm): improve close button position, want it positioned relative to panel body, not full panel
+            '<button data-ng-if="isSubreport()" data-ng-click="closeSubreport()" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">',
+              '<span>&times;</span>',
+            '</button>',
+            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">',
+              '<div class="clearfix"></div>',
+              '<div data-ng-repeat="view in viewNames track by $index" style="margin-top: -40px;">',
+                '<div data-ng-if="isActiveView(view)" style="margin-top:3ex;">',
+                  '<div data-advanced-editor-pane="" data-model-data="modelData" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>',
+                '</div>',
+              '</div>',
+              '<div class="clearfix"></div>',
+              '<div data-ng-show="showFFT()">',
+                '<div data-fft-report="" data-model-data="modelData" style="margin-top: 5px;"></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var analysisReport;
+            var isFirstRefresh = true;
+            var modelKey = $scope.modelData
+                ? $scope.modelData.modelKey
+                : $scope.modelName;
+            var viewForEnum = {
+                '': 'analysisNone',
+                'cluster': 'analysisCluster',
+                'fft': 'analysisFFT',
+                'fit': 'analysisFit',
+                'trim': 'analysisTrim',
+            };
+            $scope.viewNames = Object.keys(viewForEnum).map(function(k) {
+                return viewForEnum[k];
+            });
+
+            function addSubreport(clusterIndex) {
+                var action = {
+                    clusterIndex: clusterIndex,
+                };
+                var parent = $scope.model();
+                ['action', 'clusterMethod', 'clusterCount', 'clusterFields', 'clusterScaleMin', 'clusterScaleMax', 'clusterRandomSeed', 'clusterKmeansInit', 'clusterDbscanEps'].forEach(function(f) {
+                    action[f] = parent[f];
+                });
+                mlService.addSubreport(parent, action);
+            }
+
+            function initAnalysisReport(reportScope) {
+                analysisReport = reportScope;
+                var oldLoad = analysisReport.load;
+                analysisReport.load = function(json) {
+                    isFirstRefresh = true;
+                    $('.scatter-point').popover('hide');
+                    oldLoad(json);
+                };
+                var oldRefresh = analysisReport.refresh;
+                analysisReport.refresh = function() {
+                    if (isFirstRefresh) {
+                        isFirstRefresh = false;
+                        setupAnalysisReport();
+                        // resize will call refresh again
+                        analysisReport.resize();
+                        return;
+                    }
+                    oldRefresh();
+                    processTrimRange();
+                };
+            }
+
+            function processClusterMethod() {
+                //TODO(pjm): this does not work correctly for subreports
+                panelState.showField($scope.modelName, 'clusterCount', $scope.model().clusterMethod != 'dbscan');
+            }
+
+            function processTrimRange() {
+                var model = $scope.model();
+                if (model && model.action == 'trim') {
+                    model.trimField = model.x;
+                    var xDomain = analysisReport.axes.x.scale.domain();
+                    model.trimMin = xDomain[0];
+                    model.trimMax = xDomain[1];
+                }
+            }
+
+            function roundTo3Places(f) {
+                return Math.round(f * 1000) / 1000;
+            }
+
+            function setupAnalysisReport() {
+                analysisReport.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
+                analysisReport.zoomContainer = '.plot-viewport';
+                if ($scope.model().action == 'cluster'
+                    && appState.applicationState()[modelKey].action == 'cluster') {
+                    var viewport = analysisReport.select('.plot-viewport');
+                    viewport.selectAll('.scatter-point').on('click', function(d, idx) {
+                        var clusterIndex = analysisReport.clusterInfo.group[idx];
+
+                        function buttonHandler() {
+                            $('.scatter-point').popover('hide');
+                            $scope.$apply(function() {
+                                addSubreport(clusterIndex);
+                            });
+                        }
+
+                        $(this).popover({
+                            trigger: 'manual',
+                            html: true,
+                            placement: 'bottom',
+                            container: 'body',
+                            title: 'Cluster: ' + (clusterIndex + 1),
+                            content: '<div><button class="btn btn-default webcon-popover">Open in New Plot</button></div>',
+                        }).on('hide.bs.popover', function() {
+                            $(document).off('click', buttonHandler);
+                        });
+                        $('.scatter-point').not($(this)).popover('hide');
+                        $(this).popover('toggle');
+                        $(document).on('click', '.webcon-popover', buttonHandler);
+                    });
+                }
+            }
+
+            $scope.closeSubreport = function() {
+                mlService.removeSubreport($scope.model().id);
+                appState.saveChanges('hiddenReport');
+            };
+
+            $scope.isActiveView = function(view) {
+                var model = $scope.model();
+                if (model) {
+                    return viewForEnum[model.action || ''] == view;
+                }
+                return false;
+            };
+
+            $scope.isLoading = function() {
+                return panelState.isLoading(modelKey);
+            };
+
+            $scope.isSubreport = function() {
+                return modelKey != $scope.modelName;
+            };
+
+            $scope.model = function() {
+                if (appState.isLoaded()) {
+                    return appState.models[modelKey];
+                }
+                return null;
+            };
+
+            $scope.showFFT = function() {
+                if (appState.isLoaded()) {
+                    return $scope.model().action == 'fft'
+                        && appState.applicationState()[modelKey].action == 'fft';
+                }
+                return false;
+            };
+
+            $scope.wantButtons = function() {
+                if (appState.isLoaded()) {
+                    var action = $scope.model().action;
+                    if (action == 'trim') {
+                        return '';
+                    }
+                    return '1';
+                }
+                return '';
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on(modelKey + '.summaryData', function (e, data) {
+                    var str = '';
+                    if (data.p_vals) {
+                        var pNames = ($scope.model().fitParameters || '').split(/\s*,\s*/);
+                        var pVals = data.p_vals.map(roundTo3Places);
+                        var pErrs = data.p_errs.map(roundTo3Places);
+                        pNames.forEach(function (p, i) {
+                            str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i];
+                            str = str + (i < pNames.length - 1 ? '; ' : '');
+                        });
+                    }
+                    $($element).closest('.panel-body').find('.focus-hint').text(str);
+                });
+                appState.watchModelFields($scope, [modelKey + '.action'], processTrimRange);
+                appState.watchModelFields($scope, [modelKey + '.clusterMethod', modelKey + '.action'], processClusterMethod);
+                processClusterMethod();
+            });
+
+            // hook up listener on report content to get the plot events
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                var reportScope = event.targetScope;
+                if (reportScope.modelName.indexOf('analysisReport') >= 0) {
+                    initAnalysisReport(reportScope);
+                }
+                else if (reportScope.modelName.indexOf('fftReport') >= 0) {
+                    // it may be useful to have the fftReport scope available
+                    //fftReport = reportScope;
+                }
+            });
+
+        },
+    };
+});
+
 SIREPO.app.directive('analysisParameter', function(appState, mlService) {
     return {
         restrict: 'A',
@@ -847,6 +1056,33 @@ SIREPO.app.directive('heatmapModifications', function() {
                     oldLoad(data);
                 };
             });
+        },
+    };
+});
+
+SIREPO.app.directive('plotActionButtons', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="text-center">',
+            '<div class="btn-group">',
+              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
+
+            $scope.isSelectedValue = function(value) {
+                if ($scope.model && $scope.field) {
+                    return $scope.model[$scope.field] == value;
+                }
+                return false;
+            };
         },
     };
 });
