@@ -359,7 +359,6 @@ class SimDataBase(object):
 
         shutil.copy2(path, cls.sim_file_write_path(basename, data))
 
-
     @classmethod
     def lib_files_for_export(cls, data):
         cls._assert_server_side()
@@ -434,7 +433,6 @@ class SimDataBase(object):
         if cfg.sim_file_uri:
             if basename in cfg.sim_file_list:
                 p = pkio.py_path(basename)
-                pkdp('rrrrrrrrrrrrrrrrrr={}', cfg.sim_file_uri + basename)
                 r = requests.get(
                     cfg.sim_file_uri + basename,
                     verify=sirepo.job.cfg.verify_tls,
