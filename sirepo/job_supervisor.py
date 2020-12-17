@@ -950,7 +950,6 @@ class _Op(PKDict):
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
 
-    # TODO(e-carlin): sort
     def make_sim_dir_symlink(self):
         self.driver.make_sim_dir_symlink(self)
 
