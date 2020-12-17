@@ -5,7 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkconfig
+from pykern import pkconfig, pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import pykern.pkdebug
@@ -225,10 +225,14 @@ def init():
     )
     global DATA_FILE_ROOT, LIB_FILE_ROOT, SIM_FILE_ROOT, SUPERVISOR_SRV_ROOT
 
-    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
-    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
-    SIM_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(SIM_FILE_URI[1:])
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
+    m = pkinspect.this_module()
+    for k in 'DATA', 'LIB', 'SIM':
+        setattr(
+            m,
+            f'{k}_FILE_ROOT',
+            SUPERVISOR_SRV_ROOT.join(getattr(m, f'{k}_FILE_URI')[1:])
+        )
 
 
 def init_by_server(app):

@@ -13,6 +13,7 @@ import importlib
 import pykern.pkio
 import re
 import sirepo.auth
+import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.tornado
@@ -97,9 +98,11 @@ class DriverBase(PKDict):
         op.cpu_slot.free()
         if op.op_slot:
             op.op_slot.free()
-        if 'lib_dir_symlink' in op:
-            # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(op.pkdel('lib_dir_symlink'))
+        for k in 'lib', 'sim':
+            k = f'{k}_dir_symlink'
+            if k in op:
+                # {lib|sim}_dir_symlink is unique_key so not dangerous to remove
+                pykern.pkio.unchecked_remove(op.pkdel(k))
 
     def free_resources(self, internal_error=None):
         """Remove holds on all resources and remove self from data structures"""
@@ -125,40 +128,27 @@ class DriverBase(PKDict):
 
     def make_lib_dir_symlink(self, op):
         m = op.msg
+        # TODO(e-carlin): untested
+
         with sirepo.auth.set_user(m.uid):
-            d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
-            op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
-                job.unique_key()
-            )
-            op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-            m.pkupdate(
-                libFileUri=job.supervisor_file_uri(
-                    self.cfg.supervisor_uri,
-                    job.LIB_FILE_URI,
-                    op.lib_dir_symlink.basename,
+            self._make_dir_symlink(
+                op,
+                'lib',
+                sirepo.simulation_db.simulation_lib_dir(
+                    m.simulationType,
                 ),
-                libFileList=[f.basename for f in d.listdir()],
             )
 
-    # TODO(e-carlin): sort, lots of copied code from make_lib_dir_symlink
     def make_sim_dir_symlink(self, op):
-        import os
-
         m = op.msg
         with sirepo.auth.set_user(m.uid):
-            # TODO(e-carlin): need to add simulationId
-            d = sirepo.simulation_db.simulation_dir(m.simulationType, sid='B9dxH941')
-            op.sim_dir_symlink = job.SIM_FILE_ROOT.join(
-                job.unique_key()
-            )
-            op.sim_dir_symlink.mksymlinkto(d, absolute=True)
-            m.pkupdate(
-                simFileUri=job.supervisor_file_uri(
-                    self.cfg.supervisor_uri,
-                    job.SIM_FILE_URI,
-                    op.sim_dir_symlink.basename,
+            self._make_dir_symlink(
+                op,
+                'sim',
+                sirepo.simulation_db.simulation_dir(
+                    m.simulationType,
+                    sid=sirepo.sim_data.split_jid(m.computeJid).sid,
                 ),
-                simFileList=[f.basename for f in d.listdir(fil=os.path.isfile)],
             )
 
     def op_is_untimed(self, op):
@@ -298,6 +288,25 @@ class DriverBase(PKDict):
         pkdlog('{} timeout={}', self, self.cfg.agent_starting_secs)
         await self.kill()
         self.free_resources(internal_error='timeout waiting for agent to start')
+
+    def _make_dir_symlink(self, op, sim_or_lib, src_dir):
+        import os
+
+        m = op.msg
+        s = f'{sim_or_lib}_dir_symlink'
+        op[s]= getattr(job, f'{sim_or_lib.upper()}_FILE_ROOT').join(
+            job.unique_key()
+        )
+        op[s].mksymlinkto(src_dir, absolute=True)
+        m.pkupdate(PKDict({
+            f'{sim_or_lib}FileUri': job.supervisor_file_uri(
+                self.cfg.supervisor_uri,
+                getattr(job, f'{sim_or_lib.upper()}_FILE_URI'),
+                op[s].basename,
+            ),
+            # TODO(e-carlin): added filter for isFile. libFileList didn't have before. That ok?
+            f'{sim_or_lib}FileList': [f.basename for f in src_dir.listdir(fil=os.path.isfile)],
+        }))
 
     def _receive(self, msg):
         c = msg.content
