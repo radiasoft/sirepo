@@ -887,11 +887,6 @@ class _Generate(sirepo.lib.GenerateBase):
                     _type='global_settings',
                 ),
             )
-        if d.models.simulation.backtracking == '1':
-            self._setup_backtracking()
-            # other changes are global (modify original data),
-            # but _setup_backtracking makes a copy
-            d = self.data
         self.jinja_env.update(
             commands=self._commands(),
             lattice=self._lattice(),
@@ -916,37 +911,6 @@ class _Generate(sirepo.lib.GenerateBase):
         if value and value == 'Lattice':
             return 'elegant.lte'
         return value + '.filename.lte'
-
-    def _setup_backtracking(self):
-
-        def _negative(el, fields):
-            for f in fields:
-                if f in el and el[f]:
-                    v = str(el[f])
-                    if re.search(r'^-', v):
-                        v = v[1:]
-                    else:
-                        v = '-' + v
-                    el[f] = v
-                    break
-
-        self.util.data = copy.deepcopy(self.util.data)
-        types = PKDict(
-            bend=[
-                'BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND',
-                'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-            mirror=['LMIRROR'],
-        )
-        for el in self.util.data.models.elements:
-            # change signs on length and angle fields
-            _negative(el, ('l', 'xmax'))
-            _negative(el, ('volt', 'voltage', 'initial_v', 'static_voltage'))
-            if el.type in types.bend:
-                _negative(el, ('angle', 'kick', 'hkick'))
-            if el.type in types.mirror:
-                _negative(el, ('theta', ))
-        self.util.select_beamline()['items'].reverse()
-
 
     def _twiss_simulation(self):
         d = self.data

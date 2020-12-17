@@ -529,8 +529,7 @@
         },
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
-            "simulationMode": ["Execution", "SimulationMode", "serial"],
-            "backtracking": ["Backtracking", "Boolean", "0", "Run the particles through the lattice from back to front, reversing the element length, angle and voltage parameters."]
+            "simulationMode": ["Execution", "SimulationMode", "serial"]
         },
         "simulationStatus": {},
         "twissReport": {
@@ -1233,7 +1232,8 @@
             "tracking_updates": ["Tracking Updates", "RPNBoolean", "1", "A flag indicating whether to print summary information about tracking."],
             "echo_lattice": ["Echo Lattice", "RPNBoolean", "0", "If nonzero, the lattice input is echoed to the standard output as the lattice is parsed. This can help detect certain problems with the lattice that cause elegant to crash."],
             "element_divisions": ["Element Divisions", "Integer", 0, "Specify how many pieces to split elements into. Only certain elements (basically, those with a matrix) are split. Results in creation of element_divisions new elements having the same name as each split element."],
-            "load_balancing_on": ["Load Balancing On", "Integer", 0, "If 1, load-balancing is performed for parallel mode. This can result in non-deterministic results if the load-balancing is different on two otherwise identical runs. Load-balancing variations may occur in heterogeneous clusters, clusters with multiple users, or for other reasons. In such situations, turning off load balancing can be useful if, for example, one is performing parameter scans and wishes to eliminate spurious sources of variation. If -1, then the load balance is checked and reported, but no rebalancing takes place."]
+            "load_balancing_on": ["Load Balancing On", "Integer", 0, "If 1, load-balancing is performed for parallel mode. This can result in non-deterministic results if the load-balancing is different on two otherwise identical runs. Load-balancing variations may occur in heterogeneous clusters, clusters with multiple users, or for other reasons. In such situations, turning off load balancing can be useful if, for example, one is performing parameter scans and wishes to eliminate spurious sources of variation. If -1, then the load balance is checked and reported, but no rebalancing takes place."],
+            "back_tracking": ["Back Tracking", "RPNBoolean", "0", "If nonzero, then back-tracking is performed. The beamline is reversed in order and the beam is propagated backwards through the elements. Only a selection of elements are supported at present, including CHARGE, CSBEND, DRIF, EDRIFT, EHCOR, EHVCOR, EVCOR, HMON, KOCT, KQUAD, KSEXT, MARK, MONI, QUAD, RFCA, SBEN, SEXT, TRWAKE, UKICKMAP, VMON, WAKE, and WATCH."]
         },
         "command_sasefel": {
             "output": ["Output", "OutputFile", "", "The filename of an SDDS file to which output will be written."],
@@ -4154,7 +4154,6 @@
             ],
             "advanced": [
                 "simulation.simulationMode",
-                "simulation.backtracking",
                 "simulation.visualizationBeamlineId"
             ]
         },
@@ -5100,7 +5099,8 @@
                 "tracking_updates",
                 "echo_lattice",
                 "element_divisions",
-                "load_balancing_on"
+                "load_balancing_on",
+                "back_tracking"
             ]
         },
         "command_sasefel": {

@@ -622,9 +622,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         if (appState.isLoaded()) {
             var res = self.simState.stateAsText();
             var sim = appState.applicationState().simulation;
-            if (sim.backtracking == '1') {
-                res += ' Backtrace';
-            }
             if (sim.simulationMode == 'parallel') {
                 res += ' in Parallel';
             }
