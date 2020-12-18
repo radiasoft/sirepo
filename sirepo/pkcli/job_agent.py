@@ -398,12 +398,14 @@ class _Cmd(PKDict):
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
         for k in 'lib', 'sim':
+            l = f'_{k}_file_list_f'
+            self[l] = ''
             u = f'_{k}_file_uri'
             self[u] = self.msg.get(f'{k}FileUri', '')
             if self[u]:
                 f = self.run_dir.join(f'sirepo-{k}-file-list.txt')
                 pkio.write_text(f, '\n'.join(self.msg[f'{k}FileList']))
-                self[f'_{k}_file_list_f'] = str(f)
+                self[l] = str(f)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
