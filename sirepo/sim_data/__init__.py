@@ -334,31 +334,6 @@ class SimDataBase(object):
 
         return simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
 
-    # TODO(e-carlin): sort
-    @classmethod
-    def sim_file_write_path(cls, basename, data):
-        # cls._assert_server_side() # TODO(e-carlin): ??
-        from sirepo import simulation_db
-
-        return simulation_db.simulation_dir(
-            cls.sim_type(),
-            data.models.simulation.simulationId,
-        ).join(basename)
-
-    # TODO(e-carlin): sort
-    @classmethod
-    def sim_file_copy(cls, path, basename, data):
-        """Copy file to simulation dir
-
-        Args:
-            path (py.path): file to copy
-            basename (str): basename of destination file
-        """
-        # TODO(e-carlin): implement put over http (NERSC)
-        import shutil
-
-        shutil.copy2(path, cls.sim_file_write_path(basename, data))
-
     @classmethod
     def lib_files_for_export(cls, data):
         cls._assert_server_side()
@@ -390,71 +365,14 @@ class SimDataBase(object):
 
     @classmethod
     def lib_files_to_run_dir(cls, data, run_dir):
-        """Copy auxiliary files to run_dir
+        """Copy lib files to run_dir
 
         Args:
             data (dict): simulation db
             run_dir (py.path): where to copy to
         """
-        for b in cls.lib_file_basenames(data):
-            t = run_dir.join(b)
-            s = cls.lib_file_abspath(b, data=data)
-            if t != s:
-                t.mksymlinkto(s, absolute=False)
+        cls._files_to_run_dir('lib', data, run_dir)
 
-    # TODO(e-carlin): sort, lots of copied code from lib_files_to_run_dir
-    @classmethod
-    def sim_files_to_run_dir(cls, data, run_dir):
-        for b in cls.sim_file_basenames(data):
-            t = run_dir.join(b)
-            s = cls.sim_file_abspath(b, data=data)
-            if t != s:
-                # TODO(e-carlin): verify that this code path gets executed and works?
-                t.mksymlinkto(s, absolute=False)
-
-
-    # TODO(e-carlin): sort, lots of copied code from lib_files_to_run_dir
-    @classmethod
-    def sim_file_basenames(cls, data):
-        return sorted(set(cls._sim_file_basenames(data)))
-
-
-    # TODO(e-carlin): sort
-    @classmethod
-    def sim_file_abspath(cls, basename, data=None):
-        return cls._sim_file_abspath(basename, data=data)
-
-    # TODO(e-carlin): sort
-    @classmethod
-    def _sim_file_abspath(cls, basename, data=None):
-        import sirepo.simulation_db
-        import sirepo.job
-
-        if cfg.sim_file_uri:
-            if basename in cfg.sim_file_list:
-                p = pkio.py_path(basename)
-                r = requests.get(
-                    cfg.sim_file_uri + basename,
-                    verify=sirepo.job.cfg.verify_tls,
-                )
-                r.raise_for_status()
-                p.write_binary(r.content)
-                # TODO(e-carlin): What if we pull non executables over?
-                p.chmod(0o755)
-                return p
-        p = sirepo.simulation_db.simulation_dir(
-            cls.sim_type(),
-            data.models.simulation.simulationId,
-        ).join(basename)
-        if p.check(file=True):
-            return p
-        return None
-
-
-    # TODO(e-carlin): sort
-    @classmethod
-    def _sim_file_basenames(cls, data):
-        return []
 
     @classmethod
     def local_path(cls, subdir):
@@ -572,6 +490,57 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
+    def sim_file_copy(cls, path, basename, data):
+        """Copy file to simulation dir
+
+        Args:
+            path (py.path): file to copy
+            basename (str): basename of destination file
+        """
+        # TODO(e-carlin): implement put over http (NERSC)
+        import shutil
+
+        shutil.copy2(path, cls.sim_file_write_path(basename, data))
+
+    @classmethod
+    def sim_file_abspath(cls, basename, data=None):
+        return cls._sim_file_abspath(basename, data=data)
+
+    @classmethod
+    def sim_file_basenames(cls, data):
+        return sorted(set(cls._sim_file_basenames(data)))
+
+    @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir):
+        """Copy sim files to run_dir
+
+        Args:
+            data (dict): simulation db
+            run_dir (py.path): where to copy to
+        """
+        cls._files_to_run_dir('sim', data, run_dir)
+
+    @classmethod
+    def sim_file_write_path(cls, basename, data):
+        """Get the path to write simulation files (server side)
+
+        Args:
+            basename (str): basename of the file to write
+            data (PKDict): simulation
+
+        Returns:
+            py.path: absolute path to file
+        """
+        from sirepo import simulation_db
+        # TODO(e-carlin): add this back in once sim_file_copy is
+        # sending files back over the wire
+        # cls._assert_server_side()
+        return simulation_db.simulation_dir(
+            cls.sim_type(),
+            data.models.simulation.simulationId,
+        ).join(basename)
+
+    @classmethod
     def sim_type(cls):
         return cls._memoize(pkinspect.module_basename(cls))
 
@@ -636,6 +605,15 @@ class SimDataBase(object):
         return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
+    def _files_to_run_dir(cls, sim_or_lib, data, run_dir):
+        for b in getattr(cls, f'{sim_or_lib}_file_basenames')(data):
+            t = run_dir.join(b)
+            s = getattr(cls, f'{sim_or_lib}_file_abspath')(b, data=data)
+            if t != s:
+                # TODO(e-carlin): verify that this code path gets executed and works for sim
+                t.mksymlinkto(s, absolute=False)
+
+    @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
         if names:
             names = set(list(names) + ['simulation'])
@@ -670,6 +648,19 @@ class SimDataBase(object):
             if f.check(file=True):
                 return f
         return None
+    # TODO(e-carlin): sort
+    @classmethod
+    def _file_from_supervisor(cls, uri, chmod=None):
+        p = pkio.py_path(basename)
+        r = requests.get(
+            uri + basename,
+            verify=sirepo.job.cfg.verify_tls,
+        )
+        r.raise_for_status()
+        p.write_binary(r.content)
+        if chmod:
+            p.chmod(chmod)
+        return p
 
     @classmethod
     def _lib_file_list(cls, pat, want_user_lib_dir=True):
@@ -745,6 +736,26 @@ class SimDataBase(object):
     def _proprietary_code_rpm(cls):
         return f'{cls.sim_type()}.rpm'
 
+    @classmethod
+    def _sim_file_abspath(cls, basename, data=None):
+        import sirepo.simulation_db
+        import sirepo.job
+
+        if cfg.sim_file_uri:
+            if basename in cfg.sim_file_list:
+                # TODO(e-carlin): What if we pull non executables over?
+                return cls._file_from_supervisor(cfg.sim_file_uri, chmod=0o755)
+        p = sirepo.simulation_db.simulation_dir(
+            cls.sim_type(),
+            data.models.simulation.simulationId,
+        ).join(basename)
+        if p.check(file=True):
+            return p
+        return None
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        return []
 
 
 def split_jid(jid):

@@ -140,7 +140,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             return r
         raise AssertionError('invalid flashType: {}'.format(t))
 
-    # TODO(e-carlin): sort
     @classmethod
     def _sim_file_basenames(cls, data):
         def _hash():
