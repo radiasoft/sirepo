@@ -541,9 +541,8 @@ class SimDataBase(object):
             py.path: absolute path to file
         """
         from sirepo import simulation_db
-        # TODO(e-carlin): add this back in once sim_file_copy is
-        # sending files back over the wire
-        # cls._assert_server_side()
+
+        cls._assert_server_side()
         return simulation_db.simulation_dir(
             cls.sim_type(),
             data.models.simulation.simulationId,
@@ -752,11 +751,18 @@ class SimDataBase(object):
                     basename,
                     chmod=0o755,
                 )
+        # TODO(e-carlin): use sim_file_write_path?
         p = sirepo.simulation_db.simulation_dir(
             cls.sim_type(),
             data.models.simulation.simulationId,
         ).join(basename)
         if p.check(file=True):
+            # TODO(e-carlin): need abstractions around chmod
+            # Problem here is that when we first compile the binary we
+            # put in in the sim dir ourselves then send to
+            # server. When we put it in the sim dir we need to chmod
+            # to make it executable
+            p.chmod(0o755)
             return p
         return None
 
