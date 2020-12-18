@@ -53,23 +53,24 @@ def audit_proprietary_lib_files(uid):
     import pykern.pkio
     import sirepo.auth
     import sirepo.feature_config
+    import sirepo.sim_data
     import sirepo.simulation_db
 
     x = sirepo.feature_config.cfg().proprietary_sim_types
     if not x:
         return
     for t in x:
-        r = UserRole.has_role(
-            uid,
-            sirepo.auth.role_for_sim_type(t),
-        )
+        if not sirepo.sim_data.get_class(t).proprietary_code_rpm():
+            return
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), \
             f'{d} proprietary_code_dir must exist' \
             + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
-
+        r = UserRole.has_role(
+            uid,
+            sirepo.auth.role_for_sim_type(t),
+        )
         for f in pykern.pkio.sorted_glob(d.join('*')):
-
 #TODO(robnagler) ensure no collision on names with uploaded files
 # (restrict suffixes in user uploads)
             p = sirepo.simulation_db.simulation_lib_dir(t, uid=uid).join(f.basename)
@@ -165,6 +166,13 @@ def init():
         role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
 
         @classmethod
+        def all_roles(cls):
+            with thread_lock:
+                return [
+                    r[0] for r in cls._session.query(cls.role.distinct()).all()
+                ]
+
+        @classmethod
         def add_roles(cls, uid, roles):
             with thread_lock:
                 for r in roles:
@@ -203,6 +211,7 @@ def init():
                 ).distinct().all()
             ]
     UserDbBase.metadata.create_all(_engine)
+    _migrate_role_jupyterhub()
 
 
 def init_model(callback):
@@ -266,3 +275,14 @@ def _migrate_db_file(fn):
         raise
     x.rename(o + '-migrated')
     pkdlog('migrated user.db to auth.db')
+
+
+def _migrate_role_jupyterhub():
+    import sirepo.template
+
+    r = sirepo.auth.role_for_sim_type('jupyterhublogin')
+    if not sirepo.template.is_sim_type('jupyterhublogin') or \
+       r in UserRole.all_roles():
+        return
+    for u in all_uids():
+        UserRole.add_roles(u, [r])

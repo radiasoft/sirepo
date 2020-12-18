@@ -273,13 +273,13 @@ def dict_to_h5(d, hf, path=None):
     try:
         for i in range(len(d)):
             try:
-                p = '{}/{}'.format(path, i)
+                p = f'{path}/{i}'
                 hf.create_dataset(p, data=d[i])
             except TypeError:
                 dict_to_h5(d[i], hf, path=p)
     except KeyError:
         for k in d:
-            p = '{}/{}'.format(path, k)
+            p = f'{path}/{k}'
             try:
                 hf.create_dataset(p, data=d[k])
             except TypeError:
@@ -542,7 +542,7 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
-def subprocess_output(cmd, env):
+def subprocess_output(cmd, env=None):
     """Run cmd and return output or None, logging errors.
 
     Args:

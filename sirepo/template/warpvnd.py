@@ -624,7 +624,7 @@ def _extract_optimization_results(run_dir, data, args):
         'optimizerInfo': field_info.tolist(),
         'x_index': x_index,
         'y_index': y_index,
-        'fields': map(lambda x: x.field, fields),
+        'fields': [x.field for x in fields],
     }
 
 

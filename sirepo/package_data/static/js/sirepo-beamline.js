@@ -30,6 +30,17 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
         return browserSupportsSVGForeignObject;
     };
 
+    self.copyElement = function(item) {
+        var newItem = appState.clone(item);
+        newItem.id = appState.maxId(appState.models.beamline) + 1;
+        newItem.showPopover = true;
+        appState.models.beamline.splice(
+            appState.models.beamline.indexOf(item) + 1,
+            0,
+            newItem);
+        self.dismissPopup();
+    };
+
     self.dismissPopup = function() {
         $('.srw-beamline-element-label').popover('hide');
     };
@@ -288,12 +299,12 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)"> </div>',
+                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div>',
                   '<div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
                     'data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)" ',
                     'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
-                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
-                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)"> </div>',
+                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">',
+                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data, $event)"> </div>',
                 '</div>',
             '</div>',
             '<div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>',
@@ -380,19 +391,25 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 }
                 return false;
             };
-            $scope.dropBetween = function(index, data) {
+            $scope.dropBetween = function(index, data, event) {
                 if (! data) {
                     return;
                 }
                 var item;
                 if (data.id) {
                     beamlineService.dismissPopup();
-                    var curr = appState.models.beamline.indexOf(data);
-                    if (curr < index) {
-                        index--;
+                    if (event.event.ctrlKey) {
+                        item = appState.clone(data);
+                        item.id = appState.maxId(appState.models.beamline) + 1;
                     }
-                    appState.models.beamline.splice(curr, 1);
-                    item = data;
+                    else {
+                        var curr = appState.models.beamline.indexOf(data);
+                        if (curr < index) {
+                            index--;
+                        }
+                        appState.models.beamline.splice(curr, 1);
+                        item = data;
+                    }
                 }
                 else {
                     // move last item to this index
@@ -537,9 +554,10 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
         },
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
-            '<span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" data-ng-style="activeIconPosition()" title="{{ activeWatchpointTitle }}"></span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon"  data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>',
+            '<span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" data-ng-style="activeIconPosition()" title="{{ activeWatchpointTitle }}"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="" data-item="item"></span>',
             '</div>',

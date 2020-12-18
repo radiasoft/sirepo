@@ -42,15 +42,15 @@
     },
     "frameIdFields": {
         "animation": ["id"],
-        "wavefrontSummaryAnimation": []
+        "wavefrontSummaryAnimation": ["element"]
     },
     "model": {
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
-            "position": ["Position along Optical Path [m]", "Float"],
-            "radius": ["Radius [m]", "Float", 0.1],
-            "width": ["Width [m]", "Float", 0.2],
-            "refractionIndex": ["Index of Refraction", "Float", 4.20756805e-06]
+            "position": ["Central Position [m]", "Float"],
+            "radius": ["Radial Variation", "Float", 0.02, "Radial variation of index of refraction"],
+            "width": ["Width [m]", "Float", 4.0],
+            "refractionIndex": ["Index of Refraction", "Float", 2.0, "Index of refraction along the optical axis", 1e-24]
         },
         "gaussianBeam": {
             "energyPerPulse": ["Energy per Pulse [J]", "Float", 0.001],
@@ -61,7 +61,7 @@
         },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
-            "position": ["Position along Optical Path [m]", "Float"],
+            "position": ["Central Position [m]", "Float"],
             "focusingError": ["Focusing Error [m]", "Float", 0]
         },
         "simulationSettings": {
@@ -70,6 +70,7 @@
             "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30]
         },
         "wavefrontSummaryAnimation": {
+            "element": ["Beamline Element", "SelectElement", "all"]
         },
         "wavefrontAnimation": {
             "position": ["Position", "Float", 0]
@@ -82,9 +83,9 @@
             "advanced": [
                 "title",
                 "position",
-                "radius",
                 "width",
-                "refractionIndex"
+                "refractionIndex",
+                "radius"
             ]
         },
         "mirror": {
@@ -129,7 +130,9 @@
         },
         "wavefrontSummaryAnimation": {
             "title": "Wavefront Summary",
-            "advanced": []
+            "advanced": [
+                "element"
+            ]
         }
     }
 }

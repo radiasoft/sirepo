@@ -1,110 +1,11 @@
-from scipy import ndimage
+#!/usr/bin/env python
+from scipy import ndimage, constants
+from sirepo.template import silasOpticsLib
 import array
-import copy
 import h5py
 import math
 import numpy as np
 import srwlib
-
-
-def createGsnSrcSRW(sigrW,propLen,pulseE,poltype,phE=10e3,sampFact=15,mx=0,my=0):
-
-    """
-    #sigrW: beam size at waist [m]
-    #propLen: propagation length [m] required by SRW to create numerical Gaussian
-    #pulseE: energy per pulse [J]
-    #poltype: polarization type (0=linear horizontal, 1=linear vertical, 2=linear 45 deg, 3=linear 135 deg, 4=circular right, 5=circular left, 6=total)
-    #phE: photon energy [eV]
-    #sampFact: sampling factor to increase mesh density
-    """
-
-    constConvRad = 1.23984186e-06/(4*3.1415926536)  ##conversion from energy to 1/wavelength
-    rmsAngDiv = constConvRad/(phE*sigrW)             ##RMS angular divergence [rad]
-    sigrL=math.sqrt(sigrW**2+(propLen*rmsAngDiv)**2)  ##required RMS size to produce requested RMS beam size after propagation by propLen
-
-
-    #***********Gaussian Beam Source
-    GsnBm = srwlib.SRWLGsnBm() #Gaussian Beam structure (just parameters)
-    GsnBm.x = 0 #Transverse Positions of Gaussian Beam Center at Waist [m]
-    GsnBm.y = 0
-    GsnBm.z = propLen #Longitudinal Position of Waist [m]
-    GsnBm.xp = 0 #Average Angles of Gaussian Beam at Waist [rad]
-    GsnBm.yp = 0
-    GsnBm.avgPhotEn = phE #Photon Energy [eV]
-    GsnBm.pulseEn = pulseE #Energy per Pulse [J] - to be corrected
-    GsnBm.repRate = 1 #Rep. Rate [Hz] - to be corrected
-    GsnBm.polar = poltype #1- linear horizontal?
-    GsnBm.sigX = sigrW #Horiz. RMS size at Waist [m]
-    GsnBm.sigY = GsnBm.sigX #Vert. RMS size at Waist [m]
-
-    GsnBm.sigT = 10e-15 #Pulse duration [s] (not used?)
-    GsnBm.mx = mx #Transverse Gauss-Hermite Mode Orders
-    GsnBm.my = my
-
-    #***********Initial Wavefront
-    wfr = srwlib.SRWLWfr() #Initial Electric Field Wavefront
-    wfr.allocate(1, 1000, 1000) #Numbers of points vs Photon Energy (1), Horizontal and Vertical Positions (dummy)
-    wfr.mesh.zStart = 0.0 #Longitudinal Position [m] at which initial Electric Field has to be calculated, i.e. the position of the first optical element
-    wfr.mesh.eStart = GsnBm.avgPhotEn #Initial Photon Energy [eV]
-    wfr.mesh.eFin = GsnBm.avgPhotEn #Final Photon Energy [eV]
-
-    wfr.unitElFld = 1 #Electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
-
-    distSrc = wfr.mesh.zStart - GsnBm.z
-    #Horizontal and Vertical Position Range for the Initial Wavefront calculation
-    #can be used to simulate the First Aperture (of M1)
-    #firstHorAp = 8.*rmsAngDiv*distSrc #[m]
-    xAp = 8.*sigrL
-    yAp = xAp #[m]
-
-    wfr.mesh.xStart = -0.5*xAp #Initial Horizontal Position [m]
-    wfr.mesh.xFin = 0.5*xAp #Final Horizontal Position [m]
-    wfr.mesh.yStart = -0.5*yAp #Initial Vertical Position [m]
-    wfr.mesh.yFin = 0.5*yAp #Final Vertical Position [m]
-
-    sampFactNxNyForProp = sampFact #sampling factor for adjusting nx, ny (effective if > 0)
-    arPrecPar = [sampFactNxNyForProp]
-
-    srwlib.srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
-
-    ##Beamline to propagate to waist
-
-    optDriftW=srwlib.SRWLOptD(propLen)
-    propagParDrift = [0, 0, 1., 0, 0, 1.1, 1.2, 1.1, 1.2, 0, 0, 0]
-    optBLW = srwlib.SRWLOptC([optDriftW],[propagParDrift])
-    srwlib.srwl.PropagElecField(wfr, optBLW)
-
-    return wfr
-
-
-def createDriftLensBL(Lc,df):
-    """
-    #Create beamline for propagation from center of cell to end and through lens (representing a mirror)
-    #First propagate Lc/2, then through lens with focal length Lc/2 + df
-    #Lc: cavity length [m]
-    #df: focusing error
-    """
-    f=Lc/4 + df
-    optDrift=srwlib.SRWLOptD(Lc/2)
-    optLens = srwlib.SRWLOptL(f, f)
-    propagParLens = [0, 0, 1., 0, 0, 1., 1., 1., 1., 0, 0, 0]
-    propagParDrift = [0, 0, 1., 0, 0, 1., 1., 1., 1., 0, 0, 0]
-    #propagParLens = [0, 0, 1., 0, 0, 1.4, 2., 1.4, 2., 0, 0, 0]
-    #propagParDrift = [0, 0, 1., 0, 0, 1.1, 1.2, 1.1, 1.2, 0, 0, 0]
-    DriftLensBL = srwlib.SRWLOptC([optDrift,optLens],[propagParDrift,propagParLens])
-    return DriftLensBL
-
-
-def createDriftBL(Lc):
-    """
-    #Create drift beamline container that propagates the wavefront through half the cavity
-    #Lc is the length of the cavity
-    """
-    optDrift=srwlib.SRWLOptD(Lc/2)
-    propagParDrift = [0, 0, 1., 0, 0, 1., 1., 1., 1., 0, 0, 0]
-    #propagParDrift = [0, 0, 1., 0, 0, 1.1, 1.2, 1.1, 1.2, 0, 0, 0]
-    DriftBL = srwlib.SRWLOptC([optDrift],[propagParDrift])
-    return DriftBL
 
 
 def rmsIntensity(IntArray,xvals,yvals):
@@ -136,17 +37,21 @@ def rmsWavefrontIntensity(wfr):
     IntensityArray2D = np.array(IntensityArray2D).reshape((wfr.mesh.nx, wfr.mesh.ny), order='C')
     xvals=np.linspace(wfr.mesh.xStart,wfr.mesh.xFin,wfr.mesh.nx)
     yvals=np.linspace(wfr.mesh.yStart,wfr.mesh.yFin,wfr.mesh.ny)
-    return rmsIntensity(IntensityArray2D,xvals,yvals)
+    return IntensityArray2D, rmsIntensity(IntensityArray2D,xvals,yvals)
 
 
 def wavefront_to_hdf5(wfr, count, pos):
     assert wfr.mesh.ne == 1
-    arI = array.array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D intensity data
-    srwlib.srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0) #extracts intensity
-    (sx, sy, xavg, yavg) = rmsWavefrontIntensity(wfr)
+    ar2d, (sx, sy, xavg, yavg) = rmsWavefrontIntensity(wfr)
+    with open('wavefront.csv', 'a' if pos else 'w') as f:
+        if pos == 0:
+            f.write('count,pos,sx,sy,xavg,yavg\n')
+        f.write(f'{count},{pos},{sx},{sy},{xavg},{yavg}\n')
+    if count % 2 == 0:
+        return
+    count = int((count + 1) / 2)
     with h5py.File(f'wfr{count:05d}.h5', 'w') as f:
-        ##Reshaping electric field data from flat to 2D array
-        ar2d = np.array(arI).reshape((wfr.mesh.nx, wfr.mesh.ny), order='C')
+        # resize output data to 500x500 max
         max_size = 500
         x_resize = 1
         y_resize = 1
@@ -166,42 +71,56 @@ def wavefront_to_hdf5(wfr, count, pos):
         dset.attrs['xavg'] = xavg
         dset.attrs['yavg'] = yavg
         dset.attrs['pos'] = pos
-    with open('wavefront.csv', 'a' if pos else 'w') as f:
-        if pos == 0:
-            f.write('count,pos,sx,sy,xavg,yavg\n')
-        f.write(f'{count},{pos},{sx},{sy},{xavg},{yavg}\n')
 
 
 #---
 
 #Specify parameters for simulation
-Lc = {{ simulationSettings_cavity_length }} #Length of cavity [m]
-dfR = {{ rightMirrorFocusingError }}
+L_cav = {{ simulationSettings_cavity_length }} #Length of cavity [m]
 dfL = {{ leftMirrorFocusingError }}
-sigmaRCenter0 = {{ gaussianBeam_rmsSize }} * 1e-6 #Initial RMS beam size at center of cavity [m]
+dfR = {{ rightMirrorFocusingError }}
+
+#Crystal parameters
+L_cryst = {{ crystal_width }}
+n0 = {{ crystal_refractionIndex }}
+n2 = {{ crystal_radius }}
+
+wavefrontEnergy = {{ gaussianBeam_photonEnergy }} #Wavefront Energy [eV]. 1.55 eV is 800 nm wavelength
+lam = constants.c * constants.value('Planck constant in eV/Hz')/wavefrontEnergy # convert energy [eV] to wavelength [m]
+
+L_eff = L_cav+(1/n0 - 1)*L_cryst #Define effective length as path length reduced by index of refraction n0
+print("L_eff=",L_eff)
+beta0 = math.sqrt(L_eff*(L_cav/4+dfL)-L_eff**2/4)
+print("beta0=",beta0)
+sigx0 = math.sqrt(lam*beta0/4/math.pi)
+print("sigx0=",sigx0)
+sigmaRCenter0 = sigx0
+
 propLen = {{ gaussianBeam_initialPropagationLength }} #Propagation of initial Gaussian [m]. It will then be back-propagated by propLen: a trick to get the Gaussian mode at the waist
 pulseE = {{ gaussianBeam_energyPerPulse }} #Total energy of pulse [eV]
 mx = 0 #Horizontal mode number (0 for Gaussian)
 my = 0 #Vertical mode number (0 for Gaussian)
 poltype = {{ gaussianBeam_polarization }} #Polarization of mode (0=linear horizontal, 1=linear vertical, 2=linear 45 deg, 3=linear 135 deg, 4=circular right, 5=circular left, 6=total)
-wavefrontEnergy = {{ gaussianBeam_photonEnergy }} #Wavefront Energy [eV]. 1.55 eV is 800 nm wavelength
 sampFact = {{ simulationSettings_sample_factor }} #Determines grid size of initial wavefront
 
 #---
 
 #Now we construct the initial wavefront at the center of cavity
-wfrCenter0=createGsnSrcSRW(sigmaRCenter0,propLen,pulseE,poltype,wavefrontEnergy,sampFact,mx,my) #creates Gaussian wavefront in SRW
+wfrCenter0=silasOpticsLib.createGsnSrcSRW(sigmaRCenter0,propLen,pulseE,poltype,wavefrontEnergy,sampFact,mx,my) #creates Gaussian wavefront in SRW
 (nx0,ny0)=(wfrCenter0.mesh.nx,wfrCenter0.mesh.ny)
 print("Initial wavefront calculated on a grid of %d x %d points" %(nx0,ny0))
 
 #---
 
 #Now build the different beamline elements we need to propagate to the right and to the left
-propagateRight = createDriftLensBL(Lc,dfR)
-propagateLeft = createDriftLensBL(Lc,dfL)
-propagateDrift = createDriftBL(Lc)
+propagateHalfCrystal = [silasOpticsLib.createCrystal(n0,n2,L_cryst/2), L_cryst/2]
+propagateRight = [silasOpticsLib.createDriftLensBL2((L_cav-L_cryst)/2, L_cav/4 + dfR), (L_cav-L_cryst)/2]
+propagateLeft = [silasOpticsLib.createDriftLensBL2((L_cav-L_cryst)/2, L_cav/4 + dfL), (L_cav-L_cryst)/2]
+propagateDrift = [silasOpticsLib.createDriftBL(L_cav-L_cryst), (L_cav-L_cryst)/2]
 
 #---
+
+#Now construct a list of wavefront objects starting with initial wavefront wfrCenter0
 
 wfr = wfrCenter0
 count = 1
@@ -209,8 +128,18 @@ pos = 0
 npass = {{ simulationSettings_n_reflections }}
 
 for i in range(npass):
-    for section in (propagateRight, propagateDrift, propagateLeft, propagateDrift):
+    for section in (
+        propagateHalfCrystal,
+        propagateRight,
+        propagateDrift,
+        propagateHalfCrystal,
+        propagateHalfCrystal,
+        propagateLeft,
+        propagateDrift,
+        propagateHalfCrystal,
+    ):
         wavefront_to_hdf5(wfr, count, pos)
-        srwlib.srwl.PropagElecField(wfr, section)
-        pos += Lc / 2
+        srwlib.srwl.PropagElecField(wfr, section[0])
+        pos += section[1]
         count += 1
+wavefront_to_hdf5(wfr, count, pos)
