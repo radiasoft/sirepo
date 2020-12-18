@@ -520,6 +520,18 @@ def remove_last_frame(run_dir):
 
 
 def setup_command(data):
+    # TODO(e-carlin): caplaser3d
+    # ./setup "$type" -objdir="$type" -auto -3d +cartesian +hdf5typeio \
+    #         species=fill,wall +mtmmmt +usm3t +mgd mgd_meshgroups=6 \
+    #         -parfile=bella_3dSetup.par +laser ed_maxPulses=1 ed_maxPulseSections=4 \
+    #         ed_maxBeams=1
+    # TODO(e-carlin): caplaserbella
+    # ./setup "$type" -objdir="$type" -auto -2d -nxb=8 -nyb=8 +hdf5typeio \
+    #         species=fill,wall +mtmmmt +usm3t +mgd mgd_meshgroups=6 \
+    #         -parfile=bella.par +laser ed_maxPulses=1 ed_maxPulseSections=4 \
+    #         ed_maxBeams=1 \
+    #         -with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore
+    # TODO(e-carlin): this is rtflame
     return [
         './setup',
         data.models.simulation.flashType,
