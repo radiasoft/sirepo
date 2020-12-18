@@ -5,6 +5,9 @@
         }
     },
     "constants": {
+        "allowedEquationOps": [
+            "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
+        ],
         "inProgressText": "Working"
     },
     "enum": {
@@ -18,6 +21,12 @@
             ["knn", "K Nearest Neighbors"],
             ["linearSvc", "Linear SVC"],
             ["logisticRegression", "Logistic Regression"]
+        ],
+        "ClusterMethod": [
+            ["agglomerative", "Agglomerative Clustering"],
+            ["dbscan", "DBSCAN"],
+            ["gmix", "Gaussian Mixture"],
+            ["kmeans", "KMeans"]
         ],
         "InputOutputClass": [
             ["input", "Input"],

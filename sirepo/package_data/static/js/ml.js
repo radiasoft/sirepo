@@ -975,6 +975,142 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
     };
 });
 
+SIREPO.app.directive('equation', function(appState, mlService, $timeout) {
+    return {
+        scope: {
+            model: '=',
+            field: '=',
+            form: '=',
+        },
+        template: [
+            '<div>',
+                '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
+                '<input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables',
+            '</div>',
+        ].join(''),
+        controller: function ($scope) {
+
+            var defaultFitVars = ['x', 'y', 'z', 't'];
+
+            function tokenizeEquation() {
+                return mlService.tokenizeEquation($scope.model[$scope.field]);
+            }
+
+            function extractParams() {
+
+                var params = mlService.tokenizeParams($scope.model.fitParameters).sort();
+                var tokens = tokenizeEquation().filter(function (t) {
+                    return t !== $scope.model.fitVariable;
+                });
+
+                // remove parameters no longer in the equation
+                params.reverse().forEach(function (p, i) {
+                    if (tokens.indexOf(p) < 0) {
+                        params.splice(i, 1);
+                    }
+                });
+
+                // add tokens not represented
+                tokens.forEach(function (t) {
+                    if (params.indexOf(t) < 0) {
+                        params.push(t);
+                    }
+                });
+                params.sort();
+
+                return params;
+            }
+
+            function extractVar() {
+                var tokens = tokenizeEquation();
+                var indVar = $scope.model.fitVariable;
+
+                if (! indVar|| tokens.indexOf(indVar) < 0) {
+                    indVar = null;
+                    tokens.forEach(function (t) {
+                        if (indVar) {
+                            return;
+                        }
+                        if (defaultFitVars.indexOf(t) >= 0) {
+                            indVar = t;
+                        }
+                    });
+                }
+                return indVar;
+            }
+
+            $scope.validateAll = function() {
+                if ($scope.model.autoFill) {
+                    // allow time for models to be set before validating
+                    $timeout(function () {
+                        $scope.model.fitVariable = extractVar();
+                        $scope.model.fitParameters = extractParams().join(',');
+                    });
+                }
+
+                $scope.form.$$controls.forEach(function (c) {
+                    c.$setDirty();
+                    c.$validate();
+                });
+            };
+
+            if ($scope.model.autoFill === null) {
+                $scope.model.autoFill = true;
+            }
+        },
+    };
+});
+
+SIREPO.app.directive('equationVariables', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            form: '=',
+            isVariable: '<',
+            model: '=',
+        },
+        template: [
+            '<div>',
+                '<input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />',
+            '</div>',
+            '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+        },
+    };
+});
+
+SIREPO.app.directive('fftReport', function(appState) {
+    return {
+        scope: {
+            modelData: '=',
+        },
+        template: [
+            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.modelKey = 'fftReport';
+            if ($scope.modelData) {
+                $scope.modelKey += appState.models[$scope.modelData.modelKey].id;
+            }
+
+            $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
+                var str = '';
+                data.freqs.forEach(function (wi, i) {
+                    if (str == '') {
+                        str = 'Found frequncies: ';
+                    }
+                    var w = wi[1];
+                    str = str + w + 's-1';
+                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
+                });
+                $($element).find('.focus-hint').text(str);
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('heatmapModifications', function() {
     return {
         restrict: 'A',
