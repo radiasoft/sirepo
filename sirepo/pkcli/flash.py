@@ -30,7 +30,7 @@ def run_background(cfg_dir):
         t = s.join(data.models.simulation.flashType)
         subprocess.run(template.setup_command(data), cwd=s)
         subprocess.run(['make'], cwd=t)
-        _SIM_DATA.sim_file_copy(
+        _SIM_DATA.sim_file_to_server(
             t.join(_SIM_DATA.FLASH_PREFIX),
             e.basename,
             data,

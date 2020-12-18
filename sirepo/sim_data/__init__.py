@@ -491,26 +491,6 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
-    def sim_file_copy(cls, path, basename, data):
-        """Copy file to simulation dir
-
-        Args:
-            path (py.path): file to copy
-            basename (str): basename of destination file
-        """
-        import shutil
-
-        if not cfg.sim_put_file_uri:
-            shutil.copy2(path, cls.sim_file_write_path(basename, data))
-            return
-        requests.put(
-            cfg.sim_put_file_uri + '/' + basename,
-            # TODO(e-carlin): handle non-binary files
-            data=path.read_binary(),
-            verify=sirepo.job.cfg.verify_tls,
-        ).raise_for_status()
-
-    @classmethod
     def sim_file_abspath(cls, basename, data=None):
         return cls._sim_file_abspath(basename, data=data)
 
@@ -528,6 +508,26 @@ class SimDataBase(object):
             run_dir (py.path): where to copy to
         """
         cls._files_to_run_dir('sim', data, run_dir)
+
+    @classmethod
+    def sim_file_to_server(cls, path, basename, data):
+        """Copy sim file to server (over http when remote)
+
+        Args:
+            path (py.path): file to copy
+            basename (str): basename of destination file
+        """
+        import shutil
+
+        if not cfg.sim_put_file_uri:
+            shutil.copy2(path, cls.sim_file_write_path(basename, data))
+            return
+        requests.put(
+            cfg.sim_put_file_uri + '/' + basename,
+            # TODO(e-carlin): handle non-binary files
+            data=path.read_binary(),
+            verify=sirepo.job.cfg.verify_tls,
+        ).raise_for_status()
 
     @classmethod
     def sim_file_write_path(cls, basename, data):
