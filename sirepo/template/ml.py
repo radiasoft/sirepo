@@ -79,42 +79,58 @@ def background_percent_complete(report, run_dir, is_running):
 def get_analysis_report(run_dir, data):
     import math
 
-    report, col_info, plot_data = _report_info(run_dir, data)
+    report = data.models.analysisReport
+    info = data.models.columnInfo
+    x_idx = int(report.x)
+    y_idx = int(report.y1)
+    x_label = f'{info.header[x_idx]}'
+    y_label = f'{info.header[y_idx]}'
+
+    xr, x = _extract_column(run_dir, data, x_idx)
+    yr, y = _extract_column(run_dir, data, y_idx)
+    plot_data = [x, y]
     clusters = None
-    if 'action' in report:
-        if report.action == 'fit':
-            return _get_fit_report(report, plot_data, col_info)
-        elif report.action == 'cluster':
-            clusters = _compute_clusters(report, plot_data, col_info)
-    x_idx = _set_index_within_cols(col_info, report.x)
-    x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
+    #if 'action' in report:
+    #    if report.action == 'fit':
+    #        return _get_fit_report(report, plot_data, col_info)
+    #    elif report.action == 'cluster':
+    #        clusters = _compute_clusters(report, plot_data, col_info)
+    #x_idx = _set_index_within_cols(col_info, report.x)
+    #x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
     plots = []
-    for f in ('y1', 'y2', 'y3'):
-        if f != 'y1':
-            continue
-        if f not in report or report[f] == 'none':
-            continue
-        y_idx = _set_index_within_cols(col_info, report[f])
-        y = plot_data[:, y_idx]
-        if len(y) <= 0 or math.isnan(y[0]):
-            continue
-        plots.append(PKDict(
-            points=(y * col_info['scale'][y_idx]).tolist(),
-            label=_label(col_info, y_idx),
-            style='line' if 'action' in report and report.action == 'fft' else 'scatter',
-        ))
-    return template_common.parameter_plot(
-        x,
-        plots,
-        PKDict(),
-        PKDict(
-            title='',
-            y_label='',
-            x_label=_label(col_info, x_idx),
-            clusters=clusters,
-            summaryData=PKDict(),
-        ),
-    )
+    plots.append(PKDict(
+        points=y.tolist(),
+        label=y_label,
+        style='scatter',
+     ))
+
+    #for f in ('y1', 'y2', 'y3'):
+    #    if f != 'y1':
+    #        continue
+    #    if f not in report or report[f] == 'none':
+    #        continue
+    #    y_idx = _set_index_within_cols(col_info, report[f])
+    #    y = plot_data[:, y_idx]
+    #    if len(y) <= 0 or math.isnan(y[0]):
+    #        continue
+    #    plots.append(PKDict(
+    #        points=(y * col_info['scale'][y_idx]).tolist(),
+    #        label=_label(col_info, y_idx),
+    #        style='line' if 'action' in report and report.action == 'fft' else 'scatter',
+    #    ))
+    return x, plots, f'{x_label} vs {y_label}'
+    #return template_common.parameter_plot(
+    #    x,
+    #    plots,
+    #    PKDict(),
+    #    PKDict(
+    #        title='',
+    #        y_label='',
+    #        x_label=_label(col_info, x_idx),
+    #        clusters=clusters,
+    #        summaryData=PKDict(),
+    #    ),
+    #)
 
 
 def get_application_data(data, **kwargs):
@@ -149,7 +165,9 @@ def save_sequential_report_data(run_dir, sim_in):
     elif sim_in.report == 'partitionSelectionReport':
         _extract_partition_selection(run_dir, sim_in)
     elif sim_in.report == 'analysisReport':
-        _extract_partition_selection(run_dir, sim_in)
+        _extract_analysis_report(run_dir, sim_in)
+        #_extract_file_column_report(run_dir, sim_in)
+        #_extract_partition_selection(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -420,13 +438,15 @@ def _error_rate_report(frame_args, filename, x_label):
     ))
 
 def _extract_analysis_report(run_dir, sim_in):
-    idx = sim_in.models[sim_in.report].columnNumber
-    x, y = _extract_column(run_dir, sim_in, idx)
-    _write_report(
-        x,
-        [_plot_info(y)],
-        sim_in.models.columnInfo.header[idx],
-    )
+    x, plots, title = get_analysis_report(run_dir, sim_in)
+    _write_report(x, plots, title)
+    #idx = sim_in.models[sim_in.report].columnNumber
+    #x, y = _extract_column(run_dir, sim_in, idx)
+    #_write_report(
+    #    x,
+    #    [_plot_info(y)],
+    #    sim_in.models.columnInfo.header[idx],
+    #)
 
 def _extract_column(run_dir, sim_in, idx):
     y = _read_file_column(run_dir, 'scaledFile', idx)
