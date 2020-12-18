@@ -18,8 +18,9 @@ import importlib
 import inspect
 import re
 import requests
-import sirepo.util
+import sirepo.job
 import sirepo.template
+import sirepo.util
 
 #: default compute_model
 _ANIMATION_NAME = 'animation'
@@ -497,10 +498,17 @@ class SimDataBase(object):
             path (py.path): file to copy
             basename (str): basename of destination file
         """
-        # TODO(e-carlin): implement put over http (NERSC)
         import shutil
 
-        shutil.copy2(path, cls.sim_file_write_path(basename, data))
+        if not cfg.sim_put_file_uri:
+            shutil.copy2(path, cls.sim_file_write_path(basename, data))
+            return
+        requests.put(
+            cfg.sim_put_file_uri + '/' + basename,
+            # TODO(e-carlin): handle non-binary files
+            data=path.read_binary(),
+            verify=sirepo.job.cfg.verify_tls,
+        ).raise_for_status()
 
     @classmethod
     def sim_file_abspath(cls, basename, data=None):
@@ -510,6 +518,7 @@ class SimDataBase(object):
     def sim_file_basenames(cls, data):
         return sorted(set(cls._sim_file_basenames(data)))
 
+    # TODO(e-carlin): just create something like "??_files_to_run_dir and have prepare sim call it"
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         """Copy sim files to run_dir
@@ -609,7 +618,7 @@ class SimDataBase(object):
         for b in getattr(cls, f'{sim_or_lib}_file_basenames')(data):
             t = run_dir.join(b)
             s = getattr(cls, f'{sim_or_lib}_file_abspath')(b, data=data)
-            if t != s:
+            if s and t != s:
                 # TODO(e-carlin): verify that this code path gets executed and works for sim
                 t.mksymlinkto(s, absolute=False)
 
@@ -627,7 +636,6 @@ class SimDataBase(object):
     @classmethod
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
-        import sirepo.job
 
         p = [cls.lib_file_resource_dir().join(basename)]
         if cfg.lib_file_uri:
@@ -635,7 +643,6 @@ class SimDataBase(object):
                 return cls._file_from_supervisor(
                     cfg.sim_file_uri,
                     basename,
-                    chmod=0o755,
                 )
         elif not cfg.lib_file_resource_only:
             p.append(
@@ -736,7 +743,6 @@ class SimDataBase(object):
     @classmethod
     def _sim_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
-        import sirepo.job
 
         if cfg.sim_file_uri:
             if basename in cfg.sim_file_list:
@@ -776,12 +782,15 @@ def split_jid(jid):
 def _init():
     global cfg
 
+    sirepo.job.init()
+
     cfg = pkconfig.init(
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
         sim_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote sim'),
         sim_file_uri=(None, str, 'where to get sim files from when remote'),
+        sim_put_file_uri=(None, str, 'where to put sim files when remote'),
     )
 
 

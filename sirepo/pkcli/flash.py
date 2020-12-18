@@ -26,7 +26,6 @@ def run_background(cfg_dir):
         f'expecting only one file {e}'
     e = cfg_dir.join(e[0])
     if not e.exists():
-        import shutil
         pkdlog('flash binary {} not found. Compiling', e)
         t = s.join(data.models.simulation.flashType)
         subprocess.run(template.setup_command(data), cwd=s)
@@ -37,4 +36,6 @@ def run_background(cfg_dir):
             data,
         )
         _SIM_DATA.sim_files_to_run_dir(data, cfg_dir)
+    # TODO(e-carlin): make sure e is in the anim dir not the file in the sim dir which may not
+    # be presetn on NERSC?
     mpi.run_program([e])

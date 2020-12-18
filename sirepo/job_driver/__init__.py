@@ -98,10 +98,10 @@ class DriverBase(PKDict):
         op.cpu_slot.free()
         if op.op_slot:
             op.op_slot.free()
-        for k in 'lib', 'sim':
+        for k in 'data', 'lib', 'sim':
             k = f'{k}_dir_symlink'
             if k in op:
-                # {lib|sim}_dir_symlink is unique_key so not dangerous to remove
+                # *_dir_symlink is unique_key so not dangerous to remove
                 pykern.pkio.unchecked_remove(op.pkdel(k))
 
     def free_resources(self, internal_error=None):
@@ -142,6 +142,24 @@ class DriverBase(PKDict):
     def make_sim_dir_symlink(self, op):
         m = op.msg
         with sirepo.auth.set_user(m.uid):
+            # TODO(e-carlin): this is just for puts of sim files, prob move elsewhere
+            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+            d = sirepo.simulation_db.simulation_dir(
+                m.simulationType,
+                sid=sirepo.sim_data.split_jid(m.computeJid).sid,
+            )
+            t.mksymlinkto(d, absolute=True)
+            op['data_dir_symlink'] = t
+            # TODO(e-carlin): need to use abstraction for supervisor_file_uri
+            m['simPutFileUri'] = f'{self.cfg.supervisor_uri}{job.DATA_FILE_URI}/{op["data_dir_symlink"].basename}'
+            # job.supervisor_file_uri(
+            #     self.cfg.supervisor_uri,
+            #     job.DATA_FILE_URI,
+            #     op['data_dir_symlink'].basename,
+            # )
+
+
+            # TODO(e-carlin): this is just for gets
             self._make_dir_symlink(
                 op,
                 'sim',
@@ -298,12 +316,16 @@ class DriverBase(PKDict):
             job.unique_key()
         )
         op[s].mksymlinkto(src_dir, absolute=True)
+        # TODO(e-carlin): fix all this. Need to user supervisor_file_uri abstraction
+        def _f():
+            return f'{self.cfg.supervisor_uri}/supervisor-srv/static{getattr(job, f"{sim_or_lib.upper()}_FILE_URI")}/{op[s].basename}/'
         m.pkupdate(PKDict({
-            f'{sim_or_lib}FileUri': job.supervisor_file_uri(
-                self.cfg.supervisor_uri,
-                getattr(job, f'{sim_or_lib.upper()}_FILE_URI'),
-                op[s].basename,
-            ),
+            # f'{sim_or_lib}FileUri': job.supervisor_file_uri(
+            #     self.cfg.supervisor_uri,
+            #     getattr(job, f'{sim_or_lib.upper()}_FILE_URI'),
+            #     op[s].basename,
+            # ),
+            f'{sim_or_lib}FileUri': _f(),
             f'{sim_or_lib}FileList': [
                 f.basename for f in src_dir.listdir(fil=os.path.isfile)
             ],

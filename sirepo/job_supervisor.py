@@ -706,6 +706,7 @@ class _ComputeJob(PKDict):
                 try:
                     await o.prepare_send()
                     self.run_op = o
+                    # TODO(e-carlin): condense into one call
                     o.make_lib_dir_symlink()
                     o.make_sim_dir_symlink()
                     o.send()
@@ -789,11 +790,13 @@ class _ComputeJob(PKDict):
             task=asyncio.current_task(),
         )
         if 'dataFileKey' in kwargs:
-            kwargs['dataFileUri'] = job.supervisor_file_uri(
-                o.driver.cfg.supervisor_uri,
-                job.DATA_FILE_URI,
-                kwargs.pop('dataFileKey'),
-            )
+            # TODO(e-carlin): fix supervisor_uri abstraction
+            kwargs['dataFileUri'] = f'{o.driver.cfg.supervisor_uri}{job.DATA_FILE_URI}/{kwargs.pop("dataFileKey")}/'
+            # job.supervisor_file_uri(
+            #     o.driver.cfg.supervisor_uri,
+            #     job.DATA_FILE_URI,
+            #     kwargs.pop('dataFileKey'),
+            # )
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o

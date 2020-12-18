@@ -227,12 +227,15 @@ def init():
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     m = pkinspect.this_module()
-    for k in 'DATA', 'LIB', 'SIM':
+    for k in 'LIB', 'SIM':
         setattr(
             m,
             f'{k}_FILE_ROOT',
-            SUPERVISOR_SRV_ROOT.join(getattr(m, f'{k}_FILE_URI')[1:])
+            # TODO(e-carlin): need to figure out static stuff
+            SUPERVISOR_SRV_ROOT.join('static', getattr(m, f'{k}_FILE_URI')[1:])
         )
+    # TODO(e-carlin): think about this
+    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
 
 
 def init_by_server(app):

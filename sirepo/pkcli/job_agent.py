@@ -397,6 +397,7 @@ class _Cmd(PKDict):
         if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
+        self._sim_put_file_uri = self.msg.get(f'simPutFileUri', '')
         for k in 'lib', 'sim':
             l = f'_{k}_file_list_f'
             self[l] = ''
@@ -436,10 +437,11 @@ class _Cmd(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 SIREPO_MPI_CORES=self.msg.get('mpiCores', 1),
-                SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
-                SIREPO_SIM_DATA_SIM_FILE_URI=self._sim_file_uri,
+                SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_SIM_FILE_LIST=self._sim_file_list_f,
+                SIREPO_SIM_DATA_SIM_FILE_URI=self._sim_file_uri,
+                SIREPO_SIM_DATA_SIM_PUT_FILE_URI=self._sim_put_file_uri,
             ),
         )
 
