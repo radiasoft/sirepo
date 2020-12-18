@@ -632,14 +632,11 @@ class SimDataBase(object):
         p = [cls.lib_file_resource_dir().join(basename)]
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
-                p = pkio.py_path(basename)
-                r = requests.get(
-                    cfg.lib_file_uri + basename,
-                    verify=sirepo.job.cfg.verify_tls,
+                return cls._file_from_supervisor(
+                    cfg.sim_file_uri,
+                    basename,
+                    chmod=0o755,
                 )
-                r.raise_for_status()
-                p.write_binary(r.content)
-                return p
         elif not cfg.lib_file_resource_only:
             p.append(
                 sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
@@ -650,10 +647,10 @@ class SimDataBase(object):
         return None
     # TODO(e-carlin): sort
     @classmethod
-    def _file_from_supervisor(cls, uri, chmod=None):
-        p = pkio.py_path(basename)
+    def _file_from_supervisor(cls, uri, filename, chmod=None):
+        p = pkio.py_path(filename)
         r = requests.get(
-            uri + basename,
+            uri + filename,
             verify=sirepo.job.cfg.verify_tls,
         )
         r.raise_for_status()
@@ -744,7 +741,11 @@ class SimDataBase(object):
         if cfg.sim_file_uri:
             if basename in cfg.sim_file_list:
                 # TODO(e-carlin): What if we pull non executables over?
-                return cls._file_from_supervisor(cfg.sim_file_uri, chmod=0o755)
+                return cls._file_from_supervisor(
+                    cfg.sim_file_uri,
+                    basename,
+                    chmod=0o755,
+                )
         p = sirepo.simulation_db.simulation_dir(
             cls.sim_type(),
             data.models.simulation.simulationId,
