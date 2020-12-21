@@ -1165,6 +1165,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var oldRadius = pos.radius;
                 var newAngle = 0;
                 var maxHeight = 0;
+                var maxLength = 0;
+                var currentLength = 0;
 
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
@@ -1451,6 +1453,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 pos.bounds[0] = x;
                             }
                         }
+                    }
+                    if (currentLength < maxLength) {
+                        groupItem.opacity = 0.3;
+                    }
+                    currentLength += length || 0;
+                    if (currentLength > maxLength) {
+                        maxLength = currentLength;
                     }
                 }
                 if (pos.angle === 0) {
