@@ -65,7 +65,7 @@ _FIELD_LABEL = PKDict(
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
-_OUTPUT_INFO_VERSION = '2'
+_OUTPUT_INFO_VERSION = '3'
 
 _PLOT_TITLE = PKDict({
     'x-xp': 'Horizontal',
@@ -557,7 +557,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # ex. elementAnimation17-55
-        i = re.sub(r'elementAnimation', '', model)
+        i = LatticeUtil.file_id_from_output_model_name(model)
         return _sdds(_get_filename_for_element_id(i, data))
     if model == 'animation':
         return ELEGANT_LOG_FILE
@@ -1170,7 +1170,7 @@ def _output_info(run_dir):
         filename = filename_map[k]
         info = _info(filename, run_dir, k)
         if info:
-            info.modelKey = 'elementAnimation{}'.format(info.id)
+            info.modelKey = LatticeUtil.output_model_name(info.id)
             res.append(info)
     if res:
         res[0]['_version'] = _OUTPUT_INFO_VERSION
