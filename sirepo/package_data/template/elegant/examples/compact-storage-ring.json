@@ -1165,7 +1165,6 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 19,
-            "backtracking": "0",
             "documentationUrl": "",
             "folder": "/Examples",
             "isExample": true,
