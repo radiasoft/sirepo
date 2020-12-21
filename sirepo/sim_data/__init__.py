@@ -523,7 +523,7 @@ class SimDataBase(object):
             shutil.copy2(path, cls.sim_file_write_path(basename, data))
             return
         requests.put(
-            cfg.sim_put_file_uri + '/' + basename,
+            cfg.sim_put_file_uri + basename,
             # TODO(e-carlin): handle non-binary files
             data=path.read_binary(),
             verify=sirepo.job.cfg.verify_tls,
@@ -640,7 +640,7 @@ class SimDataBase(object):
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
                 return cls._file_from_supervisor(
-                    cfg.sim_file_uri,
+                    cfg.lib_file_uri,
                     basename,
                 )
         elif not cfg.lib_file_resource_only:
