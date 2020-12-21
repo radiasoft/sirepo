@@ -150,13 +150,12 @@ class DriverBase(PKDict):
             )
             t.mksymlinkto(d, absolute=True)
             op['data_dir_symlink'] = t
-            # TODO(e-carlin): need to use abstraction for supervisor_file_uri
-            m['simPutFileUri'] = f'{self.cfg.supervisor_uri}{job.DATA_FILE_URI}/{op["data_dir_symlink"].basename}'
-            # job.supervisor_file_uri(
-            #     self.cfg.supervisor_uri,
-            #     job.DATA_FILE_URI,
-            #     op['data_dir_symlink'].basename,
-            # )
+            m['simPutFileUri'] = job.supervisor_file_uri(
+                self.cfg.supervisor_uri,
+                job.DATA_FILE_URI,
+                op['data_dir_symlink'].basename,
+                static=False,
+            )
 
 
             # TODO(e-carlin): this is just for gets
@@ -316,16 +315,12 @@ class DriverBase(PKDict):
             job.unique_key()
         )
         op[s].mksymlinkto(src_dir, absolute=True)
-        # TODO(e-carlin): fix all this. Need to user supervisor_file_uri abstraction
-        def _f():
-            return f'{self.cfg.supervisor_uri}/supervisor-srv/static{getattr(job, f"{sim_or_lib.upper()}_FILE_URI")}/{op[s].basename}/'
         m.pkupdate(PKDict({
-            # f'{sim_or_lib}FileUri': job.supervisor_file_uri(
-            #     self.cfg.supervisor_uri,
-            #     getattr(job, f'{sim_or_lib.upper()}_FILE_URI'),
-            #     op[s].basename,
-            # ),
-            f'{sim_or_lib}FileUri': _f(),
+            f'{sim_or_lib}FileUri': job.supervisor_file_uri(
+                self.cfg.supervisor_uri,
+                getattr(job, f'{sim_or_lib.upper()}_FILE_URI'),
+                op[s].basename,
+            ),
             f'{sim_or_lib}FileList': [
                 f.basename for f in src_dir.listdir(fil=os.path.isfile)
             ],

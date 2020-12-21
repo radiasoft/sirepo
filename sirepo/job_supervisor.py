@@ -791,12 +791,13 @@ class _ComputeJob(PKDict):
         )
         if 'dataFileKey' in kwargs:
             # TODO(e-carlin): fix supervisor_uri abstraction
-            kwargs['dataFileUri'] = f'{o.driver.cfg.supervisor_uri}{job.DATA_FILE_URI}/{kwargs.pop("dataFileKey")}/'
-            # job.supervisor_file_uri(
-            #     o.driver.cfg.supervisor_uri,
-            #     job.DATA_FILE_URI,
-            #     kwargs.pop('dataFileKey'),
-            # )
+            # TODO(e-carlin): f'{o.driver.cfg.supervisor_uri}{job.DATA_FILE_URI}/{kwargs.pop("dataFileKey")}/'
+            kwargs['dataFileUri'] = job.supervisor_file_uri(
+                o.driver.cfg.supervisor_uri,
+                job.DATA_FILE_URI,
+                kwargs.pop('dataFileKey'),
+                static=False,
+            )
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o

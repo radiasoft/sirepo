@@ -67,9 +67,6 @@ SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-#:  prefix for static path for jobs to request files
-SUPERVISOR_STATIC_PATH_PREFIX = None
-
 #: address where supervisor binds to
 DEFAULT_IP = '127.0.0.1'
 
@@ -227,15 +224,12 @@ def init():
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     m = pkinspect.this_module()
-    for k in 'LIB', 'SIM':
+    for k in 'DATA', 'LIB', 'SIM':
         setattr(
             m,
             f'{k}_FILE_ROOT',
-            # TODO(e-carlin): need to figure out static stuff
-            SUPERVISOR_SRV_ROOT.join('static', getattr(m, f'{k}_FILE_URI')[1:])
+            SUPERVISOR_SRV_ROOT.join(getattr(m, f'{k}_FILE_URI')[1:])
         )
-    # TODO(e-carlin): think about this
-    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
 
 
 def init_by_server(app):
@@ -248,9 +242,13 @@ def init_by_server(app):
     uri_router.register_api_module(job_api)
 
 
-def supervisor_file_uri(supervisor_uri, *args):
+def supervisor_file_uri(supervisor_uri, *args, static=True):
     # trailing slash necessary
-    return '{}/{}{}/'.format(supervisor_uri, SUPERVISOR_SRV_SUBDIR, '/'.join(args))
+    return '{}{}{}/'.format(
+        supervisor_uri,
+        f'/{SUPERVISOR_SRV_SUBDIR}' if static else '',
+        '/'.join(args),
+    )
 
 
 def unique_key():

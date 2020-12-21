@@ -35,25 +35,21 @@ def default_command():
     sirepo.srtime.init()
     sirepo.job_supervisor.init()
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
-    # TODO(e-carlin): need to figure these all out if I'm going to use /static
-    # pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
-    # pkio.mkdir_parent(sirepo.job.SIM_FILE_ROOT)
+    pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
+    pkio.mkdir_parent(sirepo.job.SIM_FILE_ROOT)
     app = tornado.web.Application(
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
-            # TODO(e-carlin): figure this out
-            # (sirepo.job.SUPERVISOR_SRV_SUBDIR + '/' + sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
-            ('/job-cmd-data-file/(.*)', _DataFileReq),
+            (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
         ],
         debug=cfg.debug,
         # TODO(e-carlin): test lib_file again to make sure it still works
-        static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join('static'),
+        static_path=sirepo.job.SUPERVISOR_SRV_ROOT,
         # tornado expects a leading and trailing slash
-        # TODO(e-carlin): think about statuc
-        static_url_prefix=f'/{sirepo.job.SUPERVISOR_SRV_SUBDIR}/static/',
+        static_url_prefix=f'/{sirepo.job.SUPERVISOR_SRV_SUBDIR}/',
         websocket_max_message_size=sirepo.job.cfg.max_message_bytes,
         websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
