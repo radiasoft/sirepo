@@ -924,6 +924,7 @@ class _Generate(sirepo.lib.GenerateBase):
             p_central_mev=d.models.bunch.p_central_mev,
         )
         run_setup.use_beamline = sim.activeBeamlineId
+        run_setup.always_change_p0 = '0'
         twiss_output = LatticeUtil.find_first_command(d, 'twiss_output') or PKDict(
             _id=max_id + 2,
             _type='twiss_output',
