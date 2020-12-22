@@ -1893,7 +1893,7 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
               '<select data-ng-switch-when="WavefrontShiftTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::wavefrontShiftTreatmentEnum"></select>',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
-              '<button data-ng-disabled="disabled" data-ng-switch-when="Button" data-ng-model="param[paramInfo.fieldIndex]" data-ng-click="resetDefault()">',
+              '<button class="btn btn-default btn-xs" data-ng-disabled="disabled" data-ng-switch-when="Button" data-ng-model="param[paramInfo.fieldIndex]" data-ng-click="resetDefault()"><span class="glyphicon glyphicon-repeat"> </span></button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1902,11 +1902,11 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
             $scope.resetDefault = function() {
                // This is hard coded Param index for Orientation Table
                if ($scope.prop && $scope.prop.hasOwnProperty("defaultparams")) {
-                 $scope.param[12] = $scope.prop["defaultparams"][0];
-                 $scope.param[13] = $scope.prop["defaultparams"][1];
-                 $scope.param[14] = $scope.prop["defaultparams"][2];
-                 $scope.param[15] = $scope.prop["defaultparams"][3];
-                 $scope.param[16] = $scope.prop["defaultparams"][4];
+                 $scope.param[12] = $scope.prop.defaultparams[0];
+                 $scope.param[13] = $scope.prop.defaultparams[1];
+                 $scope.param[14] = $scope.prop.defaultparams[2];
+                 $scope.param[15] = $scope.prop.defaultparams[3];
+                 $scope.param[16] = $scope.prop.defaultparams[4];
                }
              };
         },
