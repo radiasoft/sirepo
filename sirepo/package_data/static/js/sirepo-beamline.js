@@ -555,8 +555,8 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>',
-            '<span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" data-ng-style="activeIconPosition()" title="{{ activeWatchpointTitle }}"></span>',
+            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" data-ng-style="centerIconPosition(\'.srw-beamline-copy-icon\')" title="Copy Element"></span>',
+            '<span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" data-ng-style="centerIconPosition(\'.srw-beamline-report-icon\')" title="{{ activeWatchpointTitle }}"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
             '<div class="srw-beamline-image">',
               '<span data-beamline-icon="" data-item="item"></span>',
@@ -580,9 +580,9 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             $scope.showActiveIcon = function(item) {
                 return item.type === 'watch' && $scope.showActiveWatchpoints;
             };
-            $scope.activeIconPosition = function() {
+            $scope.centerIconPosition = function(elClass) {
                 return {
-                    left: ($($element).width() - $($element).find('.srw-beamline-report-icon').width()) / 2 + 'px'
+                    left: ($($element).width() - $($element).find(elClass).width()) / 2 + 'px'
                 };
             };
         },
