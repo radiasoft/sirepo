@@ -372,9 +372,9 @@ class SimDataBase(object):
             data (dict): simulation db
             run_dir (py.path): where to copy to
         """
-        for b in cls.sim_file_basenames(data):
+        for b in cls.lib_file_basenames(data):
             t = run_dir.join(b)
-            s = cls.sim_file_abspath(b, data=data)
+            s = cls.lib_file_abspath(b, data=data)
             if s and t != s:
                 t.mksymlinkto(s, absolute=False)
 
