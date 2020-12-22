@@ -5,6 +5,11 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['wavefrontSummaryAnimation'];
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">',
+          '<div data-select-element="" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
 });
 
 SIREPO.app.factory('silasService', function(appState) {
@@ -99,6 +104,7 @@ SIREPO.app.directive('appFooter', function(appState, silasService) {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -127,6 +133,45 @@ SIREPO.app.directive('appHeader', function(appState) {
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('selectElement', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in elementList()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            var list;
+
+            $scope.elementList = function() {
+                if (! appState.isLoaded() || ! $scope.model) {
+                    return null;
+                }
+                if (! list) {
+                    list = [{
+                        id: 'all',
+                        name: 'All Elements',
+                    }];
+                    appState.models.beamline.forEach(function(item) {
+                        list.push({
+                            id: item.id,
+                            name: item.title,
+                        });
+                    });
+                }
+                return list;
+            };
+
+            $scope.$on('beamline.changed', function() {
+                list = null;
+            });
+        },
     };
 });
 

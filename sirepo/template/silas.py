@@ -78,8 +78,28 @@ def sim_frame(frame_args):
 
 
 def sim_frame_wavefrontSummaryAnimation(frame_args):
+    beamline = frame_args.sim_in.models.beamline
+    if 'element' not in frame_args:
+        frame_args.element = 'all'
+    idx = 0
+    title = ''
+    if frame_args.element != 'all':
+        # find the element index from the element id
+        for item in beamline:
+            if item.id == int(frame_args.element):
+                title = item.title
+                break
+            idx += 1
+    #TODO(pjm): use column headings from csv
     cols = ['count', 'pos', 'sx', 'sy', 'xavg', 'yavg']
     v = np.genfromtxt(str(frame_args.run_dir.join(_SUMMARY_CSV_FILE)), delimiter=',', skip_header=1)
+    if frame_args.element != 'all':
+        # the wavefront csv include intermediate values, so take every other row
+        counts = _counts_for_beamline(int((v[-1][0] + 1) / 2), beamline)[1]
+        v2 = []
+        for row in counts[idx]:
+            v2.append(v[(row - 1) * 2])
+        v = np.array(v2)
     #TODO(pjm): generalize, use template_common parameter_plot()?
     plots = []
     for col in ('sx', 'sy'):
@@ -90,7 +110,7 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
     x = v[:, cols.index('pos')].tolist()
     return PKDict(
         aspectRatio=1 / 5.0,
-        title='Wavefront Dimensions',
+        title='{} Wavefront Dimensions'.format(title),
         x_range=[float(min(x)), float(max(x))],
         y_label='',
         x_label='s [m]',
@@ -122,7 +142,7 @@ def _compute_rms_size(data):
 
 
 def _counts_for_beamline(total_frames, beamline):
-    # first element is 2nd in list, loop back and forth across beamline
+    # start at 2nd element, loop forward and backward across beamline
     counts = [0 for _ in beamline]
     idx = 1
     direction = 1

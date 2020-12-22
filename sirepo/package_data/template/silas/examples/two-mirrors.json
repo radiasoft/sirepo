@@ -2,7 +2,7 @@
     "models": {
         "beamline": [
             {
-                "focusingError": 0,
+                "focusingError": 1,
                 "icon": "lmirror.svg",
                 "id": 4,
                 "position": 0,
@@ -12,18 +12,18 @@
             {
                 "icon": "ti-sapphire-crystal.png",
                 "id": 5,
-                "position": 5,
-                "radius": 0.1,
-                "refractionIndex": 4.20756805e-06,
+                "position": 4,
+                "radius": 0.02,
+                "refractionIndex": 2,
                 "title": "Ti-Sapphire Crystal",
                 "type": "crystal",
-                "width": 0.2
+                "width": 4
             },
             {
-                "focusingError": 0,
+                "focusingError": 1,
                 "icon": "rmirror.svg",
                 "id": 6,
-                "position": 10,
+                "position": 8,
                 "title": "Right Mirror",
                 "type": "mirror"
             }
@@ -33,20 +33,18 @@
             "initialPropagationLength": 15,
             "photonEnergy": 1.55,
             "polarization": "1",
-            "rmsSize": 200
+            "rmsSize": 436.9915
         },
         "simulation": {
             "documentationUrl": "",
             "folder": "/Examples",
             "name": "Two Mirrors",
-            "notes": "",
-            "simulationId": "oLy4PZYj",
-            "simulationSerial": 1603483112811233
+            "notes": ""
         },
         "simulationSettings": {
-            "cavity_length": 10,
+            "cavity_length": 8,
             "n_reflections": 8,
-            "sample_factor": 12
+            "sample_factor": 5
         },
         "wavefrontAnimation4": {
             "id": 4
