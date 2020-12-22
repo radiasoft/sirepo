@@ -56,7 +56,8 @@
             "posmuon": [0.1056583715, 1],
             "negmuon": [0.1056583715, -1],
             "ion": [0.931494061, 1]
-        }
+        },
+        "simulationSourceExtension": "madx"
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -1190,7 +1191,9 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "simulationSource": "MAD-X Source (*.madx)"
+
     },
     "view": {
         "beamline": {
