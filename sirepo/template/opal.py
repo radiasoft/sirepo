@@ -96,6 +96,17 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
 
 
 class OpalElementIterator(lattice.ElementIterator):
+
+    def __init__(self, formatter, visited=None):
+        super().__init__(None, formatter)
+        self.visited = visited
+
+    def end(self, model):
+        if self.visited:
+            if '_id' in model and model._id not in self.visited:
+                return
+        super().end(model)
+
     def is_ignore_field(self, field):
         return field == 'name'
 
@@ -483,6 +494,10 @@ def sim_frame_plot2Animation(frame_args):
             x = field
         else:
             plots.append(field)
+    # independent reads of file may produce more columns, trim to match x length
+    for p in plots:
+        if len(x.points) < len(p.points):
+            p.points = p.points[:len(x.points)]
     return template_common.parameter_plot(x.points, plots, {}, {
         'title': '',
         'y_label': '',
@@ -592,7 +607,7 @@ class _Generate(sirepo.lib.GenerateBase):
         util.data.models[key] = commands
         res = util.render_lattice(
             util.iterate_models(
-                OpalElementIterator(None, self._format_field_value),
+                OpalElementIterator(self._format_field_value),
                 key,
             ).result,
             want_semicolon=True)
@@ -617,15 +632,14 @@ class _Generate(sirepo.lib.GenerateBase):
         ))
 
     def _generate_lattice(self, util, code_var, beamline_id):
+        beamline, edge, names, visited = _generate_beamline(util, code_var, beamline_id)
         res = util.render_lattice(
             util.iterate_models(
-                OpalElementIterator(None, self._format_field_value),
+                OpalElementIterator(self._format_field_value, visited),
                 'elements',
             ).result,
             want_semicolon=True) + '\n'
-        count_by_name = PKDict()
-        names = []
-        res += _generate_beamline(util, code_var, count_by_name, beamline_id, 0, names)[0]
+        res += beamline
         res += '{}: LINE=({});\n'.format(
             util.id_map[beamline_id].name,
             ','.join(names),
@@ -742,7 +756,13 @@ def _fix_opal_float(value):
     return value
 
 
-def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
+def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None):
+    if count_by_name is None:
+        count_by_name = PKDict()
+    if names is None:
+        names = []
+    if visited is None:
+        visited = set()
     res = ''
     run_method = _find_run_method(util.data.models.commands)
     items = util.id_map[abs(beamline_id)]['items']
@@ -760,6 +780,7 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
             if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
                 res += '{}: {};\n'.format(name, item.name)
                 names.append(name)
+                visited.add(item_id)
                 continue
             length = code_var.eval_var(item.l)[0]
             if item.type == 'DRIFT' and length < 0:
@@ -772,12 +793,13 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
                     # use arclength for SBEND with THICK tracker (only?)
                     angle = code_var.eval_var_with_assert(item.angle)
                     length = angle * length / (2 * math.sin(angle / 2))
+                visited.add(item_id)
             edge += length
         else:
             # beamline
-            text, edge = _generate_beamline(util, code_var, count_by_name, item_id, edge, names)
+            text, edge, names, visited = _generate_beamline(util, code_var, item_id, count_by_name, edge, names, visited)
             res += text
-    return res, edge
+    return res, edge, names, visited
 
 
 def _iterate_hdf5_steps(path, callback, state):

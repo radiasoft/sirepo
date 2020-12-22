@@ -25,8 +25,6 @@ OPT1: option,autophase=8.0,psdumpfreq=102.0,version=20000.0;
 
 D1.051182: DRIFT,l=1.051182;
 D4.9R03: DRIFT,l=0.0049;
-Q1: QUADRUPOLE,k1=0.1620695476,l=0.136;
-Q2: QUADRUPOLE,k1=-0.1866068772055,l=0.136;
 PCG: RFCAVITY,fmapfn="gunCavity.T7",freq=2856.0,l=0.15,lag=-0.23621286096491256,volt=100.0;
 MS: SOLENOID,fmapfn="Solenoid.T7",ks=0.22989,l=0.711202;
 L1: TRAVELINGWAVE,fast=false,fmapfn="TWS_Sband.T7",freq=2856.0,l=3.01,lag=-0.0869523033343575,mode=0.3333333333333333,numcells=84.0,volt=17.594;

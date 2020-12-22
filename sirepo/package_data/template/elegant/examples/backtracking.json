@@ -4,12 +4,11 @@
         "beamlines": [
             {
                 "angle": 1,
-                "count": 4,
+                "count": 3,
                 "distance": 1.71422444573994,
                 "id": 25,
                 "items": [
                     7,
-                    14,
                     19,
                     8,
                     9
@@ -29,6 +28,8 @@
             "distribution_cutoff": "3, 3, 3",
             "distribution_type": "gaussian, gaussian, gaussian",
             "dp_s_coupling": "0",
+            "emit_nx": 0,
+            "emit_ny": 0,
             "emit_x": "2.7e-09",
             "emit_y": "2.7e-09",
             "emit_z": 0,
@@ -83,7 +84,8 @@
                 "_id": 1,
                 "_type": "run_setup",
                 "acceptance": "",
-                "always_change_p0": "0",
+                "always_change_p0": "1",
+                "back_tracking": "1",
                 "centroid": "1",
                 "combine_bunch_statistics": "0",
                 "concat_order": "2",
@@ -135,12 +137,12 @@
                 "n_particles_per_ring": 0,
                 "n_tables_to_skip": 0,
                 "one_random_bunch": "0",
-                "p_lower": "0.0",
-                "p_upper": "0.0",
+                "p_lower": 0,
+                "p_upper": 0,
                 "prebunched": -1,
                 "reuse_bunch": "0",
                 "reverse_t_sign": 0,
-                "sample_fraction": "1",
+                "sample_fraction": 1,
                 "sample_interval": "1",
                 "save_initial_coordinates": "1",
                 "selection_parameter": "",
@@ -166,7 +168,7 @@
             "x": "x",
             "y": "xp"
         },
-        "elementAnimation1-18": {
+        "elementAnimation1-19": {
             "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
@@ -235,25 +237,25 @@
             "verticalSize": 0,
             "x": "x",
             "xFile": "run_setup.output.sdds",
-            "xFileId": "1-18",
+            "xFileId": "1-19",
             "y1": "xp",
             "y1File": "run_setup.output.sdds",
-            "y1FileId": "1-18",
+            "y1FileId": "1-19",
             "y2": "None",
             "y2File": "run_setup.output.sdds",
-            "y2FileId": "1-18",
+            "y2FileId": "1-19",
             "y3": "None",
             "y3File": "run_setup.output.sdds",
-            "y3FileId": "1-18"
+            "y3FileId": "1-19"
         },
-        "elementAnimation1-25": {
+        "elementAnimation1-26": {
             "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
             "horizontalOffset": 0,
             "horizontalSize": 0,
-            "includeLattice": "0",
+            "includeLattice": "1",
             "notes": "",
             "panelTitle": "run_setup.sigma",
             "plotRangeType": "none",
@@ -567,25 +569,25 @@
             "verticalSize": 0,
             "x": "s",
             "xFile": "run_setup.sigma.sdds",
-            "xFileId": "1-25",
+            "xFileId": "1-26",
             "y1": "s1",
             "y1File": "run_setup.sigma.sdds",
-            "y1FileId": "1-25",
+            "y1FileId": "1-26",
             "y2": "s2",
             "y2File": "run_setup.sigma.sdds",
-            "y2FileId": "1-25",
+            "y2FileId": "1-26",
             "y3": "s3",
             "y3File": "run_setup.sigma.sdds",
-            "y3FileId": "1-25"
+            "y3FileId": "1-26"
         },
-        "elementAnimation1-3": {
+        "elementAnimation1-4": {
             "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
             "horizontalOffset": 0,
             "horizontalSize": 0,
-            "includeLattice": "0",
+            "includeLattice": "1",
             "notes": "",
             "panelTitle": "run_setup.centroid",
             "plotRangeType": "none",
@@ -663,16 +665,16 @@
             "verticalSize": 0,
             "x": "s",
             "xFile": "run_setup.centroid.sdds",
-            "xFileId": "1-3",
+            "xFileId": "1-4",
             "y1": "Cx",
             "y1File": "run_setup.centroid.sdds",
-            "y1FileId": "1-3",
+            "y1FileId": "1-4",
             "y2": "Cxp",
             "y2File": "run_setup.centroid.sdds",
-            "y2FileId": "1-3",
+            "y2FileId": "1-4",
             "y3": "None",
             "y3File": "run_setup.centroid.sdds",
-            "y3FileId": "1-3"
+            "y3FileId": "1-4"
         },
         "elementAnimation19-5": {
             "aspectRatio": "1",
@@ -766,16 +768,6 @@
                 "name": "D1",
                 "order": "0",
                 "type": "DRIF"
-            },
-            {
-                "_id": 14,
-                "central_energy": "0.0",
-                "central_momentum": "0.0",
-                "group": "",
-                "match_beamline": "1",
-                "match_particles": "0",
-                "name": "Ematch",
-                "type": "ENERGY"
             },
             {
                 "_id": 6,
@@ -907,9 +899,10 @@
                     "F1.filename.sdds"
                 ],
                 "modelKey": [
-                    "elementAnimation1-3",
-                    "elementAnimation1-18",
-                    "elementAnimation1-25",
+                    "elementAnimation1-4",
+                    "elementAnimation1-19",
+                    "elementAnimation1-22",
+                    "elementAnimation1-26",
                     "elementAnimation19-5"
                 ],
                 "page": [
@@ -921,7 +914,6 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 25,
-            "backtracking": "1",
             "documentationUrl": "",
             "folder": "/Examples",
             "isExample": true,

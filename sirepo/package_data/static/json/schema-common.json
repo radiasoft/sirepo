@@ -176,7 +176,8 @@
                 "enterprise": "Sirepo Enterprise",
                 "premium": "Sirepo Premium"
             },
-            "plansUrl": "/en/plans.html"
+            "plansUrl": "/en/plans.html",
+            "simulationSourceExtension": "py"
         },
         "cookies": {
             "firstVisit": {
@@ -453,7 +454,8 @@
             "simulationDataType": "simulation",
             "simulationDataTypePlural": "simulations",
             "simulationState": "{typeOfSimulation} {state}",
-            "typeOfSimulation": "simulation"
+            "typeOfSimulation": "simulation",
+            "simulationSource": "Python Source"
         },
         "view": {
             "simDoc": {

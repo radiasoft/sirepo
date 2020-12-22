@@ -11,7 +11,6 @@ OPT1: option,autophase=4.0,psdumpfreq=50.0,statdumpfreq=1.0,version=10900.0;
 D1: DRIFT,l=0.48;
 D2: DRIFT,l=0.08;
 D3: DRIFT,l=4.16;
-DR1: DRIFT,l=-0.04986;
 FIND1_MQ10: QUADRUPOLE,l=0.1;
 FINSS_RGUN: RFCAVITY,fmapfn="RFCAVITY-fmapfn.CTF3_Ez_ASTRA.opal",freq=BF,l=0.34986,lag=-3.5 / 180.0 * PI,type=STANDING,volt=100.0;
 FIND1_MSOL10: SOLENOID,fmapfn="SOLENOID-fmapfn.NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal",ks=0.206,l=0.6;

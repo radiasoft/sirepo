@@ -84,7 +84,6 @@
         "rpnCache": {},
         "rpnVariables": [],
         "simulation": {
-            "backtracking": "0",
             "documentationUrl": "",
             "folder": "/",
             "name": "Example",
