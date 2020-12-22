@@ -372,7 +372,11 @@ class SimDataBase(object):
             data (dict): simulation db
             run_dir (py.path): where to copy to
         """
-        cls._files_to_run_dir('lib', data, run_dir)
+        for b in cls.sim_file_basenames(data):
+            t = run_dir.join(b)
+            s = cls.sim_file_abspath(b, data=data)
+            if s and t != s:
+                t.mksymlinkto(s, absolute=False)
 
 
     @classmethod
@@ -506,16 +510,6 @@ class SimDataBase(object):
         return True
 
     @classmethod
-    def sim_files_to_run_dir(cls, data, run_dir):
-        """Copy sim files to run_dir
-
-        Args:
-            data (dict): simulation db
-            run_dir (py.path): where to copy to
-        """
-        cls._files_to_run_dir('sim', data, run_dir)
-
-    @classmethod
     def sim_file_to_server(cls, path, basename, data):
         """Copy sim file to server (over http when remote)
 
@@ -618,15 +612,6 @@ class SimDataBase(object):
         r = frame_args.frameReport
         return f[r] if r in f else f[cls.compute_model(r)]
 
-    # TODO(e-carlin): just do lib; sim was deleted
-    @classmethod
-    def _files_to_run_dir(cls, sim_or_lib, data, run_dir):
-        for b in getattr(cls, f'{sim_or_lib}_file_basenames')(data):
-            t = run_dir.join(b)
-            s = getattr(cls, f'{sim_or_lib}_file_abspath')(b, data=data)
-            if s and t != s:
-                # TODO(e-carlin): verify that this code path gets executed and works for sim
-                t.mksymlinkto(s, absolute=False)
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
