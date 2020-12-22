@@ -1004,14 +1004,14 @@
                     "maxIntensityLimit",
                     "usePlotRange",
                     [
-                    ["Horizontal", [
-                        "horizontalSize",
-                        "horizontalOffset"
-                    ]],
-                    ["Vertical", [
-                        "verticalSize",
-                        "verticalOffset"
-                    ]]
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
                     ],
                     "rotateAngle",
                     "rotateReshape"
