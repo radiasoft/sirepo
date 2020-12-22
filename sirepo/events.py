@@ -29,9 +29,10 @@ import aenum
 
 #: Map of events to handlers. Note: this is the list of all possible events.
 _MAP = PKDict(
-     auth_logout=[],
-     end_api_call=[],
-     github_authorized=[],
+    auth_logout=[],
+    end_api_call=[],
+    github_authorized=[],
+    supervisor_db_file_key_created=[],
 )
 
 

@@ -56,6 +56,14 @@ def start():
         agent_id=pkconfig.Required(str, 'id of this agent'),
         fastcgi_sock_dir=(pkio.py_path('/tmp'), pkio.py_path, 'directory of fastcfgi socket, must be less than 50 chars'),
         start_delay=(0, pkconfig.parse_seconds, 'delay startup in internal_test mode'),
+        supervisor_db_file_key=pkconfig.Required(
+            str,
+            'key for supevisor file access',
+        ),
+        supervisor_db_file_uri=pkconfig.Required(
+            str,
+            'how to get/put files from/to supervisor',
+        ),
         supervisor_uri=pkconfig.Required(
             str,
             'how to connect to the supervisor',
@@ -435,6 +443,8 @@ class _Cmd(PKDict):
                 SIREPO_MPI_CORES=self.msg.get('mpiCores', 1),
                 SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
+                SIREPO_SIM_DATA_SUPERVISOR_DB_FILE_URI=cfg.supervisor_db_file_uri,
+                SIREPO_SIM_DATA_SUPERVISOR_DB_FILE_KEY=cfg.supervisor_db_file_key,
             ),
         )
 

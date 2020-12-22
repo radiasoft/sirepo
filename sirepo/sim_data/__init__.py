@@ -5,21 +5,24 @@ u"""Type-based simulation operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc
 import hashlib
 import importlib
 import inspect
 import re
 import requests
-import sirepo.util
+import sirepo.job
 import sirepo.template
+import sirepo.util
+
+cfg = None
 
 #: default compute_model
 _ANIMATION_NAME = 'animation'
@@ -116,6 +119,8 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
+    _EXE_PERMISSIONS = 0o755
+
     @classmethod
     def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
@@ -180,6 +185,13 @@ class SimDataBase(object):
         return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
+    def dot_local_path(cls, subdir):
+        v = set(('src', 'share'))
+        assert subdir in v, \
+            f'subdir {subdir} not known {v}'
+        return pkio.py_path(f'/home/vagrant/.local/{subdir}/').join(cls.sim_type())
+
+    @classmethod
     def fixup_old_data(cls, data):
         """Update model data to latest schema
 
@@ -217,6 +229,10 @@ class SimDataBase(object):
                 str(response.computeJobSerial),
             ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
         )
+
+    @classmethod
+    def get_sim_file(cls, basename, data, is_exe=False):
+        return cls._get_db_file(cls._sim_file_uri(basename, data), is_exe=is_exe)
 
     @classmethod
     def is_parallel(cls, data_or_model):
@@ -466,6 +482,10 @@ class SimDataBase(object):
         return None
 
     @classmethod
+    def put_sim_file(cls, file_path, basename, data):
+        return cls._put_db_file(file_path, cls._sim_file_uri(basename, data))
+
+    @classmethod
     def resource_dir(cls):
         return cls._memoize(resource_dir().join(cls.sim_type()))
 
@@ -483,6 +503,14 @@ class SimDataBase(object):
         from sirepo import simulation_db
 
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
+
+    @classmethod
+    def sim_files_exist(cls, data):
+        for f in cls._sim_file_basenames(data):
+            p = cls.get_sim_file(f, data)
+            if not p:
+                return False
+        return True
 
     @classmethod
     def sim_type(cls):
@@ -549,6 +577,20 @@ class SimDataBase(object):
         return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
+    def _get_db_file(cls, uri, is_exe=False):
+        import sirepo.simulation_db
+
+        p = pkio.py_path(uri.split('/')[-1])
+        r = _request('GET', cfg.supervisor_db_file_uri + uri)
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        p.write_binary(r.content)
+        if is_exe:
+            p.chmod(cls._EXE_PERMISSIONS)
+        return p
+
+    @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
         if names:
             names = set(list(names) + ['simulation'])
@@ -562,16 +604,12 @@ class SimDataBase(object):
     @classmethod
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
-        import sirepo.job
 
         p = [cls.lib_file_resource_dir().join(basename)]
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
                 p = pkio.py_path(basename)
-                r = requests.get(
-                    cfg.lib_file_uri + basename,
-                    verify=sirepo.job.cfg.verify_tls,
-                )
+                r = _request('GET', cfg.lib_file_uri + basename)
                 r.raise_for_status()
                 p.write_binary(r.content)
                 return p
@@ -658,6 +696,18 @@ class SimDataBase(object):
     def _proprietary_code_rpm(cls):
         return f'{cls.sim_type()}.rpm'
 
+    @classmethod
+    def _put_db_file(cls, file_path, uri):
+        _request(
+            'PUT',
+            cfg.supervisor_db_file_uri + uri,
+            data=pkio.read_binary(file_path),
+        ).raise_for_status()
+
+    @classmethod
+    def _sim_file_uri(cls, basename, data):
+        # TODO(e-carlin): Better abstraction
+        return f'{cls.sim_type()}/{data.models.simulation.simulationId}/{basename}'
 
 
 def split_jid(jid):
@@ -677,11 +727,25 @@ def split_jid(jid):
 def _init():
     global cfg
 
+    sirepo.job.init()
     cfg = pkconfig.init(
         lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
+        supervisor_db_file_uri=(None, str, 'where to get/put db files from/to supervisor'),
+        supervisor_db_file_key=(None, str, 'key for supervisor file access'),
     )
+
+
+def _request(method, uri, data=None):
+    return requests.request(
+        method,
+        uri,
+        data=data,
+        verify=sirepo.job.cfg.verify_tls,
+        headers=PKDict(Authorization=f'Bearer {cfg.supervisor_db_file_key}')
+    )
+
 
 
 _init()

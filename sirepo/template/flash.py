@@ -520,6 +520,58 @@ def remove_last_frame(run_dir):
     if len(files) > 0:
         pkio.unchecked_remove(files[-1])
 
+
+def setup_command(data):
+    t = data.models.simulation.flashType
+    c = [
+        './setup',
+        t,
+        f'-objdir={t}',
+    ]
+    return c + PKDict(
+        CapLaser3D=[
+            '+cartesian',
+            '+hdf5typeio',
+            '+laser',
+            '+mgd',
+            '+mtmmmt',
+            '+usm3t',
+            '-3d',
+            '-auto',
+            '-parfile=bella_3dSetup.par',
+            'ed_maxBeams=1',
+            'ed_maxPulseSections=4',
+            'ed_maxPulses=1',
+            'mgd_meshgroups=6',
+            'species=fill,wall',
+        ],
+        CapLaserBELLA=[
+            '+hdf5typeio',
+            '+laser',
+            '+mgd',
+            '+mtmmmt',
+            '+usm3t',
+            '-2d',
+            '-auto',
+            '-nxb=8',
+            '-nyb=8',
+            '-parfile=bella.par',
+            '-with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore',
+            'ed_maxBeams=1', \
+            'ed_maxPulseSections=4',
+            'ed_maxPulses=1',
+            'mgd_meshgroups=6',
+            'species=fill,wall',
+        ],
+        RTFlame= [
+            '-2d',
+            '-auto',
+            '-nxb=16',
+            '-nyb=16',
+        ],
+    )[t]
+
+
 def sim_frame_gridEvolutionAnimation(frame_args):
     c = _grid_evolution_columns(frame_args.run_dir)
     dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
@@ -634,8 +686,8 @@ def _cell_size(f, refine_max):
 def _extract_rpm(data):
     import subprocess
 
-    if _SIM_DATA.flash_exe_path(data, unchecked=True):
-        return
+    if _SIM_DATA.dot_local_path('src').exists():
+       return
     subprocess.check_output(
         "rpm2cpio '{}' | cpio --extract --make-directories".format(
             _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),
@@ -660,10 +712,13 @@ def _generate_parameters_file(data):
                 'physicsmaterialPropertiesOpacityMultispecies'
             ][f'op_{k}FileName'] = f
 
-    for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
-        names[
-            ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
-        ] = line
+    p = _SIM_DATA.get_sim_file(_SIM_DATA.flash_setup_units_basename(data), data)
+    names = PKDict()
+    if p:
+        for line in pkio.read_text(p).split('\n'):
+            names[
+                ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
+            ] = line
     for m in sorted(data.models):
         if m not in names:
             continue
