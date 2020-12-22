@@ -20,7 +20,8 @@
             "DEUTERON": [1.8756129425808112, 1.0],
             "XENON": [115.50526870008, 20.0],
             "H2P": [1.8770537657865418, 1.0]
-        }
+        },
+        "simulationSourceExtension": "in"
     },
     "appModes": {
         "default": {
@@ -47,6 +48,7 @@
             ["time", "time"]
         ],
         "PlotField": [
+            ["none", "None"],
             ["#sigma", "sigma"],
             ["#varepsilon x", "epsilon x"],
             ["#varepsilon y", "epsilon y"],
@@ -103,10 +105,10 @@
             ["minP z", "minP z"],
             ["minX x", "minX x"],
             ["minX y", "minX y"],
-            ["minX z", "minX z"],
-            ["none", "None"]
+            ["minX z", "minX z"]
         ],
         "Plot2Field": [
+            ["none", "None"],
             ["t", "t"],
             ["s", "s"],
             ["numParticles", "numParticles"],
@@ -148,14 +150,7 @@
             ["Ez ref", "Ez ref"],
             ["dE", "dE"],
             ["dt", "dt"],
-            ["partsOutside", "partsOutside"],
-            ["R0 x", "R0 x"],
-            ["R0 y", "R0 y"],
-            ["R0 s", "R0 s"],
-            ["P0 x", "P0 x"],
-            ["P0 y", "P0 y"],
-            ["P0 s", "P0 s"],
-            ["none", "None"]
+            ["partsOutside", "partsOutside"]
         ],
         "BeamParticle": [
             ["", "NOT SELECTED"],
@@ -853,8 +848,8 @@
             "energy": ["ENERGY [GeV]", "RPNValue", 0, "Particle energy"],
             "pc": ["PC [GeV/c]", "RPNValue", 0, "Particle momentum"],
             "gamma": ["GAMMA", "RPNValue", 0, "ENERGY / MASS"],
-            "bcurrent": ["BCURRENT", "RPNValue", 0, "Beam current in A (all bunches)"],
-            "bfreq": ["BFREQ", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
+            "bcurrent": ["BCURRENT [A]", "RPNValue", 0, "Beam current in A (all bunches)"],
+            "bfreq": ["BFREQ [MHz]", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
             "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"],
             "nslice": ["NSLICE [bunch]", "RPNValue", 0, "Number of slices"]
         },
@@ -1152,6 +1147,9 @@
             "filters": ["FILTERS", "OptionalString", "", "List of filters to apply on line density"],
             "fname": ["FNAME", "InputFile", "", "Filename of the wakefield file"]
         }
+    },
+    "strings": {
+        "simulationSource": "OPAL Source (*.in)"
     },
     "view": {
         "beamline": {

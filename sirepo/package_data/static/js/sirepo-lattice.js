@@ -1453,13 +1453,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 pos.bounds[0] = x;
                             }
                         }
-                    }
-                    if (currentLength < maxLength) {
-                        groupItem.opacity = 0.3;
-                    }
-                    currentLength += length || 0;
-                    if (currentLength > maxLength) {
-                        maxLength = currentLength;
+                        if (currentLength < maxLength) {
+                            groupItem.opacity = 0.3;
+                        }
+                        currentLength += length || 0;
+                        if (currentLength > maxLength) {
+                            maxLength = currentLength;
+                        }
                     }
                 }
                 if (pos.angle === 0) {
