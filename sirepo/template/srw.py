@@ -329,19 +329,27 @@ def extract_report_data(filename, sim_in):
     return info
 
 
+#TODO(mvk): should be a zip file containing yml, python, shell script, maybe README
 def export_rsopt_config(data):
     res, v = template_common.generate_parameters_file(data)
     m = data.models.exportRsOpt
-    v.pyFileName = f'{data.models.simulation.name}-rsOptExport.py'
+    f = re.sub(r'[^\w\.]+', '-', data.models.simulation.name).strip('-')
+    v.pyFileName = f'{f}.py'
     v.numCores = int(m.numCores)
-    v.numRuns = int(m.numRuns)
+    v.numSamples = int(m.numSamples)
     v.numWorkers = int(m.numWorkers)
-    v.mlElements = [e for e in m.elements if e.enabled and e.enabled != '0']
-    for e in v.mlElements:
+    v.rsOptElements = _process_rsopt_elements(m.elements)
+    return template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
+
+
+def _process_rsopt_elements(els):
+    x = [e for e in els if e.enabled and e.enabled != '0']
+    for e in x:
+        e.p_map = ['horizontalOffset', 'verticalOffset', 'position']
         e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
         e.position = sirepo.util.split_comma_delimited_string(e.position, float)
         #e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
-    return template_common.render_jinja(SIM_TYPE, v, 'mlExport.yml')
+    return x
 
 
 def get_application_data(data, **kwargs):
@@ -1381,6 +1389,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['finalPhotonEnergy'] = data['models']['simulation']['photonEnergy'] + half_width
         data['models']['simulation']['photonEnergy'] -= half_width
 
+    # do this before validation or the array gets turned into a string
+    rsOptElements = _process_rsopt_elements(data.models.exportRsOpt.elements)
     _validate_data(data, _SCHEMA)
     last_id = None
     if _SIM_DATA.is_watchpoint(report):
@@ -1410,6 +1420,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             if data.models[report].jobRunMode == 'sbatch':
                 v.sbatchBackup = '1'
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
+    v.rsOptElements = rsOptElements
 
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
@@ -1452,7 +1463,7 @@ def _generate_srw_main(data, plot_reports):
     source_type = data['models']['simulation']['sourceType']
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL
     content = [
-        'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
+        'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={})'.format(plot_reports),
     ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))

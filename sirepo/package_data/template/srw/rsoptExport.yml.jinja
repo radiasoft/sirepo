@@ -1,41 +1,25 @@
 codes:
   - python:
       settings:
-        map: {
-          'delim': '_'
-          'v': {'x': 0, 'y': 0}
-        }
       parameters:
-        {% for e in mlElements %}
-        {% if e.offsets[2] != 0 %}
-        {{ e.title }}.position:
-          min: {{ e.position[2] - e.offsets[2] / 2.0 }}
-          max: {{ e.position[2] + e.offsets[2] / 2.0 }}
-          samples: {{ numRuns }}
-          start: {{ e.position[2] }}
-        {% endif %}
-        {% if e.offsets[0] != 0 %}
-        {{ e.title }}.horizontalOffset:
-          min: {{ e.position[0] - e.offsets[0] / 2.0 }}
-          max: {{ e.position[0] + e.offsets[0] / 2.0 }}
-          samples: {{ numRuns }}
-          start: {{ e.position[0] }}
-        {% endif %}
-        {% if e.offsets[1] != 0 %}
-        {{ e.title }}.verticalOffset:
-          min: {{ e.position[1] - e.offsets[1] / 2.0 }}
-          max: {{ e.position[1] + e.offsets[1] / 2.0 }}
-          samples: {{ numRuns }}
-          start: {{ e.position[1] }}
+        {% for e in rsOptElements %}
+        {% for x in e.position %}
+        {% if e.offsets[loop.index0] != 0 %}
+        {{ e.title }}_{{ e.p_map[loop.index0] }}:
+          min: {{ x - e.offsets[loop.index0] / 2.0 }}
+          max: {{ x + e.offsets[loop.index0] / 2.0 }}
+          samples: {{ numSamples }}
+          start: {{ x }}
         {% endif %}
         {% endfor %}
+        {% endfor %}
       setup:
-        preprocess: [parameters.py, preprocess]
         input_file: {{ pyFileName }}
-        function: main
+        function: set_rsopt_params
         execution_type: parallel
         cores: {{ numCores }}
 options:
   software: mesh_scan
   nworkers: {{ numWorkers }}
+  sim_dirs_make: False
 

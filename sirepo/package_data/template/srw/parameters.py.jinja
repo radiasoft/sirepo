@@ -20,7 +20,36 @@ import srwl_uti_smp
 def set_optics(v=None):
 {{beamlineOptics}}
 
-varParam = srwl_bl.srwl_uti_ext_options([
+def set_rsopt_params(
+    {% for e in rsOptElements %}
+    {% for x in e.position %}
+    {% if e.offsets[loop.index0] != 0 %}
+    {{ e.title }}_{{ e.p_map[loop.index0] }},
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+):
+    {% for e in rsOptElements %}
+    {% for x in e.position %}
+    {% if e.offsets[loop.index0] != 0 %}
+    p = _get_beamline_param('op_{{ e.title }}', '{{ e.p_map[loop.index0] }}')
+    if p:
+        p[2] = {{ e.title }}_{{ e.p_map[loop.index0] }}
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+    # ???
+    #return varParam
+    return numpy.random.random()
+
+
+def _get_beamline_param(srw_prefix, sirepo_name):
+    for p_arr in varParam:
+        if p_arr[0].startswith(srw_prefix) and p_arr[3] == sirepo_name:
+            return p_arr
+    return None
+
+varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
 #---Data Folder
@@ -255,7 +284,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
     #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
-])
+]
 
 {% if setupMagneticMeasurementFiles %}
 def setup_magnetic_measurement_files(filename, v):

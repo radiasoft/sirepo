@@ -462,7 +462,7 @@
         "exportRsOpt": {
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
-            "numRuns": ["Number of Runs", "Integer", 100],
+            "numSamples": ["Number of Samples", "Integer", 100],
             "numWorkers": ["Number of Workers", "Integer", 1]
         },
         "crl": {
@@ -1630,7 +1630,7 @@
                 "elements",
                 "numCores",
                 "numWorkers",
-                "numRuns"
+                "numSamples"
             ]
         },
         "multipole": {
