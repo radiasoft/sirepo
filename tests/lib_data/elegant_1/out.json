@@ -3113,15 +3113,6 @@
                 "use_linear_chromatic_matrix": "0"
             }
         ],
-        "elementAnimation": {
-            "histogramBins": 200,
-            "horizontalOffset": 0.0,
-            "horizontalSize": 0.0,
-            "verticalOffset": 0.0,
-            "verticalSize": 0.0,
-            "x": "x",
-            "y": "xp"
-        },
         "elements": [
             {
                 "_id": 50,

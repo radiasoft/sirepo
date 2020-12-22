@@ -328,7 +328,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
             }
             polys.push(polyVerts);
         }
-        data.method = 'save_stl_polys'
+        data.method = 'save_stl_polys';
         data.polys = polys;
         requestSender.getApplicationData(data, function(d) {
         });
