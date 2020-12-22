@@ -683,10 +683,15 @@ def _generate_parameters_file(data):
                 'physicsmaterialPropertiesOpacityMultispecies'
             ][f'op_{k}FileName'] = f
 
-    for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
-        names[
-            ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
-        ] = line
+    p = _SIM_DATA.flash_setup_units_path(data)
+    names = PKDict()
+    # TODO(e-carlin): handle case where p doesn't exist and we don't create it.
+    # Ex. python_source_for_model where binary and setup_units are not found
+    if p and p.exists():
+        for line in pkio.read_text(p).split('\n'):
+            names[
+                ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
+            ] = line
     for m in sorted(data.models):
         if m not in names:
             continue

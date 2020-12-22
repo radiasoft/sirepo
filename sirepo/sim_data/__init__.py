@@ -491,14 +491,20 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
-    def sim_file_abspath(cls, basename, data=None):
-        return cls._sim_file_abspath(basename, data=data)
+    def sim_file_abspath(cls, basename, data):
+        return cls._sim_file_abspath(basename, data)
 
     @classmethod
     def sim_file_basenames(cls, data):
         return sorted(set(cls._sim_file_basenames(data)))
 
-    # TODO(e-carlin): just create something like "??_files_to_run_dir and have prepare sim call it"
+    @classmethod
+    def sim_files_exist(cls, data):
+        for b in cls._sim_file_basenames(data):
+            if not cls._sim_file_abspath(b, data):
+                return False
+        return True
+
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         """Copy sim files to run_dir
@@ -612,6 +618,7 @@ class SimDataBase(object):
         r = frame_args.frameReport
         return f[r] if r in f else f[cls.compute_model(r)]
 
+    # TODO(e-carlin): just do lib; sim was deleted
     @classmethod
     def _files_to_run_dir(cls, sim_or_lib, data, run_dir):
         for b in getattr(cls, f'{sim_or_lib}_file_basenames')(data):
@@ -740,7 +747,7 @@ class SimDataBase(object):
         return f'{cls.sim_type()}.rpm'
 
     @classmethod
-    def _sim_file_abspath(cls, basename, data=None):
+    def _sim_file_abspath(cls, basename, data):
         import sirepo.simulation_db
 
         if cfg.sim_file_uri:

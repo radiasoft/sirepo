@@ -19,23 +19,24 @@ _SIM_DATA = sirepo.sim_data.get_class('flash')
 def run_background(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    s = _SIM_DATA.local_path('src')
-
-    e = _SIM_DATA.sim_file_basenames(data)
-    assert len(e) == 1, \
-        f'expecting only one file {e}'
-    e = cfg_dir.join(e[0])
-    if not e.exists():
-        pkdlog('flash binary {} not found. Compiling', e)
+    if not _SIM_DATA.sim_files_exist(data):
+        s = _SIM_DATA.local_path('src')
         t = s.join(data.models.simulation.flashType)
         subprocess.run(template.setup_command(data), cwd=s)
         subprocess.run(['make'], cwd=t)
-        _SIM_DATA.sim_file_to_server(
-            t.join(_SIM_DATA.FLASH_PREFIX),
-            e.basename,
+        _SIM_DATA.flash_compilation_to_sim_file_basenames(data)
+        for c, b in _SIM_DATA.flash_compilation_to_sim_file_basenames(data).items():
+            _SIM_DATA.sim_file_to_server(
+                t.join(c),
+                b,
+                data,
+            )
+        # Need to write_parameters again becasue setup_units has changed
+        template.write_parameters(
             data,
+            run_dir=cfg_dir,
+            is_parallel=True,
         )
-        _SIM_DATA.sim_files_to_run_dir(data, cfg_dir)
-    # TODO(e-carlin): make sure e is in the anim dir not the file in the sim dir which may not
-    # be presetn on NERSC?
-    mpi.run_program([e])
+    mpi.run_program([
+        _SIM_DATA.flash_exe_path(data),
+    ])

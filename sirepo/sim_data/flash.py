@@ -16,8 +16,8 @@ import sirepo.util
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    FLASH_PREFIX = 'flash4'
-    # TODO(e-carlin): Where are we going to put these files?
+    FLASH_EXE_PREFIX = 'flash'
+    _FLASH_FILE_NAME_SEP = '-'
     _FLASH_SETUP_UNITS_PREFIX = 'setup_units'
 
     @classmethod
@@ -102,14 +102,24 @@ class SimData(sirepo.sim_data.SimDataBase):
                     ]
 
     @classmethod
-    def flash_setup_units_path(cls, data):
-        # TODO(e-carlin): I've moved ~/.local/share/flash4 to ~/.local/share/flash
-        # I did this manually on my machine. Need to update the RPM code.
-        # Also, after compilation need to start putting the setup_units files in the
-        # sim_dir and pulling them in in prepare_simulation.
-        return cls.local_path('share').join(
-            f'{cls._FLASH_SETUP_UNITS_PREFIX}-{data.models.simulation.flashType}',
+    def flash_compilation_to_sim_file_basenames(cls, data):
+        # POSIT: values match cls._sim_file_basenames
+        return PKDict(
+            flash4=cls.flash_file_basename(cls.FLASH_EXE_PREFIX, data),
+            setup_units=cls.flash_file_basename(cls._FLASH_SETUP_UNITS_PREFIX, data),
         )
+
+    @classmethod
+    def flash_exe_path(cls, data):
+        return cls._flash_file_abspath(cls.FLASH_EXE_PREFIX, data)
+
+    @classmethod
+    def flash_file_basename(cls, prefix, data):
+        return f'{prefix}{cls._FLASH_FILE_NAME_SEP}{cls._flash_file_hash(data)}'
+
+    @classmethod
+    def flash_setup_units_path(cls, data):
+        return cls._flash_file_abspath(cls._FLASH_SETUP_UNITS_PREFIX, data)
 
     @classmethod
     def proprietary_code_rpm(cls):
@@ -118,6 +128,18 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         return [r]
+
+    @classmethod
+    def _flash_file_hash(cls, data):
+        # TODO(e-carlin): hash fields related to compilation params
+        return '123'
+
+    @classmethod
+    def _flash_file_abspath(cls, prefix, data):
+        return cls._sim_file_abspath(
+            cls.flash_file_basename(prefix, data),
+            data,
+        )
 
     @classmethod
     def _lib_file_basenames(cls, data):
@@ -140,10 +162,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             return r
         raise AssertionError('invalid flashType: {}'.format(t))
 
+
     @classmethod
     def _sim_file_basenames(cls, data):
-        def _hash():
-            # TODO(e-carlin): get data and create a hash of the compilation
-            # params
-            return '123'
-        return [f'{cls.FLASH_PREFIX}-{_hash()}']
+        return [
+            cls.flash_file_basename(cls.FLASH_EXE_PREFIX, data),
+            cls.flash_file_basename(cls._FLASH_SETUP_UNITS_PREFIX, data),
+        ]
