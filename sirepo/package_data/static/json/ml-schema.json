@@ -272,6 +272,7 @@
             "histogramBins": ["Histogram Bins", "Integer", 30],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
+        "fitReport": {},
         "hiddenReport": {},
         "knnClassification": {
             "kmax": ["KMax", "Integer", 50],

@@ -88,49 +88,24 @@ def get_analysis_report(run_dir, data):
 
     xr, x = _extract_column(run_dir, data, x_idx)
     yr, y = _extract_column(run_dir, data, y_idx)
-    plot_data = [x, y]
     clusters = None
-    #if 'action' in report:
-    #    if report.action == 'fit':
-    #        return _get_fit_report(report, plot_data, col_info)
+    plots = [
+        PKDict(
+            points=y.tolist(),
+            label=y_label,
+            style='scatter',
+         )
+    ]
+    summary_data = PKDict()
+    if 'action' in report:
+        if report.action == 'fit':
+            p_vals, p_errs, fit_plots = _get_fit_report(report, x, y)
+            summary_data.p_vals = p_vals.tolist()
+            summary_data.p_errs = p_errs.tolist()
+            plots.extend(fit_plots)
     #    elif report.action == 'cluster':
     #        clusters = _compute_clusters(report, plot_data, col_info)
-    #x_idx = _set_index_within_cols(col_info, report.x)
-    #x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
-    plots = []
-    plots.append(PKDict(
-        points=y.tolist(),
-        label=y_label,
-        style='scatter',
-     ))
-
-    #for f in ('y1', 'y2', 'y3'):
-    #    if f != 'y1':
-    #        continue
-    #    if f not in report or report[f] == 'none':
-    #        continue
-    #    y_idx = _set_index_within_cols(col_info, report[f])
-    #    y = plot_data[:, y_idx]
-    #    if len(y) <= 0 or math.isnan(y[0]):
-    #        continue
-    #    plots.append(PKDict(
-    #        points=(y * col_info['scale'][y_idx]).tolist(),
-    #        label=_label(col_info, y_idx),
-    #        style='line' if 'action' in report and report.action == 'fft' else 'scatter',
-    #    ))
-    return x, plots, f'{x_label} vs {y_label}'
-    #return template_common.parameter_plot(
-    #    x,
-    #    plots,
-    #    PKDict(),
-    #    PKDict(
-    #        title='',
-    #        y_label='',
-    #        x_label=_label(col_info, x_idx),
-    #        clusters=clusters,
-    #        summaryData=PKDict(),
-    #    ),
-    #)
+    return x, plots, f'{x_label} vs {y_label}', summary_data
 
 
 def get_application_data(data, **kwargs):
@@ -438,8 +413,8 @@ def _error_rate_report(frame_args, filename, x_label):
     ))
 
 def _extract_analysis_report(run_dir, sim_in):
-    x, plots, title = get_analysis_report(run_dir, sim_in)
-    _write_report(x, plots, title)
+    x, plots, title, summary_data = get_analysis_report(run_dir, sim_in)
+    _write_report(x, plots, title, summary_data=summary_data)
     #idx = sim_in.models[sim_in.report].columnNumber
     #x, y = _extract_column(run_dir, sim_in, idx)
     #_write_report(
@@ -594,12 +569,8 @@ def _get_classification_output_col_encoding(frame_args):
         raise e
 
 
-def _get_fit_report(report, plot_data, col_info):
-    col1 = _set_index_within_cols(col_info, report.x)
-    col2 = _set_index_within_cols(col_info, report.y1)
-    x_vals = plot_data[:, col1] * col_info.scale[col1]
-    y_vals = plot_data[:, col2] * col_info.scale[col2]
-    fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = \
+def _get_fit_report(report, x_vals, y_vals):
+    fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas = \
         sirepo.analysis.fit_to_equation(
             x_vals,
             y_vals,
@@ -608,11 +579,6 @@ def _get_fit_report(report, plot_data, col_info):
             report.fitParameters,
         )
     plots = [
-        PKDict(
-            points=y_vals.tolist(),
-            label='data',
-            style='scatter',
-        ),
         PKDict(
             points=fit_y.tolist(),
             x_points=fit_x.tolist(),
@@ -631,21 +597,8 @@ def _get_fit_report(report, plot_data, col_info):
             _parent='confidence'
         ),
     ]
-    return template_common.parameter_plot(
-        x_vals.tolist(),
-        plots,
-        PKDict(),
-        PKDict(
-            title='',
-            x_label='X',  #_label(col_info, col1),
-            y_label='Y',  #_label(col_info, col2),
-            summaryData=PKDict(
-                p_vals=param_vals.tolist(),
-                p_errs=param_sigmas.tolist(),
-            ),
-            latex_label=latex_label
-        ),
-    )
+    return param_vals, param_sigmas, plots
+
 
 def _histogram_plot(values, vrange):
     hist = np.histogram(values, bins=20, range=vrange)
@@ -683,7 +636,7 @@ def _read_file_column(run_dir, name, idx):
     return _read_file(run_dir, _OUTPUT_FILE[name])[:, idx]
 
 
-def _report_info(x, plots, title=''):
+def _report_info(x, plots, title='', summary_data=PKDict()):
     return PKDict(
         title=title,
         x_range=[float(min(x)), float(max(x))],
@@ -692,6 +645,7 @@ def _report_info(x, plots, title=''):
         x_points=list(x),
         plots=plots,
         y_range=template_common.compute_plot_color_and_range(plots),
+        summaryData=summary_data,
     )
 
 def _set_index_within_cols(col_info, idx):
@@ -713,5 +667,7 @@ def _update_range(vrange, values):
         vrange[1] = maxv
 
 
-def _write_report(x, plots, title=''):
-    template_common.write_sequential_result(_report_info(x, plots, title))
+def _write_report(x, plots, title='', summary_data=PKDict()):
+    template_common.write_sequential_result(_report_info(
+        x, plots, title, summary_data=summary_data
+    ))
