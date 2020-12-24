@@ -1,0 +1,65 @@
+
+from pykern.pkcollections import PKDict
+from sirepo.template import madx_parser
+import numpy as np
+import os
+import scipy.optimize
+
+lattice_file = """
+{{ madxSource -}}
+"""
+
+def _cost_function(correctors):
+    readings = update_and_run_simulation(correctors)
+    cost = np.sum((np.array([readings[-2], readings[-1]]) * 1000.) ** 2)
+    return cost
+
+
+def _optimize_nelder_mead(variable_count):
+    opt = scipy.optimize.minimize(
+        _cost_function,
+        np.zeros(variable_count),
+        method='Nelder-Mead',
+        options={
+            'maxiter': 500,
+            'maxfev': 500,
+        },
+        tol=1e-4,
+    )
+    res = {
+        'message': opt.message,
+        'success': opt.success,
+    }
+    if 'x' in opt and len(opt.x) == variable_count:
+        res['result'] = opt.x
+    return res
+
+
+def run_simulation(correctors):
+    values = {}
+    for idx in range(len(correctors)):
+        values[f'sr_opt{idx}'] = correctors[idx]
+    with open('in.madx', 'w') as f:
+        f.write(lattice_file.format(**values))
+    os.system('madx in.madx > madx.log')
+
+
+def update_and_run_simulation(correctors):
+    run_simulation(correctors)
+    readings = []
+    columns = madx_parser.parse_tfs_file('twiss.file.tfs')
+    for idx in range(len(columns.name)):
+        keyword = columns.keyword[idx].replace('"', '')
+        if keyword == 'MONITOR':
+            readings += [float(columns.x[idx]), float(columns.y[idx])]
+        elif keyword == 'HMONITOR':
+            readings += [float(columns.x[idx]), 0]
+        elif keyword == 'VMONITOR':
+            readings += [0, float(columns.y[idx])]
+    with open('{{ summaryCSV }}', 'a') as f:
+        f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
+    return readings
+
+with open('{{ summaryCSV }}', 'w') as f:
+    f.write('{}\n'.format('{{ summaryCSVHeader }}'))
+res = _optimize_nelder_mead({{ correctorCount }})
