@@ -216,8 +216,6 @@ def _sigterm(signum, frame):
     tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
 
 
-# TODO(e-carlin): Is serving large files like this going to be slow?
-# https://bhch.github.io/posts/2017/12/serving-large-files-with-tornado-safely-without-blockingtdshould
 class _SimDbFileReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ['GET','PUT']
 
