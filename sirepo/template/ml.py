@@ -20,6 +20,11 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+_ANALYSIS_REPORTS = [
+    'analysisReport',
+    'fftReport',
+]
+
 _CLASSIFIER_OUTPUT_FILE = PKDict(
     dtClassifierClassificationFile='dt-classifier-classification.json',
     dtClassifierConfusionFile='dt-classifier-confusion.json',
@@ -45,11 +50,10 @@ _OUTPUT_FILE = PKDict(
 )
 
 _REPORTS = [
-    'analysisReport',
     'fileColumnReport',
     'partitionColumnReport',
-    'partitionSelectionReport'
-]
+    'partitionSelectionReport',
+] + _ANALYSIS_REPORTS
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -108,6 +112,37 @@ def get_analysis_report(run_dir, data):
     return x, plots, f'{x_label} vs {y_label}', summary_data
 
 
+# fft on x vals only atm - make selectable?  2d?
+def get_fft_report(run_dir, data):
+    report = data.models.analysisReport
+    info = data.models.columnInfo
+    x_idx = int(report.x)
+    y_idx = int(report.y1)
+    x_label = f'{info.header[x_idx]}'
+    y_label = f'{info.header[y_idx]}'
+
+    xr, x = _extract_column(run_dir, data, x_idx)
+    yr, y = _extract_column(run_dir, data, y_idx)
+
+    wx, nx = sirepo.analysis.get_fft(xr, x)
+    wy, ny = sirepo.analysis.get_fft(yr, y)
+
+    plots = [
+        PKDict(
+            points=nx,
+            label=f'{x_label} f[Hz]',
+        ),
+    ]
+
+    summaryData = PKDict(
+        freqs=[],
+        minFreq=wx[0],
+        maxFreq=wx[-1]
+    )
+
+    return wx, plots, f'FFT', summaryData
+
+
 def get_application_data(data, **kwargs):
     if data.method == 'compute_column_info':
         return _compute_column_info(data.dataFile)
@@ -132,7 +167,7 @@ def python_source_for_model(data, model):
 
 
 def save_sequential_report_data(run_dir, sim_in):
-    assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
+    assert _is_valid_report(sim_in.report), 'unknown report: {}'.format(sim_in.report)
     if 'fileColumnReport' in sim_in.report:
         _extract_file_column_report(run_dir, sim_in)
     elif 'partitionColumnReport' in sim_in.report:
@@ -141,8 +176,8 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_partition_selection(run_dir, sim_in)
     elif sim_in.report == 'analysisReport':
         _extract_analysis_report(run_dir, sim_in)
-        #_extract_file_column_report(run_dir, sim_in)
-        #_extract_partition_selection(run_dir, sim_in)
+    elif sim_in.report == 'fftReport':
+        _extract_fft_report(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -412,16 +447,11 @@ def _error_rate_report(frame_args, filename, x_label):
         x_label=x_label,
     ))
 
+
 def _extract_analysis_report(run_dir, sim_in):
     x, plots, title, summary_data = get_analysis_report(run_dir, sim_in)
     _write_report(x, plots, title, summary_data=summary_data)
-    #idx = sim_in.models[sim_in.report].columnNumber
-    #x, y = _extract_column(run_dir, sim_in, idx)
-    #_write_report(
-    #    x,
-    #    [_plot_info(y)],
-    #    sim_in.models.columnInfo.header[idx],
-    #)
+
 
 def _extract_column(run_dir, sim_in, idx):
     y = _read_file_column(run_dir, 'scaledFile', idx)
@@ -444,6 +474,11 @@ def _extract_file_column_report(run_dir, sim_in):
         [_plot_info(y, style='scatter')],
         sim_in.models.columnInfo.header[idx],
     )
+
+
+def _extract_fft_report(run_dir, sim_in):
+    x, plots, title, summary_data = get_fft_report(run_dir, sim_in)
+    _write_report(x, plots, title, summary_data=summary_data)
 
 
 def _extract_partition_report(run_dir, sim_in):
@@ -529,8 +564,9 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
-    if 'analysisReport' in report:
+    if report in _ANALYSIS_REPORTS:
         res += template_common.render_jinja(SIM_TYPE, v, 'analysis.py')
+        v.analysisAction = dm.analysisReport.action
         return res
     v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
         or v.partition_section1 == 'train_and_test' \
@@ -612,6 +648,11 @@ def _histogram_plot(values, vrange):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
+
+
+def _is_valid_report(report):
+    return 'fileColumnReport' in report or 'partitionColumnReport' in report or \
+        report in _REPORTS
 
 
 def _layer_implementation_list(data):

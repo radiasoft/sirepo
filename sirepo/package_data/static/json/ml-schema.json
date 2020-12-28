@@ -263,7 +263,9 @@
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
-        "fftReport": {},
+        "fftReport": {
+            "column":  ["Column", "AnalysisParameter", "0"]
+        },
         "fileColumnReport": {
             "x": ["VS", "XColumn", -1]
         },
@@ -437,6 +439,13 @@
             "title": "Training Error",
             "advanced": [
                 "plotScale"
+            ]
+        },
+        "fftReport": {
+            "title": "FFT",
+            "basic": [],
+            "advanced": [
+                "column"
             ]
         },
         "fileColumnReport": {
