@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkdebug import pkdp
 from pykern.pkcollections import PKDict
 import functools
 import sirepo.job
@@ -55,8 +56,9 @@ class FileReq(tornado.web.RequestHandler):
 
 
 def get_key(uid):
-    assert uid not in _KEY_TO_UID.values(), \
-        f'existing key for uid={uid}'
+    for u, k in _KEY_TO_UID.items():
+        if u == uid:
+            return k
     k = sirepo.job.unique_key()
     _KEY_TO_UID[k] = uid
     return k
