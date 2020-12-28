@@ -19,27 +19,4 @@ _SIM_DATA = sirepo.sim_data.get_class('flash')
 def run_background(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if not _SIM_DATA.sim_files_exist(data):
-        s = _SIM_DATA.dot_local_path('src')
-        t = s.join(data.models.simulation.flashType)
-        subprocess.run(template.setup_command(data), cwd=s, check=True)
-        subprocess.run(['make'], cwd=t, check=True)
-        _SIM_DATA.flash_compilation_to_sim_file_basenames(data)
-        for c, b in _SIM_DATA.flash_compilation_to_sim_file_basenames(data).items():
-            _SIM_DATA.put_sim_file(
-                t.join(c),
-                b,
-                data,
-            )
-        # Need to write_parameters again becasue setup_units has changed
-        template.write_parameters(
-            data,
-            run_dir=cfg_dir,
-            is_parallel=True,
-        )
-    e = _SIM_DATA.get_sim_file(
-        _SIM_DATA.flash_exe_basename(data),
-        data,
-        is_exe=True,
-    )
-    mpi.run_program([e])
+    mpi.run_program([cfg_dir.join(_SIM_DATA.flash_exe_basename(data))])

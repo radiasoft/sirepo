@@ -5,9 +5,10 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+from sirepo.template import template_common
 import re
 import sirepo.sim_data
 import sirepo.util
@@ -102,14 +103,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                     ]
 
     @classmethod
-    def flash_compilation_to_sim_file_basenames(cls, data):
-        # POSIT: values match cls._sim_file_basenames
-        return PKDict(
-            flash4=cls.flash_exe_basename(data),
-            setup_units=cls.flash_setup_units_basename(data),
-        )
-
-    @classmethod
     def flash_exe_basename(cls, data):
         return cls.flash_file_basename(cls.FLASH_EXE_PREFIX, data)
 
@@ -128,6 +121,31 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         return [r]
+
+    @classmethod
+    def _create_sim_files(cls, data, run_dir):
+        import subprocess
+        import sirepo.template.flash
+
+        # TODO(e-carlin): get src in run_dir and compile in run_dir
+        s = cls.dot_local_path('src')
+        t = s.join(data.models.simulation.flashType)
+        with run_dir.join(template_common.COMPILE_LOG).open('w') as log:
+            k = PKDict(
+                check=True,
+                stdout=log,
+                stderr=log
+            )
+            subprocess.run(sirepo.template.flash.setup_command(data), cwd=s, **k)
+            subprocess.run(['make'], cwd=t, **k)
+        for c, b in PKDict(
+                # POSIT: values match cls._sim_file_basenames
+                flash4=cls.flash_exe_basename(data),
+                setup_units=cls.flash_setup_units_basename(data),
+        ).items():
+            p = t.join(c)
+            cls.put_sim_file(p, b, data)
+            p.move(run_dir.join(b))
 
     @classmethod
     def _flash_file_hash(cls, data):
@@ -158,6 +176,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _sim_file_basenames(cls, data):
         return [
-            cls.flash_exe_basename(data),
-            cls.flash_setup_units_basename(data),
+            PKDict(basename=cls.flash_exe_basename(data), is_exe=True),
+            PKDict(basename=cls.flash_setup_units_basename(data)),
         ]

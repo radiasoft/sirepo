@@ -468,7 +468,7 @@ def prepare_simulation(data, run_dir):
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
-    s.lib_files_to_run_dir(data, run_dir)
+    s.support_files_to_run_dir(data, run_dir)
     update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template

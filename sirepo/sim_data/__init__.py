@@ -231,8 +231,12 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def get_sim_file(cls, basename, data, is_exe=False):
-        return cls._get_sim_db_file(cls._sim_file_uri(basename, data), is_exe=is_exe)
+    def get_sim_file(cls, basename, data, run_dir, is_exe=False):
+        return cls._get_sim_db_file(
+            cls._sim_file_uri(basename, data),
+            run_dir,
+            is_exe=is_exe,
+        )
 
     @classmethod
     def is_parallel(cls, data_or_model):
@@ -505,16 +509,27 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
-    def sim_files_exist(cls, data):
-        for f in cls._sim_file_basenames(data):
-            p = cls.get_sim_file(f, data)
-            if not p:
-                return False
-        return True
+    def sim_files_to_run_dir(cls, data, run_dir):
+        c = False
+        for b in cls._sim_file_basenames(data):
+            if not cls.get_sim_file(
+                    b.basename,
+                    data,
+                    run_dir,
+                    is_exe=b.get('is_exe', False),
+            ):
+                c = True
+        if c:
+            cls._create_sim_files(data, run_dir)
 
     @classmethod
     def sim_type(cls):
         return cls._memoize(pkinspect.module_basename(cls))
+
+    @classmethod
+    def support_files_to_run_dir(cls, data, run_dir):
+        cls.lib_files_to_run_dir(data, run_dir)
+        cls.sim_files_to_run_dir(data, run_dir)
 
     @classmethod
     def update_model_defaults(cls, model, name, dynamic=None):
@@ -559,6 +574,11 @@ class SimDataBase(object):
         return analysis_model
 
     @classmethod
+    def _create_sim_files(cls, data, run_dir):
+        """Create sim files, send to the supervisor, move to run_dir"""
+        pass
+
+    @classmethod
     def _force_recompute(cls):
         """Random value to force a compute_job to recompute.
 
@@ -577,10 +597,10 @@ class SimDataBase(object):
         return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
-    def _get_sim_db_file(cls, uri, is_exe=False):
+    def _get_sim_db_file(cls, uri, run_dir, is_exe=False):
         import sirepo.simulation_db
 
-        p = pkio.py_path(uri.split('/')[-1])
+        p = run_dir.join(uri.split('/')[-1])
         r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
         if r.status_code == 404:
             return None
@@ -703,6 +723,10 @@ class SimDataBase(object):
             cfg.supervisor_sim_db_file_uri + uri,
             data=pkio.read_binary(file_path),
         ).raise_for_status()
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        return []
 
     @classmethod
     def _sim_file_uri(cls, basename, data):

@@ -655,7 +655,7 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         #TODO: generate python instead
         run_dir.join('flash.par'),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir=run_dir),
     )
 
 
@@ -699,7 +699,9 @@ def _extract_rpm(data):
     )
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, run_dir=None):
+    if not run_dir:
+        run_dir = pkio.py_path()
     _extract_rpm(data)
     res = ''
     names = {}
@@ -712,7 +714,7 @@ def _generate_parameters_file(data):
                 'physicsmaterialPropertiesOpacityMultispecies'
             ][f'op_{k}FileName'] = f
 
-    p = _SIM_DATA.get_sim_file(_SIM_DATA.flash_setup_units_basename(data), data)
+    p = _SIM_DATA.get_sim_file(_SIM_DATA.flash_setup_units_basename(data), data, run_dir)
     names = PKDict()
     if p:
         for line in pkio.read_text(p).split('\n'):
