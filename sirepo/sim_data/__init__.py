@@ -232,7 +232,7 @@ class SimDataBase(object):
 
     @classmethod
     def get_sim_file(cls, basename, data, is_exe=False):
-        return cls._get_db_file(cls._sim_file_uri(basename, data), is_exe=is_exe)
+        return cls._get_sim_db_file(cls._sim_file_uri(basename, data), is_exe=is_exe)
 
     @classmethod
     def is_parallel(cls, data_or_model):
@@ -483,7 +483,7 @@ class SimDataBase(object):
 
     @classmethod
     def put_sim_file(cls, file_path, basename, data):
-        return cls._put_db_file(file_path, cls._sim_file_uri(basename, data))
+        return cls._put_sim_db_file(file_path, cls._sim_file_uri(basename, data))
 
     @classmethod
     def resource_dir(cls):
@@ -577,11 +577,11 @@ class SimDataBase(object):
         return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
-    def _get_db_file(cls, uri, is_exe=False):
+    def _get_sim_db_file(cls, uri, is_exe=False):
         import sirepo.simulation_db
 
         p = pkio.py_path(uri.split('/')[-1])
-        r = _request('GET', cfg.supervisor_db_file_uri + uri)
+        r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
         if r.status_code == 404:
             return None
         r.raise_for_status()
@@ -697,10 +697,10 @@ class SimDataBase(object):
         return f'{cls.sim_type()}.rpm'
 
     @classmethod
-    def _put_db_file(cls, file_path, uri):
+    def _put_sim_db_file(cls, file_path, uri):
         _request(
             'PUT',
-            cfg.supervisor_db_file_uri + uri,
+            cfg.supervisor_sim_db_file_uri + uri,
             data=pkio.read_binary(file_path),
         ).raise_for_status()
 
@@ -732,8 +732,8 @@ def _init():
         lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
-        supervisor_db_file_uri=(None, str, 'where to get/put db files from/to supervisor'),
-        supervisor_db_file_key=(None, str, 'key for supervisor file access'),
+        supervisor_sim_db_file_uri=(None, str, 'where to get/put simulation db files from/to supervisor'),
+        supervisor_sim_db_file_key=(None, str, 'key for supervisor simulation file access'),
     )
 
 
@@ -743,7 +743,7 @@ def _request(method, uri, data=None):
         uri,
         data=data,
         verify=sirepo.job.cfg.verify_tls,
-        headers=PKDict(Authorization=f'Bearer {cfg.supervisor_db_file_key}')
+        headers=PKDict(Authorization=f'Bearer {cfg.supervisor_sim_db_file_key}')
     )
 
 

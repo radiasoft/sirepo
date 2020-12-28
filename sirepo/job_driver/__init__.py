@@ -83,7 +83,7 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
-            _db_file_key=job.unique_key(),
+            _sim_db_file_key=job.unique_key(),
             _idle_timer=None,
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
@@ -91,7 +91,10 @@ class DriverBase(PKDict):
         )
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
-        sirepo.events.emit('supervisor_db_file_key_created', PKDict(key=self._db_file_key, uid=self.uid))
+        sirepo.events.emit(
+            'supervisor_sim_db_file_key_created',
+            PKDict(key=self._sim_db_file_key, uid=self.uid),
+        )
         pkdlog('{}', self)
 
     def destroy_op(self, op):
@@ -214,13 +217,13 @@ class DriverBase(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME='1',
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_DB_FILE_URI=job.supervisor_file_uri(
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
-                    job.DB_FILE_URI,
+                    job.SIM_DB_FILE_URI,
                     sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_DB_FILE_KEY=self._db_file_key,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_KEY=self._sim_db_file_key,
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get('_agent_start_delay', 0),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(

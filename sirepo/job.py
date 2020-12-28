@@ -40,9 +40,6 @@ SERVER_PING_URI = '/job-api-ping'
 #: path supervisor registers to receive requests from job_process for file PUTs
 DATA_FILE_URI = '/job-cmd-data-file'
 
-#: path supervisor registers to receive requests from job_process for file GETs/PUTs
-DB_FILE_URI = '/db-file'
-
 #: how jobs request files
 LIB_FILE_URI = '/job-cmd-lib-file'
 
@@ -57,6 +54,9 @@ NERSC_QUEUES = frozenset(('debug', 'premium', 'realtime', 'regular'))
 
 #: where user data files come in (job_supervisor)
 DATA_FILE_ROOT = None
+
+#: path supervisor registers to receive requests from job_process for simulation file GETs/PUTs
+SIM_DB_FILE_URI = '/sim-db-file'
 
 #: how jobs request files (relative to `srdb.root`)
 SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
