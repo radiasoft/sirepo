@@ -17,12 +17,6 @@ import subprocess
 _SIM_DATA = sirepo.sim_data.get_class('flash')
 
 def run_background(cfg_dir):
-    # TODO(e-carlin): there is a possible caching problem here
-    # sim_files_exist may pull the files over and then get_sim_file in mpi.run
-    # will pull again
-    # if sim_files_exist is false then we create the file, send to server,
-    # and pull back over in mpi.run_program
-
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if not _SIM_DATA.sim_files_exist(data):
