@@ -714,13 +714,12 @@ def _generate_parameters_file(data, run_dir=None):
                 'physicsmaterialPropertiesOpacityMultispecies'
             ][f'op_{k}FileName'] = f
 
-    p = _SIM_DATA.get_sim_file(_SIM_DATA.flash_setup_units_basename(data), data, run_dir)
-    names = PKDict()
-    if p:
-        for line in pkio.read_text(p).split('\n'):
-            names[
-                ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
-            ] = line
+    for line in pkio.read_text(
+            run_dir.join(_SIM_DATA.flash_setup_units_basename(data)),
+    ).split('\n'):
+        names[
+            ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
+        ] = line
     for m in sorted(data.models):
         if m not in names:
             continue
