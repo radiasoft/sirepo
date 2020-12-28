@@ -16,6 +16,7 @@ import sirepo.events
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
+import sirepo.sim_db_file
 import sirepo.srdb
 import sirepo.srtime
 import tornado.httpserver
@@ -24,8 +25,6 @@ import tornado.web
 import tornado.websocket
 
 cfg = None
-
-_SIM_DB_FILE_KEYS = PKDict()
 
 
 def default_command():
@@ -38,9 +37,6 @@ def default_command():
     )
     sirepo.srtime.init()
     sirepo.job_supervisor.init()
-    sirepo.events.register(PKDict(
-        supervisor_sim_db_file_key_created=_event_supervisor_sim_db_file_key_created,
-    ))
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
     pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(
@@ -50,7 +46,7 @@ def default_command():
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
-            (sirepo.job.SIM_DB_FILE_URI + '/(.*)', _SimDbFileReq),
+            (sirepo.job.SIM_DB_FILE_URI + '/(.*)', sirepo.sim_db_file.FileReq),
         ],
         debug=cfg.debug,
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
@@ -114,29 +110,6 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         self.close()
 
 
-# Must be defined before use
-def _sim_db_file_req_validated(func):
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        t = self.request.headers.get('Authorization')
-        if not t:
-            raise tornado.web.HTTPError(401)
-        p = t.split(' ')
-        if len(p) != 2:
-            raise tornado.web.HTTPError(401)
-        if p[0] != 'Bearer' or not sirepo.job.UNIQUE_KEY_RE.search(p[1]):
-            raise tornado.web.HTTPError(401)
-        if p[1] not in _SIM_DB_FILE_KEYS or \
-           self.request.path.split('/')[3] != _SIM_DB_FILE_KEYS[p[1]]:
-            raise tornado.web.HTTPError(403)
-        # TODO(e-carlin): discuss with rn what validation needs to happen
-        p = self.request.path
-        if p.count('.') > 1:
-            raise tornado.web.HTTPError(404)
-        return func(self, *args, **kwargs)
-    return wrapper
-
-
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
 
@@ -172,9 +145,6 @@ class _ServerReq(_JsonPostRequestHandler):
         self.send_error()
         self.on_connection_close()
 
-
-def _event_supervisor_sim_db_file_key_created(kwargs):
-    _SIM_DB_FILE_KEYS[kwargs.key] = kwargs.uid
 
 
 async def _incoming(content, handler):
@@ -214,21 +184,6 @@ class _ServerSrtime(_JsonPostRequestHandler):
 
 def _sigterm(signum, frame):
     tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
-
-
-class _SimDbFileReq(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ['GET','PUT']
-
-    @_sim_db_file_req_validated
-    def get(self, path):
-        p = sirepo.srdb.root().join(path)
-        if not p.exists():
-            raise tornado.web.HTTPError(404)
-        self.write(pkio.read_binary(p))
-
-    @_sim_db_file_req_validated
-    def put(self, path):
-        sirepo.srdb.root().join(path).write_binary(self.request.body)
 
 
 class _DataFileReq(tornado.web.RequestHandler):

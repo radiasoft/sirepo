@@ -67,3 +67,15 @@ class Queue(tornado.queues.Queue):
                             pkdexc(),
                         )
             raise
+
+
+def raise_forbidden():
+    raise tornado.web.HTTPError(403)
+
+
+def raise_not_found():
+    raise tornado.web.HTTPError(404)
+
+
+def raise_unauthorized():
+    raise tornado.web.HTTPError(401)

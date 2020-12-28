@@ -767,7 +767,9 @@ def _request(method, uri, data=None):
         uri,
         data=data,
         verify=sirepo.job.cfg.verify_tls,
-        headers=PKDict(Authorization=f'Bearer {cfg.supervisor_sim_db_file_key}')
+        headers=PKDict({
+                sirepo.job.AUTH_HEADER: f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} {cfg.supervisor_sim_db_file_key}',
+            })
     )
 
 

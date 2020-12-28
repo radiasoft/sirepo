@@ -32,7 +32,6 @@ _MAP = PKDict(
     auth_logout=[],
     end_api_call=[],
     github_authorized=[],
-    supervisor_sim_db_file_key_created=[],
 )
 
 

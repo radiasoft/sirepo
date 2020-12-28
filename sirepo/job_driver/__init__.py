@@ -14,6 +14,7 @@ import pykern.pkio
 import re
 import sirepo.auth
 import sirepo.events
+import sirepo.sim_db_file
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.tornado
@@ -83,18 +84,14 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
-            _sim_db_file_key=job.unique_key(),
             _idle_timer=None,
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
+        self._sim_db_file_key = sirepo.sim_db_file.get_key(self.uid)
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
-        sirepo.events.emit(
-            'supervisor_sim_db_file_key_created',
-            PKDict(key=self._sim_db_file_key, uid=self.uid),
-        )
         pkdlog('{}', self)
 
     def destroy_op(self, op):
