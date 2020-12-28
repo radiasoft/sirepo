@@ -218,6 +218,10 @@ def random_base62(length=32):
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
 
 
+def requests_not_found(request):
+    return request.status_code == 404
+
+
 def secure_filename(path):
     import werkzeug.utils
 

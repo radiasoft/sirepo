@@ -602,7 +602,7 @@ class SimDataBase(object):
 
         p = run_dir.join(uri.split('/')[-1])
         r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
-        if r.status_code == 404:
+        if sirepo.util.requests_not_found(r):
             return None
         r.raise_for_status()
         p.write_binary(r.content)
