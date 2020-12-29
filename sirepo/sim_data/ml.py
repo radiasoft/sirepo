@@ -23,6 +23,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in dm:
             if 'fileColumnReport' in m:
                 cls.update_model_defaults(dm[m], 'fileColumnReport')
+        dm.analysisReport.pksetdefault(history=[])
+        dm.hiddenReport.pksetdefault(subreports=[])
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):

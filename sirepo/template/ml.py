@@ -82,19 +82,16 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_analysis_report(run_dir, data):
-    import math
-
-    report = data.models.analysisReport
+    report = data.models[data.report]
     info = data.models.columnInfo
     x_idx = int(report.x)
     y_idx = int(report.y1)
     x_label = f'{info.header[x_idx]}'
     y_label = f'{info.header[y_idx]}'
 
-    plot_data = _read_file(run_dir, _OUTPUT_FILE.scaledFile)
-
-    xr, x = _extract_column(run_dir, data, x_idx)
-    yr, y = _extract_column(run_dir, data, y_idx)
+    plot_data = _read_file_with_history(run_dir, _OUTPUT_FILE.scaledFile, report)
+    x = plot_data[:, x_idx]
+    y = plot_data[:, y_idx]
     plots = [
         PKDict(
             points=y.tolist(),
@@ -124,8 +121,8 @@ def get_fft_report(run_dir, data):
     x_label = f'{info.header[x_idx]}'
     y_label = f'{info.header[y_idx]}'
 
-    xr, x = _extract_column(run_dir, data, x_idx)
-    yr, y = _extract_column(run_dir, data, y_idx)
+    xr, x = _extract_column(run_dir, x_idx)
+    yr, y = _extract_column(run_dir, y_idx)
 
     wx, nx = sirepo.analysis.get_fft(xr, x)
     wy, ny = sirepo.analysis.get_fft(yr, y)
@@ -177,7 +174,7 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_partition_report(run_dir, sim_in)
     elif sim_in.report == 'partitionSelectionReport':
         _extract_partition_selection(run_dir, sim_in)
-    elif sim_in.report == 'analysisReport':
+    elif _is_analysis_report(sim_in.report):
         _extract_analysis_report(run_dir, sim_in)
     elif sim_in.report == 'fftReport':
         _extract_fft_report(run_dir, sim_in)
@@ -469,7 +466,7 @@ def _extract_analysis_report(run_dir, sim_in):
     _write_report(x, plots, title, fields=fields, summary_data=summary_data)
 
 
-def _extract_column(run_dir, sim_in, idx):
+def _extract_column(run_dir, idx):
     y = _read_file_column(run_dir, 'scaledFile', idx)
     return np.arange(0, len(y)), y
 
@@ -477,14 +474,14 @@ def _extract_column(run_dir, sim_in, idx):
 def _extract_file_column_report(run_dir, sim_in):
     m = sim_in.models[sim_in.report]
     idx = m.columnNumber
-    x, y = _extract_column(run_dir, sim_in, idx)
+    x, y = _extract_column(run_dir, idx)
     if np.isnan(y).any():
         template_common.write_sequential_result(PKDict(
             error='Column values are not numeric',
         ))
         return
     if 'x' in m and m.x is not None and m.x >= 0:
-        _, x = _extract_column(run_dir, sim_in, m.x)
+        _, x = _extract_column(run_dir, m.x)
     _write_report(
         x,
         [_plot_info(y, style='scatter')],
@@ -524,8 +521,8 @@ def _extract_partition_selection(run_dir, sim_in):
     info = sim_in.models.columnInfo
     in_idx = info.inputOutput.index('input')
     out_idx = info.inputOutput.index('output')
-    x, y = _extract_column(run_dir, sim_in, in_idx)
-    _, y2 = _extract_column(run_dir, sim_in, out_idx)
+    x, y = _extract_column(run_dir, in_idx)
+    _, y2 = _extract_column(run_dir, out_idx)
     _write_report(
         x,
         [
@@ -580,8 +577,7 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
-    if report in _ANALYSIS_REPORTS:
-        res += template_common.render_jinja(SIM_TYPE, v, 'analysis.py')
+    if _is_analysis_report(report):
         v.analysisAction = dm.analysisReport.action
         return res
     v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
@@ -666,9 +662,13 @@ def _histogram_plot(values, vrange):
     return x, y
 
 
+def _is_analysis_report(report):
+    return 'analysisReport' in report or report in _ANALYSIS_REPORTS
+
+
 def _is_valid_report(report):
     return 'fileColumnReport' in report or 'partitionColumnReport' in report or \
-        report in _REPORTS
+        _is_analysis_report(report) or report in _REPORTS
 
 
 def _layer_implementation_list(data):
@@ -691,6 +691,27 @@ def _read_file(run_dir, filename):
 
 def _read_file_column(run_dir, name, idx):
     return _read_file(run_dir, _OUTPUT_FILE[name])[:, idx]
+
+
+def _read_file_with_history(run_dir, filename, report=None):
+    import copy
+    res = _read_file(run_dir, filename)
+    if not report:
+        return res
+    if 'history' in report:
+        for action in report.history:
+            if action.action == 'trim':
+                idx = _set_index_within_cols(col_info, action.trimField)
+                scale = col_info['scale'][idx]
+                res = res[(res[:,idx] * scale >= action.trimMin) & (res[:, idx] * scale <= action.trimMax)]
+            elif action.action == 'cluster':
+                report2 = copy.deepcopy(report)
+                report2.update(action)
+                clusters = _compute_clusters(report2, res)
+                labels = np.array(clusters.group)
+                pkdp(f'CL LABELS {labels} RS B4 {res}')
+                res = res[labels == action.clusterIndex,:]
+    return res
 
 
 def _report_info(x, plots, title='', fields=PKDict(), summary_data=PKDict()):
