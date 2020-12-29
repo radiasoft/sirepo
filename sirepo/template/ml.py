@@ -701,9 +701,10 @@ def _read_file_with_history(run_dir, filename, report=None):
     if 'history' in report:
         for action in report.history:
             if action.action == 'trim':
-                idx = _set_index_within_cols(col_info, action.trimField)
-                scale = col_info['scale'][idx]
-                res = res[(res[:,idx] * scale >= action.trimMin) & (res[:, idx] * scale <= action.trimMax)]
+                idx = int(action.trimField)
+                res = res[
+                    (res[:,idx] >= action.trimMin) & (res[:, idx] <= action.trimMax)
+                ]
             elif action.action == 'cluster':
                 report2 = copy.deepcopy(report)
                 report2.update(action)

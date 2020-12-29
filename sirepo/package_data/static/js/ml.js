@@ -1678,6 +1678,33 @@ SIREPO.app.directive('tablePanel', function(plotting) {
     };
 });
 
+SIREPO.app.directive('trimButton', function(appState, mlService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template: [
+            '<div class="text-center">',
+              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.trimPlot = function() {
+                var action = {};
+                ['action', 'trimField', 'trimMin', 'trimMax'].forEach(function(f) {
+                    action[f] = $scope.model[f];
+                });
+                mlService.addSubreport($scope.model, action);
+                appState.cancelChanges($scope.modelName + ($scope.model.id || ''));
+            };
+        },
+    };
+});
+
+
 SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
 
     function updatePartitionMethod() {
