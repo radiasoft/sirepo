@@ -862,6 +862,57 @@ SIREPO.app.directive('xColumn', function(appState, mlService) {
     };
 });
 
+SIREPO.app.directive('clusterFields', function(appState, mlService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div style="margin: -3px 0 5px 0; min-height: 34px; max-height: 13.4em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
+              '<table class="table table-condensed table-hover" style="margin:0">',
+                '<tbody>',
+                  '<tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">',
+                    '<td>{{ item.name }}</td>',
+                    '<td><input type="checkbox" data-ng-checked="isSelected(item)"></td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var itemList, paramList;
+
+            $scope.isSelected = function(item) {
+                var v = $scope.model[$scope.field] || [];
+                return v[item.index];
+            };
+
+            $scope.itemList = function() {
+                var params = mlService.buildParameterList();
+                if (paramList != params) {
+                    paramList = params;
+                    itemList = [];
+                    paramList.forEach(function(param) {
+                        itemList.push({
+                            name: param[1],
+                            index: parseInt(param[0]),
+                        });
+                    });
+                }
+                return itemList;
+            };
+
+            $scope.toggleItem = function(item) {
+                var v = $scope.model[$scope.field] || [];
+                v[item.index] = ! v[item.index];
+                $scope.model[$scope.field] = v;
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('columnSelector', function(appState, mlService, panelState) {
     return {
         restrict: 'A',

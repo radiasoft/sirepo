@@ -54,3 +54,27 @@ def scale_data(data, scale_range):
     return sklearn.preprocessing.MinMaxScaler(
         feature_range=scale_range
     ).fit_transform(data)
+
+
+def _agglomerative(scale, props):
+    return agglomerative(scale, props.count)
+
+
+def _dbscan(scale, props):
+    return dbscan(scale, props.eps)
+
+
+def _gmix(scale, props):
+    return gmix(scale, props.count, props.seed)
+
+
+def _kmeans(scale, props):
+    return kmeans(scale, props.count, props.seed, props.kmeans_init)
+
+
+METHODS = PKDict(
+    agglomerative=_agglomerative,
+    dbscan=_dbscan,
+    gmix=_gmix,
+    kmeans=_kmeans,
+)

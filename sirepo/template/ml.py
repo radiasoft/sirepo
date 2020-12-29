@@ -55,6 +55,7 @@ _REPORTS = [
     'partitionSelectionReport',
 ] + _ANALYSIS_REPORTS
 
+
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = PKDict(
@@ -90,9 +91,10 @@ def get_analysis_report(run_dir, data):
     x_label = f'{info.header[x_idx]}'
     y_label = f'{info.header[y_idx]}'
 
+    plot_data = _read_file(run_dir, _OUTPUT_FILE.scaledFile)
+
     xr, x = _extract_column(run_dir, data, x_idx)
     yr, y = _extract_column(run_dir, data, y_idx)
-    clusters = None
     plots = [
         PKDict(
             points=y.tolist(),
@@ -100,6 +102,7 @@ def get_analysis_report(run_dir, data):
             style='scatter',
          )
     ]
+    fields = PKDict()
     summary_data = PKDict()
     if 'action' in report:
         if report.action == 'fit':
@@ -107,9 +110,9 @@ def get_analysis_report(run_dir, data):
             summary_data.p_vals = p_vals.tolist()
             summary_data.p_errs = p_errs.tolist()
             plots.extend(fit_plots)
-    #    elif report.action == 'cluster':
-    #        clusters = _compute_clusters(report, plot_data, col_info)
-    return x, plots, f'{x_label} vs {y_label}', summary_data
+        elif report.action == 'cluster':
+            fields.clusters = _compute_clusters(report, plot_data)
+    return x, plots, f'{x_label} vs {y_label}', fields, summary_data
 
 
 # fft on x vals only atm - make selectable?  2d?
@@ -375,13 +378,25 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     return res
 
 
-def _compute_clusters(report, plot_data, col_info):
+def _compute_clusters(report, plot_data):
 
+    from sirepo.analysis import ml
     method_params = PKDict(
-        agglomerative=f'{report.clusterCount}',
-        dbscan=f'{report.clusterDbscanEps}',
-        gmix=f'{report.clusterCount}, {report.clusterRandomSeed}',
-        kmeans=f'{report.clusterCount}, {report.clusterRandomSeed}, {report.clusterKmeansInit}',
+        agglomerative=PKDict(
+            count=report.clusterCount,
+        ),
+        dbscan=PKDict(
+            eps=report.clusterDbscanEps,
+        ),
+        gmix=PKDict(
+            count=report.clusterCount,
+            seed=report.clusterRandomSeed,
+        ),
+        kmeans=PKDict(
+            count=report.clusterCount,
+            seed=report.clusterRandomSeed,
+            kmeans_init=report.clusterKmeansInit
+        ),
     )
 
     cols = []
@@ -389,7 +404,7 @@ def _compute_clusters(report, plot_data, col_info):
         if len(cols) <= 1:
             raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
     for idx in range(len(report.clusterFields)):
-        if report.clusterFields[idx] and idx < len(col_info.header):
+        if report.clusterFields[idx]:
             cols.append(idx)
     if len(cols) <= 1:
         raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
@@ -397,8 +412,9 @@ def _compute_clusters(report, plot_data, col_info):
             report.clusterScaleMin,
             report.clusterScaleMax,
         ])
-    group = sirepo.analysis.ml[report.clusterMethod](x_scale, method_params[
-        report.clusterMethod])
+    group = sirepo.analysis.ml.METHODS[report.clusterMethod](
+        x_scale, method_params[report.clusterMethod]
+    )
     count = len(set(group)) if report.clusterMethod == 'dbscan' else report.clusterCount
     return PKDict(
         group=group.tolist(),
@@ -449,8 +465,8 @@ def _error_rate_report(frame_args, filename, x_label):
 
 
 def _extract_analysis_report(run_dir, sim_in):
-    x, plots, title, summary_data = get_analysis_report(run_dir, sim_in)
-    _write_report(x, plots, title, summary_data=summary_data)
+    x, plots, title, fields, summary_data = get_analysis_report(run_dir, sim_in)
+    _write_report(x, plots, title, fields=fields, summary_data=summary_data)
 
 
 def _extract_column(run_dir, sim_in, idx):
@@ -677,8 +693,8 @@ def _read_file_column(run_dir, name, idx):
     return _read_file(run_dir, _OUTPUT_FILE[name])[:, idx]
 
 
-def _report_info(x, plots, title='', summary_data=PKDict()):
-    return PKDict(
+def _report_info(x, plots, title='', fields=PKDict(), summary_data=PKDict()):
+    res = PKDict(
         title=title,
         x_range=[float(min(x)), float(max(x))],
         y_label='',
@@ -688,12 +704,9 @@ def _report_info(x, plots, title='', summary_data=PKDict()):
         y_range=template_common.compute_plot_color_and_range(plots),
         summaryData=summary_data,
     )
+    res.update(fields)
+    return res
 
-def _set_index_within_cols(col_info, idx):
-    idx = int(idx or 0)
-    if idx >= len(col_info.names):
-        idx = 1
-    return idx
 
 def _update_range(vrange, values):
     minv = min(values)
@@ -708,7 +721,7 @@ def _update_range(vrange, values):
         vrange[1] = maxv
 
 
-def _write_report(x, plots, title='', summary_data=PKDict()):
+def _write_report(x, plots, title='', fields=PKDict(), summary_data=PKDict()):
     template_common.write_sequential_result(_report_info(
-        x, plots, title, summary_data=summary_data
+        x, plots, title, fields=fields, summary_data=summary_data
     ))
