@@ -169,7 +169,6 @@ angular.element(document).ready(function() {
             mods = mods.concat(SIREPO.APP_SCHEMA.dynamicModules[type] || []);
         }
         mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []);
-        mods = mods.concat();
         return $.map(mods, loadDynamicModule);
     }
 
