@@ -14,7 +14,7 @@ angular.element(document).ready(function() {
     for (let d of SIREPO.PLOT_DIRECTIVES) {
         SIREPO.PANELS[d].addWatermark = function(authState) {
             if (! authState.isPremiumUser()) {
-                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.BLOCKS.watermark);
+                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
             }
         };
     }
@@ -314,7 +314,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
 
         addWatermark: function() {
             if (! authState.isPremiumUser()) {
-                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.BLOCKS.watermark);
+                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
             }
         },
 

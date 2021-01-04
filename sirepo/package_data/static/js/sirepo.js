@@ -52,7 +52,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
     });
 };
 
-SIREPO.BLOCKS = {};
+SIREPO.SNIPPETS = {};
 SIREPO.PANELS = {};
 
 SIREPO.viewLogic = function(name, init) {
@@ -131,7 +131,7 @@ angular.element(document).ready(function() {
             val = res.responseText;
         }, function (res) {
             if (status === 200) {
-                SIREPO.BLOCKS[b.name] = val;
+                SIREPO.SNIPPETS[b.name] = val;
                 if (b.blockType === 'panel') {
                     buildPanel(b.name, val);
                 }
