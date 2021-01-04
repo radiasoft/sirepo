@@ -586,6 +586,7 @@ def _auth_state():
         roles=[],
         userName=None,
         visibleMethods=visible_methods,
+        watermarkReports=sirepo.feature_config.cfg().gui.watermark_reports and not is_premium_user(),
     )
     if 'sbatch' in v.jobRunModeMap:
         v.sbatchQueueMaxes=job.NERSC_QUEUE_MAX

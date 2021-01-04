@@ -313,7 +313,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
         },
 
         addWatermark: function() {
-            if (! authState.isPremiumUser()) {
+            if (SIREPO.authState.watermarkReports) {
                 $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
             }
         },
