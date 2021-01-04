@@ -119,11 +119,18 @@ class SimData(sirepo.sim_data.SimDataBase):
         return cls._proprietary_code_rpm()
 
     @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir):
+        try:
+            super().sim_files_to_run_dir(data, run_dir)
+        except sirepo.sim_data.SimDbFileNotFound:
+            cls._flash_create_sim_files(data, run_dir)
+
+    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         return [r]
 
     @classmethod
-    def _create_sim_files(cls, data, run_dir):
+    def _flash_create_sim_files(cls, data, run_dir):
         import subprocess
         import sirepo.template.flash
 

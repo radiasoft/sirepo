@@ -89,7 +89,7 @@ class DriverBase(PKDict):
             _websocket_ready=sirepo.tornado.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
-        self._sim_db_file_key = sirepo.sim_db_file.get_key(self.uid)
+        self._sim_db_file_token = sirepo.sim_db_file.get_token(self.uid)
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
         pkdlog('{}', self)
@@ -220,7 +220,7 @@ class DriverBase(PKDict):
                     sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_KEY=self._sim_db_file_key,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get('_agent_start_delay', 0),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(

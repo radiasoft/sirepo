@@ -511,6 +511,8 @@ def new_simulation(data, new_simulation_data):
         data.models[name].update(_DEFAULT_VALUES[flash_type][name])
 
 
+# TODO(e-carlin): remove (and in GUI)
+# This fixes the run_dir missing for _generate_parameters_file
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 

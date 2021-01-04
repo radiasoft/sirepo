@@ -764,6 +764,16 @@ def user_path(uid=None, check=False):
     return d
 
 
+def validate_path(path_parts, uid):
+    with sirepo.auth.set_user(uid):
+        # TODO(e-carlin): handle more than sim files
+        assert '/'.join(path_parts[:-1]) in str(simulation_dir(path_parts[2], path_parts[3])), \
+            f'invaid path={path_parts}'
+        f = path_parts[-1]
+        assert not re.search(f'(?:^\.)|(?:\\|:)', f), \
+            f'invalid filename={f}'
+
+
 def validate_serial(req_data):
     """Verify serial in data validates
 

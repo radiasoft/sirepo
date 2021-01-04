@@ -231,14 +231,6 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def get_sim_file(cls, basename, data, run_dir, is_exe=False):
-        return cls._get_sim_db_file(
-            cls._sim_file_uri(basename, data),
-            run_dir,
-            is_exe=is_exe,
-        )
-
-    @classmethod
     def is_parallel(cls, data_or_model):
         """Is this report a parallel (long) simulation?
 
@@ -510,17 +502,13 @@ class SimDataBase(object):
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
-        c = False
         for b in cls._sim_file_basenames(data):
-            if not cls.get_sim_file(
-                    b.basename,
-                    data,
-                    run_dir,
-                    is_exe=b.get('is_exe', False),
-            ):
-                c = True
-        if c:
-            cls._create_sim_files(data, run_dir)
+            cls._sim_file_to_run_dir(
+                b.basename,
+                data,
+                run_dir,
+                is_exe=b.get('is_exe', False),
+            )
 
     @classmethod
     def sim_type(cls):
@@ -574,11 +562,6 @@ class SimDataBase(object):
         return analysis_model
 
     @classmethod
-    def _create_sim_files(cls, data, run_dir):
-        """Create sim files, send to the supervisor, move to run_dir"""
-        pass
-
-    @classmethod
     def _force_recompute(cls):
         """Random value to force a compute_job to recompute.
 
@@ -595,20 +578,6 @@ class SimDataBase(object):
         f = cls.schema().frameIdFields
         r = frame_args.frameReport
         return f[r] if r in f else f[cls.compute_model(r)]
-
-    @classmethod
-    def _get_sim_db_file(cls, uri, run_dir, is_exe=False):
-        import sirepo.simulation_db
-
-        p = run_dir.join(uri.split('/')[-1])
-        r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
-        if sirepo.util.requests_not_found(r):
-            return None
-        r.raise_for_status()
-        p.write_binary(r.content)
-        if is_exe:
-            p.chmod(cls._EXE_PERMISSIONS)
-        return p
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
@@ -725,14 +694,37 @@ class SimDataBase(object):
         ).raise_for_status()
 
     @classmethod
+    def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
+        p = run_dir.join(uri.split('/')[-1])
+        r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
+        if sirepo.util.requests_not_found(r):
+            raise SimDbFileNotFound(f'path={p} not found')
+        r.raise_for_status()
+        p.write_binary(r.content)
+        if is_exe:
+            p.chmod(cls._EXE_PERMISSIONS)
+        return p
+
+    @classmethod
     def _sim_file_basenames(cls, data):
         return []
+
+    @classmethod
+    def _sim_file_to_run_dir(cls, basename, data, run_dir, is_exe=False):
+        return cls._sim_db_file_to_run_dir(
+            cls._sim_file_uri(basename, data),
+            run_dir,
+            is_exe=is_exe,
+        )
 
     @classmethod
     def _sim_file_uri(cls, basename, data):
         # TODO(e-carlin): Better abstraction
         return f'{cls.sim_type()}/{data.models.simulation.simulationId}/{basename}'
 
+class SimDbFileNotFound(Exception):
+    """A sim db file could not be found"""
+    pass
 
 def split_jid(jid):
     """Split jid into named parts
@@ -757,7 +749,7 @@ def _init():
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
         supervisor_sim_db_file_uri=(None, str, 'where to get/put simulation db files from/to supervisor'),
-        supervisor_sim_db_file_key=(None, str, 'key for supervisor simulation file access'),
+        supervisor_sim_db_file_token=(None, str, 'token for supervisor simulation file access'),
     )
 
 
@@ -768,7 +760,7 @@ def _request(method, uri, data=None):
         data=data,
         verify=sirepo.job.cfg.verify_tls,
         headers=PKDict({
-                sirepo.job.AUTH_HEADER: f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} {cfg.supervisor_sim_db_file_key}',
+                sirepo.job.AUTH_HEADER: f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} {cfg.supervisor_sim_db_file_token}',
             })
     )
 
