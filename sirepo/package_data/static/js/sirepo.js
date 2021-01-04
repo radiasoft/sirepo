@@ -118,26 +118,25 @@ angular.element(document).ready(function() {
         return d.promise();
     }
 
-    function loadBlock(b) {
+    function loadSnippet(b) {
         let val = null;
-        let status = 500;
+        let ok = false;
         return loadFromPath(b.path, b.fileType, function (res) {
             val = res;
-            status = 200;
+            ok = true;
         }, function(res) {
             // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
             // However we can get a successful read anyway; if so assign the response text
-            status = res.status;
+            ok = res.status == 200;
             val = res.responseText;
         }, function (res) {
-            if (status === 200) {
-                SIREPO.SNIPPETS[b.name] = val;
-                if (b.blockType === 'panel') {
-                    buildPanel(b.name, val);
-                }
-                return;
+            if (! ok) {
+                throw new Error(`${status}: Failed to load block ${b.name}`);
             }
-            throw new Error(`${status}: Failed to load block ${b.name}`);
+            SIREPO.SNIPPETS[b.name] = val;
+            if (b.snippetType === 'panel') {
+                buildPanel(b.name, val);
+            }
         });
     }
 
@@ -172,8 +171,8 @@ angular.element(document).ready(function() {
         return $.map(mods, loadDynamicModule);
     }
 
-    function loadBlocks() {
-        return $.map(SIREPO.APP_SCHEMA.blocks || [], loadBlock);
+    function loadSnippets() {
+        return $.map(SIREPO.APP_SCHEMA.blocks || [], loadSnippet);
     }
 
     $.ajax({
@@ -183,7 +182,7 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            $.when.apply($, loadDynamicModules(), loadBlocks()).then(
+            $.when.apply($, loadDynamicModules(), loadSnippets()).then(
                 function() {
                     angular.bootstrap(document, ['SirepoApp']);
                 }
