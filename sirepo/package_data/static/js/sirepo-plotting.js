@@ -14,7 +14,7 @@ angular.element(document).ready(function() {
     for (let d of SIREPO.PLOT_DIRECTIVES) {
         SIREPO.PANELS[d].addWatermark = function(authState) {
             if (! authState.isPremiumUser()) {
-                $('svg.sr-plot').find('g.radia-watermark-group').append(SIREPO.BLOCKS.watermark);
+                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.BLOCKS.watermark);
             }
         };
     }
@@ -314,7 +314,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
 
         addWatermark: function(authState) {
             if (! authState.isPremiumUser()) {
-                $('svg.sr-plot').find('g.radia-watermark-group').append(SIREPO.BLOCKS.watermark);
+                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.BLOCKS.watermark);
             }
         },
 
@@ -792,7 +792,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
         },
 
         setWatermarkPosition: function (jqueryElement, x, y) {
-            let wm = jqueryElement.find('svg.radia-watermark-icon');
+            let wm = jqueryElement.find('svg.rs-watermark-icon');
             wm.attr('x', x);
             wm.attr('y', y);
         },
