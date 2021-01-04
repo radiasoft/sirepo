@@ -14,9 +14,7 @@ import sirepo.simulation_db
 import sirepo.tornado
 import tornado.web
 
-# TODO(e-carlin): rename key to token
 _TOKEN_TO_UID = PKDict()
-
 
 
 class FileReq(tornado.web.RequestHandler):

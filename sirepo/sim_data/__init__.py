@@ -185,13 +185,6 @@ class SimDataBase(object):
         return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
-    def dot_local_path(cls, subdir):
-        v = set(('src', 'share'))
-        assert subdir in v, \
-            f'subdir {subdir} not known {v}'
-        return pkio.py_path(f'/home/vagrant/.local/{subdir}/').join(cls.sim_type())
-
-    @classmethod
     def fixup_old_data(cls, data):
         """Update model data to latest schema
 
@@ -719,8 +712,12 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_file_uri(cls, basename, data):
-        # TODO(e-carlin): Better abstraction
         return f'{cls.sim_type()}/{data.models.simulation.simulationId}/{basename}'
+
+    @classmethod
+    def _sim_src_tarball_path(cls):
+        return cfg.user_data_dir.join(cls.sim_type(), f'{cls.sim_type()}.tar.gz')
+
 
 class SimDbFileNotFound(Exception):
     """A sim db file could not be found"""
@@ -750,6 +747,7 @@ def _init():
         lib_file_uri=(None, str, 'where to get files from when remote'),
         supervisor_sim_db_file_uri=(None, str, 'where to get/put simulation db files from/to supervisor'),
         supervisor_sim_db_file_token=(None, str, 'token for supervisor simulation file access'),
+        user_data_dir=('/home/vagrant/.local/share', pkio.py_path, 'dir for installed user files'),
     )
 
 

@@ -134,8 +134,25 @@ class SimData(sirepo.sim_data.SimDataBase):
         import subprocess
         import sirepo.template.flash
 
-        # TODO(e-carlin): get src in run_dir and compile in run_dir
-        s = cls.dot_local_path('src')
+        subprocess.check_output(
+            "rpm2cpio '{}' | cpio --extract --make-directories".format(
+                cls.lib_file_abspath(cls.proprietary_code_rpm()),
+            ),
+            cwd='/',
+            #SECURITY: No user defined input in cmd so shell=True is ok
+            shell=True,
+            stderr=subprocess.STDOUT,
+        )
+        subprocess.check_output(
+            'tar --extract --file={} --directory={}'.format(
+                cls._sim_src_tarball_path(),
+                run_dir,
+            ),
+            #SECURITY: No user defined input in cmd so shell=True is ok
+            shell=True,
+            stderr=subprocess.STDOUT,
+        )
+        s = run_dir.join(cls.sim_type())
         t = s.join(data.models.simulation.flashType)
         with run_dir.join(template_common.COMPILE_LOG).open('w') as log:
             k = PKDict(

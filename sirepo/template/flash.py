@@ -685,26 +685,9 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
-def _extract_rpm(data):
-    import subprocess
-
-    if _SIM_DATA.dot_local_path('src').exists():
-       return
-    subprocess.check_output(
-        "rpm2cpio '{}' | cpio --extract --make-directories".format(
-            _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),
-        ),
-        cwd='/',
-        #SECURITY: No user defined input in cmd so shell=True is ok
-        shell=True,
-        stderr=subprocess.STDOUT,
-    )
-
-
 def _generate_parameters_file(data, run_dir=None):
     if not run_dir:
         run_dir = pkio.py_path()
-    _extract_rpm(data)
     res = ''
     names = {}
 
