@@ -54,7 +54,7 @@
                 <g ng-switch-when="drift"></g>
                 <g ng-switch-when="aperture"></g>
                 <g ng-switch-when="zeroLength"></g>
-                <rect ng-switch-default="" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: {{ ::item.width / 50.0 }}"><title>{{ ::item.title }}</title></rect>
+                <rect ng-switch-default="" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: {{ ::item.width / 50.0 }}; opacity: {{ ::item.opacity || 1 }};"><title>{{ ::item.title }}</title></rect>
               </g>
             </g>
           </g>

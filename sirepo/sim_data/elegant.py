@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
 from sirepo.template.lattice import LatticeUtil
+import re
 import sirepo.sim_data
 
 
@@ -29,6 +30,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in dm.commands:
             cls.update_model_defaults(m, 'command_{}'.format(m._type))
         cls._organize_example(data)
+        from sirepo.template.elegant import OutputFileIterator
+        LatticeUtil.fixup_output_files(data, s, OutputFileIterator(True))
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

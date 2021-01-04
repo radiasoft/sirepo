@@ -498,7 +498,7 @@ class LatticeParser(object):
 
 
 class LatticeUtil(object):
-
+    _OUTPUT_NAME_PREFIX = 'elementAnimation'
     _FILE_ID_SEP = '-'
 
     """Utility class for generating lattice elements, beamlines and commands.
@@ -525,6 +525,39 @@ class LatticeUtil(object):
     @classmethod
     def file_id(cls, model_id, field_index):
         return f'{model_id}{LatticeUtil._FILE_ID_SEP}{field_index}'
+
+    @classmethod
+    def file_id_from_output_model_name(cls, name):
+        return re.sub(cls._OUTPUT_NAME_PREFIX, '', name)
+
+    @classmethod
+    def fixup_output_files(cls, data, schema, output_file_iterator):
+        # if new model fields are added to the schema,
+        # the output file id may be invalid, fixup original by filename
+        v = LatticeUtil(data, schema).iterate_models(output_file_iterator).result
+        remove_list = []
+        add_list = {}
+        for m in data.models:
+            if not cls.__is_output_model_name(m):
+                continue
+            if cls.file_id_from_output_model_name(m) in v:
+                continue
+            file_id = None
+            if 'xFile' in data.models[m]:
+                for k in v:
+                    if v[k] == data.models[m].xFile:
+                        file_id = k
+                        break
+            if file_id:
+                name = cls.output_model_name(file_id)
+                if name not in data.models:
+                    add_list[name] = data.models[m]
+                    data.models[m].xFileId = file_id
+            remove_list.append(m)
+        for m in remove_list:
+            del data.models[m]
+        for m in add_list:
+            data.models[m] = add_list[m]
 
     @classmethod
     def is_command(cls, model):
@@ -566,6 +599,10 @@ class LatticeUtil(object):
         """
         return LatticeParser._format_command(model._type) if cls.is_command(model) \
             else model.type
+
+    @classmethod
+    def output_model_name(cls, file_id):
+        return '{}{}'.format(cls._OUTPUT_NAME_PREFIX, file_id)
 
     def render_lattice(self, fields, quote_name=False, want_semicolon=False, want_name=True, want_var_assign=False):
         """Render lattice elements.
@@ -647,6 +684,10 @@ class LatticeUtil(object):
                     res[cmd._id] = cmd
         max_id = max(res.keys()) if res else 0
         return res, max_id
+
+    @classmethod
+    def __is_output_model_name(cls, name):
+        return cls._OUTPUT_NAME_PREFIX in name
 
     def __render_beamline(self, quote_name=False, want_semicolon=False, want_var_assign=False):
         """Render the beamlines list in precedence order.

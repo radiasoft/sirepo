@@ -168,7 +168,7 @@ def generate_field_report(data, run_dir, args=None):
 
 
 def get_application_data(data, **kwargs):
-    if 'method' in data and data['method'] == 'compute_simulation_steps':
+    if data.method == 'compute_simulation_steps':
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
         if field_file.exists():
@@ -180,7 +180,7 @@ def get_application_data(data, **kwargs):
                     'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
         return {}
-    if 'polys' in data:
+    if data.method == 'save_stl_polys' and 'polys' in data:
         _save_stl_polys(data)
         return {}
     raise RuntimeError('unknown application data method: {}'.format(data['method']))

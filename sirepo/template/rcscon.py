@@ -233,7 +233,6 @@ def _generate_elegant_simulation(data):
             vars_by_name[f] = data.models[m][f]
     data.models.rpnVariables = [PKDict(name=n, value=v) for n,v in vars_by_name.items()]
     data.models.simulation.update(
-        backtracking='0',
         simulationMode='serial',
     )
     from sirepo.template import elegant

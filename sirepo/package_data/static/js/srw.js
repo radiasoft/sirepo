@@ -618,20 +618,25 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
                 ];
             }
             var p = propagation[beamline[i].id];
-            if (beamline[i].type == 'grating' || beamline[i].type == 'crystal'){
-                p[0][12] = beamline[i].outoptvx;
-                p[0][13] = beamline[i].outoptvy;
-                p[0][14] = beamline[i].outoptvz;
-                p[0][15] = beamline[i].outframevx;
-                p[0][16] = beamline[i].outframevy;
-            }
-            if (beamline[i].type != 'watch') {
+
+            if (beamline[i].type != 'watch' && beamline[i].type != 'grating' && beamline[i].type != 'crystal') {
                 self.propagations.push({
                     item: beamline[i],
                     title: beamline[i].title,
                     params: p[0],
+                    defaultparams: [p[0][12], p[0][13], p[0][14], p[0][15], p[0][16] ],
                 });
             }
+
+            if (beamline[i].type != 'watch' && (beamline[i].type == 'grating' || beamline[i].type == 'crystal')) {
+                self.propagations.push({
+                    item: beamline[i],
+                    title: beamline[i].title,
+                    params: p[0],
+                    defaultparams: [beamline[i].outoptvx, beamline[i].outoptvy, beamline[i].outoptvz, beamline[i].outframevx, beamline[i].outframevy],
+                });
+            }
+
             if (i == beamline.length - 1) {
                 break;
             }
@@ -640,6 +645,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
                 self.propagations.push({
                     title: 'Drift ' + srwService.formatFloat4(d) + 'm',
                     params: p[1],
+                    defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16] ],
                 });
             }
         }
@@ -1879,6 +1885,7 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
             param: '=',
             paramInfo: '=',
             disabled: '=',
+            prop: '='
         },
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
@@ -1886,11 +1893,22 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
               '<select data-ng-switch-when="WavefrontShiftTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::wavefrontShiftTreatmentEnum"></select>',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
+              '<button class="btn btn-default btn-xs" data-ng-disabled="disabled" data-ng-switch-when="Button" data-ng-model="param[paramInfo.fieldIndex]" data-ng-click="resetDefault()"><span class="glyphicon glyphicon-repeat"> </span></button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
             $scope.wavefrontShiftTreatmentEnum = SIREPO.APP_SCHEMA.enum.WavefrontShiftTreatment;
+            $scope.resetDefault = function() {
+               // This is hard coded Param index for Orientation Table
+               if ($scope.prop && $scope.prop.hasOwnProperty("defaultparams")) {
+                 $scope.param[12] = $scope.prop.defaultparams[0];
+                 $scope.param[13] = $scope.prop.defaultparams[1];
+                 $scope.param[14] = $scope.prop.defaultparams[2];
+                 $scope.param[15] = $scope.prop.defaultparams[3];
+                 $scope.param[16] = $scope.prop.defaultparams[4];
+               }
+             };
         },
     };
 });
@@ -1939,7 +1957,7 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
             $scope.parametersBySection = [
                 [3, 4, 5, 6, 7, 8],
                 [0, 1, 2],
-                [12, 13, 14, 15, 16],
+                [12, 13, 14, 15, 16, 17],
                 [9,10,11],
             ];
 
@@ -1987,13 +2005,13 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                   '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop)}" >',
                     '<td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="prop.params" data-param-info="paramInfo" data-disabled="isControlDisabledForProp(prop)"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-prop="prop" data-param="prop.params" data-param-info="paramInfo" data-row-index="$index" data-disabled="isControlDisabledForProp(prop)"></div>',
                     '</td>',
                   '</tr>',
                   '<tr class="warning">',
                     '<td class="input-sm">Final post-propagation</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
+                      '<div data-propagation-parameter-field-editor="" data-prop="prop" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
                     '</td>',
                   '</tr>',
                 '</tbody>',
@@ -2034,6 +2052,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                 var p = prop ? (prop.params || []) : [];
                 return $scope.isControlDisabledForParams(p);
             };
+            $scope.isPostPropagationDisabled = function() { return true; };
             $scope.isControlDisabledForParams = function(params) {
                 if (params[$scope.propTypeIndex] == 0) {
                     return false;

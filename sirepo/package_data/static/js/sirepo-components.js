@@ -2331,7 +2331,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>',
                     '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
-                    '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>',
+                    '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey(\'simulationSource\') }}</a></li>',
                     '<li data-ng-if="::canExportJupyter()"><a href data-ng-click="exportJupyterNotebook()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>',
                     '<li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
@@ -2569,19 +2569,23 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
     return {
         restrict: 'A',
         template: [
-            '<div class="row text-center">',
-            '<p>Please enter your full name to complete your Sirepo registration.</p>',
-            '</div>',
             '<form class="form-horizontal" autocomplete="off" novalidate>',
-              '<div class="row text-center">',
+              '<div class="form-group">',
+                '<div class="col-sm-offset-3 col-sm-10">',
+                  '<p>Please enter your full name to complete your Sirepo registration.</p>',
+                '</div>',
+              '</div>',
+              '<div class="form-group">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
                   '<input name="displayName" class="form-control" data-ng-model="loginConfirm.data.displayName" required/>',
                   '<div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>',
                 '</div>',
               '</div>',
-              '<div class="row text-center" style="margin-top: 10px">',
+              '<div class="form-group">',
+                '<div class="col-sm-offset-3 col-sm-10">',
                  '<button data-ng-click="loginConfirm.submit()" class="btn btn-primary" data-ng-disabled="! loginConfirm.data.displayName">Submit</button>',
+                '</div>',
               '</div>',
             '</form>',
         ].join(''),
@@ -2593,19 +2597,27 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="row text-center">',
-              '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
+            '<div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">',
+            'We\'re improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.',
             '</div>',
             '<form class="form-horizontal" autocomplete="off" novalidate>',
-              '<div class="row text-center">',
-                '<label class="col-sm-3 control-label">Your Email</label>',
-                '<div class="col-sm-9">',
+              '<div class="form-group">',
+                '<div class="col-sm-offset-2 col-sm-10">',
+                  '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
+                '</div>',
+              '</div>',
+              '<div class="form-group">',
+                '<label class="col-sm-2 control-label">Your Email</label>',
+                '<div class="col-sm-10">',
                   '<input type="text" class="form-control" data-ng-model="data.email" required/>',
                   '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
                 '</div>',
               '</div>',
-              '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
+              '<div class="form-group">',
+                '<div class="col-sm-offset-2 col-sm-10">',
+                  '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
+                  '<p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>',
+                '</div>',
               '</div>',
             '</form>',
             '<div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">',
@@ -2625,7 +2637,9 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                     $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
                 }
             }
+
             $scope.data = {};
+            $scope.isJupyterhub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
