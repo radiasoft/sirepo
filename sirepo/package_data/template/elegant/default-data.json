@@ -56,6 +56,7 @@
             {
                 "_id": 4,
                 "_type": "twiss_output",
+                "matched": "0",
                 "filename": "1"
             },
             {
@@ -83,7 +84,6 @@
         "rpnCache": {},
         "rpnVariables": [],
         "simulation": {
-            "backtracking": "0",
             "documentationUrl": "",
             "folder": "/",
             "name": "Example",

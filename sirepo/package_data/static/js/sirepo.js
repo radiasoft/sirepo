@@ -3438,7 +3438,7 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
 
 SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $sce, $scope) {
     var self = this;
-
+    self.stringsService = stringsService;
     $rootScope.$broadcast('simulationUnloaded');
     var n = appState.clone(SIREPO.APP_SCHEMA.notifications.getStarted);
     const s = SIREPO.APP_SCHEMA.strings;

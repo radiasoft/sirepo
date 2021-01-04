@@ -42,7 +42,7 @@
     },
     "frameIdFields": {
         "animation": ["id"],
-        "wavefrontSummaryAnimation": []
+        "wavefrontSummaryAnimation": ["element"]
     },
     "model": {
         "crystal": {
@@ -70,6 +70,7 @@
             "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30]
         },
         "wavefrontSummaryAnimation": {
+            "element": ["Beamline Element", "SelectElement", "all"]
         },
         "wavefrontAnimation": {
             "position": ["Position", "Float", 0]
@@ -129,7 +130,9 @@
         },
         "wavefrontSummaryAnimation": {
             "title": "Wavefront Summary",
-            "advanced": []
+            "advanced": [
+                "element"
+            ]
         }
     }
 }

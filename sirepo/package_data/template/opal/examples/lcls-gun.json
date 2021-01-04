@@ -282,7 +282,7 @@
                 "interpl": "LINEAR",
                 "itsolver": "CG",
                 "maxiters": 100,
-                "mt": 32,
+                "mt": 14,
                 "mx": 8,
                 "my": 8,
                 "name": "FS_SC",
@@ -603,22 +603,6 @@
             "y2": "#varepsilon y",
             "y3": "#varepsilon z"
         },
-        "rpnCache": {
-            "(Edes + EMASS) / EMASS": 1.0000027397318179,
-            "250.0*1e-12": 2.5e-10,
-            "Edes": 1.4e-09,
-            "P0": 1.1961600796052967e-06,
-            "SFB": 0.243,
-            "beam_bunch_charge": 2.5e-10,
-            "beam_current": 713999625,
-            "beta": 0.00234082060771566,
-            "gamma": 1.0000027397318179,
-            "gamma * beta * EMASS": 1.1961600796052967e-06,
-            "n_particles": 10000,
-            "rf_freq": 2855998500000,
-            "rf_freq*beam_bunch_charge*1e6": 713999625,
-            "sqrt(1 - (1 / pow(gamma, 2)))": 0.00234082060771566
-        },
         "rpnVariables": [
             {
                 "name": "beam_bunch_charge",
@@ -642,7 +626,7 @@
             },
             {
                 "name": "n_particles",
-                "value": 10000
+                "value": 1000
             },
             {
                 "name": "P0",

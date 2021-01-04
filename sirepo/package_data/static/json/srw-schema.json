@@ -399,11 +399,16 @@
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
-            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
+            "rotateAngle": ["Rotation Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "useIntensityLimits": ["Use Intensity Limits", "Boolean", "0"],
-            "minIntensityLimit": ["Minimum Intensity", "Float", 0],
-            "maxIntensityLimit": ["Maximum Intensity", "Float", 1e30],
+            "minIntensityLimit": ["Lower Limit", "Float", 0],
+            "maxIntensityLimit": ["Upper Limit", "Float", 1e30],
+            "usePlotRange": ["Adjust Range", "Boolean", "0"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 1, "", 1e-99],
+            "verticalSize": ["Vertical Size [mm]", "Float", 1, "", 1e-99],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "notes": ["Notes", "Text", ""]
         },
         "aperture": {
@@ -789,7 +794,8 @@
             "13": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
             "14": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nLongitudinal Coordinate", "Float", 0],
             "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
-            "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0]
+            "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
+            "17": ["Set Nominal Values", "Button", "1"]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
@@ -990,14 +996,23 @@
         "_INTENSITY_REPORT": {
             "basic": [],
             "advanced": [
-                ["Scale", [
+                ["View", [
                     "intensityPlotsWidth",
                     "plotScale",
                     "useIntensityLimits",
                     "minIntensityLimit",
-                    "maxIntensityLimit"
-                ]],
-                ["Rotation", [
+                    "maxIntensityLimit",
+                    "usePlotRange",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ],
                     "rotateAngle",
                     "rotateReshape"
                 ]],

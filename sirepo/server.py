@@ -389,11 +389,12 @@ def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
     req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and req.sim_data.parse_model(model)
     d = simulation_db.read_simulation_json(req.type, sid=req.id)
+    suffix = simulation_db.get_schema(simulation_type).constants.simulationSourceExtension
     return http_reply.gen_file_as_attachment(
         req.template.python_source_for_model(d, m),
         '{}.{}'.format(
             d.models.simulation.name + ('-' + title if title else ''),
-            'madx' if m == 'madx' else 'py',
+            'madx' if m == 'madx' else suffix,
         ),
     )
 

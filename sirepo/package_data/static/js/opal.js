@@ -369,6 +369,10 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 
     appState.whenModelsLoaded($scope, function() {
         var cmd = commandService.findFirstCommand('track');
+        if (! cmd.line) {
+            cmd.line = appState.models.simulation.activeBeamlineId;
+            appState.saveQuietly('commands');
+        }
         var name = commandService.commandModelName(cmd._type);
         appState.models[name] = appState.clone(cmd);
         appState.applicationState()[name] = appState.cloneModel(name);

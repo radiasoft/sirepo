@@ -3054,6 +3054,10 @@ SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plo
             };
 
             $scope.load = function(json) {
+                if (! json.z_matrix) {
+                    //TODO(pjm): plot may be loaded with { state: 'canceled' }?
+                    return;
+                }
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = appState.clone(json.z_matrix).reverse();
@@ -3404,6 +3408,10 @@ SIREPO.app.directive('parameterPlot', function(appState, authState, focusPointSe
             };
 
             $scope.load = function(json) {
+                if (! json.plots && ! json.points) {
+                    //TODO(pjm): plot may be loaded with { state: 'canceled' }?
+                    return;
+                }
                 $scope.firstRefresh = true;
                 //TODO(pjm): move first part into normalizeInput()
                 childPlots = {};
