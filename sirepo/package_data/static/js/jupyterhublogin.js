@@ -17,7 +17,6 @@ SIREPO.app.controller('JupyterhubMigrateController', function(authState, jupyter
 
 SIREPO.app.controller('NameConflictController', function(requestSender, jupyterhubloginService, $route, $scope) {
     const self = this;
-    self.isMigration = $route.current.params.isMigration;
 
     self.noMigration = function() {
         jupyterhubloginService.doMigration(false);
