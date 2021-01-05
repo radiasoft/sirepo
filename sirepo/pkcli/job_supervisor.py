@@ -111,7 +111,6 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ["POST"]
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
@@ -187,7 +186,6 @@ def _sigterm(signum, frame):
 
 
 class _DataFileReq(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ["PUT"]
 
     async def put(self, path):
         # should be exactly two levels

@@ -18,7 +18,11 @@ _TOKEN_TO_UID = PKDict()
 
 
 class FileReq(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ['GET','PUT']
+
+    def delete(self, path):
+        self.__validate_req()
+        for f in pkio.sorted_glob(sirepo.srdb.root().join(path + '*')):
+            pkio.unchecked_remove(f)
 
     def get(self, path):
         self.__validate_req()

@@ -17,7 +17,7 @@ import sirepo.util
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    FLASH_EXE_PREFIX = 'flash'
+    _FLASH_EXE_PREFIX = 'flash_exe'
     _FLASH_FILE_NAME_SEP = '-'
     _FLASH_SETUP_UNITS_PREFIX = 'setup_units'
 
@@ -104,15 +104,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def flash_exe_basename(cls, data):
-        return cls.flash_file_basename(cls.FLASH_EXE_PREFIX, data)
-
-    @classmethod
-    def flash_file_basename(cls, prefix, data):
-        return f'{prefix}{cls._FLASH_FILE_NAME_SEP}{cls._flash_file_hash(data)}'
+        return cls._flash_file_basename(
+            cls._FLASH_EXE_PREFIX,
+            data,
+        )
 
     @classmethod
     def flash_setup_units_basename(cls, data):
-        return cls.flash_file_basename(cls._FLASH_SETUP_UNITS_PREFIX, data)
+        return cls._flash_file_basename(cls._FLASH_SETUP_UNITS_PREFIX, data)
 
     @classmethod
     def proprietary_code_rpm(cls):
@@ -168,13 +167,22 @@ class SimData(sirepo.sim_data.SimDataBase):
                 setup_units=cls.flash_setup_units_basename(data),
         ).items():
             p = t.join(c)
+            cls.delete_sim_file(cls._flash_file_prefix(b), data)
             cls.put_sim_file(p, b, data)
             p.move(run_dir.join(b))
 
     @classmethod
+    def _flash_file_basename(cls, prefix, data):
+        return f'{prefix}{cls._FLASH_FILE_NAME_SEP}{cls._flash_file_hash(data)}'
+
+    @classmethod
     def _flash_file_hash(cls, data):
-        # TODO(e-carlin): hash fields related to compilation params
-        return '123'
+        # TODO(e-carlin): hash fields related to compilation parameters
+        return sirepo.util.url_safe_hash(data.models.simulation.flashType)
+
+    @classmethod
+    def _flash_file_prefix(cls, basename):
+        return basename.split(cls._FLASH_FILE_NAME_SEP)[0]
 
     @classmethod
     def _lib_file_basenames(cls, data):

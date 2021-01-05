@@ -10,7 +10,9 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import asyncio
+import base64
 import concurrent.futures
+import hashlib
 import inspect
 import numconv
 import pykern.pkinspect
@@ -151,9 +153,6 @@ def convert_exception(exception, display_text='unexpected error'):
 
 
 def create_token(value):
-    import hashlib
-    import base64
-
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
         v = base64.b32encode(
             hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest())
@@ -237,6 +236,14 @@ def setattr_imports(imports):
 def split_comma_delimited_string(s, f_type):
     import re
     return [f_type(x) for x in re.split(r'\s*,\s*', s)]
+
+
+def url_safe_hash(value):
+    return pkcompat.from_bytes(
+        base64.urlsafe_b64encode(
+            hashlib.md5(pkcompat.to_bytes(value)).digest()),
+    ).rstrip('=')
+
 
 
 def _raise(exc, fmt, *args, **kwargs):

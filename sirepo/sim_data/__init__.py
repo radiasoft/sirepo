@@ -185,6 +185,10 @@ class SimDataBase(object):
         return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
+    def delete_sim_file(cls, basename, data):
+        return cls._delete_sim_db_file(cls._sim_file_uri(basename, data))
+
+    @classmethod
     def fixup_old_data(cls, data):
         """Update model data to latest schema
 
@@ -571,6 +575,13 @@ class SimDataBase(object):
         f = cls.schema().frameIdFields
         r = frame_args.frameReport
         return f[r] if r in f else f[cls.compute_model(r)]
+
+    @classmethod
+    def _delete_sim_db_file(cls, uri):
+        _request(
+            'DELETE',
+            cfg.supervisor_sim_db_file_uri + uri,
+        ).raise_for_status()
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
