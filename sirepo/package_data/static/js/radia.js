@@ -1213,7 +1213,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             $scope.download = function() {
                 var p = radiaService.selectedPath;
                 var f = p.name + ' ' + $scope.fieldType();
-                var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
+                var ext = $scope.tModel.exportType.toLowerCase();  //$scope.isFieldMap() ? 'sdds' : 'csv';
                 var fn = panelState.fileNameFromText(f, ext);
                 var ct = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
                 requestSender.getApplicationData(
@@ -1222,7 +1222,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         contentType: ct,
                         fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
-                        fileType: $scope.isFieldMap() ? 'sdds' : 'csv',
+                        fileType: $scope.tModel.exportType,  //$scope.isFieldMap() ? 'sdds' : 'csv',
                         method: 'save_field',
                         name: radiaService.selectedPath.name,
                         simulationId: appState.models.simulation.simulationId,
@@ -1238,6 +1238,10 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             $scope.fieldType = function() {
                 return $scope.isFieldMap() ? 'B' : $scope.tModel.type;
+            };
+
+            $scope.exportType = function() {
+                return $scope.tModel.exportType;
             };
 
             $scope.isFieldMap = function() {

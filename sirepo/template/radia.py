@@ -181,6 +181,7 @@ def get_application_data(data, **kwargs):
             f'{sim_id}_{res.name}.{data.fileType}'
         )
         # we save individual field paths, so there will be one item in the list
+        pkdp(f'SAVE FLD BA {data.beamAxis}')
         vectors = res.data[0].vectors
         if data.fileType == 'sdds':
             return _save_fm_sdds(
@@ -191,6 +192,13 @@ def get_application_data(data, **kwargs):
             )
         elif data.fileType == 'csv':
             return _save_field_csv(
+                data.fieldType,
+                vectors,
+                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                file_path
+            )
+        elif data.fileType == 'SRW':
+            return _save_field_srw(
                 data.fieldType,
                 vectors,
                 _BEAM_AXIS_ROTATIONS[data.beamAxis],
@@ -645,6 +653,26 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
         r = pts[j:j + 3]
         r = numpy.append(r, mags[i] * dirs[j:j + 3])
         data.append(','.join(map(str, r)))
+    pkio.write_text(path, '\n'.join(data))
+    return path
+
+
+# zip file - data plus index
+def _save_field_srw(field_type, vectors, scipy_rotation, path):
+    data = ['#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)']
+    # mm -> m, rotate so the beam axis is aligned with z
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
+    num_pts = len(pts) // 3
+    mags = numpy.array(vectors.magnitudes)
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
+    dims = ['X', 'Y', 'Z']
+    for j in range(len(dims)):
+        data.append(f'#{pts[j]} #initial {dims[j]} position [m]')
+        data.append(f'#{(pts[len(pts) - (len(dims) - j)] - pts[j]) / num_pts} #step of {dims[j]} [m]')
+        data.append(f'#{num_pts} #number of points vs {dims[j]}')
+    for i in range(len(mags)):
+        j = 3 * i
+        data.append('\t'.join(map(str, mags[i] * dirs[j:j + 3])))
     pkio.write_text(path, '\n'.join(data))
     return path
 
