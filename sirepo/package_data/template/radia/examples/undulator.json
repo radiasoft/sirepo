@@ -82,6 +82,7 @@
         },
         "simFolder": {},
         "simulation": {
+            "beamAxis": "y",
             "documentationUrl": "",
             "enableKickMaps": true,
             "folder": "/Examples",

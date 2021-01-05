@@ -45,6 +45,7 @@
         },
         "simFolder": {},
         "simulation": {
+            "beamAxis": "x",
             "documentationUrl": "",
             "enableKickMaps": false,
             "folder": "/Examples",
