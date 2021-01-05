@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "hasSimulationSource": false
+    },
     "enum": {
         "flashType": [
             ["CapLaserBELLA", "CapLaserBELLA"],
