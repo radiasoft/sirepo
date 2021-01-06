@@ -3530,7 +3530,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     self.hasSimulationSource = function() {
         return SIREPO.APP_SCHEMA.constants.hasSimulationSource;
-    }
+    };
 
     self.isActiveFolder = function(item) {
         return item == self.activeFolder;

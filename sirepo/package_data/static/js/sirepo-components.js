@@ -2377,7 +2377,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             $scope.hasSimulationSource = function() {
                 return SIREPO.APP_SCHEMA.constants.hasSimulationSource;
-            }
+            };
 
             $scope.simulationId = function () {
                 if (appState.isLoaded()) {
