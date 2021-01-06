@@ -51,13 +51,21 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.isEditing = false;
     self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
-    self.pointFieldExportTypes = ['csv', 'sdds', 'SRW'];
-    self.pf = {};
-    for (let t of self.pointFieldTypes) {
-        self.pf[t] = {
-
+    self.pointFieldExports = {
+        csv: {
+            contentType: 'text/csv;charset=utf-8',
+            extension: 'csv',
+        },
+        sdds: {
+            contentType: 'application/octet-stream',
+            extension: 'sdds',
+        },
+        SRW: {
+            contentType: 'application/zip',
+            extension: 'zip',
         }
-    }
+    };
+    self.pointFieldExportTypes = Object.keys(self.pointFieldExports);
 
     self.selectedObject = null;
 
@@ -1211,18 +1219,19 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             };
 
             $scope.download = function() {
-                var p = radiaService.selectedPath;
-                var f = p.name + ' ' + $scope.fieldType();
-                var ext = $scope.tModel.exportType.toLowerCase();  //$scope.isFieldMap() ? 'sdds' : 'csv';
-                var fn = panelState.fileNameFromText(f, ext);
-                var ct = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
+                let ct = radiaService.pointFieldExports[$scope.tModel.exportType].contentType;
+                let p = radiaService.selectedPath;
+                let f = p.name + ' ' + $scope.fieldType();
+                let ext = radiaService.pointFieldExports[$scope.tModel.exportType].extension;  //ct.toLowerCase();  //$scope.isFieldMap() ? 'sdds' : 'csv';
+                let fn = panelState.fileNameFromText(f, ext);
                 requestSender.getApplicationData(
                     {
                         beamAxis: appState.models.simulation.beamAxis,
                         contentType: ct,
                         fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
-                        fileType: $scope.tModel.exportType,  //$scope.isFieldMap() ? 'sdds' : 'csv',
+                        fileExt: ext,
+                        exportType: $scope.tModel.exportType,
                         gap: (appState.models.undulator || {}).gap || 0,
                         method: 'save_field',
                         name: radiaService.selectedPath.name,

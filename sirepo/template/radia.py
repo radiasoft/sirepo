@@ -182,26 +182,25 @@ def get_application_data(data, **kwargs):
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            f'{sim_id}_{res.name}.{data.fileType}'
+            f'{sim_id}_{res.name}.{data.fileExt}'
         )
         # we save individual field paths, so there will be one item in the list
-        pkdp(f'SAVE FLD BA {data.beamAxis}')
         vectors = res.data[0].vectors
-        if data.fileType == 'sdds':
+        if data.exportType == 'sdds':
             return _save_fm_sdds(
                 res.name,
                 vectors,
                 _BEAM_AXIS_ROTATIONS[data.beamAxis],
                 file_path
             )
-        elif data.fileType == 'csv':
+        elif data.exportType == 'csv':
             return _save_field_csv(
                 data.fieldType,
                 vectors,
                 _BEAM_AXIS_ROTATIONS[data.beamAxis],
                 file_path
             )
-        elif data.fileType == 'SRW':
+        elif data.exportType == 'SRW':
             return _save_field_srw(
                 data.fieldType,
                 data.gap,
@@ -675,6 +674,11 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 # zip file - data plus index.  This will likely be used to generate files for a range
 # of gaps later
 def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
+    import zipfile
+    data_path = path.dirpath().join(f'{path.purebasename}_{gap}.dat')
+    index_path = path.dirpath().join(f'{path.purebasename}_index.dat')
+    pkio.unchecked_remove(path, data_path, index_path)
+
     data = ['#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)']
     # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
@@ -689,15 +693,23 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     for i in range(len(mags)):
         j = 3 * i
         data.append('\t'.join(map(str, mags[i] * dirs[j:j + 3])))
-    pkio.write_text(path, '\n'.join(data))
+    pkio.write_text(data_path, '\n'.join(data))
 
     # index file
     data = [f'{gap}\tp1\t0\t{path.basename}\t1\t1']
-    index_path = path.dirpath().join(f'{path.purebasename}_index.dat')
     pkio.write_text(index_path, '\n'.join(data))
 
+    files = [data_path, index_path]
+
     # zip file
-    zip_path = index_path = path.dirpath().join(f'{path.purebasename}.zip')
+    with zipfile.ZipFile(
+        str(path),
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in files:
+            z.write(str(f), f.basename)
 
     return path
 
