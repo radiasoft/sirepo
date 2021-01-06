@@ -90,6 +90,11 @@
             "name": "Undulator",
             "notes": "",
             "outOfSessionSimulationId": ""
+        },
+        "undulator": {
+            "_super": "radiaObject",
+            "gap": 20.0,
+            "numPeriods": 2
         }
     },
     "simulationType": "radia"

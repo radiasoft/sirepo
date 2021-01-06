@@ -1223,6 +1223,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
                         fileType: $scope.tModel.exportType,  //$scope.isFieldMap() ? 'sdds' : 'csv',
+                        gap: (appState.models.undulator || {}).gap || 0,
                         method: 'save_field',
                         name: radiaService.selectedPath.name,
                         simulationId: appState.models.simulation.simulationId,

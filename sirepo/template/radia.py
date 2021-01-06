@@ -204,6 +204,7 @@ def get_application_data(data, **kwargs):
         elif data.fileType == 'SRW':
             return _save_field_srw(
                 data.fieldType,
+                data.gap,
                 vectors,
                 _BEAM_AXIS_ROTATIONS[data.beamAxis],
                 file_path
@@ -671,8 +672,9 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
     return path
 
 
-# zip file - data plus index
-def _save_field_srw(field_type, vectors, scipy_rotation, path):
+# zip file - data plus index.  This will likely be used to generate files for a range
+# of gaps later
+def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     data = ['#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)']
     # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
@@ -688,6 +690,15 @@ def _save_field_srw(field_type, vectors, scipy_rotation, path):
         j = 3 * i
         data.append('\t'.join(map(str, mags[i] * dirs[j:j + 3])))
     pkio.write_text(path, '\n'.join(data))
+
+    # index file
+    data = [f'{gap}\tp1\t0\t{path.basename}\t1\t1']
+    index_path = path.dirpath().join(f'{path.purebasename}_index.dat')
+    pkio.write_text(index_path, '\n'.join(data))
+
+    # zip file
+    zip_path = index_path = path.dirpath().join(f'{path.purebasename}.zip')
+
     return path
 
 
