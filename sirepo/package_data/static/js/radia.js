@@ -1239,9 +1239,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         viewType: 'fields',
                     },
                     function(d) {
-                        let b = new Blob([d], {type: ct});
-                        srdbg('got n bytes', b.size);
-                        saveAs(b, fn);
+                        saveAs(new Blob([d], {type: ct}), fn);
                         radiaService.showFieldDownload(false);
                     },
                     fn

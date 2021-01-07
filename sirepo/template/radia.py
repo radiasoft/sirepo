@@ -651,6 +651,17 @@ def _read_solution(sim_id):
     )
 
 
+# mm -> m, rotate so the beam axis is aligned with z
+def _rotate_fields(vectors, scipy_rotation, do_flatten):
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    mags = numpy.array(vectors.magnitudes)
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
+    if do_flatten:
+        dirs = dirs.flatten()
+        pts = pts.flatten()
+    return pts, mags, dirs
+
+
 def _rotate_flat_vector_list(vectors, scipy_rotation):
     return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
 
@@ -658,10 +669,7 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
     # reserve first line for a header
     data = [f'x,y,z,{field_type}x,{field_type}y,{field_type}z']
-    # mm -> m, rotate so the beam axis is aligned with z
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
-    mags = numpy.array(vectors.magnitudes)
-    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
+    pts, mags, dirs = _rotate_fields(vectors, scipy_rotation, True)
     for i in range(len(mags)):
         j = 3 * i
         r = pts[j:j + 3]
@@ -680,11 +688,8 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     pkio.unchecked_remove(path, data_path, index_path)
 
     data = ['#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)']
-    # mm -> m, rotate so the beam axis is aligned with z
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
+    pts, mags, dirs = _rotate_fields(vectors, scipy_rotation, True)
     num_pts = len(pts) // 3
-    mags = numpy.array(vectors.magnitudes)
-    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
     dims = ['X', 'Y', 'Z']
     for j in range(len(dims)):
         data.append(f'#{pts[j]} #initial {dims[j]} position [m]')
@@ -717,13 +722,10 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
 def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s = _get_sdds(_FIELD_MAP_COLS, _FIELD_MAP_UNITS)
     s.setDescription(f'Field Map for {name}', 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
-    # mm -> m
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    pts, mags, dirs = _rotate_fields(vectors, scipy_rotation, False)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
-    mag = vectors.magnitudes
-    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
-    v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
+    v = [mags[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
     col_data = []
     for i in range(3):
