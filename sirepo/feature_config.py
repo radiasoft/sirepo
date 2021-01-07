@@ -114,9 +114,7 @@ def _init():
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
             display_test_boxes=b('Display test boxes to visualize 3D -> 2D projections'),
         ),
-        gui=dict(
-            watermark_reports=(True, bool, 'Include radiasoft watermark on plots'),
-        ),
+        watermark_reports=(True, bool, 'Include radiasoft watermark on plots'),
     )
     s = set(
         _cfg.sim_types or (

@@ -13,7 +13,7 @@ SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 angular.element(document).ready(function() {
     for (let d of SIREPO.PLOT_DIRECTIVES) {
         SIREPO.PANELS[d].addWatermark = function(authState) {
-            if (! authState.isPremiumUser()) {
+            if (SIREPO.authState.watermarkReports) {
                 $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
             }
         };
