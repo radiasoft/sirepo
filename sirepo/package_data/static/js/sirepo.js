@@ -2071,11 +2071,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        t = {timeout: timeout.promise};
-        // quick workaround for binary data
-        if (data && data.contentType && data.contentType.indexOf('text') < 0) {
-            t.responseType = 'arraybuffer';
-        }
+        t = {
+            timeout: timeout.promise,
+            responseType: (data || {}).responseType || '',
+        };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
                 function () {

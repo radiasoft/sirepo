@@ -55,14 +55,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         csv: {
             contentType: 'text/csv;charset=utf-8',
             extension: 'csv',
+            responseType: '',
         },
         sdds: {
             contentType: 'application/octet-stream',
             extension: 'sdds',
+            responseType: '',
         },
         SRW: {
             contentType: 'application/zip',
             extension: 'zip',
+            responseType: 'arraybuffer',
         }
     };
     self.pointFieldExportTypes = Object.keys(self.pointFieldExports);
@@ -1219,10 +1222,11 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             };
 
             $scope.download = function() {
-                let ct = radiaService.pointFieldExports[$scope.tModel.exportType].contentType;
+                let pfe = radiaService.pointFieldExports[$scope.tModel.exportType];
+                let ct = pfe.contentType;
                 let p = radiaService.selectedPath;
                 let f = p.name + ' ' + $scope.fieldType();
-                let ext = radiaService.pointFieldExports[$scope.tModel.exportType].extension;  //ct.toLowerCase();  //$scope.isFieldMap() ? 'sdds' : 'csv';
+                let ext = pfe.extension;
                 let fn = panelState.fileNameFromText(f, ext);
                 requestSender.getApplicationData(
                     {
@@ -1235,6 +1239,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         gap: (appState.models.undulator || {}).gap || 0,
                         method: 'save_field',
                         name: radiaService.selectedPath.name,
+                        responseType: pfe.responseType,
                         simulationId: appState.models.simulation.simulationId,
                         viewType: 'fields',
                     },
