@@ -32,7 +32,7 @@ AGENT_URI = '/job-agent-websocket'
 AUTH_HEADER = 'Authorization'
 
 #: http auth header scheme bearer
-AUTH_HEADER_SCHEME_BEARER = 'Beaer'
+AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
 #: path supervisor registers to receive srtime adjustments from server
 SERVER_SRTIME_URI = '/job-api-srtime'
