@@ -683,8 +683,10 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 # of gaps later
 def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     import zipfile
-    data_path = path.dirpath().join(f'{path.purebasename}_{gap}.dat')
-    index_path = path.dirpath().join(f'{path.purebasename}_index.dat')
+    # no whitespace in filenames
+    base_name = re.sub(r'\s', '_', path.purebasename)
+    data_path = path.dirpath().join(f'{base_name}_{gap}.dat')
+    index_path = path.dirpath().join(f'{base_name}_sum.txt')
     pkio.unchecked_remove(path, data_path, index_path)
 
     data = ['#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)']
@@ -694,14 +696,14 @@ def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
     for j in range(len(dims)):
         data.append(f'#{pts[j]} #initial {dims[j]} position [m]')
         data.append(f'#{(pts[len(pts) - (len(dims) - j)] - pts[j]) / num_pts} #step of {dims[j]} [m]')
-        data.append(f'#{num_pts} #number of points vs {dims[j]}')
+        data.append(f'#{num_pts if j == len(dims) - 1 else 1} #number of points vs {dims[j]}')
     for i in range(len(mags)):
         j = 3 * i
         data.append('\t'.join(map(str, mags[i] * dirs[j:j + 3])))
     pkio.write_text(data_path, '\n'.join(data))
 
     # index file
-    data = [f'{gap}\tp1\t0\t{path.basename}\t1\t1']
+    data = [f'{gap}\tp1\t0\t{data_path.basename}\t1\t1']
     pkio.write_text(index_path, '\n'.join(data))
 
     files = [data_path, index_path]
