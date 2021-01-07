@@ -10,7 +10,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 import flask
 import py.error
-import random
 import re
 import sirepo.api_perm
 import sirepo.auth
@@ -29,7 +28,7 @@ cfg = None
 #: Used by auth_db. Sirepo record of each jupyterhub user.
 JupyterhubUser = None
 
-_HUB_USER_SEP = '_'
+_HUB_USER_SEP = '-'
 
 
 @sirepo.api_perm.require_user
@@ -93,17 +92,18 @@ def _create_user(github_handle=None):
       jupyter user: The user of new jupyter
 
     A few interesting cases to keep in mind:
-      1. User selects to migrate and they have old data. We should never
-         uniquify the user's github handle because the user dir is identified
-         and exists.
+      1. If a user is migrating (has a github handle) we should never modify
+         the handle and if they are able to migrate then their username should be
+         their github handle (downcased).
       2. User signs into sirepo under one@any.com. They migrate their data using
          GitHub handle y. They sign into sirepo under two@any.com. They choose
          to migrate GitHub handle y again. We should let them know that they
          have already migrated.
       3. one@any.com signs up for jupyter and does not migrate data. They are
          given the username one. two@any.com signs up for jupyter and they
-         migrate their data. They have the github handle one. They should be
-         alerted that they can't migrate that GitHub handle.
+         migrate their data, but they have no data to migrate. They have the
+         github handle one and no previous data. They should be alerted that
+         they can't migrate that GitHub handle.
       4. A new user signs in with foo@any.com and they do not select to
          migrate. There is an existing foo migration user which has not registered
          yet. We should uniquify the new user (foo_xyz) to ensure the name
@@ -113,46 +113,29 @@ def _create_user(github_handle=None):
         github_handle (str): The user's github handle
 
     """
-    def __existing_migration_user_new_jupyter_user():
-        return github_handle and _user_dir(user_name=github_handle).exists() \
-            and not JupyterhubUser.search_by(user_name=github_handle)
-
     def __user_name():
         n = github_handle or sirepo.auth.user_name()
-        assert n, 'must supply a name'
-        if __existing_migration_user_new_jupyter_user():
-            # TODO(e-carlin): If the new jupyter user changes their handle to be
-            # the handle of an existing but unmigrated migration user then the
-            # new jupyter user will get the data of the existing migration user.
-            # No way to protect against this.
-            return n
-        if not github_handle:
-            n = re.sub(
-                r'\W+',
-                _HUB_USER_SEP,
-                # Get the local part of the email. Or in the case of another auth
-                # method (ex github) it won't have an '@' so it will just be their
-                # user name, handle, etc.
-                n.split('@')[0],
-            )
-        if __user_name_exists(n) and not github_handle:
+        if github_handle:
+            if JupyterhubUser.search_by(user_name=github_handle) or \
+               not _user_dir(user_name=github_handle).exists():
+                raise sirepo.util.SRException(
+                    'jupyterNameConflict',
+                    PKDict(sim_type='jupyterhublogin'),
+                )
+            return github_handle
+        n = re.sub(
+            r'\W+',
+            _HUB_USER_SEP,
+            # Get the local part of the email. Or in the case of another auth
+            # method (ex github) it won't have an '@' so it will just be their
+            # user name, handle, etc.
+            n.split('@')[0],
+        ).lower()
+        if JupyterhubUser.search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
-        if __user_name_exists(n):
-            pkdlog('conflict with existing user_name={}', n)
-            raise sirepo.util.SRException(
-                'jupyterNameConflict',
-                PKDict(
-                    sim_type='jupyterhublogin',
-                    isMigration=bool(github_handle),
-                ),
-            )
         return n
-
-    def __user_name_exists(user_name):
-        return JupyterhubUser.search_by(user_name=user_name) \
-            or _user_dir(user_name=user_name).exists()
 
     with sirepo.auth_db.thread_lock:
         JupyterhubUser(
@@ -182,8 +165,7 @@ def _event_end_api_call(kwargs):
 
 
 def _event_github_authorized(kwargs):
-    n = kwargs.user_name
-    _create_user(github_handle=n)
+    _create_user(github_handle=kwargs.user_name.lower())
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.
     pkio.mkdir_parent(_user_dir())
