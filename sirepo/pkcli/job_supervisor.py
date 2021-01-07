@@ -46,7 +46,7 @@ def default_command():
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
-            (sirepo.job.SIM_DB_FILE_URI + '/(.*)', sirepo.sim_db_file.FileReq),
+            (sirepo.job.SIM_DB_FILE_URI + '/(.+)', sirepo.sim_db_file.FileReq),
         ],
         debug=cfg.debug,
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
