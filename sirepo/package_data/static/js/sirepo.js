@@ -3493,6 +3493,10 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         return ! item.isExample;
     };
 
+    self.canDownloadInputFile = function() {
+        return SIREPO.APP_SCHEMA.constants.canDownloadInputFile;
+    };
+
     self.copyCfg = {
         copyName: '',
         copyFolder: '/',
@@ -3526,10 +3530,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 fileManager.removeFromTree(self.selectedItem);
                 self.selectedItem = null;
             });
-    };
-
-    self.hasSimulationSource = function() {
-        return SIREPO.APP_SCHEMA.constants.hasSimulationSource;
     };
 
     self.isActiveFolder = function(item) {

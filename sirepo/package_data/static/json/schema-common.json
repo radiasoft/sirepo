@@ -167,8 +167,8 @@
             }
         },
         "constants": {
+            "canDownloadInputFile": true,
             "clientCookie": "sirepo_cookie_js",
-            "hasSimulationSource": true,
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {

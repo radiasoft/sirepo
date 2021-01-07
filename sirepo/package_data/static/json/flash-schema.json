@@ -1,6 +1,6 @@
 {
     "constants": {
-        "hasSimulationSource": false
+        "canDownloadInputFile": false
     },
     "enum": {
         "flashType": [
