@@ -17,6 +17,8 @@ import subprocess
 _SIM_DATA = sirepo.sim_data.get_class('flash')
 
 def run_background(cfg_dir):
-    cfg_dir = pkio.py_path(cfg_dir)
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    mpi.run_program([cfg_dir.join(_SIM_DATA.flash_exe_basename(data))])
+    mpi.run_program([pkio.py_path(cfg_dir).join(
+        _SIM_DATA.flash_exe_basename(simulation_db.read_json(
+            template_common.INPUT_BASE_NAME,
+        )),
+    )])
