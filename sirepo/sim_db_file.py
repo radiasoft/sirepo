@@ -53,7 +53,7 @@ class FileReq(tornado.web.RequestHandler):
         )
 
 
-def get_token(uid):
+def token_for_user(uid):
     for u, k in _TOKEN_TO_UID.items():
         if u == uid:
             return k
