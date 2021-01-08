@@ -772,7 +772,7 @@ def validate_sim_db_file_path(path, uid):
     with sirepo.auth.set_user(uid):
         # TODO(e-carlin): handle more than sim files
         assert '/'.join(p[2:-1]) in str(simulation_dir(p[4], sid=p[5])), \
-            f'invaid path={path}'
+            f'invalid path={path}'
         f = p[-1]
         assert not re.search(f'(?:^\.)|(?:\\|:)', f), \
             f'invalid filename={f}'
