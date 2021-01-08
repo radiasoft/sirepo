@@ -747,7 +747,10 @@ SIREPO.app.directive('analysisParameter', function(appState, mlService) {
         ].join(''),
         controller: function($scope) {
             $scope.parameterValues = function() {
-                return mlService.buildParameterList($scope.isOptional);
+                return mlService.buildParameterList($scope.isOptional)
+                    .filter(function (v) {
+                        return (appState.models.columnInfo.selected || {})[v[0]];
+                });
             };
         },
     };
@@ -933,6 +936,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     '<th>Column Name</th>',
                     '<th data-ng-show="! isAnalysis" class="text-center">Input</th>',
                     '<th data-ng-show="! isAnalysis" class="text-center">Output</th>',
+                    '<th data-ng-show="isAnalysis" class="text-center"><span class="glyphicon glyphicon-filter"></span></th>',
                     '<th></th>',
                   '</tr>',
                 '</thead>',
@@ -948,6 +952,9 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     '</td>',
                     '<td data-ng-show="! isAnalysis" class="text-center">',
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
+                    '</td>',
+                    '<td data-ng-show="isAnalysis" class="text-center">',
+                      '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" />',
                     '</td>',
                     '<td data-ng-if="! isAnalysis">',
                       '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
@@ -970,6 +977,9 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                 if (! c.header) {
                     return;
                 }
+                if (! appState.models.columnInfo.selected) {
+                    appState.models.columnInfo.selected = {};
+                }
                 for (let i = 0; i < c.header.length; i++) {
                     if (c.colsWithNonUniqueValues.hasOwnProperty(c.header[i])) {
                         continue;
@@ -981,6 +991,9 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                             columnNumber: i,
                         }, 'fileColumnReport');
                         appState.saveQuietly(m);
+                    }
+                    if (angular.isUndefined(appState.models.columnInfo.selected[i])) {
+                        appState.models.columnInfo.selected[i] = true;
                     }
                 }
             }
