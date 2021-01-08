@@ -23,6 +23,49 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
+_SETUP_COMMANDS = PKDict(
+    CapLaser3D=[
+        '+cartesian',
+        '+hdf5typeio',
+        '+laser',
+        '+mgd',
+        '+mtmmmt',
+        '+usm3t',
+        '-3d',
+        '-auto',
+        '-parfile=bella_3dSetup.par',
+        'ed_maxBeams=1',
+        'ed_maxPulseSections=4',
+        'ed_maxPulses=1',
+        'mgd_meshgroups=6',
+        'species=fill,wall',
+    ],
+    CapLaserBELLA=[
+        '+hdf5typeio',
+        '+laser',
+        '+mgd',
+        '+mtmmmt',
+        '+usm3t',
+        '-2d',
+        '-auto',
+        '-nxb=8',
+        '-nyb=8',
+        '-parfile=bella.par',
+        '-with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore',
+        'ed_maxBeams=1', \
+        'ed_maxPulseSections=4',
+        'ed_maxPulses=1',
+        'mgd_meshgroups=6',
+        'species=fill,wall',
+    ],
+    RTFlame= [
+        '-2d',
+        '-auto',
+        '-nxb=16',
+        '-nyb=16',
+    ],
+)
+
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
@@ -519,53 +562,11 @@ def remove_last_frame(run_dir):
 
 def setup_command(data):
     t = data.models.simulation.flashType
-    c = [
+    return [
         './setup',
         t,
         f'-objdir={t}',
-    ]
-    return c + PKDict(
-        CapLaser3D=[
-            '+cartesian',
-            '+hdf5typeio',
-            '+laser',
-            '+mgd',
-            '+mtmmmt',
-            '+usm3t',
-            '-3d',
-            '-auto',
-            '-parfile=bella_3dSetup.par',
-            'ed_maxBeams=1',
-            'ed_maxPulseSections=4',
-            'ed_maxPulses=1',
-            'mgd_meshgroups=6',
-            'species=fill,wall',
-        ],
-        CapLaserBELLA=[
-            '+hdf5typeio',
-            '+laser',
-            '+mgd',
-            '+mtmmmt',
-            '+usm3t',
-            '-2d',
-            '-auto',
-            '-nxb=8',
-            '-nyb=8',
-            '-parfile=bella.par',
-            '-with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore',
-            'ed_maxBeams=1', \
-            'ed_maxPulseSections=4',
-            'ed_maxPulses=1',
-            'mgd_meshgroups=6',
-            'species=fill,wall',
-        ],
-        RTFlame= [
-            '-2d',
-            '-auto',
-            '-nxb=16',
-            '-nyb=16',
-        ],
-    )[t]
+    ] + _SETUP_COMMANDS[t]
 
 
 def sim_frame_gridEvolutionAnimation(frame_args):
