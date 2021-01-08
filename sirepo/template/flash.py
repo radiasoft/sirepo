@@ -698,7 +698,7 @@ def _generate_parameters_file(data, run_dir=None):
             run_dir.join(_SIM_DATA.flash_setup_units_basename(data)),
     ).split('\n'):
         names[
-            ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
+            ''.join([x for x in line.split('/') if not x.endswith('Main')])
         ] = line
     for m in sorted(data.models):
         if m not in names:
