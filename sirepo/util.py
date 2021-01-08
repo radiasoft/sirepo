@@ -239,11 +239,7 @@ def split_comma_delimited_string(s, f_type):
 
 
 def url_safe_hash(value):
-    return pkcompat.from_bytes(
-        base64.urlsafe_b64encode(
-            hashlib.md5(pkcompat.to_bytes(value)).digest()),
-    ).rstrip('=')
-
+    return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
 
 def _raise(exc, fmt, *args, **kwargs):
