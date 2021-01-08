@@ -94,9 +94,6 @@ _TMP_DIR = 'tmp'
 #: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
 _serial_prev = 0
 
-#: Locking for global operations like serial, user moves, etc.
-_global_lock = threading.RLock()
-
 #: configuration
 cfg = None
 
@@ -368,7 +365,7 @@ def move_user_simulations(from_uid, to_uid):
         to_uid (str): dest user
 
     """
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         for path in glob.glob(
                 str(user_path(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
         ):
@@ -553,7 +550,7 @@ def save_simulation_json(data, do_validate=True):
     s = data.models.simulation
     sim_type = data.simulationType
     fn = sim_data_file(sim_type, s.simulationId)
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         need_validate = True
         try:
             # OPTIMIZATION: If folder/name same, avoid reading entire folder
@@ -789,7 +786,7 @@ def validate_serial(req_data):
     """
     if req_data.get('version') != SCHEMA_COMMON.version:
         raise util.SRException('serverUpgraded', None)
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
         sid = req_data.models.simulation.simulationId
         req_ser = req_data.models.simulation.simulationSerial
@@ -1033,7 +1030,7 @@ def _serial_new():
     """
     global _serial_prev
     res = int(time.time() * 1000000)
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         # Good enough assertion. Any collisions will also be detected
         # by parameter hash so order isn't only validation
         assert res > _serial_prev, \

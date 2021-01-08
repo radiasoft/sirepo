@@ -12,6 +12,7 @@ import re
 import sirepo.job
 import sirepo.simulation_db
 import sirepo.tornado
+import sirepo.util
 import tornado.web
 
 _AUTH_HEADER_RE = re.compile(
@@ -59,9 +60,10 @@ class FileReq(tornado.web.RequestHandler):
 
 
 def token_for_user(uid):
-    for u, k in _TOKEN_TO_UID.items():
-        if u == uid:
-            return k
-    k = sirepo.job.unique_key()
-    _TOKEN_TO_UID[k] = uid
-    return k
+    with sirepo.util.SIM_DB_FILE_CONTEXT:
+        for u, k in _TOKEN_TO_UID.items():
+            if u == uid:
+                return k
+        k = sirepo.job.unique_key()
+        _TOKEN_TO_UID[k] = uid
+        return k

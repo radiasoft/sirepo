@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import asyncio
 import base64
 import concurrent.futures
+import contextlib
 import hashlib
 import inspect
 import numconv
@@ -19,10 +20,19 @@ import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import threading
 
+
+cfg = None
 
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
+
+#: Context where we can do sim_db_file operations (supervisor)
+SIM_DB_FILE_CONTEXT = None
+
+#: Locking for global simulation_db operations (server)
+SIMULATION_DB_LOCK = None
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
@@ -171,6 +181,19 @@ def flask_app():
     return flask.current_app or None
 
 
+def init(server_context=False):
+    global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_CONTEXT
+
+    assert not cfg
+    cfg = pkconfig.init(
+        create_token_secret=('oh so secret!', str, 'used for internal test only'),
+    )
+    if server_context:
+        SIMULATION_DB_LOCK = threading.RLock()
+        return
+    SIM_DB_FILE_CONTEXT = contextlib.nullcontext()
+
+
 def json_dump(obj, path=None, pretty=False, **kwargs):
     """Formats as json as string, and writing atomically to disk
 
@@ -248,8 +271,3 @@ def _raise(exc, fmt, *args, **kwargs):
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
-
-
-cfg = pkconfig.init(
-    create_token_secret=('oh so secret!', str, 'used for internal test only'),
-)

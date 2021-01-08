@@ -627,6 +627,7 @@ def init(uwsgi=None, use_reloader=False):
     _app.config['PROPAGATE_EXCEPTIONS'] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
+    sirepo.util.init(server_context=True)
     uri_router.init(_app, simulation_db)
     return _app
 

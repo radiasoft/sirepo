@@ -35,6 +35,7 @@ def default_command():
         ip=(sirepo.job.DEFAULT_IP, str, 'ip to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
+    sirepo.util.init(server_context=False)
     sirepo.srtime.init()
     sirepo.job_supervisor.init()
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
