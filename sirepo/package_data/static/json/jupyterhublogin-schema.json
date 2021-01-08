@@ -18,7 +18,7 @@
             }
         },
         "jupyterNameConflict": {
-            "route": "/jupyter-name-conflict/:isMigration",
+            "route": "/jupyter-name-conflict",
             "config": {
                 "controller": "NameConflictController as nameConflict",
                 "templateUrl": "/static/html/jupyter-name-conflict.html"
