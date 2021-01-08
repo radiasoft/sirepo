@@ -6,13 +6,18 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdlog
 from pykern.pkcollections import PKDict
-import functools
+import re
 import sirepo.job
 import sirepo.simulation_db
 import sirepo.tornado
 import tornado.web
+
+_AUTH_HEADER_RE = re.compile(
+    sirepo.job.AUTH_HEADER_SCHEME_BEARER + r'\s(' + sirepo.job.UNIQUE_KEY_CHARS_RE + ')',
+    re.IGNORECASE,
+)
 
 _TOKEN_TO_UID = PKDict()
 
@@ -42,15 +47,15 @@ class FileReq(tornado.web.RequestHandler):
         p = t.split(' ')
         if len(p) != 2:
             raise sirepo.tornado.error_forbidden()
-        if p[0] != sirepo.job.AUTH_HEADER_SCHEME_BEARER \
-            or not sirepo.job.UNIQUE_KEY_RE.search(p[1]):
+        m = _AUTH_HEADER_RE.search(t)
+        if not m:
+            pkdlog('invalid auth header={}', t)
             raise sirepo.tornado.error_forbidden()
-        if p[1] not in _TOKEN_TO_UID:
+        u = _TOKEN_TO_UID.get(m.group(1))
+        if not u:
+            pkdlog('token={} not found', m.group(1))
             raise sirepo.tornado.error_forbidden()
-        sirepo.simulation_db.validate_sim_db_file_path(
-            self.request.path,
-            _TOKEN_TO_UID[p[1]],
-        )
+        sirepo.simulation_db.validate_sim_db_file_path(self.request.path, u)
 
 
 def token_for_user(uid):
