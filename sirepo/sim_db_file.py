@@ -47,8 +47,8 @@ class FileReq(tornado.web.RequestHandler):
             raise sirepo.tornado.error_forbidden()
         if p[1] not in _TOKEN_TO_UID:
             raise sirepo.tornado.error_forbidden()
-        sirepo.simulation_db.validate_path(
-            self.request.path.split('/')[2:],
+        sirepo.simulation_db.validate_sim_db_file_path(
+            self.request.path,
             _TOKEN_TO_UID[p[1]],
         )
 

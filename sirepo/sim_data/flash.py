@@ -143,7 +143,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             stderr=subprocess.STDOUT,
         )
         subprocess.check_output(
-            'tar --extract --file={} --directory={}'.format(
+            'tar --extract --gunzip --file={} --directory={}'.format(
                 cls._sim_src_tarball_path(),
                 run_dir,
             ),
