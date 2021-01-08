@@ -941,6 +941,13 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                   '</tr>',
                 '</thead>',
                 '<tbody>',
+                  '<tr>',
+                    '<td> </td><td> </td>',
+                   '<td data-ng-show="isAnalysis" class="text-center"><input data-ng-model="selectionGroups.selected.val" class="sr-checkbox" type="checkbox" data-ng-click="toggleAll(\'selected\', true, false)"/></td>',
+                   '<td data-ng-show="! isAnalysis" class="text-center"><input data-ng-model="selectionGroups.input.val" class="sr-checkbox" type="checkbox" data-ng-click="toggleAll(\'input\', \'input\', \'none\')"/></td>',
+                   '<td data-ng-show="! isAnalysis" class="text-center"><input data-ng-model="selectionGroups.output.val" class="sr-checkbox" type="checkbox" data-ng-click="toggleAll(\'output\', \'output\', \'none\')"/></td>',
+                    '<td> </td>',
+                  '</tr>',
                   '<tr data-ng-repeat="col in cols track by col">',
                     '<td class="form-group form-group-sm"><p class="form-control-static">{{ col + 1 }}</p></td>',
                     '<td class="form-group form-group-sm">',
@@ -954,7 +961,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td data-ng-show="isAnalysis" class="text-center">',
-                      '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" />',
+                      '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" data-ng-click="validateNumSelected()"/>',
                     '</td>',
                     '<td data-ng-if="! isAnalysis">',
                       '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
@@ -969,6 +976,20 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
             $scope.modelName = 'columnInfo';
             $scope.fields = ['header', 'inputOutput'];
             $scope.isAnalysis = false;
+            $scope.selectionGroups = {
+                input: {
+                    modelKey: 'inputOutput',
+                    val: 'none',
+                },
+                output: {
+                    modelKey: 'inputOutput',
+                    val: 'none',
+                },
+                selected: {
+                    modelKey: 'selected',
+                    val: false,
+                },
+            };
 
             function setModel() {
                 $scope.model = appState.models.columnInfo;
@@ -996,6 +1017,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                         appState.models.columnInfo.selected[i] = true;
                     }
                 }
+                $scope.validateNumSelected();
             }
 
             function updateIsAnalysis() {
@@ -1005,6 +1027,20 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
             $scope.showOrHideText = function(idx) {
                 return appState.models.columnReports.indexOf(idx) >= 0
                     ? 'hide' : 'show';
+            };
+
+            $scope.toggleAll = function(group, trueVal, falseVal) {
+                let g = $scope.selectionGroups[group];
+                srdbg('grp', g);
+                for (let c in appState.models.columnInfo[g.modelKey]) {
+                    let p = appState.models.columnInfo[g.modelKey];
+                    if (g.val == trueVal) {
+                        p[c] = falseVal;
+                    }
+                    else {
+                        p[c] = trueVal;
+                    }
+                }
             };
 
             $scope.togglePlot = function(idx) {
@@ -1021,6 +1057,21 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                     appState.models.columnReports.splice(pos, 1);
                 }
                 appState.saveChanges('columnReports');
+            };
+
+            $scope.validateNumSelected = function() {
+                if (! $scope.isAnalysis) {
+                    $scope.form.$valid = true;
+                    //return;
+                }
+                else {
+                    let nv =  Object.values(appState.models.columnInfo.selected)
+                        .filter(function (s) {
+                            return s;
+                        });
+                    srdbg('nv', nv, nv.length);
+                }
+                //srdbg('frm valud?', $scope.form.$valid);
             };
 
             appState.whenModelsLoaded($scope, function() {
