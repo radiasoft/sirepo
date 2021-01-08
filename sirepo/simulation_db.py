@@ -766,16 +766,19 @@ def user_path(uid=None, check=False):
 
 def validate_sim_db_file_path(path, uid):
     import sirepo.job
-    assert path.startswith(sirepo.job.SIM_DB_FILE_URI), \
-        f'not sim db file path={path}'
-    p = path.split('/')
-    with sirepo.auth.set_user(uid):
-        # TODO(e-carlin): handle more than sim files
-        assert '/'.join(p[2:-1]) in str(simulation_dir(p[4], sid=p[5])), \
-            f'invalid path={path}'
-        f = p[-1]
-        assert not re.search(f'(?:^\.)|(?:\\|:)', f), \
-            f'invalid filename={f}'
+
+    assert re.search(
+        re.compile(
+            r'^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$'.format(
+                sirepo.job.SIM_DB_FILE_URI,
+                USER_ROOT_DIR,
+                uid,
+                '|'.join(feature_config.cfg().sim_types),
+                _ID_PARTIAL_RE_STR,
+            )
+        ),
+        path,
+    )
 
 
 def validate_serial(req_data):
