@@ -701,8 +701,6 @@ class SimDataBase(object):
     def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
         p = run_dir.join(uri.split('/')[-1])
         r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
-        if sirepo.util.requests_not_found(r):
-            raise SimDbFileNotFound(f'path={p} not found')
         r.raise_for_status()
         p.write_binary(r.content)
         if is_exe:
@@ -763,7 +761,7 @@ def _init():
 
 
 def _request(method, uri, data=None):
-    return requests.request(
+    r = requests.request(
         method,
         uri,
         data=data,
@@ -772,7 +770,9 @@ def _request(method, uri, data=None):
                 sirepo.job.AUTH_HEADER: f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} {cfg.supervisor_sim_db_file_token}',
             })
     )
-
+    if method == 'GET' and r.status_code == 404:
+        raise SimDbFileNotFound(f'uri={uri} not found')
+    return r
 
 
 _init()
