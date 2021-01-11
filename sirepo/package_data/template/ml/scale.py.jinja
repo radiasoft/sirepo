@@ -9,8 +9,15 @@ from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
 def read_data(path, **kwargs):
+    def _read():
+        import csv
+        import re
+
+        with open(path) as f:
+            for r in csv.reader(f):
+                yield ','.join(map(lambda v: re.sub(r'"|\n|\r|,', '', v), r))
     return np.genfromtxt(
-        path,
+        _read(),
         delimiter=',',
         skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }},
         **kwargs
