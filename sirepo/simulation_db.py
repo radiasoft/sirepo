@@ -775,7 +775,7 @@ def validate_sim_db_file_path(path, uid):
             )
         ),
         path,
-    )
+    ), f'invalid path={path} or uid={uid}'
 
 
 def validate_serial(req_data):
