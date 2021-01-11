@@ -57,20 +57,6 @@ _FIELD_ALIAS = PKDict(
 
 _LOWERCASE_FIELDS = set(['focal_x', 'focal_z'])
 
-_MODEL_UNITS = ModelUnits(PKDict({
-    x: PKDict({ y: 'cm_to_m' for y in _CENTIMETER_FIELDS[x]}) for x in _CENTIMETER_FIELDS.keys()
-}))
-_MODEL_UNITS.unit_def.grating.pkupdate(PKDict({
-    x: 'mm_to_cm' for x in [
-        'rulingDensity',
-        'rulingDensityPolynomial',
-        'rul_a1',
-        'rul_a2',
-        'rul_a3',
-        'rul_a4',
-    ]
-}))
-
 _WIGGLER_TRAJECTORY_FILENAME = 'xshwig.sha'
 
 
@@ -574,6 +560,17 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v.undulatorSettings = template_common.render_jinja(SIM_TYPE, v, 'undulator.py')
         v.beamlineOptics = _generate_beamline_optics(data.models, calc_beam_stats=True)
         v.beamStatsFile = BEAM_STATS_FILE
+        assert v.simulation_sourceType in ('geometricSource', 'undulator')
+        if v.simulation_sourceType == 'geometricSource':
+            if v.geometricSource_f_color == '1':
+                v.photonEnergy = v.geometricSource_singleEnergyValue
+            else:
+                v.photonEnergy = (v.geometricSource_ph1 + v.geometricSource_ph2) / 2
+        elif v.simulation_sourceType == 'undulator':
+            if v.undulator_select_energy == 'range':
+                v.photonEnergy = (v.undulator_emin + v.undulator_emax) / 2
+            else:
+                v.photonEnergy = v.undulator_photon_energy
         return template_common.render_jinja(SIM_TYPE, v, 'beam_statistics.py')
     elif _SIM_DATA.is_watchpoint(r):
         v.beamlineOptics = _generate_beamline_optics(data.models, last_id=_SIM_DATA.watchpoint_id(r))
@@ -617,13 +614,44 @@ def _generate_wiggler(data):
           + _field_value('source', 'f_phot', 0) \
           + _field_value('source', 'file_traj', "b'{}'".format(_WIGGLER_TRAJECTORY_FILENAME))
 
+def _init_model_units():
+    def _scale(v, factor, is_native):
+        scale = 0.1 ** factor
+        return v * scale if is_native else v / scale
 
-def _item_field(item, fields):
-    return _fields('oe', item, fields)
+    def _mm2_to_cm2(v, is_native):
+        return _scale(v, 2, is_native)
+
+    def _mm3_to_cm3(v, is_native):
+        return _scale(v, 3, is_native)
+
+    def _mm4_to_cm4(v, is_native):
+        return _scale(v, 4, is_native)
+
+    def _mm5_to_cm5(v, is_native):
+        return _scale(v, 5, is_native)
+
+    res = ModelUnits(PKDict({
+        x: PKDict({ y: 'cm_to_m' for y in _CENTIMETER_FIELDS[x]}) for x in _CENTIMETER_FIELDS.keys()
+    }))
+    res.unit_def.grating.pkupdate(PKDict({
+        'rul_a1': _mm2_to_cm2,
+        'rul_a2': _mm3_to_cm3,
+        'rul_a3': _mm4_to_cm4,
+        'rul_a4': _mm5_to_cm5,
+        'rulingDensity': 'mm_to_cm',
+        'rulingDensityCenter': 'mm_to_cm',
+        'rulingDensityPolynomial': 'mm_to_cm',
+    }))
+    return res
 
 
 def _is_disabled(item):
     return 'isDisabled' in item and item.isDisabled
+
+
+def _item_field(item, fields):
+    return _fields('oe', item, fields)
 
 
 def _parse_shadow_log(run_dir):
@@ -660,3 +688,6 @@ def _validate_data(data, schema):
             und.emax = und.photon_energy
         if und.emin == und.emax:
             und.ng_e = 1
+
+
+_MODEL_UNITS = _init_model_units()
