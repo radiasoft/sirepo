@@ -16,7 +16,7 @@ codes:
       setup:
         input_file: {{ pyFileName }}
         function: set_rsopt_params
-        execution_type: parallel
+        execution_type: serial
         cores: {{ numCores }}
 options:
   software: mesh_scan
