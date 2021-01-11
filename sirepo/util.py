@@ -28,6 +28,12 @@ cfg = None
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
+#: Http auth header name
+AUTH_HEADER = 'Authorization'
+
+#: http auth header scheme bearer
+AUTH_HEADER_SCHEME_BEARER = 'Bearer'
+
 #: Context where we can do sim_db_file operations (supervisor)
 SIM_DB_FILE_CONTEXT = None
 

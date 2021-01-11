@@ -16,7 +16,7 @@ import sirepo.util
 import tornado.web
 
 _AUTH_HEADER_RE = re.compile(
-    sirepo.job.AUTH_HEADER_SCHEME_BEARER + r'\s(' + sirepo.job.UNIQUE_KEY_CHARS_RE + ')',
+    sirepo.util.AUTH_HEADER_SCHEME_BEARER + r'\s(' + sirepo.job.UNIQUE_KEY_CHARS_RE + ')',
     re.IGNORECASE,
 )
 
@@ -42,7 +42,7 @@ class FileReq(tornado.web.RequestHandler):
         sirepo.srdb.root().join(path).write_binary(self.request.body)
 
     def __validate_req(self):
-        t = self.request.headers.get(sirepo.job.AUTH_HEADER)
+        t = self.request.headers.get(sirepo.util.AUTH_HEADER)
         if not t:
             raise sirepo.tornado.error_forbidden()
         p = t.split(' ')

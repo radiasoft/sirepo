@@ -27,6 +27,9 @@ cfg = None
 #: default compute_model
 _ANIMATION_NAME = 'animation'
 
+#: prefix for auth header of sim_db_file requests
+_AUTH_HEADER_PREFIX = f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} '
+
 #: use to separate components of job_id
 _JOB_ID_SEP = '-'
 
@@ -767,7 +770,7 @@ def _request(method, uri, data=None):
         data=data,
         verify=sirepo.job.cfg.verify_tls,
         headers=PKDict({
-                sirepo.job.AUTH_HEADER: f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} {cfg.supervisor_sim_db_file_token}',
+                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX + cfg.supervisor_sim_db_file_token,
             })
     )
     if method == 'GET' and r.status_code == 404:
