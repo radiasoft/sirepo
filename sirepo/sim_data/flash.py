@@ -130,8 +130,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _flash_create_sim_files(cls, data, run_dir):
-        import subprocess
+        import sirepo.mpi
         import sirepo.template.flash
+        import subprocess
 
         subprocess.check_output(
             "rpm2cpio '{}' | cpio --extract --make-directories".format(
@@ -160,7 +161,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 stderr=log
             )
             subprocess.run(sirepo.template.flash.setup_command(data), cwd=s, **k)
-            subprocess.run(['make'], cwd=t, **k)
+            subprocess.run(['make', f'-j{sirepo.mpi.cfg.cores}'], cwd=t, **k)
         for c, b in PKDict(
                 # POSIT: values match cls._sim_file_basenames
                 flash4=cls.flash_exe_basename(data),
