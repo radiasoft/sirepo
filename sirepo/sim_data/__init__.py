@@ -725,7 +725,7 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_src_tarball_path(cls):
-        return cfg.user_data_dir.join(cls.sim_type(), f'{cls.sim_type()}.tar.gz')
+        return cfg.local_share_dir.join(cls.sim_type(), f'{cls.sim_type()}.tar.gz')
 
 
 class SimDbFileNotFound(Exception):
@@ -754,9 +754,9 @@ def _init():
         lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
+        local_share_dir=('/home/vagrant/.local/share', pkio.py_path, 'dir for installed user files'),
         supervisor_sim_db_file_uri=(None, str, 'where to get/put simulation db files from/to supervisor'),
         supervisor_sim_db_file_token=(None, str, 'token for supervisor simulation file access'),
-        user_data_dir=('/home/vagrant/.local/share', pkio.py_path, 'dir for installed user files'),
     )
 
 
