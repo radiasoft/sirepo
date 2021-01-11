@@ -173,7 +173,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _flash_file_basename(cls, prefix, data):
-        return f'{prefix}{cls._FLASH_FILE_NAME_SEP}{cls._flash_file_hash(data)}'
+        return prefix + cls._FLASH_FILE_NAME_SEP + cls._flash_file_hash(data)
 
     @classmethod
     def _flash_file_hash(cls, data):

@@ -28,7 +28,7 @@ cfg = None
 _ANIMATION_NAME = 'animation'
 
 #: prefix for auth header of sim_db_file requests
-_AUTH_HEADER_PREFIX = f'{sirepo.job.AUTH_HEADER_SCHEME_BEARER} '
+_AUTH_HEADER_PREFIX = f'{sirepo.util.AUTH_HEADER_SCHEME_BEARER} '
 
 #: use to separate components of job_id
 _JOB_ID_SEP = '-'
