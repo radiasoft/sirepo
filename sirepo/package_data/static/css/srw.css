@@ -89,7 +89,8 @@
 
 .srw-beamline-copy-icon {
   top: 1px;
-  left: 32px;
+  left: 0;
+  right: 0;
 }
 
 .srw-beamline-disable-icon {
@@ -99,7 +100,8 @@
 
 .srw-beamline-report-icon {
   top: 60px;
-  left: 32px;
+  left: 0;
+  right: 0;
   font-size: 18px;
 }
 
