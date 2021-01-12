@@ -693,8 +693,8 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                         '<div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>',
                       '</div>',
                     '</td>',
-                    '<td style="padding-top: 2em;">',
-                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteLayer($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
+                    '<td>',
+                      '<div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '</td>',
                   '<tr>',
                     '<td>',
@@ -705,6 +705,21 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                     '<td></td>',
                     '<td></td>',
                   '</tr>',
+                  '<tr>',
+                    '<td>',
+                      '<b>Output Layer</b>',
+                      '<div class="row col-sm-12">Activation Function</div>',
+                    '</td>',
+                    '<td>',
+                      '<b>Activation</b>',
+                      '<div class="row col-sm-12">Linear (identity)</div>',
+                    '</td>',
+                    '<td>',
+                      '<b>Dimensionality</b>',
+                      '<div class="row col-sm-12">{{ outputColCount()  }}</div>',
+                    '</td>',
+                    '<td></td>',
+                    '</tr>',
                 '</table>',
               '</div>',
               '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
@@ -745,13 +760,10 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 $scope.form.$setDirty();
             };
 
-            $scope.layerInfo = function(idx) {
-                if (! appState.isLoaded()) {
-                    return layerInfo;
-                }
-                var layer = appState.models.neuralNet.layers[idx];
-                layerInfo[idx] = layerFields[layer.layer];
-                return layerInfo[idx];
+            $scope.fieldTrack = function(layerIdx, idx) {
+                // changes the fields editor if the layer type changes
+                var layer = appState.models.neuralNet.layers[layerIdx];
+                return layer.layer + idx;
             };
 
             $scope.hasChanges = function() {
@@ -761,10 +773,32 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
                 return appState.areFieldsDirty('neuralNet.layers');
             };
 
-            $scope.fieldTrack = function(layerIdx, idx) {
-                // changes the fields editor if the layer type changes
-                var layer = appState.models.neuralNet.layers[layerIdx];
-                return layer.layer + idx;
+            $scope.layerInfo = function(idx) {
+                if (! appState.isLoaded()) {
+                    return layerInfo;
+                }
+                var layer = appState.models.neuralNet.layers[idx];
+                layerInfo[idx] = layerFields[layer.layer];
+                return layerInfo[idx];
+            };
+
+            $scope.moveLayer = function(direction, currIdx) {
+                const n = appState.models.neuralNet;
+                n.layers.splice(
+                    currIdx + direction,
+                    0,
+                    n.layers.splice(currIdx, 1)[0]
+                );
+                $scope.form.$setDirty();
+            };
+
+            $scope.outputColCount = function() {
+                if (! appState.isLoaded()) {
+                    return '';
+                }
+                return appState.applicationState().columnInfo.inputOutput.filter(
+                    col => col === 'output'
+                ).length;
             };
 
             $scope.saveChanges = function() {

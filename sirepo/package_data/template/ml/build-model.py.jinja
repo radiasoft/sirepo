@@ -1,5 +1,6 @@
 from keras.models import Sequential
-{% for name in layerImplementationNames %}
+from keras.layers import Activation
+{% for name in layerImplementationNames if not name == 'Activation' %}
 from keras.layers import {{ name }}
 {% endfor %}
 
@@ -22,3 +23,4 @@ model.add({{ layer.layer }}(
     {%- endif -%}
     {%- if loop.index0 == 0 -%}, input_dim={{ inputDim }} {%- endif -%}))
 {% endfor %}
+model.add(Activation("linear", input_dim={{ outputDim }}))
