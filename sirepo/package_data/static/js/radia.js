@@ -1192,11 +1192,21 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                                     '<label><span>Export to</span></label>',
                                 '</div>',
                                 '<div class="form-group form-group-sm">',
-                                '<div class="col-sm-5">',
-                                    '<select data-ng-model="tModel.exportType" class="form-control">',
-                                        '<option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>',
-                                    '</select>',
+                                    '<div class="col-sm-5">',
+                                        '<select data-ng-model="tModel.exportType" class="form-control">',
+                                            '<option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>',
+                                        '</select>',
+                                    '</div>',
                                 '</div>',
+                                '<div data-ng-show="tModel.exportType == \'SRW\'">',
+                                    '<div class="control-label col-sm-5">',
+                                        '<label><span>Magnetic Gap [mm]</span></label>',
+                                    '</div>',
+                                    '<div class="form-group form-group-sm">',
+                                        '<div class="col-sm-5">',
+                                            '<input data-string-to-number="" data-ng-model="tModel.gap" data-min="0" required />',
+                                        '</div>',
+                                    '</div>',
                                 '</div>',
                                 '<div class="row">',
                                     '<button data-ng-click="download()" class="btn btn-default col-sm-offset-6">Download</button>',
@@ -1211,8 +1221,9 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             $scope.svc = radiaService;
 
             $scope.tModel = {
-                type: radiaService.pointFieldTypes[0],
                 exportType: radiaService.pointFieldExportTypes[0],
+                gap: 0.0,
+                type: radiaService.pointFieldTypes[0],
             };
 
             $scope.availableFieldTypes = function() {
@@ -1225,20 +1236,20 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                 let pfe = radiaService.pointFieldExports[$scope.tModel.exportType];
                 let ct = pfe.contentType;
                 let p = radiaService.selectedPath;
-                let f = p.name + ' ' + $scope.fieldType();
+                let f = `${appState.models.simulation.name}-${p.name}-${$scope.fieldType()}`;
                 let ext = pfe.extension;
                 let fn = panelState.fileNameFromText(f, ext);
                 requestSender.getApplicationData(
                     {
                         beamAxis: appState.models.simulation.beamAxis,
                         contentType: ct,
-                        fieldPaths: [radiaService.selectedPath],
+                        fieldPaths: [p],
                         fieldType: $scope.fieldType(),
                         fileExt: ext,
                         exportType: $scope.tModel.exportType,
-                        gap: (appState.models.undulator || {}).gap || 0,
+                        gap: $scope.tModel.gap,
                         method: 'save_field',
-                        name: radiaService.selectedPath.name,
+                        name: p.name,
                         responseType: pfe.responseType,
                         simulationId: appState.models.simulation.simulationId,
                         viewType: 'fields',
@@ -1264,6 +1275,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             };
 
             appState.whenModelsLoaded($scope, function () {
+                $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
             });
         },
     };
