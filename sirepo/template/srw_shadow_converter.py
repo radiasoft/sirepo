@@ -135,6 +135,8 @@ class SRWShadowConverter():
         elif res.models.simulation.sourceType == 'undulator':
             self.__undulator_to_shadow(models, res.models)
         self.__beamline_to_shadow(models, res.models)
+        if res.models.simulation.sourceType == 'undulator':
+            self.__fix_undulator_gratings(res.models)
         _SHADOW.fixup_old_data(res)
         return res
 
@@ -177,11 +179,13 @@ class SRWShadowConverter():
                 )))
 
     def __closest_undulator_harmonic(self, srw):
+        from orangecontrib.shadow.util.undulator.source_undulator import SourceUndulator
         from syned.storage_ring.electron_beam import ElectronBeam
         from syned.storage_ring.magnetic_structures.undulator import Undulator
-        gamma = syned_electron_beam=ElectronBeam(
+        ebeam = ElectronBeam(
             energy_in_GeV=srw.electronBeam.energy,
-        ).gamma()
+        )
+        gamma = ebeam.gamma()
         u = Undulator(
             K_horizontal=float(srw.undulator.horizontalDeflectingParameter),
             K_vertical=float(srw.undulator.verticalDeflectingParameter),
@@ -190,15 +194,22 @@ class SRWShadowConverter():
         )
         search_energy = float(srw.simulation.photonEnergy)
         diff = search_energy
-        res = '1'
+        harmonic = '1'
+        energy = 1000
         for h in _SHADOW.schema().enum.Harmonic:
             v = u.resonance_energy(gamma, harmonic=int(h[0]))
             if abs(search_energy - v) < diff:
                 diff = abs(search_energy - v)
-                res = h[0]
+                harmonic = h[0]
+                energy = v
             if v > search_energy:
                 break
-        return res
+        su = SourceUndulator(
+            syned_electron_beam=ebeam,
+            syned_undulator=u,
+        )
+        su.set_energy_monochromatic_at_resonance(int(harmonic))
+        return harmonic, round(su._EMIN, 2), round(su._MAXANGLE * 1e6, 4)
 
     def __crl_to_shadow(self, item):
         return self.__copy_item(item, PKDict(
@@ -290,6 +301,12 @@ class SRWShadowConverter():
         )))
         self.__reset_rotation(rotate, item.position)
 
+    def __fix_undulator_gratings(self, shadow):
+        # fix target photon energy on any gratings to exact photon energy value
+        for item in shadow.beamline:
+            if item.type == 'grating':
+                item.phot_cent = shadow.undulator.photon_energy
+
     def __mirror_to_shadow(self, item, shadow):
         orientation = item.get('autocomputeVectors')
         if item.type == 'mirror':
@@ -350,8 +367,11 @@ class SRWShadowConverter():
     def __undulator_to_shadow(self, srw, shadow):
         self.__copy_model_fields('undulator', srw, shadow)
         self.__copy_model_fields('undulatorBeam', srw, shadow)
+        harmonic, energy, angle = self.__closest_undulator_harmonic(srw)
         shadow.undulator.update(
-            energy_harmonic=self.__closest_undulator_harmonic(srw),
+            energy_harmonic=harmonic,
             f_coher='1',
             select_energy='harmonic',
+            photon_energy=energy,
+            maxangle=angle,
         )
