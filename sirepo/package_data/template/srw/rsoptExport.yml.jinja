@@ -12,14 +12,21 @@ codes:
           start: {{ x }}
         {% endif %}
         {% endfor %}
+        {% for t in e.rotations %}
+        {% if e.offsets[loop.index0] != 0 %}
+        {{ e.title }}_{{ e.p_map[loop.index0] }}:
+          min: {{ t - e.offsets[loop.index0] / 2.0 }}
+          max: {{ t + e.offsets[loop.index0] / 2.0 }}
+          samples: {{ numSamples }}
+          start: {{ x }}
+        {% endif %}
+        {% endfor %}
         {% endfor %}
       setup:
         input_file: {{ pyFileName }}
         function: set_rsopt_params
         execution_type: serial
-        cores: {{ numCores }}
 options:
   software: mesh_scan
-  nworkers: {{ numWorkers }}
   sim_dirs_make: False
 

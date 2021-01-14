@@ -1643,8 +1643,6 @@
             ],
             "advanced": [
                 "elements",
-                "numCores",
-                "numWorkers",
                 "numSamples"
             ]
         },

@@ -335,9 +335,11 @@ def export_rsopt_config(data):
     m = data.models.exportRsOpt
     f = re.sub(r'[^\w\.]+', '-', data.models.simulation.name).strip('-')
     v.pyFileName = f'{f}.py'
-    v.numCores = int(m.numCores)
+    # ignore these for now - we will generate data serially - but may be of use
+    # later
+    #v.numCores = int(m.numCores)
+    #v.numWorkers = int(m.numWorkers)
     v.numSamples = int(m.numSamples)
-    v.numWorkers = int(m.numWorkers)
     v.rsOptElements = _process_rsopt_elements(m.elements)
     return template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
 
@@ -346,9 +348,10 @@ def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
         e.p_map = ['horizontalOffset', 'verticalOffset', 'position']
+        e.t_map = ['horizontalOffset', 'verticalOffset', 'position']
         e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
         e.position = sirepo.util.split_comma_delimited_string(e.position, float)
-        #e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
+        e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
     return x
 
 
