@@ -959,7 +959,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',
                     '<td data-ng-show="isAnalysis" class="text-center">',
-                      '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" data-ng-click="validateNumSelected()"/>',
+                      '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" data-ng-click="validateNumSelected(col)"/>',
                     '</td>',
                     '<td data-ng-if="! isAnalysis">',
                       '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
@@ -967,7 +967,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                   '</tr>',
                 '</tbody>',
               '</table>',
-              '<div class="sr-input-warning">Select at least 2 columns</div>',
+              '<div class="sr-input-warning"></div>',
               '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>',
             '</form>',
         ].join(''),
@@ -1090,21 +1090,20 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                 appState.saveChanges('columnReports');
             };
 
-            $scope.validateNumSelected = function() {
+            $scope.validateNumSelected = function(c) {
                 const b = $('div[data-column-selector] button.btn-primary')[0];
-                const w = $('div[data-column-selector] .sr-input-warning');
-                w.hide();
+                const w = $('div[data-column-selector] .sr-input-warning').text('').hide();
+                const msg = 'Select at least 2 columns';
                 b.setCustomValidity('');
                 if (! $scope.isAnalysis) {
                     return;
                 }
-                let nv =  Object.values($scope.model.selected)
-                    .filter(function (s) {
-                        return s;
-                    }).length;
+                let nv =  $scope.model.selected.filter(function (s, sIdx) {
+                    return ! angular.isUndefined(c) && c === sIdx ? ! s  : s;
+                }).length;
                 if (nv < 2) {
-                    b.setCustomValidity(w.text());
-                    w.show();
+                    b.setCustomValidity(msg);
+                    w.text(msg).show();
                 }
             };
 
