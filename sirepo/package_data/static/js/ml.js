@@ -916,7 +916,7 @@ SIREPO.app.directive('clusterFields', function(appState, mlService) {
     };
 });
 
-SIREPO.app.directive('columnSelector', function(appState, mlService, panelState) {
+SIREPO.app.directive('columnSelector', function(appState, mlService, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {},
@@ -967,6 +967,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                   '</tr>',
                 '</tbody>',
               '</table>',
+              '<div class="sr-input-warning">Select at least 2 columns</div>',
               '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>',
             '</form>',
         ].join(''),
@@ -1044,6 +1045,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
 
             function updateIsAnalysis() {
                 $scope.isAnalysis = mlService.isAnalysis();
+                $scope.validateNumSelected();
             }
 
             $scope.groupVisible = function(g) {
@@ -1057,8 +1059,8 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
 
             $scope.toggleGroup = function(gName) {
                 let g = $scope.selectionGroups[gName];
-                for (let c in appState.models.columnInfo[g.modelKey]) {
-                    let p = appState.models.columnInfo[g.modelKey];
+                let p = $scope.model[g.modelKey];
+                for (let c in p) {
                     p[c] = g.val ? g.falseVal : g.trueVal;
                 }
                 for (let rg of radioGroups[g.modelKey] || []) {
@@ -1069,6 +1071,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
                         $scope.selectionGroups[rg].val = false;
                     }
                 }
+                $scope.validateNumSelected();
             };
 
             $scope.togglePlot = function(idx) {
@@ -1088,21 +1091,21 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
             };
 
             $scope.validateNumSelected = function() {
-                /*
+                const b = $('div[data-column-selector] button.btn-primary')[0];
+                const w = $('div[data-column-selector] .sr-input-warning');
+                w.hide();
+                b.setCustomValidity('');
                 if (! $scope.isAnalysis) {
-                    $scope.form.$valid = true;
-                    //return;
+                    return;
                 }
-                else {
-                    let nv =  Object.values(appState.models.columnInfo.selected)
-                        .filter(function (s) {
-                            return s;
-                        });
-                    //srdbg('nv', nv, nv.length);
+                let nv =  Object.values($scope.model.selected)
+                    .filter(function (s) {
+                        return s;
+                    }).length;
+                if (nv < 2) {
+                    b.setCustomValidity(w.text());
+                    w.show();
                 }
-                //srdbg('frm valud?', $scope.form.$valid);
-                 */
-                return true;
             };
 
             appState.whenModelsLoaded($scope, function() {
