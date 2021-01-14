@@ -946,7 +946,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                     '<td data-ng-repeat="(k, g) in selectionGroups" data-ng-show="groupVisible(g)" class="text-center"><input data-ng-model="g.val" type="checkbox" class="sr-checkbox" data-ng-click="toggleGroup(k)"/></td>',
                     '<td> </td>',
                   '</tr>',
-                  '<tr data-ng-repeat="col in cols track by col">',
+                  '<tr data-ng-repeat="col in getPage() track by col">',
                     '<td class="form-group form-group-sm"><p class="form-control-static">{{ col + 1 }}</p></td>',
                     '<td class="form-group form-group-sm">',
                       '<input data-ng-model="model.header[col]" class="form-control" data-lpignore="true" required />',
@@ -961,20 +961,26 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                     '<td data-ng-show="isAnalysis" class="text-center">',
                       '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" data-ng-click="validateNumSelected(col)"/>',
                     '</td>',
-                    '<td data-ng-if="! isAnalysis">',
-                      '<a class="media-middle" href data-ng-click="togglePlot(col)">{{ showOrHideText(col) }}</a>',
-                    '</td>',
                   '</tr>',
                 '</tbody>',
               '</table>',
               '<div class="sr-input-warning"></div>',
               '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>',
             '</form>',
+            '<nav class="pull-right">',
+              '<span>{{ pageText() }}&nbsp;&nbsp;</span>',
+              '<ul class="pagination">',
+                '<li class="page-item"><button type="button" class="btn btn-outline-info" data-ng-disabled="pageIdx < 1" data-ng-click="changePage(-1)"><<</button></li>',
+                '<li class="page-item"><button type="button" class="btn btn-outline-info" data-ng-disabled="pageIdx > pages.length - 2" data-ng-click="changePage(1)">>></button></li>',
+              '</ul>',
+            '</nav>',
         ].join(''),
         controller: function($scope, $sce) {
             $scope.modelName = 'columnInfo';
             $scope.fields = ['header', 'inputOutput'];
             $scope.isAnalysis = false;
+            $scope.pages= [];
+            $scope.pageIdx = 0;
             $scope.selectionGroups = {
                 input: {
                     falseVal: 'none',
@@ -996,9 +1002,29 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                 },
             };
 
+            const pageSize = 10;
             const radioGroups = {
                 inputOutput: ['input', 'output'],
             };
+
+            function changeReports() {
+                $scope.pages.map((page, i) => {
+                    page.map((idx) => {
+                        const pos = appState.models.columnReports.indexOf(idx);
+                        if (i === $scope.pageIdx && pos < 0) {
+                            appState.models.columnReports.push(idx);
+                            const m = mlService.columnReportName(idx);
+                            if (panelState.isHidden(m)) {
+                                panelState.toggleHidden(m);
+                            }
+                        }
+                        else if (i !== $scope.pageIdx && pos >= 0) {
+                            appState.models.columnReports.splice(pos, 1);
+                        }
+                    });
+                });
+                appState.saveChanges('columnReports');
+            }
 
             // if all members of a group are true, set the group true.
             // Otherwise false
@@ -1015,7 +1041,6 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
 
             function setModel() {
                 $scope.model = appState.models.columnInfo;
-                $scope.cols = [];
                 const c = appState.models.columnInfo;
                 if (! c.header) {
                     return;
@@ -1027,7 +1052,11 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                     if (c.colsWithNonUniqueValues.hasOwnProperty(c.header[i])) {
                         continue;
                     }
-                    $scope.cols.push(i);
+                    const p = Math.floor(i / pageSize);
+                    if (i % pageSize === 0) {
+                        $scope.pages[p] = [];
+                    }
+                    $scope.pages[p].push(i);
                     const m = mlService.columnReportName(i);
                     if (! appState.models[m]) {
                         appState.models[m] = appState.setModelDefaults({
@@ -1039,6 +1068,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                         appState.models.columnInfo.selected[i] = true;
                     }
                 }
+                changeReports();
                 resetGroups();
                 $scope.validateNumSelected();
             }
@@ -1048,13 +1078,29 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                 $scope.validateNumSelected();
             }
 
+            $scope.changePage = function(change) {
+                $scope.pageIdx += change;
+                changeReports();
+            };
+
+            $scope.getPage = function() {
+                if ($scope.pages.length === 0) {
+                    return [];
+                }
+                return $scope.pages[$scope.pageIdx];
+            };
+
             $scope.groupVisible = function(g) {
                 return g.modelKey === 'inputOutput' ? ! $scope.isAnalysis : $scope.isAnalysis;
             };
 
-            $scope.showOrHideText = function(idx) {
-                return appState.models.columnReports.indexOf(idx) >= 0
-                    ? 'hide' : 'show';
+            $scope.pageText = function() {
+                const p = $scope.pages[$scope.pageIdx];
+                if (! p) {
+                    return '';
+                }
+                const l = $scope.pages[$scope.pages.length - 1];
+                return `Columns ${p[0] + 1} - ${p[p.length - 1] + 1} of ${l[l.length - 1] + 1 }`;
             };
 
             $scope.toggleGroup = function(gName) {
@@ -1072,22 +1118,6 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                     }
                 }
                 $scope.validateNumSelected();
-            };
-
-            $scope.togglePlot = function(idx) {
-                var pos = appState.models.columnReports.indexOf(idx);
-                if (pos < 0) {
-                    appState.models.columnReports.unshift(idx);
-                    // show the report if it was previously hidden
-                    var modelKey = mlService.columnReportName(idx);
-                    if (panelState.isHidden(modelKey)) {
-                        panelState.toggleHidden(modelKey);
-                    }
-                }
-                else {
-                    appState.models.columnReports.splice(pos, 1);
-                }
-                appState.saveChanges('columnReports');
             };
 
             $scope.validateNumSelected = function(c) {
