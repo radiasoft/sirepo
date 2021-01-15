@@ -114,30 +114,18 @@ def get_analysis_report(run_dir, data):
 
 # fft on y vals only atm - make selectable?  2d?
 def get_fft_report(run_dir, data):
-    report = data.models.analysisReport
     info = data.models.columnInfo
     col = data.models.fftReport.column
     idx = int(col)
     label = f'{info.header[idx]}'
-    #x_idx = int(report.x)
-    #y_idx = int(report.y1)
-    #x_label = f'{info.header[x_idx]}'
-    #y_label = f'{info.header[y_idx]}'
 
     t, y = _extract_column(run_dir, idx)
-    #pkdp(f'COL {idx} T {t} Y {y}')
-    #xr, x = _extract_column(run_dir, x_idx)
-    #yr, y = _extract_column(run_dir, y_idx)
-
     w, n = sirepo.analysis.get_fft(t, y)
-    pkdp(f'COL {col} N {n}')
-    #wx, nx = sirepo.analysis.get_fft(xr, x)
-    #wy, ny = sirepo.analysis.get_fft(yr, y)
 
     plots = [
         PKDict(
             points=n,
-            label=f'{label} f[Hz]',
+            label=f'{label}',
         ),
     ]
 
@@ -147,7 +135,7 @@ def get_fft_report(run_dir, data):
         maxFreq=w[-1]
     )
 
-    return n, plots, f'FFT', summaryData
+    return w, plots, f'FFT', summaryData
 
 
 def get_application_data(data, **kwargs):
@@ -498,7 +486,7 @@ def _extract_file_column_report(run_dir, sim_in):
 
 def _extract_fft_report(run_dir, sim_in):
     x, plots, title, summary_data = get_fft_report(run_dir, sim_in)
-    _write_report(x, plots, title, summary_data=summary_data)
+    _write_report(x, plots, title, fields=PKDict(x_label='f [Hz]'), summary_data=summary_data)
 
 
 def _extract_partition_report(run_dir, sim_in):
