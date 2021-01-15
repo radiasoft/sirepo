@@ -1235,6 +1235,7 @@ SIREPO.app.directive('fftReport', function(appState) {
             modelData: '=',
         },
         template: [
+            '<div data-advanced-editor-pane data-model-data="modelData" data-view-name="modelKey" data-want-buttons="1"></div>',
             '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
         ].join(''),
         controller: function($scope, $element) {

@@ -20,7 +20,7 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_ANALYSIS_REPORTS = [
+_SIM_REPORTS = [
     'analysisReport',
     'fftReport',
 ]
@@ -53,7 +53,7 @@ _REPORTS = [
     'fileColumnReport',
     'partitionColumnReport',
     'partitionSelectionReport',
-] + _ANALYSIS_REPORTS
+] + _SIM_REPORTS
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -112,35 +112,42 @@ def get_analysis_report(run_dir, data):
     return x, plots, f'{x_label} vs {y_label}', fields, summary_data
 
 
-# fft on x vals only atm - make selectable?  2d?
+# fft on y vals only atm - make selectable?  2d?
 def get_fft_report(run_dir, data):
     report = data.models.analysisReport
     info = data.models.columnInfo
-    x_idx = int(report.x)
-    y_idx = int(report.y1)
-    x_label = f'{info.header[x_idx]}'
-    y_label = f'{info.header[y_idx]}'
+    col = data.models.fftReport.column
+    idx = int(col)
+    label = f'{info.header[idx]}'
+    #x_idx = int(report.x)
+    #y_idx = int(report.y1)
+    #x_label = f'{info.header[x_idx]}'
+    #y_label = f'{info.header[y_idx]}'
 
-    xr, x = _extract_column(run_dir, x_idx)
-    yr, y = _extract_column(run_dir, y_idx)
+    t, y = _extract_column(run_dir, idx)
+    #pkdp(f'COL {idx} T {t} Y {y}')
+    #xr, x = _extract_column(run_dir, x_idx)
+    #yr, y = _extract_column(run_dir, y_idx)
 
-    wx, nx = sirepo.analysis.get_fft(xr, x)
-    wy, ny = sirepo.analysis.get_fft(yr, y)
+    w, n = sirepo.analysis.get_fft(t, y)
+    pkdp(f'COL {col} N {n}')
+    #wx, nx = sirepo.analysis.get_fft(xr, x)
+    #wy, ny = sirepo.analysis.get_fft(yr, y)
 
     plots = [
         PKDict(
-            points=nx,
-            label=f'{x_label} f[Hz]',
+            points=n,
+            label=f'{label} f[Hz]',
         ),
     ]
 
     summaryData = PKDict(
         freqs=[],
-        minFreq=wx[0],
-        maxFreq=wx[-1]
+        minFreq=w[0],
+        maxFreq=w[-1]
     )
 
-    return wx, plots, f'FFT', summaryData
+    return n, plots, f'FFT', summaryData
 
 
 def get_application_data(data, **kwargs):
@@ -174,9 +181,9 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_partition_report(run_dir, sim_in)
     elif sim_in.report == 'partitionSelectionReport':
         _extract_partition_selection(run_dir, sim_in)
-    elif _is_analysis_report(sim_in.report):
+    elif 'analysisReport' in sim_in.report:
         _extract_analysis_report(run_dir, sim_in)
-    elif sim_in.report == 'fftReport':
+    elif 'fftReport' in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
 
 
@@ -577,7 +584,7 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
-    if _is_analysis_report(report):
+    if _is_sim_report(report):
         v.analysisAction = dm.analysisReport.action
         return res
     v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
@@ -662,13 +669,14 @@ def _histogram_plot(values, vrange):
     return x, y
 
 
-def _is_analysis_report(report):
-    return 'analysisReport' in report or report in _ANALYSIS_REPORTS
+def _is_sim_report(report):
+    #return 'analysisReport' in report or report in _SIM_REPORTS
+    return any([r in report for r in _SIM_REPORTS])
 
 
 def _is_valid_report(report):
     return 'fileColumnReport' in report or 'partitionColumnReport' in report or \
-        _is_analysis_report(report) or report in _REPORTS
+        _is_sim_report(report) or report in _REPORTS
 
 
 def _layer_implementation_list(data):
