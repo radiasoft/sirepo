@@ -23,4 +23,4 @@ model.add({{ layer.layer }}(
     {%- endif -%}
     {%- if loop.index0 == 0 -%}, input_dim={{ inputDim }} {%- endif -%}))
 {% endfor %}
-model.add(Activation("linear", input_dim={{ outputDim }}))
+model.add(Dense({{ outputDim }}, activation="linear"))
