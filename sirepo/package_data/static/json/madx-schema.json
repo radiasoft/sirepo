@@ -1190,7 +1190,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "importText": "Import a lattice (.madx) file"
     },
     "view": {
         "beamline": {

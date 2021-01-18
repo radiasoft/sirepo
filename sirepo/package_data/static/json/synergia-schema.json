@@ -566,7 +566,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "Import a MAD-X or elegant Lattice",
+        "importText": "Import an stl file"
     },
     "view": {
         "beamEvolutionAnimation": {

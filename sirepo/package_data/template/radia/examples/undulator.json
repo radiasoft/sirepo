@@ -83,7 +83,7 @@
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
-            "enableKickMaps": true,
+            "enableKickMaps": "1",
             "folder": "/Examples",
             "isExample": true,
             "name": "Undulator",
