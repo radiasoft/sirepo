@@ -112,7 +112,7 @@ def get_analysis_report(run_dir, data):
     return x, plots, f'{x_label} vs {y_label}', fields, summary_data
 
 
-# fft on y vals only atm - make selectable?  2d?
+#TODO(MVK): 2d fft (?)
 def get_fft_report(run_dir, data):
     info = data.models.columnInfo
     col = data.models.fftReport.column
