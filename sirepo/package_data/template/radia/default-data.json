@@ -2,9 +2,11 @@
     "models": {
         "simFolder": {},
         "simulation": {
+            "beamAxis": "z",
             "documentationUrl": "",
             "folder": "/",
-            "notes": ""
+            "notes": "",
+            "enableKickMaps": "0"
         }
     },
     "simulationType": "radia"
