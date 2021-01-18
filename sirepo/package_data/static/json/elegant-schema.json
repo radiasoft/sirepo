@@ -1,6 +1,7 @@
 {
     "constants": {
         "ELEGANT_ME_EV": 0.51099906,
+        "hasMadxExport": true,
         "helpUserManualURL": "https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html",
         "helpUserForumURL": "https://www3.aps.anl.gov/forums/elegant/",
         "latticeKeywords": [
@@ -4383,7 +4384,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "importText": "Import an elegant command (.ele) or lattice (.lte or .madx) file"
     },
     "view": {
         "beamlineReport": {

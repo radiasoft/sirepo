@@ -19,7 +19,6 @@ SIREPO.app.config(function() {
     SIREPO.appDownloadLinks = [
         '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
-    SIREPO.appImportText = 'Import a zgoubi.dat datafile';
     SIREPO.lattice = {
         invalidElementName: /[#*'",]/g,
         elementColor: {

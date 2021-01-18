@@ -288,6 +288,9 @@
             "zLength": ["Length (Z) [µm]", "Float"]
         }
     },
+    "strings": {
+        "importText": "Import an stl file"
+    },
     "view": {
         "anode": {
             "title": "Anode",
