@@ -101,6 +101,9 @@
         "sirepoLibs": {
             "js": [
                 "ml.js"
+            ],
+            "css": [
+                "ml.css"
             ]
         }
     },

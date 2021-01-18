@@ -437,9 +437,10 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
+        inputDim=dm.columnInfo.inputOutput.count('input'),
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=dm.neuralNet.layers,
-        inputDim=dm.columnInfo.inputOutput.count('input'),
+        outputDim=dm.columnInfo.inputOutput.count('output'),
     ).pkupdate(_OUTPUT_FILE)
     v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in dm.columnInfo.inputOutput]) + ']'
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
