@@ -545,7 +545,7 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, mlService
                 '</div>',
               '</div>',
               '<div class="clearfix"></div>',
-              '<div data-ng-show="showFFT()">',
+              '<div data-ng-if="showFFT()">',
                 '<div data-fft-report="" data-model-data="modelData" style="margin-top: 5px;"></div>',
               '</div>',
             '</div>',

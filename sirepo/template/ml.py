@@ -706,7 +706,6 @@ def _read_file_with_history(run_dir, filename, report=None):
                 report2.update(action)
                 clusters = _compute_clusters(report2, res)
                 labels = np.array(clusters.group)
-                pkdp(f'CL LABELS {labels} RS B4 {res}')
                 res = res[labels == action.clusterIndex,:]
     return res
 
