@@ -573,7 +573,6 @@ def _generate_parameters_file(data):
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
     if _is_sim_report(report):
-        v.analysisAction = dm.analysisReport.action
         return res
     v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
         or v.partition_section1 == 'train_and_test' \
