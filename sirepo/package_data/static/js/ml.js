@@ -1095,7 +1095,7 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                 const w = $('div[data-column-selector] .sr-input-warning').text('').hide();
                 const msg = 'Select at least 2 columns';
                 b.setCustomValidity('');
-                if (! $scope.isAnalysis) {
+                if (! $scope.isAnalysis || ! $scope.model.selected) {
                     return;
                 }
                 let nv =  $scope.model.selected.filter(function (s, sIdx) {
