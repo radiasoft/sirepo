@@ -335,12 +335,32 @@ def export_rsopt_config(data):
     m = data.models.exportRsOpt
     f = re.sub(r'[^\w\.]+', '-', data.models.simulation.name).strip('-')
     v.pyFileName = f'{f}.py'
+    v.runDir = f'{f}_scan'
     # ignore these for now - we will generate data serially - but may be of use
     # later
     #v.numCores = int(m.numCores)
     #v.numWorkers = int(m.numWorkers)
     v.numSamples = int(m.numSamples)
     v.rsOptElements = _process_rsopt_elements(m.elements)
+    v.yml = f'{f}.yml'
+    yml = template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
+    p = _generate_parameters_file(data)
+    sh = template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.sh')
+    pkio.write_text(v.yml, sh)
+    pkio.write_text(v.pyFileName, sh)
+    with zipfile.ZipFile(
+        f'{f}.zip',
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in files:
+            z.write(str(f), f.basename)
+        z.writestr(
+            simulation_db.SIMULATION_DATA_FILE,
+            pkjson.dump_pretty(data, pretty=True),
+        )
+
     return template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
 
 
