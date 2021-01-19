@@ -348,10 +348,11 @@ def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
         e.p_map = ['horizontalOffset', 'verticalOffset', 'position']
-        e.t_map = ['horizontalOffset', 'verticalOffset', 'position']
+        e.t_map = ['normalVectorX', 'normalVectorY', 'normalVectorZ']
         e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
         e.position = sirepo.util.split_comma_delimited_string(e.position, float)
         e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
+        e.angle = sirepo.util.split_comma_delimited_string(e.angle, float)
     return x
 
 

@@ -12,13 +12,13 @@ codes:
           start: {{ x }}
         {% endif %}
         {% endfor %}
-        {% for t in e.rotations %}
-        {% if e.offsets[loop.index0] != 0 %}
-        {{ e.title }}_{{ e.p_map[loop.index0] }}:
-          min: {{ t - e.offsets[loop.index0] / 2.0 }}
-          max: {{ t + e.offsets[loop.index0] / 2.0 }}
+        {% for t in e.angle %}
+        {% if e.rotations[loop.index0] != 0 %}
+        {{ e.title }}_{{ e.t_map[loop.index0] }}:
+          min: {{ t - e.rotations[loop.index0] / 2.0 }}
+          max: {{ t + e.rotations[loop.index0] / 2.0 }}
           samples: {{ numSamples }}
-          start: {{ x }}
+          start: {{ t }}
         {% endif %}
         {% endfor %}
         {% endfor %}

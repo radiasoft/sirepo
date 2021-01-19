@@ -27,6 +27,11 @@ def set_rsopt_params(
     {{ e.title }}_{{ e.p_map[loop.index0] }},
     {% endif %}
     {% endfor %}
+    {% for t in e.angle %}
+    {% if e.rotations[loop.index0] != 0 %}
+    {{ e.title }}_{{ e.t_map[loop.index0] }},
+    {% endif %}
+    {% endfor %}
     {% endfor %}
 ):
     {% for e in rsOptElements %}
@@ -37,10 +42,15 @@ def set_rsopt_params(
         p[2] = {{ e.title }}_{{ e.p_map[loop.index0] }}
     {% endif %}
     {% endfor %}
+    {% for t in e.angle %}
+    {% if e.rotations[loop.index0] != 0 %}
+    t = _get_beamline_param('op_{{ e.title }}', '{{ e.t_map[loop.index0] }}')
+    if t:
+        t[2] = {{ e.title }}_{{ e.t_map[loop.index0] }}
+    {% endif %}
     {% endfor %}
-    # ???
-    #return varParam
-    return numpy.random.random()
+    {% endfor %}
+    return 0
 
 
 def _get_beamline_param(srw_prefix, sirepo_name):
