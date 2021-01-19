@@ -5,6 +5,9 @@
         }
     },
     "constants": {
+        "allowedEquationOps": [
+            "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
+        ],
         "inProgressText": "Working"
     },
     "enum": {
@@ -18,6 +21,12 @@
             ["knn", "K Nearest Neighbors"],
             ["linearSvc", "Linear SVC"],
             ["logisticRegression", "Logistic Regression"]
+        ],
+        "ClusterMethod": [
+            ["agglomerative", "Agglomerative Clustering"],
+            ["dbscan", "DBSCAN"],
+            ["gmix", "Gaussian Mixture"],
+            ["kmeans", "KMeans"]
         ],
         "InputOutputClass": [
             ["input", "Input"],
@@ -80,6 +89,12 @@
             ["test", "Testing"],
             ["validate", "Valiation"],
             ["train_and_test", "Training and Testing"]
+        ],
+        "PlotAction": [
+            ["cluster", "Cluster"],
+            ["fft", "FFT"],
+            ["fit", "Fit"],
+            ["trim", "Trim"]
         ],
         "PlotScale": [
             ["linear", "Linear"],
@@ -159,6 +174,81 @@
         "logisticRegressionErrorRateAnimation": []
     },
     "model": {
+        "analysisCluster": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "clusterMethod",
+                "clusterCount",
+                "clusterFields"
+            ],
+            "advanced": []
+        },
+        "analysisData": {
+            "title": "Archive Data File",
+            "basic": [
+                "file"
+            ],
+            "advanced": []
+        },
+        "analysisFFT": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisFit": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "fitEquation",
+                "fitVariable",
+                "fitParameters"
+            ],
+            "advanced": []
+        },
+        "analysisNone": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisReport": {
+            "x": ["X Value", "AnalysisParameter", "0"],
+            "y1": ["Y1 Value", "AnalysisParameter", "1"],
+            "action": ["", "PlotActionButtons"],
+            "notes": ["Notes", "Text", ""],
+            "clusterMethod": ["Method", "ClusterMethod", "kmeans"],
+            "clusterCount": ["Number of Clusters", "Integer", 3, "", 2, 20],
+            "clusterFields": ["Fields", "ClusterFields"],
+            "clusterScaleMin": ["Scaled Min", "Float", -0.8],
+            "clusterScaleMax": ["Scaled Min", "Float", 0.8],
+            "clusterRandomSeed": ["Random Seed", "Integer", 12341234],
+            "clusterKmeansInit": ["KMeans Number of Runs", "Integer", 2, "Number of time the k-means algorithm will be run with different centroid seeds. The final results will be the best output of n_init consecutive runs in terms of inertia.", 2, 20],
+            "clusterDbscanEps": ["DBSCAN Max Sample Distance", "Float", 0.1, "The maximum distance between two samples for them to be considered as in the same neighborhood."],
+            "fitEquation": ["Equation to Fit", "Equation", "a * x + b", "Functions limited to trig, exp, log, abs. Use 'pi' for π. Variable and parameter names limited to 1 letter"],
+            "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
+            "fitVariable": ["Independent Variable", "EquationVariables", "x"],
+            "trimField": ["Trim Field", "AnalysisParameter"],
+            "trimMin": ["Minimum", "Float"],
+            "trimMax": ["Maximum", "Float"],
+            "trimButton": ["", "TrimButton"],
+            "y2": ["Y2 Value", "AnalysisOptionalParameter", "none"],
+            "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "analysisTrim": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "trimMin",
+                "trimMax",
+                "trimButton"
+            ],
+            "advanced": []
+        },
         "columnInfo": {},
         "classificationAnimation": {
             "classifier": ["Classifier", "Classifier", "knn"]
@@ -176,6 +266,9 @@
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
+        "fftReport": {
+            "column":  ["Column", "AnalysisParameter", "0"]
+        },
         "fileColumnReport": {
             "x": ["VS", "XColumn", -1]
         },
@@ -184,6 +277,8 @@
             "histogramBins": ["Histogram Bins", "Integer", 30],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
+        "fitReport": {},
+        "hiddenReport": {},
         "knnClassification": {
             "kmax": ["KMax", "Integer", 50],
             "kmin": ["KMin", "Integer", 1]
@@ -256,6 +351,67 @@
         "typeOfSimulation": "training"
     },
     "view": {
+        "analysisCluster": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "clusterMethod",
+                "clusterCount",
+                "clusterFields"
+            ],
+            "advanced": []
+        },
+        "analysisFFT": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisFit": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "fitEquation",
+                "fitVariable",
+                "fitParameters"
+            ],
+            "advanced": []
+        },
+        "analysisNone": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisReport": {
+            "title": "Analysis Plot",
+            "advanced": [
+                ["Main", [
+                    "x",
+                    "y1",
+                    "notes"
+                ]],
+                ["Cluster", [
+                    "clusterScaleMin",
+                    "clusterScaleMax",
+                    "clusterRandomSeed",
+                    "clusterKmeansInit",
+                    "clusterDbscanEps"
+                ]]
+            ]
+        },
+        "analysisTrim": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "trimMin",
+                "trimMax",
+                "trimButton"
+            ],
+            "advanced": []
+        },
         "columnChooser": {
             "title": "Columns",
             "basic": [],
@@ -286,6 +442,13 @@
             "title": "Training Error",
             "advanced": [
                 "plotScale"
+            ]
+        },
+        "fftReport": {
+            "title": "FFT",
+            "basic": [],
+            "advanced": [
+                "column"
             ]
         },
         "fileColumnReport": {
