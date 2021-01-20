@@ -1048,13 +1048,14 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                 if (! appState.models.columnInfo.selected) {
                     appState.models.columnInfo.selected = [];
                 }
+                let p = 0;
+                $scope.pages = [[]];
                 for (let i = 0; i < c.header.length; i++) {
                     if (c.colsWithNonUniqueValues.hasOwnProperty(c.header[i])) {
                         continue;
                     }
-                    const p = Math.floor(i / pageSize);
-                    if (i % pageSize === 0) {
-                        $scope.pages[p] = [];
+                    if ($scope.pages[p].length === pageSize) {
+                        $scope.pages[++p] = [];
                     }
                     $scope.pages[p].push(i);
                     const m = mlService.columnReportName(i);
