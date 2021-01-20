@@ -52,6 +52,9 @@ SIREPO.beamlineItemLogic = function(name, init) {
     });
 };
 
+SIREPO.SNIPPETS = {};
+SIREPO.PANELS = {};
+
 SIREPO.viewLogic = function(name, init) {
     SIREPO.app.directive(name, function(appState) {
         return {
@@ -96,6 +99,57 @@ angular.element(document).ready(function() {
             : addTag(src, 'script', 'body', 'src', {'type': 'text/javascript', 'async': true});
     }
 
+    function loadFromPath(path, type, callback, errCallback, finallyCallback) {
+        let d = $.Deferred();
+        $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (res) {
+            callback(res);
+        }, type)
+            .fail(function (res) {
+                if (errCallback) {
+                    errCallback(res);
+                }
+            })
+            .always(function (res) {
+                if (finallyCallback) {
+                    finallyCallback(res);
+                }
+                d.resolve();
+            });
+        return d.promise();
+    }
+
+    function loadSnippet(b) {
+        let val = null;
+        let ok = false;
+        return loadFromPath(b.path, b.fileType, function (res) {
+            val = res;
+            ok = true;
+        }, function(res) {
+            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
+            // However we can get a successful read anyway; if so assign the response text
+            ok = res.status == 200;
+            val = res.responseText;
+        }, function (res) {
+            if (! ok) {
+                throw new Error(`${status}: Failed to load block ${b.name}`);
+            }
+            SIREPO.SNIPPETS[b.name] = val;
+            if (b.snippetType === 'panel') {
+                buildPanel(b.name, val);
+            }
+        });
+    }
+
+    // a "panel" is a minmal directive return value for now, but can be any encapsulation of
+    // markup
+    function buildPanel(name, val) {
+        SIREPO.PANELS[name] = {
+            restrict: 'A',
+            scope: {},
+            template: val,
+        };
+    }
+
     function addTag(src, name, parent, uri, attrs) {
         var d = $.Deferred();
         var t = document.createElement(name);
@@ -117,6 +171,10 @@ angular.element(document).ready(function() {
         return $.map(mods, loadDynamicModule);
     }
 
+    function loadSnippets() {
+        return $.map(SIREPO.APP_SCHEMA.blocks || [], loadSnippet);
+    }
+
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -124,7 +182,7 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            $.when.apply($, loadDynamicModules()).then(
+            $.when.apply($, loadDynamicModules(), loadSnippets()).then(
                 function() {
                     angular.bootstrap(document, ['SirepoApp']);
                 }

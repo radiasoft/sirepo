@@ -2,12 +2,25 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
-SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
+SIREPO.PLOT_DIRECTIVES = ['heatmap', 'parameterPlot', 'particle', 'plot2d', 'plot3d',];
+SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
-SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
+//const directivePlot2d = 'plot2d';
+
+angular.element(document).ready(function() {
+    for (let d of SIREPO.PLOT_DIRECTIVES) {
+        SIREPO.PANELS[d].addWatermark = function(authState) {
+            if (SIREPO.authState.watermarkReports) {
+                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
+            }
+        };
+    }
+});
+
+SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -297,6 +310,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 select(parentClass + ' .line-' + i).datum(pointsList[i] || []);
             }
             return pointsList;
+        },
+
+        addWatermark: function() {
+            if (SIREPO.authState.watermarkReports) {
+                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
+            }
         },
 
         calculateFWHM: function(xValues, yValues) {
@@ -772,6 +791,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             plotScope.resize = noOp;
         },
 
+        setWatermarkPosition: function (jqueryElement, x, y) {
+            let wm = jqueryElement.find('svg.rs-watermark-icon');
+            wm.attr('x', x);
+            wm.attr('y', y);
+        },
+
         setupSelector: setupSelector,
 
         tickFontSize: function(node) {
@@ -959,7 +984,9 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
     };
 });
 
-SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
+SIREPO.app.service('plot2dService', function(appState, authState, layoutService, panelState, plotting, utilities) {
+
+    const self = this;
 
     this.init2dPlot = function($scope, attrs) {
         var colorbar, scaleFunction, zoom;
@@ -990,7 +1017,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 .y(function(d) {
                     return $scope.axes.y.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
                 });
-            resetZoom();
+           resetZoom();
         }
 
         function refresh() {
@@ -1022,6 +1049,9 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             $scope.select($scope.zoomContainer)
                 .classed('mouse-zoom', isFullSize)
                 .classed('mouse-move-ew', ! isFullSize);
+
+            plotting.setWatermarkPosition($($scope.el), 0, $scope.height + $scope.margin.top + 16);
+
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
             $.each($scope.axes, function(dim, axis) {
@@ -2245,7 +2275,9 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
     };
 });
 
-SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dService) {
+SIREPO.app.directive('plot2d', function(authState, focusPointService, plotting, plot2dService) {
+
+    let res = SIREPO.PANELS.plot2d;
     return {
         restrict: 'A',
         scope: {
@@ -2253,8 +2285,8 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
-            var points;
+        controller: function($scope, $element) {
+            let points;
             $scope.focusPoints = [];
 
             $scope.formatFocusPointData = function(fp) {
@@ -2263,6 +2295,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
+                    el: $element,
                     margin: {top: 50, right: 10, bottom: 50, left: 75},
                 });
                 $scope.focusPoints.push(
@@ -2312,13 +2345,14 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
                 }
             };
         },
-        link: function link(scope, element) {
+        link: function(scope, element) {
+            plotting.addWatermark();
             plotting.linkPlot(scope, element);
         },
     };
 });
 
-SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutService, plotting, utilities) {
+SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2326,7 +2360,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             modelName: '@',
         },
         templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var MIN_PIXEL_RESOLUTION = 10;
             $scope.margin = {
                 top: 50,
@@ -2572,6 +2606,11 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     axes.x.grid.tickSize(- $scope.canvasSize.height - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
                     axes.y.grid.tickSize(- $scope.canvasSize.width - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
                 }
+
+                plotting.setWatermarkPosition(
+                    $($element), 0, $scope.canvasSize.height + $scope.margin.top + $scope.bottomPanelHeight
+                );
+
                 resetZoom();
                 select('.mouse-rect-xy').call(xyZoom);
                 select('.mouse-rect-x').call(axes.x.zoom);
@@ -2824,19 +2863,20 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             });
         },
         link: function link(scope, element) {
+            plotting.addWatermark();
             plotting.linkPlot(scope, element);
         },
     };
 });
 
-SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, utilities) {
+SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
         templateUrl: '/static/html/heatplot.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             // will be set to the correct size in resize()
             $scope.canvasSize = {
                 width: 0,
@@ -2917,6 +2957,11 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, ! SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL);
                 select('.line-amr-grid').attr('d', amrLine);
+
+                plotting.setWatermarkPosition(
+                    $($element), 0, $scope.canvasSize.height + $scope.margin.top + 16
+                );
+
                 resetZoom();
                 select('.mouse-rect').call(zoom);
                 $scope.canvasSize.isPlaying = $scope.isPlaying;
@@ -3057,12 +3102,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
         },
         link: function link(scope, element) {
+            plotting.addWatermark();
             plotting.linkPlot(scope, element);
         },
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, authState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -3338,6 +3384,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
+                    el: $element,
                     margin: {top: 50, right: 23, bottom: 50, left: 75}
                 });
                 // override graphLine to work with multiple point sets
@@ -3643,6 +3690,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
         },
         link: function link(scope, element) {
+            plotting.addWatermark();
             plotting.linkPlot(scope, element);
         },
     };
@@ -3660,6 +3708,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
+                    el: $element,
                     margin: {top: 50, right: 23, bottom: 50, left: 75},
                 });
             };
@@ -3739,6 +3788,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
             };
         },
         link: function link(scope, element) {
+            plotting.addWatermark();
             plotting.linkPlot(scope, element);
         },
     };
