@@ -1,6 +1,6 @@
 from keras.models import Sequential
-from keras.layers import Activation
-{% for name in layerImplementationNames if not name == 'Activation' %}
+from keras.layers import Dense
+{% for name in layerImplementationNames if not name == 'Dense' %}
 from keras.layers import {{ name }}
 {% endfor %}
 
