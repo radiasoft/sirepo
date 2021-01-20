@@ -377,7 +377,7 @@ def api_exportRSOptConfig(simulation_type, simulation_id, filename):
     return http_reply.gen_file_as_attachment(
         t.export_rsopt_config(d),
         filename,
-        content_type='text/yaml'
+        content_type='application/zip'
     )
 
 

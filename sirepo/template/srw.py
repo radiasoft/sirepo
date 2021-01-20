@@ -334,7 +334,16 @@ def export_rsopt_config(data):
     res, v = template_common.generate_parameters_file(data)
     m = data.models.exportRsOpt
     f = re.sub(r'[^\w\.]+', '-', data.models.simulation.name).strip('-')
-    v.pyFileName = f'{f}.py'
+    if 'report' not in data:
+        data.report = 'rsOpt'
+
+    pyFileName = f'{f}.py'
+    shFileName = f'{f}.sh'
+    ymlFileName = f'{f}.yml'
+    zipFileName = f'{f}.zip'
+
+    v.pyFileName = pyFileName
+    v.ymlFileName = ymlFileName
     v.runDir = f'{f}_scan'
     # ignore these for now - we will generate data serially - but may be of use
     # later
@@ -342,38 +351,30 @@ def export_rsopt_config(data):
     #v.numWorkers = int(m.numWorkers)
     v.numSamples = int(m.numSamples)
     v.rsOptElements = _process_rsopt_elements(m.elements)
-    v.yml = f'{f}.yml'
+
+    files = []
+    #for t in ['py', 'sh', 'yml']:
+    #    tf = f'{f}.{t}'
+    #    v[f'{t}FileName'] = tf
+    #    files.append(tf)
+
     yml = template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
-    p = _generate_parameters_file(data)
+    p = python_source_for_model(data, 'rsoptExport') #_generate_parameters_file(data)
     sh = template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.sh')
-    pkio.write_text(v.yml, sh)
-    pkio.write_text(v.pyFileName, sh)
+    yml_path = pkio.write_text(ymlFileName, yml)
+    py_path = pkio.write_text(pyFileName, p)
+    sh_path = pkio.write_text(shFileName, sh)
     with zipfile.ZipFile(
-        f'{f}.zip',
+        zipFileName,
         mode='w',
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
     ) as z:
-        for f in files:
+        for f in [yml_path, py_path, sh_path]:
             z.write(str(f), f.basename)
-        z.writestr(
-            simulation_db.SIMULATION_DATA_FILE,
-            pkjson.dump_pretty(data, pretty=True),
-        )
 
-    return template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
-
-
-def _process_rsopt_elements(els):
-    x = [e for e in els if e.enabled and e.enabled != '0']
-    for e in x:
-        e.p_map = ['horizontalOffset', 'verticalOffset', 'position']
-        e.t_map = ['normalVectorX', 'normalVectorY', 'normalVectorZ']
-        e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
-        e.position = sirepo.util.split_comma_delimited_string(e.position, float)
-        e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
-        e.angle = sirepo.util.split_comma_delimited_string(e.angle, float)
-    return x
+    return pkio.py_path(zipFileName)
+    #return template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
 
 
 def get_application_data(data, **kwargs):
@@ -1464,7 +1465,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v[report] = 1
     _add_report_filenames(v)
     v['setupMagneticMeasurementFiles'] = plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data)
-    v['srwMain'] = _generate_srw_main(data, plot_reports)
+    v['srwMain'] = _generate_srw_main(data, plot_reports) if report != 'rsoptExport' else '\tpass'
 
     if run_dir and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
@@ -1649,6 +1650,18 @@ def _process_intensity_reports(source_type, undulator_type):
     return PKDict({
         'magneticField': 2 if source_type == 'a' or _SIM_DATA.srw_is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
+
+
+def _process_rsopt_elements(els):
+    x = [e for e in els if e.enabled and e.enabled != '0']
+    for e in x:
+        e.p_map = ['horizontalOffset', 'verticalOffset', 'position']
+        e.t_map = ['normalVectorX', 'normalVectorY', 'normalVectorZ']
+        e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
+        e.position = [float(p) for p in e.position]
+        e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
+        e.angle = [float(p) for p in e.angle]
+    return x
 
 
 def _remap_3d(info, allrange, z_label, z_units, report):

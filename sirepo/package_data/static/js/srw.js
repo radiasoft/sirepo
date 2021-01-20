@@ -336,13 +336,12 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             let e = self.findRSOptElement(item.id);
             let newEl = ! e;
             if (newEl) {
-                //e = appState.setModelDefaults(item, 'rsOptElement');
                 e = appState.setModelDefaults({}, 'rsOptElement');
             }
             e.title = item.title;
             e.id = item.id;
-            e.position = `${item.horizontalOffset || 0.0}, ${item.verticalOffset || 0.0}, ${item.position}`;
-            e.angle = `${item.normalVectorX || 0.0}, ${item.normalVectorY || 0.0}, ${item.normalVectorY}`;
+            e.position = [`${item.horizontalOffset || 0.0}`, `${item.verticalOffset || 0.0}`, `${item.position}`];
+            e.angle = [`${item.normalVectorX || 0.0}`, `${item.normalVectorY || 0.0}`, `${item.normalVectorY}`];
             if (newEl) {
                 appState.models.exportRsOpt.elements.push(e);
             }
@@ -1826,7 +1825,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                     const args = {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.yml`,
+                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
                     };
                     requestSender.newWindow('exportRSOptConfig', args);
                 });
