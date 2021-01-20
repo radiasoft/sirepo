@@ -12,7 +12,7 @@ from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 def read_data(path, **kwargs):
     return sirepo.numpy.ndarray_from_csv(
         path,
-        {{ 1 if columnInfo_hasHeaderRow else 0 }},
+        {{ columnInfo_hasHeaderRow }},
         **kwargs,
     )
 
