@@ -12,7 +12,7 @@ def ndarray_from_csv(path, skip_header, **kwargs):
         import csv
         import re
 
-        with open(path) as f:
+        with open(path, "rt") as f:
             for r in csv.reader(f):
                 yield ','.join(map(lambda v: re.sub(r'["\n\r,]', '', v), r))
     return np.genfromtxt(
