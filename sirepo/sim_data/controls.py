@@ -18,6 +18,24 @@ class SimData(sirepo.sim_data.SimDataBase):
         return sirepo.simulation_db.simulation_dir('madx')
 
     @classmethod
+    def default_optimizer_settings(cls, madx):
+        element_map = PKDict({e._id: e for e in madx.elements})
+        targets = []
+        for el_id in madx.beamlines[0]['items']:
+            el = element_map[el_id]
+            if el.type in ('MONITOR', 'HMONITOR', 'VMONITOR'):
+                item = cls.model_defaults('optimizerTarget')
+                item.name = el.name
+                if el.type == 'HMONITOR':
+                    del item['y']
+                elif el.type == 'VMONITOR':
+                    del item['x']
+                targets.append(item)
+        return cls.model_defaults('optimizerSettings').pkupdate(PKDict(
+            targets=targets,
+        ))
+
+    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         cls._init_models(
@@ -30,6 +48,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
         if 'externalLattice' in dm:
             sirepo.sim_data.get_class('madx').fixup_old_data(dm.externalLattice)
+            if 'optimizerSettings' not in dm:
+                dm.optimizerSettings = cls.default_optimizer_settings(dm.externalLattice.models)
 
     @classmethod
     def _lib_file_basenames(cls, data):
