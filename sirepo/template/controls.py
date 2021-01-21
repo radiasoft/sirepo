@@ -100,7 +100,7 @@ def _dedup_madx_elements(data):
         return res
 
     def _set_element_name(elem, index):
-        elem['name'] = f'{elem.type[0]}{index}'
+        elem['name'] = f'{elem.name[0]}_{index}'
 
     max_id = sirepo.template.lattice.LatticeUtil.max_id(data)
     beamline_map = PKDict(
