@@ -30,7 +30,6 @@ SIREPO.app.config(function() {
           '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
         '</div>',
     ].join('');
-    SIREPO.appImportText = 'Import an stl file';
 });
 
 SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {

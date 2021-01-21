@@ -4,6 +4,9 @@
             "localRoute": "controls"
         }
     },
+    "constants": {
+        "maxBPMPoints": 10
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
@@ -16,6 +19,10 @@
         }
     },
     "enum": {
+        "OptimizationMethod": [
+            ["nmead", "Nelder-Mead"],
+            ["polyfit", "Linear Response Matrix"]
+        ],
         "ParticleType": [
             ["positron", "Positron"],
             ["electron", "Electron"],
@@ -44,9 +51,9 @@
             "name": ["Name", "ValidatedString"]
         },
         "command_beam": {
-            "particle": ["PARTICLE", "ParticleType", "electron", "The name of particles in the beam."],
-            "mass": ["MASS [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
-            "charge": ["CHARGE [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
+            "particle": ["Particle", "ParticleType", "electron", "The name of particles in the beam."],
+            "mass": ["Mass [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
+            "charge": ["Charge [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
             "pc": ["PC [GeV/c]", "Float", 0.0, "Momentum per particle."],
             "ex": ["Horizontal Emittance [m]", "Float", 1.0],
             "ey": ["Vertical Emittance [m]", "Float", 1.0],
@@ -62,13 +69,21 @@
             "dpy": ["Vertical Dispersion Derivative", "Float", 0.0],
             "dx": ["Horizontal Dispersion [m]", "Float", 0.0],
             "dy": ["Vertical Dispersion [m]", "Float", 0.0],
-            "px": ["Horizontal Centroid Derivative [2$\\pi$]", "Float", 0.0],
-            "py": ["Vertical Centroid Derivative [2$\\pi$]", "Float", 0.0],
+            "px": ["Horizontal Canonical Momentum of $p_x$", "Float", 0.0],
+            "py": ["Vertical Canonical Momentum of $p_y$", "Float", 0.0],
             "x": ["Horizontal Centroid [m]", "Float", 0.0],
             "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
+        },
+        "optimizerSettings": {
+            "method": ["Optimization Method", "OptimizationMethod", "nmead"]
+        },
+        "optimizerTarget": {
+            "x": ["X [m]", "Float", 0.0],
+            "y": ["Y [m]", "Float", 0.0],
+            "weight": ["Weight", "Float", 0.1]
         },
         "HKICKER": {
             "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
@@ -150,7 +165,7 @@
             "advanced": []
         },
         "simulationStatus": {
-            "title": "Simulation Status",
+            "title": "Optimization Targets",
             "advanced": []
         },
         "HKICKER": {

@@ -1,5 +1,6 @@
 {
     "constants": {
+        "hasMadxExport": true,
         "helpUserManualURL": "https://gitlab.psi.ch/OPAL/src/wikis",
         "latticeKeywords": [
             "pi", "twopi", "raddeg", "degrad", "e", "emass", "pmass", "hmmass",

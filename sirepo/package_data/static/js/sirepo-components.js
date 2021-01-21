@@ -2368,11 +2368,11 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             };
 
             $scope.canExportMadx = function() {
-                return SIREPO.appMadxExport;
+                return SIREPO.APP_SCHEMA.constants.hasMadxExport;
             };
 
             $scope.canExportJupyter = function() {
-                return SIREPO.appJupyterExport;
+                return SIREPO.APP_SCHEMA.constants.hasJupyterExport;
             };
 
             $scope.exportJupyterNotebook = function(modelName) {
@@ -3521,6 +3521,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
         restrict: 'A',
         scope: {
             simState: '=simStatusPanel',
+            startFunction: '&?',
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
@@ -3598,7 +3599,12 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
                     j.jobRunMode = 'parallel';
                 }
-                appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
+                if ($scope.startFunction) {
+                    $scope.startFunction();
+                }
+                else {
+                    appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
+                }
             };
 
             $scope.startButtonLabel = function() {

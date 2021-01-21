@@ -3389,7 +3389,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     ].join('');
     notificationService.addNotification(n);
 
-    self.importText = SIREPO.appImportText;
+    self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
     self.activeFolder = fileManager.getActiveFolder();

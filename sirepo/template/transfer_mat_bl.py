@@ -38,10 +38,10 @@ def shadow_src_beam(n_rays=10000, ran_seed=15829, dist_type=3, sigx=4.42e-05, si
 
     return beam
 
-def create_mat_rays(epsilon):
+def create_mat_rays(epsilon, ph_energy):
 
     # Use Shadow MC generation for 5 rays from source in beam object
-    beam = shadow_src_beam(n_rays=5)
+    beam = shadow_src_beam(n_rays=5, ph_energy=ph_energy)
 
     # Manually set initial phase space values for each ray (1 on-axis and 4 offset)
 

@@ -336,13 +336,13 @@
             "k_horizontal": 0.0,
             "k_vertical": 0.99942379,
             "length": 3.5055,
-            "maxangle": 50,
+            "maxangle": 39.0887,
             "ng_e": 11,
             "ng_j": 20,
             "ng_p": 21,
             "ng_t": 31,
             "period": 57.0,
-            "photon_energy": 10000.0,
+            "photon_energy": 1000.0,
             "select_energy": "harmonic"
         },
         "undulatorBeam": {
