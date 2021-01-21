@@ -375,7 +375,7 @@ def api_exportRSOptConfig(simulation_type, simulation_id, filename):
     assert hasattr(t, 'export_rsopt_config'), 'Export rsopt unavailable'
     d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
     return http_reply.gen_file_as_attachment(
-        t.export_rsopt_config(d),
+        t.export_rsopt_config(d, filename),
         filename,
         content_type='application/zip'
     )

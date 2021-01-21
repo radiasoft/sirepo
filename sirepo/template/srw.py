@@ -330,51 +330,38 @@ def extract_report_data(filename, sim_in):
 
 
 #TODO(mvk): should be a zip file containing yml, python, shell script, maybe README
-def export_rsopt_config(data):
+def export_rsopt_config(data, filename):
     res, v = template_common.generate_parameters_file(data)
     m = data.models.exportRsOpt
-    f = re.sub(r'[^\w\.]+', '-', data.models.simulation.name).strip('-')
-    if 'report' not in data:
-        data.report = 'rsOpt'
-
-    pyFileName = f'{f}.py'
-    shFileName = f'{f}.sh'
-    ymlFileName = f'{f}.yml'
-    zipFileName = f'{f}.zip'
-
-    v.pyFileName = pyFileName
-    v.ymlFileName = ymlFileName
-    v.runDir = f'{f}_scan'
     # ignore these for now - we will generate data serially - but may be of use
     # later
     #v.numCores = int(m.numCores)
     #v.numWorkers = int(m.numWorkers)
     v.numSamples = int(m.numSamples)
     v.rsOptElements = _process_rsopt_elements(m.elements)
+    fz = pkio.py_path(filename)
+    f = re.sub(r'[^\w\.]+', '-', fz.purebasename).strip('-')
+    v.runDir = f'{f}_scan'
 
-    files = []
-    #for t in ['py', 'sh', 'yml']:
-    #    tf = f'{f}.{t}'
-    #    v[f'{t}FileName'] = tf
-    #    files.append(tf)
+    tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
+    for t in tf:
+        v[f'{t}FileName'] = tf[t].file
 
-    yml = template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
-    p = python_source_for_model(data, 'rsoptExport') #_generate_parameters_file(data)
-    sh = template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.sh')
-    yml_path = pkio.write_text(ymlFileName, yml)
-    py_path = pkio.write_text(pyFileName, p)
-    sh_path = pkio.write_text(shFileName, sh)
+    # do this in a second loop so v is fully updated
+    for t in tf:
+        tf[t].content = python_source_for_model(data, 'rsoptExport') if t == 'py' else \
+            template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
+
     with zipfile.ZipFile(
-        zipFileName,
+        fz,
         mode='w',
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
     ) as z:
-        for f in [yml_path, py_path, sh_path]:
-            z.write(str(f), f.basename)
+        for t in tf:
+            z.writestr(tf[t].file, tf[t].content)
 
-    return pkio.py_path(zipFileName)
-    #return template_common.render_jinja(SIM_TYPE, v, 'rsoptExport.yml')
+    return fz
 
 
 def get_application_data(data, **kwargs):
