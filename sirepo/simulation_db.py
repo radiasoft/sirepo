@@ -620,6 +620,14 @@ def simulation_dir(simulation_type, sid=None, uid=None):
     return d.join(assert_sid(sid))
 
 
+def simulation_file_uri(simulation_type, sid, basename):
+    return '/'.join([
+        sirepo.template.assert_sim_type(simulation_type),
+        assert_sid(sid),
+        basename,
+    ])
+
+
 def simulation_lib_dir(simulation_type, uid=None):
     """String name for user library dir
 

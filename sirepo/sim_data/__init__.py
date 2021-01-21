@@ -724,7 +724,13 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_file_uri(cls, basename, data):
-        return f'{cls.sim_type()}/{data.models.simulation.simulationId}/{basename}'
+        import sirepo.simulation_db
+
+        return sirepo.simulation_db.simulation_file_uri(
+            cls.sim_type(),
+            data.models.simulation.simulationId,
+            basename,
+        )
 
     @classmethod
     def _sim_src_tarball_path(cls):
