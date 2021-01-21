@@ -1473,7 +1473,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 def _generate_srw_main(data, plot_reports):
     report = data['report']
     source_type = data['models']['simulation']['sourceType']
-    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL
+    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or report == 'rsoptExport'
     content = [
         'import sys',
         'if len(sys.argv[1:]) > 0:',

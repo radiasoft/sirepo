@@ -294,7 +294,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def srw_is_beamline_report(cls, report):
         return not report or cls.is_watchpoint(report) \
             or report in ('multiElectronAnimation', cls.SRW_RUN_ALL_MODEL) \
-            or report == 'beamline3DReport'
+            or report == 'beamline3DReport' \
+            or  report == 'rsoptExport'
 
     @classmethod
     def srw_is_dipole_source(cls, sim):
