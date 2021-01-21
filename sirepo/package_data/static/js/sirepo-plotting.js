@@ -1021,7 +1021,9 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             }
             $scope.select($scope.zoomContainer)
                 .classed('mouse-zoom', isFullSize)
-                .classed('mouse-move-ew', ! isFullSize);
+                .classed('mouse-move', ! isFullSize && $scope.isZoomXY)
+                .classed('mouse-move-ns', ! isFullSize && $scope.isZoomY)
+                .classed('mouse-move-ew', ! isFullSize && ! ($scope.isZoomXY || $scope.isZoomY));
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
             $.each($scope.axes, function(dim, axis) {
@@ -1042,6 +1044,10 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         }
 
         function resetZoom() {
+            if ($scope.isZoomY) {
+                zoom = $scope.axes.y.createZoom($scope);
+                return;
+            }
             zoom = $scope.axes.x.createZoom($scope);
             if ($scope.isZoomXY) {
                 zoom.y($scope.axes.y.scale);
