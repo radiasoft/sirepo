@@ -136,9 +136,9 @@
         ],
         "dataFile": {
             "appMode": "classification",
-            "file": "heartDiesase.data.csv",
+            "file": "heartDisease.data.csv",
             "inputsScaler": "RobustScaler",
-            "oldFile": "heartDiesase.data.csv",
+            "oldFile": "heartDisease.data.csv",
             "outputsScaler": "RobustScaler"
         },
         "dtClassifierClassificationMetricsAnimation": {},
