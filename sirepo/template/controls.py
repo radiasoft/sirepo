@@ -67,6 +67,42 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _add_monitor(data):
+    def _do_add():
+        m = PKDict(
+            _id=sirepo.template.lattice.LatticeUtil.max_id(data),
+            name='M1',
+            type=t,
+        )
+        for k, v in sirepo.sim_data.get_class('madx').schema().model[t].items():
+            if len(v) < 3:
+                continue
+            m[k] = v[2]
+        data.models.elements.append(m)
+        for b in data.models.beamlines:
+            if b.id == i:
+                b['items'].append(m._id)
+                return
+        raise AssertionError(f'beamline={i} not found')
+
+    def _has_monitor():
+        m = {
+            e._id for e in data.models.elements if t in e.type
+        }
+        for b in data.models.beamlines:
+            if b.id == i:
+                for e in b['items']:
+                    if e in m:
+                        return True
+        return False
+
+    t = 'MONITOR'
+    i = data.models.simulation.visualizationBeamlineId
+    if _has_monitor():
+        return
+    _do_add()
+
+
 def _dedup_madx_elements(data):
     def _reduce_to_elements(beamline_id):
         def _do(beamline_id):
@@ -218,6 +254,7 @@ def _get_external_lattice(simulation_id):
     _delete_unused_madx_models(d)
     _delete_unused_madx_commands(d)
     _dedup_madx_elements(d)
+    _add_monitor(d)
     sirepo.template.madx.eval_code_var(d)
     return PKDict(
         externalLattice=d,
