@@ -2364,11 +2364,11 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             $scope.doneLoadingSimList = false;
 
             $scope.canExportMadx = function() {
-                return SIREPO.appMadxExport;
+                return SIREPO.APP_SCHEMA.constants.hasMadxExport;
             };
 
             $scope.canExportJupyter = function() {
-                return SIREPO.appJupyterExport;
+                return SIREPO.APP_SCHEMA.constants.hasJupyterExport;
             };
 
             $scope.exportJupyterNotebook = function(modelName) {

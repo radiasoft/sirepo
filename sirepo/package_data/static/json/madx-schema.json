@@ -1192,8 +1192,8 @@
     },
     "strings": {
         "completionState": "",
+        "importText": "Import a lattice (.madx) file",
         "simulationSource": "MAD-X Source (*.madx)"
-
     },
     "view": {
         "beamline": {

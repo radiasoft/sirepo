@@ -10,7 +10,6 @@ SIREPO.app.config(function() {
           '<div data-turn-count-field="" field="field" data-model="model"></div>',
         '</div>',
     ].join('');
-    SIREPO.appImportText = 'Import a MAD-X or elegant Lattice';
     SIREPO.FILE_UPLOAD_TYPE = {
         'bunch-particleFile': '.h5,.hdf5',
     };

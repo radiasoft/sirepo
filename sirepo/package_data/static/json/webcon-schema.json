@@ -5,6 +5,7 @@
         }
     },
     "constants": {
+        "hasJupyterExport": true,
         "inProgressText": "Working",
         "allowedEquationOps": [
             "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"

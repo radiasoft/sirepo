@@ -27,7 +27,7 @@ sigdiz = rays_sigma(rays, 5)
 
 beam_stats = []
 epsilon = {{beamStatisticsReport_epsilon}}
-beam = transfer_mat_bl.create_mat_rays(epsilon)
+beam = transfer_mat_bl.create_mat_rays(epsilon, {{ photonEnergy }})
 
 sigma_mat = numpy.matrix([
     [sigmax ** 2, 0, 0, 0],

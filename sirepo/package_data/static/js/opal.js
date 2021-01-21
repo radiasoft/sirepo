@@ -4,7 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appMadxExport = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
