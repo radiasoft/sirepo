@@ -1452,7 +1452,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v[report] = 1
     _add_report_filenames(v)
     v['setupMagneticMeasurementFiles'] = plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data)
-    v['srwMain'] = _generate_srw_main(data, plot_reports) if report != 'rsoptExport' else '\tpass'
+    v['srwMain'] = _generate_srw_main(data, plot_reports)
 
     if run_dir and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
@@ -1475,8 +1475,16 @@ def _generate_srw_main(data, plot_reports):
     source_type = data['models']['simulation']['sourceType']
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL
     content = [
+        'import sys',
+        'if len(sys.argv[1:]) > 0:',
+        '\tset_rsopt_params(*sys.argv[1:])',
+        '\tdel sys.argv[1:]',
+        'else:',
+        '\texit(0)'
+    ] if report == 'rsoptExport' else []
+    content.append(
         'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={})'.format(plot_reports),
-    ]
+    )
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or _SIM_DATA.srw_is_beamline_report(report):
@@ -1525,7 +1533,7 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join(['    {}'.format(x) for x in content] + ['', 'main()\n'])
+    return '\n'.join(['    {}'.format(x) for x in content] + ['', 'if __name__ == "__main__":\n\tmain()' if report == 'rsoptExport' else 'main()\n', ''])
 
 
 def _get_first_element_position(data):
