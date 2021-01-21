@@ -21,17 +21,19 @@ _SUMMARY_CSV_FILE = 'summary.csv'
 
 
 def background_percent_complete(report, run_dir, is_running):
-    v = _read_summary_line(run_dir)
     if is_running:
         return PKDict(
             percentComplete=0,
             frameCount=0,
-            elementValues=v,
+            elementValues=_read_summary_line(run_dir)
         )
     return PKDict(
         percentComplete=100,
         frameCount=1,
-        elementValues=v,
+        elementValues=_read_summary_line(
+            run_dir,
+            _SCHEMA.constants.maxBPMPoints,
+        )
     )
 
 
@@ -52,7 +54,6 @@ def get_application_data(data, **kwargs):
         return PKDict(simList=res)
     elif data.method == 'get_external_lattice':
         return _get_external_lattice(data.simulationId)
-    raise AssertionError(f'unknown application data method={data.method}')
 
 
 def python_source_for_model(data, model):
@@ -163,6 +164,7 @@ def _delete_unused_madx_models(data):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     _generate_madx(v, data)
+    v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     return res + template_common.render_jinja(SIM_TYPE, v)
 
@@ -192,8 +194,12 @@ def _generate_madx(v, data):
             _set_opt(el, 'vkick', kicker)
         elif el.type in ('HKICKER', 'VKICKER'):
             _set_opt(el, 'kick', kicker)
-        elif 'MONITOR' in el.type:
+        elif el.type == 'MONITOR':
             header += [_format_header(el._id, x) for x in ('x', 'y')]
+        elif el.type == 'HMONITOR':
+            header += [_format_header(el._id, 'x')]
+        elif el.type == 'VMONITOR':
+            header += [_format_header(el._id, 'y')]
     v.summaryCSVHeader = ','.join(kicker.header + header)
     v.correctorCount = len(kicker.kick)
     v.monitorCount = len(header) / 2
@@ -213,22 +219,37 @@ def _get_external_lattice(simulation_id):
     _delete_unused_madx_commands(d)
     _dedup_madx_elements(d)
     sirepo.template.madx.eval_code_var(d)
-    return PKDict(d)
+    return PKDict(
+        externalLattice=d,
+        optimizerSettings=_SIM_DATA.default_optimizer_settings(d.models),
+    )
 
 
-def _read_summary_line(run_dir):
+def _read_summary_line(run_dir, line_count=None):
     path = run_dir.join(_SUMMARY_CSV_FILE)
     if not path.exists():
         return None
     header = None
+    rows = []
     with open(str(path)) as f:
         reader = csv.reader(f)
         for row in reader:
-            header = row
-            break
+            if header == None:
+                header = row
+                if not line_count:
+                    break
+            else:
+                rows.append(row)
+                if len(rows) > line_count:
+                    rows.pop(0)
+    if line_count:
+        res = []
+        for row in rows:
+            res.append(PKDict(zip(header, row)))
+        return res
     line = template_common.read_last_csv_line(path)
     if header and line:
         line = line.split(',')
         if len(header) == len(line):
-            return PKDict(zip(header, line))
+            return [PKDict(zip(header, line))]
     return None

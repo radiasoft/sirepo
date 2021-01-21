@@ -34,9 +34,9 @@ SIREPO.app.config(() => {
         },
     };
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-        '<div data-ng-switch-when="bpmHMonitor" data-bpm-monitor-plot="Horizontal" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-        '<div data-ng-switch-when="bpmVMonitor" data-bpm-monitor-plot="Vertical" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="bpmMonitor" data-zoom="XY" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="bpmHMonitor" data-zoom="X" data-bpm-monitor-plot="Horizontal" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="bpmVMonitor" data-zoom="Y" data-bpm-monitor-plot="Vertical" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
     ].join('');
 });
 
@@ -47,7 +47,7 @@ SIREPO.app.factory('controlsService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('ControlsController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('ControlsController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope, $window) {
     const self = this;
     self.appState = appState;
     self.simScope = $scope;
@@ -67,6 +67,7 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
                             : (element.type == 'HMONITOR'
                                ? 'bpmHMonitor'
                                : 'bpmVMonitor');
+                        m.modelKey += 'Report';
                         self.watches.push(m);
                         return;
                     }
@@ -80,10 +81,11 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
             method: 'get_external_lattice',
             simulationId: appState.models.dataFile.madxSirepo
         }, data => {
-            appState.models.externalLattice = data;
+            appState.models.externalLattice = data.externalLattice;
+            appState.models.optimizerSettings = data.optimizerSettings;
             $.extend(appState.models.command_twiss, findExternalCommand('twiss'));
             $.extend(appState.models.command_beam, findExternalCommand('beam'));
-            appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice']);
+            appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice', 'optimizerSettings']);
         });
     }
 
@@ -93,6 +95,8 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
 
     function enableLatticeFields(isEnabled) {
         panelState.enableField('QUADRUPOLE', 'k1', isEnabled);
+        //TODO(pjm): correctors are always non-editable for now
+        isEnabled = false;
         panelState.enableField('HKICKER', 'kick', isEnabled);
         panelState.enableField('VKICKER', 'kick', isEnabled);
         panelState.enableFields('KICKER', [
@@ -138,7 +142,8 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         }
     }
 
-    function updateKickers(event, values) {
+    function updateKickers(event, rows) {
+        var values = rows[rows.length -1];
         self.editorColumns.forEach(m => {
             Object.keys(values).forEach(k => {
                 const modelField = appState.parseModelField(k);
@@ -150,32 +155,42 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         appState.saveQuietly('externalLattice');
     }
 
+    function windowResize() {
+        self.colClearFix = $window.matchMedia('(min-width: 1600px)').matches
+            ? 6 : 4;
+    }
+
     self.hasMadxLattice = () => {
         return appState.isLoaded() && appState.applicationState().externalLattice;
     };
 
     self.simHandleStatus = data => {
-        if (data.error || data.percentComplete == 100) {
-            enableLatticeFields(true);
-        }
-        else {
-            enableLatticeFields(false);
-        }
         if (data.elementValues) {
             frameCache.setFrameCount(1);
             $scope.$broadcast('sr-elementValues', data.elementValues);
         }
     };
 
+    self.startSimulation = () => {
+        $scope.$broadcast('sr-clearElementValues');
+        appState.saveChanges('optimizerSettings', self.simState.runSimulation);
+    };
+
     appState.whenModelsLoaded($scope, () => {
         if (self.hasMadxLattice()) {
             buildEditorColumns();
         }
+        windowResize();
+        $scope.$on('sr-window-resize', windowResize);
         $scope.$on('dataFile.changed', dataFileChanged);
         $scope.$on('externalLattice.changed', buildEditorColumns);
         $scope.$on('modelChanged', saveLattice);
         $scope.$on('sr-elementValues', updateKickers);
-        $scope.$on('animation.changed', () => enableLatticeFields(false));
+        appState.watchModelFields($scope, ['simulationStatus.animation.state'], () => {
+            enableLatticeFields(
+                ['pending', 'running'].indexOf(
+                    appState.models.simulationStatus.animation.state) < 0);
+        });
         self.simState = persistentSimulation.initSimulationState(self);
     });
 
@@ -220,19 +235,58 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plotting) {
+SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dService, plotting) {
     return {
         restrict: 'A',
         scope: {
             bpmMonitorPlot: '@',
             modelName: '@',
+            zoom: '@'
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             let points;
-
+            let colName = $scope.modelName.substring(0, $scope.modelName.indexOf('Report'));
             $scope.isClientOnly = true;
-            $scope.isZoomXY = true;
+            $scope[`isZoom${$scope.zoom}`] = true;
+
+            function clearPoints() {
+                points = [];
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
+                $scope.select('.plot-viewport').selectAll('.sr-scatter-point').remove();
+                ['x', 'y'].forEach(dim => {
+                    $scope.axes[dim].domain = [-1, 1];
+                    $scope.axes[dim].scale.domain([-0.0021, 0.0021]).nice();
+                });
+            }
+
+            function fitPoints() {
+                [0, 1].forEach(i => {
+                    let dim = [1e6, -1e6];
+                    points.forEach(p => {
+                        if (p[i] < dim[0]) {
+                            dim[0] = p[i];
+                        }
+                        if (p[i] > dim[1]) {
+                            dim[1] = p[i];
+                        }
+                    });
+                    if (dim[0] != dim[1]) {
+                        let pad = (dim[1] - dim[0]) / 20;
+                        dim[0] -= pad;
+                        dim[1] += pad;
+                        $scope.axes[i == 0 ? 'x' : 'y'].scale.domain(dim).nice();
+                    }
+                });
+            }
+
+            function pushAndTrim(p) {
+                const MAX_BPM_POINTS = SIREPO.APP_SCHEMA.constants.maxBPMPoints;
+                points.push(p);
+                if (points.length > MAX_BPM_POINTS) {
+                    points = points.slice(points.length - MAX_BPM_POINTS);
+                }
+            }
 
             $scope.init = () => {
                 plot2dService.init2dPlot($scope, {
@@ -242,19 +296,13 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
             };
 
             $scope.load = () => {
-                points = [];
+                clearPoints();
                 $scope.aspectRatio = 1;
-                ['x', 'y'].forEach(dim => {
-                    $scope.axes[dim].domain = [-1, 1];
-                    //TODO(pjm): set the domain intelligently
-                    $scope.axes[dim].scale.domain([-0.0021, 0.0021]).nice();
-                });
                 $scope.updatePlot({
                     x_label: 'x [m]',
                     y_label: 'y [m]',
                     title: $scope.bpmMonitorPlot + ' Monitor',
                 });
-                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], []);
             };
 
             $scope.refresh = () => {
@@ -267,24 +315,32 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
                 $scope.select('.plot-viewport').selectAll('.sr-scatter-point')
                     .attr('cx', $scope.graphLine.x())
                     .attr('cy', $scope.graphLine.y())
-                    .attr('style', 'fill: rgba(0, 0, 255, 0.4); stroke-width: 2; stroke: black');
+                    .attr('style', (d, i) => {
+                        let opacity = i == points.length - 1
+                            ? 1
+                            : (i + 1) / points.length * 0.8;
+                        return `fill: rgba(0, 0, 255, ${opacity}); stroke-width: 1; stroke: black`;
+                    });
             };
 
-            function pushAndTrim(p) {
-                const MAX_BPM_POINTS = 10;
-                points.push(p);
-                if (points.length > MAX_BPM_POINTS) {
-                    points = points.slice(points.length - MAX_BPM_POINTS);
+            $scope.$on('sr-elementValues', (event, rows) => {
+                if (rows.length > 1) {
+                    clearPoints();
                 }
-            }
-
-            $scope.$on('sr-elementValues', (event, values) => {
-                const point = [
-                    values[$scope.modelName + '.x'],
-                    values[$scope.modelName + '.y'],
-                ];
-                pushAndTrim(point);
+                rows.forEach(values => {
+                    const point = [
+                        parseFloat(values[colName + '.x'] || 0),
+                        parseFloat(values[colName + '.y'] || 0),
+                    ];
+                    pushAndTrim(point);
+                });
+                fitPoints();
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
+                $scope.resize();
+            });
+
+            $scope.$on('sr-clearElementValues', () => {
+                clearPoints();
                 $scope.refresh();
             });
         },
@@ -304,4 +360,49 @@ SIREPO.viewLogic('commandBeamView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['command_beam.particle'], updateParticleFields,
     ];
+});
+
+SIREPO.app.directive('optimizerTable', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<form name="form">',
+
+              '<div class="form-group form-group-sm" data-model-field="\'method\'" data-form="form" data-model-name="\'optimizerSettings\'"></div>',
+
+
+              '<table data-ng-show="appState.models.optimizerSettings.method == \'nmead\'" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
+                '<colgroup>',
+                  '<col style="width: 10em">',
+                  '<col style="width: 20%>',
+                  '<col style="width: 20%">',
+                  '<col style="width: 20%">',
+                '</colgroup>',
+                '<thead>',
+                  '<tr>',
+                    '<th>Monitor Name</th>',
+                    '<th data-ng-repeat="label in labels track by $index" class="text-center">{{ label }}</th>',
+                  '</tr>',
+                '</thead>',
+                '<tbody>',
+                  '<tr data-ng-repeat="target in appState.models.optimizerSettings.targets track by $index">',
+                    '<td class="form-group form-group-sm"><p class="form-control-static">{{ target.name }}</p></td>',
+                    '<td class="form-group form-group-sm" data-ng-repeat="field in fields track by $index">',
+                      '<div data-ng-show="target.hasOwnProperty(field)">',
+                        '<div class="row" data-field-editor="fields[$index]" data-field-size="12" data-model-name="\'optimizerTarget\'" data-model="target"></div>',
+                      '</div>',
+                    '</td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</form>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.fields = ['x', 'y', 'weight'];
+            $scope.labels = $scope.fields.map(f => SIREPO.APP_SCHEMA.model.optimizerTarget[f][0]);
+            $scope.showField = (item, field) => field in item;
+        },
+    };
 });
