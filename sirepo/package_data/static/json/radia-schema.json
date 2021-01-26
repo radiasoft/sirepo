@@ -189,6 +189,10 @@
             ["h", "Horizontal"],
             ["v", "Vertical"]
         ],
+        "MagnetType": [
+            ["freehand", "Freehand"],
+            ["paramUnd", "Parameterized Undulator"]
+        ],
         "MaterialType": [
             ["NdFeB", "Neodymium Iron Boron (anisotropic)"],
             ["SmCo5", "Samarium Cobalt (SmCo5 anisotropic)"],
@@ -334,6 +338,22 @@
             "gap": ["Gap", "Float", 1.0],
             "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
         },
+        "hybridUndulator": {
+            "_super": ["_", "model", "radiaObject"],
+            "gap": ["Gap", "Float", 1.0],
+            "numPeriods": ["Number of Periods", "Integer", "5"],
+            "periodLength": ["Period Length", "Float", 46.0],
+            "poleSize": ["Pole Size", "FloatStringArray", "45.0, 55.0, 5.0", "", "Width, Height, Thickness"],
+            "poleDivision": ["Pole Divisions", "IntStringArray", "2, 5, 2", "", "Nx, Ny, Nz"],
+            "poleMaterial": ["Pole Material", "MaterialType", "NdFeB"],
+            "poleMaterialFile": ["Pole H-B from File", "InputFile", "0", "H, B (T)"],
+            "magnetCrossSection": ["Magnet Cross Section", "FloatStringArray", "45.0, 65.0,", "", "Width, Height, Thickness"],
+            "magnetDivision": ["Magnet Divisions", "IntStringArray", "1, 1, 3", "", "Nx, Ny, Nz"],
+            "magnetMaterial": ["Magnet Material", "MaterialType", "NdFeB"],
+            "magnetMaterialFile": ["Magnet H-B from File", "InputFile", "0", "H, B (T)"],
+            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "0.0, 1.0, 0.0", "", "x, y, z"],
+            "gapOffset": ["Magnet Gap Offset", "Float", "1.0", ""]
+        },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
         },
@@ -416,7 +436,8 @@
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
-            "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"]
+            "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
+            "magnetType": ["Magnet Type", "MagnetType", "freehand"]
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],
@@ -679,6 +700,7 @@
             "advanced": [
                 "name",
                 "folder",
+                "magnetType",
                 "beamAxis",
                 "enableKickMaps"
             ]
