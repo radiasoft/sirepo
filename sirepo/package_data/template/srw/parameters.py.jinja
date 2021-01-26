@@ -59,6 +59,19 @@ def _get_beamline_param(srw_prefix, sirepo_name):
             return p_arr
     return None
 
+
+def _apply_rotation(angles, norms):
+
+    rx = numpy.array([[1, 0, 0], [0, np.cos(angles[0]), -np.sin(angles[0])], [0, np.sin(angles[0]), np.cos(angles[0])]])
+    ry = numpy.array([[np.cos(angles[1]), 0, np.sin(angles[1])], [0, 1, 0], [-np.sin(angles[1]), 0, np.cos(angles[1])]])
+    rz = numpy.array([[np.cos(angles[2]), -np.sin(angles[2]), 0], [np.sin(angles[2]), np.cos(angles[2]), 0], [0, 0, 1]])
+
+    rxy = numpy.dot(rx, ry)
+    r = numpy.dot(rxy ,rz)
+
+    retrun numpy.dot(r, norms)
+
+
 varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
