@@ -43,8 +43,8 @@ def get_fft(t_vals, y_vals):
     found_freqs = [v for v in zip(peaks, numpy.around(w[peaks], 3))]
 
     bin_spread = 10
-    min_bin = max(0, peaks[0] - bin_spread)
-    max_bin = min(half_num_samples, peaks[-1] + bin_spread)
+    min_bin = max(0, peaks[0] - bin_spread) if len(peaks) > 0 else 0
+    max_bin = min(half_num_samples, peaks[-1] + bin_spread) if len(peaks) > 0 else half_num_samples
     yy = 2.0 / num_samples * numpy.abs(fft_out[min_bin:max_bin])
     max_yy = numpy.max(yy)
     yy_norm = yy / (max_yy if max_yy != 0 else 1)

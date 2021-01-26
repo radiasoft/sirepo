@@ -168,6 +168,8 @@
         },
         "constants": {
             "clientCookie": "sirepo_cookie_js",
+            "hasJupyterExport": false,
+            "hasMadxExport": false,
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
@@ -450,6 +452,7 @@
         },
         "strings": {
             "completionState": ": {frameCount} animation frames",
+            "importText": null,
             "simulationDataType": "simulation",
             "simulationDataTypePlural": "simulations",
             "simulationState": "{typeOfSimulation} {state}",

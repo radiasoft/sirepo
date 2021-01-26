@@ -1,0 +1,113 @@
+# -*- python -*-
+from pykern.pkcollections import PKDict
+from sirepo.template import madx_parser
+import numpy as np
+import os
+import scipy.optimize
+
+lattice_file = """
+{{ madxSource -}}
+"""
+
+targets = np.array([
+    # [target value, weight]
+    {% for v in optimizerTargets %}
+    {% if 'x' in v %}
+    [{{ v.x }}, {{ v.weight }}],
+    {% endif %}
+    {% if 'y' in v %}
+    [{{ v.y }}, {{ v.weight }}],
+    {% endif %}
+    {% endfor %}
+])
+
+
+def _cost_function(correctors):
+    readings = update_and_run_simulation(correctors)
+    cost = np.sqrt(np.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / np.sum(targets[:,1])))
+    return cost
+
+
+def _optimize_nelder_mead(variable_count):
+    opt = scipy.optimize.minimize(
+        _cost_function,
+        np.zeros(variable_count),
+        method='Nelder-Mead',
+        options={
+            'maxiter': 500,
+            'maxfev': 500,
+        },
+        tol=1e-4,
+    )
+    res = {
+        'message': opt.message,
+        'success': opt.success,
+    }
+    if 'x' in opt and len(opt.x) == variable_count:
+        res['result'] = opt.x
+    return res
+
+
+def _optimize_polyfit(variable_count):
+    settings_0 = np.zeros(variable_count)
+    sets = np.identity(len(targets))
+    M = np.zeros(sets.shape)
+    sets_a = np.linspace(-5, 5, 5) * 0.01
+    readings = np.zeros([len(targets), 5])
+    for i in range(0, len(settings_0)):
+        for j in range(0, len(sets_a)):
+            setting_test = sets[i,:] * sets_a[j]
+            readings[:,j] = update_and_run_simulation(setting_test)
+        for k in range(0, len(targets)):
+            M[i,k] = np.polyfit(sets_a, readings[k,:], 1)[0]
+    # inverse response matrix
+    MI = np.linalg.pinv(M.T)
+    # reset the beam-line
+    readings_1 = update_and_run_simulation(settings_0)
+    # create settings to cancel out offsets
+    new_sets = np.dot(MI, -readings_1)
+    update_and_run_simulation(new_sets[:variable_count])
+    return {
+        'message': '',
+        'success': True,
+        'result': new_sets,
+    }
+
+
+def run_simulation(correctors):
+    values = {}
+    for idx in range(len(correctors)):
+        values[f'sr_opt{idx}'] = correctors[idx]
+    with open('in.madx', 'w') as f:
+        f.write(lattice_file.format(**values))
+    assert os.system('madx in.madx > madx.log 2> madx.err') == 0, \
+        'MAD-X simulation failed'
+
+
+def update_and_run_simulation(correctors):
+    run_simulation(correctors)
+    readings = []
+    columns = madx_parser.parse_tfs_file('twiss.file.tfs')
+    for idx in range(len(columns.name)):
+        keyword = columns.keyword[idx].replace('"', '')
+        if keyword == 'MONITOR':
+            readings += [float(columns.x[idx]), float(columns.y[idx])]
+        elif keyword == 'HMONITOR':
+            readings += [float(columns.x[idx])]
+        elif keyword == 'VMONITOR':
+            readings += [float(columns.y[idx])]
+    with open('{{ summaryCSV }}', 'a') as f:
+        f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
+    return np.array(readings)
+
+
+with open('{{ summaryCSV }}', 'w') as f:
+    f.write('{}\n'.format('{{ summaryCSVHeader }}'))
+
+{% if optimizerSettings_method == 'nmead' %}
+res = _optimize_nelder_mead({{ correctorCount }})
+{% elif optimizerSettings_method == 'polyfit' %}
+res = _optimize_polyfit({{ correctorCount }})
+{% else %}
+raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))
+{% endif %}

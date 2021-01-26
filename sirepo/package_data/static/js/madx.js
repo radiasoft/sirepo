@@ -6,7 +6,6 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
     SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation'];
-    SIREPO.appImportText = 'Import a lattice (.madx) file';
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot"></div>',
     ].join('');
@@ -323,7 +322,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import MAD-X File" data-description="Select a MAD-X file." data-file-formats=".madx"></div>',
+            '<div data-import-dialog="" data-title="Import MAD-X File" data-description="Select a MAD-X file." data-file-formats=".madx,.zip"></div>',
         ].join(''),
     };
 });
