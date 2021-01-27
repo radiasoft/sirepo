@@ -229,6 +229,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 		//  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
@@ -261,6 +264,9 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
             }
 
             function fitPoints() {
+                if (points.length <= 1) {
+                    return;
+                }
                 [0, 1].forEach(i => {
                     let dim = [1e6, -1e6];
                     points.forEach(p => {
@@ -271,12 +277,13 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                             dim[1] = p[i];
                         }
                     });
-                    if (dim[0] != dim[1]) {
-                        let pad = (dim[1] - dim[0]) / 20;
-                        dim[0] -= pad;
-                        dim[1] += pad;
-                        $scope.axes[i == 0 ? 'x' : 'y'].scale.domain(dim).nice();
+                    let pad = (dim[1] - dim[0]) / 20;
+                    if (pad == 0) {
+                        pad = 0.1;
                     }
+                    dim[0] -= pad;
+                    dim[1] += pad;
+                    $scope.axes[i == 0 ? 'x' : 'y'].scale.domain(dim).nice();
                 });
             }
 
