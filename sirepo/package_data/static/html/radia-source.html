@@ -1,8 +1,14 @@
 <div class="container-fluid">
-  <div class="row">
-      <div data-toolbar="src.toolbarSections" data-ng-show="src.isEditable()" data-parent-controller="src"></div>
-  </div>
-  <div>
-      <div data-3d-builder="" data-model-name="geometry" data-cfg="src.builderCfg" data-controller="src"></div>
+  <div data-ng-if="src.showDesigner()">
+      <div class="row">
+          <div data-toolbar="src.toolbarSections" data-ng-show="src.isEditable()" data-parent-controller="src"></div>
+      </div>
+      <div>
+          <div data-3d-builder="" data-model-name="geometry" data-cfg="src.builderCfg" data-controller="src"></div>
+      </div>
+      </div>
+  <div class="col-md-12" data-ng-if="src.showParams()">
+    <!--<div data-advanced-editor-pane="" data-view-name="src.getMagnetType()" data-parent-controller="src"></div>-->
+    <div data-basic-editor-panel="" data-view-name="undulator" data-parent-controller="src" data-panel-title="Undulator"></div>
   </div>
 </div>

@@ -454,6 +454,7 @@ def _generate_parameters_file(data, for_export):
                 f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
             )
     v.isExample = data.models.simulation.get('isExample', False)
+    v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable

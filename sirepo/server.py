@@ -377,7 +377,9 @@ def api_newSimulation():
     d.models.simulation.pkupdate(
         name=req.name,
         folder=req.folder,
-        notes=req.req_data.get('notes', ''),
+    )
+    d.models.simulation.pkupdate(
+        {k: v for k, v in req.req_data.items() if k in d.models.simulation}
     )
     if hasattr(req.template, 'new_simulation'):
         req.template.new_simulation(d, req.req_data)

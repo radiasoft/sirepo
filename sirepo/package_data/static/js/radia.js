@@ -7,6 +7,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
+    SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
@@ -262,6 +263,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.dropEnabled = true;
+    self.modelsLoaded = false;
     self.selectedObject = null;
     self.shapes = [];
     self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
@@ -326,6 +328,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.editObject = function(o) {
         self.selectObject(o);
         panelState.showModalEditor(o.model);
+    };
+
+    self.showDesigner = function() {
+        if (! self.modelsLoaded) {
+            return false;
+        }
+        return self.modelsLoaded && appState.models.simulation.magnetType === 'freehand';
+    };
+
+    self.showParams = function() {
+        if (! self.modelsLoaded) {
+            return false;
+        }
+        return self.modelsLoaded && appState.models.simulation.magnetType !== 'freehand';
+    };
+
+    self.getMagnetType = function() {
+        return appState.models.simulation.magnetType;
     };
 
     self.getObject = function(id) {
@@ -879,6 +899,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     appState.whenModelsLoaded($scope, function() {
+        self.modelsLoaded = true;
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();

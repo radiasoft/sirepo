@@ -56,6 +56,13 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
+def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
+    xf = radia.TrfTrsl(distance)
+    if alternate_fields:
+        xf = radia.TrfCmbL(xf, radia.TrfInv())
+    radia.TrfMlt(g_id, xf, num_copies + 1)
+
+
 def _apply_rotation(g_id, xform):
     xform = PKDict(xform)
     radia.TrfOrnt(
@@ -138,38 +145,54 @@ def build_container(g_ids):
 
 
 def build_undulator(
+    beam_dir, gap_dir,
     num_periods, period_length,
-    pole_size, pole_division, pole_material,
+    pole_cross_section, pole_thickness, pole_division, pole_material,
     magnet_cross, magnet_division, magnet_material,
     gap, gap_offset,
 ):
 
-    # number of full magnetic periods
-    n_periods = 2
+    width_dir = numpy.cross(beam_dir, gap_dir)
+    magnet_thickness = (period_length / 2 - pole_thickness)
 
-    # period (mm)
-    period = 46
+    # position along beam
+    pos = beam_dir * (pole_thickness / 4)
+    ctr = width_dir * pole_cross_section.width / 4 + \
+        pos - \
+        gap_dir * ((pole_cross_section.height + gap) / 2)
 
-    # gap height (mm)
-    gap = 20
-    offset = 1
+    sz = width_dir * pole_cross_section.width/ 2 + \
+         beam_dir * pole_thickness / 2 + \
+         gap_dir * pole_cross_section.height
 
-    # parameters for the iron poles
-    # dimensions (mm)
-    lp = [45, 5, 25]
+    half_pole = build_box(ctr, sz, pole_material, _ZERO, pole_division)
 
-    # pole-tip segmentation
-    nsp = [2, 2, 5]
-    #cp = [1, 0, 0]
-    ll = period / 2 - lp[1]
+    pos += beam_dir * (pole_thickness / 4)
+    ctr = width_dir * magnet_cross[0] / 4 + \
+        pos - \
+        gap_dir * (gap_offset + (magnet_cross[1] + gap) / 2)
 
-    # parameters for the magnet blocks
-    # dimensions (mm)
-    lm = [65, ll, 45]
+    sz = width_dir * magnet_cross[0] / 2 + \
+         beam_dir * magnet_thickness + \
+         gap_dir * magnet_cross[1]
 
-    # magnet-block segmentation
-    nsm = [1 ,3, 1]
-    cm = [0, 1, 1]    # assign color
+    magnet = build_box(ctr, sz, magnet_material, _ZERO, magnet_division)
+
+    pos += beam_dir * (pole_thickness + magnet_thickness) / 2
+    ctr = width_dir * pole_cross[0] / 4 + \
+        pos - \
+        gap_dir * ((magnet_cross[1] + gap) / 2)
+
+    sz = width_dir * pole_cross[0] / 2 + \
+         beam_dir * pole_thickness + \
+         gap_dir * pole_cross[1]
+
+    pole = build_box(ctr, sz, pole_material, _ZERO, pole_division)
+
+    mag_pole_grp = build_container([magnet, pole])
+    _clone_with_translation(mag_pole_grp, num_periods, beam_dir * period_length, True)
+
+
 
     def undulator(
             pole_lengths, pole_props, pole_segs, block_lengths, block_props,
@@ -202,6 +225,7 @@ def build_undulator(
         # principal poles and magnet blocks in octant(+,+,–)
         # -- half pole
         y = pole_lengths[1] / 4
+
         pole = radia.ObjFullMag(
             [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
             [pole_lengths[0] / 2, pole_lengths[1] / 2, pole_lengths[2]],
