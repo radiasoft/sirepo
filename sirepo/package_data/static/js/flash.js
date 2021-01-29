@@ -5,6 +5,12 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.flashType = 'RTFlame';
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="NoDashInteger" data-ng-class="fieldClass">',
+        // TODO(e-carlin): this is just copied from sirepo-components
+          '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+        '</div>'
+    ].join('');
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
 });
@@ -34,7 +40,6 @@ SIREPO.app.factory('flashService', function(appState) {
 
     return self;
 });
-
 
 SIREPO.app.controller('PhysicsController', function (flashService) {
     var self = this;
@@ -215,5 +220,90 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('withUnitArguments', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<form name="form" class="form-horizontal">',
+              '<div class="form-group">',
+                '<table class="table table-striped">',
+                  '<thead>',
+                    '<tr>',
+                      '<th>Unit path</th>',
+                      '<th></th>',
+                    '</tr>',
+                  '</thead>',
+                  '<tbody>',
+                    '<tr>',
+                    '<tr data-ng-repeat="unit in appState.models.setupArguments.units track by $index">',
+                      '<td class="form-group form-group-sm">',
+                        // TODO(e-carlin): Maybe make an enum of available flash units?
+                        '<input data-ng-model="appState.models.setupArguments.units[$index]" class="form-control" data-lpignore="true" required />',
+                      '</td>',
+                      '<td>',
+                        '<div class="pull-right"><button data-ng-click="deleteUnit($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>',
+                      '</td>',
+                    '</tr>',
+                    '<tr>',
+                      '<td>',
+                        '<b>Add unit</b>',
+                          '<select class="form-control" data-ng-model="selectedUnit" data-ng-options="item[0] as item[1] for item in unitEnum" data-ng-change="addUnit()"></select>',
+                      '</td>',
+                      '<td></td>',
+                    '</tr>',
+                  '</tbody>',
+                '</table>',
+                '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
+                  '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
+                  '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
+                '</div>',
+              '</div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.appState = appState;
+            $scope.fields = ['units'];
+            $scope.form = angular.element($($element).find('form').eq(0));
+            $scope.modelName = 'setupArguments';
+            $scope.selectedUnit = '';
+            $scope.unitEnum = SIREPO.APP_SCHEMA.enum.SetupArgumentUnitPath;
+
+            $scope.addUnit = function() {
+                if (! $scope.selectedUnit) {
+                    return;
+                }
+                if (! appState.models.setupArguments.units) {
+                    appState.models.setupArguments.units = [];
+                }
+                appState.models.setupArguments.units.push($scope.selectedUnit);
+                $scope.selectedUnit = '';
+            };
+
+            $scope.cancelChanges = function() {
+                appState.cancelChanges('setupArguments');
+                $scope.form.$setPristine();
+            };
+
+            $scope.deleteUnit = function(idx) {
+                appState.models.setupArguments.units.splice(idx, 1);
+                $scope.form.$setDirty();
+            };
+
+            $scope.hasChanges = function() {
+                if ($scope.form.$dirty) {
+                    return true;
+                }
+                return appState.areFieldsDirty('setupArguments.units');
+            };
+
+            $scope.saveChanges = function() {
+                appState.saveChanges('setupArguments');
+                $scope.form.$setPristine();
+            };
+        },
     };
 });

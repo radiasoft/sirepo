@@ -23,49 +23,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
-_SETUP_COMMANDS = PKDict(
-    CapLaser3D=[
-        '+cartesian',
-        '+hdf5typeio',
-        '+laser',
-        '+mgd',
-        '+mtmmmt',
-        '+usm3t',
-        '-3d',
-        '-auto',
-        '-parfile=bella_3dSetup.par',
-        'ed_maxBeams=1',
-        'ed_maxPulseSections=4',
-        'ed_maxPulses=1',
-        'mgd_meshgroups=6',
-        'species=fill,wall',
-    ],
-    CapLaserBELLA=[
-        '+hdf5typeio',
-        '+laser',
-        '+mgd',
-        '+mtmmmt',
-        '+usm3t',
-        '-2d',
-        '-auto',
-        '-nxb=8',
-        '-nyb=8',
-        '-parfile=bella.par',
-        '-with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore',
-        'ed_maxBeams=1', \
-        'ed_maxPulseSections=4',
-        'ed_maxPulses=1',
-        'mgd_meshgroups=6',
-        'species=fill,wall',
-    ],
-    RTFlame= [
-        '-2d',
-        '-auto',
-        '-nxb=16',
-        '-nyb=16',
-    ],
-)
-
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
@@ -561,12 +518,35 @@ def remove_last_frame(run_dir):
 
 
 def setup_command(data):
+    c = []
+    for k, v in data.models.setupArguments.items():
+        if k == 'units':
+            for e in v:
+                c.append(f'--with-unit={e}')
+            continue
+        if v == _SCHEMA.model.setupArguments[k][2]:
+            continue
+        t = _SCHEMA.model.setupArguments[k][1]
+        if t == 'Boolean':
+            v == '1' and c.append(f'-{k}')
+        elif t == 'SetupArgumentDimension':
+            c.append(f'-{v}d')
+        elif t == 'Integer':
+            c.append(f'-{k}={v}')
+        elif t == 'NoDashInteger':
+            c.append(f'{k}={v}')
+        elif t == 'SetupArgumentShortcut':
+            v == '1' and c.append(f'+{k}')
+        elif t  == 'String':
+           c.append(f'{k}={v}')
+        else:
+            raise AssertionError(f'type={t} not supported')
     t = data.models.simulation.flashType
     return [
         './setup',
         t,
         f'-objdir={t}',
-    ] + _SETUP_COMMANDS[t]
+    ] + c
 
 
 def sim_frame_gridEvolutionAnimation(frame_args):

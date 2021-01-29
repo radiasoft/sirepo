@@ -813,6 +813,21 @@
             "hx_ieTimeCoef": 1,
             "hx_relTol": -1
         },
+        "setupArguments": {
+            "auto": "1",
+            "cartesian": "1",
+            "d": 3,
+            "ed_maxBeams": 1,
+            "ed_maxPulseSections": 4,
+            "ed_maxPulses": 1,
+            "hdf5typeio": "1",
+            "laser": "1",
+            "mgd": "1",
+            "mgd_meshgroups": 6,
+            "mtmmmt": "1",
+            "species": "fill,wall",
+            "usm3t": "1"
+        },
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",

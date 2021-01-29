@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdp
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
+import sirepo.simulation_db
 import sirepo.util
 
 
@@ -31,6 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if m != n:
                 dm[n] = dm[m]
                 del dm[m]
+        cls.__fixup_old_data_setup_arguments(data)
         cls._init_models(dm)
         if dm.simulation.flashType == 'CapLaser':
             dm.simulation.flashType = 'CapLaserBELLA'
@@ -179,8 +181,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _flash_file_hash(cls, data):
-        # TODO(e-carlin): hash fields related to compilation parameters
-        return sirepo.util.url_safe_hash(data.models.simulation.flashType)
+        return sirepo.util.url_safe_hash(str((
+            data.models.simulation.flashType,
+            data.models.setupArguments,
+        )))
 
     @classmethod
     def _flash_file_prefix(cls, basename):
@@ -213,3 +217,13 @@ class SimData(sirepo.sim_data.SimDataBase):
             PKDict(basename=cls.flash_exe_basename(data), is_exe=True),
             PKDict(basename=cls.flash_setup_units_basename(data)),
         ]
+
+    @classmethod
+    def __fixup_old_data_setup_arguments(cls, data):
+        dm = data.models
+        if 'setupArguments' in dm:
+            return
+        for e in sirepo.simulation_db.examples(cls.sim_type()):
+            if e.models.simulation.flashType == dm.simulation.flashType:
+                dm.setupArguments = e.models.setupArguments
+                return

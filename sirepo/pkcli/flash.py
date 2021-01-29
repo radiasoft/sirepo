@@ -6,10 +6,13 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
+import os
+import re
 import sirepo.sim_data
 import sirepo.template.flash as template
 import subprocess
@@ -22,3 +25,18 @@ def run_background(cfg_dir):
             template_common.INPUT_BASE_NAME,
         )),
     )])
+
+
+def units(src_path):
+    res = []
+    p = pkio.py_path(src_path).join('source')
+    for d, _, _ in os.walk(p):
+        m = re.search(
+            r'^(?:{})(.*\/[A-Z0-9][A-Za-z0-9-_\.]+$)'.format(re.escape(str(p))),
+            d,
+        )
+        if m:
+            s = m.group(1)[1:]
+            res.append([s, s])
+    res.sort()
+    pkjson.dump_pretty(res, filename='res.json')
