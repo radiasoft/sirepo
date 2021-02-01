@@ -21,20 +21,18 @@
             },
             "ellipsoidMirror": {
                 "positionFields": ["horizontalOffset", "verticalOffset", "position"],
-                "vectorToRotate": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"]
             },
             "mirror": {
                 "positionFields": ["", "", "position"]
             },
             "sphericalMirror": {
-                "normalFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"],
-                "vectorToRotate": "normalFields"
+                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
+                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
             },
             "toroidalMirror": {
-                "normalFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"],
-                "vectorToRotate": "normalFields"
+                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
+                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
             }
         }
     },

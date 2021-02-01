@@ -331,7 +331,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.updateRSOptElements = function() {
         for (let item of (appState.models.beamline || []).filter(function(i) {
-            return SIREPO.APP_SCHEMA.constants.rsoptElements[i.title];
+            return SIREPO.APP_SCHEMA.constants.rsoptElements[i.type];
         })) {
             let e = self.findRSOptElement(item.id);
             let newEl = ! e;
@@ -339,9 +339,12 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 e = appState.setModelDefaults({}, 'rsOptElement');
             }
             e.title = item.title;
+            e.type = item.type;
             e.id = item.id;
+            e.props = SIREPO.APP_SCHEMA.constants.rsoptElements[item.type];
             e.position = [`${item.horizontalOffset || 0.0}`, `${item.verticalOffset || 0.0}`, `${item.position}`];
-            e.angle = [`${item.normalVectorX || 0.0}`, `${item.normalVectorY || 0.0}`, `${item.normalVectorY}`];
+            e.angle = [0.0, 0.0, 0.0];
+            e.vector = [`${item.normalVectorX || 1.0}`, `${item.normalVectorY || 0.0}`, `${item.normalVectorZ}`];
             if (newEl) {
                 appState.models.exportRsOpt.elements.push(e);
             }

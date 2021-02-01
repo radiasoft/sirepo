@@ -331,18 +331,12 @@ def extract_report_data(filename, sim_in):
 
 #TODO(mvk): should be a zip file containing yml, python, shell script, maybe README
 def export_rsopt_config(data, filename):
-    res, v = template_common.generate_parameters_file(data)
-    m = data.models.exportRsOpt
-    # ignore these for now - we will generate data serially - but may be of use
-    # later
-    #v.numCores = int(m.numCores)
-    #v.numWorkers = int(m.numWorkers)
-    v.numSamples = int(m.numSamples)
-    v.rsOptElements = _process_rsopt_elements(m.elements)
+    v = _rsopt_jinja_context(data.models.exportRsOpt)
+
     fz = pkio.py_path(filename)
     f = re.sub(r'[^\w\.]+', '-', fz.purebasename).strip('-')
     v.runDir = f'{f}_scan'
-
+    v.fileBase = f
     tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
     for t in tf:
         v[f'{t}FileName'] = tf[t].file
@@ -1401,8 +1395,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['finalPhotonEnergy'] = data['models']['simulation']['photonEnergy'] + half_width
         data['models']['simulation']['photonEnergy'] -= half_width
 
-    # do this before validation or the array gets turned into a string
-    rsOptElements = _process_rsopt_elements(data.models.exportRsOpt.elements)
+    # do this before validation or arrays get turned into strings
+    rsopt_ctx = _rsopt_jinja_context(data.models.exportRsOpt)
     _validate_data(data, _SCHEMA)
     last_id = None
     if _SIM_DATA.is_watchpoint(report):
@@ -1412,6 +1406,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
+    if report == 'rsoptExport':
+        v.update(rsopt_ctx)
 
     v['rs_type'] = source_type
     if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
@@ -1432,7 +1428,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             if data.models[report].jobRunMode == 'sbatch':
                 v.sbatchBackup = '1'
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
-    v.rsOptElements = rsOptElements
 
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
@@ -1472,6 +1467,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 
 def _generate_srw_main(data, plot_reports):
     report = data['report']
+    for_rsopt = report == 'rsoptExport'
     source_type = data['models']['simulation']['sourceType']
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or report == 'rsoptExport'
     content = [
@@ -1481,7 +1477,7 @@ def _generate_srw_main(data, plot_reports):
         '\tdel sys.argv[1:]',
         'else:',
         '\texit(0)'
-    ] if report == 'rsoptExport' else []
+    ] if for_rsopt else []
     content.append(
         'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={})'.format(plot_reports),
     )
@@ -1533,6 +1529,11 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
+
+    if for_rsopt:
+        content.append(
+            ''
+        )
     return '\n'.join(['    {}'.format(x) for x in content] + ['', 'if __name__ == "__main__":\n\tmain()' if report == 'rsoptExport' else 'main()\n', ''])
 
 
@@ -1650,12 +1651,11 @@ def _process_intensity_reports(source_type, undulator_type):
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
-        e.p_map = ['horizontalOffset', 'verticalOffset', 'position']
-        e.t_map = ['normalVectorX', 'normalVectorY', 'normalVectorZ']
         e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
         e.position = [float(p) for p in e.position]
         e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
         e.angle = [float(p) for p in e.angle]
+        e.vector = [float(p) for p in e.vector]
     return x
 
 
@@ -1744,6 +1744,15 @@ def _rotated_axis_range(x, y, theta):
     x_new = x*np.cos(theta) + y*np.sin(theta)
     return x_new
 
+
+def _rsopt_jinja_context(model):
+    return PKDict(
+        numCores=int(model.numCores),
+        numWorkers=int(model.numWorkers),
+        numSamples=int(model.numSamples),
+        scanType=model.scanType,
+        rsOptElements=_process_rsopt_elements(model.elements)
+    )
 
 def _safe_beamline_item_name(name, names):
     name = re.sub(r'\W+', '_', name)

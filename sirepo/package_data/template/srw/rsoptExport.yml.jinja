@@ -5,7 +5,7 @@ codes:
         {% for e in rsOptElements %}
         {% for x in e.position %}
         {% if e.offsets[loop.index0] != 0 %}
-        {{ e.title }}_{{ e.p_map[loop.index0] }}:
+        {{ e.title }}_pos_{{ loop.index0 }}:
           min: {{ x - e.offsets[loop.index0] / 2.0 }}
           max: {{ x + e.offsets[loop.index0] / 2.0 }}
           samples: {{ numSamples }}
@@ -14,7 +14,7 @@ codes:
         {% endfor %}
         {% for t in e.angle %}
         {% if e.rotations[loop.index0] != 0 %}
-        {{ e.title }}_{{ e.t_map[loop.index0] }}:
+        {{ e.title }}_angle_{{ loop.index0 }}:
           min: {{ t - e.rotations[loop.index0] / 2.0 }}
           max: {{ t + e.rotations[loop.index0] / 2.0 }}
           samples: {{ numSamples }}
@@ -27,7 +27,12 @@ codes:
         function: set_rsopt_params
         execution_type: serial
 options:
+  {% if scanType == 'grid' %}
   software: mesh_scan
+  {% elif scanType == 'random' %}
+  software: lh_scan
+  batch_size: {{ numSamples }}
+  {% endif %}
   run_dir: {{ runDir }}
   sim_dirs_make: False
 

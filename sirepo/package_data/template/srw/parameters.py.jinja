@@ -20,16 +20,42 @@ import srwl_uti_smp
 def set_optics(v=None):
 {{beamlineOptics}}
 
-def set_rsopt_params(
+
+def read_rsopt_data():
+    import numpy
+
+    n = 1
+    {% if scanType == 'grid' %}
     {% for e in rsOptElements %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
-    {{ e.title }}_{{ e.p_map[loop.index0] }},
+    n *= {{ numSamples }}
     {% endif %}
     {% endfor %}
     {% for t in e.angle %}
     {% if e.rotations[loop.index0] != 0 %}
-    {{ e.title }}_{{ e.t_map[loop.index0] }},
+    n *= {{ numSamples }}
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+    {% elif scanType == 'random' %}
+    n *= {{ numSamples }}
+    {% endif %}
+
+    #H_sample_kb-mirror-for-ML-calculations-rsOptExport_history_length=5_evals=5_workers=1.
+    numpy.load(f'H_sample_{{ fileBase }}_history_length={n}_evals={n}_workers={{ numWorkers }}.npy')
+
+
+def set_rsopt_params(
+    {% for e in rsOptElements %}
+    {% for x in e.position %}
+    {% if e.offsets[loop.index0] != 0 %}
+    {{ e.title }}_pos_{{ loop.index0 }},
+    {% endif %}
+    {% endfor %}
+    {% for t in e.angle %}
+    {% if e.rotations[loop.index0] != 0 %}
+    {{ e.title }}_angle_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
     {% endfor %}
@@ -37,17 +63,22 @@ def set_rsopt_params(
     {% for e in rsOptElements %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param('op_{{ e.title }}', '{{ e.p_map[loop.index0] }}')
+    p = _get_beamline_param('op_{{ e.title }}', '{{ e.props.positionFields[loop.index0] }}')
     if p:
-        p[2] = {{ e.title }}_{{ e.p_map[loop.index0] }}
+        p[2] = {{ e.title }}_pos_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
+    a = [0.0, 0.0, 0.0]
     {% for t in e.angle %}
     {% if e.rotations[loop.index0] != 0 %}
-    t = _get_beamline_param('op_{{ e.title }}', '{{ e.t_map[loop.index0] }}')
-    if t:
-        t[2] = {{ e.title }}_{{ e.t_map[loop.index0] }}
+    a[{{ loop.index0 }}] = {{ e.title }}_angle_{{ loop.index0 }}
     {% endif %}
+    {% endfor %}
+    n = _apply_rotation(a, {{ e.vector }})
+    {% for t in e.props.vectorFields %}
+    t = _get_beamline_param('op_{{ e.title }}', '{{ t }}')
+    if t:
+        t[2] = n[{{ loop.index0 }}]
     {% endfor %}
     {% endfor %}
     return 0
@@ -60,16 +91,17 @@ def _get_beamline_param(srw_prefix, sirepo_name):
     return None
 
 
-def _apply_rotation(angles, norms):
+def _apply_rotation(angle, norms):
 
-    rx = numpy.array([[1, 0, 0], [0, np.cos(angles[0]), -np.sin(angles[0])], [0, np.sin(angles[0]), np.cos(angles[0])]])
-    ry = numpy.array([[np.cos(angles[1]), 0, np.sin(angles[1])], [0, 1, 0], [-np.sin(angles[1]), 0, np.cos(angles[1])]])
-    rz = numpy.array([[np.cos(angles[2]), -np.sin(angles[2]), 0], [np.sin(angles[2]), np.cos(angles[2]), 0], [0, 0, 1]])
+    import numpy
+    rx = numpy.array([[1, 0, 0], [0, numpy.cos(angle[0]), -numpy.sin(angle[0])], [0, numpy.sin(angle[0]), numpy.cos(angle[0])]])
+    ry = numpy.array([[numpy.cos(angle[1]), 0, numpy.sin(angle[1])], [0, 1, 0], [-numpy.sin(angle[1]), 0, numpy.cos(angle[1])]])
+    rz = numpy.array([[numpy.cos(angle[2]), -numpy.sin(angle[2]), 0], [numpy.sin(angle[2]), numpy.cos(angle[2]), 0], [0, 0, 1]])
 
     rxy = numpy.dot(rx, ry)
     r = numpy.dot(rxy ,rz)
 
-    retrun numpy.dot(r, norms)
+    return numpy.dot(r, norms)
 
 
 varParam = [
