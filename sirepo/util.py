@@ -35,7 +35,7 @@ AUTH_HEADER = 'Authorization'
 AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
 #: Context where we can do sim_db_file operations (supervisor)
-SIM_DB_FILE_CONTEXT = None
+SIM_DB_FILE_LOCK = None
 
 #: Locking for global simulation_db operations (server)
 SIMULATION_DB_LOCK = None
@@ -188,7 +188,7 @@ def flask_app():
 
 
 def init(server_context=False):
-    global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_CONTEXT
+    global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_LOCK
 
     assert not cfg
     cfg = pkconfig.init(
@@ -197,7 +197,9 @@ def init(server_context=False):
     if server_context:
         SIMULATION_DB_LOCK = threading.RLock()
         return
-    SIM_DB_FILE_CONTEXT = contextlib.nullcontext()
+    # Use nullcontext instead of an actual lock because supervisor is in tornado
+    # which is single threaded
+    SIM_DB_FILE_LOCK = contextlib.nullcontext()
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):

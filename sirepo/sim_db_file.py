@@ -60,7 +60,7 @@ class FileReq(tornado.web.RequestHandler):
 
 
 def token_for_user(uid):
-    with sirepo.util.SIM_DB_FILE_CONTEXT:
+    with sirepo.util.SIM_DB_FILE_LOCK:
         for u, k in _TOKEN_TO_UID.items():
             if u == uid:
                 return k
