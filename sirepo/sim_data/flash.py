@@ -134,15 +134,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         import sirepo.template.flash
         import subprocess
 
-        subprocess.check_output(
-            "rpm2cpio '{}' | cpio --extract --make-directories".format(
-                cls.lib_file_abspath(cls.proprietary_code_rpm()),
-            ),
-            cwd='/',
-            #SECURITY: No user defined input in cmd so shell=True is ok
-            shell=True,
-            stderr=subprocess.STDOUT,
-        )
+        with open(cls.lib_file_abspath(cls.proprietary_code_rpm())) as i:
+            subprocess.check_output(
+                "rpm2cpio - | cpio --extract --make-directories",
+                cwd='/',
+                #SECURITY: No user defined input in cmd so shell=True is ok
+                shell=True,
+                stderr=subprocess.STDOUT,
+                stdin=i,
+            )
         subprocess.check_output(
             [
                 'tar',
