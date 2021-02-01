@@ -122,7 +122,7 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
-    _EXE_PERMISSIONS = 0o755
+    _EXE_PERMISSIONS = 0o700
 
     @classmethod
     def compute_job_hash(cls, data):

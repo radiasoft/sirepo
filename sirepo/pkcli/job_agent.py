@@ -58,7 +58,7 @@ def start():
         start_delay=(0, pkconfig.parse_seconds, 'delay startup in internal_test mode'),
         supervisor_sim_db_file_token=pkconfig.Required(
             str,
-            'token for supevisor simulation db file access',
+            'token for supervisor simulation db file access',
         ),
         supervisor_sim_db_file_uri=pkconfig.Required(
             str,

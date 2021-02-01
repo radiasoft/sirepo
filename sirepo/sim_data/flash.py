@@ -144,12 +144,13 @@ class SimData(sirepo.sim_data.SimDataBase):
             stderr=subprocess.STDOUT,
         )
         subprocess.check_output(
-            'tar --extract --gunzip --file={} --directory={}'.format(
-                cls._sim_src_tarball_path(),
-                run_dir,
-            ),
-            #SECURITY: No user defined input in cmd so shell=True is ok
-            shell=True,
+            [
+                'tar',
+                '--extract',
+                '--gunzip',
+                f'--file={cls._sim_src_tarball_path()}',
+                f'--directory={run_dir}',
+            ],
             stderr=subprocess.STDOUT,
         )
         s = run_dir.join(cls.sim_type())
