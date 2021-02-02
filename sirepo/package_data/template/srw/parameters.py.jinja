@@ -46,6 +46,38 @@ def read_rsopt_data():
     numpy.load(f'H_sample_{{ fileBase }}_history_length={n}_evals={n}_workers={{ numWorkers }}.npy')
 
 
+def rsopt_run(filename):
+    import multiprocessing
+
+    tasks = numpy.load(filename)['x']
+    n_runs = len(tasks)
+
+    n_processes = min(n_runs, multiprocessing.cpu_count() - 1)
+    print(f'Number of processes available: {num_procs}')
+
+    ####################### splits up the number of tasks to be done evenly across the number of processes available and assigns a task cut to each process
+    procs = []
+    split = n_runs // num_procs
+    idx0 = 0
+    for j in range(num_procs):
+        idx1 = n_runs if j == n_processes - 1 else idx0 + split
+        p = multiprocessing.Process(target=rsopt_run_set, args=(tasks, idx0, idx1, j))
+        procs.append(p)
+        p.start()
+        idx0 += split
+
+    print('Processes started')
+
+    ####################### must join all processes to end multiprocess thread
+    for p in processes:
+        print(f'joining {p}...')
+        p.join()
+        print(f'joined {p}')
+
+    end = time.time()
+    print('time to run ' + str(n_runs) + ' simulations with ' + str(n_processes) + ' processes: ' + str(np.round((start - end)/60, 4)) + ' minutes')
+
+
 def set_rsopt_params(
     {% for e in rsOptElements %}
     {% for x in e.position %}
@@ -378,5 +410,34 @@ def setup_magnetic_measurement_files(filename, v):
     v.und_mdir = os.path.dirname(f) or './'
 {% endif %}
 
-def main():
+
+{% if forRSOpt %}
+def rsopt_run_set(param_set, start, end, proc_num):
+    print(f'Process {proc_num} to complete {end - start} tasks')
+    i = start
+    for vals in param_set[start:end]:
+        f = _get_beamline_param(
+            'ws_fni',
+            'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
+        )
+        f[2] = f'dat_files/res_int_se_{i}.dat'
+        rsopt_run_single(vals)
+        i += 1
+
+def rsopt_run_single(param_vals):
+    set_rsopt_params(*param_vals)
 {{srwMain}}
+{% endif %}
+
+def main():
+{% if forRSOpt %}
+    import sys
+    if len(args) < 2 or args[0] != 'rsopt_run':
+        sys.exit('usage: python {{ pyFileName }} rsopt_run <filename>')
+    rsopt_run(args[1])
+
+if __name__ == "__main__":
+    main()
+{% else %}
+{{srwMain}}
+{% endif %}

@@ -329,7 +329,6 @@ def extract_report_data(filename, sim_in):
     return info
 
 
-#TODO(mvk): should be a zip file containing yml, python, shell script, maybe README
 def export_rsopt_config(data, filename):
     v = _rsopt_jinja_context(data.models.exportRsOpt)
 
@@ -342,6 +341,7 @@ def export_rsopt_config(data, filename):
         v[f'{t}FileName'] = tf[t].file
 
     # do this in a second loop so v is fully updated
+    # note that the rsopt context is regenerated in python_source_for_model()
     for t in tf:
         tf[t].content = python_source_for_model(data, 'rsoptExport') if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
@@ -1369,6 +1369,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     data['models']['trajectoryReport']['magneticField'] = magnetic_field
     data['models']['powerDensityReport']['magneticField'] = magnetic_field
     report = data['report']
+    for_rsopt = report == 'rsoptExport'
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
         if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
@@ -1406,7 +1407,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
-    if report == 'rsoptExport':
+    if for_rsopt:
         v.update(rsopt_ctx)
 
     v['rs_type'] = source_type
@@ -1470,17 +1471,10 @@ def _generate_srw_main(data, plot_reports):
     for_rsopt = report == 'rsoptExport'
     source_type = data['models']['simulation']['sourceType']
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or report == 'rsoptExport'
+    #content = _rsopt_main() if for_rsopt else []
     content = [
-        'import sys',
-        'if len(sys.argv[1:]) > 0:',
-        '\tset_rsopt_params(*sys.argv[1:])',
-        '\tdel sys.argv[1:]',
-        'else:',
-        '\texit(0)'
-    ] if for_rsopt else []
-    content.append(
         'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={})'.format(plot_reports),
-    )
+    ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or _SIM_DATA.srw_is_beamline_report(report):
@@ -1529,12 +1523,7 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-
-    if for_rsopt:
-        content.append(
-            ''
-        )
-    return '\n'.join(['    {}'.format(x) for x in content] + ['', 'if __name__ == "__main__":\n\tmain()' if report == 'rsoptExport' else 'main()\n', ''])
+    return '\n'.join([f'    {x}' for x in content] + ['', 'if __name__ == "__main__":\n\tmain()' if for_rsopt else 'main()\n', ''])
 
 
 def _get_first_element_position(data):
@@ -1747,12 +1736,25 @@ def _rotated_axis_range(x, y, theta):
 
 def _rsopt_jinja_context(model):
     return PKDict(
+        forRSOpt=True,
         numCores=int(model.numCores),
         numWorkers=int(model.numWorkers),
         numSamples=int(model.numSamples),
         scanType=model.scanType,
         rsOptElements=_process_rsopt_elements(model.elements)
     )
+
+
+def _rsopt_main():
+    return [
+        'import sys',
+        'if len(sys.argv[1:]) > 0:',
+        '   set_rsopt_params(*sys.argv[1:])',
+        '   del sys.argv[1:]',
+        'else:',
+        '   exit(0)'
+    ]
+
 
 def _safe_beamline_item_name(name, names):
     name = re.sub(r'\W+', '_', name)
