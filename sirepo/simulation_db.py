@@ -94,9 +94,6 @@ _TMP_DIR = 'tmp'
 #: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
 _serial_prev = 0
 
-#: Locking for global operations like serial, user moves, etc.
-_global_lock = threading.RLock()
-
 #: configuration
 cfg = None
 
@@ -368,7 +365,7 @@ def move_user_simulations(from_uid, to_uid):
         to_uid (str): dest user
 
     """
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         for path in glob.glob(
                 str(user_path(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
         ):
@@ -468,7 +465,7 @@ def prepare_simulation(data, run_dir):
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
-    s.lib_files_to_run_dir(data, run_dir)
+    s.support_files_to_run_dir(data, run_dir)
     update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
@@ -553,7 +550,7 @@ def save_simulation_json(data, do_validate=True):
     s = data.models.simulation
     sim_type = data.simulationType
     fn = sim_data_file(sim_type, s.simulationId)
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         need_validate = True
         try:
             # OPTIMIZATION: If folder/name same, avoid reading entire folder
@@ -621,6 +618,14 @@ def simulation_dir(simulation_type, sid=None, uid=None):
     if not sid:
         return d
     return d.join(assert_sid(sid))
+
+
+def simulation_file_uri(simulation_type, sid, basename):
+    return '/'.join([
+        sirepo.template.assert_sim_type(simulation_type),
+        assert_sid(sid),
+        basename,
+    ])
 
 
 def simulation_lib_dir(simulation_type, uid=None):
@@ -764,6 +769,23 @@ def user_path(uid=None, check=False):
     return d
 
 
+def validate_sim_db_file_path(path, uid):
+    import sirepo.job
+
+    assert re.search(
+        re.compile(
+            r'^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$'.format(
+                sirepo.job.SIM_DB_FILE_URI,
+                USER_ROOT_DIR,
+                uid,
+                '|'.join(feature_config.cfg().sim_types),
+                _ID_PARTIAL_RE_STR,
+            )
+        ),
+        path,
+    ), f'invalid path={path} or uid={uid}'
+
+
 def validate_serial(req_data):
     """Verify serial in data validates
 
@@ -772,7 +794,7 @@ def validate_serial(req_data):
     """
     if req_data.get('version') != SCHEMA_COMMON.version:
         raise util.SRException('serverUpgraded', None)
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
         sid = req_data.models.simulation.simulationId
         req_ser = req_data.models.simulation.simulationSerial
@@ -1016,7 +1038,7 @@ def _serial_new():
     """
     global _serial_prev
     res = int(time.time() * 1000000)
-    with _global_lock:
+    with util.SIMULATION_DB_LOCK:
         # Good enough assertion. Any collisions will also be detected
         # by parameter hash so order isn't only validation
         assert res > _serial_prev, \

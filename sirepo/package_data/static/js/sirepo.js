@@ -3493,6 +3493,10 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         return ! item.isExample;
     };
 
+    self.canDownloadInputFile = function() {
+        return SIREPO.APP_SCHEMA.constants.canDownloadInputFile;
+    };
+
     self.copyCfg = {
         copyName: '',
         copyFolder: '/',

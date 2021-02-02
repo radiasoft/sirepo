@@ -23,6 +23,49 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
+_SETUP_COMMANDS = PKDict(
+    CapLaser3D=[
+        '+cartesian',
+        '+hdf5typeio',
+        '+laser',
+        '+mgd',
+        '+mtmmmt',
+        '+usm3t',
+        '-3d',
+        '-auto',
+        '-parfile=bella_3dSetup.par',
+        'ed_maxBeams=1',
+        'ed_maxPulseSections=4',
+        'ed_maxPulses=1',
+        'mgd_meshgroups=6',
+        'species=fill,wall',
+    ],
+    CapLaserBELLA=[
+        '+hdf5typeio',
+        '+laser',
+        '+mgd',
+        '+mtmmmt',
+        '+usm3t',
+        '-2d',
+        '-auto',
+        '-nxb=8',
+        '-nyb=8',
+        '-parfile=bella.par',
+        '-with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore',
+        'ed_maxBeams=1', \
+        'ed_maxPulseSections=4',
+        'ed_maxPulses=1',
+        'mgd_meshgroups=6',
+        'species=fill,wall',
+    ],
+    RTFlame= [
+        '-2d',
+        '-auto',
+        '-nxb=16',
+        '-nyb=16',
+    ],
+)
+
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
@@ -511,14 +554,20 @@ def new_simulation(data, new_simulation_data):
         data.models[name].update(_DEFAULT_VALUES[flash_type][name])
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
-
-
 def remove_last_frame(run_dir):
     files = _h5_file_list(run_dir)
     if len(files) > 0:
         pkio.unchecked_remove(files[-1])
+
+
+def setup_command(data):
+    t = data.models.simulation.flashType
+    return [
+        './setup',
+        t,
+        f'-objdir={t}',
+    ] + _SETUP_COMMANDS[t]
+
 
 def sim_frame_gridEvolutionAnimation(frame_args):
     c = _grid_evolution_columns(frame_args.run_dir)
@@ -603,7 +652,7 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         #TODO: generate python instead
         run_dir.join('flash.par'),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir=run_dir),
     )
 
 
@@ -631,24 +680,9 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
-def _extract_rpm(data):
-    import subprocess
-
-    if _SIM_DATA.flash_exe_path(data, unchecked=True):
-        return
-    subprocess.check_output(
-        "rpm2cpio '{}' | cpio --extract --make-directories".format(
-            _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),
-        ),
-        cwd='/',
-        #SECURITY: No user defined input in cmd so shell=True is ok
-        shell=True,
-        stderr=subprocess.STDOUT,
-    )
-
-
-def _generate_parameters_file(data):
-    _extract_rpm(data)
+def _generate_parameters_file(data, run_dir=None):
+    if not run_dir:
+        run_dir = pkio.py_path()
     res = ''
     names = {}
 
@@ -660,9 +694,11 @@ def _generate_parameters_file(data):
                 'physicsmaterialPropertiesOpacityMultispecies'
             ][f'op_{k}FileName'] = f
 
-    for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
+    for line in pkio.read_text(
+            run_dir.join(_SIM_DATA.flash_setup_units_basename(data)),
+    ).split('\n'):
         names[
-            ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
+            ''.join([x for x in line.split('/') if not x.endswith('Main')])
         ] = line
     for m in sorted(data.models):
         if m not in names:

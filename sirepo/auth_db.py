@@ -43,7 +43,7 @@ def all_uids():
 def audit_proprietary_lib_files(uid):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash rpm if user has the flash role.
+    For example, add the Flash tarball if user has the flash role.
 
     Args:
         uid: user to audit

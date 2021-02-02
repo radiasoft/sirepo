@@ -28,10 +28,10 @@ def default_command():
 
 
 def _proprietary_codes():
-    """Get proprietary RPMs and put it in the proprietary code dir
+    """Get proprietary tarballs and put it in the proprietary code dir
 
     Args:
-      uri (str): where to get RPM (file:// or http://)
+      uri (str): where to get tarball (file:// or http://)
     """
     import sirepo.feature_config
     import sirepo.sim_data

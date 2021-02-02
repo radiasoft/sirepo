@@ -10,17 +10,35 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import asyncio
+import base64
 import concurrent.futures
+import contextlib
+import hashlib
 import inspect
 import numconv
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import threading
 
+
+cfg = None
 
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
+
+#: Http auth header name
+AUTH_HEADER = 'Authorization'
+
+#: http auth header scheme bearer
+AUTH_HEADER_SCHEME_BEARER = 'Bearer'
+
+#: Context where we can do sim_db_file operations (supervisor)
+SIM_DB_FILE_LOCK = None
+
+#: Locking for global simulation_db operations (server)
+SIMULATION_DB_LOCK = None
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
@@ -151,9 +169,6 @@ def convert_exception(exception, display_text='unexpected error'):
 
 
 def create_token(value):
-    import hashlib
-    import base64
-
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
         v = base64.b32encode(
             hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest())
@@ -170,6 +185,21 @@ def flask_app():
     import flask
 
     return flask.current_app or None
+
+
+def init(server_context=False):
+    global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_LOCK
+
+    assert not cfg
+    cfg = pkconfig.init(
+        create_token_secret=('oh so secret!', str, 'used for internal test only'),
+    )
+    if server_context:
+        SIMULATION_DB_LOCK = threading.RLock()
+        return
+    # Use nullcontext instead of an actual lock because supervisor is in tornado
+    # which is single threaded
+    SIM_DB_FILE_LOCK = contextlib.nullcontext()
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):
@@ -235,14 +265,13 @@ def split_comma_delimited_string(s, f_type):
     return [f_type(x) for x in re.split(r'\s*,\s*', s)]
 
 
+def url_safe_hash(value):
+    return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
+
+
 def _raise(exc, fmt, *args, **kwargs):
     import werkzeug.exceptions
 
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
-
-
-cfg = pkconfig.init(
-    create_token_secret=('oh so secret!', str, 'used for internal test only'),
-)
