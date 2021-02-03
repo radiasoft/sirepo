@@ -1471,9 +1471,9 @@ def _generate_srw_main(data, plot_reports):
     for_rsopt = report == 'rsoptExport'
     source_type = data['models']['simulation']['sourceType']
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or report == 'rsoptExport'
-    #content = _rsopt_main() if for_rsopt else []
     content = [
-        'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={})'.format(plot_reports),
+        #f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={plot_reports})',
+        f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(vp), use_sys_argv={plot_reports})',
     ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1523,7 +1523,7 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join([f'    {x}' for x in content] + ['', 'if __name__ == "__main__":\n\tmain()' if for_rsopt else 'main()\n', ''])
+    return '\n'.join([f'    {x}' for x in content] + [''] + [] if for_rsopt else ['main()', ''])
 
 
 def _get_first_element_position(data):

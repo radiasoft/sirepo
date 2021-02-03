@@ -20,64 +20,101 @@ import srwl_uti_smp
 def set_optics(v=None):
 {{beamlineOptics}}
 
-
-def read_rsopt_data():
-    import numpy
-
-    n = 1
-    {% if scanType == 'grid' %}
-    {% for e in rsOptElements %}
-    {% for x in e.position %}
-    {% if e.offsets[loop.index0] != 0 %}
-    n *= {{ numSamples }}
-    {% endif %}
-    {% endfor %}
-    {% for t in e.angle %}
-    {% if e.rotations[loop.index0] != 0 %}
-    n *= {{ numSamples }}
-    {% endif %}
-    {% endfor %}
-    {% endfor %}
-    {% elif scanType == 'random' %}
-    n *= {{ numSamples }}
-    {% endif %}
-
-    #H_sample_kb-mirror-for-ML-calculations-rsOptExport_history_length=5_evals=5_workers=1.
-    numpy.load(f'H_sample_{{ fileBase }}_history_length={n}_evals={n}_workers={{ numWorkers }}.npy')
-
-
+{% if forRSOpt %}
+_BEAM_TMP_DIR = 'beams'
+_DATASET_DIR = 'datasets'
+_PARAM_TMP_DIR = 'values'
+_SRW_OUT_DIR = 'data_files'
+_TMP_DIRS = [_BEAM_TMP_DIR, _DATASET_DIR, _PARAM_TMP_DIR, _SRW_OUT_DIR]
+{% endif %}
 def rsopt_run(filename):
+    from pykern.pkdebug import pkdlog
+    from pykern import pkio
     import multiprocessing
+    import numpy
+    import time
 
+    # create temporary directories
+    for d in _TMP_DIRS:
+        pkio.mkdir_parent(d)
+
+    start_time = time.time()
     tasks = numpy.load(filename)['x']
     n_runs = len(tasks)
 
     n_processes = min(n_runs, multiprocessing.cpu_count() - 1)
-    print(f'Number of processes available: {num_procs}')
+    pkdlog(f'Number of processes available: {n_processes}')
 
     ####################### splits up the number of tasks to be done evenly across the number of processes available and assigns a task cut to each process
-    procs = []
-    split = n_runs // num_procs
+    processes = []
+    split = n_runs // n_processes
     idx0 = 0
-    for j in range(num_procs):
+    for j in range(n_processes):
         idx1 = n_runs if j == n_processes - 1 else idx0 + split
         p = multiprocessing.Process(target=rsopt_run_set, args=(tasks, idx0, idx1, j))
-        procs.append(p)
+        processes.append(p)
         p.start()
         idx0 += split
 
-    print('Processes started')
+    pkdlog('Processes started')
 
     ####################### must join all processes to end multiprocess thread
     for p in processes:
-        print(f'joining {p}...')
+        pkdlog(f'joining {p}...')
         p.join()
-        print(f'joined {p}')
+        pkdlog(f'joined {p}')
 
-    end = time.time()
-    print('time to run ' + str(n_runs) + ' simulations with ' + str(n_processes) + ' processes: ' + str(np.round((start - end)/60, 4)) + ' minutes')
+    end_time = time.time()
+    pkdlog(f'Time to run {n_runs} simulations with {n_processes} processes: {numpy.round((end_time - start_time) / 60, 4)}m')
+
+    ###### reads in the temporary storage folder info to create one input and one output file for ML
+    beam_arrays = []
+    task_arrays = []
+    for i in range(n_runs):
+        beam_arrays.append(numpy.load(f'{_BEAM_TMP_DIR}/beam_{i}.npy'))
+        task_arrays.append(numpy.load(f'{_PARAM_TMP_DIR}/values_{i}.npy'))
+
+    beams_all = numpy.concatenate(beam_arrays, axis=0)
+    params_all = numpy.concatenate(task_arrays, axis=0)
+
+    save_str = (
+    {% for e in rsOptElements %}
+    {% for x in e.position %}
+    {% if e.offsets[loop.index0] != 0 %}
+        '{{ e.title }}_pos_{{ e.props.positionFields[loop.index0] }}_'
+    {% endif %}
+    {% endfor %}
+    {% for t in e.angle %}
+    {% if e.rotations[loop.index0] != 0 %}
+        '{{ e.title }}_angle_{{ e.props.vectorFields[loop.index0] }}_'
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+    )
+
+    ###### actual input and output files used for ML
+    numpy.save(f'{_DATASET_DIR}/beam_intensities_{save_str}{n_runs}_runs.npy', beams_all)
+    numpy.save(f'{_DATASET_DIR}/parameters_{save_str}{n_runs}_runs.npy', params_all)
+
+# This function is required by rsopt to generate data but is a noop otherwise
+def set_rsopt_params_dummy(
+    {% for e in rsOptElements %}
+    {% for x in e.position %}
+    {% if e.offsets[loop.index0] != 0 %}
+    {{ e.title }}_pos_{{ loop.index0 }},
+    {% endif %}
+    {% endfor %}
+    {% for t in e.angle %}
+    {% if e.rotations[loop.index0] != 0 %}
+    {{ e.title }}_angle_{{ loop.index0 }},
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+):
+    return 0
 
 
+# This functions sets the data
 def set_rsopt_params(
     {% for e in rsOptElements %}
     {% for x in e.position %}
@@ -92,10 +129,11 @@ def set_rsopt_params(
     {% endfor %}
     {% endfor %}
 ):
+    vp = varParam.copy()
     {% for e in rsOptElements %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param('op_{{ e.title }}', '{{ e.props.positionFields[loop.index0] }}')
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.props.positionFields[loop.index0] }}')
     if p:
         p[2] = {{ e.title }}_pos_{{ loop.index0 }}
     {% endif %}
@@ -108,16 +146,16 @@ def set_rsopt_params(
     {% endfor %}
     n = _apply_rotation(a, {{ e.vector }})
     {% for t in e.props.vectorFields %}
-    t = _get_beamline_param('op_{{ e.title }}', '{{ t }}')
+    t = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ t }}')
     if t:
         t[2] = n[{{ loop.index0 }}]
     {% endfor %}
     {% endfor %}
-    return 0
+    return vp
 
 
-def _get_beamline_param(srw_prefix, sirepo_name):
-    for p_arr in varParam:
+def _get_beamline_param(vp, srw_prefix, sirepo_name):
+    for p_arr in vp:
         if p_arr[0].startswith(srw_prefix) and p_arr[3] == sirepo_name:
             return p_arr
     return None
@@ -412,29 +450,65 @@ def setup_magnetic_measurement_files(filename, v):
 
 
 {% if forRSOpt %}
-def rsopt_run_set(param_set, start, end, proc_num):
-    print(f'Process {proc_num} to complete {end - start} tasks')
-    i = start
-    for vals in param_set[start:end]:
-        f = _get_beamline_param(
-            'ws_fni',
-            'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
-        )
-        f[2] = f'dat_files/res_int_se_{i}.dat'
-        rsopt_run_single(vals)
-        i += 1
+def rsopt_run_set(param_arr, start, end, proc_num):
+    from pykern.pkdebug import pkdlog
+    import numpy
+    pkdlog(f'Process {proc_num} to complete {end - start} tasks')
+    task_num = start
+    param_set = param_arr[start:end]
+    for vals in param_set:
+        rsopt_run_single(vals, proc_num, task_num)
+        task_num += 1
 
-def rsopt_run_single(param_vals):
-    set_rsopt_params(*param_vals)
+def read_srw_file(filename):
+    import numpy
+    import uti_plot_com
+    """ This function takes in an srw file and returns the beam data. This was adapted from srwl_uti_dataProcess.py file"""
+    data, mode, ranges, labels, units = uti_plot_com.file_load(filename)
+    data = numpy.array(data).reshape((ranges[8], ranges[5]), order='C')
+    '''
+    return {'data': data,
+            'shape': data.shape,
+            'mean': numpy.mean(data),
+            'photon_energy': ranges[0],
+            'horizontal_extent': ranges[3:5],
+            'vertical_extent': ranges[6:8],
+            'labels': labels,
+            'units': units}
+    '''
+    return data
+
+def rsopt_run_single(param_vals, proc_num, task_num):
+    from pykern.pkdebug import pkdlog
+    import numpy
+
+    vp = set_rsopt_params(*param_vals)
+    f = _get_beamline_param(
+        vp,
+        'ws_fni',
+        'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
+    )
+    f[2] = f'{_SRW_OUT_DIR}/res_int_se_{task_num}.dat'
 {{srwMain}}
+    beam = read_srw_file(f[2])
+    h = beam.shape[0]
+    w = beam.shape[1]
+    beam = beam.reshape(1, h, w)
+    numpy.save(f'{_BEAM_TMP_DIR}/beam_{task_num}.npy', beam)
+    numpy.save(f'{_PARAM_TMP_DIR}/values_{task_num}.npy', param_vals)
+    pkdlog(f'Process {proc_num} finished task {task_num}')
+
 {% endif %}
 
 def main():
 {% if forRSOpt %}
     import sys
+    args = sys.argv[1:]
     if len(args) < 2 or args[0] != 'rsopt_run':
-        sys.exit('usage: python {{ pyFileName }} rsopt_run <filename>')
+        sys.exit(f'usage: python {sys.argv[0]} rsopt_run <filename>')
+    del sys.argv[1:]
     rsopt_run(args[1])
+
 
 if __name__ == "__main__":
     main()

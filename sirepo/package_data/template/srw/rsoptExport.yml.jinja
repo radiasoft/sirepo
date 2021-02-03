@@ -24,7 +24,7 @@ codes:
         {% endfor %}
       setup:
         input_file: {{ pyFileName }}
-        function: set_rsopt_params
+        function: set_rsopt_params_dummy
         execution_type: serial
 options:
   {% if scanType == 'grid' %}
