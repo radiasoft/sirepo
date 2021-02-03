@@ -474,8 +474,12 @@ class SimDataBase(object):
         return 2 if cls.is_parallel(data) else 1
 
     @classmethod
-    def proprietary_code_rpm(cls):
+    def proprietary_code_tarball(cls):
         return None
+
+    @classmethod
+    def proprietary_code_lib_file_basenames(cls):
+        return []
 
     @classmethod
     def put_sim_file(cls, file_path, basename, data):
@@ -689,8 +693,8 @@ class SimDataBase(object):
             dm.simulation.folder = '/Examples'
 
     @classmethod
-    def _proprietary_code_rpm(cls):
-        return f'{cls.sim_type()}.rpm'
+    def _proprietary_code_tarball(cls):
+        return f'{cls.sim_type()}.tar.gz'
 
     @classmethod
     def _put_sim_db_file(cls, file_path, uri):
@@ -731,10 +735,6 @@ class SimDataBase(object):
             data.models.simulation.simulationId,
             basename,
         )
-
-    @classmethod
-    def _sim_src_tarball_path(cls):
-        return cfg.local_share_dir.join(cls.sim_type(), f'{cls.sim_type()}.tar.gz')
 
 
 class SimDbFileNotFound(Exception):

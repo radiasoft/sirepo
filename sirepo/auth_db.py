@@ -48,6 +48,7 @@ def audit_proprietary_lib_files(uid):
     Args:
         uid: user to audit
     """
+    import contextlib
     import py
     import pykern.pkconfig
     import pykern.pkio
@@ -55,12 +56,37 @@ def audit_proprietary_lib_files(uid):
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.simulation_db
+    import sirepo.util
+    import subprocess
 
-    x = sirepo.feature_config.cfg().proprietary_sim_types
-    if not x:
-        return
-    for t in x:
-        if not sirepo.sim_data.get_class(t).proprietary_code_rpm():
+    def _add(proprietary_code_dir, sim_type, sim_data_class):
+        p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
+        c = contextlib.nullcontext
+        if not sirepo.util.flask_app():
+            c = lambda: sirepo.auth.set_user(uid)
+        with c():
+            sirepo.simulation_db.verify_app_directory(sim_type)
+            with sirepo.simulation_db.tmp_dir(chdir=True) as t:
+                d = t.join(p.basename)
+                d.mksymlinkto(p, absolute=False)
+                subprocess.check_output(
+                    [
+                        'tar',
+                        '--extract',
+                        '--gunzip',
+                        f'--file={d}',
+                    ],
+                    stderr=subprocess.STDOUT,
+                )
+                l = sirepo.simulation_db.simulation_lib_dir(sim_type)
+                assert not pykern.pkio.sorted_glob(l.join('*')), \
+                    f'expecting simulation_lib_dir={l} to be empty'
+                for f in sim_data_class.proprietary_code_lib_file_basenames():
+                    t.join(f).rename(l.join(f))
+
+    for t in sirepo.feature_config.cfg().proprietary_sim_types:
+        c = sirepo.sim_data.get_class(t)
+        if not c.proprietary_code_tarball():
             return
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), \
@@ -70,22 +96,10 @@ def audit_proprietary_lib_files(uid):
             uid,
             sirepo.auth.role_for_sim_type(t),
         )
-        for f in pykern.pkio.sorted_glob(d.join('*')):
-#TODO(robnagler) ensure no collision on names with uploaded files
-# (restrict suffixes in user uploads)
-            p = sirepo.simulation_db.simulation_lib_dir(t, uid=uid).join(f.basename)
-            if not r:
-                pykern.pkio.unchecked_remove(p)
-                continue
-            assert f.check(file=True), f'{f} not found'
-            if not p.dirpath().exists():
-#TODO(robnagler) breaks if running in flask
-                with sirepo.auth.set_user(uid):
-                    sirepo.simulation_db.verify_app_directory(t)
-            try:
-                p.mksymlinkto(f, absolute=False)
-            except py.error.EEXIST:
-                pass
+        if r:
+            _add(d, t, c)
+            continue
+        pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t, uid=uid))
 
 
 def init():

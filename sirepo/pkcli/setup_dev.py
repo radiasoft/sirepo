@@ -40,14 +40,16 @@ def _proprietary_codes():
     import urllib.request
 
     for s in sirepo.feature_config.cfg().proprietary_sim_types:
-        f = sirepo.sim_data.get_class(s).proprietary_code_rpm()
+        f = sirepo.sim_data.get_class(s).proprietary_code_tarball()
         if not f:
             return
         r = pkio.mkdir_parent(
             sirepo.srdb.proprietary_code_dir(s),
         ).join(f)
         # POSIT: download/installers/rpm-code/dev-build.sh
-        u = f'{cfg.proprietary_code_uri}/rscode-{s}-dev.rpm'
+        # TODO(e-carlin): need to fix all of the rsconf code and install code to now handle tarballs
+        # manually moving files for now
+        u = f'{cfg.proprietary_code_uri}/{f}'
         try:
             urllib.request.urlretrieve(u, r)
         except urllib.error.URLError as e:
