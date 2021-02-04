@@ -492,7 +492,7 @@
             "numCores": ["Number of Cores", "Integer", 4],
             "numSamples": ["Number of Samples", "Integer", 100],
             "numWorkers": ["Number of Workers", "Integer", 1],
-            "scanType": ["Scan Type", "ScanType", "random"]
+            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly for a total of <number of samples>^<number of params> samples. Random takes a random sample for each param for a total of <number of samples>"]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
