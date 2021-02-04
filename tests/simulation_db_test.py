@@ -29,8 +29,8 @@ def test_uid():
     )
 
     _do(
-        '/sim-db-file/user/yyy/invalid/RrCoL7rQ/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        'yyy',
+        '/sim-db-file/user/HsCFbRrQ/elegant/RrCoL7rQ/{}'.format('x' * 129),
+        'HsCFbRrQ',
     )
 
     _do(
