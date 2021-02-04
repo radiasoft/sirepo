@@ -1525,8 +1525,8 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join([f'    {x}' for x in content] + [''] + [] if for_rsopt \
-        else ['main()', ''])
+    return '\n'.join([f'    {x}' for x in content] + [''] + ([] if for_rsopt \
+        else ['main()', '']))
 
 
 def _get_first_element_position(data):
