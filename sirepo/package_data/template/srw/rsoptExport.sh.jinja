@@ -4,4 +4,7 @@ rsopt sample configuration "{{ ymlFileName }}" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
     echo "NOTE: python {{ pyFileName }} rsopt_run" `tail -1 "{{ outFileName }}" | cut -d: -f2`.npy "to run SRW with generated data"
+else
+    echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"
+    exit 99
 fi

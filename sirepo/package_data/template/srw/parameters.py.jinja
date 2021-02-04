@@ -42,7 +42,8 @@ def set_rsopt_params_dummy(
 ):
     return 0
 
-
+# rsopt uses this as a lookup param so want it in one place
+ws_fni_desc = 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
 varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
@@ -226,7 +227,7 @@ varParam = [
 
     ['si_fn', 's', '{{initialIntensityReportFilename}}', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
     ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
-    ['ws_fni', 's', '{{watchpointReportFilename}}', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
+    ['ws_fni', 's', '{{watchpointReportFilename}}', ws_fni_desc],
     ['ws_pl', 's', '', 'plot the resulting intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
     ['wm_nm', 'i', {{multiElectronAnimation_numberOfMacroElectrons}}, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
@@ -370,7 +371,12 @@ def _rsopt_run(filename):
         pkio.mkdir_parent(d)
 
     start_time = time.time()
-    tasks = numpy.load(filename)['x']
+    data = numpy.load(filename)
+    tasks = data['x']
+    shape = data.dtype['x'].shape
+    # if a single parameter varies, rsopt does not put it into an array, so we must
+    if not shape:
+        tasks = tasks.reshape(len(tasks), -1)
     n_runs = len(tasks)
 
     n_processes = min(n_runs, multiprocessing.cpu_count() - 1)
@@ -438,14 +444,11 @@ def _rsopt_run_set(param_arr, start, end, proc_num):
 
 
 def _rsopt_run_single(param_vals, proc_num, task_num):
-    # if a single parameter varies, rsopt does not put it into an array, so we must
-    if not param_vals.dtype.shape:
-        param_vals = numpy.array([param_vals])
     vp = _rsopt_set_params(*param_vals)
     f = _get_beamline_param(
         vp,
         'ws_fni',
-        'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
+        ws_fni_desc
     )
     f[2] = f'{_SRW_OUT_DIR}/res_int_se_{task_num}.dat'
 {{srwMain}}

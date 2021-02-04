@@ -356,10 +356,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 appState.models.exportRsOpt.elements.splice(i, 1);
             }
         }
-        //appState.saveQuietly('exportRsOpt');
-        appState.saveChanges('exportRsOpt', function() {
-            //return appState.models.exportRsOpt.elements;
-        });
+        appState.saveQuietly('exportRsOpt');
         return appState.models.exportRsOpt.elements;
     };
 
@@ -1616,7 +1613,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
 
             $scope.openExportRsOpt = function() {
                 panelState.showModalEditor('exportRsOpt');
-                //$('#sr-ml-export-dialog').modal('show');
             };
 
             $scope.showImportModal = function() {
