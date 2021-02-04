@@ -27,7 +27,7 @@ import shutil
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash rpm if user has the flash role.
+    For example, add the FLASH proprietary files if user has the sim_type_flash role.
 
     Args:
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
