@@ -339,11 +339,13 @@ def export_rsopt_config(data, filename):
     tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
     for t in tf:
         v[f'{t}FileName'] = tf[t].file
+    v['outFileName'] = f'{f}.out'
 
     # do this in a second loop so v is fully updated
     # note that the rsopt context is regenerated in python_source_for_model()
     for t in tf:
-        tf[t].content = python_source_for_model(data, 'rsoptExport') if t == 'py' else \
+        tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
+            if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
 
     with zipfile.ZipFile(
@@ -645,9 +647,9 @@ def process_undulator_definition(model):
         return model
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, plot_reports=True):
     data['report'] = model or _SIM_DATA.SRW_RUN_ALL_MODEL
-    return _generate_parameters_file(data, plot_reports=True)
+    return _generate_parameters_file(data, plot_reports=plot_reports)
 
 
 
@@ -1471,9 +1473,9 @@ def _generate_srw_main(data, plot_reports):
     for_rsopt = report == 'rsoptExport'
     source_type = data['models']['simulation']['sourceType']
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or report == 'rsoptExport'
+    vp_var = 'vp' if for_rsopt else 'varParam'
     content = [
-        #f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv={plot_reports})',
-        f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(vp), use_sys_argv={plot_reports})',
+        f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})',
     ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1523,7 +1525,8 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join([f'    {x}' for x in content] + [''] + [] if for_rsopt else ['main()', ''])
+    return '\n'.join([f'    {x}' for x in content] + [''] + [] if for_rsopt \
+        else ['main()', ''])
 
 
 def _get_first_element_position(data):

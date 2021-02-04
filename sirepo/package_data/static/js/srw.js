@@ -356,7 +356,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 appState.models.exportRsOpt.elements.splice(i, 1);
             }
         }
-        appState.saveQuietly('exportRsOpt');
+        //appState.saveQuietly('exportRsOpt');
+        appState.saveChanges('exportRsOpt', function() {
+            //return appState.models.exportRsOpt.elements;
+        });
         return appState.models.exportRsOpt.elements;
     };
 
@@ -1830,6 +1833,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                         }
                     };
                 });
+                $scope.$on('beamline.changed', srwService.updateRSOptElements);
                 $scope.$on('exportRsOpt.changed', function(e, d) {
                     srwService.updateRSOptElements();
                     const args = {
