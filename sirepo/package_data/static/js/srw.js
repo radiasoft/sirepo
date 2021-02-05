@@ -356,7 +356,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 appState.models.exportRsOpt.elements.splice(i, 1);
             }
         }
-        appState.saveQuietly('exportRsOpt');
         return appState.models.exportRsOpt.elements;
     };
 
@@ -1812,7 +1811,6 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             $scope.elementData = [];
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
-            $scope.enabled = 'enabled';
             $scope.offsetRanges = 'offsetRanges';
             $scope.rotationRanges = 'rotationRanges';
             $scope.rsOptElements = [];
@@ -1820,18 +1818,25 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 SIREPO.APP_SCHEMA.model.rsOptElement.offsetRanges[SIREPO.INFO_INDEX_LABEL],
                 SIREPO.APP_SCHEMA.model.rsOptElement.rotationRanges[SIREPO.INFO_INDEX_LABEL],
             ];
-            appState.whenModelsLoaded($scope, function() {
+
+            function updateElements() {
                 $scope.rsOptElements = srwService.updateRSOptElements();
                 $scope.elementData = $scope.rsOptElements.map(function(e) {
                     return {
-                        getData: function () {
+                        getData: function() {
                             return e;
-                        }
+                        },
                     };
                 });
-                $scope.$on('beamline.changed', srwService.updateRSOptElements);
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                updateElements();
+                $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', function(e, d) {
-                    srwService.updateRSOptElements();
+                    updateElements();
+                });
+                $scope.$on('exportRsOpt.saved', function(e, d) {
                     const args = {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
