@@ -33,7 +33,7 @@ def set_rsopt_params_dummy(
     {{ e.title }}_pos_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
-    {% for t in e.angle %}
+    {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
     {{ e.title }}_angle_{{ loop.index0 }},
     {% endif %}
@@ -421,7 +421,7 @@ def _rsopt_run(filename):
         '{{ e.title }}_{{ e.props.positionFields[loop.index0] }}_',
     {% endif %}
     {% endfor %}
-    {% for t in e.angle %}
+    {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
         '{{ e.title }}_angle_{{ e.props.vectorFields[loop.index0] }}_',
     {% endif %}
@@ -469,7 +469,7 @@ def _rsopt_set_params(
     {{ e.title }}_pos_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
-    {% for t in e.angle %}
+    {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
     {{ e.title }}_angle_{{ loop.index0 }},
     {% endif %}
@@ -485,8 +485,9 @@ def _rsopt_set_params(
         p[2] = {{ e.title }}_pos_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
+    {% if e.rotations[0] != 0 and e.rotations[1] != 0 and e.rotations[2] != 0  %}
     a = [0.0, 0.0, 0.0]
-    {% for t in e.angle %}
+    {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
     a[{{ loop.index0 }}] = {{ e.title }}_angle_{{ loop.index0 }}
     {% endif %}
@@ -497,6 +498,7 @@ def _rsopt_set_params(
     if t:
         t[2] = n[{{ loop.index0 }}]
     {% endfor %}
+    {% endif %}
     {% endfor %}
     return vp
 

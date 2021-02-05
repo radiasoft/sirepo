@@ -343,7 +343,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             e.id = item.id;
             e.props = SIREPO.APP_SCHEMA.constants.rsoptElements[item.type];
             e.position = [`${item.horizontalOffset || 0.0}`, `${item.verticalOffset || 0.0}`, `${item.position}`];
-            e.angle = [0.0, 0.0, 0.0];
             e.vector = [`${item.normalVectorX || 1.0}`, `${item.normalVectorY || 0.0}`, `${item.normalVectorZ}`];
             if (newEl) {
                 appState.models.exportRsOpt.elements.push(e);
