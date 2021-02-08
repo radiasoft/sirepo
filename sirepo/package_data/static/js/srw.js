@@ -330,32 +330,42 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.updateRSOptElements = function() {
-        for (let item of (appState.models.beamline || []).filter(function(i) {
-            return SIREPO.APP_SCHEMA.constants.rsoptElements[i.type];
-        })) {
+        let r = SIREPO.APP_SCHEMA.constants.rsoptElements;
+        let items = (appState.models.beamline || []).filter(function(i) {
+            return r[i.type];
+        });
+        let els = appState.models.exportRsOpt.elements;
+        for (let item of items) {
             let e = self.findRSOptElement(item.id);
-            let newEl = ! e;
-            if (newEl) {
+            if (! e) {
                 e = appState.setModelDefaults({}, 'rsOptElement');
+                els.push(e);
             }
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
-            e.props = SIREPO.APP_SCHEMA.constants.rsoptElements[item.type];
-            e.position = [`${item.horizontalOffset || 0.0}`, `${item.verticalOffset || 0.0}`, `${item.position}`];
-            e.vector = [`${item.normalVectorX || 1.0}`, `${item.normalVectorY || 0.0}`, `${item.normalVectorZ}`];
-            if (newEl) {
-                appState.models.exportRsOpt.elements.push(e);
+            e.props =  r[item.type];
+            for (let p in e.props) {
+                e[p] = [];
+                for (let f of e.props[p] || []) {
+                    e[p].push(item[f] || 0.0);
+                }
             }
         }
         // remove outdated elements
-        for (let i = appState.models.exportRsOpt.elements.length - 1; i >= 0; --i) {
-            let e = appState.models.exportRsOpt.elements[i];
-            if (! beamlineService.getItemById(e.id)) {
-                appState.models.exportRsOpt.elements.splice(i, 1);
+        for (let i = els.length - 1; i >= 0; --i) {
+            if (! beamlineService.getItemById(els[i].id)) {
+                els.splice(i, 1);
             }
         }
-        return appState.models.exportRsOpt.elements;
+        // put in beamline order
+        let ids = items.map(function (i) {
+            return i.id;
+        });
+        els.sort(function (e1, e2) {
+            return ids.indexOf(e2.id) - ids.indexOf(e1.id);
+        });
+        return els;
     };
 
     self.findRSOptElement = function(id) {
@@ -1797,8 +1807,10 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 '<tbody>',
                     '<tr data-ng-repeat="e in rsOptElements track by $index">',
                       '<td>{{ e.title }} <input type="checkbox" data-ng-model="e.enabled" data-ng-change=""></td>',
-                      '<td><div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
-                      '<td><div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="hasFields(e, \'positionFields\')"><div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'positionFields\')"> </td>',
+                      '<td data-ng-if="hasFields(e, \'vectorFields\')"><div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'vectorFields\')"> </td>',
                     '</tr>',
                 '</tbody>',
               '</table>',
@@ -1817,6 +1829,10 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 SIREPO.APP_SCHEMA.model.rsOptElement.offsetRanges[SIREPO.INFO_INDEX_LABEL],
                 SIREPO.APP_SCHEMA.model.rsOptElement.rotationRanges[SIREPO.INFO_INDEX_LABEL],
             ];
+
+            $scope.hasFields = function(e, f) {
+                return SIREPO.APP_SCHEMA.constants.rsoptElements[e.type][f];
+            };
 
             function updateElements() {
                 $scope.rsOptElements = srwService.updateRSOptElements();

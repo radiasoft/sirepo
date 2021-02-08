@@ -356,7 +356,8 @@ def export_rsopt_config(data, filename):
     ) as z:
         for t in tf:
             z.writestr(tf[t].file, tf[t].content)
-
+        for d in _SIM_DATA.lib_files_for_export(data):
+            z.write(d, d.basename)
     return fz
 
 
@@ -1644,10 +1645,9 @@ def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
         e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
-        e.position = [float(p) for p in e.position]
+        e.position = [float(p) for p in e.positionFields]
         e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
-        e.angle = [float(p) for p in e.angle]
-        e.vector = [float(p) for p in e.vector]
+        e.vector = [float(p) for p in e.vectorFields]
     return x
 
 
