@@ -451,9 +451,6 @@
             "condenseBeamline": ["Condense Beamline", "Boolean", "1", "Rescale the transverse distances to fit a smaller area"],
             "includeSource": ["Include Beam Source", "Boolean", "1"]
         },
-        "beamlineElement": {
-            "position": ["Position along Optical Path [m]", "Float"]
-        },
         "brillianceReport": {
             "minDeflection": ["Minimum Deflecting Parameter (K)", "Float", 0.2],
             "initialHarmonic": ["Initial Harmonic", "Integer", 1],

@@ -841,7 +841,6 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             '<div data-common-footer="nav"></div>',
             '<div data-import-python=""></div>',
             '<div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>',
-            //'<div data-confirmation-modal="" data-id="sr-mlExport-dialog" data-title="export" data-ok-text="OK" data-ok-clicked="exportML()"><div data-ml-export="" data-model-name="exportRSOpt"></div></div>',
         ].join(''),
         controller: function($scope) {
 
@@ -1380,10 +1379,6 @@ SIREPO.viewLogic('simulationGridView', function($scope, srwService) {
     ];
 });
 
-SIREPO.viewLogic('exportRsOptView', function($scope, srwService) {
-    //$scope.fieldDef = 'basic';
-    //srdbg('viewLogic for exportRsOpt', $scope);
-});
 
 SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, srwService, $scope) {
     if ($scope.fieldDef == 'basic') {
