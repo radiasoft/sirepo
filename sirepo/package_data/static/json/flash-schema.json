@@ -2182,38 +2182,55 @@
         "setupArguments": {
             "title": "Setup Arguments",
             "basic": [
-                "auto",
-                "cartesian",
-                "cylindrical",
-                "d",
-                "maxblocks",
-                "nofbs",
-                "noio",
-                "nxb",
-                "nyb",
-                "nzb",
-                "opt",
-                "pm2",
-                "pm40",
-                "pm4dev",
-                "polar",
-                "spherical",
-                "splithydro",
-                "ug",
-                "uhd",
-                "usm"
+                ["Common", [
+                    "auto",
+                    "opt",
+                    "cartesian",
+                    "cylindrical",
+                    "polar",
+                    "spherical",
+                    "d",
+                    "species"
+                ]],
+                ["Laser", [
+                    "laser",
+                    "ed_maxBeams",
+                    "ed_maxPulseSections",
+                    "ed_maxPulses"
+
+                ]],
+                ["Blocks", [
+                    "nofbs",
+                    "ug",
+                    "maxblocks",
+                    "nxb",
+                    "nyb",
+                    "nzb"
+                ]],
+                ["Paramesh", [
+                    "pm2",
+                    "pm40",
+                    "pm4dev"
+                ]]
             ],
             "advanced": [
-                "ed_maxBeams",
-                "ed_maxPulseSections",
-                "ed_maxPulses",
-                "hdf5typeio",
-                "laser",
-                "mgd",
-                "mgd_meshgroups",
-                "mtmmmt",
-                "species",
-                "usm3t"
+                ["IO", [
+                    "noio",
+                    "hdf5typeio"
+                ]],
+                ["Magneto Gas Dynamics", [
+                    "mgd",
+                    "mgd_meshgroups"
+                ]],
+                ["Equation Of State", [
+                    "mtmmmt",
+                    "usm3t"
+                ]],
+                ["Solver", [
+                    "splithydro",
+                    "uhd",
+                    "usm"
+                ]]
             ]
         },
         "simulation": {
