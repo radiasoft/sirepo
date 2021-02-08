@@ -11,6 +11,27 @@
             ["reflecting", "reflecting"],
             ["vacuum", "vacuum"]
         ],
+        "DirectiveParameterType": [
+            ["BOOLEAN", "BOOLEAN"],
+            ["INTEGER", "INTEGER"],
+            ["REAL", "REAL"],
+            ["STRING", "STRING"]
+        ],
+        "DirectiveParticlepropType": [
+            ["REAL", "REAL"]
+        ],
+        "DirectiveParticlemapVarType": [
+            ["FACEX", "FACEX"],
+            ["FACEY", "FACEY"],
+            ["FACEZ", "FACEZ"],
+            ["MASS_SCALAR", "MASS_SCALAR"],
+            ["SCRATCHCENTERVAR", "SCRATCHCENTERVAR"],
+            ["SCRATCHFACEXVAR", "SCRATCHFACEXVAR"],
+            ["SCRATCHFACEYVAR", "SCRATCHFACEYVAR"],
+            ["SCRATCHFACEZVAR", "SCRATCHFACEZVAR"],
+            ["SPECIES", "SPECIES"],
+            ["VARIABLE", "VARIABLE"]
+        ],
         "Driverdr_dtMinBelowAction": [
             ["0", "0"],
             ["1", "1"]
@@ -397,7 +418,7 @@
             ["2", "2"],
             ["3", "3"]
         ],
-        "SetupArgumentUnitPath": [
+        "SetupArgumentUnit": [
             ["Driver", "Driver"],
             ["Driver/DriverMain", "Driver/DriverMain"],
             ["Driver/DriverMain/INSfracstep", "Driver/DriverMain/INSfracstep"],
@@ -1013,7 +1034,9 @@
     },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["flash.js"]
+            "js": [
+                "flash.js"
+            ]
         }
     },
     "frameIdFields": {
@@ -1021,10 +1044,11 @@
         "varAnimation": ["var"]
     },
     "localRoutes": {
-        "source": {
+        "config": {
+            "route": "/config/:simulationId",
             "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/flash-source.html"
+                "controller": "ConfigController as config",
+                "templateUrl": "/static/html/flash-config.html"
             }
         },
         "physics": {
@@ -1032,6 +1056,19 @@
             "config": {
                 "controller": "PhysicsController as physics",
                 "templateUrl": "/static/html/flash-physics.html"
+            }
+        },
+        "runtimeParams": {
+            "route": "/runtime-params/:simulationId",
+            "config": {
+                "controller": "RuntimeParamsController as runtimeParams",
+                "templateUrl": "/static/html/flash-runtime-params.html"
+            }
+        },
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/flash-source.html"
             }
         },
         "visualization": {
@@ -1043,6 +1080,30 @@
         }
     },
     "model": {
+        "directive_PARAMETER": {
+            "name": ["Name", "String", "", "The name of the parameter."],
+            "type": ["Type", "DirectiveParameterType", "", "The type of the parameter."],
+            "default": ["Default Value", "DirectiveParameterField", "", "The default value of the parameter."],
+            "value": ["Value", "DirectiveParameterField", "", "The value of the parameter."]
+        },
+        "directive_PARTICLEPROP": {
+            "name": ["Name", "String", "", "The name of the particle."],
+            "type": ["Type", "DirectiveParticlepropType", "REAL", "The type of the particle."]
+        },
+        "directive_PARTICLEMAP": {
+            "partName": ["Particle Name", "String", "", "The name of the particle."],
+            "varType": ["Variable Type", "DirectiveParticlemapVarType", "VARIABLE", "The type of the variable."],
+            "varName": ["Variable Name", "String", "", "The name of the variable."]
+        },
+        "directive_REQUESTS": {
+            "unit": ["Unit", "SetupArgumentUnit", "", "Require a unit."]
+        },
+        "directive_REQUIRES": {
+            "unit": ["Unit", "SetupArgumentUnit", "", "Require a unit."]
+        },
+        "directive_VARIABLE": {
+            "name": ["Name", "String", "", "The name of the variable."]
+        },
         "Driver": {
             "allowDtSTSDominate": ["allowDtSTSDominate", "Boolean", "0", "allow a situation in which dt_STS becomes larger than dt_Hydro\n(dt_advection) (assuming that diffusion dt is smaller than advection dt)\nupto advection one, but not faster than the advection advancement. This\nwill be useful in solving PDE systems that are hyperbolic + parabolic.\nFALSE will use the STS algorithm to even accelerate advection time\nadvancement, which in turn, will use larger advection dt than advection\ndt from CFL limits. This will be useful in solving only hyperbolic PDE\nsystems in general. When hyperbolic + parabolic PDE system is to be\nsolved, then we suggest that users use less agressive super time\nstepping method by using useSTSforDiffusion = TRUE."],
             "dr_abortPause": ["dr_abortPause", "Integer", 2, "When Driver_abortFlash is called to abnormally end execution, and\ndr_abortPause is grater than zero, the FLASH Driver_abortFlash code will\nsleep for dr_abortPause seconds after writing explanatory messages (to\nstandard output and, possibly, to log files) but before calling\nMPI_ABORT. See also eachProcWritesOwnAbortLog for controlling the\ngeneration of per-processor log files.", 0],
@@ -1898,6 +1959,48 @@
         }
     },
     "view": {
+        "directive_PARAMETER": {
+            "title": "PARAMETER",
+            "advanced": [
+                "name",
+                "type",
+                "default",
+                "value"
+            ]
+        },
+        "directive_PARTICLEPROP": {
+            "title": "PARTICLEPROP",
+            "advanced": [
+                "name",
+                "type"
+            ]
+        },
+        "directive_PARTICLEMAP": {
+            "title": "PARTICLEMAP",
+            "advanced": [
+                "partName",
+                "varType",
+                "varName"
+            ]
+        },
+        "directive_REQUESTS": {
+            "title": "REQUESTS",
+            "advanced": [
+                "unit"
+            ]
+        },
+        "directive_REQUIRES": {
+            "title": "REQUIRES",
+            "advanced": [
+                "unit"
+            ]
+        },
+        "directive_VARIABLE": {
+            "title": "VARIABLE",
+            "advanced": [
+                "name"
+            ]
+        },
         "Driver": {
             "title": "Simulation Driver",
             "basic": [
