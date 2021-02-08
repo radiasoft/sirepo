@@ -26,6 +26,7 @@ pykern.pksetup.setup(
         'pyIsEmail',
         'pykern',
         'pytz',
+        'requests',
         'tornado',
         'user-agents',
         'uwsgi',

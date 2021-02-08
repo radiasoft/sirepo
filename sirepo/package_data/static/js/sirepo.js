@@ -3398,7 +3398,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     ].join('');
     notificationService.addNotification(n);
 
-    self.importText = SIREPO.appImportText;
+    self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
     self.activeFolder = fileManager.getActiveFolder();
@@ -3500,6 +3500,10 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             return item.children.length === 0;
         }
         return ! item.isExample;
+    };
+
+    self.canDownloadInputFile = function() {
+        return SIREPO.APP_SCHEMA.constants.canDownloadInputFile;
     };
 
     self.copyCfg = {

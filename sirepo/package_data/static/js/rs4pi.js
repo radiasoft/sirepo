@@ -344,7 +344,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
             self.simAnalysisModel = $scope.model;
 
             self.simHandleStatus = function(data) {
-                if ($scope.model == 'dicomAnimation' && data.state == 'missing' && data.percentComplete === 0) {
+                if ($scope.model == 'dicomAnimation' && data.state == 'missing' && ! data.percentComplete) {
                     $scope.simState.runSimulation();
                     return;
                 }

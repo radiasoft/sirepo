@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "canDownloadInputFile": false
+    },
     "enum": {
         "flashType": [
             ["CapLaserBELLA", "CapLaserBELLA"],

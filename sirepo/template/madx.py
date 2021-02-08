@@ -170,21 +170,6 @@ def eval_code_var(data):
         for m in data.models[x]:
             _model(m, LatticeUtil.model_name_for_data(m))
 
-def extract_monitor_values(run_dir):
-    t = madx_parser.parse_tfs_file(run_dir.join('twiss.file.tfs'))
-    l = []
-    for i, e in enumerate(t.keyword):
-        if to_string(e) in ('MONITOR', 'HMONITOR', 'VMONITOR'):
-            l.append([i, to_string(e)])
-    m = []
-    for i in l:
-        m.append(PKDict(
-            name=to_string(t.name[i[0]]),
-            x=0 if i[1] == 'VMONITOR' else to_float(t.x[i[0]]),
-            y=0 if i[1] == 'HMONITOR' else to_float(t.y[i[0]]),
-        ))
-    return m
-
 
 def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
     t = madx_parser.parse_tfs_file(run_dir.join(filename))
@@ -214,6 +199,26 @@ def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
             alfy=t.alfx[0],
         )
     return res
+
+
+def generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    util = LatticeUtil(data, _SCHEMA)
+    filename_map = _build_filename_map_from_util(util)
+    report = data.get('report', '')
+    v.twissOutputFilename = _TWISS_OUTPUT_FILE
+    v.lattice = _generate_lattice(filename_map, util)
+    v.variables = code_var(data.models.rpnVariables).generate_variables(_generate_variable)
+    v.useBeamline = util.select_beamline().name
+    if report == 'twissReport' or _is_report('bunchReport', report):
+        v.twissOutputFilename = _TWISS_OUTPUT_FILE
+        return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
+    _add_commands(data, util)
+    v.commands = _generate_commands(filename_map, util)
+    v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
+    if not v.hasTwiss:
+        v.twissOutputFilename = _TWISS_OUTPUT_FILE
+    return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
 def get_application_data(data, **kwargs):
@@ -274,7 +279,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 # TODO(e-carlin): fixme - I don't return python
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
+    return generate_parameters_file(data)
 
 
 def sim_frame(frame_args):
@@ -316,7 +321,7 @@ def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
         return
     pkio.write_text(
         run_dir.join(filename),
-        _generate_parameters_file(data),
+        generate_parameters_file(data),
     )
 
 
@@ -553,26 +558,6 @@ def _generate_lattice(filename_map, util):
         want_semicolon=True,
         want_var_assign=True,
     )
-
-
-def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
-    util = LatticeUtil(data, _SCHEMA)
-    filename_map = _build_filename_map_from_util(util)
-    report = data.get('report', '')
-    v.twissOutputFilename = _TWISS_OUTPUT_FILE
-    v.lattice = _generate_lattice(filename_map, util)
-    v.variables = code_var(data.models.rpnVariables).generate_variables(_generate_variable)
-    v.useBeamline = util.select_beamline().name
-    if report == 'twissReport' or _is_report('bunchReport', report):
-        v.twissOutputFilename = _TWISS_OUTPUT_FILE
-        return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
-    _add_commands(data, util)
-    v.commands = _generate_commands(filename_map, util)
-    v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
-    if not v.hasTwiss:
-        v.twissOutputFilename = _TWISS_OUTPUT_FILE
-    return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
 def _generate_variable(name, variables, visited):
