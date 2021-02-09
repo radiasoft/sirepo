@@ -1372,7 +1372,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     data['models']['trajectoryReport']['magneticField'] = magnetic_field
     data['models']['powerDensityReport']['magneticField'] = magnetic_field
     report = data['report']
-    for_rsopt = report == 'rsoptExport'
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
         if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
@@ -1410,9 +1409,11 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
-    if for_rsopt:
+    if report == 'rsoptExport':
         v.update(rsopt_ctx)
 
+    # rsopt uses this as a lookup param so want it in one place
+    v['ws_fni_desc'] = 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
     v['rs_type'] = source_type
     if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'

@@ -16,14 +16,12 @@ import math
 import srwl_uti_smp
 {% endif %}
 
-{% if forRSOpt %}
-from pykern.pkdebug import pkdlog
-import numpy
-{% endif %}
-
 def set_optics(v=None):
 {{beamlineOptics}}
 
+{% if forRSOpt %}
+from pykern.pkdebug import pkdlog
+import numpy
 
 # This function is required by rsopt to generate data but is a noop otherwise
 def set_rsopt_params_dummy(
@@ -41,9 +39,8 @@ def set_rsopt_params_dummy(
     {% endfor %}
 ):
     return 0
+{% endif %}
 
-# rsopt uses this as a lookup param so want it in one place
-ws_fni_desc = 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
 varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
@@ -227,7 +224,7 @@ varParam = [
 
     ['si_fn', 's', '{{initialIntensityReportFilename}}', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
     ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
-    ['ws_fni', 's', '{{watchpointReportFilename}}', ws_fni_desc],
+    ['ws_fni', 's', '{{watchpointReportFilename}}', '{{ ws_fni_desc }}'],
     ['ws_pl', 's', '', 'plot the resulting intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
     ['wm_nm', 'i', {{multiElectronAnimation_numberOfMacroElectrons}}, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
@@ -448,7 +445,7 @@ def _rsopt_run_single(param_vals, proc_num, task_num):
     f = _get_beamline_param(
         vp,
         'ws_fni',
-        ws_fni_desc
+        '{{ ws_fni_desc }}'
     )
     f[2] = f'{_SRW_OUT_DIR}/res_int_se_{task_num}.dat'
 {{srwMain}}
