@@ -363,7 +363,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             return i.id;
         });
         els.sort(function (e1, e2) {
-            return ids.indexOf(e2.id) - ids.indexOf(e1.id);
+            return ids.indexOf(e1.id) - ids.indexOf(e2.id);
         });
         return els;
     };
