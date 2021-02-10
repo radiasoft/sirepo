@@ -11,6 +11,9 @@ SIREPO.app.config(function() {
           '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
         '</div>'
     ].join('');
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'problemFiles-archive': '.zip',
+    };
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
 });

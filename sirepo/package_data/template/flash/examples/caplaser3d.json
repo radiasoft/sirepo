@@ -813,6 +813,9 @@
             "hx_ieTimeCoef": 1,
             "hx_relTol": -1
         },
+        "problemFiles": {
+            "archive": "CapLaser3D.zip"
+        },
         "setupArguments": {
             "auto": "1",
             "cartesian": "1",

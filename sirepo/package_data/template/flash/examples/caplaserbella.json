@@ -765,6 +765,9 @@
             "hx_ieTimeCoef": 1,
             "hx_relTol": -1
         },
+        "problemFiles": {
+            "archive": "CapLaserBELLA.zip"
+        },
         "setupArguments": {
             "auto": "1",
             "d": 2,

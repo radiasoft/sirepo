@@ -549,10 +549,10 @@ def api_updateFolder():
     req = http_request.parse_post()
     o = srschema.parse_folder(req.req_data['oldName'])
     if o == '/':
-        raise util.Error('cannot rename root ("/") folder')
+        raise sirepo.util.Error('cannot rename root ("/") folder')
     n = srschema.parse_folder(req.req_data['newName'])
     if n == '/':
-        raise util.Error('cannot folder to root ("/")')
+        raise sirepo.util.Error('cannot folder to root ("/")')
     for r in simulation_db.iterate_simulation_datafiles(req.type, _simulation_data_iterator):
         f = r.models.simulation.folder
         l = o.lower()

@@ -1787,6 +1787,9 @@
             "hx_ieTimeCoef": ["hx_ieTimeCoef", "Float", 1.0, "Constant coefficient for scaling ion/ele coupling time", 0.0],
             "hx_relTol": ["hx_relTol", "Float", -1.0, "relative tolerance for temperature errors introduced by HeatExchange.\nThis runtime parameter affects the time step computed by\nHeatexchange_computeDt. Basically, if the max (abs) temperature\nadjustment that would be introduced in any nonzero component in any cell\nis less than hx_relTol, then the time step limit is relaxed. Set to a\nnegative value to inherite the value of runtime parameter eos_tolerance."]
         },
+        "problemFiles": {
+            "archive": ["ZIP Archive", "InputFile", "", "ZIP archive containing files for a FLASH problem (Config, Makefile, F90)."]
+        },
         "setupArguments": {
             "auto": ["Auto", "Boolean", "0", "Enable setup to generate a 'rough draft' of a Units file."],
             "cartesian": ["Cartesian", "SetupArgumentShortcut", "0", "Use Cartesian geometry."],
@@ -2176,6 +2179,13 @@
                 "grav_boundary_type",
                 "physicsGravityConstant.gconst",
                 "physicsGravityConstant.gdirec"
+            ],
+            "advanced": []
+        },
+        "problemFiles": {
+            "title": "Problem Files",
+            "basic": [
+                "archive"
             ],
             "advanced": []
         },
