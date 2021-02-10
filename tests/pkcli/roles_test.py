@@ -38,7 +38,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
         )
 
     pkunit.data_dir().join('db').copy(sirepo.srdb.root())
-    _proprietary_file = 'flash.rpm'
+    _proprietary_file = 'flash.tar.gz'
     fc = auth_fc
     fc.sr_email_register('a@b.c', sim_type='flash')
 
