@@ -455,6 +455,7 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False)
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
+    #v.magnetParams = _process_magnet_params(data)
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable

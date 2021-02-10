@@ -147,9 +147,9 @@ def build_container(g_ids):
 def build_undulator(
     beam_dir, gap_dir,
     num_periods, period_length,
-    pole_cross_section, pole_thickness, pole_division, pole_material,
-    magnet_cross, magnet_division, magnet_material,
     gap, gap_offset,
+    pole_cross_section, pole_thickness, pole_division, pole_material,
+    magnet_cross_section, magnet_division, magnet_material,
 ):
 
     width_dir = numpy.cross(beam_dir, gap_dir)
@@ -168,145 +168,39 @@ def build_undulator(
     half_pole = build_box(ctr, sz, pole_material, _ZERO, pole_division)
 
     pos += beam_dir * (pole_thickness / 4)
-    ctr = width_dir * magnet_cross[0] / 4 + \
+    ctr = width_dir * magnet_cross_section[0] / 4 + \
         pos - \
-        gap_dir * (gap_offset + (magnet_cross[1] + gap) / 2)
+        gap_dir * (gap_offset + (magnet_cross_section[1] + gap) / 2)
 
-    sz = width_dir * magnet_cross[0] / 2 + \
+    sz = width_dir * magnet_cross_section[0] / 2 + \
          beam_dir * magnet_thickness + \
-         gap_dir * magnet_cross[1]
+         gap_dir * magnet_cross_section[1]
 
     magnet = build_box(ctr, sz, magnet_material, _ZERO, magnet_division)
 
     pos += beam_dir * (pole_thickness + magnet_thickness) / 2
-    ctr = width_dir * pole_cross[0] / 4 + \
+    ctr = width_dir * pole_cross_section[0] / 4 + \
         pos - \
-        gap_dir * ((magnet_cross[1] + gap) / 2)
+        gap_dir * ((magnet_cross_section[1] + gap) / 2)
 
-    sz = width_dir * pole_cross[0] / 2 + \
+    sz = width_dir * pole_cross_section[0] / 2 + \
          beam_dir * pole_thickness + \
-         gap_dir * pole_cross[1]
+         gap_dir * pole_cross_section[1]
 
     pole = build_box(ctr, sz, pole_material, _ZERO, pole_division)
 
     mag_pole_grp = build_container([magnet, pole])
     _clone_with_translation(mag_pole_grp, num_periods, beam_dir * period_length, True)
 
+    #magnet_cap = build_box()
 
-
-    def undulator(
-            pole_lengths, pole_props, pole_segs, block_lengths, block_props,
-            block_segs, gap_height, gap_offset, num_periods
-    ):
-        """
-        create hybrid undulator magnet
-        arguments:
-          pole_lengths = [lpx, lpy, lpz] = dimensions of the iron poles (mm)
-          pole_props = magnetic properties of the iron poles (M-H curve)
-          pole_segs = segmentation of the iron poles
-          block_lengths = [lmx, lmy, lmz] = dimensions of the magnet blocks (mm)
-          block_props = magnetic properties of the magnet blocks (remanent magnetization)
-          block_segs = segmentation of the magnet blocks
-          gap_height = undulator gap (mm)
-          gap_offset = vertical offset of the magnet blocks w/rt the poles (mm)
-          numPer = number of full periods of the undulator magnetic field
-        return: Radia representations of
-          undulator group, poles, permanent magnets
-        """
-        zero = [0, 0, 0]
-
-        # colors
-        c_pole = [1, 0, 1]
-        c_block = [0, 1, 1]
-
-        # full magnet will be assembled into this Radia group
-        grp = radia.ObjCnt([])
-
-        # principal poles and magnet blocks in octant(+,+,–)
-        # -- half pole
-        y = pole_lengths[1] / 4
-
-        pole = radia.ObjFullMag(
-            [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
-            [pole_lengths[0] / 2, pole_lengths[1] / 2, pole_lengths[2]],
-            zero, pole_segs, grp, pole_props, c_pole
-        )
-        y += pole_lengths[1] / 4
-
-        # -- magnet and pole pairs
-        m_dir = -1
-        for i in range(num_periods):
-            init_m = [0, m_dir, 0]
-            m_dir *= -1
-            y += block_lengths[1] / 2
-            magnet = radia.ObjFullMag(
-                [
-                    block_lengths[0] / 4,
-                    y,
-                    -block_lengths[2] / 2 - gap_height / 2 - gap_offset
-                ],
-                [
-                    block_lengths[0] / 2, block_lengths[1], block_lengths[2]
-                ],
-                init_m, block_segs, grp, block_props, c_block
-            )
-            y += (block_lengths[1] + pole_lengths[1]) / 2
-            pole = radia.ObjFullMag(
-                [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
-                [pole_lengths[0] / 2, pole_lengths[1], pole_lengths[2]],
-                zero, pole_segs, grp, pole_props, c_pole
-            )
-            y += pole_lengths[1] / 2
-
-        # -- end magnet block
-        init_m = [0, m_dir, 0]
-        y += block_lengths[1] / 4
-        magnet = radia.ObjFullMag(
-            [
-                block_lengths[0] / 4,
-                y,
-                -block_lengths[2] / 2 - gap_height / 2 - gap_offset
-            ],
-            [
-                block_lengths[0] / 2, block_lengths[1] / 2, block_lengths[2]
-            ],
-            init_m, block_segs, grp, block_props, c_block)
-
-        # use mirror symmetry to define the full undulator
-        radia.TrfZerPerp(grp, zero, [1, 0, 0])  # reflect in the (y,z) plane
-        radia.TrfZerPara(grp, zero, [0, 0, 1])  # reflect in the (x,y) plane
-        radia.TrfZerPerp(grp, zero, [0, 1, 0])  # reflect in the (z,x) plane
-
-        return grp, pole, magnet
-
-    def materials(h, m, smat, rm):
-        """
-        define magnetic materials for the undulator poles and magnets
-        arguments:
-          H    = list of magnetic field values / (Amp/m)
-          M    = corresponding magnetization values / T
-          smat = material type string
-          rm   = remanent magnetization / T
-        return: Radia representations of ...
-          pole-tip material, magnet material
-        """
-        # -- magnetic property of poles
-        ma = [[mu0 * h[i], m[i]] for i in range(len(h))]
-        mp = radia.MatSatIsoTab(ma)
-        # -- permanent magnet material
-        mm = radia.MatStd(smat, rm)
-
-        return mp, mm
-
-    # -- magnetic materials
-    # pole tips: ~iron type Va Permendur
-    # permanent magnets: NdFeB with 1.2 Tesla remanent magnetization
-    mp, mm = materials(iron_h, iron_m, 'NdFeB', 1.2)
-
-    # then build the undulator
-    und, pl, mg = undulator(lp, mp, nsp, lm, mm, nsm, gap, offset, n_periods)
+    und = build_container([half_pole, mag_pole_grp])
+    radia.TrfZerPerp(und, _ZERO, width_dir)  # reflect in the (y,z) plane
+    radia.TrfZerPara(und, _ZERO, gap_dir)  # reflect in the (x,y) plane
+    radia.TrfZerPerp(und, _ZERO, beam_dir)  # reflect in the (z,x) plane
 
     return und
+
 
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')
