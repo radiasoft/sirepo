@@ -21,6 +21,7 @@ import flask
 import importlib
 import os
 import re
+import sirepo.db_upgrade
 import sirepo.events
 import sirepo.sim_data
 import sirepo.srdb
@@ -50,8 +51,12 @@ DEFAULT_ERROR_FILE = 'server-error.html'
 
 _ROBOTS_TXT = None
 
+#: The server has been fully initialized
+server_initialized = False
+
 #: Global app value (only here so instance not lost)
 _app = None
+
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -607,11 +612,11 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(uwsgi=None, use_reloader=False):
+def init(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
-    global _app
+    global _app, server_initialized
 
-    if _app:
+    if server_initialized:
         return
     global _google_tag_manager
     if cfg.google_tag_manager_id:
@@ -629,6 +634,9 @@ def init(uwsgi=None, use_reloader=False):
     _app.sirepo_use_reloader = use_reloader
     sirepo.util.init(server_context=True)
     uri_router.init(_app, simulation_db)
+    if is_server:
+        sirepo.db_upgrade.upgrade()
+    server_initialized = True
     return _app
 
 

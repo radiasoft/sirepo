@@ -23,6 +23,9 @@ _engine = None
 #: SQLAlchemy session instance
 _session = None
 
+#: Keeps track of upgrades applied to the database
+DbUpgrade = None
+
 #: base for UserRegistration and *User models
 UserDbBase = None
 
@@ -46,7 +49,7 @@ def audit_proprietary_lib_files(uid):
     For example, add the Flash tarball if user has the flash role.
 
     Args:
-        uid: user to audit
+        uid (string): user to audit
     """
     import contextlib
     import py
@@ -79,10 +82,10 @@ def audit_proprietary_lib_files(uid):
                     stderr=subprocess.STDOUT,
                 )
                 l = sirepo.simulation_db.simulation_lib_dir(sim_type)
-                assert not pykern.pkio.sorted_glob(l.join('*')), \
-                    f'expecting simulation_lib_dir={l} to be empty'
+                e = [f.basename for f in pykern.pkio.sorted_glob(l.join('*'))]
                 for f in sim_data_class.proprietary_code_lib_file_basenames():
-                    t.join(f).rename(l.join(f))
+                    if f not in e:
+                        t.join(f).rename(l.join(f))
 
     for t in sirepo.feature_config.cfg().proprietary_sim_types:
         c = sirepo.sim_data.get_class(t)
@@ -103,7 +106,7 @@ def audit_proprietary_lib_files(uid):
 
 
 def init():
-    global _session, _engine, UserDbBase, UserRegistration, UserRole
+    global _session, _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
     assert not _session
 
     f = _db_filename()
@@ -167,6 +170,12 @@ def init():
                     getattr(cls, column).in_(values),
                 ).delete(synchronize_session='fetch')
                 cls._session.commit()
+
+    class DbUpgrade(UserDbBase):
+        __tablename__ = 'db_upgrade_t'
+        name = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
+        created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
+
 
     class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'

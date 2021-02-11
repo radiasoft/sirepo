@@ -69,7 +69,7 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None):
             from sirepo import server as s
 
             server = s
-            app = server.init()
+            app = server.init(is_server=True)
             app.config['TESTING'] = True
             app.test_client_class = _TestClient
             setattr(app, a, app.test_client(job_run_mode=job_run_mode))

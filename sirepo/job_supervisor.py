@@ -31,12 +31,6 @@ import time
 import tornado.ioloop
 import tornado.locks
 
-#: where supervisor state is persisted to disk
-_DB_DIR = None
-
-#: where job db is stored under srdb.root
-_DB_SUBDIR = 'supervisor-job'
-
 _NEXT_REQUEST_SECONDS = None
 
 _HISTORY_FIELDS = frozenset((
@@ -135,14 +129,13 @@ class SlotQueue(sirepo.tornado.Queue):
 
 
 def init():
-    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
-    if _DB_DIR:
+    global cfg, _NEXT_REQUEST_SECONDS, job_driver
+    if cfg:
         return
     job.init()
     from sirepo import job_driver
 
     job_driver.init(pkinspect.this_module())
-    _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_secs=dict(
@@ -161,25 +154,6 @@ def init():
         job.SEQUENTIAL: 1,
     })
     sirepo.auth_db.init()
-    if sirepo.simulation_db.user_path().exists():
-        if not _DB_DIR.exists():
-            pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
-            import subprocess
-            subprocess.check_call(
-                (
-                    'pyenv',
-                    'exec',
-                    'sirepo',
-                    'db',
-                    'upgrade_runner_to_job_db',
-                    _DB_DIR,
-                ),
-                env=PKDict(os.environ).pkupdate(
-                    SIREPO_AUTH_LOGGED_IN_USER='unused',
-                ),
-            )
-    else:
-        pykern.pkio.mkdir_parent(_DB_DIR)
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
     )
@@ -267,7 +241,7 @@ class _ComputeJob(PKDict):
             r = []
             u = None
             p = sirepo.auth_db.UserRole.uids_of_paid_users()
-            for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
+            for f in pkio.sorted_glob(sirepo.srdb.supervisor_db_dir().join('*{}'.format(
                     sirepo.simulation_db.JSON_SUFFIX,
             ))):
                 n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
@@ -371,7 +345,9 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return _DB_DIR.join(computeJid + sirepo.simulation_db.JSON_SUFFIX)
+        return sirepo.srdb.supervisor_db_dir().join(
+            computeJid + sirepo.simulation_db.JSON_SUFFIX,
+        )
 
     def __db_init(self, req, prev_db=None):
         self.db = self.__db_init_new(req.content, prev_db)

@@ -183,8 +183,11 @@ def err(obj, fmt='', *args, **kwargs):
 
 def flask_app():
     import flask
+    import sirepo.server
 
-    return flask.current_app or None
+    if not sirepo.server.server_initialized:
+        return None
+    return flask.current_app
 
 
 def init(server_context=False):

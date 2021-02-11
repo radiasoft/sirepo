@@ -1,55 +1,67 @@
 # -*- coding: utf-8 -*-
-u"""Database utilities
+u"""Database upgrade management
 
-:copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkinspect, pkio
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
+import os
+import sirepo.auth
+import sirepo.auth_db
+import sirepo.job
+import sirepo.sim_data
+import sirepo.simulation_db
+import sirepo.srtime
+import sirepo.template
+import sirepo.util
+
+
+_UPGRADES = set((
+    '_20210211_upgrade_runner_to_job_db',
+    '_20210211_add_flash_proprietary_lib_files',
+))
 
 
 def upgrade():
-    """Upgrade the database"""
-    from pykern import pkio
-    from sirepo import simulation_db
-    from sirepo import server
-    import re
-
-    def _inc(m):
-        return m.group(1) + str(int(m.group(2)) + 1)
-
-    server.init()
-    for d in pkio.sorted_glob(simulation_db.user_path().join('*/warppba')):
-        for fn in pkio.sorted_glob(d.join('*/sirepo-data.json')):
-            with open(str(fn)) as f:
-                t = f.read()
-            for old, new in (
-                ('"WARP example laser simulation"', '"Laser-Plasma Wakefield"'),
-                ('"Laser Pulse"', '"Laser-Plasma Wakefield"'),
-                ('"WARP example electron beam simulation"', '"Electron Beam"'),
-            ):
-                if not old in t:
-                    continue
-                t = t.replace(old, new)
-                t = re.sub(r'(simulationSerial":\s+)(\d+)', _inc, t)
-                break
-            with open(str(fn), 'w') as f:
-                f.write(t)
+    a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
+    for u in _UPGRADES:
+        if u in a:
+            continue
+        getattr(
+            pkinspect.this_module(),
+            u
+        )()
+        sirepo.auth_db.DbUpgrade(
+            name=u,
+            created=sirepo.srtime.utc_now(),
+        ).save()
 
 
-def upgrade_runner_to_job_db(db_dir):
-    import sirepo.auth
-    from pykern import pkio
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp, pkdlog, pkdexc
-    from sirepo import job
-    from sirepo import simulation_db
-    from sirepo import sim_data
-    from sirepo import util
-    import pykern.pkio
-    import sirepo.template
+def _20210211_add_flash_proprietary_lib_files():
+    """Add proprietary lib files to existing FLASH users' lib dir"""
+
+    if not sirepo.template.is_sim_type('flash'):
+        return
+    for u in sirepo.auth_db.all_uids():
+        # Add's the flash proprietary lib files (unpacks flash.tar.gz)
+        sirepo.auth_db.audit_proprietary_lib_files(u)
+        # Remove the existing rpm
+        with sirepo.auth.set_user(u):
+            pkio.unchecked_remove(sirepo.simulation_db.simulation_lib_dir(
+                'flash',
+            ).join('flash.rpm'))
+
+
+
+
+def _20210211_upgrade_runner_to_job_db():
+    """Create the job supervisor db state files"""
 
     def _add_compute_status(run_dir, data):
-        p = run_dir.join(job.RUNNER_STATUS_FILE)
+        p = run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
         data.pkupdate(
             lastUpdateTime=int(p.mtime()),
             status=pkio.read_text(p),
@@ -74,12 +86,12 @@ def upgrade_runner_to_job_db(db_dir):
         try:
             i, t = _load_in_json(run_dir)
         except Exception as e:
-            if pykern.pkio.exception_is_not_found(e):
+            if pkio.exception_is_not_found(e):
                 return
             raise
-        u = simulation_db.uid_from_dir_name(run_dir)
+        u = sirepo.simulation_db.uid_from_dir_name(run_dir)
         sirepo.auth.cfg.logged_in_user = u
-        c = sim_data.get_class(i.simulationType)
+        c = sirepo.sim_data.get_class(i.simulationType)
         d = PKDict(
             computeJid=c.parse_jid(i, u),
             computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
@@ -94,35 +106,42 @@ def upgrade_runner_to_job_db(db_dir):
             uid=u,
         )
         d.pkupdate(
-            jobRunMode=job.PARALLEL if d.isParallel else job.SEQUENTIAL,
+            jobRunMode=sirepo.job.PARALLEL if d.isParallel else sirepo.job.SEQUENTIAL,
             nextRequestSeconds=c.poll_seconds(i),
         )
         _add_compute_status(run_dir, d)
-        if d.status not in (job.COMPLETED, job.CANCELED):
+        if d.status not in (sirepo.job.COMPLETED, sirepo.job.CANCELED):
             return
 
         if d.isParallel:
             _add_parallel_status(i, c, run_dir, d)
-        util.json_dump(d, path=_db_file(d.computeJid))
+        sirepo.util.json_dump(d, path=_db_file(d.computeJid))
 
     def _db_file(computeJid):
         return db_dir.join(computeJid + '.json')
 
     def _load_in_json(run_dir):
-        p = simulation_db.json_filename(
+        p = sirepo.simulation_db.json_filename(
             sirepo.template.template_common.INPUT_BASE_NAME,
             run_dir
         )
-        c = simulation_db.read_json(p)
+        c = sirepo.simulation_db.read_json(p)
         return c, c.computeJobCacheKey.computeJobStart if \
             c.get('computejobCacheKey') else \
             int(p.mtime())
 
+    db_dir = sirepo.srdb.supervisor_db_dir()
+    if not sirepo.simulation_db.user_path().exists():
+        pkio.mkdir_parent(db_dir)
+        return
+    if db_dir.exists():
+        return
+    pkdlog('calling upgrade_runner_to_job_db path={}', db_dir)
     c = 0
     db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
     for f in pkio.walk_tree(
-            simulation_db.user_path(),
+            sirepo.simulation_db.user_path(),
             '^(?!.*src/).*/{}$'.format(sirepo.job.RUNNER_STATUS_FILE),
 
     ):
