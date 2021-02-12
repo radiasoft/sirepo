@@ -34,6 +34,12 @@ _BEAM_AXIS_ROTATIONS = PKDict(
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
 
+_BEAM_AXIS_VECTORS = PKDict(
+    x=[1, 0, 0],
+    y=[0, 1, 0],
+    z=[0, 0, 1]
+)
+
 _DMP_FILE = 'geometry.dat'
 
 # Note that these column names and units are required by elegant
@@ -228,6 +234,127 @@ def new_simulation(data, new_simulation_data):
     data.models.geometry.name = new_simulation_data.name
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+    if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
+        _build_undulator(new_simulation_data)
+
+
+def build_box(ctr, size, division):
+    b = _SIM_DATA.update_model_defaults(PKDict(), 'box')
+    b.center = ','.join(ctr)
+    b.size = ','.join(size)
+    b.division = ','.join(division)
+    return b
+
+
+def build_group(members):
+    g = _SIM_DATA.update_model_defaults(PKDict(), 'geomGroup')
+    g.members = members
+    return g
+
+
+def build_clone_xform(num_copies, alt_fields, transforms):
+    tx = _SIM_DATA.update_model_defaults(PKDict(), 'cloneTransform')
+    tx.numCopies = num_copies
+    tx.alternateFields = alt_fields
+    tx.transforms = transforms
+    return tx
+
+
+def build_symm_xform(plane, point, type):
+    tx = _SIM_DATA.update_model_defaults(PKDict(), 'symmetryTransform')
+    tx.symmetryPlane = ','.join(plane)
+    tx.symmetryPoint = ','.join(point)
+    tx.symmetryType = type
+    return tx
+
+
+def build_xlate_clone(dist):
+    tx = _SIM_DATA.update_model_defaults(PKDict(), 'translateClone')
+    tx.distance = ','.join(dist)
+    return tx
+
+
+def _build_undulator(data):
+
+    m = PKDict(p='POOP')
+    und = _SIM_DATA.update_model_defaults(PKDict(), 'hybridUndulator')
+    pkdp(f'BUILD UND {und} FROM {data}')
+
+    beam_dir = _BEAM_AXIS_VECTORS[data.beamAxis]
+    gap_dir = _BEAM_AXIS_VECTORS[und.gapAxis]
+    width_dir = numpy.cross(beam_dir, gap_dir)
+
+    pole_dim = PKDict(
+        width=data.poleCrossSection[0],
+        height=und.poleCrossSection[1],
+        length=und.poleThickness
+    )
+    magnet_dim = PKDict(
+        width=und.magnetCrossSection[0],
+        height=und.magnetCrossSection[1],
+        length=(und.periodLength / 2 - pole_dim.length)
+    )
+    #magnet_thickness = (model.periodLength / 2 - model.poleThickness)
+
+    # position along beam
+    pos = beam_dir * (pole_dim.length / 4)
+    ctr = width_dir * pole_dim.width / 4 + \
+        pos - \
+        gap_dir * ((pole_dim.height + und.gap) / 2)
+
+    sz = width_dir * pole_dim.width / 2 + \
+         beam_dir * pole_dim.length / 2 + \
+         gap_dir * pole_dim.height
+
+    half_pole = build_box(ctr, sz, und.poleDivision)
+    #half_pole = build_box(ctr, sz, pole_material, _ZERO, poleDivision)
+
+    pos += beam_dir * (pole_dim.length / 4)
+    ctr = width_dir * und.magnetCrossSection[0] / 4 + \
+        pos - \
+        gap_dir * (und.gapOffset + (und.magnetCrossSection[1] + und.gap) / 2)
+
+    sz = width_dir * und.magnetCrossSection[0] / 2 + \
+         beam_dir * magnet_dim.length + \
+         gap_dir * und.magnetCrossSection[1]
+
+    magnet_block = build_box(ctr, sz, und.magnetDivision)
+    #magnet = build_box(ctr, sz, magnet_material, _ZERO, magnetDivision)
+
+    pos += beam_dir * (und.poleThickness + magnet_dim.length) / 2
+    ctr = width_dir * und.poleCrossSection[0] / 4 + \
+        pos - \
+        gap_dir * ((und.magnetCrossSection[1] + und.gap) / 2)
+
+    sz = width_dir * und.poleCrossSection[0] / 2 + \
+         beam_dir * und.poleThickness + \
+         gap_dir * und.poleCrossSection[1]
+
+    pole = build_box(ctr, sz, und.poleDivision)
+    #pole = build_box(ctr, sz, pole_material, _ZERO, poleDivision)
+
+    mag_pole_grp = build_group([magnet_block, pole])
+
+    tx = build_clone_xform(
+        und.numPeriods,
+        True,
+        build_xlate_clone(beam_dir * und.periodLength)
+    )
+    mag_pole_grp.transforms = [tx]
+    #_clone_with_translation(mag_pole_grp, numPeriods, beam_dir * periodLength, True)
+
+    #magnet_cap = build_box()
+
+    grp = build_group([half_pole, mag_pole_grp])
+    grp.transforms = [
+        build_symm_xform(width_dir, [0, 0, 0], 'perpendicular'),
+        build_symm_xform(gap_dir, [0, 0, 0], 'parallel'),
+        build_symm_xform(beam_dir, [0, 0, 0], 'perpendicular'),
+    ]
+    #und = build_container([half_pole, mag_pole_grp])
+
+    data.model.geometry.objects = grp
+
 
 
 def python_source_for_model(data):
@@ -455,7 +582,6 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False)
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
-    #v.magnetParams = _process_magnet_params(data)
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable
