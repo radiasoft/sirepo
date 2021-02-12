@@ -19,13 +19,13 @@ import sirepo.template
 import sirepo.util
 
 
-_UPGRADES = set((
+_UPGRADES = frozenset((
     '_20210211_upgrade_runner_to_job_db',
     '_20210211_add_flash_proprietary_lib_files',
 ))
 
 
-def upgrade():
+def do_all():
     a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
     for u in _UPGRADES:
         if u in a:
@@ -46,15 +46,13 @@ def _20210211_add_flash_proprietary_lib_files():
     if not sirepo.template.is_sim_type('flash'):
         return
     for u in sirepo.auth_db.all_uids():
-        # Add's the flash proprietary lib files (unpacks flash.tar.gz)
-        sirepo.auth_db.audit_proprietary_lib_files(u)
         # Remove the existing rpm
         with sirepo.auth.set_user(u):
             pkio.unchecked_remove(sirepo.simulation_db.simulation_lib_dir(
                 'flash',
             ).join('flash.rpm'))
-
-
+        # Add's the flash proprietary lib files (unpacks flash.tar.gz)
+        sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
 def _20210211_upgrade_runner_to_job_db():
@@ -130,15 +128,14 @@ def _20210211_upgrade_runner_to_job_db():
             c.get('computejobCacheKey') else \
             int(p.mtime())
 
-    db_dir = sirepo.srdb.supervisor_db_dir()
+    db_dir = sirepo.srdb.supervisor_dir()
     if not sirepo.simulation_db.user_path().exists():
         pkio.mkdir_parent(db_dir)
         return
     if db_dir.exists():
         return
-    pkdlog('calling upgrade_runner_to_job_db path={}', db_dir)
+    pkdlog('db_dir={}', db_dir)
     c = 0
-    db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
     for f in pkio.walk_tree(
             sirepo.simulation_db.user_path(),

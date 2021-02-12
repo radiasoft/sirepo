@@ -31,6 +31,9 @@ import time
 import tornado.ioloop
 import tornado.locks
 
+#: where supervisor state is persisted to disk
+_DB_DIR = None
+
 _NEXT_REQUEST_SECONDS = None
 
 _HISTORY_FIELDS = frozenset((
@@ -129,7 +132,8 @@ class SlotQueue(sirepo.tornado.Queue):
 
 
 def init():
-    global cfg, _NEXT_REQUEST_SECONDS, job_driver
+    global cfg, _DB_DIR, _NEXT_REQUEST_SECONDS, job_driver
+
     if cfg:
         return
     job.init()
@@ -148,6 +152,7 @@ def init():
         purge_non_premium_task_secs=(None, pkconfig.parse_seconds, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
+    _DB_DIR = sirepo.srdb.supervisor_dir()
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
         job.SBATCH: cfg.sbatch_poll_secs,
@@ -241,7 +246,7 @@ class _ComputeJob(PKDict):
             r = []
             u = None
             p = sirepo.auth_db.UserRole.uids_of_paid_users()
-            for f in pkio.sorted_glob(sirepo.srdb.supervisor_db_dir().join('*{}'.format(
+            for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
                     sirepo.simulation_db.JSON_SUFFIX,
             ))):
                 n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
@@ -345,7 +350,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return sirepo.srdb.supervisor_db_dir().join(
+        return _DB_DIR.join(
             computeJid + sirepo.simulation_db.JSON_SUFFIX,
         )
 

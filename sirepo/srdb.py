@@ -42,7 +42,7 @@ def root():
     return _root or _init_root()
 
 
-def supervisor_db_dir():
+def supervisor_dir():
     """Directory for supervisor job db"""
 
     return root().join(_SUPERVISOR_DB_SUBDIR)
