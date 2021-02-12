@@ -19,23 +19,13 @@ import sirepo.template
 import sirepo.util
 
 
-_UPGRADES = frozenset((
-    '_20210211_upgrade_runner_to_job_db',
-    '_20210211_add_flash_proprietary_lib_files',
-))
-
-
 def do_all():
     a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
-    for u in _UPGRADES:
-        if u in a:
-            continue
-        getattr(
-            pkinspect.this_module(),
-            u
-        )()
+    f = pkinspect.module_functions('_2')
+    for n in sorted(set(f.keys()) - set(a)):
+        f[n]()
         sirepo.auth_db.DbUpgrade(
-            name=u,
+            name=n,
             created=sirepo.srtime.utc_now(),
         ).save()
 
