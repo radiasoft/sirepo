@@ -1,8 +1,10 @@
 #!/bin/bash
 echo "NOTE: remove files from {{ runDir }} first"
+SECONDS=0
 rsopt sample configuration "{{ ymlFileName }}" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
+    echo "Completed scan in $SECONDS sec"
     echo "NOTE: python {{ pyFileName }} rsopt_run" `tail -1 "{{ outFileName }}" | cut -d: -f2`.npy "to run SRW with generated data"
 else
     echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"

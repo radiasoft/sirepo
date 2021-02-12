@@ -1739,10 +1739,11 @@ def _rotated_axis_range(x, y, theta):
 
 
 def _rsopt_jinja_context(model):
+    import multiprocessing
     return PKDict(
         forRSOpt=True,
         numCores=int(model.numCores),
-        numWorkers=int(model.numWorkers),
+        numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
         scanType=model.scanType,
         rsOptElements=_process_rsopt_elements(model.elements)

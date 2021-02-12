@@ -25,12 +25,13 @@ codes:
       setup:
         input_file: {{ pyFileName }}
         function: set_rsopt_params_dummy
-        execution_type: serial
+        execution_type: parallel
 options:
   {% if scanType == 'grid' %}
   software: mesh_scan
   {% elif scanType == 'random' %}
   software: lh_scan
+  nworkers: {{ numWorkers }}
   batch_size: {{ numSamples }}
   {% endif %}
   run_dir: {{ runDir }}
