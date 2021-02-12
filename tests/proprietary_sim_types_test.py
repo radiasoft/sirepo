@@ -21,6 +21,7 @@ def test_myapp(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdlog, pkdexc, pkdp
     import sirepo.pkcli.setup_dev
+    import sirepo.pkcli.roles
 
     sirepo.pkcli.setup_dev.default_command()
     fc = auth_fc
@@ -40,10 +41,9 @@ def test_myapp(auth_fc):
     )
     r = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type}, raw_response=True)
     pkunit.pkeq(403, r.status_code)
-    import sirepo.auth_db
-    sirepo.auth_db.UserRole.add_roles(
+    sirepo.pkcli.roles.add_roles(
         fc.sr_auth_state().uid,
-        [sirepo.auth.role_for_sim_type(fc.sr_sim_type)],
+        sirepo.auth.role_for_sim_type(fc.sr_sim_type),
     )
     r = fc.sr_run_sim(fc.sr_sim_data(), 'heightWeightReport')
     p = r.get('plots')

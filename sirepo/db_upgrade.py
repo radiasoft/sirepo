@@ -36,13 +36,13 @@ def _20210211_add_flash_proprietary_lib_files():
     if not sirepo.template.is_sim_type('flash'):
         return
     for u in sirepo.auth_db.all_uids():
-        # Remove the existing rpm
         with sirepo.auth.set_user(u):
+            # Remove the existing rpm
             pkio.unchecked_remove(sirepo.simulation_db.simulation_lib_dir(
                 'flash',
             ).join('flash.rpm'))
-        # Add's the flash proprietary lib files (unpacks flash.tar.gz)
-        sirepo.auth_db.audit_proprietary_lib_files(u)
+            # Add's the flash proprietary lib files (unpacks flash.tar.gz)
+            sirepo.auth_db.audit_proprietary_lib_files()
 
 
 def _20210211_upgrade_runner_to_job_db():

@@ -51,9 +51,6 @@ DEFAULT_ERROR_FILE = 'server-error.html'
 
 _ROBOTS_TXT = None
 
-#: The server has been fully initialized
-server_initialized = False
-
 #: Global app value (only here so instance not lost)
 _app = None
 
@@ -614,9 +611,9 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
 
 def init(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
-    global _app, server_initialized
+    global _app
 
-    if server_initialized:
+    if _app:
         return
     global _google_tag_manager
     if cfg.google_tag_manager_id:
@@ -636,7 +633,6 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
-    server_initialized = True
     return _app
 
 
