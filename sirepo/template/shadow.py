@@ -34,6 +34,7 @@ _CENTIMETER_FIELDS = {
     'plotXYReport': ['distanceFromSource'],
     'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'watch': ['position'],
+    'zonePlate': ['position', 'diameter'],
 }
 
 _FIELD_ALIAS = PKDict(
@@ -213,7 +214,7 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
     if calc_beam_stats:
         beamline = _divide_drifts(beamline, models.beamStatisticsReport.driftDivisions)
     res = ''
-    prev_position = 0
+    prev_position = source_position = 0
     last_element = False
     count = 0
     for i in range(len(beamline)):
@@ -223,10 +224,11 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
             continue
         count += 1
         source_distance = item.position - prev_position
+        from_source = item.position - source_position
         image_distance = 0
         for j in range(i + 1, len(beamline)):
             next_item = beamline[j]
-            if _is_disabled(next_item):
+            if _is_disabled(next_item) or next_item.type == 'emptyElement':
                 continue
             image_distance = next_item.position - item.position
             break
@@ -235,23 +237,25 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
             and item.fmirr != '5'
         if item.type == 'crl':
             count, res = _generate_crl(item, source_distance, count, res, calc_beam_stats)
+        elif item.type == 'zonePlate':
+            count, res = _generate_zone_plate(item, source_distance, count, res, _photon_energy(models), calc_beam_stats)
         else:
             res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
             if item.type == 'aperture' or item.type == 'obstacle':
                 res += _generate_screen(item)
             elif item.type == 'crystal':
-                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_element(item, from_source, image_distance)
                 res += _generate_crystal(item)
             elif item.type == 'emptyElement':
                 res += "\n" + 'oe.set_empty(ALPHA={})'.format(item.alpha)
             elif item.type == 'grating':
-                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_element(item, from_source, image_distance)
                 res += _generate_grating(item)
             elif item.type == 'lens':
                 trace_method = 'traceIdealLensOE'
                 res += _item_field(item, ['focal_x', 'focal_z'])
             elif item.type == 'mirror':
-                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_element(item, from_source, image_distance)
                 res += _generate_mirror(item)
             elif item.type == 'watch':
                 res += "\n" + 'oe.set_empty()'
@@ -271,15 +275,14 @@ calc_oe.T_IMAGE = calc_oe.SIMAG
 calc_beam.traceOE(calc_oe, 1)
 oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
 '''
-            res += _field_value('oe', 'fwrite', '3') \
-                   + _field_value('oe', 't_image', 0.0) \
-                   + _field_value('oe', 't_source', source_distance) \
-                   + "\n" + 'beam.{}(oe, {})'.format(trace_method, count)
+            res += _generate_trace(source_distance, trace_method, count)
             if calc_beam_stats:
                 res += '\n' + 'pos = calculate_stats(pos, oe)'
         if last_element:
             break
         prev_position = item.position
+        if item.type != 'emptyElement':
+            source_position = item.position
     return res
 
 
@@ -422,12 +425,12 @@ def _generate_crystal(item):
     return res
 
 
-def _generate_element(item, source_distance, image_distance):
+def _generate_element(item, from_source, to_focus):
     if item.f_ext == '0':
         # always override f_default - generated t_image is always 0.0
         if item.f_default == '1':
-            item.ssour = source_distance
-            item.simag = image_distance
+            item.ssour = from_source
+            item.simag = to_focus
             item.theta = item.t_incidence
             item.f_default = '0'
     res = _item_field(item, ['fmirr', 'alpha', 'fhit_c'])
@@ -552,7 +555,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     report_model = data.models[r]
     beamline = data.models.beamline
     v.shadowOutputFile = _SHADOW_OUTPUT_FILE
-
+    if _has_zone_plate(beamline):
+        v.zonePlateMethods = template_common.render_jinja(SIM_TYPE, v, 'zone_plate.py')
     if r == 'initialIntensityReport':
         v.distanceFromSource = beamline[0].position if beamline else template_common.DEFAULT_INTENSITY_DISTANCE
     elif r == 'beamStatisticsReport':
@@ -595,8 +599,16 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
 def _generate_screen(item):
     return "\n" + 'oe.set_empty().set_screens()' \
         + _field_value('oe', 'i_slit[0]', '1') \
+        + _field_value('oe', 'k_slit[0]', 0 if item.shape == '0' else 1) \
         + _field_value('oe', 'i_stop[0]', 0 if item.type == 'aperture' else 1) \
         + _item_field(item, ['horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'])
+
+
+def _generate_trace(source_distance, trace_method, count):
+    return _field_value('oe', 'fwrite', '3') \
+        + _field_value('oe', 't_image', 0.0) \
+        + _field_value('oe', 't_source', source_distance) \
+        + "\n" + 'beam.{}(oe, {})'.format(trace_method, count)
 
 
 def _generate_wiggler(data):
@@ -613,6 +625,54 @@ def _generate_wiggler(data):
           + _field_value('source', 'f_color', 0) \
           + _field_value('source', 'f_phot', 0) \
           + _field_value('source', 'file_traj', "b'{}'".format(_WIGGLER_TRAJECTORY_FILENAME))
+
+
+def _generate_zone_plate(item, source_distance, count, res, energy, calc_beam_stats):
+    # all conversions to meters should be handled by ModelUnits
+    res += f'''
+zp = zone_plate_simulator(
+    {item.zone_plate_type},
+    {item.width_coating},
+    {item.height},
+    {item.diameter * 1e-2},
+    {item.b_min},
+    '{item.zone_plate_material}',
+    '{item.template_material}',
+    {energy} * 1e-3,
+    {item.n_points},
+)
+'''
+
+    # circular aperture
+    res += '\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
+    res += _generate_screen(PKDict(
+        type='aperture',
+        shape='1',
+        horizontalSize=item.diameter,
+        horizontalOffset=0,
+        verticalSize=item.diameter,
+        verticalOffset=0,
+    )) + _generate_trace(source_distance, 'traceOE', count)
+    if calc_beam_stats:
+        res += '\n' + 'pos = calculate_stats(pos, oe)'
+
+    # lens
+    count += 1
+    res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
+    res += _item_field(PKDict(
+        focal_x='zp.focal_distance * 1e2',
+        focal_z='zp.focal_distance * 1e2',
+    ), ['focal_x', 'focal_z']) + _generate_trace(0, 'traceIdealLensOE', count)
+    if calc_beam_stats:
+        res += '\n' + 'pos = calculate_stats(pos, oe)'
+
+    if not calc_beam_stats:
+        # do not trace through zone plate for stats - not enough particles
+        count += 1
+        res += f'\n\ntrace_through_zone_plate(beam, zp, {item.last_index})\n'
+
+    return count, res
+
 
 def _init_model_units():
     def _scale(v, factor, is_native):
@@ -646,6 +706,13 @@ def _init_model_units():
     return res
 
 
+def _has_zone_plate(beamline):
+    for item in beamline:
+        if item.type == 'zonePlate':
+            return True
+    return False
+
+
 def _is_disabled(item):
     return 'isDisabled' in item and item.isDisabled
 
@@ -664,6 +731,18 @@ def _parse_shadow_log(run_dir):
             if m:
                 return m.group(1)
     return 'an unknown error occurred'
+
+
+def _photon_energy(models):
+    source_type = models.simulation.sourceType
+    if source_type == 'undulator':
+        if models.undulator.select_energy == 'range':
+            return (models.undulator.emin + models.undulator.emax) / 2
+        return models.undulator.photon_energy
+    if source_type == 'geometricSource':
+        if models.geometricSource.f_color == '1':
+            return models.geometricSource.singleEnergyValue
+    return (models[source_type].ph1 + models[source_type].ph2) / 2
 
 
 def _scale_units(data):

@@ -8,6 +8,10 @@ from sirepo.template import transfer_mat_bl
 from pykern.pkcollections import PKDict
 from pykern import pkjson
 
+{% if zonePlateMethods %}
+{{zonePlateMethods}}
+{% endif %}
+
 {% if simulation_sourceType == 'geometricSource' %}
 sigmax = {{ geometricSource_sigmax }}
 sigdix = {{ geometricSource_sigdix }}
