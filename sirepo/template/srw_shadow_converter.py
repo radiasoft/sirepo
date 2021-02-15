@@ -117,6 +117,13 @@ class SRWShadowConverter():
             verticalOffset='verticalOffset',
         )],
         ['watch', 'watch', PKDict()],
+        ['zonePlate', 'zonePlate', PKDict(
+            width_coating=['thickness', 1e3],
+            height=['outerRadius', 2],
+            diameter=['outerRadius', 2],
+            zone_plate_material='mainMaterial',
+            template_material='complementaryMaterial',
+        )],
     ]
 
     def __init__(self):
@@ -153,6 +160,7 @@ class SRWShadowConverter():
             vdiv1=0,
             vdiv2=0,
         )
+        self.photon_energy = shadow.geometricSource.singleEnergyValue
 
     def __beamline_to_shadow(self, srw, shadow):
         for item in srw.beamline:
@@ -177,6 +185,8 @@ class SRWShadowConverter():
                 self.beamline.append(self.__copy_item(item, PKDict(
                     type='lens',
                 )))
+            elif item.type == 'zonePlate':
+                self.__zoneplate_to_shadow(item, shadow)
 
     def __closest_undulator_harmonic(self, srw):
         from orangecontrib.shadow.util.undulator.source_undulator import SourceUndulator
@@ -375,3 +385,13 @@ class SRWShadowConverter():
             photon_energy=energy,
             maxangle=angle,
         )
+        self.photon_energy = energy
+
+
+    def __zoneplate_to_shadow(self, item, shadow):
+        #TODO(pjm): map User-defined matrials to defaults
+        self.beamline.append(self.__copy_item(item, PKDict(
+            type='zonePlate',
+            zone_plate_type='0',
+            b_min=(2 * item.outerRadius * 1e-3) / (4 * item.numberOfZones) * 1e6,
+        )))

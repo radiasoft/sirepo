@@ -5,6 +5,7 @@ import Shadow
 from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
 from srxraylib.sources import srfunc
 
+
 source = Shadow.Source()
 beam = Shadow.Beam()
 
@@ -46,6 +47,7 @@ oe = Shadow.OE()
 oe.DUMMY = 1.0
 oe.set_empty().set_screens()
 oe.I_SLIT[0] = 1
+oe.K_SLIT[0] = 0
 oe.I_STOP[0] = 0
 oe.RX_SLIT[0] = 0.002
 oe.RZ_SLIT[0] = 0.002
