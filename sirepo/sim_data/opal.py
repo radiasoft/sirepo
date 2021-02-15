@@ -18,6 +18,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         dm.setdefault('rpnVariables', [])
+        if 'elementPosition' not in dm.simulation:
+            # old simulations use 'relative', new ones use 'absolute'
+            dm.simulation.elementPosition = 'relative'
         cls._init_models(
             dm,
             (

@@ -30,6 +30,10 @@
         }
     },
     "enum": {
+        "ElementPosition": [
+            ["relative", "Relative to each other"],
+            ["absolute", "Absolute (using ELEMEDGE)"]
+        ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
             ["px", "Px"],
@@ -471,6 +475,7 @@
             "value": ["Value", "RPNValue"]
         },
         "simulation": {
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "_ELEMENT": {
@@ -851,8 +856,7 @@
             "gamma": ["GAMMA", "RPNValue", 0, "ENERGY / MASS"],
             "bcurrent": ["BCURRENT [A]", "RPNValue", 0, "Beam current in A (all bunches)"],
             "bfreq": ["BFREQ [MHz]", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
-            "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"],
-            "nslice": ["NSLICE [bunch]", "RPNValue", 0, "Number of slices"]
+            "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"]
         },
         "command_distribution": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1278,6 +1282,13 @@
                 ],
                 "includeLattice",
                 "notes"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "elementPosition"
             ]
         },
         "simulationSettings": {
@@ -2186,8 +2197,7 @@
                 ["Other", [
                     "bfreq",
                     "bcurrent",
-                    "npart",
-                    "nslice"
+                    "npart"
                 ]]
             ]
         },

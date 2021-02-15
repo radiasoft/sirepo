@@ -36,12 +36,7 @@ class CodeVar():
         self.case_insensitive = case_insensitive
 
     def compute_cache(self, data, schema):
-        if 'models' not in data:
-            return None
-        cache = lattice.LatticeUtil(data, schema).iterate_models(
-            CodeVarIterator(self),
-        ).result
-        for name, value in self.variables.items():
+        def add_to_cache(cache, name, value):
             v, err = self.eval_var(value)
             if not err:
                 if self.is_var_value(value):
@@ -51,6 +46,21 @@ class CodeVar():
                 else:
                     v = float(v)
                 cache[name] = v
+
+        if 'models' not in data:
+            return None
+        cache = lattice.LatticeUtil(data, schema).iterate_models(
+            CodeVarIterator(self),
+        ).result
+        for name, value in self.variables.items():
+            add_to_cache(cache, name, value)
+        for bl in data.models.beamlines:
+            if 'positions' not in bl:
+                continue
+            for p in bl.positions:
+                for f in p:
+                    if p[f]:
+                        add_to_cache(cache, p[f], p[f])
         data.models.rpnCache = cache
         return cache
 

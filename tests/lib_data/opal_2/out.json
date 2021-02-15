@@ -257,7 +257,6 @@
                 "mass": 0.0,
                 "name": "BEAM1",
                 "npart": 50000.0,
-                "nslice": 0.0,
                 "particle": "ELECTRON",
                 "pc": 0.13999906027508863
             },
@@ -554,6 +553,7 @@
         "simulation": {
             "activeBeamlineId": 114,
             "documentationUrl": "",
+            "elementPosition": "relative",
             "folder": "/",
             "name": "conversion",
             "notes": "",

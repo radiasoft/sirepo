@@ -39,26 +39,6 @@ _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
-#TODO(pjm): parse from opal files into schema
-_OPAL_PI = 3.14159265358979323846
-_OPAL_CONSTANTS = PKDict(
-    pi=_OPAL_PI,
-    twopi=_OPAL_PI * 2.0,
-    raddeg=180.0 / _OPAL_PI,
-    degrad=_OPAL_PI / 180.0,
-    e=2.7182818284590452354,
-    emass=0.51099892e-03,
-    pmass=0.93827204e+00,
-    hmmass=0.939277e+00,
-    umass=238 * 0.931494027e+00,
-    cmass=12 * 0.931494027e+00,
-    mmass=0.10565837,
-    dmass=2*0.931494027e+00,
-    xemass=124*0.931494027e+00,
-    clight=299792458.0,
-    p0=1,
-    seed=123456789,
-)
 
 
 class LibAdapter(sirepo.lib.LibAdapterBase):
@@ -310,8 +290,29 @@ def background_percent_complete(report, run_dir, is_running):
 
 def code_var(variables):
     class _P(code_variable.PurePythonEval):
+        #TODO(pjm): parse from opal files into schema
+        _OPAL_PI = 3.14159265358979323846
+        _OPAL_CONSTANTS = PKDict(
+            pi=_OPAL_PI,
+            twopi=_OPAL_PI * 2.0,
+            raddeg=180.0 / _OPAL_PI,
+            degrad=_OPAL_PI / 180.0,
+            e=2.7182818284590452354,
+            emass=0.51099892e-03,
+            pmass=0.93827204e+00,
+            hmmass=0.939277e+00,
+            umass=238 * 0.931494027e+00,
+            cmass=12 * 0.931494027e+00,
+            mmass=0.10565837,
+            dmass=2*0.931494027e+00,
+            xemass=124*0.931494027e+00,
+            clight=299792458.0,
+            p0=1,
+            seed=123456789,
+        )
+
         def __init__(self):
-            super().__init__(_OPAL_CONSTANTS)
+            super().__init__(self._OPAL_CONSTANTS)
 
         def eval_var(self, expr, depends, variables):
             if re.match(r'^\{.+\}$', expr):
@@ -365,6 +366,10 @@ def import_file(req, unit_test_mode=False, **kwargs):
     else:
         raise IOError('invalid file extension, expecting .in or .madx')
     return data
+
+
+def new_simulation(data, new_simulation_data):
+    data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
 def post_execution_processing(
@@ -632,7 +637,10 @@ class _Generate(sirepo.lib.GenerateBase):
         ))
 
     def _generate_lattice(self, util, code_var, beamline_id):
-        beamline, edge, names, visited = _generate_beamline(util, code_var, beamline_id)
+        if util.data.models.simulation.elementPosition == 'absolute':
+            beamline, names, visited = _generate_absolute_beamline(util, beamline_id)
+        else:
+            beamline, _, names, visited = _generate_beamline(util, code_var, beamline_id)
         res = util.render_lattice(
             util.iterate_models(
                 OpalElementIterator(self._format_field_value, visited),
@@ -756,6 +764,43 @@ def _fix_opal_float(value):
     return value
 
 
+def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=None):
+    if count_by_name is None:
+        count_by_name = PKDict()
+    if visited is None:
+        visited = set()
+    names = []
+    res = ''
+    beamline = util.id_map[abs(beamline_id)]
+    items = beamline['items']
+    for idx in range(len(items)):
+        item_id = items[idx]
+        item = util.id_map[abs(item_id)]
+        name = item.name
+        if name not in count_by_name:
+            count_by_name[name] = 0
+        name = '"{}#{}"'.format(name, count_by_name[name])
+        count_by_name[item.name] += 1
+        pos = beamline.positions[idx]
+        if 'type' in item:
+            # element
+            res += '{}: {},elemedge={};\n'.format(name, item.name, pos.elemedge)
+            names.append(name)
+            visited.add(item_id)
+        else:
+            # beamline
+            text, subnames, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
+            res += text
+            res += '{}: LINE=({}), ORIGIN={}{}, {}, {}{}, ORIENTATION={}{}, {}, {}{};\n'.format(
+                name,
+                ','.join(subnames),
+                '{', pos.x, pos.y, pos.z, '}',
+                '{', pos.theta, pos.phi, pos.psi, '}',
+            )
+            names.append(name)
+    return res, names, visited
+
+
 def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None):
     if count_by_name is None:
         count_by_name = PKDict()
@@ -765,10 +810,12 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
         visited = set()
     res = ''
     run_method = _find_run_method(util.data.models.commands)
-    items = util.id_map[abs(beamline_id)]['items']
+    beamline = util.id_map[abs(beamline_id)]
+    items = beamline['items']
     if beamline_id < 0:
         items = reversed(items)
-    for item_id in items:
+    for idx in range(len(items)):
+        item_id = items[idx]
         item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
