@@ -21,6 +21,7 @@ import flask
 import importlib
 import os
 import re
+import sirepo.db_upgrade
 import sirepo.events
 import sirepo.sim_data
 import sirepo.srdb
@@ -52,6 +53,7 @@ _ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
 _app = None
+
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -607,7 +609,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(uwsgi=None, use_reloader=False):
+def init(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     global _app
 
@@ -629,6 +631,8 @@ def init(uwsgi=None, use_reloader=False):
     _app.sirepo_use_reloader = use_reloader
     sirepo.util.init(server_context=True)
     uri_router.init(_app, simulation_db)
+    if is_server:
+        sirepo.db_upgrade.do_all()
     return _app
 
 

@@ -40,7 +40,8 @@ def audit_proprietary_lib_files(*uid):
 
     #TODO(robnagler) locking
     for u in uid or sirepo.auth_db.all_uids():
-        sirepo.auth_db.audit_proprietary_lib_files(u)
+        with sirepo.auth.set_user(u):
+            sirepo.auth_db.audit_proprietary_lib_files()
 
 
 def create_examples():

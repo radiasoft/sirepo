@@ -35,7 +35,7 @@ def flask():
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in('dev')
-        app = server.init(use_reloader=_cfg().use_reloader)
+        app = server.init(use_reloader=_cfg().use_reloader, is_server=True)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
         import werkzeug.serving

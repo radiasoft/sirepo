@@ -262,7 +262,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
-            _create_roles_for_user(uid, module.AUTH_METHOD)
+            _create_roles_for_user(module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -428,6 +428,7 @@ def set_user_for_utils(uid=None):
 @contextlib.contextmanager
 def set_user(uid):
     """Set the user (uid) for the context"""
+
     assert not util.flask_app(), \
         'Flask sets the user on the request'
     try:
@@ -602,7 +603,7 @@ def _auth_state():
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
                 v.displayName = r.display_name
-        v.roles = auth_db.UserRole.get_roles(u)
+        v.roles = auth_db.UserRole.get_roles(check_path=False)
         _plan(v)
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
@@ -611,12 +612,12 @@ def _auth_state():
     pkdc('state={}', v)
     return v
 
-def _create_roles_for_user(uid, method):
+def _create_roles_for_user(method):
     r = []
     if pkconfig.channel_in('dev') and method == METHOD_GUEST:
-        auth_db.UserRole.add_roles(uid, get_all_roles())
+        auth_db.UserRole.add_roles(get_all_roles())
     elif sirepo.template.is_sim_type('jupyterhublogin'):
-        auth_db.UserRole.add_roles(uid, [role_for_sim_type('jupyterhublogin')])
+        auth_db.UserRole.add_roles([role_for_sim_type('jupyterhublogin')])
 
 
 def _get_user():
