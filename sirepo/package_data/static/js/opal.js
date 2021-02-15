@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
     SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
@@ -666,4 +667,13 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
             };
         },
     };
+});
+
+SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
+    $scope.watchFields = [
+        ['simulation.elementPosition'], () => {
+            // don't allow changing the elementPosition
+            appState.models.simulation.elementPosition = appState.applicationState().simulation.elementPosition;
+        },
+    ];
 });

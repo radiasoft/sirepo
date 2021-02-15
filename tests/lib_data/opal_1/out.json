@@ -138,7 +138,6 @@
                 "mass": 0.0,
                 "name": "BEAM1",
                 "npart": 10000.0,
-                "nslice": 0.0,
                 "particle": "ELECTRON",
                 "pc": 1.1961600796052967e-06
             },
@@ -501,6 +500,7 @@
         "simulation": {
             "activeBeamlineId": 113,
             "documentationUrl": "",
+            "elementPosition": "relative",
             "folder": "/",
             "name": "AWA Photoinjector",
             "notes": "",
