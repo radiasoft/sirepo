@@ -21,22 +21,23 @@ def test_set_get():
             self.args = args
             self.kwargs = kwargs
 
-    cookie.process_header('x')
-    with pkunit.pkexcept('KeyError'):
-        cookie.get_value('hi1')
-    with pkunit.pkexcept('AssertionError'):
-        cookie.set_value('hi2', 'hello')
-    pkeq(None, cookie.unchecked_get_value('hi3'))
-    cookie.set_cookie_for_utils()
-    cookie.set_value('hi4', 'hello')
-    r = _Response(status_code=200)
-    cookie.save_to_cookie(r)
-    pkeq('sirepo_dev', r.args[0])
-    pkeq(False, r.kwargs['secure'])
-    pkeq('hello', cookie.get_value('hi4'))
-    cookie.unchecked_remove('hi4')
-    pkeq(None, cookie.unchecked_get_value('hi4'))
-    cookie.process_header(
+    with cookie.process_header('x'):
+        with pkunit.pkexcept('KeyError'):
+            cookie.get_value('hi1')
+        with pkunit.pkexcept('AssertionError'):
+            cookie.set_value('hi2', 'hello')
+        pkeq(None, cookie.unchecked_get_value('hi3'))
+        # Nest cookie contexts
+        with cookie.set_cookie_for_utils():
+            cookie.set_value('hi4', 'hello')
+            r = _Response(status_code=200)
+            cookie.save_to_cookie(r)
+            pkeq('sirepo_dev', r.args[0])
+            pkeq(False, r.kwargs['secure'])
+            pkeq('hello', cookie.get_value('hi4'))
+            cookie.unchecked_remove('hi4')
+            pkeq(None, cookie.unchecked_get_value('hi4'))
+    with cookie.process_header(
         'sirepo_dev={}'.format(pkcompat.from_bytes(r.args[1])),
-    )
-    pkeq('hello', cookie.get_value('hi4'))
+    ):
+        pkeq('hello', cookie.get_value('hi4'))

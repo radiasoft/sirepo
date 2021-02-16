@@ -23,7 +23,6 @@ def test_login():
 
     r = auth.api_authState()
     pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
-    delattr(flask.g, 'sirepo_cookie')
     auth.process_request()
     with pkunit.pkexcept('SRException.*routeName=login'):
         auth.logged_in_user()

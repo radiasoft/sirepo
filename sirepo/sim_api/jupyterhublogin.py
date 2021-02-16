@@ -30,6 +30,8 @@ JupyterhubUser = None
 
 _HUB_USER_SEP = '-'
 
+_JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
+
 
 @sirepo.api_perm.require_user
 def api_migrateJupyterhub():
@@ -146,11 +148,11 @@ def _create_user(github_handle=None):
 
 
 def _event_auth_logout(kwargs):
-    flask.g.jupyterhub_logout_user_name = _unchecked_hub_user(kwargs.uid)
+    sirepo.srcontext.set(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(kwargs.uid))
 
 
 def _event_end_api_call(kwargs):
-    u = flask.g.get('jupyterhub_logout_user_name', None)
+    u = sirepo.srcontext.get(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR)
     if not u:
        return
     for c in (

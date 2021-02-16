@@ -17,6 +17,7 @@ from sirepo import events
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import job
+from sirepo import simulation_db
 from sirepo import util
 import contextlib
 import datetime
@@ -162,13 +163,21 @@ def get_module(name):
 
 
 def init_apis(*args, **kwargs):
-    global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
+    global uri_router, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
     assert not cfg.logged_in_user, \
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
-    simulation_db = importlib.import_module('sirepo.simulation_db')
+    # TODO(e-carlin): why is simulation_db imported like this?
+    # It is a problem because we call
+    # job_supervisor.init()
+    #  auth_db.init()
+    #    _migrate_role_jupyterhub
+    #      UserRole.add_roles()
+    #        simulation_db.user_path() # simulation_db is undef because we haven't called init_apis
+    # Maybe move to _init()? I've just moved to regular import rn
+    # simulation_db = importlib.import_module('sirepo.simulation_db')
     auth_db.init()
     p = pkinspect.this_module().__name__
     visible_methods = []
@@ -327,9 +336,11 @@ def need_complete_registration(model):
     return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
 
+@contextlib.contextmanager
 def process_request(unit_test=None):
-    cookie.process_header(unit_test)
-    _set_log_user()
+    with cookie.process_header(unit_test):
+        _set_log_user()
+        yield
 
 
 def require_auth_basic():
@@ -415,27 +426,18 @@ def role_for_sim_type(sim_type):
     return 'sim_type_' + sim_type
 
 
-def set_user_for_utils(uid=None):
-    """A mock user for utilities"""
-    cookie.set_cookie_for_utils()
-    import sirepo.auth.guest
-    if uid:
-        _login_user(sirepo.auth.guest, uid)
-    else:
-        login(sirepo.auth.guest, is_mock=True)
-
-
 @contextlib.contextmanager
-def set_user(uid):
-    """Set the user (uid) for the context"""
-
-    assert not util.flask_app(), \
-        'Flask sets the user on the request'
-    try:
-        set_user_for_utils(uid=uid)
+def set_user_outside_of_flask_request(uid=None):
+    """A user set explicitly outside of flask request cycle"""
+    assert not util.in_flask_request(), \
+        'Only call from outside a flask request context'
+    with cookie.set_cookie_for_utils():
+        import sirepo.auth.guest
+        if uid:
+            _login_user(sirepo.auth.guest, uid)
+        else:
+            login(sirepo.auth.guest, is_mock=True)
         yield
-    finally:
-        reset_state()
 
 
 def unchecked_get_user(uid):
@@ -635,6 +637,7 @@ def _init():
     if not cfg.logged_in_user:
         return
     global logged_in_user, user_dir_not_found
+
 
     def logged_in_user(*args, **kwargs):
         return cfg.logged_in_user

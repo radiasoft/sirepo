@@ -182,9 +182,15 @@ def err(obj, fmt='', *args, **kwargs):
 
 
 def flask_app():
+    # TODO(e-carlin): I think we may want to remove this and always use in_flask_request
     import flask
 
     return flask.current_app or None
+
+def in_flask_request():
+    import flask
+
+    return flask.request or None
 
 
 def init(server_context=False):

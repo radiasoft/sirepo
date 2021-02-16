@@ -55,9 +55,6 @@ def fc_module(request, cfg=None):
 
 @pytest.fixture
 def import_req(request):
-    import flask
-
-    flask.g = {}
 
     def w(path):
         import sirepo.http_request

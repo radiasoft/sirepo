@@ -11,6 +11,7 @@ import flask
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
+import sirepo.srcontext
 import sirepo.srschema
 import user_agents
 
@@ -91,8 +92,7 @@ def parse_post(**kwargs):
         assert not isinstance(v, bool), \
             'missing type in params/post={}'.format(kwargs)
         v = sirepo.template.assert_sim_type(v)
-        # flask.g API is very limited but do this in order to
-        # maintain explicit coupling of _SIM_TYPE_ATTR
+        # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
         set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
@@ -134,7 +134,11 @@ def parse_post(**kwargs):
 
 def set_post(data=None):
     """Interface for uri_router"""
-    return _set_flask_g(_POST_ATTR, data)
+    # Always remove data (if there)
+    res = sirepo.srcontext.pop(_POST_ATTR, None)
+    if data is not None:
+        sirepo.srcontext.set(_POST_ATTR, data)
+    return res
 
 
 def set_sim_type(sim_type):
@@ -142,8 +146,8 @@ def set_sim_type(sim_type):
     if not sirepo.template.is_sim_type(sim_type):
         # Don't change sim_type unless we have a valid one
         return None
-    res = flask.g.pop(_SIM_TYPE_ATTR, None)
-    flask.g.setdefault(_SIM_TYPE_ATTR, sim_type)
+    res = sirepo.srcontext.pop(_SIM_TYPE_ATTR, None)
+    sirepo.srcontext.setdefault(_SIM_TYPE_ATTR, sim_type)
     return res
 
 
@@ -157,12 +161,4 @@ def sim_type(value=None):
     """
     if value:
         return sirepo.template.assert_sim_type(value)
-    return flask.g.get(_SIM_TYPE_ATTR)
-
-
-def _set_flask_g(key, value):
-    # Always remove data (if there)
-    res = flask.g.pop(key, None)
-    if value is not None:
-        flask.g.setdefault(key, value)
-    return res
+    return sirepo.srcontext.get(_SIM_TYPE_ATTR)

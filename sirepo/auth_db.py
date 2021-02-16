@@ -311,5 +311,5 @@ def _migrate_role_jupyterhub():
        r in UserRole.all_roles():
         return
     for u in all_uids():
-        with sirepo.auth.set_user(u):
+        with sirepo.auth.set_user_outside_of_flask_request(u):
             UserRole.add_roles([r])

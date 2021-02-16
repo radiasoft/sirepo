@@ -36,7 +36,7 @@ def _20210211_add_flash_proprietary_lib_files():
     if not sirepo.template.is_sim_type('flash'):
         return
     for u in sirepo.auth_db.all_uids():
-        with sirepo.auth.set_user(u):
+        with sirepo.auth.set_user_outside_of_flask_request(u):
             # Remove the existing rpm
             pkio.unchecked_remove(sirepo.simulation_db.simulation_lib_dir(
                 'flash',

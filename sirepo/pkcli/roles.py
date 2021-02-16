@@ -83,5 +83,5 @@ def _parse_args(uid_or_email, roles):
         a = sirepo.auth.get_all_roles()
         assert set(roles).issubset(a), \
             'roles={} not a subset valid all_roles={}'.format(roles, a)
-    with sirepo.auth.set_user(u):
+    with sirepo.auth.set_user_outside_of_flask_request(u):
         yield
