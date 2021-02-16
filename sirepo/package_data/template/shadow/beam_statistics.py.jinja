@@ -57,6 +57,7 @@ def calculate_stats(pos, oe):
         z=z_prop_cen,
         zp=zp_prop_cen,
         matrix=Tmat.tolist(),
+        sigma_mx=res.tolist(),
         sigmax=math.sqrt(res[0, 0]) * 1e-2,
         sigdix=math.sqrt(res[1, 1]),
         sigmaz=math.sqrt(res[2, 2]) * 1e-2,
