@@ -40,8 +40,7 @@ def audit_proprietary_lib_files(*uid):
 
     #TODO(robnagler) locking
     for u in uid or sirepo.auth_db.all_uids():
-        with sirepo.auth.set_user_outside_of_flask_request(u):
-            sirepo.auth_db.audit_proprietary_lib_files()
+        sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
 def create_examples():

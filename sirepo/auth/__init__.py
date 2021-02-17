@@ -17,11 +17,11 @@ from sirepo import events
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import job
-from sirepo import simulation_db
 from sirepo import util
 import contextlib
 import datetime
 import importlib
+import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.template
 import sirepo.uri
@@ -33,12 +33,6 @@ LOGIN_ROUTE_NAME = 'login'
 
 #: Guest is a special method
 METHOD_GUEST = 'guest'
-
-ROLE_ADM = 'adm'
-ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
-ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
-
-PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -52,8 +46,8 @@ _COOKIE_USER = 'srau'
 _GUEST_USER_DISPLAY_NAME = 'Guest User'
 
 _PAYMENT_PLAN_BASIC = 'basic'
-_PAYMENT_PLAN_ENTERPRISE = ROLE_PAYMENT_PLAN_ENTERPRISE
-_PAYMENT_PLAN_PREMIUM = ROLE_PAYMENT_PLAN_PREMIUM
+_PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE
+_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
 
 _STATE_LOGGED_IN = 'li'
@@ -119,15 +113,6 @@ def api_authLogout(simulation_type=None):
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
-def check_user_has_role(role, raise_forbidden=True):
-    u = logged_in_user()
-    if auth_db.UserRole.has_role(u, role):
-        return True
-    if raise_forbidden:
-        util.raise_forbidden('uid={} role={} not found'.format(u, role))
-    return False
-
-
 def complete_registration(name=None):
     """Update the database with the user's display_name and sets state to logged-in.
     Guests will have no name.
@@ -143,16 +128,6 @@ def complete_registration(name=None):
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
-def get_all_roles():
-    return [
-        role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
-    ] + [
-        ROLE_ADM,
-        ROLE_PAYMENT_PLAN_ENTERPRISE,
-        ROLE_PAYMENT_PLAN_PREMIUM,
-    ]
-
-
 def guest_uids():
     """All of the uids corresponding to guest users."""
     return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
@@ -163,21 +138,13 @@ def get_module(name):
 
 
 def init_apis(*args, **kwargs):
-    global uri_router, visible_methods, valid_methods, non_guest_methods
+    global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
     assert not cfg.logged_in_user, \
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
-    # TODO(e-carlin): why is simulation_db imported like this?
-    # It is a problem because we call
-    # job_supervisor.init()
-    #  auth_db.init()
-    #    _migrate_role_jupyterhub
-    #      UserRole.add_roles()
-    #        simulation_db.user_path() # simulation_db is undef because we haven't called init_apis
-    # Maybe move to _init()? I've just moved to regular import rn
-    # simulation_db = importlib.import_module('sirepo.simulation_db')
+    simulation_db = importlib.import_module('sirepo.simulation_db')
     auth_db.init()
     p = pkinspect.this_module().__name__
     visible_methods = []
@@ -198,7 +165,11 @@ def init_apis(*args, **kwargs):
 
 
 def is_premium_user():
-    return check_user_has_role(ROLE_PAYMENT_PLAN_PREMIUM, raise_forbidden=False)
+    return sirepo.auth_role.check_user_has_role(
+        logged_in_user(),
+        sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+        raise_forbidden=False,
+    )
 
 
 def logged_in_user(check_path=True):
@@ -223,6 +194,7 @@ def logged_in_user(check_path=True):
             cookie.unchecked_get_value(_COOKIE_METHOD),
         )
     if check_path:
+        # TODO(e-carlin): simulation_db won't be initialized in a context outside of server
         simulation_db.user_path(u, check=True)
     return u
 
@@ -367,7 +339,10 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    check_user_has_role(role_for_sim_type(sim_type))
+    sirepo.auth_role.check_user_has_role(
+        logged_in_user(),
+        sirepo.auth_role.role_for_sim_type(sim_type),
+    )
 
 
 def require_user():
@@ -421,9 +396,6 @@ def reset_state():
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
     _set_log_user()
 
-
-def role_for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
 
 
 @contextlib.contextmanager
@@ -605,7 +577,7 @@ def _auth_state():
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
                 v.displayName = r.display_name
-        v.roles = auth_db.UserRole.get_roles(check_path=False)
+        v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
@@ -614,12 +586,15 @@ def _auth_state():
     pkdc('state={}', v)
     return v
 
+
 def _create_roles_for_user(method):
     r = []
     if pkconfig.channel_in('dev') and method == METHOD_GUEST:
-        auth_db.UserRole.add_roles(get_all_roles())
+        r = sirepo.auth_role.get_all_roles()
     elif sirepo.template.is_sim_type('jupyterhublogin'):
-        auth_db.UserRole.add_roles([role_for_sim_type('jupyterhublogin')])
+        r = [sirepo.auth_role.role_for_sim_type('jupyterhublogin')]
+    if r:
+        auth_db.UserRole.add_roles(logged_in_user(), r)
 
 
 def _get_user():
@@ -712,10 +687,10 @@ def _parse_display_name(value):
 
 def _plan(data):
     r = data.roles
-    if ROLE_PAYMENT_PLAN_ENTERPRISE in r:
+    if sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE in r:
         data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
         data.upgradeToPlan = None
-    elif ROLE_PAYMENT_PLAN_PREMIUM in r:
+    elif sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
         data.paymentPlan = _PAYMENT_PLAN_PREMIUM
         data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
     else:

@@ -158,8 +158,8 @@ def examples(app):
     return [open_json_file(app, path=str(f), fixup=False) for f in files]
 
 
-def find_global_simulation(sim_type, sid, checked=False):
-    paths = pkio.sorted_glob(user_path().join('*', sim_type, sid))
+def find_global_simulation(sim_type, sid, checked=False, uid=None):
+    paths = pkio.sorted_glob(user_path(uid=uid).join('*', sim_type, sid))
     if len(paths) == 1:
         return str(paths[0])
     if len(paths) == 0:
@@ -288,20 +288,20 @@ def generate_json(data, pretty=False):
     return util.json_dump(data, pretty=pretty)
 
 
-def iterate_simulation_datafiles(simulation_type, op, search=None):
+def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
     res = []
-    sim_dir = simulation_dir(simulation_type)
+    sim_dir = simulation_dir(simulation_type, uid=uid)
     for path in glob.glob(
         str(sim_dir.join('*', SIMULATION_DATA_FILE)),
     ):
         path = pkio.py_path(path=path)
         try:
-            data = open_json_file(simulation_type, path, fixup=False)
+            data = open_json_file(simulation_type, path, fixup=False, uid=uid)
             data, changed = fixup_old_data(data)
             # save changes to avoid re-applying fixups on each iteration
             if changed:
                 #TODO(pjm): validate_name may causes infinite recursion, need better fixup of list prior to iteration
-                save_simulation_json(data, do_validate=False)
+                save_simulation_json(data, do_validate=False, uid=uid)
             if search and not _search_data(data, search):
                 continue
             op(res, path, data)
@@ -380,13 +380,14 @@ def move_user_simulations(from_uid, to_uid):
             os.rename(dir_path, new_dir_path)
 
 
-def open_json_file(sim_type, path=None, sid=None, fixup=True):
+def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None):
     """Read a db file and return result
 
     Args:
         sim_type (str): simulation type (app)
         path (py.path.local): where to read the file
         sid (str): simulation id
+        uid (uid): user id
 
     Returns:
         dict: data
@@ -395,15 +396,15 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
         CopyRedirect: if the simulation is in another user's
     """
     if not path:
-        path = sim_data_file(sim_type, sid)
+        path = sim_data_file(sim_type, sid, uid=uid)
     if not os.path.isfile(str(path)):
         global_sid = None
         if sid:
             #TODO(robnagler) workflow should be in server.py,
             # because only valid in one case, not e.g. for opening examples
             # which are not found.
-            user_copy_sid = _find_user_simulation_copy(sim_type, sid)
-            if find_global_simulation(sim_type, sid):
+            user_copy_sid = _find_user_simulation_copy(sim_type, sid, uid=uid)
+            if find_global_simulation(sim_type, sid, uid=uid):
                 global_sid = sid
         if global_sid:
             raise CopyRedirect(PKDict(
@@ -526,30 +527,31 @@ def read_simulation_json(sim_type, *args, **kwargs):
     return data
 
 
-def save_new_example(data):
+def save_new_example(data, uid=None):
     data.models.simulation.isExample = True
-    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)
+    return save_new_simulation(fixup_old_data(data)[0], do_validate=False, uid=uid)
 
 
-def save_new_simulation(data, do_validate=True):
-    d = simulation_dir(data.simulationType)
-    sid = _random_id(d, data.simulationType).id
+def save_new_simulation(data, do_validate=True, uid=None):
+    d = simulation_dir(data.simulationType, uid=uid)
+    sid = _random_id(d, data.simulationType, uid=uid).id
     data.models.simulation.simulationId = sid
-    return save_simulation_json(data, do_validate=do_validate)
+    return save_simulation_json(data, do_validate=do_validate, uid=uid)
 
 
-def save_simulation_json(data, do_validate=True):
+def save_simulation_json(data, do_validate=True, uid=None):
     """Prepare data and save to json db
 
     Args:
         data (dict): what to write (contains simulationId)
+        uid (str): user id
     """
     data = fixup_old_data(data)[0]
     # old implementation value
     data.pkdel('computeJobHash')
     s = data.models.simulation
     sim_type = data.simulationType
-    fn = sim_data_file(sim_type, s.simulationId)
+    fn = sim_data_file(sim_type, s.simulationId, uid=uid)
     with util.SIMULATION_DB_LOCK:
         need_validate = True
         try:
@@ -567,6 +569,7 @@ def save_simulation_json(data, do_validate=True):
                     sim_type,
                     lambda res, _, d: res.append(d),
                     PKDict({'simulation.folder': s.folder}),
+                    uid=uid,
                 ),
                 SCHEMA_COMMON.common.constants.maxSimCopies
             )
@@ -592,17 +595,18 @@ def sid_from_compute_file(path):
     return _sim_from_path(path)[0]
 
 
-def sim_data_file(sim_type, sim_id):
+def sim_data_file(sim_type, sim_id, uid=None):
     """Simulation data file name
 
     Args:
         sim_type (str): simulation type
         sim_id (str): simulation id
+        uid (str): user id
 
     Returns:
         py.path.local: simulation path
     """
-    return simulation_dir(sim_type, sim_id).join(SIMULATION_DATA_FILE)
+    return simulation_dir(sim_type, sim_id, uid=uid).join(SIMULATION_DATA_FILE)
 
 
 def simulation_dir(simulation_type, sid=None, uid=None):
@@ -681,17 +685,19 @@ def static_file_path(file_dir, file_name):
 
 
 @contextlib.contextmanager
-def tmp_dir(chdir=False):
+def tmp_dir(chdir=False, uid=None):
     """Generates new, temporary directory
 
     Args:
         chdir (bool): if true, will save_chdir
+        uid (str): user id
     Returns:
         py.path: directory to use for temporary work
     """
     d = None
     try:
-        d = cfg.tmp_dir or _random_id(logged_in_user_path().join(_TMP_DIR))['path']
+        p = user_path(uid, check=True) if uid else logged_in_user_path()
+        d = cfg.tmp_dir or _random_id(p.join(_TMP_DIR), uid=uid)['path']
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:
@@ -818,13 +824,16 @@ def validate_serial(req_data):
         )
 
 
-def verify_app_directory(simulation_type):
+def verify_app_directory(simulation_type, uid=None):
     """Ensure the app directory is present. If not, create it and add example files.
+
+    Args:
+        uid (str): user id
     """
-    d = simulation_dir(simulation_type)
+    d = simulation_dir(simulation_type, uid=uid)
     if d.exists():
         return
-    _create_lib_and_examples(simulation_type)
+    _create_lib_and_examples(simulation_type, uid=uid)
 
 
 def write_json(filename, data):
@@ -838,12 +847,12 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def _create_lib_and_examples(simulation_type):
+def _create_lib_and_examples(simulation_type, uid=None):
     import sirepo.sim_data
 
-    pkio.mkdir_parent(simulation_lib_dir(simulation_type))
+    pkio.mkdir_parent(simulation_lib_dir(simulation_type, uid=uid))
     for s in examples(simulation_type):
-        save_new_example(s)
+        save_new_example(s, uid=uid)
 
 
 def _files_in_schema(schema):
@@ -868,11 +877,12 @@ def _files_in_schema(schema):
     return paths
 
 
-def _find_user_simulation_copy(simulation_type, sid):
+def _find_user_simulation_copy(simulation_type, sid, uid=None):
     rows = iterate_simulation_datafiles(
         simulation_type,
         process_simulation_list,
         PKDict({'simulation.outOfSessionSimulationId': sid}),
+        uid=uid,
     )
     if len(rows):
         return rows[0]['simulationId']
@@ -982,11 +992,12 @@ def _pkg_relative_path_static(file_dir, file_name):
     return '/' + RESOURCE_FOLDER.bestrelpath(static_file_path(file_dir, file_name))
 
 
-def _random_id(parent_dir, simulation_type=None):
+def _random_id(parent_dir, simulation_type=None, uid=None):
     """Create a random id in parent_dir
 
     Args:
         parent_dir (py.path): where id should be unique
+        uid (str): user id
     Returns:
         dict: id (str) and path (py.path)
     """
@@ -996,7 +1007,7 @@ def _random_id(parent_dir, simulation_type=None):
     for _ in range(5):
         i = ''.join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
         if simulation_type:
-            if find_global_simulation(simulation_type, i):
+            if find_global_simulation(simulation_type, i, uid=uid):
                 continue
         d = parent_dir.join(i)
         try:

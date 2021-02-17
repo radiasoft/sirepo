@@ -68,7 +68,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     import sirepo.auth_db
-    import sirepo.auth
+    import sirepo.auth_role
 
     def _cancel_job(user, cancel_req):
         _login_as_user(user)
@@ -114,9 +114,11 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _make_user_adm(uid):
         import sirepo.pkcli.roles
+        print('uuuuuuuuuuuuuuuuu ', uid)
+        print('rrrrrrrrrrrrrrrrrr ', sirepo.auth_role.ROLE_ADM)
         sirepo.pkcli.roles.add_roles(
             uid,
-            sirepo.auth.ROLE_ADM,
+            sirepo.auth_role.ROLE_ADM,
         )
         r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(1, len(r), 'One user with role adm r={}', r)
