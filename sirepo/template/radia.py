@@ -73,6 +73,207 @@ VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeField
 _cfg = PKDict(sdds=None)
 
 
+class RadiaGeomObject(PKDict):
+    def __init__(self, o_id, name, schema):
+        super(RadiaGeomObject, self).__init__(schema, name=name, id=o_id)
+
+
+class RadiaCuboid(PKDict):
+
+    def to_radia(self):
+        # return raidia_tk fn?
+        pass
+
+    def __init__(self, name, o_id, center, size, segments):
+        super(RadiaCuboid, self).__init__(
+            name=name,
+            id=o_id,
+            center=','.join([str(x) for x in center]),
+            size=','.join([str(x) for x in size]),
+            division=','.join([str(x) for x in segments])
+        )
+        self.model = 'box'
+
+
+class RadiaGroup(PKDict):
+    def __init__(self, name, o_id, *args):
+        super(RadiaGroup, self).__init__(
+            name=name,
+            id=o_id,
+            members=[*args]
+        )
+        self.model = 'geomGroup'
+
+
+class RadiaClone(PKDict):
+
+    class Translate(PKDict):
+        def __init__(self, name, o_id, dist):
+            super(RadiaClone.Translate, self).__init__(
+                name=name,
+                id=o_id,
+                distance = ','.join([str(x) for x in dist])
+            )
+            self.model = 'translateClone'
+
+    def __init__(self, name, o_id, *args):
+        super(RadiaClone, self).__init__(
+            name=name,
+            id=o_id,
+            transforms=[*args]
+        )
+        self.model = 'cloneTransform'
+
+
+class RadiaSymmetryTransform(PKDict):
+    def __init__(self, name, o_id, symm_plane, symm_point, symm_type):
+        super(RadiaSymmetryTransform, self).__init__(
+            name=name,
+            id=o_id,
+            symmetryType=symm_type,
+            symmetryPlane=','.join([str(x) for x in symm_plane]),
+            symmetryPoint = ','.join([str(x) for x in symm_point]),
+        )
+        self.model = 'symmetryTransform'
+
+
+class RadiaGeometry:
+
+    def build_cuboid(self, name, center, size, segments):
+        b = self.geom_obj_dict(name, 'box')
+        b.center = ','.join([str(x) for x in center])
+        b.size = ','.join([str(x) for x in size])
+        b.division = segments
+        return b
+
+    def build_group(self, members):
+        g = self.build_geom_obj('geomGroup')
+        g.members = members
+        return g
+
+    def geom_obj_dict(self, geom_obj, model_name):
+        #o = PKDict(model=model_name, id=self.next_id())
+        self.sim_data.update_model_defaults(geom_obj, model_name)
+        return geom_obj
+
+
+    def build_undulator(self, data):
+        und = self.build_geom_obj('hybridUndulator')
+
+        beam_dir = numpy.array(_BEAM_AXIS_VECTORS[data.beamAxis])
+        gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
+        width_dir = numpy.cross(beam_dir, gap_dir)
+
+        pole_dim = PKDict(
+            width=float(und.poleCrossSection[0]),
+            height=float(und.poleCrossSection[1]),
+            length=float(und.poleLength),
+        )
+        magnet_dim = PKDict(
+            width=float(und.magnetCrossSection[0]),
+            height=float(und.magnetCrossSection[1]),
+            length=(float(und.periodLength) / 2 - pole_dim.length),
+        )
+
+        pole_segs = und.poleDivision.split(',')
+        magnet_segs = und.magnetDivision.split(',')
+
+        # position along beam
+        pos = beam_dir * (pole_dim.length / 4)
+        x = width_dir * (pole_dim.width / 4)
+        y = gap_dir * ((pole_dim.height + float(und.gap)) / 2)
+        ctr = (width_dir * pole_dim.width / 4) + \
+              (pos * 1.0) - \
+              (gap_dir * ((pole_dim.height + und.gap) / 2))
+
+        sz = abs(width_dir * pole_dim.width) / 2 + \
+             abs(beam_dir * pole_dim.length) / 2 + \
+             abs(gap_dir * pole_dim.height)
+
+
+        #half_pole = self.build_cuboid(ctr, sz, segs)
+        half_pole = RadiaCuboid('Half Pole', self.next_id(), ctr, sz, pole_segs)
+
+        pos += beam_dir * (pole_dim.length / 4)
+        ctr = width_dir * magnet_dim.width / 4 + \
+              pos - \
+              gap_dir * (float(und.gapOffset) + (magnet_dim.height + und.gap) / 2)
+
+        sz = width_dir * magnet_dim.width / 2 + \
+             beam_dir * magnet_dim.length + \
+             gap_dir * magnet_dim.height
+
+        #magnet_block = build_cuboid(geom, ctr, sz, und.magnetDivision)
+        magnet_block = RadiaCuboid('Magnet Block', self.next_id(), ctr, sz, magnet_segs)
+
+        pos += beam_dir * (pole_dim.length + magnet_dim.length) / 2
+        ctr = width_dir * magnet_dim.width / 4 + \
+              pos - \
+              gap_dir * ((magnet_dim.height + und.gap) / 2)
+
+        sz = width_dir * pole_dim.width / 2 + \
+             beam_dir * pole_dim.length + \
+             gap_dir * pole_dim.height
+
+        #pole = build_cuboid(geom, ctr, sz, und.poleDivision)
+        pole = RadiaCuboid('Pole', self.next_id(), ctr, sz, pole_segs)
+
+        #mag_pole_grp = build_group(geom, [magnet_block, pole])
+        mag_pole_grp = RadiaGroup('Magnet+Pole Group', self.next_id(), magnet_block, pole)
+
+        tx = build_clone_xform(
+            geom,
+            und.numPeriods,
+            True,
+            build_xlate_clone(geom, beam_dir * und.periodLength)
+        )
+        #mag_pole_grp.transforms = [tx]
+        mag_pole_grp.transforms = [
+            RadiaClone(
+                'Period Clone',
+                self.next_id(),
+                RadiaClone.Translate('Period Translate', self.next_id(), tx)
+            )
+        ]
+
+        # magnet_cap = build_cuboid()
+
+        #grp = build_group(geom, [half_pole, mag_pole_grp])
+        grp = RadiaGroup('Undulator Unit', self.next_id(), half_pole, mag_pole_grp)
+
+        #grp.transforms = [
+        #    build_symm_xform(geom, width_dir, [0, 0, 0], 'perpendicular'),
+        #    build_symm_xform(geom, gap_dir, [0, 0, 0], 'parallel'),
+        #    build_symm_xform(geom, beam_dir, [0, 0, 0], 'perpendicular'),
+        #]
+        grp.transforms = [
+            RadiaSymmetryTransform('Cross Symm', self.next_id(), width_dir, [0, 0, 0], 'perpendicular'),
+            RadiaSymmetryTransform('Gap Symm', self.next_id(), gap_dir, [0, 0, 0], 'parallel'),
+            RadiaSymmetryTransform('Beam Symm', self.next_id(), beam_dir, [0, 0, 0], 'perpendicular'),
+        ]
+
+        # pkdp(f'BLT GRP {grp}')
+        #g = get_objs([grp])
+        #pkdp(f'GOT {len(g)} FLAT OBJS {[o.name for o in g]}')
+        return [grp]
+        # data.geometry.objects = [grp]
+
+    def next_id(self):
+        self.o_ids.append((max(self.o_ids) + 1) if self.o_ids else 1)
+        return self.o_ids[-1]
+
+    def to_dict(self):
+        return self.schema
+
+    def __init__(self, sim_data, schema):
+        self.name = schema.name
+
+        self.objects = schema.objects or []
+        self.o_ids = [int(o.id) for o in self.objects]
+        self.schema = schema
+        self.sim_data = sim_data
+
+
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
@@ -235,125 +436,168 @@ def new_simulation(data, new_simulation_data):
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        _build_undulator(new_simulation_data)
+        #g = RadiaGeometry(_SIM_DATA, data.models.geometry)
+        #data.models.geometry.objects = _build_undulator(data.models.geometry, new_simulation_data)
+        _build_undulator(data.models.geometry, new_simulation_data)
 
 
-def build_box(ctr, size, division):
-    b = _SIM_DATA.update_model_defaults(PKDict(), 'box')
-    b.center = ','.join(ctr)
-    b.size = ','.join(size)
-    b.division = ','.join(division)
+def build_cuboid(geom, center, size, division):
+    b = build_geom_obj(geom, 'box')
+    b.center = ','.join([str(x) for x in center])
+    b.size = ','.join([str(x) for x in size])
+    b.division = division
     return b
 
 
-def build_group(members):
-    g = _SIM_DATA.update_model_defaults(PKDict(), 'geomGroup')
-    g.members = members
+def build_group(geom, members):
+    g = build_geom_obj(geom, 'geomGroup')
+    g.members = [m.id for m in members]
     return g
 
 
-def build_clone_xform(num_copies, alt_fields, transforms):
-    tx = _SIM_DATA.update_model_defaults(PKDict(), 'cloneTransform')
+def build_clone_xform(geom, num_copies, alt_fields, transforms):
+    tx = build_geom_obj(geom, 'cloneTransform')
     tx.numCopies = num_copies
     tx.alternateFields = alt_fields
     tx.transforms = transforms
     return tx
 
 
-def build_symm_xform(plane, point, type):
-    tx = _SIM_DATA.update_model_defaults(PKDict(), 'symmetryTransform')
-    tx.symmetryPlane = ','.join(plane)
-    tx.symmetryPoint = ','.join(point)
+def build_symm_xform(geom, plane, point, type):
+    tx = build_geom_obj(geom, 'symmetryTransform')
+    tx.symmetryPlane = ','.join([str(x) for x in plane])
+    tx.symmetryPoint = ','.join([str(x) for x in point])
     tx.symmetryType = type
     return tx
 
 
-def build_xlate_clone(dist):
-    tx = _SIM_DATA.update_model_defaults(PKDict(), 'translateClone')
-    tx.distance = ','.join(dist)
+def build_xlate_clone(geom, dist):
+    tx = build_geom_obj(geom, 'translateClone')
+    tx.distance = ','.join([str(x) for x in dist])
     return tx
 
 
-def _build_undulator(data):
+def next_id(geom):
+    o_ids = [int(o.id) for o in get_objs(geom, geom.objects) if o.id]
+    return (max(o_ids) + 1) if o_ids else 1
 
-    m = PKDict(p='POOP')
-    und = _SIM_DATA.update_model_defaults(PKDict(), 'hybridUndulator')
-    pkdp(f'BUILD UND {und} FROM {data}')
 
-    beam_dir = _BEAM_AXIS_VECTORS[data.beamAxis]
-    gap_dir = _BEAM_AXIS_VECTORS[und.gapAxis]
+
+def get_objs(geom, arr):
+    objs = []
+    for o in arr:
+        objs.append(o)
+        if 'members' in o:
+            objs.extend(get_objs(geom, [get_obj(geom, o_id) for o_id in o.members]))
+    return objs
+
+
+def get_obj(geom, o_id):
+    for o in geom.objects:
+        if o.id == o_id:
+            return o
+    return None
+
+#def build_geom_obj(sim_name, model_name):
+def build_geom_obj(geom, model_name):
+    o_id = next_id(geom)
+    o = PKDict(name=f'{geom.name}.{model_name}', mapId=f'{geom.name}.{model_name}.{o_id}', model=model_name, id=o_id)
+    _SIM_DATA.update_model_defaults(o, model_name)
+    return o
+
+
+def _build_undulator(geom, data):
+
+    if not geom.objects:
+        geom.objects = []
+
+    und = build_geom_obj(geom, 'hybridUndulator')
+
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[data.beamAxis])
+    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
     width_dir = numpy.cross(beam_dir, gap_dir)
 
+
     pole_dim = PKDict(
-        width=data.poleCrossSection[0],
-        height=und.poleCrossSection[1],
-        length=und.poleThickness
+        width=float(und.poleCrossSection[0]),
+        height=float(und.poleCrossSection[1]),
+        length=float(und.poleLength),
     )
     magnet_dim = PKDict(
-        width=und.magnetCrossSection[0],
-        height=und.magnetCrossSection[1],
-        length=(und.periodLength / 2 - pole_dim.length)
+        width=float(und.magnetCrossSection[0]),
+        height=float(und.magnetCrossSection[1]),
+        length=(float(und.periodLength) / 2 - pole_dim.length),
     )
-    #magnet_thickness = (model.periodLength / 2 - model.poleThickness)
 
     # position along beam
     pos = beam_dir * (pole_dim.length / 4)
-    ctr = width_dir * pole_dim.width / 4 + \
-        pos - \
-        gap_dir * ((pole_dim.height + und.gap) / 2)
+    x = width_dir * (pole_dim.width / 4)
+    y = gap_dir * ((pole_dim.height + float(und.gap)) / 2)
+    pkdp(f'POS {pos} W {x} H {y}')
+    ctr = (width_dir * pole_dim.width / 4) + \
+          (pos * 1.0) - \
+          (gap_dir * ((pole_dim.height + und.gap) / 2))
 
-    sz = width_dir * pole_dim.width / 2 + \
-         beam_dir * pole_dim.length / 2 + \
-         gap_dir * pole_dim.height
+    sz = abs(width_dir * pole_dim.width) / 2 + \
+         abs(beam_dir * pole_dim.length) / 2 + \
+         abs(gap_dir * pole_dim.height)
 
-    half_pole = build_box(ctr, sz, und.poleDivision)
-    #half_pole = build_box(ctr, sz, pole_material, _ZERO, poleDivision)
+    half_pole = build_cuboid(geom, ctr, sz, und.poleDivision)
+    half_pole.material = und.poleMaterial
+    geom.objects.append(half_pole)
 
     pos += beam_dir * (pole_dim.length / 4)
-    ctr = width_dir * und.magnetCrossSection[0] / 4 + \
+    ctr = width_dir * magnet_dim.width / 4 + \
         pos - \
-        gap_dir * (und.gapOffset + (und.magnetCrossSection[1] + und.gap) / 2)
+        gap_dir * (float(und.gapOffset) + (magnet_dim.height + und.gap) / 2)
 
-    sz = width_dir * und.magnetCrossSection[0] / 2 + \
-         beam_dir * magnet_dim.length + \
-         gap_dir * und.magnetCrossSection[1]
+    sz = abs(width_dir * magnet_dim.width) / 2 + \
+         abs(beam_dir * magnet_dim.length) + \
+         abs(gap_dir * magnet_dim.height)
 
-    magnet_block = build_box(ctr, sz, und.magnetDivision)
-    #magnet = build_box(ctr, sz, magnet_material, _ZERO, magnetDivision)
+    magnet_block = build_cuboid(geom, ctr, sz, und.magnetDivision)
+    magnet_block.material = und.magnetMaterial
+    geom.objects.append(magnet_block)
 
-    pos += beam_dir * (und.poleThickness + magnet_dim.length) / 2
-    ctr = width_dir * und.poleCrossSection[0] / 4 + \
+    pos += beam_dir * (pole_dim.length + magnet_dim.length) / 2
+    ctr = width_dir * magnet_dim.width / 4 + \
         pos - \
-        gap_dir * ((und.magnetCrossSection[1] + und.gap) / 2)
+        gap_dir * ((magnet_dim.height + und.gap) / 2)
 
-    sz = width_dir * und.poleCrossSection[0] / 2 + \
-         beam_dir * und.poleThickness + \
-         gap_dir * und.poleCrossSection[1]
+    sz = abs(width_dir * pole_dim.width) / 2 + \
+         abs(beam_dir * pole_dim.length) + \
+         abs(gap_dir * pole_dim.height)
 
-    pole = build_box(ctr, sz, und.poleDivision)
-    #pole = build_box(ctr, sz, pole_material, _ZERO, poleDivision)
+    pole = build_cuboid(geom, ctr, sz, und.poleDivision)
+    pole.material = und.poleMaterial
+    geom.objects.append(pole)
 
-    mag_pole_grp = build_group([magnet_block, pole])
+    mag_pole_grp = build_group(geom, [magnet_block, pole])
+    geom.objects.append(mag_pole_grp)
 
     tx = build_clone_xform(
+        geom,
         und.numPeriods,
         True,
-        build_xlate_clone(beam_dir * und.periodLength)
+        build_xlate_clone(geom, beam_dir * und.periodLength)
     )
     mag_pole_grp.transforms = [tx]
-    #_clone_with_translation(mag_pole_grp, numPeriods, beam_dir * periodLength, True)
 
-    #magnet_cap = build_box()
+    #magnet_cap = build_cuboid()
 
-    grp = build_group([half_pole, mag_pole_grp])
+    grp = build_group(geom, [half_pole, mag_pole_grp])
+    geom.objects.append(grp)
     grp.transforms = [
-        build_symm_xform(width_dir, [0, 0, 0], 'perpendicular'),
-        build_symm_xform(gap_dir, [0, 0, 0], 'parallel'),
-        build_symm_xform(beam_dir, [0, 0, 0], 'perpendicular'),
+        build_symm_xform(geom, width_dir, [0, 0, 0], 'perpendicular'),
+        build_symm_xform(geom, gap_dir, [0, 0, 0], 'parallel'),
+        build_symm_xform(geom, beam_dir, [0, 0, 0], 'perpendicular'),
     ]
-    #und = build_container([half_pole, mag_pole_grp])
 
-    data.model.geometry.objects = grp
+    #pkdp(f'BLT GRP {grp}')
+    #g = get_objs([grp])
+    #pkdp(f'GOT {len(g)} FLAT OBJS {[o.name for o in g]}')
+    #return [grp]
+    #data.geometry.objects = [grp]
 
 
 
