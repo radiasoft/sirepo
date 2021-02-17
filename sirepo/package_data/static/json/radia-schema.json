@@ -273,11 +273,11 @@
         },
         "cloneTransform": {
             "_super": ["_", "model", "transform"],
+            "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "angle": ["Angle (deg)", "Float", "0.0"],
             "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
-            "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
@@ -311,7 +311,8 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "name": ["Name", "String", ""]
+            "name": ["Name", "String", ""],
+            "objects": ["_", "Group", []]
         },
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
@@ -342,12 +343,12 @@
             "_super": ["_", "model", "undulator"],
             "poleCrossSection": ["Pole Cross Section", "FloatStringArray", "45.0, 55.0", "", "Width [mm], Height [mm]"],
             "poleDivision": ["Pole Divisions", "IntStringArray", "2, 5, 2", "", "Nx, Ny, Nz"],
-            "poleMaterial": ["Pole Material", "MaterialType", "NdFeB"],
+            "poleMaterial": ["Pole Material", "MaterialType", "Xc06"],
             "poleMaterialFile": ["Pole H-B from File", "InputFile", "0", "H, B (T)"],
             "poleLength": ["Pole Length [mm]", "Float", 0.5, "Length along beam direction"],
             "magnetCrossSection": ["Magnet Cross Section", "FloatStringArray", "45.0, 65.0", "", "Width [mm], Height [mm]"],
             "magnetDivision": ["Magnet Divisions", "IntStringArray", "1, 1, 3", "", "Nx, Ny, Nz"],
-            "magnetMaterial": ["Magnet Material", "MaterialType", "NdFeB"],
+            "magnetMaterial": ["Magnet Material", "MaterialType", "Xc06"],
             "magnetMaterialFile": ["Magnet H-B from File", "InputFile", "0", "H, B (T)"],
             "gapOffset": ["Magnet Gap Offset [mm]", "Float", "1.0", ""]
         },
