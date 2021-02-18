@@ -341,16 +341,16 @@
         },
         "hybridUndulator": {
             "_super": ["_", "model", "undulator"],
-            "poleCrossSection": ["Pole Cross Section", "FloatStringArray", "45.0, 55.0", "", "Width [mm], Height [mm]"],
+            "magnetCrossSection": ["Magnet Cross Section", "FloatStringArray", "65.0, 45.0", "", "Width [mm], Height [mm]"],
+            "magnetDivision": ["Magnet Divisions", "IntStringArray", "1, 1, 3", "", "Nx, Ny, Nz"],
+            "magnetMaterial": ["Magnet Material", "MaterialType", "Xc06"],
+            "magnetMaterialFile": ["Magnet H-B from File", "InputFile", "0", "H, B (T)"],
+            "gapOffset": ["Magnet Gap Offset [mm]", "Float", 1.0, ""],
+            "poleCrossSection": ["Pole Cross Section", "FloatStringArray", "45.0, 25.0", "", "Width [mm], Height [mm]"],
             "poleDivision": ["Pole Divisions", "IntStringArray", "2, 5, 2", "", "Nx, Ny, Nz"],
             "poleMaterial": ["Pole Material", "MaterialType", "Xc06"],
             "poleMaterialFile": ["Pole H-B from File", "InputFile", "0", "H, B (T)"],
             "poleLength": ["Pole Length [mm]", "Float", 5.0, "Length along beam direction"],
-            "magnetCrossSection": ["Magnet Cross Section", "FloatStringArray", "45.0, 65.0", "", "Width [mm], Height [mm]"],
-            "magnetDivision": ["Magnet Divisions", "IntStringArray", "1, 1, 3", "", "Nx, Ny, Nz"],
-            "magnetMaterial": ["Magnet Material", "MaterialType", "Xc06"],
-            "magnetMaterialFile": ["Magnet H-B from File", "InputFile", "0", "H, B (T)"],
-            "gapOffset": ["Magnet Gap Offset [mm]", "Float", "1.0", ""]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]

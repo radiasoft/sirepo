@@ -441,8 +441,8 @@ def new_simulation(data, new_simulation_data):
         _build_undulator(data.models.geometry, new_simulation_data)
 
 
-def build_cuboid(geom, center, size, segments, name=None):
-    b = build_geom_obj(geom, 'box', obj_name=name)
+def build_cuboid(geom, center, size, segments, name=None, color=None):
+    b = build_geom_obj(geom, 'box', obj_name=name, obj_color=color)
     b.center = ','.join([str(x) for x in center])
     b.size = ','.join([str(x) for x in size])
     b.division = segments
@@ -506,10 +506,14 @@ def get_obj(geom, o_id):
     return None
 
 #def build_geom_obj(sim_name, model_name):
-def build_geom_obj(geom, model_name, obj_name=None):
+def build_geom_obj(geom, model_name, obj_name=None, obj_color=None):
     n = obj_name if obj_name else f'{geom.name}.{model_name}'
     o_id = next_id(geom)
-    o = PKDict(name=n, mapId=f'{geom.name}.{model_name}.{o_id}', model=model_name, id=o_id)
+    o = PKDict(
+        name=n, mapId=f'{geom.name}.{model_name}.{o_id}',
+        model=model_name, id=o_id,
+        color=obj_color,
+    )
     _SIM_DATA.update_model_defaults(o, model_name)
     return o
 
@@ -522,6 +526,8 @@ def _build_undulator(geom, data):
 
     und = build_geom_obj(geom, 'hybridUndulator', obj_name=geom.name)
 
+    # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
+    # along the remaining axis
     beam_dir = numpy.array(_BEAM_AXIS_VECTORS[data.beamAxis])
     # pick a leagal gap direction
     gap_dir = numpy.array(_BEAM_AXIS_VECTORS[gap_dirs[data.beamAxis]])
@@ -529,99 +535,76 @@ def _build_undulator(geom, data):
     # we don't care about the direction of the cross product
     width_dir = abs(numpy.cross(beam_dir, gap_dir))
 
-    pole_x = und.poleCrossSection.split(',')
-    mag_x = und.magnetCrossSection.split(',')
+    pole_x = [float(x) for x in und.poleCrossSection.split(',')]
+    mag_x = [float(x) for x in und.magnetCrossSection.split(',')]
 
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
-        width=width_dir * float(pole_x[0]),
-        height=gap_dir * float(pole_x[1]),
-        length=beam_dir * float(und.poleLength),
+        width=width_dir * pole_x[0],
+        height=gap_dir * pole_x[1],
+        length=beam_dir * und.poleLength,
     )
     magnet_dim = PKDict(
-        width=width_dir * float(mag_x[0]),
-        height=gap_dir * float(mag_x[1]),
-        length=beam_dir * (float(und.periodLength) / 2 - pole_dim.length),
+        width=width_dir * mag_x[0],
+        height=gap_dir * mag_x[1],
+        length=beam_dir * (und.periodLength / 2 - pole_dim.length),
     )
 
     # convenient constants
-    pole_dim_half = {k:v / 2 for (k, v) in pole_dim}
-    magnet_dim_half = {k: v / 2 for (k, v) in magnet_dim}
+    pole_dim_half = PKDict({k:v / 2 for k, v in pole_dim.items()})
+    magnet_dim_half = PKDict({k: v / 2 for k, v in magnet_dim.items()})
+    gap_half_height = gap_dir * und.gap / 2
+    gap_offset = gap_dir * und.gapOffset
 
-    gap_half_height = gap_dir * float(und.gap)
+    pole_xverse_ctr = pole_dim_half.width / 2 - (pole_dim_half.height + gap_half_height)
+    magnet_xverse_ctr = magnet_dim_half.width / 2 - (gap_offset + magnet_dim_half.height + gap_half_height)
 
     pos = pole_dim_half.length / 2
-    ctr = pole_dim_half.width / 2 - (pole_dim_half.height + gap_half_height) + pos
+    ctr = pole_xverse_ctr + pos
     sz = pole_dim_half.width + pole_dim.height + pole_dim_half.length
-
-    half_pole = build_cuboid(geom, ctr, sz, und.poleDivision, name='Half Pole')
+    half_pole = build_cuboid(geom, ctr, sz, und.poleDivision, name='Half Pole', color='#ff0000')
     half_pole.material = und.poleMaterial
     geom.objects.append(half_pole)
 
     pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
-    ctr = magnet_dim.width / 4 - \
-        gap_dir * (float(und.gapOffset) + (magnet_dim.height + und.gap) / 2) + \
-        pos
-
-
-    sz = abs(width_dir * magnet_dim.width) / 2 + \
-         abs(beam_dir * magnet_dim.length) + \
-         abs(gap_dir * magnet_dim.height)
-
-    magnet_block = build_cuboid(geom, ctr, sz, und.magnetDivision, name='Magnet Block')
+    ctr = magnet_xverse_ctr + pos
+    sz = magnet_dim_half.width + magnet_dim.length + magnet_dim.height
+    magnet_block = build_cuboid(geom, ctr, sz, und.magnetDivision, name='Magnet Block', color='#00ff00')
     magnet_block.material = und.magnetMaterial
     geom.objects.append(magnet_block)
 
-    pos += beam_dir * (pole_dim.length + magnet_dim.length) / 2
-    ctr = width_dir * magnet_dim.width / 4 + \
-        pos - \
-        gap_dir * ((magnet_dim.height + und.gap) / 2)
-
-    sz = abs(width_dir * pole_dim.width) / 2 + \
-         abs(beam_dir * pole_dim.length) + \
-         abs(gap_dir * pole_dim.height)
-
-    pole = build_cuboid(geom, ctr, sz, und.poleDivision, name='Pole')
+    pos += (pole_dim_half.length + magnet_dim_half.length)
+    ctr = pole_xverse_ctr + pos
+    sz = pole_dim_half.width + pole_dim.length + pole_dim.height
+    pole = build_cuboid(geom, ctr, sz, und.poleDivision, name='Pole', color='#0000ff')
     pole.material = und.poleMaterial
     geom.objects.append(pole)
 
     mag_pole_grp = build_group(geom, [magnet_block, pole])
     geom.objects.append(mag_pole_grp)
 
-    tx = build_clone_xform(
+    mag_pole_grp.transforms = [build_clone_xform(
         geom,
-        und.numPeriods,
+        und.numPeriods - 1,
         True,
-        [build_xlate_clone(geom, beam_dir * und.periodLength)]
-    )
-    mag_pole_grp.transforms = [tx]
+        [build_xlate_clone(geom, beam_dir * und.periodLength / 2)]
+    )]
 
-    # reverse mag field here
-    pos += beam_dir * magnet_dim.length / 4
-    ctr = width_dir * magnet_dim.width / 4 + \
-        pos - \
-        gap_dir * ((magnet_dim.height + und.gap) / 2 - float(und.gapOffset))
-    sz = abs(width_dir * magnet_dim.width) / 2 + \
-         abs(beam_dir * magnet_dim.length) / 2 + \
-         abs(gap_dir * magnet_dim.height)
-    magnet_cap = build_cuboid(geom, ctr, sz, und.magnetDivision, name='End Block')
+    # TODO: reverse mag field here
+    pos = pole_dim_half.length + magnet_dim_half.length / 2 + beam_dir * und.periodLength
+    ctr = magnet_xverse_ctr + pos
+    sz = magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length
+    magnet_cap = build_cuboid(geom, ctr, sz, und.magnetDivision, name='End Block', color='#ffff00')
     magnet_cap.material = und.magnetMaterial
     geom.objects.append(magnet_cap)
 
     grp = build_group(geom, [half_pole, mag_pole_grp, magnet_cap])
     geom.objects.append(grp)
-    #grp.transforms = [
-    #    build_symm_xform(geom, width_dir, [0, 0, 0], 'perpendicular'),
-    #    build_symm_xform(geom, gap_dir, [0, 0, 0], 'parallel'),
-    #    build_symm_xform(geom, beam_dir, [0, 0, 0], 'perpendicular'),
-    #1]
-
-    #pkdp(f'BLT GRP {grp}')
-    #g = get_objs([grp])
-    #pkdp(f'GOT {len(g)} FLAT OBJS {[o.name for o in g]}')
-    #return [grp]
-    #data.geometry.objects = [grp]
-
+    grp.transforms = [
+        build_symm_xform(geom, width_dir, [0, 0, 0], 'perpendicular'),
+        build_symm_xform(geom, gap_dir, [0, 0, 0], 'parallel'),
+        build_symm_xform(geom, beam_dir, [0, 0, 0], 'perpendicular'),
+    ]
 
 
 def python_source_for_model(data):

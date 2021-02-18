@@ -42,7 +42,9 @@ def _apply_clone(g_id, xform):
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
         if cxf.model == 'translateClone':
-            txf = radia.TrfTrsl(sirepo.util.split_comma_delimited_string(cxf.distance, float))
+            txf = radia.TrfTrsl(
+                sirepo.util.split_comma_delimited_string(cxf.distance, float)
+            )
             xf = radia.TrfCmbL(xf, txf)
         if cxf.model == 'rotateClone':
             rxf = radia.TrfRot(
