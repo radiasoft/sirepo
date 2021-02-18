@@ -341,16 +341,18 @@
         },
         "hybridUndulator": {
             "_super": ["_", "model", "undulator"],
+            "magnetColor": ["Magnet Color", "Color", "#00ffff"],
             "magnetCrossSection": ["Magnet Cross Section", "FloatStringArray", "65.0, 45.0", "", "Width [mm], Height [mm]"],
-            "magnetDivision": ["Magnet Divisions", "IntStringArray", "1, 1, 3", "", "Nx, Ny, Nz"],
+            "magnetDivision": ["Magnet Divisions", "IntStringArray", "1, 1, 3", "", "Transverse to beam, Along gap axis, Along beam axis"],
             "magnetMaterial": ["Magnet Material", "MaterialType", "Xc06"],
             "magnetMaterialFile": ["Magnet H-B from File", "InputFile", "0", "H, B (T)"],
-            "gapOffset": ["Magnet Gap Offset [mm]", "Float", 1.0, ""],
+            "gapOffset": ["Magnet Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
+            "poleColor": ["Pole Color", "Color", "#ff00ff"],
             "poleCrossSection": ["Pole Cross Section", "FloatStringArray", "45.0, 25.0", "", "Width [mm], Height [mm]"],
-            "poleDivision": ["Pole Divisions", "IntStringArray", "2, 5, 2", "", "Nx, Ny, Nz"],
+            "poleDivision": ["Pole Divisions", "IntStringArray", "2, 5, 2", "", "Transverse to beam, Along gap axis, Along beam axis"],
             "poleMaterial": ["Pole Material", "MaterialType", "Xc06"],
             "poleMaterialFile": ["Pole H-B from File", "InputFile", "0", "H, B (T)"],
-            "poleLength": ["Pole Length [mm]", "Float", 5.0, "Length along beam direction"],
+            "poleLength": ["Pole Length [mm]", "Float", 5.0, "Length along beam direction"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -769,17 +771,19 @@
                 ]],
                 ["Poles", [
                     "hybridUndulator.poleCrossSection",
-                    "hybridUndulator.poleThickness",
+                    "hybridUndulator.poleLength",
                     "hybridUndulator.poleDivision",
                     "hybridUndulator.poleMaterial",
-                    "hybridUndulator.poleMaterialFile"
+                    "hybridUndulator.poleMaterialFile",
+                    "hybridUndulator.poleColor"
                 ]],
                 ["Permanent Magnets", [
                     "hybridUndulator.magnetCrossSection",
                     "hybridUndulator.magnetDivision",
                     "hybridUndulator.magnetMaterial",
                     "hybridUndulator.magnetMaterialFile",
-                    "hybridUndulator.gapOffset"
+                    "hybridUndulator.gapOffset",
+                    "hybridUndulator.magnetColor"
                 ]]
             ]
         }

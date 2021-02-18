@@ -437,16 +437,17 @@ def new_simulation(data, new_simulation_data):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
         #g = RadiaGeometry(_SIM_DATA, data.models.geometry)
-        #data.models.geometry.objects = _build_undulator(data.models.geometry, new_simulation_data)
-        _build_undulator(data.models.geometry, new_simulation_data)
+        #_build_undulator(data.models.geometry, new_simulation_data.beamAxis)
+        # wait?
+        pass
 
 
 def build_cuboid(geom, center, size, segments, name=None, color=None):
     b = build_geom_obj(geom, 'box', obj_name=name, obj_color=color)
     b.center = ','.join([str(x) for x in center])
     b.size = ','.join([str(x) for x in size])
-    b.division = segments
-    b.doDivide = '1' if any([int(s) > 1 for s in segments.split(',')]) else '0'
+    b.division = ','.join([str(x) for x in segments])
+    b.doDivide = '1' if any([int(s) > 1 for s in segments]) else '0'
     return b
 
 
@@ -518,25 +519,31 @@ def build_geom_obj(geom, model_name, obj_name=None, obj_color=None):
     return o
 
 
-def _build_undulator(geom, data):
+def _build_undulator(geom, beam_axis):
 
+    # will be settable by user, for the moment set them
     gap_dirs = PKDict(z='y', y='z', x='z')
-    if not geom.objects:
-        geom.objects = []
+    geom.objects = []
 
     und = build_geom_obj(geom, 'hybridUndulator', obj_name=geom.name)
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
-    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[data.beamAxis])
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
     # pick a leagal gap direction
-    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[gap_dirs[data.beamAxis]])
+    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[gap_dirs[beam_axis]])
 
     # we don't care about the direction of the cross product
     width_dir = abs(numpy.cross(beam_dir, gap_dir))
 
+    dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
+
+
     pole_x = [float(x) for x in und.poleCrossSection.split(',')]
     mag_x = [float(x) for x in und.magnetCrossSection.split(',')]
+
+    pole_segs = dir_matrix.dot([int(x) for x in und.poleDivision.split(',')])
+    mag_segs = dir_matrix.dot([int(x) for x in und.magnetDivision.split(',')])
 
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
@@ -562,21 +569,21 @@ def _build_undulator(geom, data):
     pos = pole_dim_half.length / 2
     ctr = pole_xverse_ctr + pos
     sz = pole_dim_half.width + pole_dim.height + pole_dim_half.length
-    half_pole = build_cuboid(geom, ctr, sz, und.poleDivision, name='Half Pole', color='#ff0000')
+    half_pole = build_cuboid(geom, ctr, sz, pole_segs, name='Half Pole', color=und.poleColor)
     half_pole.material = und.poleMaterial
     geom.objects.append(half_pole)
 
     pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
     ctr = magnet_xverse_ctr + pos
     sz = magnet_dim_half.width + magnet_dim.length + magnet_dim.height
-    magnet_block = build_cuboid(geom, ctr, sz, und.magnetDivision, name='Magnet Block', color='#00ff00')
+    magnet_block = build_cuboid(geom, ctr, sz, mag_segs, name='Magnet Block', color=und.magnetColor)
     magnet_block.material = und.magnetMaterial
     geom.objects.append(magnet_block)
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
     ctr = pole_xverse_ctr + pos
     sz = pole_dim_half.width + pole_dim.length + pole_dim.height
-    pole = build_cuboid(geom, ctr, sz, und.poleDivision, name='Pole', color='#0000ff')
+    pole = build_cuboid(geom, ctr, sz, pole_segs, name='Pole', color=und.poleColor)
     pole.material = und.poleMaterial
     geom.objects.append(pole)
 
@@ -594,7 +601,7 @@ def _build_undulator(geom, data):
     pos = pole_dim_half.length + magnet_dim_half.length / 2 + beam_dir * und.periodLength
     ctr = magnet_xverse_ctr + pos
     sz = magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length
-    magnet_cap = build_cuboid(geom, ctr, sz, und.magnetDivision, name='End Block', color='#ffff00')
+    magnet_cap = build_cuboid(geom, ctr, sz, mag_segs, name='End Block', color=und.magnetColor)
     magnet_cap.material = und.magnetMaterial
     geom.objects.append(magnet_cap)
 
@@ -832,6 +839,8 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False)
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
+    if v.magnetType == 'undulator':
+        _build_undulator(g, data.models.simulation.beamAxis)
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable
