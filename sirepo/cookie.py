@@ -47,7 +47,7 @@ def has_sentinel():
 
 @contextlib.contextmanager
 def process_header(unit_test=None):
-    with _State(unit_test or flask.request.environ.get('HTTP_COOKIE', '')):
+    with _set_cookie(unit_test or flask.request.environ.get('HTTP_COOKIE', '')):
         yield
 
 
@@ -64,6 +64,17 @@ def reset_state(error):
 def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
+@contextlib.contextmanager
+def _set_cookie(header):
+    # Maintain cookie states on stack to allow setting of cookies
+    # within a state where a cookie is already set
+    p = _state()
+    try:
+        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, _State(header))
+        yield
+    finally:
+        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, p)
+
 
 # TODO(e-carlin): rename to outside_of_flask_request()
 @contextlib.contextmanager
@@ -71,7 +82,7 @@ def set_cookie_for_utils(cookie_header=''):
     """A mock cookie for utilities"""
     if cookie_header:
         cookie_header = f'{cfg.http_name}={cookie_header}'
-    with _State(cookie_header):
+    with _set_cookie(cookie_header):
         set_sentinel()
         yield
 
@@ -121,17 +132,6 @@ class _State(dict):
         self.crypto = None
         self.incoming_serialized = ''
         self._from_cookie_header(header)
-
-    def __enter__(self):
-        # Need a stack of cookie states because we may call methods that
-        # create a new state from within an existing set state
-        sirepo.srcontext.setdefault(
-            _SRCONTEXT_COOKIE_STATE_KEY,
-            default=[],
-        ).append(self)
-
-    def __exit__(self, *args):
-        sirepo.srcontext.get(_SRCONTEXT_COOKIE_STATE_KEY).pop()
 
     def set_sentinel(self, values=None):
         if not values:
@@ -224,7 +224,7 @@ def _cfg_http_name(value):
 
 
 def _state():
-    return sirepo.srcontext.get(_SRCONTEXT_COOKIE_STATE_KEY)[-1]
+    return sirepo.srcontext.get(_SRCONTEXT_COOKIE_STATE_KEY)
 
 
 cfg = pkconfig.init(
