@@ -64,8 +64,6 @@ def audit_proprietary_lib_files(uid):
 
     def _add(proprietary_code_dir, sim_type, sim_data_class):
         p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
-        # TODO(e-carlin): discuss with rn what we should do if this fails
-        # This was what through an error and caused the migration not to finish
         sirepo.simulation_db.verify_app_directory(sim_type, uid=uid)
         with sirepo.simulation_db.tmp_dir(chdir=True, uid=uid) as t:
             d = t.join(p.basename)

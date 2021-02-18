@@ -114,8 +114,6 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _make_user_adm(uid):
         import sirepo.pkcli.roles
-        print('uuuuuuuuuuuuuuuuu ', uid)
-        print('rrrrrrrrrrrrrrrrrr ', sirepo.auth_role.ROLE_ADM)
         sirepo.pkcli.roles.add_roles(
             uid,
             sirepo.auth_role.ROLE_ADM,

@@ -511,10 +511,9 @@ def api_srUnit():
     if v.want_user:
         sirepo.cookie.set_sentinel()
         sirepo.auth.login(sirepo.auth.guest, is_mock=True)
-    with u():
-        if v.want_cookie:
-            sirepo.cookie.set_sentinel()
-        v.op()
+    if v.want_cookie:
+        sirepo.cookie.set_sentinel()
+    v.op()
     return http_reply.gen_json_ok()
 
 
@@ -636,7 +635,6 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     sirepo.util.init(server_context=True)
     uri_router.init(_app, simulation_db)
     if is_server:
-        assert not sirepo.util.in_flask_request()
         sirepo.db_upgrade.do_all()
     return _app
 

@@ -612,7 +612,6 @@ def _init():
         return
     global logged_in_user, user_dir_not_found
 
-
     def logged_in_user(*args, **kwargs):
         return cfg.logged_in_user
 
