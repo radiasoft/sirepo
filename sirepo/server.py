@@ -504,17 +504,15 @@ def api_srwLight():
 
 @api_perm.allow_visitor
 def api_srUnit():
-    # TODO(e-carlin): util.flask_app()
-    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    import sirepo.auth
+    import sirepo.cookie
+    v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
     u =  contextlib.nullcontext
     if v.want_user:
-        import sirepo.auth
-        import sirepo.cookie
         sirepo.cookie.set_sentinel()
         sirepo.auth.login(sirepo.auth.guest, is_mock=True)
     with u():
         if v.want_cookie:
-            import sirepo.cookie
             sirepo.cookie.set_sentinel()
         v.op()
     return http_reply.gen_json_ok()

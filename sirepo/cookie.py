@@ -125,8 +125,6 @@ def _set_cookie(header):
         sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, p)
 
 
-# TODO(e-carlin): change to PKDict
-# srcontext expects pkdict because it calls pkdel?
 class _State(dict):
 
     def __init__(self, header):
