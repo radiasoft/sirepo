@@ -54,7 +54,7 @@ def list(uid_or_email):
     """
 
     u = _parse_args(uid_or_email, [])
-    sirepo.auth_db.UserRole.get_roles(u)
+    return sirepo.auth_db.UserRole.get_roles(u)
 
 
 def list_roles(*args):
