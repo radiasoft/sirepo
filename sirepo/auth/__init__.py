@@ -194,7 +194,6 @@ def logged_in_user(check_path=True):
             cookie.unchecked_get_value(_COOKIE_METHOD),
         )
     if check_path:
-        # TODO(e-carlin): simulation_db won't be initialized in a context outside of server
         simulation_db.user_path(u, check=True)
     return u
 
