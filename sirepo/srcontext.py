@@ -18,6 +18,7 @@ def get(key, default=None):
     return _context().get(key, default)
 
 
+# TODO(e-carlin): is this used anywhere?
 def pop(key, default=None):
     return _context().pkdel(key, default)
 

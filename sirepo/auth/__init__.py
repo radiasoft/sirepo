@@ -402,7 +402,7 @@ def set_user_outside_of_flask_request(uid=None):
     """A user set explicitly outside of flask request cycle"""
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
-    with cookie.set_cookie_for_utils():
+    with cookie.set_cookie_outside_of_flask_request():
         import sirepo.auth.guest
         if uid:
             _login_user(sirepo.auth.guest, uid)

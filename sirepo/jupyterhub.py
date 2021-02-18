@@ -69,7 +69,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
 
 @contextlib.contextmanager
 def _set_cookie(handler):
-    with sirepo.cookie.set_cookie_for_utils(
+    with sirepo.cookie.set_cookie_outside_of_flask_request(
         handler.get_cookie(sirepo.cookie.cfg.http_name),
     ):
         yield
