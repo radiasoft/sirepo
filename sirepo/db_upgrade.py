@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkinspect, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
+import contextlib
 import os
 import sirepo.auth
 import sirepo.auth_db
@@ -23,11 +24,14 @@ def do_all():
     a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
     f = pkinspect.module_functions('_2')
     for n in sorted(set(f.keys()) - set(a)):
-        f[n]()
-        sirepo.auth_db.DbUpgrade(
-            name=n,
-            created=sirepo.srtime.utc_now(),
-        ).save()
+        with _backup_db_and_restore_on_error():
+            pkdlog('running upgrade {}', n)
+            f[n]()
+            sirepo.auth_db.DbUpgrade(
+                name=n,
+                created=sirepo.srtime.utc_now(),
+            ).save()
+
 
 
 def _20210211_add_flash_proprietary_lib_files(force=False):
@@ -149,3 +153,19 @@ def _20210211_upgrade_runner_to_job_db():
 
 def _20210218_add_flash_proprietary_lib_files_force():
     _20210211_add_flash_proprietary_lib_files(force=True)
+
+
+@contextlib.contextmanager
+def _backup_db_and_restore_on_error():
+    import sirepo.auth_db
+    import sirepo.srdb
+
+    b = sirepo.auth_db.db_filename() + '.bak'
+    sirepo.auth_db.db_filename().copy(b)
+    try:
+        yield
+    except Exception:
+        b.rename(sirepo.auth_db.db_filename())
+        raise
+    finally:
+        pkio.unchecked_remove(b)
