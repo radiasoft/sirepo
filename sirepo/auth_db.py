@@ -43,13 +43,15 @@ def all_uids():
     return UserRegistration.search_all_for_column('uid')
 
 
-def audit_proprietary_lib_files(uid):
+def audit_proprietary_lib_files(uid, force=False, sim_types=None):
     """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash tarball if user has the flash role.
 
     Args:
       uid (str): The uid of the user to audit
+      force (bool): Overwrite existing lib files with the same name as new ones
+      sim_types (set): Set of sim_types to audit (all proprietary_sim_types if None)
     """
     import contextlib
     import py
@@ -80,10 +82,15 @@ def audit_proprietary_lib_files(uid):
             l = sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid)
             e = [f.basename for f in pykern.pkio.sorted_glob(l.join('*'))]
             for f in sim_data_class.proprietary_code_lib_file_basenames():
-                if f not in e:
+                if force or f not in e:
                     t.join(f).rename(l.join(f))
 
-    for t in sirepo.feature_config.cfg().proprietary_sim_types:
+    s = sirepo.feature_config.cfg().proprietary_sim_types
+    if sim_types:
+        assert sim_types.issubset(s), \
+            f'sim_types={sim_types} not a subset of proprietary_sim_types={s}'
+        s = sim_types
+    for t in s:
         c = sirepo.sim_data.get_class(t)
         if not c.proprietary_code_tarball():
             return

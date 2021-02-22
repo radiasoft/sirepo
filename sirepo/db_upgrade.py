@@ -30,7 +30,7 @@ def do_all():
         ).save()
 
 
-def _20210211_add_flash_proprietary_lib_files():
+def _20210211_add_flash_proprietary_lib_files(force=False):
     """Add proprietary lib files to existing FLASH users' lib dir"""
 
     if not sirepo.template.is_sim_type('flash'):
@@ -42,7 +42,7 @@ def _20210211_add_flash_proprietary_lib_files():
             uid=u,
         ).join('flash.rpm'))
         # Add's the flash proprietary lib files (unpacks flash.tar.gz)
-        sirepo.auth_db.audit_proprietary_lib_files(u)
+        sirepo.auth_db.audit_proprietary_lib_files(u, force=force, sim_types=set(('flash',)))
 
 
 def _20210211_upgrade_runner_to_job_db():
@@ -145,3 +145,7 @@ def _20210211_upgrade_runner_to_job_db():
                 k.error = getattr(e, 'args', []) or e
                 s += ' error={error}'
             pkdlog(s, **k)
+
+
+def _20210218_add_flash_proprietary_lib_files_force():
+    _20210211_add_flash_proprietary_lib_files(force=True)
