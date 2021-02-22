@@ -17,6 +17,7 @@ from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
+import contextlib
 import flask
 import importlib
 import os
@@ -503,12 +504,14 @@ def api_srwLight():
 
 @api_perm.allow_visitor
 def api_srUnit():
-    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    import sirepo.auth
+    import sirepo.cookie
+    v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
+    u =  contextlib.nullcontext
     if v.want_user:
-        import sirepo.auth
-        sirepo.auth.set_user_for_utils()
+        sirepo.cookie.set_sentinel()
+        sirepo.auth.login(sirepo.auth.guest, is_mock=True)
     if v.want_cookie:
-        import sirepo.cookie
         sirepo.cookie.set_sentinel()
     v.op()
     return http_reply.gen_json_ok()
@@ -527,7 +530,7 @@ def api_staticFile(path_info=None):
         flask.Response: flask.send_from_directory response
     """
     if not path_info:
-        raise util.raise_not_found('empty path info')
+        raise sirepo.util.raise_not_found('empty path info')
     p = pkio.py_path(flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info))
     r = None
     if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):

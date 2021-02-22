@@ -186,6 +186,11 @@ def flask_app():
 
     return flask.current_app or None
 
+def in_flask_request():
+    import flask
+
+    return flask.request or None
+
 
 def init(server_context=False):
     global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_LOCK

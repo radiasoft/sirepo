@@ -10,10 +10,13 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
+import contextlib
 import cryptography.fernet
 import flask
 import itertools
 import re
+import sirepo.srcontext
+import sirepo.util
 
 #: sirepo.auth gets to override parsing
 auth_hook_from_header = None
@@ -28,6 +31,8 @@ _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
 
+_SRCONTEXT_COOKIE_STATE_KEY = 'cookie_state'
+
 
 def get_value(key):
     return _state()[key]
@@ -41,8 +46,10 @@ def has_sentinel():
     return _COOKIE_SENTINEL in _state()
 
 
+@contextlib.contextmanager
 def process_header(unit_test=None):
-    _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
+    with _set_cookie(unit_test or flask.request.environ.get('HTTP_COOKIE', '')):
+        yield
 
 
 def reset_state(error):
@@ -59,13 +66,16 @@ def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
 
-def set_cookie_for_utils(cookie_header=''):
+@contextlib.contextmanager
+def set_cookie_outside_of_flask_request(cookie_header=''):
     """A mock cookie for utilities"""
-    flask.g = PKDict()
+    assert not sirepo.util.in_flask_request(), \
+        'Only call from outside a flask request context'
     if cookie_header:
         cookie_header = f'{cfg.http_name}={cookie_header}'
-    _State(cookie_header)
-    set_sentinel()
+    with _set_cookie(cookie_header):
+        set_sentinel()
+        yield
 
 def set_sentinel(values=None):
     """Bypasses the state where the cookie has not come back from the client.
@@ -103,13 +113,24 @@ def unchecked_remove(key):
         return None
 
 
+@contextlib.contextmanager
+def _set_cookie(header):
+    # Maintain cookie states on stack to allow setting of cookies
+    # within a state where a cookie is already set
+    p = _state()
+    try:
+        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, _State(header))
+        yield
+    finally:
+        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, p)
+
+
 class _State(dict):
 
     def __init__(self, header):
         super(_State, self).__init__()
         self.crypto = None
         self.incoming_serialized = ''
-        flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
 
     def set_sentinel(self, values=None):
@@ -203,7 +224,7 @@ def _cfg_http_name(value):
 
 
 def _state():
-    return flask.g.sirepo_cookie
+    return sirepo.srcontext.get(_SRCONTEXT_COOKIE_STATE_KEY)
 
 
 cfg = pkconfig.init(

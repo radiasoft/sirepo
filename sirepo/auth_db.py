@@ -43,16 +43,19 @@ def all_uids():
     return UserRegistration.search_all_for_column('uid')
 
 
-def audit_proprietary_lib_files():
+def audit_proprietary_lib_files(uid):
     """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash tarball if user has the flash role.
+
+    Args:
+      uid (str): The uid of the user to audit
     """
     import contextlib
     import py
     import pykern.pkconfig
     import pykern.pkio
-    import sirepo.auth
+    import sirepo.auth_role
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.simulation_db
@@ -61,8 +64,8 @@ def audit_proprietary_lib_files():
 
     def _add(proprietary_code_dir, sim_type, sim_data_class):
         p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
-        sirepo.simulation_db.verify_app_directory(sim_type)
-        with sirepo.simulation_db.tmp_dir(chdir=True) as t:
+        sirepo.simulation_db.verify_app_directory(sim_type, uid=uid)
+        with sirepo.simulation_db.tmp_dir(chdir=True, uid=uid) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
             subprocess.check_output(
@@ -74,7 +77,7 @@ def audit_proprietary_lib_files():
                 ],
                 stderr=subprocess.STDOUT,
             )
-            l = sirepo.simulation_db.simulation_lib_dir(sim_type)
+            l = sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid)
             e = [f.basename for f in pykern.pkio.sorted_glob(l.join('*'))]
             for f in sim_data_class.proprietary_code_lib_file_basenames():
                 if f not in e:
@@ -89,13 +92,14 @@ def audit_proprietary_lib_files():
             f'{d} proprietary_code_dir must exist' \
             + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
         r = UserRole.has_role(
-            sirepo.auth.logged_in_user(),
-            sirepo.auth.role_for_sim_type(t),
+            uid,
+            sirepo.auth_role.role_for_sim_type(t),
         )
         if r:
             _add(d, t, c)
             continue
-        pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t))
+        # SECURITY: User no longer has access so remove all artifacts
+        pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t, uid=uid))
 
 
 def init():
@@ -189,35 +193,29 @@ def init():
                 ]
 
         @classmethod
-        def add_roles(cls, roles):
-            import sirepo.auth
-
+        def add_roles(cls, uid, roles):
             with thread_lock:
                 for r in roles:
-                    UserRole(uid=sirepo.auth.logged_in_user(), role=r).save()
-                audit_proprietary_lib_files()
+                    UserRole(uid=uid, role=r).save()
+                audit_proprietary_lib_files(uid)
 
         @classmethod
-        def delete_roles(cls, roles):
-            import sirepo.auth
-
+        def delete_roles(cls, uid, roles):
             with thread_lock:
                 cls._session.query(cls).filter(
-                    cls.uid == sirepo.auth.logged_in_user(),
+                    cls.uid == uid,
                 ).filter(
                     cls.role.in_(roles),
                 ).delete(synchronize_session='fetch')
                 cls._session.commit()
-                audit_proprietary_lib_files()
+                audit_proprietary_lib_files(uid)
 
         @classmethod
-        def get_roles(cls, check_path=True):
-            import sirepo.auth
-
+        def get_roles(cls, uid):
             with thread_lock:
                 return UserRole.search_all_for_column(
                     'role',
-                    uid=sirepo.auth.logged_in_user(check_path=check_path),
+                    uid=uid,
                 )
 
 
@@ -228,11 +226,11 @@ def init():
 
         @classmethod
         def uids_of_paid_users(cls):
-            import sirepo.auth
+            import sirepo.auth_role
 
             return [
                 x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
-                    cls.role.in_(sirepo.auth.PAID_USER_ROLES),
+                    cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
     UserDbBase.metadata.create_all(_engine)
@@ -303,13 +301,12 @@ def _migrate_db_file(fn):
 
 
 def _migrate_role_jupyterhub():
-    import sirepo.auth
+    import sirepo.auth_role
     import sirepo.template
 
-    r = sirepo.auth.role_for_sim_type('jupyterhublogin')
+    r = sirepo.auth_role.role_for_sim_type('jupyterhublogin')
     if not sirepo.template.is_sim_type('jupyterhublogin') or \
        r in UserRole.all_roles():
         return
     for u in all_uids():
-        with sirepo.auth.set_user(u):
-            UserRole.add_roles([r])
+        UserRole.add_roles(u, [r])
