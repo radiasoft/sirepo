@@ -49,7 +49,7 @@ def _add_object(o):
         g_id = radia_tk.build_container(grp)
     for transform in o.transforms:
         radia_tk.apply_transform(g_id, PKDict(transform))
-    id_map[o.mapId] = g_id
+    id_map[g_id] = o.id
     radia_objs.append(g_id)
     return g_id
 

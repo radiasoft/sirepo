@@ -248,7 +248,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     var watchedModels = [
         'geomObject',
         'geomGroup',
-        'radiaObject'
+        'radiaObject',
+        'undulator'
     ];
 
     self.builderCfg = {
@@ -913,19 +914,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
             }
+            //if (SIREPO.APP_SCHEMA.constants.parameterizedMagnets.indexOf(modelName) >= 0) {
+            //    appState.models.geometry.lastModified = Date.now();
+            //}
             var o = self.selectedObject;
-            if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
-                // catch unrelated saved objects
-                if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
-                    addObject(o);
+            if (o) {
+                if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
+                    // catch unrelated saved objects
+                    if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
+                        addObject(o);
+                    }
+                    else {
+                        self.selectedObject = null;
+                    }
                 }
-                else {
-                    self.selectedObject = null;
+                if (o.materialFile) {
+                    o.hmFileName = o.materialFile.name;
+                    radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
                 }
-            }
-            if (o.materialFile) {
-                o.hmFileName = o.materialFile.name;
-                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
             }
             appState.saveChanges('geometry', function (d) {
                 //srdbg('geometry ch', self.selectedObject);
@@ -2255,18 +2261,22 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     // ***NEED BETTER ID, KNOWN ON BOTH SIDES***
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
+                    var radiaId = sceneDatum.id;
+                    var objId = (sceneData.idMap || {})[radiaId];
+                    srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
                     for (var j = 0; j < radiaVtkUtils.GEOM_TYPES.length; ++j) {
                         var t = radiaVtkUtils.GEOM_TYPES[j];
-                        var id = gname + '.' + t;
+                        //var id = gname + '.' + t;
                         var d = sceneDatum[t];
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             continue;
                         }
                         var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
-                        //var gObj = radiaService.getObject(id) || {};
-                        var gObj = radiaService.getObject(i) || {};
+                        //var gObj = radiaService.getObject(radiaId) || {};
+                        //var gObj = radiaService.getObject(i) || {};
+                        let gObj = radiaService.getObject(objId) || {};
                         //srdbg('gobj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         // use colors from Radia for groups
@@ -2301,13 +2311,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        //var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        let info = addActor(objId, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
                         if (isPoly && $.isEmptyObject(gObj)) {
                             //srdbg('add poly obj', gObj);
                             gObj = appState.setModelDefaults(gObj, 'radiaObject');
-                            gObj.name = id;
-                            gObj.id = id;
+                            gObj.name = `${gname}.radiaObject`;  //id;
+                            gObj.id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);  //id;
                             if (gColor) {
                                 // **IF GROUP COLOR USE IF NOT USE OBJECT COLOR**
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));

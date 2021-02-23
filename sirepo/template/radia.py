@@ -359,7 +359,6 @@ def get_application_data(data, **kwargs):
         )
         res.solution = _read_solution(sim_id)
         res.idMap = id_map
-        # moved addition of lines from client
         tmp_f_type = data.fieldType
         data.fieldType = None
         data.geomTypes = [_SCHEMA.constants.geomTypeLines]
@@ -379,7 +378,7 @@ def get_application_data(data, **kwargs):
             'geomTypes',
             [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
         )
-        g_types.extend(['center', 'name', 'size'])
+        g_types.extend(['center', 'name', 'size', 'id'])
         res = _read_or_generate(g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
@@ -437,7 +436,7 @@ def new_simulation(data, new_simulation_data):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
         #g = RadiaGeometry(_SIM_DATA, data.models.geometry)
-        #_build_undulator(data.models.geometry, new_simulation_data.beamAxis)
+        _build_undulator(data.models.geometry, new_simulation_data.beamAxis)
         # wait?
         pass
 
@@ -538,10 +537,10 @@ def _build_undulator(geom, beam_axis):
 
     dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
 
-
     pole_x = [float(x) for x in und.poleCrossSection.split(',')]
     mag_x = [float(x) for x in und.magnetCrossSection.split(',')]
 
+    # put the segmentation in the correct order
     pole_segs = dir_matrix.dot([int(x) for x in und.poleDivision.split(',')])
     mag_segs = dir_matrix.dot([int(x) for x in und.magnetDivision.split(',')])
 
@@ -839,8 +838,8 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False)
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
-    if v.magnetType == 'undulator':
-        _build_undulator(g, data.models.simulation.beamAxis)
+    #if v.magnetType == 'undulator':
+    #    _build_undulator(g, data.models.simulation.beamAxis)
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable
@@ -932,6 +931,24 @@ def _get_sdds(cols, units):
     return _cfg.sdds
 
 
+def _kick_map_plot(sim_id, model):
+    from sirepo import srschema
+    g_id = _get_g_id(sim_id)
+    component = model.component
+    km = _generate_kick_map(g_id, model)
+    if not km:
+        return None
+    z = km[component]
+    return PKDict(
+        title=f'{srschema.get_enums(_SCHEMA, "KickMapComponent")[component]} (T2m2)',
+        x_range=[km.x[0], km.x[-1], len(z)],
+        y_range=[km.y[0], km.y[-1], len(z[0])],
+        x_label='x [mm]',
+        y_label='y [mm]',
+        z_matrix=z,
+    )
+
+
 def _read_h5_path(sim_id, run_dir, filename, h5path):
     try:
         with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
@@ -961,6 +978,7 @@ def _read_h_m_file(file_name):
 def _read_data(sim_id, view_type, field_type):
     res = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _geom_h5_path(view_type, field_type))
     if res:
+        res.idMap = _read_id_map(sim_id)
         res.solution = _read_solution(sim_id)
     return res
 
@@ -971,31 +989,6 @@ def _read_id_map(sim_id):
 
 def _read_kick_map(sim_id):
     return _read_h5_path(sim_id, 'kickMap', _KICK_FILE, _H5_PATH_KICK_MAP)
-
-
-def _read_or_generate_kick_map(g_id, data):
-    res = _read_kick_map(data.simulationId)
-    if res:
-        return res
-    return _generate_kick_map(g_id, data.model)
-
-
-def _kick_map_plot(sim_id, model):
-    from sirepo import srschema
-    g_id = _get_g_id(sim_id)
-    component = model.component
-    km = _generate_kick_map(g_id, model)
-    if not km:
-        return None
-    z = km[component]
-    return PKDict(
-        title=f'{srschema.get_enums(_SCHEMA, "KickMapComponent")[component]} (T2m2)',
-        x_range=[km.x[0], km.x[-1], len(z)],
-        y_range=[km.y[0], km.y[-1], len(z[0])],
-        x_label='x [mm]',
-        y_label='y [mm]',
-        z_matrix=z,
-    )
 
 
 def _read_or_generate(g_id, data):
@@ -1011,6 +1004,13 @@ def _read_or_generate(g_id, data):
             path=_geom_h5_path(data.viewType, f_type)
         )
     return get_application_data(data)
+
+
+def _read_or_generate_kick_map(g_id, data):
+    res = _read_kick_map(data.simulationId)
+    if res:
+        return res
+    return _generate_kick_map(g_id, data.model)
 
 
 def _read_solution(sim_id):

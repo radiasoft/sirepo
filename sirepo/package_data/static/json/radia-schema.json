@@ -33,6 +33,9 @@
         ],
         "inProgressText": "Solving",
         "objectScale": 0.001,
+        "parameterizedMagnets": [
+            "undulator"
+        ],
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
         "dataDownloads": {
