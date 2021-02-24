@@ -33,9 +33,17 @@
         ],
         "inProgressText": "Solving",
         "objectScale": 0.001,
-        "parameterizedMagnets": [
-            "undulator"
-        ],
+        "parameterizedMagnets": {
+            "undulator": {
+                "objectNames": {
+                    "halfPole": "Half Pole",
+                    "magnetBlock": "Magnet Block",
+                    "pole": "Pole",
+                    "magPole": "Magnet-Pole Pair",
+                    "endBlock": "End Block"
+                }
+            }
+        },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
         "dataDownloads": {
@@ -583,6 +591,34 @@
             ]],
                 ["Transforms", [
                     "transforms"
+                ]]
+            ]
+        },
+        "hybridUndulator": {
+            "title": "Undulator",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "gap",
+                    "gapAxis",
+                    "numPeriods",
+                    "periodLength"
+                ]],
+                ["Poles", [
+                    "poleCrossSection",
+                    "poleLength",
+                    "poleDivision",
+                    "poleMaterial",
+                    "poleMaterialFile",
+                    "poleColor"
+                ]],
+                ["Permanent Magnets", [
+                    "magnetCrossSection",
+                    "magnetDivision",
+                    "magnetMaterial",
+                    "magnetMaterialFile",
+                    "gapOffset",
+                    "magnetColor"
                 ]]
             ]
         },

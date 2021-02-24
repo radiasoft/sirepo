@@ -248,6 +248,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     var watchedModels = [
         'geomObject',
         'geomGroup',
+        'hybridUndulator',
         'radiaObject',
         'undulator'
     ];
@@ -494,7 +495,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addObject(o) {
         o.id  = self.nextId();
-        o.mapId = getMapId(o);
+        //o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
         // for groups, set the group id of all members
         //var n = 0;
@@ -663,9 +664,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     // used to map the client-created object to a server-created Radia id
-    function getMapId(o) {
-        return o.name + '.' + o.id;
-    }
+    //function getMapId(o) {
+    //    return o.name + '.' + o.id;
+    //}
 
     // recursive dive through all subgroups
     function getMembers(o) {
@@ -914,9 +915,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
             }
-            //if (SIREPO.APP_SCHEMA.constants.parameterizedMagnets.indexOf(modelName) >= 0) {
-            //    appState.models.geometry.lastModified = Date.now();
-            //}
+            if (Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0) {
+                appState.models.geometry.lastModified = Date.now();
+            }
             var o = self.selectedObject;
             if (o) {
                 if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
@@ -934,10 +935,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
             appState.saveChanges('geometry', function (d) {
-                //srdbg('geometry ch', self.selectedObject);
-                if (self.selectedObject) {
-                    loadShapes();
-                }
+                panelState.clear('geometry');  //??
+                // need to rebuild the geometry after changes were made
+                panelState.requestData('geometry', function(data) {
+                    if (self.selectedObject) {
+                        loadShapes();
+                    }
+                });
+                //if (self.selectedObject) {
+                //    loadShapes();
+                //}
                 //self.selectedObject = null;
                 //loadShapes();
             });
@@ -2263,7 +2270,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     var sceneDatum = data[i];
                     var radiaId = sceneDatum.id;
                     var objId = (sceneData.idMap || {})[radiaId];
-                    srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
+                    //srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
                     for (var j = 0; j < radiaVtkUtils.GEOM_TYPES.length; ++j) {
