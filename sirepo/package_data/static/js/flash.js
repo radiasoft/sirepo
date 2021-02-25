@@ -9,9 +9,6 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="NoDashInteger" data-ng-class="fieldClass">',
         // TODO(e-carlin): this is just copied from sirepo-components
           '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
-        '</div>',
-        '<div data-ng-switch-when="DirectiveParameterField" data-ng-class="fieldClass">',
-          '<div data-directive-parameter-field="" data-field="field" data-model="model"></div>',
         '</div>'
     ].join('');
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -30,21 +27,6 @@ SIREPO.app.factory('directiveService', function(appState, panelState, validation
         return DIRECTIVE_PREFIX + item._type;
     }
 
-    self.create = function(name) {
-        if(! appState.models.setupConfigDirectives) {
-            appState.models.setupConfigDirectives = [];
-        }
-
-        const m = {
-            _id: appState.maxId(appState.models.setupConfigDirectives, '_id') + 1,
-            _type: name,
-        };
-        const n = modelName(m);
-        appState.setModelDefaults(m, n);
-        appState.models[n] = m;
-        panelState.showModalEditor(n);
-    };
-
     self.description = function(directive) {
         return {
             PARAMETER: `${directive.name} ${directive.type} ${directive.default}`,
@@ -55,29 +37,6 @@ SIREPO.app.factory('directiveService', function(appState, panelState, validation
             VARIABLE: `${directive.name}`
         }[directive._type];
     };
-
-    self.editDirective = function(directive) {
-        function directiveForId(directive) {
-            const d = appState.models.setupConfigDirectives;
-            for (let i = 0; i < d.length; i++) {
-                if (d[i]._id == directive._id) {
-                    return d[i];
-                }
-            }
-            return null
-        }
-        const m = modelName(directive);
-        appState.models[m] = directiveForId(directive);
-        panelState.showModalEditor(m);
-    };
-
-    self.isDirectiveModelName = function(name) {
-        return name.indexOf(DIRECTIVE_PREFIX) === 0;
-    }
-
-    self.typeFromModelName = function(name) {
-        return name.split(DIRECTIVE_PREFIX)[1];
-    }
 
     return self;
 });
@@ -111,17 +70,6 @@ SIREPO.app.factory('flashService', function(appState, panelState) {
 SIREPO.app.controller('ConfigController', function (directiveService, flashService) {
     var self = this;
     self.flashService = flashService;
-    // Ordering matters - It is the order they appear in the config table
-    self.directiveNames = [
-        'REQUIRES',
-        'REQUESTS',
-        'PARAMETER',
-        'PARTICLEPROP',
-        'PARTICLEMAP',
-        'VARIABLE',
-    ];
-    self.advancedNames = [];
-
 });
 
 SIREPO.app.controller('PhysicsController', function (flashService) {
@@ -319,14 +267,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 SIREPO.app.directive('configTable', function(appState, directiveService, panelState) {
     return {
         restrict: 'A',
-        scope: {
-            directiveNames: '=',
-        },
+        scope: {},
         template: [
             '<div class="pull-right">',
-                '<button class="btn btn-info btn-xs" data-ng-click="newDirective()" accesskey="c" ng-bind-html="newDirectiveText()"><span class="glyphicon glyphicon-plus"></span></button>',
               '</div>',
-              '<p class="lead text-center"><small><em>Hover over a directive to see edit options</em></small></p>',
               '<table class="table table-hover" style="width: 100%">',
               '<tbody data-ng-repeat="(name, category) in tree">',
                 '<tr>',
@@ -334,7 +278,6 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
                 '</tr>',
                 '<tr data-ng-show="! category.isCollapsed" data-ng-repeat="directive in category.directives track by $index">',
                   '<td>',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveDirective(-1, name, directive)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == category.directives.length - 1" data-ng-click="moveDirective(1, name, directive)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editDirective(directive)">Edit</button><button data-ng-click="deleteDirective(directive)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div>',
                       '<div style="font-size: 14px" class="badge sr-badge-icon">{{ directive._type }}</div>',
                     '</div>',
@@ -343,9 +286,7 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
                 '</tr>',
               '</tbody>',
               '</table>',
-              '<button class="btn btn-info btn-xs pull-right" data-ng-click="newDirective()" accesskey="c" ng-bind-html="newDirectiveText()"><span class="glyphicon glyphicon-plus"></span></button>',
             '</div>',
-            '<div data-confirmation-modal="" data-id="sr-delete-directive-confirmation" data-title="Delete Directive?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete directive &quot;{{ selectedDirectiveType() }}&quot;?</div>',
         ].join(''),
         controller: function($injector, $scope) {
             var selectedDirective = null;
@@ -355,7 +296,14 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
             function loadDirectives() {
                 $scope.tree = {};
                 const tree = {};
-                $scope.directiveNames.forEach((n) => {
+                [
+                    'REQUIRES',
+                    'REQUESTS',
+                    'PARAMETER',
+                    'PARTICLEPROP',
+                    'PARTICLEMAP',
+                    'VARIABLE',
+                ].forEach((n) => {
                     tree[n] = {
                             directives: [],
                             isCollapsed: collapsedCategories[n],
@@ -376,86 +324,6 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
                 $scope.tree = tree;
             }
 
-            function saveDirectives() {
-                const directives = [];
-                Object.values($scope.tree).forEach((c) => {
-                    c.directives.forEach((d) => {
-                        const e = {...d};
-                        delete e.description;
-                        directives.push(e)
-                    })
-                })
-                appState.models.setupConfigDirectives = directives;
-                appState.saveChanges('setupConfigDirectives');
-            }
-
-            $scope.deleteDirective = function(directive) {
-                $scope.selectDirective(directive);
-                $('#sr-delete-directive-confirmation').modal('show');
-            };
-
-            $scope.deleteSelected = function() {
-                let index = null;
-                const d = $scope.tree[selectedDirective._type].directives;
-                for (let i = 0; i < d.length; i++) {
-                    if (d[i]._id === selectedDirective._id) {
-                        index = i;
-                        break
-                    }
-                }
-                if (index >= 0) {
-                    selectedDirective = null;
-                    d.splice(index, 1)
-                    saveDirectives();
-                }
-            };
-
-            // expects a negative number to move up, positive to move down
-            $scope.moveDirective = function(direction, categoryName, directive) {
-                function directiveIndex(directive) {
-                    const d = $scope.tree[categoryName].directives;
-                    for (let i = 0; i< d.length; i++) {
-                        if (d[i]._id === directive._id)  {
-                            return i
-                        }
-                    }
-                    throw new Error(`directive=${d} not found in setupConfigDirectives`);
-                }
-                const idx = directiveIndex(directive);
-                const d = $scope.tree[categoryName].directives;
-                const n = Math.min(Math.max(idx + direction, 0), d.length - 1);
-                if (idx === n) {
-                    return;
-                }
-                const t = d[idx]
-                d[idx] = d[n];
-                d[n] = t;
-                saveDirectives();
-            };
-
-            $scope.editDirective = function(directive) {
-                directiveService.editDirective(directive);
-            };
-
-            $scope.newDirective = function() {
-                $('#' + panelState.modalId('newDirective')).modal('show');
-            };
-
-            $scope.newDirectiveText = function() {
-                return 'New <u>D</u>irective';
-            }
-
-            $scope.selectDirective = function(directive) {
-                selectedDirective = directive;
-            };
-
-            $scope.selectedDirectiveType = function() {
-                if (selectedDirective) {
-                    return selectedDirective._type;
-                }
-                return '';
-            };
-
             $scope.toggleCategory = function(name, category) {
                 category.isCollapsed = ! category.isCollapsed;
                 collapsedCategories[name] = category.isCollapsed;
@@ -463,170 +331,12 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
 
             appState.whenModelsLoaded($scope, function() {
                 $scope.$on('modelChanged', function(e, name) {
-                    function selectedDirectiveIndex() {
-                        if (selectedDirective) {
-                            const d = appState.models.setupConfigDirectives;
-                            for (let i = 0; i < d.length; i++) {
-                                if (d[i]._id == selectedDirective._id) {
-                                    return i;
-                                }
-                            }
-                        }
-                        return -1;
-                    }
-
                     if (name == 'setupConfigDirectives') {
                         loadDirectives();
-                    }
-                    if (directiveService.isDirectiveModelName(name)) {
-                        let foundIt = false;
-                        const d = ($scope.tree[directiveService.typeFromModelName(name)] || {}).directives || [];
-                        for (var i = 0; i < d.length; i++) {
-                            if (d[i]._id == appState.models[name]._id) {
-                                foundIt = true;
-                                break;
-                            }
-                        }
-                        if (! foundIt) {
-                            const index = selectedDirectiveIndex();
-                            if (index >= 0) {
-                                appState.models.setupConfigDirectives.splice(index + 1, 0, appState.models[name]);
-                            }
-                            else {
-                                appState.models.setupConfigDirectives.push(appState.models[name]);
-                            }
-                            $scope.selectDirective(appState.models[name]);
-                        }
-                        appState.removeModel(name);
-                        appState.saveChanges('setupConfigDirectives');
-                    }
-                });
-                $scope.$on('cancelChanges', function(e, name) {
-                    if (directiveService.isDirectiveModelName(name)) {
-                        appState.removeModel(name);
-                        appState.cancelChanges('setupConfigDirectives');
                     }
                 });
                 loadDirectives();
             });
-        },
-    };
-});
-
-SIREPO.app.directive('directiveParameterField', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: [
-            // TODO(e-carlin): copied from sirepo-components.fieldEditor
-            '<div data-ng-switch="type">',
-              '<div data-ng-switch-when="Integer" data-ng-class="fieldClass">',
-                '<input data-string-to-number="integer" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" />',
-              '</div>',
-              '<div data-ng-switch-when="Float" data-ng-class="fieldClass">',
-                '<input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" />',
-              '</div>',
-               '<div data-ng-switch-when="Boolean" class="col-sm-7">',
-                 // angular has problems initializing checkboxes - ngOpen has no effect on them, but we can use it to change the state as the models load
-                 '<input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">',
-              '</div>',
-              '<div data-ng-switch-when="String" data-ng-class="fieldClass">',
-                '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" />',
-              '</div>',
-             '</div>',
-        ].join(''),
-        controller: function($scope, appState) {
-            $scope.fieldDelegate = {};
-            const d = {
-                BOOLEAN: 'Boolean',
-                INTEGER: 'Integer',
-                REAL: 'Float',
-                STRING: 'String'
-            };
-
-            function setType() {
-                function info(type) {
-                    const b = [...SIREPO.APP_SCHEMA.model.directive_PARAMETER.default];
-                    b[1] = type;
-                    $scope.info = b;
-                }
-
-                $scope.type = d[$scope.model.type];
-                if ($scope.type === 'Boolean')  {
-                    info('Boolean');
-                } else {
-                    info('DirectiveParameterField');
-                }
-                // TODO(e-carlin): fix
-                // field needs to be reset whenever the type is changed.
-                // If we go from REAL 2.45 to bool the 2.45 needs to be cleared.
-                // This doesn't work because a change is raised whenever we
-                // open a new directive which means the field will be cleared
-                // as soon as a user opens a new directive even if they don't
-                // change the type
-                $scope.model[$scope.field] = '';
-            }
-
-            setType();
-            appState.watchModelFields($scope, ['directive_PARAMETER.type'], () => {
-                setType();
-            })
-        },
-    };
-});
-
-SIREPO.app.directive('directivePicker', function(directiveService) {
-    return {
-        restrict: 'A',
-        scope: {
-            controller: '=',
-            title: '@',
-            id: '@',
-            smallElementClass: '@',
-        },
-        template: [
-            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<div data-ng-repeat="name in controller.directiveNames" class="col-sm-4">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="createDirective(name)">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div class="col-sm-offset-6 col-sm-3">',
-                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
-                        '</div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.createDirective = function(name) {
-                // don't show the new editor until the picker panel is gone
-                // the modal show/hide in bootstrap doesn't handle layered modals
-                // and the browser scrollbar can be lost in some cases
-                var picker = $('#' + $scope.id);
-                picker.on('hidden.bs.modal', function() {
-                    picker.off();
-                    directiveService.create(name);
-                    $scope.$applyAsync();
-                });
-                picker.modal('hide');
-            };
         },
     };
 });
@@ -651,9 +361,6 @@ SIREPO.app.directive('runtimeParametersTable', function() {
                   '<td>',
                     '<div>{{ param.value }}</div>',
                   '</td>',
-                  '<td>',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editParam(param)">Edit</button></div></div>',
-                  '</td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -667,24 +374,10 @@ SIREPO.app.directive('runtimeParametersTable', function() {
                 });
             }
 
-            $scope.editParam = function(param) {
-                directiveService.editDirective(param);
-            }
-
             appState.whenModelsLoaded($scope, function() {
                 $scope.$on('modelChanged', function(e, name) {
                     if (name == 'setupConfigDirectives') {
                         loadParameters();
-                    }
-                    if (directiveService.isDirectiveModelName(name)) {
-                        appState.removeModel(name);
-                        appState.saveChanges('setupConfigDirectives');
-                    }
-                });
-                $scope.$on('cancelChanges', function(e, name) {
-                    if (directiveService.isDirectiveModelName(name)) {
-                        appState.removeModel(name);
-                        appState.cancelChanges('setupConfigDirectives');
                     }
                 });
                 loadParameters();
