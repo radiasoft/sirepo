@@ -34,7 +34,7 @@
         "inProgressText": "Solving",
         "objectScale": 0.001,
         "parameterizedMagnets": {
-            "undulator": {
+            "hybridUndulator": {
                 "objectNames": {
                     "halfPole": "Half Pole",
                     "magnetBlock": "Magnet Block",
