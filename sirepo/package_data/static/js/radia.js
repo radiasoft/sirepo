@@ -935,18 +935,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
             appState.saveChanges('geometry', function (d) {
-                panelState.clear('geometry');  //??
+                panelState.clear('geometry');
                 // need to rebuild the geometry after changes were made
                 panelState.requestData('geometry', function(data) {
                     if (self.selectedObject) {
                         loadShapes();
                     }
                 });
-                //if (self.selectedObject) {
-                //    loadShapes();
-                //}
-                //self.selectedObject = null;
-                //loadShapes();
             });
         });
         $scope.$on('geomObject.editor.show', function(e, o) {

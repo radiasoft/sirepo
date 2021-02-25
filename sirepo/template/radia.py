@@ -77,42 +77,194 @@ _cfg = PKDict(sdds=None)
 
 
 class RadiaGeomObject(PKDict):
-    def __init__(self, o_id, name, schema):
-        super(RadiaGeomObject, self).__init__(schema, name=name, id=o_id)
+
+    # override to select which items to return
+    excluded_keys = []
+
+    def to_dict(self):
+        return {k:v for k, v in self if k not in RadiaGeomObject.excluded_keys}
+
+    # override to convert to Radia objects
+    def to_radia(self):
+        import radia
+        return -1
+
+    def __init__(self, data):
+        import uuid
+        super().__init__(
+            data,
+            id=str(uuid.uuid4())
+        )
 
 
-class RadiaCuboid(PKDict):
+class RadiaCompoundObject(RadiaGeomObject):
+    excluded_keys = ['objects']
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.objects = []
+
+
+class RadiaCuboid(RadiaGeomObject):
 
     def to_radia(self):
         # return raidia_tk fn?
         pass
 
-    def __init__(self, name, o_id, center, size, segments):
-        super(RadiaCuboid, self).__init__(
-            name=name,
-            id=o_id,
-            center=','.join([str(x) for x in center]),
-            size=','.join([str(x) for x in size]),
-            division=','.join([str(x) for x in segments])
+    def do_update(self, center, size, segments, material, color):
+        self.update(
+            center=','.join([str(x) for x in center]) if center else [0, 0, 0],
+            size=','.join([str(x) for x in size]) if size else [1, 1, 1],
+            division=','.join([str(x) for x in segments]) if segments else [1, 1, 1],
+            material=material,
+            color=color
         )
+
+    def __init__(self, data):
+        super().__init__(data)
         self.model = 'box'
+        self.do_update(data.center, data.size, data.segments, data.material, data.color)
 
 
-class RadiaGroup(PKDict):
-    def __init__(self, name, o_id, *args):
-        super(RadiaGroup, self).__init__(
-            name=name,
-            id=o_id,
-            members=[*args]
-        )
+class RadiaGroup(RadiaGeomObject):
+    def __init__(self, name, *args):
+        super().__init__(name)
         self.model = 'geomGroup'
+        self.members = [*args]
 
+
+class RadiaUndulator(RadiaCompoundObject):
+
+    excluded_keys = [
+        'half_pole',  'magnet_block', 'pole', 'mag_pole_grp', 'magnet_cap', 'magnet',
+    ]
+
+    def do_update(
+            self, beam_axis, gap_axis, pole_cross_section, magnet_cross_section,
+            pole_division, magnet_division, pole_length, period_length, gap,
+            gap_offset
+        ):
+        beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+        # pick a leagal gap direction
+        gap_dir = numpy.array(_BEAM_AXIS_VECTORS[gap_axis])
+
+        # we don't care about the direction of the cross product
+        width_dir = abs(numpy.cross(beam_dir, gap_dir))
+
+        dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
+
+        pole_x = sirepo.util.split_comma_delimited_string(pole_cross_section, float)
+        mag_x = sirepo.util.split_comma_delimited_string(magnet_cross_section, float)
+
+        # put the segmentation in the correct order
+        pole_segs = dir_matrix.dot(sirepo.util.split_comma_delimited_string(pole_division, int))
+        mag_segs = dir_matrix.dot(sirepo.util.split_comma_delimited_string(magnet_division, int))
+
+        # pole and magnet dimensions, including direction
+        pole_dim = PKDict(
+            width=width_dir * pole_x[0],
+            height=gap_dir * pole_x[1],
+            length=beam_dir * pole_length,
+        )
+        magnet_dim = PKDict(
+            width=width_dir * mag_x[0],
+            height=gap_dir * mag_x[1],
+            length=beam_dir * (period_length / 2 - pole_dim.length),
+        )
+
+        # convenient constants
+        pole_dim_half = PKDict({k:v / 2 for k, v in pole_dim.items()})
+        magnet_dim_half = PKDict({k: v / 2 for k, v in magnet_dim.items()})
+        gap_half_height = gap_dir * gap / 2
+        gap_offset = gap_dir * gap_offset
+
+        pole_xverse_ctr = pole_dim_half.width / 2 - (pole_dim_half.height + gap_half_height)
+        magnet_xverse_ctr = magnet_dim_half.width / 2 - (gap_offset + magnet_dim_half.height + gap_half_height)
+
+        pos = pole_dim_half.length / 2
+        half_pole = update_cuboid(
+            _find_obj_by_name(geom.objects, 'Half Pole'),
+            pole_xverse_ctr + pos,
+            pole_dim_half.width + pole_dim.height + pole_dim_half.length,
+            pole_segs,
+            und.poleMaterial,
+            und.poleColor
+        )
+
+        pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
+        magnet_block = update_cuboid(
+            _find_obj_by_name(geom.objects, 'Magnet Block'),
+            magnet_xverse_ctr + pos,
+            magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
+            mag_segs,
+            und.magnetMaterial,
+            und.magnetColor
+        )
+
+        pos += (pole_dim_half.length + magnet_dim_half.length)
+        pole = update_cuboid(
+            _find_obj_by_name(geom.objects, 'Pole'),
+            pole_xverse_ctr + pos,
+            pole_dim_half.width + pole_dim.height + pole_dim.length,
+            pole_segs,
+            und.poleMaterial,
+            und.poleColor
+        )
+
+        mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
+        mag_pole_grp.transforms = [build_clone_xform(
+            und.numPeriods - 1,
+            True,
+            [build_xlate_clone(beam_dir * und.periodLength / 2)]
+        )]
+
+        # TODO: reverse mag field here
+        pos = pole_dim_half.length + magnet_dim_half.length / 2 + beam_dir * und.periodLength
+        magnet_cap = update_cuboid(
+            _find_obj_by_name(geom.objects, 'End Block'),
+            magnet_xverse_ctr + pos,
+            magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
+            mag_segs,
+            und.magnetMaterial,
+            color=und.magnetColor
+        )
+
+        grp = _find_obj_by_name(geom.objects, 'Octant')
+        grp.transforms = [
+            build_symm_xform(width_dir, _ZERO, 'perpendicular'),
+            build_symm_xform(gap_dir, _ZERO, 'parallel'),
+            build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
+        ]
+
+
+    def __init__(self, data, beam_axis):
+        super().__init__(data)
+        self.model = 'hybridUndulator'
+
+        self.half_pole = RadiaCuboid('Half Pole')
+        self.objects.append(self.half_pole)
+        self.magnet_block = RadiaCuboid('Magnet Block')
+        self.objects.append(self.magnet_block)
+        self.pole = RadiaCuboid('Pole')
+        self.objects.append(self.pole)
+        self.mag_pole_grp = RadiaGroup('Magnet-Pole Pair', self.magnet_block, self.pole)
+        self.objects.append(self.mag_pole_grp)
+        self.magnet_cap = RadiaCuboid('End Block')
+        self.objects.append(magnet_cap)
+        grp = RadiaGroup('Octant', half_pole, mag_pole_grp, magnet_cap)
+        self.objects.append(grp)
+
+        self.do_update(
+            data.beam_axis, data.gap_axis, data.pole_cross_section,
+            data.magnet_cross_section, data.pole_division, data.magnet_division,
+            data.pole_length, data.period_length, data.gap, data.gap_offset
+        )
 
 class RadiaClone(PKDict):
 
     class Translate(PKDict):
         def __init__(self, name, o_id, dist):
-            super(RadiaClone.Translate, self).__init__(
+            super().__init__(
                 name=name,
                 id=o_id,
                 distance = ','.join([str(x) for x in dist])
@@ -120,7 +272,7 @@ class RadiaClone(PKDict):
             self.model = 'translateClone'
 
     def __init__(self, name, o_id, *args):
-        super(RadiaClone, self).__init__(
+        super().__init__(
             name=name,
             id=o_id,
             transforms=[*args]
@@ -130,7 +282,7 @@ class RadiaClone(PKDict):
 
 class RadiaSymmetryTransform(PKDict):
     def __init__(self, name, o_id, symm_plane, symm_point, symm_type):
-        super(RadiaSymmetryTransform, self).__init__(
+        super().__init__(
             name=name,
             id=o_id,
             symmetryType=symm_type,
@@ -517,6 +669,7 @@ def build_geom_obj(model_name, obj_name=None, obj_color=None):
 
 def _build_undulator(geom, beam_axis):
 
+    # arrange objects
     geom.objects = []
     half_pole = build_cuboid(name='Half Pole')
     geom.objects.append(half_pole)
@@ -536,112 +689,14 @@ def _build_undulator(geom, beam_axis):
         build_geom_obj('hybridUndulator', obj_name=geom.name),
         beam_axis
     )
-    # will be settable by user, for the moment set them
-    gap_dirs = PKDict(z='y', y='z', x='z')
-
-
-    und = build_geom_obj('hybridUndulator', obj_name=geom.name)
-
-    # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
-    # along the remaining axis
-    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
-    # pick a leagal gap direction
-    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[gap_dirs[beam_axis]])
-
-    # we don't care about the direction of the cross product
-    width_dir = abs(numpy.cross(beam_dir, gap_dir))
-
-    dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
-
-    pole_x = [float(x) for x in und.poleCrossSection.split(',')]
-    mag_x = [float(x) for x in und.magnetCrossSection.split(',')]
-
-    # put the segmentation in the correct order
-    pole_segs = dir_matrix.dot([int(x) for x in und.poleDivision.split(',')])
-    mag_segs = dir_matrix.dot([int(x) for x in und.magnetDivision.split(',')])
-
-    # pole and magnet dimensions, including direction
-    pole_dim = PKDict(
-        width=width_dir * pole_x[0],
-        height=gap_dir * pole_x[1],
-        length=beam_dir * und.poleLength,
-    )
-    magnet_dim = PKDict(
-        width=width_dir * mag_x[0],
-        height=gap_dir * mag_x[1],
-        length=beam_dir * (und.periodLength / 2 - pole_dim.length),
-    )
-
-    # convenient constants
-    pole_dim_half = PKDict({k:v / 2 for k, v in pole_dim.items()})
-    magnet_dim_half = PKDict({k: v / 2 for k, v in magnet_dim.items()})
-    gap_half_height = gap_dir * und.gap / 2
-    gap_offset = gap_dir * und.gapOffset
-
-    pole_xverse_ctr = pole_dim_half.width / 2 - (pole_dim_half.height + gap_half_height)
-    magnet_xverse_ctr = magnet_dim_half.width / 2 - (gap_offset + magnet_dim_half.height + gap_half_height)
-
-    pos = pole_dim_half.length / 2
-    ctr = pole_xverse_ctr + pos
-    sz = pole_dim_half.width + pole_dim.height + pole_dim_half.length
-    half_pole = build_cuboid(
-        ctr, sz, pole_segs, und.poleMaterial, name='Half Pole', color=und.poleColor
-    )
-    geom.objects.append(half_pole)
-
-    pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
-    ctr = magnet_xverse_ctr + pos
-    sz = magnet_dim_half.width + magnet_dim.length + magnet_dim.height
-    magnet_block = build_cuboid(
-        ctr, sz, mag_segs, und.magnetMaterial, name='Magnet Block', color=und.magnetColor
-    )
-    geom.objects.append(magnet_block)
-
-    pos += (pole_dim_half.length + magnet_dim_half.length)
-    ctr = pole_xverse_ctr + pos
-    sz = pole_dim_half.width + pole_dim.length + pole_dim.height
-    pole = build_cuboid(
-        ctr, sz, pole_segs, und.poleMaterial, name='Pole', color=und.poleColor
-    )
-    geom.objects.append(pole)
-
-    mag_pole_grp = build_group([magnet_block, pole], name='Magnet-Pole Pair')
-    geom.objects.append(mag_pole_grp)
-
-    mag_pole_grp.transforms = [build_clone_xform(
-        und.numPeriods - 1,
-        True,
-        [build_xlate_clone(beam_dir * und.periodLength / 2)]
-    )]
-
-    # TODO: reverse mag field here
-    pos = pole_dim_half.length + magnet_dim_half.length / 2 + beam_dir * und.periodLength
-    ctr = magnet_xverse_ctr + pos
-    sz = magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length
-    magnet_cap = build_cuboid(
-        ctr, sz, mag_segs, und.magnetMaterial, name='End Block', color=und.magnetColor
-    )
-    geom.objects.append(magnet_cap)
-
-    grp = build_group([half_pole, mag_pole_grp, magnet_cap], name='Octant')
-    geom.objects.append(grp)
-    grp.transforms = [
-        build_symm_xform(width_dir, _ZERO, 'perpendicular'),
-        build_symm_xform(gap_dir, _ZERO, 'parallel'),
-        build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
-    ]
 
 
 def _find_obj_by_name(obj_arr, obj_name):
-    for o in obj_arr:
-        if o.name == obj_name:
-            return o
-    return None
+    a = [o for o in obj_arr if o.name == obj_name]
+    return a[0] if a else None
 
 
 def _update_geom_from_undulator(geom, und, beam_axis):
-
-    pkdp(f'UPDATE UND FROM {und}')
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
