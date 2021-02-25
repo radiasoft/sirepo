@@ -24,7 +24,7 @@ def do_all():
     a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
     f = pkinspect.module_functions('_2')
     for n in sorted(set(f.keys()) - set(a)):
-        with _backup_db_and_restore_on_error():
+        with _backup_db_and_prevent_server_restart_on_error():
             pkdlog('running upgrade {}', n)
             f[n]()
             sirepo.auth_db.DbUpgrade(
@@ -156,7 +156,7 @@ def _20210218_add_flash_proprietary_lib_files_force():
 
 
 @contextlib.contextmanager
-def _backup_db_and_restore_on_error():
+def _backup_db_and_prevent_server_restart_on_error():
     import sirepo.auth_db
     import sirepo.srdb
 
@@ -164,8 +164,8 @@ def _backup_db_and_restore_on_error():
     sirepo.auth_db.db_filename().copy(b)
     try:
         yield
-    except Exception:
-        b.rename(sirepo.auth_db.db_filename())
-        raise
-    finally:
         pkio.unchecked_remove(b)
+    except Exception:
+        pkdlog('original db={}', b)
+        sirepo.srdb.prevent_server_start_file().ensure()
+        raise
