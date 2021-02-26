@@ -355,6 +355,7 @@
             "magnetColor": ["Magnet Color", "Color", "#00ffff"],
             "magnetCrossSection": ["Magnet Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
             "magnetDivision": ["Magnet Segments", "IntStringArray", "1, 1, 3", "", "Transverse, Gap, Beam"],
+            "magnetLength": ["Magnet Length [mm]", "Float", 18.0, "Period length/2 - pole length"],
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
             "magnetMaterial": ["Magnet Material", "MaterialType", "Xc06"],
             "magnetMaterialFile": ["Magnet H-B from File", "InputFile", "", "H, B (T)"],
@@ -362,10 +363,10 @@
             "poleColor": ["Pole Color", "Color", "#ff00ff"],
             "poleCrossSection": ["Pole Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
             "poleDivision": ["Pole Segments", "IntStringArray", "2, 5, 2", "", "Transverse, Gap, Beam"],
+            "poleLength": ["Pole Length [mm]", "Float", 5.0, "Length along beam axis"],
             "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
             "poleMaterial": ["Pole Material", "MaterialType", "Xc06"],
-            "poleMaterialFile": ["Pole H-B from File", "InputFile", "", "H, B (T)"],
-            "poleLength": ["Pole Length [mm]", "Float", 5.0, "Length along beam axis"]
+            "poleMaterialFile": ["Pole H-B from File", "InputFile", "", "H, B (T)"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -617,6 +618,7 @@
                 ]],
                 ["Permanent Magnets", [
                     "magnetCrossSection",
+                    "magnetLength",
                     "gapOffset",
                     "magnetDivision",
                     "magnetMaterial",

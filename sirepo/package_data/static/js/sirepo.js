@@ -1055,9 +1055,9 @@ SIREPO.app.service('validationService', function(utilities) {
     };
 
     // html5 validation
-    this.validateField = function (model, field, isValid, msg) {
+    this.validateField = function (model, field, inputType, isValid, msg) {
         const mfId = utilities.modelFieldID(model, field);
-        const f = $(`.${mfId} select`)[0];
+        const f = $(`.${mfId} ${inputType}`)[0];
         if (! f) {
             return;
         }
@@ -1069,7 +1069,7 @@ SIREPO.app.service('validationService', function(utilities) {
             f.setCustomValidity(msg);
             fWarn.show();
         }
-    }
+    };
 
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {

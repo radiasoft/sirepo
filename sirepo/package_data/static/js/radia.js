@@ -248,6 +248,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     const undulatorEditorFields = [
         'hybridUndulator.magnetMagnetization',
         'hybridUndulator.magnetMaterial',
+        'hybridUndulator.periodLength',
+        'hybridUndulator.poleLength',
         'hybridUndulator.poleMagnetization',
         'hybridUndulator.poleMaterial',
     ];
@@ -859,11 +861,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function updateUndulatorEditor() {
-        let u = appState.models.hybridUndulator;
+        let modelName = 'hybridUndulator';
+        let u = appState.models[modelName];
         for (let m of ['pole', 'magnet']) {
             const matField = `${m}Material`;
             panelState.showField(
-                'hybridUndulator',
+                modelName,
                 `${m}MaterialFile`,
                 u[matField] === 'custom'
             );
@@ -871,14 +874,34 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 ...radiaService.stringToFloatArray(u[`${m}Magnetization`] || SIREPO.ZERO_STR)
             );
             validationService.validateField(
-                'hybridUndulator',
+                modelName,
                 matField,
+                'select',
                 SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(u[matField]) < 0 || mag > 0,
                 anisotropicMaterialMsg
             );
         }
+        const lengthsValid = u.periodLength > u.poleLength / 2;
+        if (lengthsValid) {
+            u.magnetLength = u.periodLength / 2 - u.poleLength;
+            appState.saveQuietly(modelName);
+        }
+        validationService.validateField(
+            modelName,
+            'periodLength',
+            'input',
+            lengthsValid,
+            `Period length must be > pole length/2 (${u.poleLength / 2}mm)`
+        );
+        validationService.validateField(
+            modelName,
+            'poleLength',
+            'input',
+            lengthsValid,
+            `Pole length must be < 2*period length (${u.periodLength * 2}mm)`
+        );
     }
-    
+
     function updateObjectEditor() {
         var o = self.selectedObject;
         if (! o) {
@@ -901,6 +924,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         validationService.validateField(
             'geomObject',
             'material',
+            'select',
             SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) < 0 || mag > 0,
             anisotropicMaterialMsg
         );
@@ -923,6 +947,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     appState.whenModelsLoaded($scope, function() {
         self.modelsLoaded = true;
+        updateUndulatorEditor();
+        panelState.enableField('hybridUndulator', 'magnetLength', false);
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
@@ -984,6 +1010,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
         $scope.$on('drop.target.enabled', function (e, val) {
             self.dropEnabled = val;
+        });
+        $scope.$parent.$on('sr-tabSelected', function(event, modelName) {
+            panelState.enableField('hybridUndulator', 'magnetLength', false);
         });
     });
 });
