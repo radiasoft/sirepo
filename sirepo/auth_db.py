@@ -11,6 +11,7 @@ import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import threading
 # limit imports here
+import sirepo.auth_role
 import sirepo.srdb
 
 
@@ -57,7 +58,6 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
     import py
     import pykern.pkconfig
     import pykern.pkio
-    import sirepo.auth_role
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.simulation_db
@@ -233,8 +233,6 @@ def init():
 
         @classmethod
         def uids_of_paid_users(cls):
-            import sirepo.auth_role
-
             return [
                 x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
@@ -308,7 +306,6 @@ def _migrate_db_file(fn):
 
 
 def _migrate_role_jupyterhub():
-    import sirepo.auth_role
     import sirepo.template
 
     r = sirepo.auth_role.role_for_sim_type('jupyterhublogin')

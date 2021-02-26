@@ -5,22 +5,13 @@ u"""User roles
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import sirepo.auth_db
-import sirepo.util
+import sirepo.feature_config
 
 ROLE_ADM = 'adm'
 ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
 ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
-
-
-def check_user_has_role(uid, role, raise_forbidden=True):
-    if sirepo.auth_db.UserRole.has_role(uid, role):
-        return True
-    if raise_forbidden:
-        sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
-    return False
 
 
 def get_all_roles():

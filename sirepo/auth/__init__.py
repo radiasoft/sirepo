@@ -113,6 +113,14 @@ def api_authLogout(simulation_type=None):
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
+def check_user_has_role(uid, role, raise_forbidden=True):
+    if sirepo.auth_db.UserRole.has_role(uid, role):
+        return True
+    if raise_forbidden:
+        sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
+    return False
+
+
 def complete_registration(name=None):
     """Update the database with the user's display_name and sets state to logged-in.
     Guests will have no name.
@@ -165,7 +173,7 @@ def init_apis(*args, **kwargs):
 
 
 def is_premium_user():
-    return sirepo.auth_role.check_user_has_role(
+    return check_user_has_role(
         logged_in_user(),
         sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         raise_forbidden=False,
@@ -338,7 +346,7 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    sirepo.auth_role.check_user_has_role(
+    check_user_has_role(
         logged_in_user(),
         sirepo.auth_role.role_for_sim_type(sim_type),
     )
