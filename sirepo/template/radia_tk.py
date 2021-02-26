@@ -146,64 +146,6 @@ def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-def build_undulator(
-    beam_dir, gap_dir,
-    num_periods, period_length,
-    gap, gap_offset,
-    pole_cross_section, pole_thickness, pole_division, pole_material,
-    magnet_cross_section, magnet_division, magnet_material,
-):
-
-    width_dir = numpy.cross(beam_dir, gap_dir)
-    magnet_thickness = (period_length / 2 - pole_thickness)
-
-    # position along beam
-    pos = beam_dir * (pole_thickness / 4)
-    ctr = width_dir * pole_cross_section.width / 4 + \
-        pos - \
-        gap_dir * ((pole_cross_section.height + gap) / 2)
-
-    sz = width_dir * pole_cross_section.width/ 2 + \
-         beam_dir * pole_thickness / 2 + \
-         gap_dir * pole_cross_section.height
-
-    half_pole = build_box(ctr, sz, pole_material, _ZERO, pole_division)
-
-    pos += beam_dir * (pole_thickness / 4)
-    ctr = width_dir * magnet_cross_section[0] / 4 + \
-        pos - \
-        gap_dir * (gap_offset + (magnet_cross_section[1] + gap) / 2)
-
-    sz = width_dir * magnet_cross_section[0] / 2 + \
-         beam_dir * magnet_thickness + \
-         gap_dir * magnet_cross_section[1]
-
-    magnet = build_box(ctr, sz, magnet_material, _ZERO, magnet_division)
-
-    pos += beam_dir * (pole_thickness + magnet_thickness) / 2
-    ctr = width_dir * pole_cross_section[0] / 4 + \
-        pos - \
-        gap_dir * ((magnet_cross_section[1] + gap) / 2)
-
-    sz = width_dir * pole_cross_section[0] / 2 + \
-         beam_dir * pole_thickness + \
-         gap_dir * pole_cross_section[1]
-
-    pole = build_box(ctr, sz, pole_material, _ZERO, pole_division)
-
-    mag_pole_grp = build_container([magnet, pole])
-    _clone_with_translation(mag_pole_grp, num_periods, beam_dir * period_length, True)
-
-    #magnet_cap = build_box()
-
-    und = build_container([half_pole, mag_pole_grp])
-    radia.TrfZerPerp(und, _ZERO, width_dir)  # reflect in the (y,z) plane
-    radia.TrfZerPara(und, _ZERO, gap_dir)  # reflect in the (x,y) plane
-    radia.TrfZerPerp(und, _ZERO, beam_dir)  # reflect in the (z,x) plane
-
-    return und
-
-
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')
 
