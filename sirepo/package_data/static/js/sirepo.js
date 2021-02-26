@@ -1054,6 +1054,23 @@ SIREPO.app.service('validationService', function(utilities) {
         return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
     };
 
+    // html5 validation
+    this.validateField = function (model, field, isValid, msg) {
+        const mfId = utilities.modelFieldID(model, field);
+        const f = $(`.${mfId} select`)[0];
+        if (! f) {
+            return;
+        }
+        const fWarn = $(`.${mfId} .sr-input-warning`);
+        fWarn.text(msg);
+        fWarn.hide();
+        f.setCustomValidity('');
+        if (! isValid) {
+            f.setCustomValidity(msg);
+            fWarn.show();
+        }
+    }
+
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
             // null files OK, at least sometimes
