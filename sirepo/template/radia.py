@@ -278,13 +278,14 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
     return tx
 
 
-def _build_cuboid(center=None, size=None, segments=None, material=None, name=None, color=None):
+def _build_cuboid(center=None, size=None, segments=None, material=None, magnetization=None, name=None, color=None):
     return _update_cuboid(
         _build_geom_obj('box', obj_name=name),
         center or [0.0, 0.0, 0.0],
         size or [1.0, 1.0, 1.0],
         segments or [1, 1, 1],
         material,
+        magnetization or [0.0, 0.0, 0.0],
         color
     )
 
@@ -827,9 +828,10 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-def _update_cuboid(b, center, size, segments, material, color):
+def _update_cuboid(b, center, size, segments, material, magnetization, color):
     b.center = ','.join([str(x) for x in center])
     b.color = color
+    b.magnetization = ','.join([str(x) for x in magnetization])
     b.material = material
     b.size = ','.join([str(x) for x in size])
     b.division = ','.join([str(x) for x in segments])
@@ -850,12 +852,22 @@ def _update_geom_from_undulator(geom, und, beam_axis):
 
     dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
 
-    pole_x = [float(x) for x in und.poleCrossSection.split(',')]
-    mag_x = [float(x) for x in und.magnetCrossSection.split(',')]
+    pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
+    mag_x = sirepo.util.split_comma_delimited_string(und.magnetCrossSection, float)
 
-    # put the segmentation in the correct order
-    pole_segs = dir_matrix.dot([int(x) for x in und.poleDivision.split(',')])
-    mag_segs = dir_matrix.dot([int(x) for x in und.magnetDivision.split(',')])
+    # put the magnetization and segmentation in the correct order
+    pole_mag = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
+    )
+    mag_mag = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
+    )
+    pole_segs = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.poleDivision, int)
+    )
+    mag_segs = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.magnetDivision, int)
+    )
 
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
@@ -885,6 +897,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         pole_dim_half.width + pole_dim.height + pole_dim_half.length,
         pole_segs,
         und.poleMaterial,
+        pole_mag,
         und.poleColor
     )
 
@@ -895,6 +908,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
         mag_segs,
         und.magnetMaterial,
+        mag_mag,
         und.magnetColor
     )
 
@@ -905,6 +919,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         pole_dim_half.width + pole_dim.height + pole_dim.length,
         pole_segs,
         und.poleMaterial,
+        pole_mag,
         und.poleColor
     )
 
@@ -923,7 +938,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
         mag_segs,
         und.magnetMaterial,
-        color=und.magnetColor
+        mag_mag,
+        und.magnetColor
     )
 
     grp = _find_obj_by_name(geom.objects, 'Octant')

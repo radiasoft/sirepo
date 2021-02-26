@@ -127,11 +127,11 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
 
-def build_box(center, size, material, magnetization, div, h_m_curve=None):
+def build_box(center, size, material, magnetization, segments, h_m_curve=None):
     n_mag = numpy.linalg.norm(magnetization)
     g_id = radia.ObjRecMag(center, size, magnetization)
-    if div:
-        radia.ObjDivMag(g_id, div)
+    if segments and any([s > 1 for s in segments]):
+        radia.ObjDivMag(g_id, segments)
     if material == 'custom':
         mat = radia.MatSatIsoTab(
             [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
