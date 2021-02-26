@@ -863,6 +863,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function updateUndulatorEditor() {
         let modelName = 'hybridUndulator';
         let u = appState.models[modelName];
+
+        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            let axis = e[SIREPO.ENUM_INDEX_VALUE];
+            srdbg('check', axis, $('.model-hybridUndulator-gapAxis'));
+            panelState.showEnum(modelName, 'gapAxis', axis, axis !== appState.models.simulation.beamAxis);
+        }
+
         for (let m of ['pole', 'magnet']) {
             const matField = `${m}Material`;
             panelState.showField(
@@ -947,8 +954,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     appState.whenModelsLoaded($scope, function() {
         self.modelsLoaded = true;
-        updateUndulatorEditor();
-        panelState.enableField('hybridUndulator', 'magnetLength', false);
+        panelState.waitForUI(function() {
+            updateUndulatorEditor();
+            panelState.enableField('hybridUndulator', 'magnetLength', false);
+        });
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
@@ -968,7 +977,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0) {
                 appState.models.geometry.lastModified = Date.now();
             }
-            var o = self.selectedObject;
+            let o = self.selectedObject;
             if (o) {
                 if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
                     // catch unrelated saved objects
