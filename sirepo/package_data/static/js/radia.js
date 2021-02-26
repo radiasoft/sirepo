@@ -240,10 +240,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomObject.material',
         'geomObject.symmetryType',
         'geomObject.doDivide',
+        'simulation.beamAxis',
     ];
     const groupModels = [
         'geomGroup',
-        'geomUndulatorGroup'
+        'geomUndulatorGroup',
     ];
     const undulatorEditorFields = [
         'hybridUndulator.magnetMagnetization',
@@ -252,13 +253,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'hybridUndulator.poleLength',
         'hybridUndulator.poleMagnetization',
         'hybridUndulator.poleMaterial',
+        'simulation.beamAxis',
     ];
     var watchedModels = [
         'geomObject',
         'geomGroup',
         'hybridUndulator',
         'radiaObject',
-        'undulator'
+        'simulation',
+        'undulator',
     ];
 
     self.builderCfg = {
@@ -866,7 +869,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
         for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
             let axis = e[SIREPO.ENUM_INDEX_VALUE];
-            srdbg('check', axis, $('.model-hybridUndulator-gapAxis'));
             panelState.showEnum(modelName, 'gapAxis', axis, axis !== appState.models.simulation.beamAxis);
         }
 
@@ -956,7 +958,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         self.modelsLoaded = true;
         panelState.waitForUI(function() {
             updateUndulatorEditor();
-            panelState.enableField('hybridUndulator', 'magnetLength', false);
         });
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
@@ -974,7 +975,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
             }
-            if (Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0) {
+            if (
+                modelName === 'simulation' ||
+                Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
+            ) {
                 appState.models.geometry.lastModified = Date.now();
             }
             let o = self.selectedObject;
@@ -997,6 +1001,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 panelState.clear('geometry');
                 // need to rebuild the geometry after changes were made
                 panelState.requestData('geometry', function(data) {
+
                     if (self.selectedObject) {
                         loadShapes();
                     }
@@ -1005,6 +1010,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
         $scope.$on('geomObject.editor.show', function(e, o) {
             updateObjectEditor();
+        });
+        $scope.$on('simulation.editor.show', function(e, o) {
+            panelState.enableField('simulation', 'magnetType', false);
         });
         $scope.$on('tool.editor.show', function(e, o) {
             updateToolEditor();
@@ -1066,6 +1074,11 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.$on('simulation.editor.show', function(e, o) {
+        panelState.enableField('simulation', 'magnetType', false);
+    });
+
 });
 
 

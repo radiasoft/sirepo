@@ -493,7 +493,7 @@
             "gap": ["Gap [mm]", "Float", 20.0, "", 1.0],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
-            "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap"]
+            "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"]
         }
     },
     "strings": {

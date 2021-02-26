@@ -1677,6 +1677,9 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if ($(editorId).length) {
             $(editorId).modal('show');
             $rootScope.$broadcast(showEvent);
+            if (modelKey === 'simulation') {
+                $rootScope.$emit(showEvent);
+            }
         }
         else {
             if (! template) {

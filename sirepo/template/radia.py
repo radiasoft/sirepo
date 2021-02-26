@@ -41,6 +41,12 @@ _BEAM_AXIS_VECTORS = PKDict(
     z=[0, 0, 1]
 )
 
+_GAP_AXIS_MAP = PKDict(
+    x='z',
+    y='z',
+    z='y'
+)
+
 _DMP_FILE = 'geometry.dat'
 
 # Note that these column names and units are required by elegant
@@ -237,10 +243,7 @@ def new_simulation(data, new_simulation_data):
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        #g = RadiaGeometry(_SIM_DATA, data.models.geometry)
         _build_undulator(data.models.geometry, new_simulation_data.beamAxis)
-        # wait?
-        pass
 
 
 def python_source_for_model(data):
@@ -248,7 +251,6 @@ def python_source_for_model(data):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkdp(f'WRITE PRMS {data.report}')
     sim_id = data.simulationId
     if data.report in _SIM_REPORTS:
         # remove centrailzed geom files
@@ -540,7 +542,6 @@ def _generate_parameters_file(data, for_export):
     import jinja2
 
     report = data.get('report', '')
-    pkdp(f'GEN PRMS {report}')
     rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
@@ -708,7 +709,6 @@ def _read_kick_map(sim_id):
 
 
 def _read_or_generate(g_id, data):
-    pkdp('READ OR GEN')
     f_type = data.get('fieldType', None)
     res = _read_data(data.simulationId, data.viewType, f_type)
     if res:
@@ -844,7 +844,9 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
     beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
-    # pick a leagal gap direction
+    # assign a valid gap direction if the user provided an invalid one
+    if und.gapAxis == beam_axis:
+        und.gapAxis = _GAP_AXIS_MAP[beam_axis]
     gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
 
     # we don't care about the direction of the cross product
