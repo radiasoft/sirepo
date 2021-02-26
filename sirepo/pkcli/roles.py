@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
 import pykern.pkcli
 import sirepo.auth
+import sirepo.auth_role
 import sirepo.auth_db
 import sirepo.server
 
@@ -21,8 +22,8 @@ def add(uid_or_email, *roles):
         *roles: The roles to assign to the user
     """
 
-    a = _parse_args(uid_or_email, roles)
-    sirepo.auth_db.UserRole.add_roles(a, roles)
+    u = _parse_args(uid_or_email, roles)
+    sirepo.auth_db.UserRole.add_roles(u, roles)
 
 
 def add_roles(*args):
@@ -37,8 +38,8 @@ def delete(uid_or_email, *roles):
         *roles (args): The roles to delete
     """
 
-    a = _parse_args(uid_or_email, roles)
-    sirepo.auth_db.UserRole.delete_roles(a, roles)
+    u = _parse_args(uid_or_email, roles)
+    sirepo.auth_db.UserRole.delete_roles(u, roles)
 
 
 def delete_roles(*args):
@@ -52,8 +53,8 @@ def list(uid_or_email):
         uid_or_email (str): Uid or email of the user
     """
 
-    a = _parse_args(uid_or_email, [])
-    return sirepo.auth_db.UserRole.search_all_for_column('role', uid=a)
+    u = _parse_args(uid_or_email, [])
+    return sirepo.auth_db.UserRole.get_roles(u)
 
 
 def list_roles(*args):
@@ -78,7 +79,7 @@ def _parse_args(uid_or_email, roles):
     if not u:
         pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
     if roles:
-        a = sirepo.auth.get_all_roles()
+        a = sirepo.auth_role.get_all_roles()
         assert set(roles).issubset(a), \
             'roles={} not a subset valid all_roles={}'.format(roles, a)
     return u

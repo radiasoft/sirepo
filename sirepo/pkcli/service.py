@@ -35,7 +35,7 @@ def flask():
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in('dev')
-        app = server.init(use_reloader=_cfg().use_reloader)
+        app = server.init(use_reloader=_cfg().use_reloader, is_server=True)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
         import werkzeug.serving
@@ -105,7 +105,7 @@ def jupyterhub():
     try:
         import jupyterhub
     except ImportError:
-        raise AssertionError('jupyterhub not installed. run `pip install jupyterhub`')
+        raise AssertionError('jupyterhub not installed. run `pip install jupyterhub==1.1.0 notebook`')
     import sirepo.sim_api.jupyterhublogin
     import sirepo.server
 

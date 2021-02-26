@@ -23,6 +23,9 @@ _engine = None
 #: SQLAlchemy session instance
 _session = None
 
+#: Keeps track of upgrades applied to the database
+DbUpgrade = None
+
 #: base for UserRegistration and *User models
 UserDbBase = None
 
@@ -40,27 +43,56 @@ def all_uids():
     return UserRegistration.search_all_for_column('uid')
 
 
-def audit_proprietary_lib_files(uid):
+def audit_proprietary_lib_files(uid, force=False, sim_types=None):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash rpm if user has the flash role.
+    For example, add the Flash tarball if user has the flash role.
 
     Args:
-        uid: user to audit
+      uid (str): The uid of the user to audit
+      force (bool): Overwrite existing lib files with the same name as new ones
+      sim_types (set): Set of sim_types to audit (all proprietary_sim_types if None)
     """
+    import contextlib
     import py
     import pykern.pkconfig
     import pykern.pkio
-    import sirepo.auth
+    import sirepo.auth_role
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.simulation_db
+    import sirepo.util
+    import subprocess
 
-    x = sirepo.feature_config.cfg().proprietary_sim_types
-    if not x:
-        return
-    for t in x:
-        if not sirepo.sim_data.get_class(t).proprietary_code_rpm():
+    def _add(proprietary_code_dir, sim_type, sim_data_class):
+        p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
+        sirepo.simulation_db.verify_app_directory(sim_type, uid=uid)
+        with sirepo.simulation_db.tmp_dir(chdir=True, uid=uid) as t:
+            d = t.join(p.basename)
+            d.mksymlinkto(p, absolute=False)
+            subprocess.check_output(
+                [
+                    'tar',
+                    '--extract',
+                    '--gunzip',
+                    f'--file={d}',
+                ],
+                stderr=subprocess.STDOUT,
+            )
+            l = sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid)
+            e = [f.basename for f in pykern.pkio.sorted_glob(l.join('*'))]
+            for f in sim_data_class.proprietary_code_lib_file_basenames():
+                if force or f not in e:
+                    t.join(f).rename(l.join(f))
+
+    s = sirepo.feature_config.cfg().proprietary_sim_types
+    if sim_types:
+        assert sim_types.issubset(s), \
+            f'sim_types={sim_types} not a subset of proprietary_sim_types={s}'
+        s = sim_types
+    for t in s:
+        c = sirepo.sim_data.get_class(t)
+        if not c.proprietary_code_tarball():
             return
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), \
@@ -68,28 +100,17 @@ def audit_proprietary_lib_files(uid):
             + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
         r = UserRole.has_role(
             uid,
-            sirepo.auth.role_for_sim_type(t),
+            sirepo.auth_role.role_for_sim_type(t),
         )
-        for f in pykern.pkio.sorted_glob(d.join('*')):
-#TODO(robnagler) ensure no collision on names with uploaded files
-# (restrict suffixes in user uploads)
-            p = sirepo.simulation_db.simulation_lib_dir(t, uid=uid).join(f.basename)
-            if not r:
-                pykern.pkio.unchecked_remove(p)
-                continue
-            assert f.check(file=True), f'{f} not found'
-            if not p.dirpath().exists():
-#TODO(robnagler) breaks if running in flask
-                with sirepo.auth.set_user(uid):
-                    sirepo.simulation_db.verify_app_directory(t)
-            try:
-                p.mksymlinkto(f, absolute=False)
-            except py.error.EEXIST:
-                pass
+        if r:
+            _add(d, t, c)
+            continue
+        # SECURITY: User no longer has access so remove all artifacts
+        pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t, uid=uid))
 
 
 def init():
-    global _session, _engine, UserDbBase, UserRegistration, UserRole
+    global _session, _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
     assert not _session
 
     f = _db_filename()
@@ -154,6 +175,12 @@ def init():
                 ).delete(synchronize_session='fetch')
                 cls._session.commit()
 
+    class DbUpgrade(UserDbBase):
+        __tablename__ = 'db_upgrade_t'
+        name = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
+        created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
+
+
     class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'
         uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
@@ -193,7 +220,10 @@ def init():
         @classmethod
         def get_roles(cls, uid):
             with thread_lock:
-                return UserRole.search_all_for_column('role', uid=uid)
+                return UserRole.search_all_for_column(
+                    'role',
+                    uid=uid,
+                )
 
 
         @classmethod
@@ -203,11 +233,11 @@ def init():
 
         @classmethod
         def uids_of_paid_users(cls):
-            import sirepo.auth
+            import sirepo.auth_role
 
             return [
                 x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
-                    cls.role.in_(sirepo.auth.PAID_USER_ROLES),
+                    cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
     UserDbBase.metadata.create_all(_engine)
@@ -278,9 +308,10 @@ def _migrate_db_file(fn):
 
 
 def _migrate_role_jupyterhub():
+    import sirepo.auth_role
     import sirepo.template
 
-    r = sirepo.auth.role_for_sim_type('jupyterhublogin')
+    r = sirepo.auth_role.role_for_sim_type('jupyterhublogin')
     if not sirepo.template.is_sim_type('jupyterhublogin') or \
        r in UserRole.all_roles():
         return

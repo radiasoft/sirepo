@@ -17,10 +17,12 @@ from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
+import contextlib
 import flask
 import importlib
 import os
 import re
+import sirepo.db_upgrade
 import sirepo.events
 import sirepo.sim_data
 import sirepo.srdb
@@ -52,6 +54,7 @@ _ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
 _app = None
+
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -503,12 +506,14 @@ def api_srwLight():
 
 @api_perm.allow_visitor
 def api_srUnit():
-    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    import sirepo.auth
+    import sirepo.cookie
+    v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
+    u =  contextlib.nullcontext
     if v.want_user:
-        import sirepo.auth
-        sirepo.auth.set_user_for_utils()
+        sirepo.cookie.set_sentinel()
+        sirepo.auth.login(sirepo.auth.guest, is_mock=True)
     if v.want_cookie:
-        import sirepo.cookie
         sirepo.cookie.set_sentinel()
     v.op()
     return http_reply.gen_json_ok()
@@ -527,7 +532,7 @@ def api_staticFile(path_info=None):
         flask.Response: flask.send_from_directory response
     """
     if not path_info:
-        raise util.raise_not_found('empty path info')
+        raise sirepo.util.raise_not_found('empty path info')
     p = pkio.py_path(flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info))
     r = None
     if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):
@@ -551,10 +556,10 @@ def api_updateFolder():
     req = http_request.parse_post()
     o = srschema.parse_folder(req.req_data['oldName'])
     if o == '/':
-        raise util.Error('cannot rename root ("/") folder')
+        raise sirepo.util.Error('cannot rename root ("/") folder')
     n = srschema.parse_folder(req.req_data['newName'])
     if n == '/':
-        raise util.Error('cannot folder to root ("/")')
+        raise sirepo.util.Error('cannot folder to root ("/")')
     for r in simulation_db.iterate_simulation_datafiles(req.type, _simulation_data_iterator):
         f = r.models.simulation.folder
         l = o.lower()
@@ -609,7 +614,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(uwsgi=None, use_reloader=False):
+def init(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     global _app
 
@@ -629,7 +634,10 @@ def init(uwsgi=None, use_reloader=False):
     _app.config['PROPAGATE_EXCEPTIONS'] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
+    sirepo.util.init(server_context=True)
     uri_router.init(_app, simulation_db)
+    if is_server:
+        sirepo.db_upgrade.do_all()
     return _app
 
 

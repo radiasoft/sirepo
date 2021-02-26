@@ -26,14 +26,18 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkdebug import pkdp
-    import sirepo.auth
+    import sirepo.auth_role
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
         pkunit.pkeq(should_exist, len(f), 'incorrect file count')
 
     def _make_user_premium(uid):
-        sirepo.auth_db.UserRole.add_roles(uid, [sirepo.auth.ROLE_PAYMENT_PLAN_PREMIUM])
+        import sirepo.pkcli.roles
+        sirepo.pkcli.roles.add_roles(
+            uid,
+            sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+        )
         r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(r, [uid], 'expecting one premium user with same id')
 

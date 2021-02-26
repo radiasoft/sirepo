@@ -27,7 +27,7 @@ import shutil
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash rpm if user has the flash role.
+    For example, add the FLASH proprietary files if user has the sim_type_flash role.
 
     Args:
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
@@ -53,16 +53,16 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        auth.set_user_for_utils(uid)
-        for sim_type in feature_config.cfg().sim_types:
-            simulation_db.verify_app_directory(sim_type)
-            names = [x.name for x in simulation_db.iterate_simulation_datafiles(
-                sim_type, simulation_db.process_simulation_list, {
-                    'simulation.isExample': True,
-                })]
-            for example in simulation_db.examples(sim_type):
-                if example.models.simulation.name not in names:
-                    _create_example(example)
+        with auth.set_user_outside_of_flask_request(uid):
+            for sim_type in feature_config.cfg().sim_types:
+                simulation_db.verify_app_directory(sim_type)
+                names = [x.name for x in simulation_db.iterate_simulation_datafiles(
+                    sim_type, simulation_db.process_simulation_list, {
+                        'simulation.isExample': True,
+                    })]
+                for example in simulation_db.examples(sim_type):
+                    if example.models.simulation.name not in names:
+                        _create_example(example)
 
 
 def move_user_sims(target_uid=''):

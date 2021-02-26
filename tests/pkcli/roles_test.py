@@ -17,8 +17,8 @@ def setup_module(module):
 def test_flash_change_role_change_lib_files(auth_fc):
     from pykern import pkio
     from pykern import pkunit
-    import sirepo.auth
     import sirepo.auth_db
+    import sirepo.auth_role
     import sirepo.pkcli.roles
     import sirepo.srdb
 
@@ -28,7 +28,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
             f = getattr(sirepo.pkcli.roles, 'delete_roles')
         f(
             fc.sr_auth_state().uid,
-            sirepo.auth.role_for_sim_type(fc.sr_sim_type),
+            sirepo.auth_role.role_for_sim_type(fc.sr_sim_type),
         )
 
     def _check_file(exists=True):
@@ -38,7 +38,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
         )
 
     pkunit.data_dir().join('db').copy(sirepo.srdb.root())
-    _proprietary_file = 'flash.rpm'
+    _proprietary_file = 'flash.tar.gz'
     fc = auth_fc
     fc.sr_email_register('a@b.c', sim_type='flash')
 

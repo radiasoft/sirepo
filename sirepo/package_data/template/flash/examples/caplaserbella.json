@@ -765,6 +765,28 @@
             "hx_ieTimeCoef": 1,
             "hx_relTol": -1
         },
+        "problemFiles": {
+            "archive": "CapLaserBELLA.zip"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "d": 2,
+            "ed_maxBeams": 1,
+            "ed_maxPulseSections": 4,
+            "ed_maxPulses": 1,
+            "hdf5typeio": "1",
+            "laser": "1",
+            "mgd": "1",
+            "mgd_meshgroups": 6,
+            "mtmmmt": "1",
+            "nxb": 8,
+            "nyb": 8,
+            "species": "fill,wall",
+            "units": [
+               "physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore"
+            ],
+            "usm3t": "1"
+        },
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",

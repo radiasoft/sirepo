@@ -37,7 +37,7 @@ def app_root(sim_type):
     """Generate uri for application root
 
     Args:
-        sim_type (str): application name [flask.g.sirepo_sim_type]
+        sim_type (str): application name
 
     Returns:
         str: formatted URI

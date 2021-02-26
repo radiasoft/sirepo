@@ -21,6 +21,7 @@ from sirepo import util
 import contextlib
 import datetime
 import importlib
+import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.template
 import sirepo.uri
@@ -32,12 +33,6 @@ LOGIN_ROUTE_NAME = 'login'
 
 #: Guest is a special method
 METHOD_GUEST = 'guest'
-
-ROLE_ADM = 'adm'
-ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
-ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
-
-PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -51,8 +46,8 @@ _COOKIE_USER = 'srau'
 _GUEST_USER_DISPLAY_NAME = 'Guest User'
 
 _PAYMENT_PLAN_BASIC = 'basic'
-_PAYMENT_PLAN_ENTERPRISE = ROLE_PAYMENT_PLAN_ENTERPRISE
-_PAYMENT_PLAN_PREMIUM = ROLE_PAYMENT_PLAN_PREMIUM
+_PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE
+_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
 
 _STATE_LOGGED_IN = 'li'
@@ -118,15 +113,6 @@ def api_authLogout(simulation_type=None):
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
-def check_user_has_role(role, raise_forbidden=True):
-    u = logged_in_user()
-    if auth_db.UserRole.has_role(u, role):
-        return True
-    if raise_forbidden:
-        util.raise_forbidden('uid={} role={} not found'.format(u, role))
-    return False
-
-
 def complete_registration(name=None):
     """Update the database with the user's display_name and sets state to logged-in.
     Guests will have no name.
@@ -140,16 +126,6 @@ def complete_registration(name=None):
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
-
-
-def get_all_roles():
-    return [
-        role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
-    ] + [
-        ROLE_ADM,
-        ROLE_PAYMENT_PLAN_ENTERPRISE,
-        ROLE_PAYMENT_PLAN_PREMIUM,
-    ]
 
 
 def guest_uids():
@@ -189,7 +165,11 @@ def init_apis(*args, **kwargs):
 
 
 def is_premium_user():
-    return check_user_has_role(ROLE_PAYMENT_PLAN_PREMIUM, raise_forbidden=False)
+    return sirepo.auth_role.check_user_has_role(
+        logged_in_user(),
+        sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+        raise_forbidden=False,
+    )
 
 
 def logged_in_user(check_path=True):
@@ -262,7 +242,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
-            _create_roles_for_user(uid, module.AUTH_METHOD)
+            _create_roles_for_user(module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -327,9 +307,11 @@ def need_complete_registration(model):
     return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
 
+@contextlib.contextmanager
 def process_request(unit_test=None):
-    cookie.process_header(unit_test)
-    _set_log_user()
+    with cookie.process_header(unit_test):
+        _set_log_user()
+        yield
 
 
 def require_auth_basic():
@@ -356,7 +338,10 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    check_user_has_role(role_for_sim_type(sim_type))
+    sirepo.auth_role.check_user_has_role(
+        logged_in_user(),
+        sirepo.auth_role.role_for_sim_type(sim_type),
+    )
 
 
 def require_user():
@@ -411,30 +396,19 @@ def reset_state():
     _set_log_user()
 
 
-def role_for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
-
-
-def set_user_for_utils(uid=None):
-    """A mock user for utilities"""
-    cookie.set_cookie_for_utils()
-    import sirepo.auth.guest
-    if uid:
-        _login_user(sirepo.auth.guest, uid)
-    else:
-        login(sirepo.auth.guest, is_mock=True)
-
 
 @contextlib.contextmanager
-def set_user(uid):
-    """Set the user (uid) for the context"""
-    assert not util.flask_app(), \
-        'Flask sets the user on the request'
-    try:
-        set_user_for_utils(uid=uid)
+def set_user_outside_of_flask_request(uid=None):
+    """A user set explicitly outside of flask request cycle"""
+    assert not util.in_flask_request(), \
+        'Only call from outside a flask request context'
+    with cookie.set_cookie_outside_of_flask_request():
+        import sirepo.auth.guest
+        if uid:
+            _login_user(sirepo.auth.guest, uid)
+        else:
+            login(sirepo.auth.guest, is_mock=True)
         yield
-    finally:
-        reset_state()
 
 
 def unchecked_get_user(uid):
@@ -611,12 +585,15 @@ def _auth_state():
     pkdc('state={}', v)
     return v
 
-def _create_roles_for_user(uid, method):
+
+def _create_roles_for_user(method):
     r = []
     if pkconfig.channel_in('dev') and method == METHOD_GUEST:
-        auth_db.UserRole.add_roles(uid, get_all_roles())
+        r = sirepo.auth_role.get_all_roles()
     elif sirepo.template.is_sim_type('jupyterhublogin'):
-        auth_db.UserRole.add_roles(uid, [role_for_sim_type('jupyterhublogin')])
+        r = [sirepo.auth_role.role_for_sim_type('jupyterhublogin')]
+    if r:
+        auth_db.UserRole.add_roles(logged_in_user(), r)
 
 
 def _get_user():
@@ -708,10 +685,10 @@ def _parse_display_name(value):
 
 def _plan(data):
     r = data.roles
-    if ROLE_PAYMENT_PLAN_ENTERPRISE in r:
+    if sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE in r:
         data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
         data.upgradeToPlan = None
-    elif ROLE_PAYMENT_PLAN_PREMIUM in r:
+    elif sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
         data.paymentPlan = _PAYMENT_PLAN_PREMIUM
         data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
     else:

@@ -39,7 +39,10 @@ def adjust_supervisor_srtime(days):
 
 @api_perm.require_user
 def api_admJobs():
-    sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
+    sirepo.auth_role.check_user_has_role(
+        sirepo.auth.logged_in_user(),
+        sirepo.auth_role.ROLE_ADM,
+    )
     return _request(
         _request_content=PKDict(**sirepo.http_request.parse_post()),
     )

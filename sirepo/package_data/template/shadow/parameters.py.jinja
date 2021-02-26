@@ -5,6 +5,10 @@ import Shadow
 from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
 from srxraylib.sources import srfunc
 
+{% if zonePlateMethods %}
+{{zonePlateMethods}}
+{% endif %}
+
 {% if simulation_sourceType == 'undulator' -%}
 {{undulatorSettings}}
 {% else %}

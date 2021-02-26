@@ -1,0 +1,53 @@
+from orangecontrib.shadow_advanced_tools.util.fresnel_zone_plates.fresnel_zone_plate_simulator import FZPAttributes, FZPSimulatorOptions, FresnelZonePlateSimulator
+from srxraylib.util.inverse_method_sampler import Sampler2D
+
+def zone_plate_simulator(zone_plate_type, width_coating, height, diameter, b_min, zone_plate_material, template_material, energy_in_KeV, n_points):
+    zp = FresnelZonePlateSimulator(
+        attributes=FZPAttributes(
+            height=height,
+            diameter=diameter,
+            b_min=b_min,
+            zone_plate_material=zone_plate_material,
+            template_material=template_material,
+        ),
+        options=FZPSimulatorOptions(
+            with_central_stop=False,
+            zone_plate_type=zone_plate_type,
+            width_coating=width_coating,
+            store_partial_results=False,
+        ),
+    )
+    zp.initialize(
+        energy_in_KeV=energy_in_KeV,
+        n_points=n_points,
+        multipool=False,
+    )
+    return zp
+
+# derived from https://github.com/oasys-kit/ShadowOui-Advanced-Tools/blob/master/orangecontrib/shadow_advanced_tools/widgets/optical_elements/ow_fresnel_zone_plate.py#L705
+def trace_through_zone_plate(beam, fzp_simulator, last_index):
+    intensity, _, efficiency = fzp_simulator.simulate()
+    profile_1D = intensity[-1, :]
+    X, Y, dif_xpzp = fzp_simulator.create_2D_profile(profile_1D, last_index)
+    x = X[0, :]
+    z = Y[:, 0]
+    xp = x/fzp_simulator.focal_distance
+    zp = z/fzp_simulator.focal_distance
+    good = numpy.where(beam.rays[:, 9] == 1)
+    assert len(good), 'no good rays'
+    dx_ray = numpy.arctan(beam.rays[good, 3] / beam.rays[good, 4])
+    dz_ray = numpy.arctan(beam.rays[good, 5] / beam.rays[good, 4])
+    pos_dif_x, pos_dif_z = Sampler2D(dif_xpzp, xp, zp).get_n_sampled_points(dx_ray.shape[1])
+    dx_conv = dx_ray + numpy.arctan(pos_dif_x)
+    dz_conv = dz_ray + numpy.arctan(pos_dif_z)
+    angle_num = numpy.sqrt(1 + (numpy.tan(dz_conv)) ** 2 + (numpy.tan(dx_conv)) ** 2)
+    beam.rays[good, 3] = numpy.tan(dx_conv) / angle_num
+    beam.rays[good, 4] = 1 / angle_num
+    beam.rays[good, 5] = numpy.tan(dz_conv) / angle_num
+    efficiency_factor = numpy.sqrt(efficiency)
+    beam.rays[good, 6] *= efficiency_factor
+    beam.rays[good, 7] *= efficiency_factor
+    beam.rays[good, 8] *= efficiency_factor
+    beam.rays[good, 15] *= efficiency_factor
+    beam.rays[good, 16] *= efficiency_factor
+    beam.rays[good, 17] *= efficiency_factor

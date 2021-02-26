@@ -28,10 +28,14 @@
         ],
         "BeamStatisticsParameter": [
             ["none", "None"],
+            ["angxz", "angxz"],
+            ["angxpzp", "angxpzp"],
             ["sigmax", "sigmax"],
             ["sigdix", "sigdix"],
             ["sigmaz", "sigmaz"],
             ["sigdiz", "sigdiz"],
+            ["sigmaxz", "sigmaxz"],
+            ["sigmaxpzp", "sigmaxpzp"],
             ["x", "x"],
             ["xp", "xp"],
             ["z", "z"],
@@ -328,6 +332,11 @@
             ["0", "Point"],
             ["1", "Gaussian"],
             ["2", "FT(Divergences)"]
+        ],
+        "ZonePlateType": [
+            ["0", "Ordinary"],
+            ["1", "Zone-Doubled"],
+            ["2", "Zone-Filled"]
         ]
     },
     "dynamicFiles": {
@@ -745,6 +754,19 @@
             "shift_x_value": ["Value", "Float", 0.0],
             "shift_betax_flag": ["Shift Transversal Coordinate", "BeamShift", "0"],
             "shift_betax_value": ["Value", "Float", 0.0]
+        },
+        "zonePlate": {
+            "title": ["Element Name", "String", "Zone Plate"],
+            "position": ["Position along Optical Path [m]", "Float"],
+            "zone_plate_type": ["Zone Plate Type", "ZonePlateType", "0"],
+            "width_coating": ["Coating Width [nm]", "Float", 20.0],
+            "height": ["Height [mm]", "Float", 4.0],
+            "diameter": ["Diameter [mm]", "Float", 4.0],
+            "b_min": ["Outer Zone Width [µm]", "Float", 10.0],
+            "zone_plate_material": ["Material", "ReflectivityMaterial", "Au"],
+            "template_material": ["Template Material", "ReflectivityMaterial", "SiO2"],
+            "n_points": ["Sampling Points", "Integer", 5000],
+            "last_index": ["Last Index of Focal Image", "Integer", 100]
         }
     },
     "view": {
@@ -1412,6 +1434,22 @@
                         ]]
                     ]
                 ]]
+            ]
+        },
+        "zonePlate": {
+            "title": "Zone Plage",
+            "advanced": [
+                "title",
+                "position",
+                "zone_plate_type",
+                "width_coating",
+                "height",
+                "diameter",
+                "b_min",
+                "zone_plate_material",
+                "template_material",
+                "n_points",
+                "last_index"
             ]
         }
     }

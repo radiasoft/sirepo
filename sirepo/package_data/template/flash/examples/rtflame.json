@@ -765,6 +765,15 @@
             "hx_ieTimeCoef": 1,
             "hx_relTol": -1
         },
+        "problemFiles": {
+            "archive": null
+        },
+        "setupArguments": {
+            "auto": "1",
+            "d": 2,
+            "nxb": 16,
+            "nyb": 16
+        },
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",

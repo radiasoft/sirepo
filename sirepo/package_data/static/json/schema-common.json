@@ -167,6 +167,7 @@
             }
         },
         "constants": {
+            "canDownloadInputFile": true,
             "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,

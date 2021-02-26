@@ -192,35 +192,35 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    sirepo.auth.process_request()
-    try:
-        if path is None:
-            return call_api(_empty_route.func, {})
-        # werkzeug doesn't convert '+' to ' '
-        parts = re.sub(r'\+', ' ', path).split('/')
+    with sirepo.auth.process_request():
         try:
-            route = _uri_to_route[parts[0]]
-            parts.pop(0)
-        except KeyError:
-            # sim_types (applications)
-            route = _default_route
-        kwargs = PKDict()
-        for p in route.params:
-            if not parts:
-                if not p.is_optional:
-                    raise sirepo.util.raise_not_found('{}: uri missing parameter ({})', path, p.name)
-                break
-            if p.is_path_info:
-                kwargs[p.name] = '/'.join(parts)
-                parts = None
-                break
-            kwargs[p.name] = parts.pop(0)
-        if parts:
-            raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
-        return call_api(route.func, kwargs)
-    except Exception as e:
-        pkdlog('exception={} path={} stack={}', e, path, pkdexc())
-        raise
+            if path is None:
+                return call_api(_empty_route.func, {})
+            # werkzeug doesn't convert '+' to ' '
+            parts = re.sub(r'\+', ' ', path).split('/')
+            try:
+                route = _uri_to_route[parts[0]]
+                parts.pop(0)
+            except KeyError:
+                # sim_types (applications)
+                route = _default_route
+            kwargs = PKDict()
+            for p in route.params:
+                if not parts:
+                    if not p.is_optional:
+                        raise sirepo.util.raise_not_found('{}: uri missing parameter ({})', path, p.name)
+                    break
+                if p.is_path_info:
+                    kwargs[p.name] = '/'.join(parts)
+                    parts = None
+                    break
+                kwargs[p.name] = parts.pop(0)
+            if parts:
+                raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
+            return call_api(route.func, kwargs)
+        except Exception as e:
+            pkdlog('exception={} path={} stack={}', e, path, pkdexc())
+            raise
 
 
 def _dispatch_empty():

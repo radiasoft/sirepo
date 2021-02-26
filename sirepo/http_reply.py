@@ -75,8 +75,8 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
         if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
             return flask.send_file(str(content_or_path))
         if content_type == 'application/json':
-            return flask.current_app.response_class(pkjson.dump_pretty(content_or_path))
-        return flask.current_app.response_class(content_or_path)
+            return sirepo.util.flask_app().response_class(pkjson.dump_pretty(content_or_path))
+        return sirepo.util.flask_app().response_class(content_or_path)
 
     if filename is None:
         # dies if content_or_path is not a path
@@ -105,7 +105,7 @@ def gen_json(value, pretty=False, response_kwargs=None):
     Returns:
         flask.Response: reply object
     """
-    app = flask.current_app
+    app = sirepo.util.flask_app()
     if not response_kwargs:
         response_kwargs = PKDict()
     return app.response_class(
@@ -323,7 +323,7 @@ def _gen_exception_reply_Redirect(args):
 
 def _gen_exception_reply_Response(args):
     r = args.response
-    assert isinstance(r, flask.current_app.response_class), \
+    assert isinstance(r, sirepo.util.flask_app().response_class), \
         'invalid class={} response={}'.format(type(r), r)
     return r
 
