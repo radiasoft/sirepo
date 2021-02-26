@@ -245,6 +245,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomGroup',
         'geomUndulatorGroup'
     ];
+    const undulatorEditorFields = [
+        'hybridUndulator.magnetMagnetization',
+        'hybridUndulator.magnetMaterial',
+        'hybridUndulator.poleMagnetization',
+        'hybridUndulator.poleMaterial',
+    ];
     var watchedModels = [
         'geomObject',
         'geomGroup',
@@ -852,6 +858,27 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
+    function updateUndulatorEditor() {
+        let u = appState.models.hybridUndulator;
+        for (let m of ['pole', 'magnet']) {
+            const matField = `${m}Material`;
+            panelState.showField(
+                'hybridUndulator',
+                `${m}MaterialFile`,
+                u[matField] === 'custom'
+            );
+            const mag = Math.hypot(
+                ...radiaService.stringToFloatArray(u[`${m}Magnetization`] || SIREPO.ZERO_STR)
+            );
+            validationService.validateField(
+                'hybridUndulator',
+                matField,
+                SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(u[matField]) < 0 || mag > 0,
+                anisotropicMaterialMsg
+            );
+        }
+    }
+    
     function updateObjectEditor() {
         var o = self.selectedObject;
         if (! o) {
@@ -871,18 +898,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const mag = Math.hypot(
             ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
         );
-        const mfId = utilities.modelFieldID('geomObject' ,'material');
-        $(`.${mfId} .sr-input-warning`).text(anisotropicMaterialMsg);
-        const f = $(`.${mfId} select`)[0];
-        const fWarn = $(`.${mfId} .sr-input-warning`);
-        f.setCustomValidity('');
-        fWarn.hide();
-        if (SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) >= 0) {
-            if (mag === 0) {
-                f.setCustomValidity(anisotropicMaterialMsg);
-                fWarn.show();
-            }
-        }
+        validationService.validateField(
+            'geomObject',
+            'material',
+            SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) < 0 || mag > 0,
+            anisotropicMaterialMsg
+        );
     }
 
     function updateToolEditor(toolItem) {
@@ -905,6 +926,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
+        });
+        appState.watchModelFields($scope, undulatorEditorFields, function(d) {
+            updateUndulatorEditor();
         });
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];

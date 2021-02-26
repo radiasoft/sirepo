@@ -938,7 +938,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
         mag_segs,
         und.magnetMaterial,
-        mag_mag,
+        (-1) ** und.numPeriods * mag_mag,
         und.magnetColor
     )
 
