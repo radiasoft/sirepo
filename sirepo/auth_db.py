@@ -100,7 +100,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
             + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
         r = UserRole.has_role(
             uid,
-            sirepo.auth_role.role_for_sim_type(t),
+            sirepo.auth_role.for_sim_type(t),
         )
         if r:
             _add(d, t, c)
@@ -308,7 +308,7 @@ def _migrate_db_file(fn):
 def _migrate_role_jupyterhub():
     import sirepo.template
 
-    r = sirepo.auth_role.role_for_sim_type('jupyterhublogin')
+    r = sirepo.auth_role.for_sim_type('jupyterhublogin')
     if not sirepo.template.is_sim_type('jupyterhublogin') or \
        r in UserRole.all_roles():
         return

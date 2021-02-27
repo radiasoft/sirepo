@@ -250,7 +250,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
-            _create_roles_for_user(module.AUTH_METHOD)
+            _create_roles_for_new_user(module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -348,7 +348,7 @@ def require_sim_type(sim_type):
         return
     check_user_has_role(
         logged_in_user(),
-        sirepo.auth_role.role_for_sim_type(sim_type),
+        sirepo.auth_role.for_sim_type(sim_type),
     )
 
 
@@ -591,12 +591,8 @@ def _auth_state():
     return v
 
 
-def _create_roles_for_user(method):
-    r = []
-    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
-        r = sirepo.auth_role.get_all_roles()
-    elif sirepo.template.is_sim_type('jupyterhublogin'):
-        r = [sirepo.auth_role.role_for_sim_type('jupyterhublogin')]
+def _create_roles_for_new_user(method):
+    r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
     if r:
         auth_db.UserRole.add_roles(logged_in_user(), r)
 
