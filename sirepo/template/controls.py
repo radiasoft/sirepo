@@ -9,11 +9,11 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 import copy
 import csv
 import sirepo.sim_data
 import sirepo.simulation_db
-import sirepo.template.lattice
 import sirepo.template.madx
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -68,39 +68,20 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _add_monitor(data):
-    def _do_add():
+    util = LatticeUtil(
+        data,
+        sirepo.sim_data.get_class('madx').schema(),
+    )
+    assert len(data.models.beamlines) == 1
+    b = data.models.beamlines[0]
+    if util.id_map[b['items'][-1]].type != 'MONITOR':
         m = PKDict(
-            _id=sirepo.template.lattice.LatticeUtil.max_id(data),
+            _id=LatticeUtil.max_id(data) + 1,
             name='M1',
-            type=t,
+            type='MONITOR',
         )
-        for k, v in sirepo.sim_data.get_class('madx').schema().model[t].items():
-            if len(v) < 3:
-                continue
-            m[k] = v[2]
         data.models.elements.append(m)
-        for b in data.models.beamlines:
-            if b.id == i:
-                b['items'].append(m._id)
-                return
-        raise AssertionError(f'beamline={i} not found')
-
-    def _has_monitor():
-        m = {
-            e._id for e in data.models.elements if t in e.type
-        }
-        for b in data.models.beamlines:
-            if b.id == i:
-                for e in b['items']:
-                    if e in m:
-                        return True
-        return False
-
-    t = 'MONITOR'
-    i = data.models.simulation.visualizationBeamlineId
-    if _has_monitor():
-        return
-    _do_add()
+        b['items'].append(m._id)
 
 
 def _dedup_madx_elements(data):
@@ -138,7 +119,7 @@ def _dedup_madx_elements(data):
     def _set_element_name(elem, index):
         elem['name'] = f'{elem.name[0]}_{index}'
 
-    max_id = sirepo.template.lattice.LatticeUtil.max_id(data)
+    max_id = LatticeUtil.max_id(data)
     beamline_map = PKDict(
         {
             e.id: PKDict(
@@ -170,13 +151,13 @@ def _delete_unused_madx_commands(data):
     data.models.commands = [
         by_name.beam,
         PKDict(
-            _id=sirepo.template.lattice.LatticeUtil.max_id(data) + 1,
+            _id=LatticeUtil.max_id(data) + 1,
             _type='select',
             flag='twiss',
             column='name,keyword,s,x,y',
         ),
         by_name.twiss or PKDict(
-            _id=sirepo.template.lattice.LatticeUtil.max_id(data) + 2,
+            _id=LatticeUtil.max_id(data) + 2,
             _type='twiss',
             file='1',
         )
