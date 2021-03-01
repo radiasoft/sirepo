@@ -51,6 +51,25 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.isEditing = false;
     self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
+    self.pointFieldExports = {
+        csv: {
+            contentType: 'text/csv;charset=utf-8',
+            extension: 'csv',
+            responseType: '',
+        },
+        sdds: {
+            contentType: 'application/octet-stream',
+            extension: 'sdds',
+            responseType: '',
+        },
+        SRW: {
+            contentType: 'application/zip',
+            extension: 'zip',
+            responseType: 'arraybuffer',
+        }
+    };
+    self.pointFieldExportTypes = Object.keys(self.pointFieldExports);
+
     self.selectedObject = null;
 
     self.addOrModifyPath = function(type) {
@@ -1164,9 +1183,29 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                                         '<label><span>Field</span></label>',
                                     '</div>',
                                     '<div class="col-sm-5">',
-                                        '<select data-ng-model="tModel.type" data-ng-change="ch()" class="form-control">',
+                                        '<select data-ng-model="tModel.type" class="form-control">',
                                             '<option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>',
                                         '</select>',
+                                    '</div>',
+                                '</div>',
+                                '<div class="control-label col-sm-5">',
+                                    '<label><span>Export to</span></label>',
+                                '</div>',
+                                '<div class="form-group form-group-sm">',
+                                    '<div class="col-sm-5">',
+                                        '<select data-ng-model="tModel.exportType" class="form-control">',
+                                            '<option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>',
+                                        '</select>',
+                                    '</div>',
+                                '</div>',
+                                '<div data-ng-show="tModel.exportType == \'SRW\'">',
+                                    '<div class="control-label col-sm-5">',
+                                        '<label><span>Magnetic Gap [mm]</span></label>',
+                                    '</div>',
+                                    '<div class="form-group form-group-sm">',
+                                        '<div class="col-sm-5">',
+                                            '<input data-string-to-number="" data-ng-model="tModel.gap" data-min="0" required />',
+                                        '</div>',
                                     '</div>',
                                 '</div>',
                                 '<div class="row">',
@@ -1182,24 +1221,36 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             $scope.svc = radiaService;
 
             $scope.tModel = {
+                exportType: radiaService.pointFieldExportTypes[0],
+                gap: 0.0,
                 type: radiaService.pointFieldTypes[0],
             };
 
+            $scope.availableFieldTypes = function() {
+                return radiaService.pointFieldTypes.filter(function(t) {
+
+                });
+            };
+
             $scope.download = function() {
-                var p = radiaService.selectedPath;
-                var f = p.name + ' ' + $scope.fieldType();
-                var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
-                var fn = panelState.fileNameFromText(f, ext);
-                var ct = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
+                let pfe = radiaService.pointFieldExports[$scope.tModel.exportType];
+                let ct = pfe.contentType;
+                let p = radiaService.selectedPath;
+                let f = `${appState.models.simulation.name}-${p.name}-${$scope.fieldType()}`;
+                let ext = pfe.extension;
+                let fn = panelState.fileNameFromText(f, ext);
                 requestSender.getApplicationData(
                     {
                         beamAxis: appState.models.simulation.beamAxis,
                         contentType: ct,
-                        fieldPaths: [radiaService.selectedPath],
+                        fieldPaths: [p],
                         fieldType: $scope.fieldType(),
-                        fileType: $scope.isFieldMap() ? 'sdds' : 'csv',
+                        fileExt: ext,
+                        exportType: $scope.tModel.exportType,
+                        gap: $scope.tModel.gap,
                         method: 'save_field',
-                        name: radiaService.selectedPath.name,
+                        name: p.name,
+                        responseType: pfe.responseType,
                         simulationId: appState.models.simulation.simulationId,
                         viewType: 'fields',
                     },
@@ -1215,11 +1266,16 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                 return $scope.isFieldMap() ? 'B' : $scope.tModel.type;
             };
 
+            $scope.exportType = function() {
+                return $scope.tModel.exportType;
+            };
+
             $scope.isFieldMap = function() {
                 return (radiaService.selectedPath || {}).type === 'fieldMap';
             };
 
             appState.whenModelsLoaded($scope, function () {
+                $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
             });
         },
     };
