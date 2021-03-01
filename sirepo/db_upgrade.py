@@ -37,10 +37,12 @@ def _20210211_add_flash_proprietary_lib_files(force=False):
         return
     for u in sirepo.auth_db.all_uids():
         # Remove the existing rpm
-        pkio.unchecked_remove(sirepo.simulation_db.simulation_lib_dir(
-            'flash',
-            uid=u,
-        ).join('flash.rpm'))
+        pkio.unchecked_remove(
+            sirepo.simulation_db.simulation_lib_dir(
+                'flash',
+                uid=u,
+            ).join('flash.rpm'),
+        )
         # Add's the flash proprietary lib files (unpacks flash.tar.gz)
         sirepo.auth_db.audit_proprietary_lib_files(u, force=force, sim_types=set(('flash',)))
 
