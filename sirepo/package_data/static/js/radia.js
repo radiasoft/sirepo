@@ -867,7 +867,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let modelName = 'hybridUndulator';
         let u = appState.models[modelName];
 
-        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            panelState.enableField('hybridUndulator', 'magnetLength', false);
+
+            for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
             let axis = e[SIREPO.ENUM_INDEX_VALUE];
             panelState.showEnum(modelName, 'gapAxis', axis, axis !== appState.models.simulation.beamAxis);
         }
@@ -956,9 +958,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     appState.whenModelsLoaded($scope, function() {
         self.modelsLoaded = true;
-        panelState.waitForUI(function() {
-            updateUndulatorEditor();
-        });
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
@@ -1029,7 +1028,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.dropEnabled = val;
         });
         $scope.$parent.$on('sr-tabSelected', function(event, modelName) {
-            panelState.enableField('hybridUndulator', 'magnetLength', false);
+            updateUndulatorEditor();
         });
     });
 });
