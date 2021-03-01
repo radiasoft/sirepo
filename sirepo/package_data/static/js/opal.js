@@ -35,22 +35,21 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             alpha: [],
-            aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'PEPPERPOT', 'RCOLLIMATOR', 'SLIT'],
+            aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'RCOLLIMATOR'],
             bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
             drift: ['DRIFT'],
             lens: [],
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
-                     'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'MULTIPOLETCURVEDCONSTRADIUS',
-                     'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT', 'OCTUPOLE',
+                     'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'STRIPPER', 'TRIMCOIL', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
-            rf: ['PARALLELPLATE', 'RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
+            rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
             solenoid: ['SOLENOID'],
             undulator: [],
-            watch: ['HMONITOR', 'INSTRUMENT', 'MARKER', 'MONITOR', 'PROBE', 'VMONITOR'],
-            zeroLength: ['PATCH', 'SEPARATOR', 'SOURCE', 'SROT', 'TRAVELINGWAVE', 'YROT'],
+            watch: ['MARKER', 'MONITOR', 'PROBE'],
+            zeroLength: ['LOCAL_CARTESIAN_OFFSET', 'SOURCE', 'TRAVELINGWAVE'],
         },
     };
 });
@@ -146,15 +145,15 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
 // RBEND, SBEND, RBEND3D, MULTIPOLE
 
 // OPAL-cycle
-// SBEND3D, CCOLLIMATOR, SEPTUM, PROBE, STRIPPER,
+// SBEND3D, CCOLLIMATOR, SEPTUM, PROBE
 
 SIREPO.app.controller('LatticeController', function(appState, commandService, latticeService, rpnService, $scope) {
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [
         'CCOLLIMATOR', 'CYCLOTRON', 'DEGRADER', 'FLEXIBLECOLLIMATOR',
-        'HKICKER', 'KICKER', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE', 'PROBE', 'RBEND',
-        'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
+        'HKICKER', 'KICKER', 'LOCAL_CARTESIAN_OFFSET', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
+        'OCTUPOLE', 'PROBE', 'RBEND', 'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
         'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
         'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
     ];
@@ -669,6 +668,17 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
     };
 });
 
+SIREPO.viewLogic('beamlineView', function(latticeService, panelState, $scope) {
+
+    function updateAbsolutePositionFields() {
+        panelState.showFields('beamline', [
+            ['x', 'y', 'z', 'theta', 'phi', 'psi'], latticeService.isAbsolutePositioning(),
+        ]);
+    }
+
+    $scope.whenSelected = updateAbsolutePositionFields;
+});
+
 SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['simulation.elementPosition'], () => {
@@ -676,4 +686,12 @@ SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
             appState.models.simulation.elementPosition = appState.applicationState().simulation.elementPosition;
         },
     ];
+});
+
+['plotAnimation', 'plot2Animation'].forEach((name) => {
+    SIREPO.viewLogic(name + 'View', function(latticeService, panelState, $scope) {
+        $scope.whenSelected = () => {
+            panelState.showField(name, 'includeLattice', ! latticeService.isAbsolutePositioning());
+        };
+    });
 });

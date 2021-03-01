@@ -262,6 +262,7 @@
         },
         "simulation": {
             "documentationUrl": "",
+            "elementPosition": "absolute",
             "folder": "/",
             "name": "default",
             "notes": "",

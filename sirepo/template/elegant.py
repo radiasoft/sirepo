@@ -392,7 +392,8 @@ class ElegantMadxConverter(MadxConverter):
         scale = self._FIELD_SCALE.get(el.type)
         if scale:
             for f in scale:
-                element_out[f] = f'{element_out[f]} {op} {scale[f]}'
+                if f in element_out:
+                    element_out[f] = f'{element_out[f]} {op} {scale[f]}'
 
     def __normalize_elegant_beam(self, data, beam):
         # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set

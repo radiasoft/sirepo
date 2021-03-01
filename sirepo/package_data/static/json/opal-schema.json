@@ -31,7 +31,7 @@
     },
     "enum": {
         "ElementPosition": [
-            ["relative", "Relative to each other"],
+            ["relative", "Relative to each other (using DRIFT)"],
             ["absolute", "Absolute (using ELEMEDGE)"]
         ],
         "PhaseSpaceCoordinate": [
@@ -415,7 +415,13 @@
     },
     "model": {
         "beamline": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "x": ["X [m]", "RPNValue", 0, "The x-coordinate of the location of the particle source"],
+            "y": ["Y [m]", "RPNValue", 0, "The y-coordinate of the location of the particle source"],
+            "z": ["Z [m]", "RPNValue", 0, "The z-coordinate of the location of the particle source"],
+            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the particle source"],
+            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the particle source"],
+            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the particle source"]
         },
         "beamlineReport": {
         },
@@ -575,6 +581,14 @@
             "hkick": ["HKICK [rad]", "RPNValue", 0, "Horizontal deflection"],
             "vkick": ["VKICK [rad]", "RPNValue", 0, "Vertical deflection"],
             "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
+        },
+        "LOCAL_CARTESIAN_OFFSET": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "end_position_x": ["END POSITION X [m]", "RPNValue", 0, "x component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_position_y": ["END POSITION Y [m]", "RPNValue", 0, "y component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_normal_x": ["END NORMAL X [m]", "RPNValue", 0, "x component of normal of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_normal_y": ["END NORMAL Y [m]", "RPNValue", 0, "y component of normal of end of the offset in coordinate system of the end of the upstream element [m]."]
         },
         "MARKER": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -1160,7 +1174,13 @@
         "beamline": {
             "title": "Beamline",
             "advanced": [
-                "name"
+                "name",
+                "x",
+                "y",
+                "z",
+                "theta",
+                "phi",
+                "psi"
             ]
         },
         "beamlineReport": {
@@ -1511,6 +1531,18 @@
                 "dtheta",
                 "dphi",
                 "dpsi"
+            ]
+        },
+        "LOCAL_CARTESIAN_OFFSET": {
+            "title": "LOCAL_CARTESIAN_OFFSET",
+            "description": "The LOCAL_CARTESIAN_OFFSET element defines an offset in cartesian coordinates, relative to the last placed element.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "end_position_x",
+                "end_position_y",
+                "end_normal_x",
+                "end_normal_y"
             ]
         },
         "MARKER": {

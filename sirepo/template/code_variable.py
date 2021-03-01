@@ -36,31 +36,12 @@ class CodeVar():
         self.case_insensitive = case_insensitive
 
     def compute_cache(self, data, schema):
-        def add_to_cache(cache, name, value):
-            v, err = self.eval_var(value)
-            if not err:
-                if self.is_var_value(value):
-                    if self.case_insensitive:
-                        value = value.lower()
-                    cache[value] = v
-                else:
-                    v = float(v)
-                cache[name] = v
-
         if 'models' not in data:
             return None
-        cache = lattice.LatticeUtil(data, schema).iterate_models(
-            CodeVarIterator(self),
-        ).result
+        it = CodeVarIterator(self, data, schema)
+        cache = lattice.LatticeUtil(data, schema).iterate_models(it).result
         for name, value in self.variables.items():
-            add_to_cache(cache, name, value)
-        for bl in data.models.beamlines:
-            if 'positions' not in bl:
-                continue
-            for p in bl.positions:
-                for f in p:
-                    if p[f]:
-                        add_to_cache(cache, p[f], p[f])
+            it.add_to_cache(name, value)
         data.models.rpnCache = cache
         return cache
 
@@ -262,19 +243,47 @@ class CodeVar():
 
 
 class CodeVarIterator(lattice.ModelIterator):
-    def __init__(self, code_var):
+    def __init__(self, code_var, data, schema):
         self.result = PKDict()
         self.code_var = code_var
+        self.__add_beamline_fields(data, schema)
+
+    def add_to_cache(self, name, value):
+        v = self.__add_value(value)
+        if v is not None:
+            self.result[name] = v
 
     def field(self, model, field_schema, field):
         value = model[field]
-        if field_schema[1] == 'RPNValue' and self.code_var.is_var_value(value):
+        if field_schema[1] == 'RPNValue':
+            self.__add_value(value)
+
+    def __add_beamline_fields(self, data, schema):
+        if not schema.get('model') or not schema.model.get('beamline'):
+            return
+        bs = schema.model.beamline
+        for bl in data.models.beamlines:
+            if 'positions' not in bl:
+                continue
+            for f in bs:
+                if f in bl and bl[f]:
+                    self.field(bl, bs[f], f)
+            for p in bl.positions:
+                for f in p:
+                    if p[f]:
+                        self.add_to_cache(p[f], p[f])
+
+    def __add_value(self, value):
+        if self.code_var.is_var_value(value):
             if self.code_var.case_insensitive:
                 value = value.lower()
             if value not in self.result:
                 v, err = self.code_var.eval_var(value)
-                if not err:
-                    self.result[value] = v
+                if err:
+                    return None
+                self.result[value] = v
+            return self.result[value]
+        return float(value) if value else 0
 
 
 class CodeVarDeleteIterator(lattice.ModelIterator):

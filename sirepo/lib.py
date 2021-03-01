@@ -58,6 +58,10 @@ class LibAdapterBase:
         for x in ('elements', 'commands'):
             for m in data.models[x]:
                 _model(m, LatticeUtil.model_name_for_data(m))
+        for bl in data.models.beamlines:
+            if 'positions' in bl:
+                for p in bl.positions:
+                    p.elemedge = cv.eval_var_with_assert(p.elemedge)
         return data
 
     def _verify_files(self, path, filenames):

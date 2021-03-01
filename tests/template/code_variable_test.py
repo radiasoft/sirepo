@@ -31,20 +31,37 @@ def test_cache():
     )
     pkeq(
         code_var.compute_cache(
+            # data
             PKDict(
                 models=PKDict(
                     beamlines=[],
-                    elements=[],
+                    elements=[
+                        PKDict(
+                            _id=1,
+                            type='point',
+                            p1='x + y',
+                            p2=234,
+                        ),
+                    ],
                     commands=[],
                 )
             ),
-            PKDict(),
+            # schema
+            PKDict(
+                model=PKDict(
+                    point=PKDict(
+                        p1=["P1", "RPNValue", 0],
+                        p2=["P2", "RPNValue", 0],
+                    )
+                ),
+            ),
         ),
         PKDict({
-            'x': 123,
-            'y': 246,
             'x + x': 246,
+            'x + y': 369,
+            'x': 123,
             'y * -20': -4920,
+            'y': 246,
             'z': -4920,
         })
     )
