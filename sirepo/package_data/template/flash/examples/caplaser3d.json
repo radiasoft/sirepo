@@ -361,70 +361,6 @@
             "op_fillLowTemp": 0,
             "op_wallLowTemp": 0
         },
-        "SimulationCapLaser3D": {
-            "sim_condWall": 195000,
-            "sim_currFile": "",
-            "sim_currType": "1",
-            "sim_eosFill": "eos_gam",
-            "sim_eosWall": "eos_tab",
-            "sim_peakCurr": 310,
-            "sim_peakField": 4500,
-            "sim_period": 2e-07,
-            "sim_rWall": 0.025,
-            "sim_rhoFill": 1.467e-5,
-            "sim_rhoWall": 2.7,
-            "sim_riseTime": 1.8e-09,
-            "sim_teleFill": 11598,
-            "sim_teleWall": 11598,
-            "sim_tionFill": 11598,
-            "sim_tionWall": 11598,
-            "sim_tradFill": 11598,
-            "sim_tradWall": 11598,
-            "sim_zminWall": 0
-        },
-        "SimulationCapLaserBELLA": {
-            "sim_condWall": 195000,
-            "sim_currFile": "",
-            "sim_currType": "1",
-            "sim_eosFill": "eos_gam",
-            "sim_eosWall": "eos_tab",
-            "sim_peakCurr": 310,
-            "sim_rhoFill": 2.655e-07,
-            "sim_rhoWall": 2.7,
-            "sim_riseTime": 1.8e-09,
-            "sim_teleFill": 290.11375,
-            "sim_teleWall": 290.11375,
-            "sim_tionFill": 290.11375,
-            "sim_tionWall": 290.11375,
-            "sim_tradFill": 290.11375,
-            "sim_tradWall": 290.11375,
-            "sim_zminWall": 0
-        },
-        "SimulationRTFlame": {
-            "dens_unburned": 100000000,
-            "flame_initial_position": 0,
-            "particle_attribute_1": "dens",
-            "particle_attribute_2": "temp",
-            "particle_attribute_4": "flam",
-            "refine_buf": 100000,
-            "refine_lead": 200000,
-            "refine_region_size": 6000000,
-            "refine_region_stepdown_size": 4500000,
-            "refine_uniform_region": "0",
-            "sim_ParticleRefineRegion": "0",
-            "sim_ParticleRefineRegionBottom": 6000000,
-            "sim_ParticleRefineRegionLevel": 2,
-            "sim_ParticleRefineRegionTop": 20000000,
-            "spert_ampl1": 0,
-            "spert_ampl2": 0,
-            "spert_phase1": 0,
-            "spert_phase2": 0,
-            "spert_wl1": 1,
-            "spert_wl2": 1,
-            "temp_unburned": 100000000,
-            "vel_pert_amp": 0,
-            "vel_pert_wavelength1": 1
-        },
         "gridEvolutionAnimation": {
             "notes": "",
             "y1": "x-momentum",
@@ -831,6 +767,241 @@
             "species": "fill,wall",
             "usm3t": "1"
         },
+        "setupConfigDirectives": [
+            {
+                "_id": 1,
+                "_type": "REQUIRES",
+                "unit": "Driver"
+            },
+            {
+                "_id": 2,
+                "_type": "REQUIRES",
+                "unit": "physics/Hydro/HydroMain/unsplit/MHD_StaggeredMesh"
+            },
+            {
+                "_id": 3,
+                "_type": "REQUESTS",
+                "unit": "physics/Eos/EosMain/multiTemp/Multitype"
+            },
+            {
+                "_id": 4,
+                "_type": "REQUESTS",
+                "unit": "physics/Eos/EosMain/Tabulated"
+            },
+            {
+                "_id": 5,
+                "_type": "REQUESTS",
+                "unit": "physics/Diffuse/DiffuseMain/Unsplit"
+            },
+            {
+                "_id": 6,
+                "_type": "REQUESTS",
+                "unit": "physics/sourceTerms/EnergyDeposition"
+            },
+            {
+                "_id": 7,
+                "_type": "REQUESTS",
+                "unit": "physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer"
+            },
+            {
+                "_id": 8,
+                "_type": "REQUESTS",
+                "unit": "physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ"
+            },
+            {
+                "_id": 9,
+                "_type": "REQUESTS",
+                "unit": "physics/materialProperties/MagneticResistivity/MagneticResistivityMain/SpitzerHighZ"
+            },
+            {
+                "_id": 10,
+                "_type": "PARAMETER",
+                "default": 2400.0,
+                "name": "sim_peakField",
+                "type": "REAL"
+            },
+            {
+                "_id": 11,
+                "_type": "PARAMETER",
+                "default": 3e-07,
+                "name": "sim_period",
+                "type": "REAL"
+            },
+            {
+                "_id": 12,
+                "_type": "PARAMETER",
+                "default": "current.dat",
+                "name": "sim_currFile",
+                "type": "STRING"
+            },
+            {
+                "_id": 13,
+                "_type": "PARAMETER",
+                "default": 450.0,
+                "name": "sim_peakCurr",
+                "type": "REAL"
+            },
+            {
+                "_id": 14,
+                "_type": "PARAMETER",
+                "default": 4e-07,
+                "name": "sim_riseTime",
+                "type": "REAL"
+            },
+            {
+                "_id": 15,
+                "_type": "PARAMETER",
+                "default": 0,
+                "name": "sim_runType",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 16,
+                "_type": "PARAMETER",
+                "default": 2.7,
+                "name": "sim_rhoWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 17,
+                "_type": "PARAMETER",
+                "default": 290.11375,
+                "name": "sim_teleWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 18,
+                "_type": "PARAMETER",
+                "default": 290.11375,
+                "name": "sim_tionWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 19,
+                "_type": "PARAMETER",
+                "default": 290.11375,
+                "name": "sim_tradWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 20,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "sim_zminWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 21,
+                "_type": "PARAMETER",
+                "default": "eos_tab",
+                "name": "sim_eosWall",
+                "type": "STRING"
+            },
+            {
+                "_id": 22,
+                "_type": "PARAMETER",
+                "default": 195000.0,
+                "name": "sim_condWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 23,
+                "_type": "PARAMETER",
+                "default": 0.025,
+                "name": "sim_rWall",
+                "type": "REAL"
+            },
+            {
+                "_id": 24,
+                "_type": "PARAMETER",
+                "default": 2.655e-07,
+                "name": "sim_rhoFill",
+                "type": "REAL"
+            },
+            {
+                "_id": 25,
+                "_type": "PARAMETER",
+                "default": 290.11375,
+                "name": "sim_teleFill",
+                "type": "REAL"
+            },
+            {
+                "_id": 26,
+                "_type": "PARAMETER",
+                "default": 290.11375,
+                "name": "sim_tionFill",
+                "type": "REAL"
+            },
+            {
+                "_id": 27,
+                "_type": "PARAMETER",
+                "default": 290.11375,
+                "name": "sim_tradFill",
+                "type": "REAL"
+            },
+            {
+                "_id": 28,
+                "_type": "PARAMETER",
+                "default": "eos_tab",
+                "name": "sim_eosFill",
+                "type": "STRING"
+            },
+            {
+                "_id": 29,
+                "_type": "VARIABLE",
+                "name": "CVIO"
+            },
+            {
+                "_id": 30,
+                "_type": "VARIABLE",
+                "name": "CVEL"
+            },
+            {
+                "_id": 31,
+                "_type": "VARIABLE",
+                "name": "KAPA"
+            },
+            {
+                "_id": 32,
+                "_type": "VARIABLE",
+                "name": "BDRY"
+            },
+            {
+                "_id": 33,
+                "_type": "VARIABLE",
+                "name": "EX"
+            },
+            {
+                "_id": 34,
+                "_type": "VARIABLE",
+                "name": "EY"
+            },
+            {
+                "_id": 35,
+                "_type": "VARIABLE",
+                "name": "NELE"
+            },
+            {
+                "_id": 36,
+                "_type": "VARIABLE",
+                "name": "BRSC"
+            },
+            {
+                "_id": 37,
+                "_type": "VARIABLE",
+                "name": "BRMX"
+            },
+            {
+                "_id": 38,
+                "_type": "VARIABLE",
+                "name": "ANGL"
+            },
+            {
+                "_id": 39,
+                "_type": "VARIABLE",
+                "name": "RESI"
+            }
+        ],
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
@@ -839,6 +1010,27 @@
             "isExample": true,
             "name": "Cap Laser 3D",
             "notes": ""
+        },
+        "SimulationCapLaser3D": {
+            "sim_condWall": 195000,
+            "sim_currFile": "",
+            "sim_currType": "1",
+            "sim_eosFill": "eos_gam",
+            "sim_eosWall": "eos_tab",
+            "sim_peakCurr": 310,
+            "sim_peakField": 4500,
+            "sim_period": 2e-07,
+            "sim_rWall": 0.025,
+            "sim_rhoFill": 1.467e-5,
+            "sim_rhoWall": 2.7,
+            "sim_riseTime": 1.8e-09,
+            "sim_teleFill": 11598,
+            "sim_teleWall": 11598,
+            "sim_tionFill": 11598,
+            "sim_tionWall": 11598,
+            "sim_tradFill": 11598,
+            "sim_tradWall": 11598,
+            "sim_zminWall": 0
         },
         "varAnimation": {
             "colorMap": "coolwarm",
