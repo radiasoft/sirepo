@@ -205,6 +205,7 @@ class OpalMadxConverter(MadxConverter):
 
     def from_madx(self, madx):
         data = super().from_madx(madx)
+        data.models.simulation.elementPosition = 'relative'
         mb = LatticeUtil.find_first_command(madx, 'beam')
         LatticeUtil.find_first_command(data, 'option').version = 20000
         LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
@@ -638,20 +639,21 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def _generate_lattice(self, util, code_var, beamline_id):
         if util.data.models.simulation.elementPosition == 'absolute':
-            beamline, names, visited = _generate_absolute_beamline(util, beamline_id)
+            beamline, visited = _generate_absolute_beamline(util, beamline_id)
         else:
             beamline, _, names, visited = _generate_beamline(util, code_var, beamline_id)
+            beamline += '{}: LINE=({});\n'.format(
+                util.id_map[beamline_id].name,
+                ','.join(names),
+            )
         res = util.render_lattice(
             util.iterate_models(
                 OpalElementIterator(self._format_field_value, visited),
                 'elements',
             ).result,
-            want_semicolon=True) + '\n'
+            want_semicolon=True,
+        ) + '\n'
         res += beamline
-        res += '{}: LINE=({});\n'.format(
-            util.id_map[beamline_id].name,
-            ','.join(names),
-        )
         return res
 
     def _generate_variable(self, name, variables, visited):
@@ -779,26 +781,38 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
         name = item.name
         if name not in count_by_name:
             count_by_name[name] = 0
-        name = '"{}#{}"'.format(name, count_by_name[name])
-        count_by_name[item.name] += 1
-        pos = beamline.positions[idx]
         if 'type' in item:
             # element
+            name = '"{}#{}"'.format(name, count_by_name[name])
+            count_by_name[item.name] += 1
+            pos = beamline.positions[idx]
             res += '{}: {},elemedge={};\n'.format(name, item.name, pos.elemedge)
             names.append(name)
             visited.add(item_id)
-        else:
-            # beamline
-            text, subnames, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
-            res += text
-            res += '{}: LINE=({}), ORIGIN={}{}, {}, {}{}, ORIENTATION={}{}, {}, {}{};\n'.format(
-                name,
-                ','.join(subnames),
-                '{', pos.x, pos.y, pos.z, '}',
-                '{', pos.theta, pos.phi, pos.psi, '}',
-            )
+        else :
+            if item_id not in visited:
+                text, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
+                res += text
             names.append(name)
-    return res, names, visited
+
+    has_orientation = False
+    for f in ('x', 'y', 'z', 'theta', 'phi', 'psi'):
+        if f in beamline and beamline[f]:
+            has_orientation = True
+            break
+    orientation = ''
+    if has_orientation:
+        orientation = ', ORIGIN={}, ORIENTATION={}'.format(
+            '{}{}, {}, {}{}'.format('{', beamline.x, beamline.y, beamline.z, '}'),
+            '{}{}, {}, {}{}'.format('{', beamline.theta, beamline.phi, beamline.psi, '}'),
+        )
+    res += '{}: LINE=({}){};\n'.format(
+        beamline.name,
+        ','.join(names),
+        orientation,
+    )
+    names.append(name)
+    return res, visited
 
 
 def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None):

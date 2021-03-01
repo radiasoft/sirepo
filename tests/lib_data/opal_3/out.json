@@ -6,18 +6,44 @@
                 "items": [
                     112
                 ],
-                "name": "LINAC"
+                "name": "LINAC",
+                "phi": 0,
+                "positions": [
+                    {
+                        "elemedge": 0.0
+                    }
+                ],
+                "psi": 0,
+                "theta": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             {
                 "id": 112,
                 "items": [
                     107,
-                    121,
                     108,
-                    122,
                     109
                 ],
-                "name": "PCG_LINE"
+                "name": "PCG_LINE",
+                "phi": 0,
+                "positions": [
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.15490000000000004
+                    },
+                    {
+                        "elemedge": 1.917284
+                    }
+                ],
+                "psi": 0,
+                "theta": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         ],
         "bunchAnimation": {
@@ -413,48 +439,6 @@
         ],
         "elements": [
             {
-                "_id": 122,
-                "_super": "_ELEMENT",
-                "aperture": "circle(1)",
-                "dphi": 0.0,
-                "dpsi": 0.0,
-                "dtheta": 0.0,
-                "dx": 0.0,
-                "dy": 0.0,
-                "dz": 0.0,
-                "geometry": "",
-                "l": 1.051182,
-                "name": "D1.051182",
-                "nslices": 1.0,
-                "particlematterinteraction": "",
-                "phi": 0.0,
-                "psi": 0.0,
-                "theta": 0.0,
-                "type": "DRIFT",
-                "wakef": ""
-            },
-            {
-                "_id": 121,
-                "_super": "_ELEMENT",
-                "aperture": "circle(1)",
-                "dphi": 0.0,
-                "dpsi": 0.0,
-                "dtheta": 0.0,
-                "dx": 0.0,
-                "dy": 0.0,
-                "dz": 0.0,
-                "geometry": "",
-                "l": 0.0049,
-                "name": "D4.9R03",
-                "nslices": 1.0,
-                "particlematterinteraction": "",
-                "phi": 0.0,
-                "psi": 0.0,
-                "theta": 0.0,
-                "type": "DRIFT",
-                "wakef": ""
-            },
-            {
                 "_id": 110,
                 "_super": "_ELEMENT",
                 "aperture": "circle(1)",
@@ -700,7 +684,7 @@
         "simulation": {
             "activeBeamlineId": 112,
             "documentationUrl": "",
-            "elementPosition": "relative",
+            "elementPosition": "absolute",
             "folder": "/",
             "name": "Photoinjector Beamline",
             "notes": "",

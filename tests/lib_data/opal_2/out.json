@@ -10,10 +10,38 @@
                     110,
                     111,
                     112,
-                    121,
                     113
                 ],
-                "name": "beamline_1"
+                "name": "beamline_1",
+                "phi": 0,
+                "positions": [
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 1.0
+                    },
+                    {
+                        "elemedge": 1.074
+                    },
+                    {
+                        "elemedge": 1.104
+                    },
+                    {
+                        "elemedge": 1.1780000000000002
+                    },
+                    {
+                        "elemedge": 2.678
+                    },
+                    {
+                        "elemedge": 3.1723079647326844
+                    }
+                ],
+                "psi": 0,
+                "theta": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         ],
         "bunchAnimation": {
@@ -292,27 +320,6 @@
         ],
         "elements": [
             {
-                "_id": 121,
-                "_super": "_ELEMENT",
-                "aperture": "circle(1)",
-                "dphi": 0.0,
-                "dpsi": 0.0,
-                "dtheta": 0.0,
-                "dx": 0.0,
-                "dy": 0.0,
-                "dz": 0.0,
-                "geometry": "",
-                "l": -0.00569203527,
-                "name": "DR5.69203527ER03",
-                "nslices": 1.0,
-                "particlematterinteraction": "",
-                "phi": 0.0,
-                "psi": 0.0,
-                "theta": 0.0,
-                "type": "DRIFT",
-                "wakef": ""
-            },
-            {
                 "_id": 113,
                 "_super": "_ELEMENT",
                 "aperture": "circle(1)",
@@ -553,7 +560,7 @@
         "simulation": {
             "activeBeamlineId": 114,
             "documentationUrl": "",
-            "elementPosition": "relative",
+            "elementPosition": "absolute",
             "folder": "/",
             "name": "conversion",
             "notes": "",

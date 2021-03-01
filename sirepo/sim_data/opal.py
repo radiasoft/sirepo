@@ -46,6 +46,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 elif i == 4:
                     m.x = 'z'
                     m.y = 'pz'
+        for bl in dm.beamlines:
+            cls.update_model_defaults(bl, 'beamline')
         cls._remove_deprecated_items(dm)
 
     @classmethod
