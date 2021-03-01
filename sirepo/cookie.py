@@ -31,7 +31,7 @@ _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
 
-_SRCONTEXT_COOKIE_STATE_KEY = 'cookie_state'
+_SRCONTEXT_KEY = __name__
 
 
 def get_value(key):
@@ -119,10 +119,10 @@ def _set_cookie(header):
     # within a state where a cookie is already set
     p = _state()
     try:
-        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, _State(header))
+        sirepo.srcontext.set(_SRCONTEXT_KEY, _State(header))
         yield
     finally:
-        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, p)
+        sirepo.srcontext.set(_SRCONTEXT_KEY, p)
 
 
 class _State(dict):
@@ -224,7 +224,7 @@ def _cfg_http_name(value):
 
 
 def _state():
-    return sirepo.srcontext.get(_SRCONTEXT_COOKIE_STATE_KEY)
+    return sirepo.srcontext.get(_SRCONTEXT_KEY)
 
 
 cfg = pkconfig.init(
