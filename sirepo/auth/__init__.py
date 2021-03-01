@@ -330,7 +330,7 @@ def require_auth_basic():
     uid = m.require_user()
     if not uid:
         raise sirepo.util.Response(
-            sirepo.util.flask_app().response_class(
+            http_reply.gen_response(
                 status=401,
                 headers={'WWW-Authenticate': 'Basic realm="*"'},
             ),
