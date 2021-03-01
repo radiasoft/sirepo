@@ -149,3 +149,14 @@ def _20210211_upgrade_runner_to_job_db():
 
 def _20210218_add_flash_proprietary_lib_files_force():
     _20210211_add_flash_proprietary_lib_files(force=True)
+
+
+def _20210301_migrate_role_jupyterhub():
+    import sirepo.template
+
+    r = sirepo.auth_role.for_sim_type('jupyterhublogin')
+    if not sirepo.template.is_sim_type('jupyterhublogin') or \
+       r in sirepo.auth_db.UserRole.all_roles():
+        return
+    for u in sirepo.auth_db.all_uids():
+        sirepo.auth_db.UserRole.add_roles(u, [r])

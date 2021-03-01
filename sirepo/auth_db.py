@@ -239,7 +239,6 @@ def init():
                 ).distinct().all()
             ]
     UserDbBase.metadata.create_all(_engine)
-    _migrate_role_jupyterhub()
 
 
 def init_model(callback):
@@ -303,14 +302,3 @@ def _migrate_db_file(fn):
         raise
     x.rename(o + '-migrated')
     pkdlog('migrated user.db to auth.db')
-
-
-def _migrate_role_jupyterhub():
-    import sirepo.template
-
-    r = sirepo.auth_role.for_sim_type('jupyterhublogin')
-    if not sirepo.template.is_sim_type('jupyterhublogin') or \
-       r in UserRole.all_roles():
-        return
-    for u in all_uids():
-        UserRole.add_roles(u, [r])
