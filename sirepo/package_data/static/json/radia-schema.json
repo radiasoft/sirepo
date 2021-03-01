@@ -30,7 +30,6 @@
         "getDataMethods": [
             "get_field", "get_field_integrals", "get_geom", "get_kick_map_plot", "save_field"
         ],
-        "hmCurveFiles": ["h-m.Permendur.csv"],
         "inProgressText": "Solving",
         "objectScale": 0.001,
         "parameterizedMagnets": {
@@ -357,7 +356,7 @@
             "magnetDivision": ["Magnet Segments", "IntStringArray", "1, 1, 3", "", "Transverse, Gap, Beam"],
             "magnetLength": ["Magnet Length [mm]", "Float", 18.0, "Period length/2 - pole length"],
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.2", "", "Transverse, Gap, Beam"],
-            "magnetMaterial": ["Magnet Material", "MaterialType", "Xc06"],
+            "magnetMaterial": ["Magnet Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Magnet H-M Curve File", "InputFile", "", "H, M (T)"],
             "gapOffset": ["Magnet Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleColor": ["Pole Color", "Color", "#ff00ff"],
