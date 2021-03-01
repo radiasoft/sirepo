@@ -291,7 +291,7 @@ class _ComputeJob(PKDict):
                 - cfg.purge_non_premium_after_secs
             )
             for u, v in _get_uids_and_files():
-                with sirepo.auth.set_user_outside_of_flask_request(u):
+                with sirepo.auth.set_user_outside_of_http_request(u):
                     for f in v:
                         _purge_sim(jid=f.purebasename)
                 await tornado.gen.sleep(0)

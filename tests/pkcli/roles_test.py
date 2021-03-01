@@ -28,7 +28,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
             f = getattr(sirepo.pkcli.roles, 'delete_roles')
         f(
             fc.sr_auth_state().uid,
-            sirepo.auth_role.role_for_sim_type(fc.sr_sim_type),
+            sirepo.auth_role.for_sim_type(fc.sr_sim_type),
         )
 
     def _check_file(exists=True):

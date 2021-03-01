@@ -128,7 +128,7 @@ class DriverBase(PKDict):
 
     def make_lib_dir_symlink(self, op):
         m = op.msg
-        with sirepo.auth.set_user_outside_of_flask_request(m.uid):
+        with sirepo.auth.set_user_outside_of_http_request(m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
                 job.unique_key()

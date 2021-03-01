@@ -53,7 +53,7 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        with auth.set_user_outside_of_flask_request(uid):
+        with auth.set_user_outside_of_http_request(uid):
             for sim_type in feature_config.cfg().sim_types:
                 simulation_db.verify_app_directory(sim_type)
                 names = [x.name for x in simulation_db.iterate_simulation_datafiles(
