@@ -25,8 +25,16 @@ _cfg = None
 _PROPRIETARY_CODE_DIR = 'proprietary_code'
 
 
+#: checked on server initialization and raises if found
+_PREVENT_SERVER_START_FILENAME = 'prevent-server-start'
+
+
 #: where job db is stored under srdb.root
 _SUPERVISOR_DB_SUBDIR = 'supervisor-job'
+
+
+def prevent_server_start_file():
+    return root().join(_PREVENT_SERVER_START_FILENAME)
 
 
 def proprietary_code_dir(sim_type):

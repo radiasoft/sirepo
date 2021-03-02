@@ -109,11 +109,15 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
         pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t, uid=uid))
 
 
+def db_filename():
+    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
+
+
 def init():
     global _session, _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
     assert not _session
 
-    f = _db_filename()
+    f = db_filename()
     _migrate_db_file(f)
     _engine = sqlalchemy.create_engine(
         'sqlite:///{}'.format(f),
@@ -245,10 +249,6 @@ def init_model(callback):
     with thread_lock:
         callback(UserDbBase)
         UserDbBase.metadata.create_all(_engine)
-
-
-def _db_filename():
-    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
 
 def _migrate_db_file(fn):
