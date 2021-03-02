@@ -35,6 +35,7 @@ _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
 
+# TrfMlt() may have problems when solving, try a loop
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'
@@ -103,12 +104,12 @@ def _geom_bnds(g_id):
     )
 
 
-def _radia_material(material_type, magnetization_dir, h_m_curve):
+def _radia_material(material_type, magnetization_magnitude, h_m_curve):
     if material_type == 'custom':
         return radia.MatSatIsoTab(
             [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
         )
-    return radia.MatStd(material_type, magnetization_dir)
+    return radia.MatStd(material_type, magnetization_magnitude)
 
 
 _TRANSFORMS = PKDict(
@@ -127,18 +128,11 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
 
-def build_box(center, size, material, magnetization, segments, h_m_curve=None):
-    n_mag = numpy.linalg.norm(magnetization)
+def build_box(center, size, material, magnetization, rem_mag, segments, h_m_curve=None):
     g_id = radia.ObjRecMag(center, size, magnetization)
     if segments and any([s > 1 for s in segments]):
         radia.ObjDivMag(g_id, segments)
-    if material == 'custom':
-        mat = radia.MatSatIsoTab(
-            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
-        )
-    else:
-        mat = radia.MatStd(material, n_mag)
-    radia.MatApl(g_id, mat)
+    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
     return g_id
 
 

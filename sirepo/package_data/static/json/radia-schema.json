@@ -337,7 +337,7 @@
             "id": ["_", "String", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "mapId": ["_", "String", "???.0"],
+            "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["H-B from File", "InputFile", "", "H, B (T)"],
             "type": ["Type", "ObjectType", "box"],
@@ -351,21 +351,23 @@
         },
         "hybridUndulator": {
             "_super": ["_", "model", "undulator"],
-            "magnetColor": ["Magnet Color", "Color", "#00ffff"],
-            "magnetCrossSection": ["Magnet Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
-            "magnetDivision": ["Magnet Segments", "IntStringArray", "1, 1, 3", "", "Transverse, Gap, Beam"],
-            "magnetLength": ["Magnet Length [mm]", "Float", 18.0, "Period length/2 - pole length"],
+            "magnetColor": ["Color", "Color", "#00ffff"],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
+            "magnetDivision": ["Segments", "IntStringArray", "1, 1, 3", "", "Transverse, Gap, Beam"],
+            "magnetLength": ["Length [mm]", "Float", 18.0, "Period length/2 - pole length"],
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.2", "", "Transverse, Gap, Beam"],
-            "magnetMaterial": ["Magnet Material", "MaterialType", "NdFeB"],
-            "magnetMaterialFile": ["Magnet H-M Curve File", "InputFile", "", "H, M (T)"],
-            "gapOffset": ["Magnet Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
-            "poleColor": ["Pole Color", "Color", "#ff00ff"],
-            "poleCrossSection": ["Pole Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
-            "poleDivision": ["Pole Segments", "IntStringArray", "2, 5, 2", "", "Transverse, Gap, Beam"],
-            "poleLength": ["Pole Length [mm]", "Float", 5.0, "Length along beam axis"],
+            "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
+            "magnetMaterialFile": ["H-M Curve File", "InputFile", "", "H, M (T)"],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
+            "poleColor": ["Color", "Color", "#ff00ff"],
+            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
+            "poleDivision": ["Segments", "IntStringArray", "2, 5, 2", "", "Transverse, Gap, Beam"],
+            "poleLength": ["Length [mm]", "Float", 5.0, "Length along beam axis"],
             "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
-            "poleMaterial": ["Pole Material", "MaterialType", "custom"],
-            "poleMaterialFile": ["Pole H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"]
+            "poleMaterial": ["Material", "MaterialType", "custom"],
+            "poleMaterialFile": ["H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -583,6 +585,7 @@
                 ["Main", [
                     "name",
                     "magnetization",
+                    "remanentMag",
                     "material",
                     "materialFile",
                     "doDivide",
@@ -613,6 +616,7 @@
                     "poleMaterial",
                     "poleMaterialFile",
                     "poleMagnetization",
+                    "poleRemanentMag",
                     "poleColor"
                 ]],
                 ["Permanent Magnets", [
@@ -623,6 +627,7 @@
                     "magnetMaterial",
                     "magnetMaterialFile",
                     "magnetMagnetization",
+                    "magnetRemanentMag",
                     "magnetColor"
                 ]]
             ]

@@ -244,6 +244,7 @@ def new_simulation(data, new_simulation_data):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
         _build_undulator(data.models.geometry, new_simulation_data.beamAxis)
+        data.models.simulation.enableKickMaps = '1'
 
 
 def python_source_for_model(data):
@@ -280,7 +281,10 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
     return tx
 
 
-def _build_cuboid(center=None, size=None, segments=None, material=None, matFile=None, magnetization=None, name=None, color=None):
+def _build_cuboid(
+        center=None, size=None, segments=None, material=None, matFile=None,
+        magnetization=None, rem_mag=None, name=None, color=None
+    ):
     return _update_cuboid(
         _build_geom_obj('box', obj_name=name),
         center or [0.0, 0.0, 0.0],
@@ -289,6 +293,7 @@ def _build_cuboid(center=None, size=None, segments=None, material=None, matFile=
         material,
         matFile,
         magnetization or [0.0, 0.0, 0.0],
+        rem_mag or 0.0,
         color
     )
 
@@ -829,12 +834,13 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-def _update_cuboid(b, center, size, segments, material, matFile, magnetization, color):
+def _update_cuboid(b, center, size, segments, material, mat_file, magnetization, rem_mag, color):
     b.center = ','.join([str(x) for x in center])
     b.color = color
     b.magnetization = ','.join([str(x) for x in magnetization])
+    b.remanentMag = rem_mag
     b.material = material
-    b.materialFile = matFile
+    b.materialFile = mat_file
     b.size = ','.join([str(x) for x in size])
     b.division = ','.join([str(x) for x in segments])
     b.doDivide = '1' if any([int(s) > 1 for s in segments]) else '0'
@@ -873,12 +879,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         sirepo.util.split_comma_delimited_string(und.magnetDivision, int)
     )
 
-    if und.poleMaterial == 'custom':
-        if not und.poleMaterialFile:
-            raise sirepo.util.UserAlert('no custom material file provided')
-        _read_h_m_file(und.poleMaterialFile)
 
-        # pole and magnet dimensions, including direction
+    # pole and magnet dimensions, including direction
     pole_dim = PKDict(
         width=width_dir * pole_x[0],
         height=gap_dir * pole_x[1],
@@ -908,6 +910,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleMaterial,
         und.poleMaterialFile,
         pole_mag,
+        und.poleRemanentMag,
         und.poleColor
     )
 
@@ -920,6 +923,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetMaterial,
         und.magnetMaterialFile,
         mag_mag,
+        und.magnetRemanentMag,
         und.magnetColor
     )
 
@@ -932,6 +936,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleMaterial,
         und.poleMaterialFile,
         pole_mag,
+        und.poleRemanentMag,
         und.poleColor
     )
 
@@ -942,7 +947,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         [_build_translate_clone(beam_dir * und.periodLength / 2)]
     )]
 
-    # TODO: reverse mag field here
     pos = pole_dim_half.length + magnet_dim_half.length / 2 + beam_dir * und.periodLength
     magnet_cap = _update_cuboid(
         _find_obj_by_name(geom.objects, 'End Block'),
@@ -952,6 +956,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetMaterial,
         und.magnetMaterialFile,
         (-1) ** und.numPeriods * mag_mag,
+        und.magnetRemanentMag,
         und.magnetColor
     )
 

@@ -29,8 +29,8 @@ def _add_object(o):
         ctr = sirepo.util.split_comma_delimited_string(o.center, float)
         sz = sirepo.util.split_comma_delimited_string(o.size, float)
         m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
-        div = sirepo.util.split_comma_delimited_string(o.division, int) if o.doDivide != '0' else None
-        g_id = radia_tk.build_box(ctr, sz, o.material, m, div, h_m_curve=o.h_m_curve)
+        div = sirepo.util.split_comma_delimited_string(o.division, int)
+        g_id = radia_tk.build_box(ctr, sz, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
         if o.color:
             radia_tk.apply_color(
                 g_id,
