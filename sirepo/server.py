@@ -617,9 +617,6 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
 
     if _app:
         return
-    import sirepo.srdb
-    assert not sirepo.srdb.prevent_server_start_file().exists(), \
-        f'prevent_server_start_file={sirepo.srdb.prevent_server_start_file()} found'
     global _google_tag_manager
     if cfg.google_tag_manager_id:
         _google_tag_manager = f'''<script>
