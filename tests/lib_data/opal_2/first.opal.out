@@ -27,13 +27,13 @@ Q_DEF: QUADRUPOLE,k1=21.808275280025114,l=0.074;
 Q_FOC: QUADRUPOLE,k1=-21.808275280025114,l=0.074;
 SPECTR_DIPOLE: SBEND,angle=0.5235987755982988,designenergy=139.489,fmapfn="hard_edge_profile.txt",l=0.49430796473268457;
 
-"drift_und2quads#0": drift_und2quads,elemedge=0;
+"drift_und2quads#0": drift_und2quads,elemedge=0.0;
 "q_def#0": q_def,elemedge=1.0;
 "drift_quad2quad#0": drift_quad2quad,elemedge=1.074;
 "q_foc#0": q_foc,elemedge=1.104;
 "drift_quad2dip#0": drift_quad2dip,elemedge=1.1780000000000002;
 "spectr_dipole#0": spectr_dipole,elemedge=2.678;
-"drift_dip2dump#0": drift_dip2dump,elemedge=3.1666159294626843;
+"drift_dip2dump#0": drift_dip2dump,elemedge=3.1723079647326844;
 beamline_1: LINE=("drift_und2quads#0","q_def#0","drift_quad2quad#0","q_foc#0","drift_quad2dip#0","spectr_dipole#0","drift_dip2dump#0");
 
 

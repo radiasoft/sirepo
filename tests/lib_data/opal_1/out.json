@@ -5,13 +5,31 @@
                 "id": 113,
                 "items": [
                     106,
-                    104,
                     107,
-                    105,
                     108,
                     103
                 ],
-                "name": "DRIVE"
+                "name": "DRIVE",
+                "phi": 0,
+                "positions": [
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.5
+                    }
+                ],
+                "psi": 0,
+                "theta": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         ],
         "bunchAnimation": {
@@ -500,7 +518,7 @@
         "simulation": {
             "activeBeamlineId": 113,
             "documentationUrl": "",
-            "elementPosition": "relative",
+            "elementPosition": "absolute",
             "folder": "/",
             "name": "AWA Photoinjector",
             "notes": "",

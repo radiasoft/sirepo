@@ -359,31 +359,6 @@
             "op_fillLowTemp": 0,
             "op_wallLowTemp": 0
         },
-        "SimulationRTFlame": {
-            "dens_unburned": 100000000,
-            "flame_initial_position": 2000000,
-            "particle_attribute_1": "dens",
-            "particle_attribute_2": "temp",
-            "particle_attribute_4": "flam",
-            "refine_buf": 100000,
-            "refine_lead": 200000,
-            "refine_region_size": 6000000,
-            "refine_region_stepdown_size": 4500000,
-            "refine_uniform_region": "0",
-            "sim_ParticleRefineRegion": "0",
-            "sim_ParticleRefineRegionBottom": 6000000,
-            "sim_ParticleRefineRegionLevel": 2,
-            "sim_ParticleRefineRegionTop": 20000000,
-            "spert_ampl1": 200000,
-            "spert_ampl2": 200000,
-            "spert_phase1": 0,
-            "spert_phase2": 0.235243,
-            "spert_wl1": 1500000,
-            "spert_wl2": 125000,
-            "temp_unburned": 100000000,
-            "vel_pert_amp": 0,
-            "vel_pert_wavelength1": 1
-        },
         "gridEvolutionAnimation": {
             "notes": "",
             "y1": "mass",
@@ -774,6 +749,248 @@
             "nxb": 16,
             "nyb": 16
         },
+        "setupConfigDirectives": [
+            {
+                "_id": 1,
+                "_type": "REQUIRES",
+                "unit": "Driver"
+            },
+            {
+                "_id": 2,
+                "_type": "REQUIRES",
+                "unit": "physics/Hydro"
+            },
+            {
+                "_id": 3,
+                "_type": "REQUIRES",
+                "unit": "physics/Gravity/GravityMain/Constant"
+            },
+            {
+                "_id": 4,
+                "_type": "REQUIRES",
+                "unit": "physics/sourceTerms/Flame/FlameEffects/EIP"
+            },
+            {
+                "_id": 5,
+                "_type": "REQUIRES",
+                "unit": "flashUtilities/contourSurface"
+            },
+            {
+                "_id": 6,
+                "_type": "REQUESTS",
+                "unit": "physics/sourceTerms/Flame/FlameSpeed/Constant"
+            },
+            {
+                "_id": 7,
+                "_type": "PARAMETER",
+                "default": 100000000.0,
+                "name": "temp_unburned",
+                "type": "REAL"
+            },
+            {
+                "_id": 8,
+                "_type": "PARAMETER",
+                "default": 100000000.0,
+                "name": "dens_unburned",
+                "type": "REAL"
+            },
+            {
+                "_id": 9,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "vel_pert_amp",
+                "type": "REAL"
+            },
+            {
+                "_id": 10,
+                "_type": "PARAMETER",
+                "default": 1.0,
+                "name": "vel_pert_wavelength1",
+                "type": "REAL"
+            },
+            {
+                "_id": 11,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "spert_ampl1",
+                "type": "REAL"
+            },
+            {
+                "_id": 12,
+                "_type": "PARAMETER",
+                "default": 1.0,
+                "name": "spert_wl1",
+                "type": "REAL"
+            },
+            {
+                "_id": 13,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "spert_phase1",
+                "type": "REAL"
+            },
+            {
+                "_id": 14,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "spert_ampl2",
+                "type": "REAL"
+            },
+            {
+                "_id": 15,
+                "_type": "PARAMETER",
+                "default": 1.0,
+                "name": "spert_wl2",
+                "type": "REAL"
+            },
+            {
+                "_id": 16,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "spert_phase2",
+                "type": "REAL"
+            },
+            {
+                "_id": 17,
+                "_type": "PARAMETER",
+                "default": 0.0,
+                "name": "flame_initial_position",
+                "type": "REAL"
+            },
+            {
+                "_id": 18,
+                "_type": "PARAMETER",
+                "default": "0",
+                "name": "refine_uniform_region",
+                "type": "BOOLEAN"
+            },
+            {
+                "_id": 19,
+                "_type": "PARAMETER",
+                "default": 6000000.0,
+                "name": "refine_region_size",
+                "type": "REAL"
+            },
+            {
+                "_id": 20,
+                "_type": "PARAMETER",
+                "default": 4500000.0,
+                "name": "refine_region_stepdown_size",
+                "type": "REAL"
+            },
+            {
+                "_id": 21,
+                "_type": "PARAMETER",
+                "default": 200000.0,
+                "name": "refine_lead",
+                "type": "REAL"
+            },
+            {
+                "_id": 22,
+                "_type": "PARAMETER",
+                "default": 100000.0,
+                "name": "refine_buf",
+                "type": "REAL"
+            },
+            {
+                "_id": 23,
+                "_type": "PARAMETER",
+                "default": "0",
+                "name": "sim_ParticleRefineRegion",
+                "type": "BOOLEAN"
+            },
+            {
+                "_id": 24,
+                "_type": "PARAMETER",
+                "default": 2,
+                "name": "sim_ParticleRefineRegionLevel",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 25,
+                "_type": "PARAMETER",
+                "default": 6000000.0,
+                "name": "sim_ParticleRefineRegionBottom",
+                "type": "REAL"
+            },
+            {
+                "_id": 26,
+                "_type": "PARAMETER",
+                "default": 20000000.0,
+                "name": "sim_ParticleRefineRegionTop",
+                "type": "REAL"
+            },
+            {
+                "_id": 27,
+                "_type": "PARTICLEPROP",
+                "name": "flam",
+                "type": "REAL"
+            },
+            {
+                "_id": 28,
+                "_type": "PARTICLEPROP",
+                "name": "dens",
+                "type": "REAL"
+            },
+            {
+                "_id": 29,
+                "_type": "PARTICLEPROP",
+                "name": "temp",
+                "type": "REAL"
+            },
+            {
+                "_id": 30,
+                "_type": "PARTICLEMAP",
+                "partName": "temp",
+                "varName": "temp",
+                "varType": "VARIABLE"
+            },
+            {
+                "_id": 31,
+                "_type": "PARTICLEMAP",
+                "partName": "dens",
+                "varName": "dens",
+                "varType": "VARIABLE"
+            },
+            {
+                "_id": 32,
+                "_type": "PARTICLEMAP",
+                "partName": "flam",
+                "varName": "FLAM",
+                "varType": "MASS_SCALAR"
+            },
+            {
+                "_id": 33,
+                "_type": "PARAMETER",
+                "default": "dens",
+                "name": "particle_attribute_1",
+                "type": "STRING"
+            },
+            {
+                "_id": 34,
+                "_type": "PARAMETER",
+                "default": "temp",
+                "name": "particle_attribute_2",
+                "type": "STRING"
+            },
+            {
+                "_id": 35,
+                "_type": "PARAMETER",
+                "default": "flam",
+                "name": "particle_attribute_4",
+                "type": "STRING"
+            },
+            {
+                "_id": 36,
+                "_type": "VARIABLE",
+                "name": "turb"
+            },
+            {
+                "_id": 37,
+                "_type": "VARIABLE",
+                "name": "fspd"
+            }
+        ],
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
@@ -782,6 +999,31 @@
             "isExample": true,
             "name": "RT Flame",
             "notes": ""
+        },
+        "SimulationRTFlame": {
+            "dens_unburned": 100000000,
+            "flame_initial_position": 2000000,
+            "particle_attribute_1": "dens",
+            "particle_attribute_2": "temp",
+            "particle_attribute_4": "flam",
+            "refine_buf": 100000,
+            "refine_lead": 200000,
+            "refine_region_size": 6000000,
+            "refine_region_stepdown_size": 4500000,
+            "refine_uniform_region": "0",
+            "sim_ParticleRefineRegion": "0",
+            "sim_ParticleRefineRegionBottom": 6000000,
+            "sim_ParticleRefineRegionLevel": 2,
+            "sim_ParticleRefineRegionTop": 20000000,
+            "spert_ampl1": 200000,
+            "spert_ampl2": 200000,
+            "spert_phase1": 0,
+            "spert_phase2": 0.235243,
+            "spert_wl1": 1500000,
+            "spert_wl2": 125000,
+            "temp_unburned": 100000000,
+            "vel_pert_amp": 0,
+            "vel_pert_wavelength1": 1
         },
         "varAnimation": {
             "colorMap": "coolwarm",

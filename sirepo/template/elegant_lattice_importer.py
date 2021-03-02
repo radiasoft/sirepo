@@ -58,6 +58,7 @@ def elegant_code_var(variables):
             'mult': operator.mul,
             'p.beta': lambda a: a / math.sqrt(1 - (a * a)),
             'p.gamma': lambda a: math.sqrt((a * a) - 1),
+            'sqr': lambda a: a * a,
             **code_variable.PurePythonEval._OPS
         })
 

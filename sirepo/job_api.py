@@ -39,7 +39,7 @@ def adjust_supervisor_srtime(days):
 
 @api_perm.require_user
 def api_admJobs():
-    sirepo.auth_role.check_user_has_role(
+    sirepo.auth.check_user_has_role(
         sirepo.auth.logged_in_user(),
         sirepo.auth_role.ROLE_ADM,
     )

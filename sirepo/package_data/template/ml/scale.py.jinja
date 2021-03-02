@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import sirepo.numpy
 
 {% if dataFile_inputsScaler != 'None' %}
 from sklearn.preprocessing import {{ dataFile_inputsScaler }}
@@ -9,11 +10,10 @@ from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
 def read_data(path, **kwargs):
-    return np.genfromtxt(
+    return sirepo.numpy.ndarray_from_csv(
         path,
-        delimiter=',',
-        skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }},
-        **kwargs
+        {{ 1 if columnInfo_hasHeaderRow else 0 }},
+        **kwargs,
     )
 
 

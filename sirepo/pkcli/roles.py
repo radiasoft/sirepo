@@ -79,7 +79,7 @@ def _parse_args(uid_or_email, roles):
     if not u:
         pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
     if roles:
-        a = sirepo.auth_role.get_all_roles()
+        a = sirepo.auth_role.get_all()
         assert set(roles).issubset(a), \
-            'roles={} not a subset valid all_roles={}'.format(roles, a)
+            'roles={} not a subset of all_roles={}'.format(roles, a)
     return u

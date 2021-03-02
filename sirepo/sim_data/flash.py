@@ -7,7 +7,7 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdc
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
@@ -36,6 +36,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls.__fixup_old_data_problem_files(data)
         cls.__fixup_old_data_setup_arguments(data)
         cls._init_models(dm)
+        cls.__fixup_old_data_setup_config_directives(data)
+        cls.__fixup_old_data_setup_arguments_units(data)
         if dm.simulation.flashType == 'CapLaser':
             dm.simulation.flashType = 'CapLaserBELLA'
         if dm.simulation.flashType == 'CapLaserBELLA':
@@ -114,6 +116,16 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def flash_simulation_unit_file_path(cls, run_dir, data, basename):
+        return run_dir.join(cls.sim_type()).join(
+            'source',
+            'Simulation',
+            'SimulationMain',
+            data.models.simulation.flashType,
+            basename,
+        )
+
+    @classmethod
     def flash_setup_units_basename(cls, data):
         return cls._flash_file_basename(cls._FLASH_SETUP_UNITS_PREFIX, data)
 
@@ -162,17 +174,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                     run_dir.join(cls._flash_problem_files_archive_basename(data)),
             ):
                 b = pkio.py_path(i.filename).basename
-                if not re.match(r'(\w+\.F90)|(Config)|(Makefile)', b):
+                if not re.match(r'(\w+\.F90)|(Makefile)', b):
                     continue
-                p = s.join(
-                    'source',
-                    'Simulation',
-                    'SimulationMain',
-                    data.models.simulation.flashType,
-                    b,
-                )
+                p = cls.flash_simulation_unit_file_path(run_dir, data, b)
                 pkio.mkdir_parent_only(p)
                 pkio.write_text(p, r())
+        sirepo.template.flash.generate_config_file(run_dir, data)
         t = s.join(data.models.simulation.flashType)
         with run_dir.join(template_common.COMPILE_LOG).open('w') as log:
             k = PKDict(
@@ -180,7 +187,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 stdout=log,
                 stderr=log
             )
-            subprocess.run(sirepo.template.flash.setup_command(data), cwd=s, **k)
+            c = sirepo.template.flash.setup_command(data)
+            pkdc('setup_command={}', ' '.join(c))
+            subprocess.run(c, cwd=s, **k)
             subprocess.run(['make', f'-j{sirepo.mpi.cfg.cores}'], cwd=t, **k)
         for c, b in PKDict(
                 # POSIT: values match cls._sim_file_basenames
@@ -204,6 +213,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _flash_file_hash(cls, data):
+        def _remove_value_key(obj):
+            r = PKDict(obj)
+            r.pkdel('value')
+            return r
+
         f = []
         if data.models.problemFiles.archive:
             f = [r() for _, r in cls._flash_extract_problem_files_archive(
@@ -216,6 +230,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             data.models.simulation.flashType,
             data.models.setupArguments,
             f,
+            list(map(_remove_value_key, data.models.setupConfigDirectives)),
         )))
 
     @classmethod
@@ -233,6 +248,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _flash_src_tarball_basename(cls):
         return 'flash.tar.gz'
+
+    @classmethod
+    def _get_example_for_flash_type(cls, flash_type):
+        for e in sirepo.simulation_db.examples(cls.sim_type()):
+            if e.models.simulation.flashType == flash_type:
+                return e
+        raise AssertionError(f'no example with flash_type={flash_type}')
 
     @classmethod
     def _lib_file_basenames(cls, data):
@@ -281,7 +303,25 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         if 'setupArguments' in dm:
             return
-        for e in sirepo.simulation_db.examples(cls.sim_type()):
-            if e.models.simulation.flashType == dm.simulation.flashType:
-                dm.setupArguments = e.models.setupArguments
-                return
+        e = cls._get_example_for_flash_type(dm.simulation.flashType)
+        dm.setupArguments = e.models.setupArguments
+
+    @classmethod
+    def __fixup_old_data_setup_arguments_units(cls, data):
+        if 'units' not in data.models.setupArguments:
+            return
+        i = max([d._id for d in data.models.setupConfigDirectives]) + 1
+        for u in data.models.setupArguments.pkdel('units', []):
+            data.models.setupConfigDirectives.append(PKDict(
+                _id=i,
+                _type="REQUIRES",
+                unit=u
+            ))
+            i += 1
+
+    @classmethod
+    def __fixup_old_data_setup_config_directives(cls, data):
+        if 'setupConfigDirectives'  in data.models:
+            return
+        e = cls._get_example_for_flash_type(data.models.simulation.flashType)
+        data.models.setupConfigDirectives = e.models.setupConfigDirectives

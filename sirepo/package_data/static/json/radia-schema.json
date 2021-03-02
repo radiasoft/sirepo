@@ -451,6 +451,11 @@
             "id": ["_", "String", ""],
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
             "name": ["Name", "String", "Translate"]
+        },
+        "undulator": {
+            "_super": ["_", "model", "radiaObject"],
+            "gap": ["Gap", "Float", 0.0, "", 0.0],
+            "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
         }
     },
     "strings": {

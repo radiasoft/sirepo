@@ -5,8 +5,8 @@ u"""User roles
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import sirepo.auth_db
-import sirepo.util
+from pykern import pkconfig
+import sirepo.feature_config
 
 ROLE_ADM = 'adm'
 ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
@@ -15,17 +15,16 @@ ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 
 
-def check_user_has_role(uid, role, raise_forbidden=True):
-    if sirepo.auth_db.UserRole.has_role(uid, role):
-        return True
-    if raise_forbidden:
-        sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
-    return False
+def for_new_user(is_guest):
+    if is_guest and pkconfig.channel_in('dev'):
+        return get_all()
+    return [for_sim_type(x) for x in sirepo.feature_config.cfg().default_proprietary_sim_types]
 
 
-def get_all_roles():
+def get_all():
+    c = sirepo.feature_config.cfg()
     return [
-        role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
+        for_sim_type(t) for t in c.proprietary_sim_types.union(c.default_proprietary_sim_types)
     ] + [
         ROLE_ADM,
         ROLE_PAYMENT_PLAN_ENTERPRISE,
@@ -33,5 +32,5 @@ def get_all_roles():
     ]
 
 
-def role_for_sim_type(sim_type):
+def for_sim_type(sim_type):
     return 'sim_type_' + sim_type

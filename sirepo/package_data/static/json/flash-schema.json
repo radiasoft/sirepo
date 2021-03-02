@@ -397,7 +397,7 @@
             ["2", "2"],
             ["3", "3"]
         ],
-        "SetupArgumentUnitPath": [
+        "SetupArgumentUnit": [
             ["Driver", "Driver"],
             ["Driver/DriverMain", "Driver/DriverMain"],
             ["Driver/DriverMain/INSfracstep", "Driver/DriverMain/INSfracstep"],
@@ -1013,7 +1013,9 @@
     },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["flash.js"]
+            "js": [
+                "flash.js"
+            ]
         }
     },
     "frameIdFields": {
@@ -1021,10 +1023,11 @@
         "varAnimation": ["var"]
     },
     "localRoutes": {
-        "source": {
+        "config": {
+            "route": "/config/:simulationId",
             "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/flash-source.html"
+                "controller": "ConfigController as config",
+                "templateUrl": "/static/html/flash-config.html"
             }
         },
         "physics": {
@@ -1032,6 +1035,19 @@
             "config": {
                 "controller": "PhysicsController as physics",
                 "templateUrl": "/static/html/flash-physics.html"
+            }
+        },
+        "runtimeParams": {
+            "route": "/runtime-params/:simulationId",
+            "config": {
+                "controller": "RuntimeParamsController as runtimeParams",
+                "templateUrl": "/static/html/flash-runtime-params.html"
+            }
+        },
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/flash-source.html"
             }
         },
         "visualization": {
