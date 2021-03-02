@@ -407,11 +407,7 @@ def _build_geom_obj(model_name, obj_name=None, obj_color=None):
 
 def _build_group(members, name=None):
     g = _build_geom_obj('geomGroup', obj_name=name)
-    g.members = []
-    for m in members:
-        m.groupId = g.id
-        g.members.append(m.id)
-    return g
+    return _update_group(g, members, do_replace=True)
 
 
 def _build_symm_xform(plane, point, type):
@@ -450,6 +446,14 @@ def _build_undulator(geom, beam_axis):
         _build_geom_obj('hybridUndulator', obj_name=geom.name),
         beam_axis
     )
+
+
+# deep copy of an object, but with a new id
+def _copy_geom_obj(o):
+    import copy
+    o_copy = copy.deepcopy(o)
+    o_copy.id = str(uuid.uuid4())
+    return o_copy
 
 
 _FIELD_PT_BUILDERS = {
@@ -879,7 +883,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         sirepo.util.split_comma_delimited_string(und.magnetDivision, int)
     )
 
-
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
         width=width_dir * pole_x[0],
@@ -898,13 +901,15 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     gap_half_height = gap_dir * und.gap / 2
     gap_offset = gap_dir * und.gapOffset
 
-    pole_xverse_ctr = pole_dim_half.width / 2 - (pole_dim_half.height + gap_half_height)
-    magnet_xverse_ctr = magnet_dim_half.width / 2 - (gap_offset + magnet_dim_half.height + gap_half_height)
+    pole_transverse_ctr = pole_dim_half.width / 2 - \
+                          (pole_dim_half.height + gap_half_height)
+    magnet_transverse_ctr = magnet_dim_half.width / 2 - \
+                            (gap_offset + magnet_dim_half.height + gap_half_height)
 
     pos = pole_dim_half.length / 2
     half_pole = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Half Pole'),
-        pole_xverse_ctr + pos,
+        pole_transverse_ctr + pos,
         pole_dim_half.width + pole_dim.height + pole_dim_half.length,
         pole_segs,
         und.poleMaterial,
@@ -917,7 +922,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
     magnet_block = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Magnet Block'),
-        magnet_xverse_ctr + pos,
+        magnet_transverse_ctr + pos,
         magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
         mag_segs,
         und.magnetMaterial,
@@ -930,7 +935,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Pole'),
-        pole_xverse_ctr + pos,
+        pole_transverse_ctr + pos,
         pole_dim_half.width + pole_dim.height + pole_dim.length,
         pole_segs,
         und.poleMaterial,
@@ -941,16 +946,21 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     )
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
-    mag_pole_grp.transforms = [_build_clone_xform(
-        und.numPeriods - 1,
-        True,
-        [_build_translate_clone(beam_dir * und.periodLength / 2)]
-    )]
+    grp = _find_obj_by_name(geom.objects, 'Octant')
 
-    pos = pole_dim_half.length + magnet_dim_half.length / 2 + beam_dir * und.periodLength
+    mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
+        [_build_clone_xform(
+            und.numPeriods - 1,
+            True,
+            [_build_translate_clone(beam_dir * und.periodLength / 2)]
+        )]
+
+    pos = pole_dim_half.length + \
+          magnet_dim_half.length / 2 + \
+          beam_dir * und.numPeriods * und.periodLength / 2
     magnet_cap = _update_cuboid(
         _find_obj_by_name(geom.objects, 'End Block'),
-        magnet_xverse_ctr + pos,
+        magnet_transverse_ctr + pos,
         magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
         mag_segs,
         und.magnetMaterial,
@@ -960,13 +970,21 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetColor
     )
 
-    grp = _find_obj_by_name(geom.objects, 'Octant')
     grp.transforms = [
         _build_symm_xform(width_dir, _ZERO, 'perpendicular'),
         _build_symm_xform(gap_dir, _ZERO, 'parallel'),
         _build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
     ]
     return grp
+
+
+def _update_group(g, members, do_replace=False):
+    if do_replace:
+        g.members = []
+    for m in members:
+        m.groupId = g.id
+        g.members.append(m.id)
+    return g
 
 
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')

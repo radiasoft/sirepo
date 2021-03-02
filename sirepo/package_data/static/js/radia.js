@@ -827,6 +827,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let txm = [];
         for (let m of getMembers(o)) {
             let shape = self.getShape(m.id);
+            if (! shape) {
+                // may be later in array if created externally
+                addShapesForObject(self.getObject(m.id));
+                shape = self.getShape(m.id);
+            }
             let v = getVirtualShapes(shape, excludedIds);
             txm.push(addTxShape(shape, xform, txFunction).id);
             for (let s of v) {
