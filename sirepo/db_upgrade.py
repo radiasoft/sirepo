@@ -15,16 +15,22 @@ import sirepo.auth_db
 import sirepo.job
 import sirepo.sim_data
 import sirepo.simulation_db
+import sirepo.srdb
 import sirepo.srtime
 import sirepo.template
 import sirepo.util
 
+#: checked before running upgrade and raises if found
+_PREVENT_DB_UPGRADE_FILE = 'prevent-db-upgrade'
+
 
 def do_all():
+    assert not _prevent_db_upgrade_file().exists(), \
+        f'prevent_db_upgrade_file={_prevent_db_upgrade_file()} found'
     a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
     f = pkinspect.module_functions('_2')
     for n in sorted(set(f.keys()) - set(a)):
-        with _backup_db_and_prevent_server_restart_on_error():
+        with _backup_db_and_prevent_upgrade_on_error():
             pkdlog('running upgrade {}', n)
             f[n]()
             sirepo.auth_db.DbUpgrade(
@@ -158,8 +164,6 @@ def _20210218_add_flash_proprietary_lib_files_force():
 
 
 def _20210301_migrate_role_jupyterhub():
-    import sirepo.template
-
     r = sirepo.auth_role.for_sim_type('jupyterhublogin')
     if not sirepo.template.is_sim_type('jupyterhublogin') or \
        r in sirepo.auth_db.UserRole.all_roles():
@@ -169,10 +173,7 @@ def _20210301_migrate_role_jupyterhub():
 
 
 @contextlib.contextmanager
-def _backup_db_and_prevent_server_restart_on_error():
-    import sirepo.auth_db
-    import sirepo.srdb
-
+def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + '.bak'
     sirepo.auth_db.db_filename().copy(b)
     try:
@@ -180,5 +181,8 @@ def _backup_db_and_prevent_server_restart_on_error():
         pkio.unchecked_remove(b)
     except Exception:
         pkdlog('original db={}', b)
-        sirepo.srdb.prevent_server_start_file().ensure()
+        _prevent_db_upgrade_file().ensure()
         raise
+
+def _prevent_db_upgrade_file():
+    return sirepo.srdb.root().join(_PREVENT_DB_UPGRADE_FILE)
