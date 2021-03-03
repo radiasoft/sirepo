@@ -8,26 +8,36 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkinspect, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
+import contextlib
 import os
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.job
 import sirepo.sim_data
 import sirepo.simulation_db
+import sirepo.srdb
 import sirepo.srtime
 import sirepo.template
 import sirepo.util
 
+#: checked before running upgrade and raises if found
+_PREVENT_DB_UPGRADE_FILE = 'prevent-db-upgrade'
+
 
 def do_all():
+    assert not _prevent_db_upgrade_file().exists(), \
+        f'prevent_db_upgrade_file={_prevent_db_upgrade_file()} found'
     a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
     f = pkinspect.module_functions('_2')
     for n in sorted(set(f.keys()) - set(a)):
-        f[n]()
-        sirepo.auth_db.DbUpgrade(
-            name=n,
-            created=sirepo.srtime.utc_now(),
-        ).save()
+        with _backup_db_and_prevent_upgrade_on_error():
+            pkdlog('running upgrade {}', n)
+            f[n]()
+            sirepo.auth_db.DbUpgrade(
+                name=n,
+                created=sirepo.srtime.utc_now(),
+            ).save()
+
 
 
 def _20210211_add_flash_proprietary_lib_files(force=False):
@@ -37,10 +47,12 @@ def _20210211_add_flash_proprietary_lib_files(force=False):
         return
     for u in sirepo.auth_db.all_uids():
         # Remove the existing rpm
-        pkio.unchecked_remove(sirepo.simulation_db.simulation_lib_dir(
-            'flash',
-            uid=u,
-        ).join('flash.rpm'))
+        pkio.unchecked_remove(
+            sirepo.simulation_db.simulation_lib_dir(
+                'flash',
+                uid=u,
+            ).join('flash.rpm'),
+        )
         # Add's the flash proprietary lib files (unpacks flash.tar.gz)
         sirepo.auth_db.audit_proprietary_lib_files(u, force=force, sim_types=set(('flash',)))
 
@@ -149,3 +161,28 @@ def _20210211_upgrade_runner_to_job_db():
 
 def _20210218_add_flash_proprietary_lib_files_force():
     _20210211_add_flash_proprietary_lib_files(force=True)
+
+
+def _20210301_migrate_role_jupyterhub():
+    r = sirepo.auth_role.for_sim_type('jupyterhublogin')
+    if not sirepo.template.is_sim_type('jupyterhublogin') or \
+       r in sirepo.auth_db.UserRole.all_roles():
+        return
+    for u in sirepo.auth_db.all_uids():
+        sirepo.auth_db.UserRole.add_roles(u, [r])
+
+
+@contextlib.contextmanager
+def _backup_db_and_prevent_upgrade_on_error():
+    b = sirepo.auth_db.db_filename() + '.bak'
+    sirepo.auth_db.db_filename().copy(b)
+    try:
+        yield
+        pkio.unchecked_remove(b)
+    except Exception:
+        pkdlog('original db={}', b)
+        _prevent_db_upgrade_file().ensure()
+        raise
+
+def _prevent_db_upgrade_file():
+    return sirepo.srdb.root().join(_PREVENT_DB_UPGRADE_FILE)

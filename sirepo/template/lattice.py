@@ -273,14 +273,25 @@ class LatticeParser(object):
 
     def __parse_beamline(self, label, values):
         assert label
-        values[-1] = re.sub(r'\s*\)$', '', values[-1])
+        # remove beamline attributes
+        attrs = PKDict()
+        items = []
         values[0] = re.sub(r'^.*?=\s*\(\s*', '', values[0])
+        for v in values:
+            if '=' in v:
+                m = re.match(r'^\s*([\w.]+)\s*:?=\s*(.+?)\s*$', v)
+                if m:
+                    attrs[m.group(1).lower()] = m.group(2)
+            else:
+                items.append(v)
+        items[-1] = re.sub(r'\s*\)$', '', items[-1])
         res = PKDict(
             name=label,
             id=self.parser.next_id(),
             items=[],
-        )
-        for v in values:
+        ).pkupdate(attrs)
+        self.sim_data.update_model_defaults(res, 'beamline')
+        for v in items:
             v = self.__remove_quotes(v)
             count = 1
             m = re.match(r'^(\d+)\s*\*\s*\(?([\w.]+)\)?$', v)
@@ -353,7 +364,7 @@ class LatticeParser(object):
                 f, v = m.group(1, 2)
                 f = f.lower()
                 # skip non-schema fields, with the exception of positional fields "at" and "elemedge"
-                if model_schema and f not in model_schema and f not in ('at', 'elemedge'):
+                if model_schema and f not in model_schema and f not in ('at', 'elemedge', 'z'):
                     continue
                 if f != 'name':
                     # some commands may have a "name" field
@@ -453,6 +464,8 @@ class LatticeParser(object):
             return
         if (re.search(r'^\s*REAL\s', values[0], re.IGNORECASE) or len(values) == 1) \
            and '=' in values[0] and not re.search(r'\Wline\s*\:?=\s*\(', values[0].lower()):
+            if re.search(R'^\s*(BOOL|STRING)\s', values[0], re.IGNORECASE):
+                return
             # a variable assignment
             val = ', '.join(values)
             m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', val)

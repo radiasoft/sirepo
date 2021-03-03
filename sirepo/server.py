@@ -25,7 +25,6 @@ import re
 import sirepo.db_upgrade
 import sirepo.events
 import sirepo.sim_data
-import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util

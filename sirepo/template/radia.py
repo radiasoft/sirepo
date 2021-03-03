@@ -196,20 +196,28 @@ def get_application_data(data, **kwargs):
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            f'{sim_id}_{res.name}.{data.fileType}'
+            f'{sim_id}_{res.name}.{data.fileExt}'
         )
         # we save individual field paths, so there will be one item in the list
         vectors = res.data[0].vectors
-        if data.fileType == 'sdds':
+        if data.exportType == 'sdds':
             return _save_fm_sdds(
                 res.name,
                 vectors,
                 _BEAM_AXIS_ROTATIONS[data.beamAxis],
                 file_path
             )
-        elif data.fileType == 'csv':
+        elif data.exportType == 'csv':
             return _save_field_csv(
                 data.fieldType,
+                vectors,
+                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                file_path
+            )
+        elif data.exportType == 'SRW':
+            return _save_field_srw(
+                data.fieldType,
+                data.gap,
                 vectors,
                 _BEAM_AXIS_ROTATIONS[data.beamAxis],
                 file_path
@@ -759,6 +767,17 @@ def _read_solution(sim_id):
     )
 
 
+# mm -> m, rotate so the beam axis is aligned with z
+def _rotate_fields(vectors, scipy_rotation, do_flatten):
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    mags = numpy.array(vectors.magnitudes)
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
+    if do_flatten:
+        dirs = dirs.flatten()
+        pts = pts.flatten()
+    return pts, mags, dirs
+
+
 def _rotate_flat_vector_list(vectors, scipy_rotation):
     return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
 
@@ -766,10 +785,7 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
     # reserve first line for a header
     data = [f'x,y,z,{field_type}x,{field_type}y,{field_type}z']
-    # mm -> m, rotate so the beam axis is aligned with z
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
-    mags = numpy.array(vectors.magnitudes)
-    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
+    pts, mags, dirs = _rotate_fields(vectors, scipy_rotation, True)
     for i in range(len(mags)):
         j = 3 * i
         r = pts[j:j + 3]
@@ -779,16 +795,55 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
     return path
 
 
+# zip file - data plus index.  This will likely be used to generate files for a range
+# of gaps later
+def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
+    import zipfile
+    # no whitespace in filenames
+    base_name = re.sub(r'\s', '_', path.purebasename)
+    data_path = path.dirpath().join(f'{base_name}_{gap}.dat')
+    index_path = path.dirpath().join(f'{base_name}_sum.txt')
+    pkio.unchecked_remove(path, data_path, index_path)
+
+    data = ['#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)']
+    pts, mags, dirs = _rotate_fields(vectors, scipy_rotation, True)
+    num_pts = len(pts) // 3
+    dims = ['X', 'Y', 'Z']
+    for j in range(len(dims)):
+        data.append(f'#{pts[j]} #initial {dims[j]} position [m]')
+        data.append(f'#{(pts[len(pts) - (len(dims) - j)] - pts[j]) / num_pts} #step of {dims[j]} [m]')
+        data.append(f'#{num_pts if j == len(dims) - 1 else 1} #number of points vs {dims[j]}')
+    for i in range(len(mags)):
+        j = 3 * i
+        data.append('\t'.join(map(str, mags[i] * dirs[j:j + 3])))
+    pkio.write_text(data_path, '\n'.join(data))
+
+    # index file
+    data = [f'{gap}\tp1\t0\t{data_path.basename}\t1\t1']
+    pkio.write_text(index_path, '\n'.join(data))
+
+    files = [data_path, index_path]
+
+    # zip file
+    with zipfile.ZipFile(
+        str(path),
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in files:
+            z.write(str(f), f.basename)
+
+    return path
+
+
 def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s = _get_sdds(_FIELD_MAP_COLS, _FIELD_MAP_UNITS)
     s.setDescription(f'Field Map for {name}', 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
-    # mm -> m
-    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
+    pts, mags, dirs = _rotate_fields(vectors, scipy_rotation, False)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
-    mag = vectors.magnitudes
-    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
-    v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
+    v = [mags[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
     col_data = []
     for i in range(3):

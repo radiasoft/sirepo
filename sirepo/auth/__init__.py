@@ -113,6 +113,14 @@ def api_authLogout(simulation_type=None):
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
+def check_user_has_role(uid, role, raise_forbidden=True):
+    if sirepo.auth_db.UserRole.has_role(uid, role):
+        return True
+    if raise_forbidden:
+        sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
+    return False
+
+
 def complete_registration(name=None):
     """Update the database with the user's display_name and sets state to logged-in.
     Guests will have no name.
@@ -165,7 +173,7 @@ def init_apis(*args, **kwargs):
 
 
 def is_premium_user():
-    return sirepo.auth_role.check_user_has_role(
+    return check_user_has_role(
         logged_in_user(),
         sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         raise_forbidden=False,
@@ -242,7 +250,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
-            _create_roles_for_user(module.AUTH_METHOD)
+            _create_roles_for_new_user(module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -310,6 +318,8 @@ def need_complete_registration(model):
 @contextlib.contextmanager
 def process_request(unit_test=None):
     with cookie.process_header(unit_test):
+        # Logging happens after the return to Flask so the log user must persist
+        # beyond the life of process_request
         _set_log_user()
         yield
 
@@ -320,7 +330,7 @@ def require_auth_basic():
     uid = m.require_user()
     if not uid:
         raise sirepo.util.Response(
-            sirepo.util.flask_app().response_class(
+            http_reply.gen_response(
                 status=401,
                 headers={'WWW-Authenticate': 'Basic realm="*"'},
             ),
@@ -338,9 +348,9 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    sirepo.auth_role.check_user_has_role(
+    check_user_has_role(
         logged_in_user(),
-        sirepo.auth_role.role_for_sim_type(sim_type),
+        sirepo.auth_role.for_sim_type(sim_type),
     )
 
 
@@ -398,16 +408,13 @@ def reset_state():
 
 
 @contextlib.contextmanager
-def set_user_outside_of_flask_request(uid=None):
+def set_user_outside_of_http_request(uid):
     """A user set explicitly outside of flask request cycle"""
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
     with cookie.set_cookie_outside_of_flask_request():
         import sirepo.auth.guest
-        if uid:
-            _login_user(sirepo.auth.guest, uid)
-        else:
-            login(sirepo.auth.guest, is_mock=True)
+        _login_user(sirepo.auth.guest, uid)
         yield
 
 
@@ -586,12 +593,8 @@ def _auth_state():
     return v
 
 
-def _create_roles_for_user(method):
-    r = []
-    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
-        r = sirepo.auth_role.get_all_roles()
-    elif sirepo.template.is_sim_type('jupyterhublogin'):
-        r = [sirepo.auth_role.role_for_sim_type('jupyterhublogin')]
+def _create_roles_for_new_user(method):
+    r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
     if r:
         auth_db.UserRole.add_roles(logged_in_user(), r)
 

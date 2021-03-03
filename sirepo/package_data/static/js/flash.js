@@ -18,7 +18,30 @@ SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
 });
 
-SIREPO.app.factory('flashService', function(appState) {
+
+SIREPO.app.factory('directiveService', function(appState, panelState, validationService) {
+    const self = {};
+    const DIRECTIVE_PREFIX = 'directive_';
+
+    function modelName(item) {
+        return DIRECTIVE_PREFIX + item._type;
+    }
+
+    self.description = function(directive) {
+        return {
+            PARAMETER: `${directive.name} ${directive.type} ${directive.default}`,
+            PARTICLEPROP: `${directive.name} ${directive.type}`,
+            PARTICLEMAP: `TO ${directive.partName} FROM ${directive.varType} ${directive.varName}`,
+            REQUIRES: `${directive.unit}`,
+            REQUESTS: `${directive.unit}`,
+            VARIABLE: `${directive.name}`
+        }[directive._type];
+    };
+
+    return self;
+});
+
+SIREPO.app.factory('flashService', function(appState, panelState) {
     var self = {};
 
     self.computeModel = function(analysisModel) {
@@ -42,6 +65,20 @@ SIREPO.app.factory('flashService', function(appState) {
     appState.setAppService(self);
 
     return self;
+});
+
+SIREPO.app.controller('ConfigController', function (directiveService, flashService) {
+    var self = this;
+    self.flashService = flashService;
+});
+
+SIREPO.app.controller('PhysicsController', function (flashService) {
+    var self = this;
+    self.flashService = flashService;
+});
+
+SIREPO.app.controller('RuntimeParamsController', function () {
+    var self = this;
 });
 
 SIREPO.app.controller('PhysicsController', function (flashService) {
@@ -213,11 +250,12 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'config\')}"><a href data-ng-click="nav.openSection(\'config\')"><span class="glyphicon glyphicon-cog"></span> Config</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'runtimeParams\')}"><a href data-ng-click="nav.openSection(\'runtimeParams\')"><span class="glyphicon glyphicon-scale"></span> Runtime Params</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-                //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
               '</app-header-right-sim-list>',
@@ -226,87 +264,124 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('withUnitArguments', function(appState) {
+SIREPO.app.directive('configTable', function(appState, directiveService, panelState) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<form name="form" class="form-horizontal">',
-              '<div class="form-group">',
-                '<table class="table table-striped">',
-                  '<thead>',
-                    '<tr>',
-                      '<th>Unit path</th>',
-                      '<th></th>',
-                    '</tr>',
-                  '</thead>',
-                  '<tbody>',
-                    '<tr>',
-                    '<tr data-ng-repeat="unit in appState.models.setupArguments.units track by $index">',
-                      '<td class="form-group form-group-sm">',
-                        // TODO(e-carlin): Maybe make an enum of available flash units?
-                        '<input data-ng-model="appState.models.setupArguments.units[$index]" class="form-control" data-lpignore="true" required />',
-                      '</td>',
-                      '<td>',
-                        '<div class="pull-right"><button data-ng-click="deleteUnit($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>',
-                      '</td>',
-                    '</tr>',
-                    '<tr>',
-                      '<td>',
-                        '<b>Add unit</b>',
-                          '<select class="form-control" data-ng-model="selectedUnit" data-ng-options="item[0] as item[1] for item in unitEnum" data-ng-change="addUnit()"></select>',
-                      '</td>',
-                      '<td></td>',
-                    '</tr>',
-                  '</tbody>',
-                '</table>',
-                '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
-                  '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
-                  '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
-                '</div>',
+            '<div class="pull-right">',
               '</div>',
-            '</form>',
+              '<table class="table table-hover" style="width: 100%">',
+              '<tbody data-ng-repeat="(name, category) in tree">',
+                '<tr>',
+                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(name, category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': ! category.isCollapsed, \'glyphicon-collapse-down\': category.isCollapsed}"></span> <b>{{ name }}</b></td>',
+                '</tr>',
+                '<tr data-ng-show="! category.isCollapsed" data-ng-repeat="directive in category.directives track by $index">',
+                  '<td>',
+                    '<div>',
+                      '<div style="font-size: 14px" class="badge sr-badge-icon">{{ directive._type }}</div>',
+                    '</div>',
+                    '<div style="white-space: pre-wrap">{{ directive.description }}</div>',
+                  '</td>',
+                '</tr>',
+              '</tbody>',
+              '</table>',
+            '</div>',
         ].join(''),
-        controller: function($scope, $element) {
-            $scope.appState = appState;
-            $scope.fields = ['units'];
-            $scope.form = angular.element($($element).find('form').eq(0));
-            $scope.modelName = 'setupArguments';
-            $scope.selectedUnit = '';
-            $scope.unitEnum = SIREPO.APP_SCHEMA.enum.SetupArgumentUnitPath;
+        controller: function($injector, $scope) {
+            var selectedDirective = null;
+            const collapsedCategories = {};
+            $scope.tree = {};
 
-            $scope.addUnit = function() {
-                if (! $scope.selectedUnit) {
-                    return;
+            function loadDirectives() {
+                $scope.tree = {};
+                const tree = {};
+                [
+                    'REQUIRES',
+                    'REQUESTS',
+                    'PARAMETER',
+                    'PARTICLEPROP',
+                    'PARTICLEMAP',
+                    'VARIABLE',
+                ].forEach((n) => {
+                    tree[n] = {
+                            directives: [],
+                            isCollapsed: collapsedCategories[n],
+                    };
+                });
+                const directives = appState.applicationState().setupConfigDirectives || [];
+                directives.forEach((d) => {
+                    const t = d._type;
+                    tree[t].directives.push(Object.assign(
+                        {description: directiveService.description(d),}, d
+                    ));
+                });
+                for (const k in tree) {
+                    if (tree[k].directives.length === 0) {
+                        delete tree[k];
+                    }
                 }
-                if (! appState.models.setupArguments.units) {
-                    appState.models.setupArguments.units = [];
-                }
-                appState.models.setupArguments.units.push($scope.selectedUnit);
-                $scope.selectedUnit = '';
+                $scope.tree = tree;
+            }
+
+            $scope.toggleCategory = function(name, category) {
+                category.isCollapsed = ! category.isCollapsed;
+                collapsedCategories[name] = category.isCollapsed;
             };
 
-            $scope.cancelChanges = function() {
-                appState.cancelChanges('setupArguments');
-                $scope.form.$setPristine();
-            };
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('modelChanged', function(e, name) {
+                    if (name == 'setupConfigDirectives') {
+                        loadDirectives();
+                    }
+                });
+                loadDirectives();
+            });
+        },
+    };
+});
 
-            $scope.deleteUnit = function(idx) {
-                appState.models.setupArguments.units.splice(idx, 1);
-                $scope.form.$setDirty();
-            };
+SIREPO.app.directive('runtimeParametersTable', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<table class="table table-hover" style="width: 100%">',
+              '<thead>',
+                '<tr>',
+                  '<th scope="col">Name</th>',
+                  '<th scope="col">Value</th>',
+                '</tr>',
+              '</thead>',
+              '<tbody data-ng-repeat="param in parameters">',
+                '<tr>',
+                  '<td>',
+                    '<div style="font-size: 14px" class="badge sr-badge-icon">{{ param.name }}</div>',
+                  '</td>',
+                  '<td>',
+                    '<div>{{ param.value }}</div>',
+                  '</td>',
+                '</tr>',
+              '</tbody>',
+            '</table>',
+        ].join(''),
+        controller: function($scope, appState, directiveService) {
+            $scope.parameters = [];
+            function loadParameters() {
+                const m = appState.models[`Simulation${appState.models.simulation.flashType}`];
+                $scope.parameters =  Object.keys(m).map((k) => {
+                    return {name: k, value: m[k]};
+                });
+            }
 
-            $scope.hasChanges = function() {
-                if ($scope.form.$dirty) {
-                    return true;
-                }
-                return appState.areFieldsDirty('setupArguments.units');
-            };
-
-            $scope.saveChanges = function() {
-                appState.saveChanges('setupArguments');
-                $scope.form.$setPristine();
-            };
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('modelChanged', function(e, name) {
+                    if (name == 'setupConfigDirectives') {
+                        loadParameters();
+                    }
+                });
+                loadParameters();
+            });
         },
     };
 });

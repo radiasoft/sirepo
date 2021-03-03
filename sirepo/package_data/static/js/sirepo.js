@@ -2091,7 +2091,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        t = {timeout: timeout.promise};
+        t = {
+            timeout: timeout.promise,
+            responseType: (data || {}).responseType || '',
+        };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
                 function () {

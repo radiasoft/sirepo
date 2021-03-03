@@ -22,23 +22,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
-
-
-def background_percent_complete(report, run_dir, is_running):
-    files = _h5_file_list(run_dir)
-    count = len(files)
-    if is_running and count:
-        count -= 1
-    res = PKDict(
-        percentComplete=0 if is_running else 100,
-        frameCount=count,
-    )
-    c = _grid_evolution_columns(run_dir)
-    if c:
-        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
-    return res
-
-
 _DEFAULT_VALUES = {
     'RTFlame': {
         'Driver': {
@@ -56,6 +39,17 @@ _DEFAULT_VALUES = {
             'zmax': 750000,
             'zmin': -750000,
         },
+        'gridEvolutionAnimation': {
+            'y1': 'mass',
+            'y2': 'Burned Mass',
+            'y3': 'Burning rate',
+            'valueList': {
+                'y1': [],
+                'y2': [],
+                'y3': [],
+
+            }
+        },
         'Gridparamesh': {
             'lrefine_max': 3,
             'nblockx': 4,
@@ -65,14 +59,6 @@ _DEFAULT_VALUES = {
         'IO': {
             'plot_var_1': 'dens',
             'plotFileIntervalTime': 0.01,
-        },
-        'SimulationRTFlame': {
-            'flame_initial_position': 2000000,
-            'spert_ampl1': 200000,
-            'spert_ampl2': 200000,
-            'spert_phase2': 0.235243,
-            'spert_wl1': 1500000,
-            'spert_wl2': 125000,
         },
         'physicsGravityConstant': {
             'gconst': -1900000000,
@@ -85,21 +71,291 @@ _DEFAULT_VALUES = {
         'physicssourceTermsFlameFlameSpeedConstant': {
             'fl_fsConstFlameSpeed': 2000000,
         },
-        'gridEvolutionAnimation': {
-            'y1': 'mass',
-            'y2': 'Burned Mass',
-            'y3': 'Burning rate',
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": [],
-
-            }
+        'problemFiles': {
+            'archive': None
         },
+        'setupArguments': {
+            'auto': '1',
+            'd': 2,
+            'nxb': 16,
+            'nyb': 16
+        },
+        'setupConfigDirectives': [
+            {
+                '_id': 1,
+                '_type': 'REQUIRES',
+                'unit': 'Driver'
+            },
+            {
+                '_id': 2,
+                '_type': 'REQUIRES',
+                'unit': 'physics/Hydro'
+            },
+            {
+                '_id': 3,
+                '_type': 'REQUIRES',
+                'unit': 'physics/Gravity/GravityMain/Constant'
+            },
+            {
+                '_id': 4,
+                '_type': 'REQUIRES',
+                'unit': 'physics/sourceTerms/Flame/FlameEffects/EIP'
+            },
+            {
+                '_id': 5,
+                '_type': 'REQUIRES',
+                'unit': 'flashUtilities/contourSurface'
+            },
+            {
+                '_id': 6,
+                '_type': 'REQUESTS',
+                'unit': 'physics/sourceTerms/Flame/FlameSpeed/Constant'
+            },
+            {
+                '_id': 7,
+                '_type': 'PARAMETER',
+                'default': 100000000.0,
+                'name': 'temp_unburned',
+                'type': 'REAL',
+            },
+            {
+                '_id': 8,
+                '_type': 'PARAMETER',
+                'default': 100000000.0,
+                'name': 'dens_unburned',
+                'type': 'REAL',
+            },
+            {
+                '_id': 9,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'vel_pert_amp',
+                'type': 'REAL',
+            },
+            {
+                '_id': 10,
+                '_type': 'PARAMETER',
+                'default': 1.0,
+                'name': 'vel_pert_wavelength1',
+                'type': 'REAL',
+            },
+            {
+                '_id': 11,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'spert_ampl1',
+                'type': 'REAL',
+            },
+            {
+                '_id': 12,
+                '_type': 'PARAMETER',
+                'default': 1.0,
+                'name': 'spert_wl1',
+                'type': 'REAL',
+            },
+            {
+                '_id': 13,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'spert_phase1',
+                'type': 'REAL',
+            },
+            {
+                '_id': 14,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'spert_ampl2',
+                'type': 'REAL',
+            },
+            {
+                '_id': 15,
+                '_type': 'PARAMETER',
+                'default': 1.0,
+                'name': 'spert_wl2',
+                'type': 'REAL',
+            },
+            {
+                '_id': 16,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'spert_phase2',
+                'type': 'REAL',
+            },
+            {
+                '_id': 17,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'flame_initial_position',
+                'type': 'REAL',
+            },
+            {
+                '_id': 18,
+                '_type': 'PARAMETER',
+                'default': '0',
+                'name': 'refine_uniform_region',
+                'type': 'BOOLEAN',
+            },
+            {
+                '_id': 19,
+                '_type': 'PARAMETER',
+                'default': 6000000.0,
+                'name': 'refine_region_size',
+                'type': 'REAL',
+            },
+            {
+                '_id': 20,
+                '_type': 'PARAMETER',
+                'default': 4500000.0,
+                'name': 'refine_region_stepdown_size',
+                'type': 'REAL',
+            },
+            {
+                '_id': 21,
+                '_type': 'PARAMETER',
+                'default': 200000.0,
+                'name': 'refine_lead',
+                'type': 'REAL',
+            },
+            {
+                '_id': 22,
+                '_type': 'PARAMETER',
+                'default': 100000.0,
+                'name': 'refine_buf',
+                'type': 'REAL',
+            },
+            {
+                '_id': 23,
+                '_type': 'PARAMETER',
+                'default': '0',
+                'name': 'sim_ParticleRefineRegion',
+                'type': 'BOOLEAN',
+            },
+            {
+                '_id': 24,
+                '_type': 'PARAMETER',
+                'default': 2,
+                'name': 'sim_ParticleRefineRegionLevel',
+                'type': 'INTEGER',
+            },
+            {
+                '_id': 25,
+                '_type': 'PARAMETER',
+                'default': 6000000.0,
+                'name': 'sim_ParticleRefineRegionBottom',
+                'type': 'REAL',
+            },
+            {
+                '_id': 26,
+                '_type': 'PARAMETER',
+                'default': 20000000.0,
+                'name': 'sim_ParticleRefineRegionTop',
+                'type': 'REAL',
+            },
+            {
+                '_id': 27,
+                '_type': 'PARTICLEPROP',
+                'name': 'flam',
+                'type': 'REAL'
+            },
+            {
+                '_id': 28,
+                '_type': 'PARTICLEPROP',
+                'name': 'dens',
+                'type': 'REAL'
+            },
+            {
+                '_id': 29,
+                '_type': 'PARTICLEPROP',
+                'name': 'temp',
+                'type': 'REAL'
+            },
+            {
+                '_id': 30,
+                '_type': 'PARTICLEMAP',
+                'partName': 'temp',
+                'varName': 'temp',
+                'varType': 'VARIABLE'
+            },
+            {
+                '_id': 31,
+                '_type': 'PARTICLEMAP',
+                'partName': 'dens',
+                'varName': 'dens',
+                'varType': 'VARIABLE'
+            },
+            {
+                '_id': 32,
+                '_type': 'PARTICLEMAP',
+                'partName': 'flam',
+                'varName': 'FLAM',
+                'varType': 'MASS_SCALAR'
+            },
+            {
+                '_id': 33,
+                '_type': 'PARAMETER',
+                'default': 'dens',
+                'name': 'particle_attribute_1',
+                'type': 'STRING',
+            },
+            {
+                '_id': 34,
+                '_type': 'PARAMETER',
+                'default': 'temp',
+                'name': 'particle_attribute_2',
+                'type': 'STRING',
+            },
+            {
+                '_id': 35,
+                '_type': 'PARAMETER',
+                'default': 'flam',
+                'name': 'particle_attribute_4',
+                'type': 'STRING',
+            },
+            {
+                '_id': 36,
+                '_type': 'VARIABLE',
+                'name': 'turb'
+            },
+            {
+                '_id': 37,
+                '_type': 'VARIABLE',
+                'name': 'fspd'
+            }
+        ],
+        'SimulationRTFlame': {
+            'dens_unburned': 100000000,
+            'flame_initial_position': 2000000,
+            'particle_attribute_1': 'dens',
+            'particle_attribute_2': 'temp',
+            'particle_attribute_4': 'flam',
+            'refine_buf': 100000,
+            'refine_lead': 200000,
+            'refine_region_size': 6000000,
+            'refine_region_stepdown_size': 4500000,
+            'refine_uniform_region': '0',
+            'sim_ParticleRefineRegion': '0',
+            'sim_ParticleRefineRegionBottom': 6000000,
+            'sim_ParticleRefineRegionLevel': 2,
+            'sim_ParticleRefineRegionTop': 20000000,
+            'spert_ampl1': 200000,
+            'spert_ampl2': 200000,
+            'spert_phase1': 0,
+            'spert_phase2': 0.235243,
+            'spert_wl1': 1500000,
+            'spert_wl2': 125000,
+            'temp_unburned': 100000000,
+            'vel_pert_amp': 0,
+            'vel_pert_wavelength1': 1
+        }
     },
     'CapLaserBELLA': {
-        'varAnimation': {
-            'var': 'tele',
+        'Driver': {
+            'tstep_change_factor': 1.10,
+            'tmax': 300.0e-09,
+            'dtmin': 1.0e-16,
+            'dtinit': 1.0e-15,
+            'dtmax': 3.0e-09,
+            'nend': 10000000,
         },
         'Grid': {
             'eosModeInit': 'dens_temp_gather',
@@ -116,14 +372,14 @@ _DEFAULT_VALUES = {
             'ymax': 500.0e-04,
         },
         'gridEvolutionAnimation': {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic",
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": [],
+            'notes': '',
+            'y1': 'x-momentum',
+            'y2': 'y-momentum',
+            'y3': 'E_kinetic',
+            'valueList': {
+                'y1': [],
+                'y2': [],
+                'y3': [],
 
             }
         },
@@ -140,13 +396,15 @@ _DEFAULT_VALUES = {
             'gr_pmrpForceConsistency': '0',
             'gr_pmrpCylindricalPm': '1',
         },
-        'Driver': {
-            'tstep_change_factor': 1.10,
-            'tmax': 300.0e-09,
-            'dtmin': 1.0e-16,
-            'dtinit': 1.0e-15,
-            'dtmax': 3.0e-09,
-            'nend': 10000000,
+        'IO': {
+            'plot_var_1': 'dens',
+            'plot_var_2': 'pres',
+            'plot_var_3': 'tele',
+            'plot_var_4': 'tion',
+            'plot_var_5': 'magz',
+            'plot_var_6': 'depo',
+            'plotFileIntervalTime': 1e-10,
+            'io_writeMscalarIntegrals': '1',
         },
         'Multispecies': {
             'ms_fillSpecies': 'hydrogen',
@@ -162,11 +420,29 @@ _DEFAULT_VALUES = {
             'ms_wallZ': 13.0,
             'ms_wallZMin': 0.001,
         },
-        'physicsHydro': {
-            'cfl': 0.3,
+        'physicsDiffuse': {
+            'diff_useEleCond': '1',
+            'diff_eleFlMode': 'fl_larsen',
+            'diff_eleFlCoef': 0.06,
+            'diff_eleXlBoundaryType': 'neumann',
+            'diff_eleXrBoundaryType': 'dirichlet',
+            'diff_eleYlBoundaryType': 'neumann',
+            'diff_eleYrBoundaryType': 'neumann',
+            'diff_eleZlBoundaryType': 'neumann',
+            'diff_eleZrBoundaryType': 'neumann',
+            'useDiffuseComputeDtSpecies': '0',
+            'useDiffuseComputeDtTherm': '0',
+            'useDiffuseComputeDtVisc': '0',
+            'dt_diff_factor': 0.3,
+        },
+        'physicsDiffuseUnsplit': {
+            'diff_thetaImplct': 1.0,
         },
         'physicsEosTabulatedHdf5TableRead': {
             'eos_useLogTables': '0',
+        },
+        'physicsHydro': {
+            'cfl': 0.3,
         },
         'physicsHydrounsplit': {
             'hy_fPresInMomFlux': 0.0,
@@ -183,21 +459,20 @@ _DEFAULT_VALUES = {
             'energyFix': '1',
             'prolMethod': 'balsara_prol',
         },
-        'IO': {
-            'plot_var_1': 'dens',
-            'plot_var_2': 'pres',
-            'plot_var_3': 'tele',
-            'plot_var_4': 'tion',
-            'plot_var_5': 'magz',
-            'plot_var_6': 'depo',
-            'plotFileIntervalTime': 1e-10,
-            'io_writeMscalarIntegrals': '1',
+        'physicsmaterialPropertiesOpacityMultispecies': {
+            'op_fillAbsorb': 'op_tabpa',
+            'op_fillEmiss': 'op_tabpe',
+            'op_fillTrans': 'op_tabro',
+            'op_fillFileType': 'ionmix4',
+            'op_fillFileName': 'h-imx-004.cn4',
+            'op_wallAbsorb': 'op_tabpa',
+            'op_wallEmiss': 'op_tabpe',
+            'op_wallTrans': 'op_tabro',
+            'op_wallFileType': 'ionmix4',
+            'op_wallFileName': 'al-imx-004.cn4',
         },
         'physicsRadTrans': {
             'rt_dtFactor': 1.0e+100,
-        },
-        'physicssourceTermsHeatexchangeSpitzer': {
-            'hx_dtFactor': 1.0e+100,
         },
         'physicsRadTransMGD': {
             'rt_useMGD': '1',
@@ -216,18 +491,6 @@ _DEFAULT_VALUES = {
             'rt_mgdYrBoundaryType': 'vacuum',
             'rt_mgdZlBoundaryType': 'reflecting',
             'rt_mgdZrBoundaryType': 'reflecting',
-        },
-        'physicsmaterialPropertiesOpacityMultispecies': {
-            'op_fillAbsorb': 'op_tabpa',
-            'op_fillEmiss': 'op_tabpe',
-            'op_fillTrans': 'op_tabro',
-            'op_fillFileType': 'ionmix4',
-            'op_fillFileName': 'h-imx-004.cn4',
-            'op_wallAbsorb': 'op_tabpa',
-            'op_wallEmiss': 'op_tabpe',
-            'op_wallTrans': 'op_tabro',
-            'op_wallFileType': 'ionmix4',
-            'op_wallFileName': 'al-imx-004.cn4',
         },
         'physicssourceTermsEnergyDepositionLaser': {
             'ed_maxRayCount': 10000,
@@ -266,36 +529,252 @@ _DEFAULT_VALUES = {
             'ed_laserIOMaxNumberOfPositions': 10000,
             'ed_laserIOMaxNumberOfRays':  128,
         },
-        'physicsDiffuse': {
-            'diff_useEleCond': '1',
-            'diff_eleFlMode': 'fl_larsen',
-            'diff_eleFlCoef': 0.06,
-            'diff_eleXlBoundaryType': 'neumann',
-            'diff_eleXrBoundaryType': 'dirichlet',
-            'diff_eleYlBoundaryType': 'neumann',
-            'diff_eleYrBoundaryType': 'neumann',
-            'diff_eleZlBoundaryType': 'neumann',
-            'diff_eleZrBoundaryType': 'neumann',
-            'useDiffuseComputeDtSpecies': '0',
-            'useDiffuseComputeDtTherm': '0',
-            'useDiffuseComputeDtVisc': '0',
-            'dt_diff_factor': 0.3,
+        'physicssourceTermsHeatexchangeSpitzer': {
+            'hx_dtFactor': 1.0e+100,
         },
-        'physicsDiffuseUnsplit': {
-            'diff_thetaImplct': 1.0,
+        'problemFiles': {
+            'archive': 'CapLaserBELLA.zip'
         },
+        'setupArguments': {
+            'auto': '1',
+            'd': 2,
+            'ed_maxBeams': 1,
+            'ed_maxPulseSections': 4,
+            'ed_maxPulses': 1,
+            'hdf5typeio': '1',
+            'laser': '1',
+            'mgd': '1',
+            'mgd_meshgroups': 6,
+            'mtmmmt': '1',
+            'nxb': 8,
+            'nyb': 8,
+            'species': 'fill,wall',
+            'usm3t': '1'
+        },
+        'setupConfigDirectives': [
+            {
+                '_id': 1,
+                '_type': 'REQUIRES',
+                'unit': 'Driver'
+            },
+            {
+                '_id': 2,
+                '_type': 'REQUIRES',
+                'unit': 'physics/Hydro/HydroMain/unsplit/MHD_StaggeredMesh'
+            },
+            {
+                '_id': 3,
+                '_type': 'REQUESTS',
+                'unit': 'physics/Diffuse/DiffuseMain/Unsplit'
+            },
+            {
+                '_id': 4,
+                '_type': 'REQUESTS',
+                'unit': 'physics/Eos/EosMain/Tabulated'
+            },
+            {
+                '_id': 5,
+                '_type': 'REQUESTS',
+                'unit': 'physics/Eos/EosMain/multiTemp/Multitype'
+            },
+            {
+                '_id': 6,
+                '_type': 'REQUESTS',
+                'unit': 'physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ'
+            },
+            {
+                '_id': 7,
+                '_type': 'REQUESTS',
+                'unit': 'physics/materialProperties/MagneticResistivity/MagneticResistivityMain/SpitzerHighZ'
+            },
+            {
+                '_id': 8,
+                '_type': 'REQUESTS',
+                'unit': 'physics/sourceTerms/EnergyDeposition'
+            },
+            {
+                '_id': 9,
+                '_type': 'REQUESTS',
+                'unit': 'physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore'
+            },
+            {
+                '_id': 10,
+                '_type': 'REQUESTS',
+                'unit': 'physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer'
+            },
+            {
+                '_id': 11,
+                '_type': 'PARAMETER',
+                'default': 2400.0,
+                'name': 'sim_peakField',
+                'type': 'REAL'
+            },
+            {
+                '_id': 12,
+                '_type': 'PARAMETER',
+                'default': 3e-07,
+                'name': 'sim_period',
+                'type': 'REAL'
+            },
+            {
+                '_id': 13,
+                '_type': 'PARAMETER',
+                'default': 2.7,
+                'name': 'sim_rhoWall',
+                'type': 'REAL'
+            },
+            {
+                '_id': 14,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_teleWall',
+                'type': 'REAL'
+            },
+            {
+                '_id': 15,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tionWall',
+                'type': 'REAL'
+            },
+            {
+                '_id': 16,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tradWall',
+                'type': 'REAL'
+            },
+            {
+                '_id': 17,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'sim_zminWall',
+                'type': 'REAL'
+            },
+            {
+                '_id': 18,
+                '_type': 'PARAMETER',
+                'default': 'eos_tab',
+                'name': 'sim_eosWall',
+                'type': 'STRING'
+            },
+            {
+                '_id': 19,
+                '_type': 'PARAMETER',
+                'default': 195000.0,
+                'name': 'sim_condWall',
+                'type': 'REAL'
+            },
+            {
+                '_id': 20,
+                '_type': 'PARAMETER',
+                'default': 2.655e-07,
+                'name': 'sim_rhoFill',
+                'type': 'REAL'
+            },
+            {
+                '_id': 21,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_teleFill',
+                'type': 'REAL'
+            },
+            {
+                '_id': 22,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tionFill',
+                'type': 'REAL'
+            },
+            {
+                '_id': 23,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tradFill',
+                'type': 'REAL'
+            },
+            {
+                '_id': 24,
+                '_type': 'PARAMETER',
+                'default': 'eos_tab',
+                'name': 'sim_eosFill',
+                'type': 'STRING'
+            },
+            {
+                '_id': 25,
+                '_type': 'VARIABLE',
+                'name': 'CVIO'
+            },
+            {
+                '_id': 26,
+                '_type': 'VARIABLE',
+                'name': 'CVEL'
+            },
+            {
+                '_id': 27,
+                '_type': 'VARIABLE',
+                'name': 'KAPA'
+            },
+            {
+                '_id': 28,
+                '_type': 'VARIABLE',
+                'name': 'BDRY'
+            },
+            {
+                '_id': 29,
+                '_type': 'VARIABLE',
+                'name': 'EX'
+            },
+            {
+                '_id': 30,
+                '_type': 'VARIABLE',
+                'name': 'EY'
+            },
+            {
+                '_id': 31,
+                '_type': 'VARIABLE',
+                'name': 'NELE'
+            },
+            {
+                '_id': 32,
+                '_type': 'VARIABLE',
+                'name': 'BRSC'
+            },
+            {
+                '_id': 33,
+                '_type': 'VARIABLE',
+                'name': 'BRMX'
+            },
+            {
+                '_id': 34,
+                '_type': 'VARIABLE',
+                'name': 'ANGL'
+            },
+            {
+                '_id': 35,
+                '_type': 'VARIABLE',
+                'name': 'RESI'
+            }
+        ],
         'SimulationCapLaserBELLA': {
-            'sim_peakField': 3.2e3,
-            'sim_period': 400e-9,
+            'sim_condWall': 150000,
+            'sim_eosFill': 'eos_gam',
+            'sim_eosWall': 'eos_tab',
+            'sim_rhoFill': 1e-06,
             'sim_rhoWall': 2.7,
-            'sim_teleWall': 11598,
-            'sim_tionWall': 11598,
-            'sim_tradWall': 11598,
-            'sim_rhoFill': 1.e-6,
             'sim_teleFill': 11598,
+            'sim_teleWall': 11598,
             'sim_tionFill': 11598,
+            'sim_tionWall': 11598,
             'sim_tradFill': 11598,
-            'sim_condWall': 1.5e5,
+            'sim_tradWall': 11598,
+            'sim_zminWall': 0,
+            'sim_currType': '1',
+            'sim_peakCurr': 3.1e2 ,
+            'sim_riseTime': 1.8e-9
+        },
+        'varAnimation': {
+            'var': 'tele',
         },
     },
     'CapLaser3D': {
@@ -322,14 +801,14 @@ _DEFAULT_VALUES = {
             'zr_boundary_type': 'outflow'
         },
         'gridEvolutionAnimation': {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic",
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": [],
+            'notes': '',
+            'y1': 'x-momentum',
+            'y2': 'y-momentum',
+            'y3': 'E_kinetic',
+            'valueList': {
+                'y1': [],
+                'y2': [],
+                'y3': [],
 
             }
         },
@@ -370,19 +849,6 @@ _DEFAULT_VALUES = {
             'ms_wallZ': 10,
             'ms_wallZMin': 0.001
         },
-        'SimulationCapLaser3D': {
-            'sim_condWall': 195000,
-            'sim_peakField': 4500,
-            'sim_period': 2e-07,
-            'sim_rhoFill': 1.467e-05,
-            'sim_rhoWall': 2.7,
-            'sim_teleFill': 11598,
-            'sim_teleWall': 11598,
-            'sim_tionFill': 11598,
-            'sim_tionWall': 11598,
-            'sim_tradFill': 11598,
-            'sim_tradWall': 11598
-        },
         'physicsDiffuse': {
             'diff_eleFlCoef': 0.06,
             'diff_eleFlMode': 'fl_larsen',
@@ -422,11 +888,20 @@ _DEFAULT_VALUES = {
             'energyFix': '1',
             'prolMethod': 'balsara_prol',
         },
+        'physicsmaterialPropertiesOpacityMultispecies': {
+            'op_fillAbsorb': 'op_tabpa',
+            'op_fillEmiss': 'op_tabpe',
+            'op_fillFileName': 'helium-fill-imx.cn4',
+            'op_fillFileType': 'ionmix4',
+            'op_fillTrans': 'op_tabro',
+            'op_wallAbsorb': 'op_tabpa',
+            'op_wallEmiss': 'op_tabpe',
+            'op_wallFileName': 'alumina-wall-imx.cn4',
+            'op_wallFileType': 'ionmix4',
+            'op_wallTrans': 'op_tabro'
+        },
         'physicsRadTrans': {
             'rt_dtFactor': 1.0e+100,
-        },
-        'physicssourceTermsHeatexchangeSpitzer': {
-            'hx_dtFactor': 1.0e+100,
         },
         'physicsRadTransMGD': {
             'rt_mgdBounds_1': 0.1,
@@ -445,18 +920,6 @@ _DEFAULT_VALUES = {
             'rt_mgdZlBoundaryType': 'vacuum',
             'rt_mgdZrBoundaryType': 'vacuum',
             'rt_useMGD': '1'
-        },
-        'physicsmaterialPropertiesOpacityMultispecies': {
-            'op_fillAbsorb': 'op_tabpa',
-            'op_fillEmiss': 'op_tabpe',
-            'op_fillFileName': 'helium-fill-imx.cn4',
-            'op_fillFileType': 'ionmix4',
-            'op_fillTrans': 'op_tabro',
-            'op_wallAbsorb': 'op_tabpa',
-            'op_wallEmiss': 'op_tabpe',
-            'op_wallFileName': 'alumina-wall-imx.cn4',
-            'op_wallFileType': 'ionmix4',
-            'op_wallTrans': 'op_tabro'
         },
         'physicssourceTermsEnergyDepositionLaser': {
             'ed_crossSectionFunctionType_1': 'gaussian2D',
@@ -497,18 +960,334 @@ _DEFAULT_VALUES = {
             'ed_laserIOMaxNumberOfRays':  128,
             'ed_useLaserIO': '1',
         },
+        'physicssourceTermsHeatexchangeSpitzer': {
+            'hx_dtFactor': 1.0e+100,
+        },
+        'problemFiles': {
+            'archive': 'CapLaser3D.zip'
+        },
+        'setupArguments': {
+            'auto': '1',
+            'cartesian': '1',
+            'd': 3,
+            'ed_maxBeams': 1,
+            'ed_maxPulseSections': 4,
+            'ed_maxPulses': 1,
+            'hdf5typeio': '1',
+            'laser': '1',
+            'mgd': '1',
+            'mgd_meshgroups': 6,
+            'mtmmmt': '1',
+            'species': 'fill,wall',
+            'usm3t': '1'
+        },
+        'setupConfigDirectives': [
+            {
+                '_id': 1,
+                '_type': 'REQUIRES',
+                'unit': 'Driver'
+            },
+            {
+                '_id': 2,
+                '_type': 'REQUIRES',
+                'unit': 'physics/Hydro/HydroMain/unsplit/MHD_StaggeredMesh'
+            },
+            {
+                '_id': 3,
+                '_type': 'REQUESTS',
+                'unit': 'physics/Eos/EosMain/multiTemp/Multitype'
+            },
+            {
+                '_id': 4,
+                '_type': 'REQUESTS',
+                'unit': 'physics/Eos/EosMain/Tabulated'
+            },
+            {
+                '_id': 5,
+                '_type': 'REQUESTS',
+                'unit': 'physics/Diffuse/DiffuseMain/Unsplit'
+            },
+            {
+                '_id': 6,
+                '_type': 'REQUESTS',
+                'unit': 'physics/sourceTerms/EnergyDeposition'
+            },
+            {
+                '_id': 7,
+                '_type': 'REQUESTS',
+                'unit': 'physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer'
+            },
+            {
+                '_id': 8,
+                '_type': 'REQUESTS',
+                'unit': 'physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ'
+            },
+            {
+                '_id': 9,
+                '_type': 'REQUESTS',
+                'unit': 'physics/materialProperties/MagneticResistivity/MagneticResistivityMain/SpitzerHighZ'
+            },
+            {
+                '_id': 10,
+                '_type': 'PARAMETER',
+                'default': 2400.0,
+                'name': 'sim_peakField',
+                'type': 'REAL',
+            },
+            {
+                '_id': 11,
+                '_type': 'PARAMETER',
+                'default': 3e-07,
+                'name': 'sim_period',
+                'type': 'REAL',
+            },
+            {
+                '_id': 12,
+                '_type': 'PARAMETER',
+                'default': 'current.dat',
+                'name': 'sim_currFile',
+                'type': 'STRING',
+            },
+            {
+                '_id': 13,
+                '_type': 'PARAMETER',
+                'default': 450.0,
+                'name': 'sim_peakCurr',
+                'type': 'REAL',
+            },
+            {
+                '_id': 14,
+                '_type': 'PARAMETER',
+                'default': 4e-07,
+                'name': 'sim_riseTime',
+                'type': 'REAL',
+            },
+            {
+                '_id': 15,
+                '_type': 'PARAMETER',
+                'default': 0,
+                'name': 'sim_runType',
+                'type': 'INTEGER',
+            },
+            {
+                '_id': 16,
+                '_type': 'PARAMETER',
+                'default': 2.7,
+                'name': 'sim_rhoWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 17,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_teleWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 18,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tionWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 19,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tradWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 20,
+                '_type': 'PARAMETER',
+                'default': 0.0,
+                'name': 'sim_zminWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 21,
+                '_type': 'PARAMETER',
+                'default': 'eos_tab',
+                'name': 'sim_eosWall',
+                'type': 'STRING',
+            },
+            {
+                '_id': 22,
+                '_type': 'PARAMETER',
+                'default': 195000.0,
+                'name': 'sim_condWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 23,
+                '_type': 'PARAMETER',
+                'default': 0.025,
+                'name': 'sim_rWall',
+                'type': 'REAL',
+            },
+            {
+                '_id': 24,
+                '_type': 'PARAMETER',
+                'default': 2.655e-07,
+                'name': 'sim_rhoFill',
+                'type': 'REAL',
+            },
+            {
+                '_id': 25,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_teleFill',
+                'type': 'REAL',
+            },
+            {
+                '_id': 26,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tionFill',
+                'type': 'REAL',
+            },
+            {
+                '_id': 27,
+                '_type': 'PARAMETER',
+                'default': 290.11375,
+                'name': 'sim_tradFill',
+                'type': 'REAL',
+            },
+            {
+                '_id': 28,
+                '_type': 'PARAMETER',
+                'default': 'eos_tab',
+                'name': 'sim_eosFill',
+                'type': 'STRING',
+            },
+            {
+                '_id': 29,
+                '_type': 'VARIABLE',
+                'name': 'CVIO'
+            },
+            {
+                '_id': 30,
+                '_type': 'VARIABLE',
+                'name': 'CVEL'
+            },
+            {
+                '_id': 31,
+                '_type': 'VARIABLE',
+                'name': 'KAPA'
+            },
+            {
+                '_id': 32,
+                '_type': 'VARIABLE',
+                'name': 'BDRY'
+            },
+            {
+                '_id': 33,
+                '_type': 'VARIABLE',
+                'name': 'EX'
+            },
+            {
+                '_id': 34,
+                '_type': 'VARIABLE',
+                'name': 'EY'
+            },
+            {
+                '_id': 35,
+                '_type': 'VARIABLE',
+                'name': 'NELE'
+            },
+            {
+                '_id': 36,
+                '_type': 'VARIABLE',
+                'name': 'BRSC'
+            },
+            {
+                '_id': 37,
+                '_type': 'VARIABLE',
+                'name': 'BRMX'
+            },
+            {
+                '_id': 38,
+                '_type': 'VARIABLE',
+                'name': 'ANGL'
+            },
+            {
+                '_id': 39,
+                '_type': 'VARIABLE',
+                'name': 'RESI'
+            }
+        ],
+        'SimulationCapLaser3D': {
+            'sim_condWall': 195000,
+            'sim_currFile': '',
+            'sim_currType': '1',
+            'sim_eosFill': 'eos_gam',
+            'sim_eosWall': 'eos_tab',
+            'sim_peakCurr': 310,
+            'sim_peakField': 4500,
+            'sim_period': 2e-07,
+            'sim_rWall': 0.025,
+            'sim_rhoFill': 1.467e-5,
+            'sim_rhoWall': 2.7,
+            'sim_riseTime': 1.8e-09,
+            'sim_teleFill': 11598,
+            'sim_teleWall': 11598,
+            'sim_tionFill': 11598,
+            'sim_tionWall': 11598,
+            'sim_tradFill': 11598,
+            'sim_tradWall': 11598,
+            'sim_zminWall': 0
+        },
         'varAnimation': {
             'var': 'tele',
         },
     },
 }
 
+def background_percent_complete(report, run_dir, is_running):
+    files = _h5_file_list(run_dir)
+    count = len(files)
+    if is_running and count:
+        count -= 1
+    res = PKDict(
+        percentComplete=0 if is_running else 100,
+        frameCount=count,
+    )
+    c = _grid_evolution_columns(run_dir)
+    if c:
+        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
+    return res
+
+def generate_config_file(run_dir, data):
+    res = ''
+    for e in data.models.setupConfigDirectives:
+        l = f'\n{e._type} '
+        if e._type == 'PARAMETER':
+            l += f'{e.name} {e.type} {_format_parameter_directive_field(e.type, e.default, config=True)}'
+        elif e._type == 'PARTICLEPROP':
+            l += f'{e.name} {e.type}'
+        elif e._type == 'PARTICLEMAP':
+            l += f'TO {e.partName} FROM {e.varType} {e.varName}'
+        elif e._type == 'VARIABLE':
+            l += f'{e.name}'
+        elif e._type in ('REQUIRES', 'REQUESTS'):
+            l += f'{e.unit}'
+        else:
+            raise AssertionError(f'type={e._type} unknown')
+        res += l
+    pkio.write_text(
+        _SIM_DATA.flash_simulation_unit_file_path(run_dir, data, 'Config'),
+        res,
+    )
+
 
 def new_simulation(data, new_simulation_data):
     flash_type = new_simulation_data['flashType']
     data.models.simulation.flashType = flash_type
     for name in _DEFAULT_VALUES[flash_type]:
-        data.models[name].update(_DEFAULT_VALUES[flash_type][name])
+        f = 'update'
+        if isinstance(data.models[name], list):
+            f = 'extend'
+        getattr(data.models[name], f)(_DEFAULT_VALUES[flash_type][name])
 
 
 def remove_last_frame(run_dir):
@@ -660,6 +1439,34 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
+def _find_setup_config_directive(data, name):
+    for d in data.models.setupConfigDirectives:
+        if d.name == name:
+            return d
+    return PKDict()
+
+
+def _format_boolean(value, config=False):
+    r = 'TRUE' if value == '1' else 'FALSE'
+    if not config:
+        # runtime parameters (par file) have dots before and after bool
+        r = f'.{r}.'
+    return r
+
+
+def _format_parameter_directive_field(type, value, config=False):
+    v = str(value)
+    if type  == 'BOOLEAN':
+        v = _format_boolean(value, config=config)
+    elif type == 'REAL':
+        # Config file requires REALs to have decimal place or to be in
+        # scientific notation
+        v = '{:e}'.format(value)
+    if type == 'STRING':
+        v = f'"{value}"'
+    return v
+
+
 def _generate_parameters_file(data, run_dir=None):
     if not run_dir:
         run_dir = pkio.py_path()
@@ -681,7 +1488,7 @@ def _generate_parameters_file(data, run_dir=None):
             ''.join([x for x in line.split('/') if not x.endswith('Main')])
         ] = line
     for m in sorted(data.models):
-        if m not in names:
+        if m not in names or m == 'setupConfigDirectives':
             continue
         if m not in _SCHEMA.model:
             # old model which was removed from schema
@@ -698,14 +1505,7 @@ def _generate_parameters_file(data, run_dir=None):
                     has_heading = True
                     res += heading
                 if schema[f][1] == 'Boolean':
-                    v = '.TRUE.' if v == '1' else '.FALSE.'
-                if m == 'SimulationCapLaserBELLA' and \
-                   f == 'sim_currFile' and data.models[m]['sim_currType'] == '2':
-                    v = _SIM_DATA.lib_file_name_with_model_field(
-                        'SimulationCapLaserBELLA',
-                        'sim_currFile',
-                        v,
-                    )
+                    v = _format_boolean(v)
                 res += '{} = "{}"\n'.format(f, v)
         if has_heading:
             res += '\n'

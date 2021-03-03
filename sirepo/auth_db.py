@@ -11,6 +11,7 @@ import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import threading
 # limit imports here
+import sirepo.auth_role
 import sirepo.srdb
 
 
@@ -57,7 +58,6 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
     import py
     import pykern.pkconfig
     import pykern.pkio
-    import sirepo.auth_role
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.simulation_db
@@ -100,7 +100,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
             + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
         r = UserRole.has_role(
             uid,
-            sirepo.auth_role.role_for_sim_type(t),
+            sirepo.auth_role.for_sim_type(t),
         )
         if r:
             _add(d, t, c)
@@ -109,11 +109,15 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
         pykern.pkio.unchecked_remove(sirepo.simulation_db.simulation_dir(t, uid=uid))
 
 
+def db_filename():
+    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
+
+
 def init():
     global _session, _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
     assert not _session
 
-    f = _db_filename()
+    f = db_filename()
     _migrate_db_file(f)
     _engine = sqlalchemy.create_engine(
         'sqlite:///{}'.format(f),
@@ -233,25 +237,18 @@ def init():
 
         @classmethod
         def uids_of_paid_users(cls):
-            import sirepo.auth_role
-
             return [
                 x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
     UserDbBase.metadata.create_all(_engine)
-    _migrate_role_jupyterhub()
 
 
 def init_model(callback):
     with thread_lock:
         callback(UserDbBase)
         UserDbBase.metadata.create_all(_engine)
-
-
-def _db_filename():
-    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
 
 def _migrate_db_file(fn):
@@ -305,15 +302,3 @@ def _migrate_db_file(fn):
         raise
     x.rename(o + '-migrated')
     pkdlog('migrated user.db to auth.db')
-
-
-def _migrate_role_jupyterhub():
-    import sirepo.auth_role
-    import sirepo.template
-
-    r = sirepo.auth_role.role_for_sim_type('jupyterhublogin')
-    if not sirepo.template.is_sim_type('jupyterhublogin') or \
-       r in UserRole.all_roles():
-        return
-    for u in all_uids():
-        UserRole.add_roles(u, [r])

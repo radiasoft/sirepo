@@ -9,10 +9,10 @@
             "paths": [
                 {
                     "_super": "fieldPath",
-                    "begin": "0, -125, 0",
-                    "end": "0, 125, 0",
+                    "begin": "0, -60, 0",
+                    "end": "0, 60, 0",
                     "id": 0,
-                    "name": "Y Axis",
+                    "name": "Beam Axis",
                     "numPoints": 251,
                     "type": "line"
                 }
@@ -82,6 +82,7 @@
         },
         "simFolder": {},
         "simulation": {
+            "beamAxis": "y",
             "documentationUrl": "",
             "enableKickMaps": "1",
             "folder": "/Examples",
@@ -89,6 +90,11 @@
             "name": "Undulator",
             "notes": "",
             "outOfSessionSimulationId": ""
+        },
+        "undulator": {
+            "_super": "radiaObject",
+            "gap": 20.0,
+            "numPeriods": 2
         }
     },
     "simulationType": "radia"

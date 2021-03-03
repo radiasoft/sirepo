@@ -31,7 +31,7 @@ _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
 
-_SRCONTEXT_COOKIE_STATE_KEY = 'cookie_state'
+_SRCONTEXT_KEY = __name__
 
 
 def get_value(key):
@@ -48,7 +48,7 @@ def has_sentinel():
 
 @contextlib.contextmanager
 def process_header(unit_test=None):
-    with _set_cookie(unit_test or flask.request.environ.get('HTTP_COOKIE', '')):
+    with _set_state(unit_test or flask.request.environ.get('HTTP_COOKIE', '')):
         yield
 
 
@@ -73,7 +73,7 @@ def set_cookie_outside_of_flask_request(cookie_header=''):
         'Only call from outside a flask request context'
     if cookie_header:
         cookie_header = f'{cfg.http_name}={cookie_header}'
-    with _set_cookie(cookie_header):
+    with _set_state(cookie_header):
         set_sentinel()
         yield
 
@@ -114,15 +114,15 @@ def unchecked_remove(key):
 
 
 @contextlib.contextmanager
-def _set_cookie(header):
+def _set_state(header):
     # Maintain cookie states on stack to allow setting of cookies
     # within a state where a cookie is already set
     p = _state()
     try:
-        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, _State(header))
+        sirepo.srcontext.set(_SRCONTEXT_KEY, _State(header))
         yield
     finally:
-        sirepo.srcontext.set(_SRCONTEXT_COOKIE_STATE_KEY, p)
+        sirepo.srcontext.set(_SRCONTEXT_KEY, p)
 
 
 class _State(dict):
@@ -224,7 +224,7 @@ def _cfg_http_name(value):
 
 
 def _state():
-    return sirepo.srcontext.get(_SRCONTEXT_COOKIE_STATE_KEY)
+    return sirepo.srcontext.get(_SRCONTEXT_KEY)
 
 
 cfg = pkconfig.init(
