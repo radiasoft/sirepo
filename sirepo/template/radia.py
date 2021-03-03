@@ -242,9 +242,11 @@ def new_simulation(data, new_simulation_data):
     data.models.geometry.name = new_simulation_data.name
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+    beam_axis = new_simulation_data.beamAxis
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        _build_undulator(data.models.geometry, new_simulation_data.beamAxis)
+        _build_undulator(data.models.geometry, beam_axis)
         data.models.simulation.enableKickMaps = '1'
+        _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
 
 
 def python_source_for_model(data):
@@ -438,8 +440,8 @@ def _build_undulator(geom, beam_axis):
     geom.objects.append(mag_pole_grp)
     magnet_cap = _build_cuboid(name='End Block')
     geom.objects.append(magnet_cap)
-    grp = _build_group([half_pole, mag_pole_grp, magnet_cap], name='Octant')
-    geom.objects.append(grp)
+    oct_grp = _build_group([half_pole, mag_pole_grp, magnet_cap], name='Octant')
+    geom.objects.append(oct_grp)
 
     return _update_geom_from_undulator(
         geom,
@@ -946,8 +948,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     )
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
-    grp = _find_obj_by_name(geom.objects, 'Octant')
-
     mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
         [_build_clone_xform(
             und.numPeriods - 1,
@@ -970,12 +970,13 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetColor
     )
 
-    grp.transforms = [
+    oct_grp = _find_obj_by_name(geom.objects, 'Octant')
+    oct_grp.transforms = [
         _build_symm_xform(width_dir, _ZERO, 'perpendicular'),
         _build_symm_xform(gap_dir, _ZERO, 'parallel'),
         _build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
     ]
-    return grp
+    return oct_grp
 
 
 def _update_group(g, members, do_replace=False):
@@ -985,6 +986,15 @@ def _update_group(g, members, do_replace=False):
         m.groupId = g.id
         g.members.append(m.id)
     return g
+
+
+def _update_kickmap(km, und, beam_axis):
+    km.direction = ','.join([str(x) for x in _BEAM_AXIS_VECTORS[beam_axis]])
+    km.transverseDirection = ','.join(
+        [str(x) for x in _BEAM_AXIS_VECTORS[_GAP_AXIS_MAP[beam_axis]]])
+    km.transverseRange1 = und.gap
+    km.numPeriods = und.numPeriods
+    km.periodLength = und.periodLength
 
 
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')

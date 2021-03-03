@@ -128,7 +128,7 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
 
-def build_box(center, size, material, magnetization, rem_mag, segments, h_m_curve=None):
+def build_cuboid(center, size, material, magnetization, rem_mag, segments, h_m_curve=None):
     g_id = radia.ObjRecMag(center, size, magnetization)
     if segments and any([s > 1 for s in segments]):
         radia.ObjDivMag(g_id, segments)

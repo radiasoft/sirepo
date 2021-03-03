@@ -239,7 +239,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomObject.magnetization',
         'geomObject.material',
         'geomObject.symmetryType',
-        'geomObject.doDivide',
         'simulation.beamAxis',
     ];
     const groupModels = [
@@ -923,11 +922,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! o) {
             return;
         }
-        panelState.showField(
-            'geomObject',
-            'division',
-            o.doDivide == '1'
-        );
         panelState.showField(
             'geomObject',
             'materialFile',
@@ -3053,7 +3047,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 radiaService.getRadiaData(
                     inData,
                     function(d) {
-                        //srdbg('got app data', d);
+                        srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
                             $scope.viz.simState.state ='completed';
                             $scope.viz.solution = d.solution;
