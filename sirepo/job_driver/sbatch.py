@@ -35,20 +35,20 @@ class SbatchDriver(job_driver.DriverBase):
 
     def __init__(self, op):
         def _op_queue_size(op_kind):
-            return self.cfg.num_concurrent_op_run if op_kind == job.OP_RUN else 1
+            return self.cfg.run_slots if op_kind == job.OP_RUN else 1
 
         super().__init__(op)
         self.pkupdate(
             # before it is overwritten by prepare_send
             _local_user_dir=pkio.py_path(op.msg.userDir),
             _srdb_root=None,
-            # Allow num_concurrent_op_run and every other op type to
+            # Allow self.cfg.run_slots and every other op type to
             # run (assume OP_RUN is one of OPS_THAT_NEED_SLOTS). This
             # is essentially a no-op (sbatch constrains its own cpu
             # resources) but makes it easier to code the other cases.
             cpu_slot_q=sirepo.job_supervisor.SlotQueue(
                 len(job_driver.OPS_THAT_NEED_SLOTS)
-                + self.cfg.num_concurrent_op_run
+                + self.cfg.run_slots
                 - 1,
             ),
             op_slot_q={
@@ -89,7 +89,7 @@ class SbatchDriver(job_driver.DriverBase):
             cores=(None, int, 'dev cores config'),
             host=pkconfig.Required(str, 'host name for slum controller'),
             host_key=pkconfig.Required(str, 'host key'),
-            num_concurrent_op_run=(1, int, 'number of concurrent OP_RUN for each user'),
+            run_slots=(1, int, 'number of concurrent OP_RUN for each user'),
             shifter_image=(None, str, 'needed if using Shifter'),
             sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
             srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),
