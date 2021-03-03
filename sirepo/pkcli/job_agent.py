@@ -601,6 +601,19 @@ class _SbatchRun(_SbatchCmd):
         self.msg.jobCmd = 'sbatch_status'
         self.pkdel('_in_file').remove()
 
+    async def _await_start_ready(self):
+        await self._start_ready.wait()
+        if self._terminating:
+            return
+        self._in_file = self._create_in_file()
+        pkdlog(
+            '{} sbatch_id={} starting jobCmd={}',
+            self,
+            self._sbatch_id,
+            self.msg.jobCmd,
+        )
+        await super().start()
+
     def destroy(self):
         if self._status_cb:
             self._status_cb.stop()
@@ -654,17 +667,10 @@ class _SbatchRun(_SbatchCmd):
         )
         self._start_ready = sirepo.tornado.Event()
         self._status_cb.start()
-        await self._start_ready.wait()
-        if self._terminating:
-            return
-        self._in_file = self._create_in_file()
-        pkdlog(
-            '{} sbatch_id={} starting jobCmd={}',
-            self,
-            self._sbatch_id,
-            self.msg.jobCmd,
-        )
-        await super().start()
+        # Starting an sbatch job may involve a long wait in the queue
+        # so release back to agent loop so we can process other ops
+        # while we wait for the job to start running
+        tornado.ioloop.IOLoop.current().add_callback(self._await_start_ready)
 
     async def _prepare_simulation(self):
         c = _SbatchCmd(
@@ -754,11 +760,14 @@ exec srun {s} /bin/bash bash.stdin
             )
             return
         self._status = r.group()
-        if not self._start_ready.is_set():
-            self._start_time = int(time.time())
-            self._start_ready.set()
-        if self._status in ('CONFIGURING', 'COMPLETING', 'PENDING', 'RUNNING'):
+        if self._status in ('PENDING', 'CONFIGURING'):
             return
+        else:
+            if not self._start_ready.is_set():
+                self._start_time = int(time.time())
+                self._start_ready.set()
+            if self._status in ('COMPLETING', 'RUNNING'):
+                return
         c = self._status == 'COMPLETED'
         self._stopped_sentinel.write(job.COMPLETED if c else job.ERROR)
         if not c:
