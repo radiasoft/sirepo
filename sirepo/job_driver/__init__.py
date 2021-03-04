@@ -87,7 +87,6 @@ class DriverBase(PKDict):
             _idle_timer=None,
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
-#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
         self._sim_db_file_token = sirepo.sim_db_file.token_for_user(self.uid)
         # Drivers persist for the life of the program so they are never removed
