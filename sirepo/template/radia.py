@@ -757,7 +757,6 @@ def _read_solution(sim_id):
         sim_id,
         _GEOM_FILE,
         _H5_PATH_SOLUTION,
-        run_dir=_SIM_DATA.compute_model('solver')
     )
     if not s:
         return None
