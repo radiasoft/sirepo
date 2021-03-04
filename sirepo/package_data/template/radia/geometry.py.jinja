@@ -43,7 +43,8 @@ def _add_object(o):
             m = PKDict(obj)
             if m.id not in id_map.values():
                 # have not added this yet
-                grp.append(_add_object(m))
+                m_id = _add_object(m)
+                grp.append(m_id)
             else:
                 for k, v in id_map.items():
                     if v == m.id:
@@ -53,7 +54,9 @@ def _add_object(o):
     for transform in o.transforms:
         radia_tk.apply_transform(g_id, PKDict(transform))
     id_map[g_id] = o.id
-    radia_objs.append(g_id)
+    # don't add objects if they are already in a group
+    if not o.groupId:
+        radia_objs.append(g_id)
     return g_id
 
 id_map = PKDict()
@@ -68,11 +71,11 @@ for obj in sirepo_objs:
     o = PKDict(obj)
     if o.model not in _MODELS or o.id in id_map.values():
         continue
-    g_id = _add_object(o)
-    id_map[g_id] = o.id
-    radia_objs.append(g_id)
+    o_id = _add_object(o)
+    id_map[o_id] = o.id
 # put all objects in a container for now
 g_id = radia_tk.build_container(radia_objs)
+#id_map[g_id] = '{{ geomId }}'
 {% endif %}
 
 

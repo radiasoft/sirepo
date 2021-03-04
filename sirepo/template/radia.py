@@ -148,20 +148,6 @@ def get_application_data(data, **kwargs):
     id_map = _read_id_map(sim_id)
     if data.method == 'get_field':
         f_type = data.get('fieldType')
-        if f_type in radia_tk.POINT_FIELD_TYPES:
-            #TODO(mvk): won't work for subsets of available paths, figure that out
-            pass
-            #try:
-            #    res = _read_data(sim_id, data.viewType, f_type)
-            #except KeyError:
-            #    res = None
-            #if res:
-            #    v = [d.vectors.vertices for d in res.data if _SCHEMA.constants.geomTypeVectors in d]
-            #    old_pts = [p for a in v for p in a]
-            #    new_pts = _build_field_points(data.fieldPaths)
-            #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
-            #        return res
-        #return _read_or_generate(g_id, data)
         res = _generate_field_data(
             g_id, data.name, f_type, data.get('fieldPaths', None)
         )
@@ -248,6 +234,7 @@ def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     data.models.geometry.name = new_simulation_data.name
+    data.models.geometry.id = str(uuid.uuid4())
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     beam_axis = new_simulation_data.beamAxis
@@ -267,11 +254,13 @@ def write_parameters(data, run_dir, is_parallel):
         # remove centrailzed geom files
         pkio.unchecked_remove(
             _geom_file(sim_id),
-            _get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
-            _dmp_file(sim_id)
+            #_get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
+            _get_res_file(sim_id, _GEOM_FILE),
+            #_dmp_file(sim_id)
         )
     if data.report == 'kickMap':
-        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
+        #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
+        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, False),
@@ -477,10 +466,12 @@ _FIELD_PT_BUILDERS = {
 
 def _dmp_file(sim_id):
     return _get_res_file(sim_id, _DMP_FILE)
+    #return _get_lib_file(sim_id, _DMP_FILE)
 
 
 def _fields_file(sim_id):
     return _get_res_file(sim_id, _FIELDS_FILE)
+    #return _get_lib_file(sim_id, _FIELDS_FILE)
 
 
 def _find_obj_by_name(obj_arr, obj_name):
@@ -585,6 +576,7 @@ def _generate_parameters_file(data, for_export):
             o.get('material', None) and o.material == 'custom' and \
             o.get('materialFile', None) and o.materialFile else None
     v.geomName = g.name
+    #v.geomId = g.id
     disp = data.models.magnetDisplay
     v_type = disp.viewType
 
@@ -599,7 +591,8 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else f'{rpt_out}.h5'
+    v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5')
+    #v.dataFile = _GEOM_FILE if for_export else f'{rpt_out}.h5'
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -612,6 +605,7 @@ def _generate_parameters_file(data, for_export):
     v.kickMap = data.models.get('kickMap', None)
     if 'solver' in report or for_export:
         v.doSolve = True
+        v.gId = _get_g_id(sim_id)
         s = data.models.solver
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
@@ -688,14 +682,18 @@ def _kick_map_plot(sim_id, model):
 
 def _read_h5_path(sim_id, run_dir, filename, h5path):
     try:
-        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
+        with h5py.File(_get_res_file(sim_id, filename), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
+        #with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
+        #    return template_common.h5_to_dict(hf, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
+            pkdc(f'{filename} not found in {run_dir}')
             # need to generate file
             return None
     except KeyError:
         # no such path in file
+        pkdc(f'path {h5path} not found in {run_dir}/{filename}')
         return None
     # propagate other errors
 
@@ -904,7 +902,6 @@ def _update_cuboid(b, center, size, segments, material, mat_file, magnetization,
     b.materialFile = mat_file
     b.size = ','.join([str(x) for x in size])
     b.division = ','.join([str(x) for x in segments])
-    b.doDivide = '1' if any([int(s) > 1 for s in segments]) else '0'
     return b
 
 

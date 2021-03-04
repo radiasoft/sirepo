@@ -274,6 +274,7 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     if len(numpy.shape(pv_arr)) == 2:
         pv_arr = [pv_arr]
     v_data = new_geom_object()
+    v_data.id = g_id
     v_data.vectors.lengths = []
     v_data.vectors.colors = []
     v_max = 0.

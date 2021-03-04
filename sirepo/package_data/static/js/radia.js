@@ -2343,7 +2343,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             // stash the actor and associated info to avoid recalculation
             function addActor(id, group, actor, geomType, pickable) {
-                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', type, 'pick', pickable);
+                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', geomType, 'pick', pickable);
                 var pData = actor.getMapper().getInputData();
                 var info = {
                     actor: actor,
@@ -2393,13 +2393,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
                     var radiaId = sceneDatum.id;
-                    var objId = (sceneData.idMap || {})[radiaId];
+                    var objId = (sceneData.idMap || {})[radiaId] || radiaId;
                     //srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
-                    for (var j = 0; j < radiaVtkUtils.GEOM_TYPES.length; ++j) {
-                        var t = radiaVtkUtils.GEOM_TYPES[j];
-                        //var id = gname + '.' + t;
+                    for (let t of radiaVtkUtils.GEOM_TYPES) {
                         var d = sceneDatum[t];
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             continue;
@@ -3103,7 +3101,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 radiaService.getRadiaData(
                     inData,
                     function(d) {
-                        srdbg('got app data', d);
+                        //srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
                             $scope.viz.simState.state ='completed';
                             $scope.viz.solution = d.solution;
