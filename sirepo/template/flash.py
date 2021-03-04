@@ -16,12 +16,11 @@ import glob
 import h5py
 import numpy as np
 import re
+import scipy.constants
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_GRID_EVOLUTION_FILE = 'flash.dat'
-_PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 _DEFAULT_VALUES = {
     'RTFlame': {
         'Driver': {
@@ -59,6 +58,11 @@ _DEFAULT_VALUES = {
         'IO': {
             'plot_var_1': 'dens',
             'plotFileIntervalTime': 0.01,
+        },
+        'oneDimensionProfileAnimation': {
+            'axis': 'x',
+            'selectedPlotFileBasenames': [],
+            'var': 'dens'
         },
         'physicsGravityConstant': {
             'gconst': -1900000000,
@@ -419,6 +423,11 @@ _DEFAULT_VALUES = {
             'ms_wallA': 26.9815386,
             'ms_wallZ': 13.0,
             'ms_wallZMin': 0.001,
+        },
+        'oneDimensionProfileAnimation': {
+            'axis': 'r',
+            'selectedPlotFileBasenames': [],
+            'var': 'magz'
         },
         'physicsDiffuse': {
             'diff_useEleCond': '1',
@@ -849,6 +858,11 @@ _DEFAULT_VALUES = {
             'ms_wallZ': 10,
             'ms_wallZMin': 0.001
         },
+        'oneDimensionProfileAnimation': {
+            'axis': 'x',
+            'selectedPlotFileBasenames': [],
+            'var': 'magz'
+        },
         'physicsDiffuse': {
             'diff_eleFlCoef': 0.06,
             'diff_eleFlMode': 'fl_larsen',
@@ -1243,6 +1257,34 @@ _DEFAULT_VALUES = {
     },
 }
 
+_GRID_EVOLUTION_FILE = 'flash.dat'
+
+_LINEOUTS_SAMPLING_SIZE = 256
+
+_PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
+
+# TODO(e-carlin): When katex for labels is implemented
+# https://git.radiasoft.org/sirepo/issues/3384
+# dens='$\frac{\mathrm{g}}{\mathrm{cm}^3}$'
+# magz='B$_{\phi}$ [T]'
+_PLOT_VARIABLE_LABELS = PKDict(
+    dens='g/cm^3',
+    depo='cm/s',
+    fill='',
+    flam='cms/s',
+    kapa='',
+    length='cm',
+    magz='Bphi T',
+    sumy='',
+    tele='K',
+    time='s',
+    tion='K',
+    trad='K',
+    velx='cm/s',
+    wall='',
+    ye='',
+)
+
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
     count = len(files)
@@ -1255,6 +1297,7 @@ def background_percent_complete(report, run_dir, is_running):
     c = _grid_evolution_columns(run_dir)
     if c:
         res.gridEvolutionColumns = [x for x in c if x[0] != '#']
+    res.plotFileBasenames = [x.basename for x in files]
     return res
 
 def generate_config_file(run_dir, data):
@@ -1288,12 +1331,6 @@ def new_simulation(data, new_simulation_data):
         if isinstance(data.models[name], list):
             f = 'extend'
         getattr(data.models[name], f)(_DEFAULT_VALUES[flash_type][name])
-
-
-def remove_last_frame(run_dir):
-    files = _h5_file_list(run_dir)
-    if len(files) > 0:
-        pkio.unchecked_remove(files[-1])
 
 
 def setup_command(data):
@@ -1352,10 +1389,59 @@ def sim_frame_gridEvolutionAnimation(frame_args):
     }
 
 
+def sim_frame_oneDimensionProfileAnimation(frame_args):
+    import yt
+    import rsflash.plotting.extracts
+    # TODO(e-carlin): centralize somewhere
+    yt.funcs.mylog.setLevel(50)
+
+    def _interpolate_max(files):
+        m = -1
+        for f in files:
+            d = yt.load(f)
+            m = max(d.domain_width[0] + d.index.grid_left_edge[0][0], m)
+        return m
+
+
+    def _files():
+        if frame_args.selectedPlotFileBasenames:
+            return [str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFileBasenames.split(',')]
+        return [str(_h5_file_list(frame_args.run_dir)[-1])]
+
+    plots = []
+    x_points = []
+    f = _files()
+    xs, ys, times = rsflash.plotting.extracts.get_lineouts(
+        f,
+        frame_args.var,
+        frame_args.axis,
+        _LINEOUTS_SAMPLING_SIZE,
+        interpolate_max=_interpolate_max(f),
+    )
+    for i, _ in enumerate(ys):
+        x = xs[i]
+        y = ys[i]
+        plots.append(PKDict(
+            name=i,
+            label='{:.1f} {}'.format(times[i], _PLOT_VARIABLE_LABELS.time),
+            points=y.tolist(),
+            x_points=x.tolist(),
+        ))
+        x_points.append(x.tolist())
+    return PKDict(
+        plots=plots,
+        title=frame_args.var,
+        x_label=_PLOT_VARIABLE_LABELS.length,
+        x_points = x_points,
+        x_range=[np.amin(x_points), np.amax(x_points)],
+        y_label=_PLOT_VARIABLE_LABELS[frame_args.var],
+        y_range=template_common.compute_plot_color_and_range(plots),
+    )
+
+
 def sim_frame_varAnimation(frame_args):
     field = frame_args['var']
-    filename = _h5_file_list(frame_args.run_dir)[frame_args.frameIndex]
-    with h5py.File(filename) as f:
+    with h5py.File(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex])) as f:
         params = _parameters(f)
         node_type = f['node type']
         bounding_box = f['bounding box']
@@ -1525,7 +1611,7 @@ def _has_species_selection(flash_type):
 
 
 def _h5_file_list(run_dir):
-    return sorted(glob.glob(str(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))))
+    return pkio.sorted_glob(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))
 
 
 def _parameters(f):

@@ -3,6 +3,12 @@
         "canDownloadInputFile": false
     },
     "enum": {
+        "Axis": [
+            ["r", "r"],
+            ["z", "z"],
+            ["x", "x"],
+            ["y", "y"]
+        ],
         "DiffuseBoundaryType": [
             ["dirichlet", "dirichlet"],
             ["neumann", "neumann"],
@@ -1020,6 +1026,7 @@
     },
     "frameIdFields": {
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
+        "oneDimensionProfileAnimation": ["axis", "selectedPlotFileBasenames", "var"],
         "varAnimation": ["var"]
     },
     "localRoutes": {
@@ -1906,6 +1913,11 @@
             "vel_pert_wavelength1": ["vel_pert_wavelength1", "Float", 1.0]
         },
         "simulationStatus": {},
+        "oneDimensionProfileAnimation": {
+            "axis": ["Axis", "Axis", "r"],
+            "selectedPlotFileBasenames": ["Plot Files", "PlotFileArray", []],
+            "var": ["Variable", "VariableName", "magz"]
+        },
         "varAnimation": {
             "var": ["Variable Name", "VariableName", "dens"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
@@ -1990,6 +2002,14 @@
                 "y2",
                 "y3",
                 "notes"
+            ]
+        },
+        "oneDimensionProfileAnimation": {
+            "title": "1D Profile",
+            "advanced": [
+                "axis",
+                "var",
+                "selectedPlotFileBasenames"
             ]
         },
         "physicsDiffuse": {

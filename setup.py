@@ -31,6 +31,7 @@ pykern.pksetup.setup(
         'user-agents',
         'uwsgi',
         'werkzeug',
+        'yt',
     ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     name='sirepo',

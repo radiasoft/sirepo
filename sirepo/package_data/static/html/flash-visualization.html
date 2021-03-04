@@ -14,14 +14,19 @@
         <div data-sim-status-panel="visualization.simState"></div>
       </div>
     </div>
-    <div class="col-md-6" data-ng-if="visualization.flashService.isCapLaser() && visualization.simState.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
-    </div>
-    <div class="col-md-6 col-xl-4" data-ng-if="visualization.flashService.isFlashType('RTFlame') && visualization.simState.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
-    </div>
-    <div ng-attr-class="{{ visualization.plotClass }}" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="heatmap" data-model-name="varAnimation"></div>
+    <div data-ng-if="visualization.simState.hasFrames()">
+      <div class="col-md-6" data-ng-if="visualization.flashService.isCapLaser()">
+        <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
+      </div>
+      <div class="col-md-6 col-xl-4" data-ng-if="visualization.flashService.isFlashType('RTFlame')">
+        <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
+      </div>
+      <div class="col-md-6">
+        <div data-report-panel="parameter" data-model-name="oneDimensionProfileAnimation"></div>
+      </div>
+      <div ng-attr-class="{{ visualization.plotClass }}">
+        <div data-report-panel="heatmap" data-model-name="varAnimation"></div>
+      </div>
     </div>
   </div>
 </div>
