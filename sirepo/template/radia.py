@@ -222,6 +222,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
             pkio.py_path(f'{run_dir}/{_KICK_FILE}')
         )
         km_dict = _read_kick_map(sim_id)
+        print(f'BQQQ km dixt {km_dict}')
         f = f'{model}.{sfx}'
         if sfx == 'sdds':
             _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
@@ -244,7 +245,7 @@ def new_simulation(data, new_simulation_data):
         _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
 
 
-def python_source_for_model(data):
+def python_source_for_model(data, model):
     return _generate_parameters_file(data, True)
 
 
@@ -259,8 +260,8 @@ def write_parameters(data, run_dir, is_parallel):
             #_dmp_file(sim_id)
         )
     if data.report == 'kickMap':
-        #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
-        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
+        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
+        #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, False),
@@ -591,7 +592,7 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5')
+    v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
     #v.dataFile = _GEOM_FILE if for_export else f'{rpt_out}.h5'
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
@@ -603,6 +604,9 @@ def _generate_parameters_file(data, for_export):
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
     v.kickMap = data.models.get('kickMap', None)
+    #if v.kickMap:
+    #    v.kickMap.direction = _BEAM_AXIS_VECTORS[v.kickMap.beamAxis]
+    #    v.kickMap.transverseDirection = _BEAM_AXIS_VECTORS[v.kickMap.gapAxis]
     if 'solver' in report or for_export:
         v.doSolve = True
         v.gId = _get_g_id(sim_id)
@@ -680,9 +684,9 @@ def _kick_map_plot(sim_id, model):
     )
 
 
-def _read_h5_path(sim_id, run_dir, filename, h5path):
+def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
-        with h5py.File(_get_res_file(sim_id, filename), 'r') as hf:
+        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
         #with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
         #    return template_common.h5_to_dict(hf, path=h5path)
@@ -711,7 +715,7 @@ def _read_h_m_file(file_name):
 
 
 def _read_data(sim_id, view_type, field_type):
-    res = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _geom_h5_path(view_type, field_type))
+    res = _read_h5_path(sim_id, _GEOM_FILE, _geom_h5_path(view_type, field_type))
     if res:
         res.idMap = _read_id_map(sim_id)
         res.solution = _read_solution(sim_id)
@@ -719,11 +723,11 @@ def _read_data(sim_id, view_type, field_type):
 
 
 def _read_id_map(sim_id):
-    return _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, 'idMap')
+    return _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
 
 
 def _read_kick_map(sim_id):
-    return _read_h5_path(sim_id, 'kickMap', _KICK_FILE, _H5_PATH_KICK_MAP)
+    return _read_h5_path(sim_id, _KICK_FILE, _H5_PATH_KICK_MAP, run_dir='kickMap')
 
 
 def _read_or_generate(g_id, data):
@@ -751,9 +755,9 @@ def _read_or_generate_kick_map(g_id, data):
 def _read_solution(sim_id):
     s = _read_h5_path(
         sim_id,
-        _SIM_DATA.compute_model('solver'),
         _GEOM_FILE,
-        _H5_PATH_SOLUTION
+        _H5_PATH_SOLUTION,
+        run_dir=_SIM_DATA.compute_model('solver')
     )
     if not s:
         return None

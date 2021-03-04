@@ -997,6 +997,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
             ) {
                 appState.models.geometry.lastModified = Date.now();
+                appState.models.kickMap.periodLength = appState.models.hybridUndulator.periodLength;
+                appState.saveQuietly('kickMap');
             }
             let o = self.selectedObject;
             if (o) {

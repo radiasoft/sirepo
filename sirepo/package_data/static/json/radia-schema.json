@@ -372,18 +372,20 @@
             "name": ["Name", "String", "Invert Field"]
         },
         "kickMap": {
+            "beamAxis": ["_", "BeamAxis", "z", ""],
             "begin": ["Start", "FloatStringArray", "0, 0, 0", "Start point", "x, y, z"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
-            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Longitudinal direction", "x, y, z"],
+            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Beam direction", "x, y, z"],
+            "gapAxis": ["_", "BeamAxis", "z", ""],
             "inProgressText": ["_", "String", "Calculating"],
-            "numPeriods": ["Number of Periods Along Path ", "Integer", 1],
-            "numTransPoints1": ["Number of Points Transverse to Path", "Integer", 10, "", 2],
-            "numTransPoints2": ["Num Points transverse to path", "Integer", 10, "", 2],
-            "periodLength": ["Period (mmm)", "Float", 1.0],
-            "transverseDirection": ["Transverse Direction", "FloatStringArray", "0, 1, 0", "Any transverse direction", "x, y, z"],
-            "transverseRange1": ["Range in Transverse Direction (mm)", "Float", 1.0, ""],
-            "transverseRange2": ["Range in Other Transverse Direction (mm)", "Float", 1.0]
+            "numPeriods": ["Number of Periods", "Integer", 1],
+            "numTransPoints1": ["Number of Points in Gap Direction", "Integer", 10, "", 2],
+            "numTransPoints2": ["Number of Points in Transverse Direction", "Integer", 10, "", 2],
+            "periodLength": ["Period Length [mm]", "Float", 1.0],
+            "transverseDirection": ["Gap Direction", "FloatStringArray", "0, 1, 0", "Gap direction", "x, y, z"],
+            "transverseRange1": ["Range in Gap Direction [mm]", "Float", 1.0, ""],
+            "transverseRange2": ["Range in Transverse Direction [mm]", "Float", 1.0]
         },
         "layoutObject": {
             "color": ["Color", "Color", "#cccccc"],

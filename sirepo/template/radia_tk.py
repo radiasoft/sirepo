@@ -35,7 +35,6 @@ _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
 
 
-# TrfMlt() may have problems when solving, try a loop
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'
