@@ -84,7 +84,7 @@
             "enabledFields": {},
             "fields": [],
             "initialSteps": 500,
-            "objective": "efficiency",
+            "objective": "transparency",
             "optimizerSteps": 250,
             "timeLimit": 60,
             "tolerance": 0.001
