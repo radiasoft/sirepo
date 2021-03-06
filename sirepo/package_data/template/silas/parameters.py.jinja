@@ -43,7 +43,7 @@ def rmsWavefrontIntensity(wfr):
 def wavefront_to_hdf5(wfr, count, pos):
     assert wfr.mesh.ne == 1
     ar2d, (sx, sy, xavg, yavg) = rmsWavefrontIntensity(wfr)
-    with open('wavefront.csv', 'a' if pos else 'w') as f:
+    with open('{{ summaryCSV }}', 'a' if pos else 'w') as f:
         if pos == 0:
             f.write('count,pos,sx,sy,xavg,yavg\n')
         f.write(f'{count},{pos},{sx},{sy},{xavg},{yavg}\n')
@@ -81,7 +81,7 @@ dfL = {{ leftMirrorFocusingError }}
 dfR = {{ rightMirrorFocusingError }}
 
 #Crystal parameters
-L_cryst = {{ crystal_width }}
+L_cryst = {{ crystal_width }} * 1e-2
 n0 = {{ crystal_refractionIndex }}
 n2 = {{ crystal_radius }}
 

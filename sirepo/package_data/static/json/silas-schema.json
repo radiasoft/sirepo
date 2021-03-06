@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "beamline"
+            "localRoute": "laser-cavity"
         }
     },
     "enum": {
@@ -32,25 +32,50 @@
         }
     },
     "localRoutes": {
-        "beamline": {
-            "route": "/beamline/:simulationId",
+        "laser-cavity": {
+            "route": "/laser-cavity/:simulationId",
             "config": {
                 "controller": "BeamlineController as beamline",
                 "templateUrl": "/static/html/silas-beamline.html"
+            }
+        },
+        "crystal": {
+            "route": "/crystal/:simulationId",
+            "config": {
+                "controller": "CrystalController as crystal",
+                "templateUrl": "/static/html/silas-crystal.html"
             }
         }
     },
     "frameIdFields": {
         "animation": ["id"],
-        "wavefrontSummaryAnimation": ["element"]
+        "crystalAnimation": [],
+        "wavefrontSummaryAnimation": ["element"],
+        "plotAnimation": [],
+        "plot2Animation": []
     },
     "model": {
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Central Position [m]", "Float"],
             "radius": ["Radial Variation", "Float", 0.02, "Radial variation of index of refraction"],
-            "width": ["Width [m]", "Float", 4.0],
+            "width": ["Crystal Width [cm]", "Float", 4.0],
             "refractionIndex": ["Index of Refraction", "Float", 2.0, "Index of refraction along the optical axis", 1e-24]
+        },
+        "crystalAnimation": {},
+        "crystalSettings": {
+            "meshDensity": ["Mesh Density", "Integer", 25, "", 10, 1000],
+            "time": ["Simulation Time [sec]", "Float", 5, "", 1e-24],
+            "steps": ["Number of Time Steps", "Integer", 50, "", 1],
+            "plotInterval": ["Number of Intervals Between Records", "Integer", 10, "", 1]
+        },
+        "crystalCylinder": {
+            "diameter": ["Crystal Diameter [cm]", "Float", 7, "", 1e-24],
+            "crystalWidth": ["Crystal Width [cm]", "Float", 4, "Crystal Width is editable on the Laser Cavity tab"],
+            "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
+            "amplitude": ["A [$\\bf \\degree C$]", "Float", 72, "Peak Temperature"],
+            "radialDecay": ["rho $\\rho$ [cm]", "Float", 0.35, "Radial Decay Length"],
+            "longitudinalDecay": ["zeta $\\zeta$ [cm]", "Float", 0.25, "Longitudinal Decay Length"]
         },
         "gaussianBeam": {
             "energyPerPulse": ["Energy per Pulse [J]", "Float", 0.001],
@@ -64,6 +89,8 @@
             "position": ["Central Position [m]", "Float"],
             "focusingError": ["Focusing Error [m]", "Float", 0]
         },
+        "plotAnimation": {},
+        "plot2Animation": {},
         "simulationSettings": {
             "n_reflections": ["Number of Reflections", "Integer", 15, "", 1, 10000],
             "cavity_length": ["Cavity Distance [m]", "Float", 10.0, "", 1e-6],
@@ -88,6 +115,33 @@
                 "radius"
             ]
         },
+        "crystalAnimation": {
+            "title": "Crystal Animation",
+            "advanced": []
+        },
+        "crystalSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "meshDensity",
+                "time",
+                "steps",
+                "plotInterval"
+            ],
+            "advanced": []
+        },
+        "crystalCylinder": {
+            "title": "Ti:Sapphire Crystal Cylinder",
+            "basic": [
+                "diameter",
+                "crystalWidth",
+                "diffusionConstant",
+                "amplitude",
+                "radialDecay",
+                "longitudinalDecay",
+                "*Expression:\n$f = A \\exp\\bigl( -(r/\\rho)^2 - (z/\\zeta)^2 \\bigr)$"
+            ],
+            "advanced": []
+        },
         "mirror": {
             "title": "Mirror",
             "basic": [],
@@ -96,6 +150,14 @@
                 "position",
                 "focusingError"
             ]
+        },
+        "plotAnimation": {
+            "title": "Heat Decay Profile",
+            "advanced": []
+        },
+        "plot2Animation": {
+            "title": "Heat Decay Profile",
+            "advanced": []
         },
         "simulationSettings": {
             "title": "Simulation Settings",

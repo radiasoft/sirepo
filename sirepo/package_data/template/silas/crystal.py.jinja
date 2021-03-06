@@ -1,0 +1,140 @@
+#!/usr/bin/env python
+import dolfin
+import fenics
+import mshr
+import numpy as np
+
+#---
+
+## set up the problem and define (some of) the main parameters
+
+# simulation parameters
+# -- crystal properties
+# cm^2/s diffusion constant of sapphire
+a_saph = {{ crystalCylinder_diffusionConstant }}
+# -- time step
+T = {{ crystalSettings_time }}
+n_steps = {{ crystalSettings_steps }}
+dt = T / n_steps  # size of time step
+nip = {{ crystalSettings_plotInterval }} # number of intervals between records
+# -- crystal dimensions
+diam = {{ crystalCylinder_diameter }}
+leng = {{ crystalCylinder_crystalWidth }}
+# --  mesh density within cylinder
+md = {{ crystalSettings_meshDensity }}
+
+# derived parameters
+radius = diam / 2  # radius
+lh  = leng / 2  # half-length
+
+print("duration:  ", T)
+print("time-step: ", dt)
+print("plot-step: ", dt * nip)
+
+
+#---
+
+domain = mshr.Cylinder(fenics.Point(0, 0, lh), fenics.Point(0., 0., -lh), radius, radius)
+mesh = mshr.generate_mesh(domain, md)
+# and define function space
+V = fenics.FunctionSpace(mesh, 'P', 1)
+
+#---
+
+# define boundary condition
+def boundary(x, on_boundary):
+    return on_boundary
+
+bc = fenics.DirichletBC(V, fenics.Constant(0.), boundary)
+
+# define initial value
+# amplitude
+A = {{ crystalCylinder_amplitude }}
+# radial decay length
+rho =  {{ crystalCylinder_radialDecay }}
+# longitudinal decay length
+zeta = {{ crystalCylinder_longitudinalDecay }}
+u_0 = fenics.Expression(
+    'A * exp( -(pow(x[0],2) + pow(x[1],2)) / pow(rho,2) - pow(x[2]/zeta,2) )',
+    degree=1, A=A, rho=rho, zeta=zeta)
+u_n = fenics.interpolate(u_0, V)
+
+# define the variational problem: u' = D.∆u
+u = fenics.TrialFunction(V)
+v = fenics.TestFunction(V)
+f = fenics.Constant(0)
+F = u*v*fenics.dx + dt*a_saph*fenics.dot(fenics.grad(u), fenics.grad(v))*fenics.dx - (u_n + dt*f)*v*fenics.dx
+a, L = fenics.lhs(F), fenics.rhs(F)
+
+#---
+
+# define time-evolution function
+def evolve():
+
+    # report initial state
+    t = 0
+    yield t, u_n
+
+    # time-stepping
+    u = fenics.Function(V)
+    for n in range(1, n_steps + 1):
+        # update current time
+        t += dt
+
+        # compute solution
+        fenics.solve(a == L, u, bc)
+
+        # report solution at nip-step intervals
+        if n % nip == 0:
+            yield t, u
+
+        # update previous solution
+        u_n.assign(u)
+
+#---
+
+# for 3D plots, get the facets, and build an array
+# containing the indices of their coordinates
+inds = []
+for item in dolfin.cpp.mesh.facets(mesh):
+    inds.append(item.entities(0).tolist())
+
+# we will provide these indices to plotly so it can draw proper surfaces
+inds = np.array(inds)
+ii = inds[:, 0]
+jj = inds[:, 1]
+kk = inds[:, 2]
+
+# get node coördinate values and ranges
+xvals = mesh.coordinates()[:,0]
+yvals = mesh.coordinates()[:,1]
+zvals = mesh.coordinates()[:,2]
+xmin, xmax = xvals.min(), xvals.max()
+ymin, ymax = yvals.min(), yvals.max()
+zmin, zmax = zvals.min(), zvals.max()
+
+#---
+
+def write_row(name, time, values, mode='a'):
+    with open('{{ crystalCSV }}', mode) as f:
+        f.write('{},{},{}\n'.format(name, time, ','.join([str(x) for x in values])))
+
+tol = 9.e-3  # avoid points outside domain (for a coarse mesh, increase this value)
+xv = np.linspace(xmin * (1 - tol), xmax * (1 - tol), 1000)
+zv = np.linspace(zmin * (1 - tol), zmax * (1 - tol), 1000)
+radpts = [(x_, 0, 0) for x_ in xv]
+axipts = [(0, 0, z_) for z_ in zv]
+
+write_row('xv', 0, xv, 'w')
+write_row('zv', 0, zv)
+
+idx = 0
+for t, u in evolve():
+    idx += 1
+    ux = np.array([u(pt) for pt in radpts])
+    uz = np.array([u(pt) for pt in axipts])
+    # fig1.plot(xv, ux, lw=1)
+    # fig2.plot(zv, uz, lw=1)
+    #res.append([ux, uz])
+    write_row('ux', t, ux)
+    write_row('uz', t, uz)
