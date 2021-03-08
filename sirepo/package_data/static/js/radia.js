@@ -130,10 +130,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.getObject = function(id) {
-        var objs = appState.models.geometry.objects || [];
-        for (var i in objs) {
-            if (objs[i].id == id) {
-                return objs[i];
+        let objs = appState.models.geometry.objects || [];
+        for (let o of objs) {
+            if (o.id == id) {
+                return o;
             }
         }
         return null;
@@ -2447,7 +2447,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        //var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         let info = addActor(objId, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
                         if (isPoly && $.isEmptyObject(gObj)) {
@@ -2599,16 +2598,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return null;
                 }
                 return s.getData().slice(inds[0], inds[0] + 3);
-            }
-
-            function getGeomObj(id) {
-                var gObjs = appState.models.geometry.objects || [];
-                for (var i = 0; i < gObjs.length; ++i) {
-                    if (gObjs[i].id === id) {
-                        return gObjs[i];
-                    }
-                }
-                return null;
             }
 
             function getInfoForActor(actor) {
@@ -2831,7 +2820,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
                    //srdbg(info.name, 'poly tup', cid, selectedColor);
 
-                    var g = getGeomObj(info.id);
+                    let g = radiaService.getObject(info.id);
                     //srdbg(info.id, 'selected', g);
                     if (selectedObj === g) {
                         selectedObj = null;

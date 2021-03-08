@@ -740,7 +740,9 @@ def _read_data(sim_id, view_type, field_type):
 
 
 def _read_id_map(sim_id):
-    return _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
+    return PKDict(
+        {k:v.decode('ascii') for k, v in _read_h5_path(sim_id, _GEOM_FILE, 'idMap').items()}
+    )
 
 
 def _read_kick_map(sim_id):
