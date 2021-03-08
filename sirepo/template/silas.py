@@ -21,6 +21,7 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+_CRYSTAL_CSV_FILE = 'crystal.csv'
 _SUMMARY_CSV_FILE = 'wavefront.csv'
 
 
@@ -30,13 +31,27 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=0,
         frameCount=0,
     )
-    line = template_common.read_last_csv_line(run_dir.join(_SUMMARY_CSV_FILE))
-    m = re.search(r'^(\d+)', line)
-    if m and int(m.group(1)) > 0:
-        res.frameCount = int((int(m.group(1)) + 1) / 2)
-        res.wavefrontsFrameCount = _counts_for_beamline(res.frameCount, data.models.beamline)[0]
-        total_count = _total_frame_count(data)
-        res.percentComplete = res.frameCount * 100 / total_count
+    if report == 'animation':
+        line = template_common.read_last_csv_line(run_dir.join(_SUMMARY_CSV_FILE))
+        m = re.search(r'^(\d+)', line)
+        if m and int(m.group(1)) > 0:
+            res.frameCount = int((int(m.group(1)) + 1) / 2)
+            res.wavefrontsFrameCount = _counts_for_beamline(res.frameCount, data.models.beamline)[0]
+            total_count = _total_frame_count(data)
+            res.percentComplete = res.frameCount * 100 / total_count
+        return res
+    assert report == 'crystalAnimation'
+    count = 0
+    path = run_dir.join(_CRYSTAL_CSV_FILE)
+    if path.exists():
+        with pkio.open_text(str(path)) as f:
+            for line in f:
+                count += 1
+        # first two lines are axis points
+        if count > 2:
+            plot_count = int((count - 2) / 2)
+            res.frameCount = plot_count
+            res.percentComplete = plot_count * 100 / (data.models.crystalSettings.steps / data.models.crystalSettings.plotInterval)
     return res
 
 
@@ -46,6 +61,10 @@ def get_application_data(data, **kwargs):
 
 
 def python_source_for_model(data, model):
+    if model in ('plotAnimation', 'plot2Animation'):
+        data.report = 'crystalAnimation'
+    else:
+        data.report = 'animation'
     return _generate_parameters_file(data)
 
 
@@ -74,7 +93,16 @@ def sim_frame(frame_args):
             y_range=[wfr.attrs['yStart'], wfr.attrs['yFin'], len(points)],
             y_label='Vertical Position [m]',
             z_matrix=points.tolist(),
+            summaryData=_summary_data(frame_args),
         )
+
+
+def sim_frame_plotAnimation(frame_args):
+    return _crystal_plot(frame_args, 'xv', 'ux', '[m]', 1e-2)
+
+
+def sim_frame_plot2Animation(frame_args):
+    return _crystal_plot(frame_args, 'zv', 'uz', '[rad]', 1)
 
 
 def sim_frame_wavefrontSummaryAnimation(frame_args):
@@ -117,6 +145,7 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
         x_points=x,
         plots=plots,
         y_range=template_common.compute_plot_color_and_range(plots),
+        summaryData=_summary_data(frame_args),
     )
 
 
@@ -130,7 +159,7 @@ def write_parameters(data, run_dir, is_parallel):
 def _compute_rms_size(data):
     wavefrontEnergy = data.gaussianBeam.photonEnergy
     n0 = data.crystal.refractionIndex
-    L_cryst = data.crystal.width
+    L_cryst = data.crystal.width * 1e-2
     dfL = data.mirror.focusingError
     L_cav = data.simulationSettings.cavity_length
     L_eff = L_cav + (1 / n0 - 1) * L_cryst
@@ -158,17 +187,62 @@ def _counts_for_beamline(total_frames, beamline):
     return counts, frames
 
 
+def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
+    x = None
+    plots = []
+    with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
+        for r in csv.reader(f):
+            if x is None and r[0] == x_column:
+                r.pop(0)
+                r.pop(0)
+                x = [float(v) * scale for v in r]
+            elif r[0] == y_column:
+                r.pop(0)
+                t = r.pop(0)
+                plots.append(PKDict(
+                    points=[float(v) for v in r],
+                    label='{:.3f} seconds [degrees C]'.format(float(t)),
+                ))
+    return PKDict(
+        title='',
+        x_range=[min(x), max(x)],
+        y_label='',
+        x_label=x_heading,
+        x_points=x,
+        plots=plots,
+        y_range=template_common.compute_plot_color_and_range(plots),
+        summaryData=_summary_data(frame_args),
+    )
+
+
 def _format_float(v):
     return float('{:.4f}'.format(v))
 
 
 def _generate_parameters_file(data):
-    beamline = data.models.beamline
-    data.models.crystal = beamline[1]
-    res, v = template_common.generate_parameters_file(data)
-    v.leftMirrorFocusingError = beamline[0].focusingError
-    v.rightMirrorFocusingError = beamline[-1].focusingError
-    return res + template_common.render_jinja(SIM_TYPE, v)
+    if data.report == 'animation':
+        beamline = data.models.beamline
+        data.models.crystal = _get_crystal(data)
+        res, v = template_common.generate_parameters_file(data)
+        v.leftMirrorFocusingError = beamline[0].focusingError
+        v.rightMirrorFocusingError = beamline[-1].focusingError
+        v.summaryCSV = _SUMMARY_CSV_FILE
+        return res + template_common.render_jinja(SIM_TYPE, v)
+    if data.report == 'crystalAnimation':
+        res, v = template_common.generate_parameters_file(data)
+        v.crystalCSV = _CRYSTAL_CSV_FILE
+        return res + template_common.render_jinja(SIM_TYPE, v, 'crystal.py')
+    assert False, 'invalid param report: {}'.format(data.report)
+
+
+def _get_crystal(data):
+    return data.models.beamline[1]
+
+
+def _summary_data(frame_args):
+    return PKDict(
+        crystalWidth=frame_args.sim_in.models.beamline[1].width,
+    )
 
 
 def _total_frame_count(data):
