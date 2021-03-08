@@ -1152,9 +1152,14 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
                 $('#simulation-import').modal('show');
             };
             $scope.isImported = function() {
-                return (appState.models.simulation || {}).isExample ||
+                return ((appState.models.simulation || {}).isExample && isRawExample($scope.nav.simulationName())) ||
                     (appState.models.simulation || {}).dmpImportFile;
             };
+
+            // "raw" examples are from radia_examples.py - a temporary repository
+            function isRawExample(name) {
+                return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) > 0;
+            }
         }
     };
 });

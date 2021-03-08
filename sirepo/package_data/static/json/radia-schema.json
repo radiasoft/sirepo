@@ -6,6 +6,20 @@
     },
     "constants": {
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
+        "dataDownloads": {
+            "_default": [
+                {
+                    "title": "Save as SDDS",
+                    "suffix": ""
+                }
+            ],
+            "kickMap": [
+                {
+                    "title": "Save as Text",
+                    "suffix": "txt"
+                }
+            ]
+        },
         "detailFields": {
             "fieldPath": {
                 "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
@@ -45,20 +59,7 @@
         },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
-        "dataDownloads": {
-            "_default": [
-                {
-                    "title": "Save as SDDS",
-                    "suffix": ""
-                }
-            ],
-            "kickMap": [
-                {
-                    "title": "Save as Text",
-                    "suffix": "txt"
-                }
-            ]
-        },
+        "rawExamples": ["Dipole", "Wiggler"],
         "toolbarItems": [
             {
                 "canDrag": true,

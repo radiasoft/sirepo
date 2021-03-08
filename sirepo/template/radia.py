@@ -582,7 +582,8 @@ def _generate_parameters_file(data, for_export):
             simulation_db.simulation_lib_dir(SIM_TYPE).join(
                 f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
             )
-    v.isExample = data.models.simulation.get('isExample', False)
+    v.isExample = data.models.simulation.get('isExample', False) and \
+        data.models.simulation.name in radia_examples.EXAMPLES
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)

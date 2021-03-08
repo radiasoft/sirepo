@@ -347,6 +347,5 @@ def wiggler_example():
 EXAMPLES = {
     'Dipole': dipole_example,
     'Wiggler': wiggler_example,
-    'Undulator': undulator_example
 }
 
