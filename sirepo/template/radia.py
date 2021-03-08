@@ -222,7 +222,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
             pkio.py_path(f'{run_dir}/{_KICK_FILE}')
         )
         km_dict = _read_kick_map(sim_id)
-        print(f'BQQQ km dixt {km_dict}')
         f = f'{model}.{sfx}'
         if sfx == 'sdds':
             _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
@@ -239,8 +238,13 @@ def new_simulation(data, new_simulation_data):
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
     beam_axis = new_simulation_data.beamAxis
+    #TODO(mvk): dict of magnet types to builder methods
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
         _build_undulator(data.models.geometry, beam_axis)
+        data.models.fieldPaths.paths.append(_build_field_axis(
+            (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
+            beam_axis
+        ))
         data.models.simulation.enableKickMaps = '1'
         _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
 
@@ -412,15 +416,15 @@ def _build_group(members, name=None):
 
 def _build_symm_xform(plane, point, type):
     tx = _build_geom_obj('symmetryTransform')
-    tx.symmetryPlane = ','.join([str(x) for x in plane])
-    tx.symmetryPoint = ','.join([str(x) for x in point])
+    tx.symmetryPlane = sirepo.util.to_comma_delimited_string(plane)
+    tx.symmetryPoint = sirepo.util.to_comma_delimited_string(point)
     tx.symmetryType = type
     return tx
 
 
 def _build_translate_clone(dist):
     tx = _build_geom_obj('translateClone')
-    tx.distance = ','.join([str(x) for x in dist])
+    tx.distance = sirepo.util.to_comma_delimited_string(dist)
     return tx
 
 
@@ -446,6 +450,19 @@ def _build_undulator(geom, beam_axis):
         _build_geom_obj('hybridUndulator', obj_name=geom.name),
         beam_axis
     )
+
+
+def _build_field_axis(length, beam_axis):
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    f = PKDict(
+        begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
+        end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
+        id=str(uuid.uuid4()),
+        name=f'{beam_axis} axis',
+        numPoints=round(length / 2) + 1
+    )
+    _SIM_DATA.update_model_defaults(f, 'linePath')
+    return f
 
 
 # deep copy of an object, but with a new id
@@ -577,7 +594,6 @@ def _generate_parameters_file(data, for_export):
             o.get('material', None) and o.material == 'custom' and \
             o.get('materialFile', None) and o.materialFile else None
     v.geomName = g.name
-    #v.geomId = g.id
     disp = data.models.magnetDisplay
     v_type = disp.viewType
 
@@ -897,14 +913,14 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
 
 
 def _update_cuboid(b, center, size, segments, material, mat_file, magnetization, rem_mag, color):
-    b.center = ','.join([str(x) for x in center])
+    b.center = sirepo.util.to_comma_delimited_string(center)
     b.color = color
-    b.magnetization = ','.join([str(x) for x in magnetization])
+    b.magnetization = sirepo.util.to_comma_delimited_string(magnetization)
     b.remanentMag = rem_mag
     b.material = material
     b.materialFile = mat_file
-    b.size = ','.join([str(x) for x in size])
-    b.division = ','.join([str(x) for x in segments])
+    b.size = sirepo.util.to_comma_delimited_string(size)
+    b.division = sirepo.util.to_comma_delimited_string(segments)
     return b
 
 
@@ -1044,9 +1060,10 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = ','.join([str(x) for x in _BEAM_AXIS_VECTORS[beam_axis]])
-    km.transverseDirection = ','.join(
-        [str(x) for x in _BEAM_AXIS_VECTORS[_GAP_AXIS_MAP[beam_axis]]])
+    km.direction = sirepo.util.to_comma_delimited_string(_BEAM_AXIS_VECTORS[beam_axis])
+    km.transverseDirection = sirepo.util.to_comma_delimited_string(
+        _BEAM_AXIS_VECTORS[_GAP_AXIS_MAP[beam_axis]]
+    )
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
