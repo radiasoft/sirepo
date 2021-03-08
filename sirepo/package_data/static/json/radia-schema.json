@@ -204,15 +204,15 @@
             ["undulator", "Undulator"]
         ],
         "MaterialType": [
-            ["NdFeB", "Neodymium Iron Boron (anisotropic)"],
-            ["SmCo5", "Samarium Cobalt (SmCo5 anisotropic)"],
-            ["Sm2Co17", "Samarium Cobalt (Sm2Co17 anisotropic)"],
-            ["Ferrite", "Ferrite (anisotropic)"],
-            ["Xc06", "Industeel"],
-            ["Steel37", "Steel37"],
-            ["Steel42", "Steel42"],
-            ["AFK502", "Aperam 502"],
-            ["AFK1", "Aperam 1"],
+            ["NdFeB", "Neodymium Iron Boron (linear anisotropic)"],
+            ["SmCo5", "Samarium Cobalt (SmCo5, linear anisotropic)"],
+            ["Sm2Co17", "Samarium Cobalt (Sm2Co17,linear anisotropic)"],
+            ["Ferrite", "Ferrite (linear anisotropic)"],
+            ["Xc06", "Industeel (nonlinnear isotropic)"],
+            ["Steel37", "Steel37 (nonlinnear isotropic)"],
+            ["Steel42", "Steel42 (nonlinnear isotropic)"],
+            ["AFK502", "Aperam 502 (nonlinnear isotropic)"],
+            ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
         ],
         "ObjectType": [
@@ -493,9 +493,10 @@
             "_super": ["_", "model", "radiaObject"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "1"],
             "gap": ["Gap [mm]", "Float", 20.0, "", 1.0],
+            "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
-            "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"]
+            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
     "strings": {
