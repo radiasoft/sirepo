@@ -610,7 +610,6 @@ def _generate_parameters_file(data, for_export):
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
     v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
-    #v.dataFile = _GEOM_FILE if for_export else f'{rpt_out}.h5'
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -621,9 +620,6 @@ def _generate_parameters_file(data, for_export):
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
     v.kickMap = data.models.get('kickMap', None)
-    #if v.kickMap:
-    #    v.kickMap.direction = _BEAM_AXIS_VECTORS[v.kickMap.beamAxis]
-    #    v.kickMap.transverseDirection = _BEAM_AXIS_VECTORS[v.kickMap.gapAxis]
     if 'solver' in report or for_export:
         v.doSolve = True
         v.gId = _get_g_id(sim_id)
@@ -705,8 +701,6 @@ def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
         with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
-        #with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
-        #    return template_common.h5_to_dict(hf, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
             pkdc(f'{filename} not found in {run_dir}')
