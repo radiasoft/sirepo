@@ -58,7 +58,7 @@
             ["20", "20"]
         ],
         "ObjectiveFunction": [
-            ["efficiency", "Efficiency"]
+            ["transparency", "Transparency"]
         ],
         "ParticleReflection": [
             ["none", "None"],
@@ -231,7 +231,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "optimizer": {
-            "objective": ["Objective Function", "ObjectiveFunction", "efficiency"],
+            "objective": ["Objective Function", "ObjectiveFunction", "transparency"],
             "tolerance": ["Tolerance", "Float", 0.001],
             "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
