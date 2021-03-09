@@ -42,14 +42,13 @@ def _add_object(o):
             obj = [mobj for mobj in sirepo_objs if mobj['id'] == obj_id][0]
             m = PKDict(obj)
             if m.id not in id_map.values():
-                # have not added this yet
+                # have not added this object yet
                 m_id = _add_object(m)
                 grp.append(m_id)
             else:
-                for k, v in id_map.items():
-                    if v == m.id:
-                        grp.append(k)
-                        break
+                grp.extend(
+                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == m.id]
+                )
         g_id = radia_tk.build_container(grp)
     for transform in o.transforms:
         radia_tk.apply_transform(g_id, PKDict(transform))
