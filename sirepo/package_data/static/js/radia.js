@@ -524,7 +524,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addObject(o) {
         o.id  = self.nextId();
-        //o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
         // for groups, set the group id of all members
         //var n = 0;
@@ -691,11 +690,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         return groupShape;
     }
-
-    // used to map the client-created object to a server-created Radia id
-    //function getMapId(o) {
-    //    return o.name + '.' + o.id;
-    //}
 
     // recursive dive through all subgroups
     function getMembers(o) {
