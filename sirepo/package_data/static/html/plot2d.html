@@ -12,7 +12,13 @@
         <g data-ng-if="wantColorbar" class="colorbar" ng-attr-transform="translate({{ margin.left + width }}, 0)">
           <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
         </g>
-        <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+        <!-- TODO(e-carlin): need to calculate width/height -->
+        <foreignObject transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" ng-attr-width="300" height="400">
+          <body xmlns="http://www.w3.org/1999/xhtml">
+            <div class="y-axis-label"></div>
+          </body>
+        </foreignObject>
+        <!-- <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text> -->
         <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
         <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
         <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>

@@ -959,7 +959,7 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
     };
 });
 
-SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
+SIREPO.app.service('plot2dService', function(appState, layoutService, mathRendering, panelState, plotting, utilities) {
 
     this.init2dPlot = function($scope, attrs) {
         var colorbar, scaleFunction, zoom;
@@ -1083,8 +1083,9 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         $scope.updatePlot = function(json) {
             $scope.dataCleared = false;
             $.each($scope.axes, function(dim, axis) {
-                axis.parseLabelAndUnits(json[dim + '_label']);
-                $scope.select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                // axis.parseLabelAndUnits(json[dim + '_label']); // TODO(e-carlin): what does this do?
+                // $scope.select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                $scope.select('.' + dim + '-axis-label').html(mathRendering.mathAsHTML('$\\bf Tm^{-n}$'));
             });
             $scope.select('.main-title').text(json.title);
             $scope.select('.sub-title').text(json.subtitle);
