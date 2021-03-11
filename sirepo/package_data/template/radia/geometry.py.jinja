@@ -20,11 +20,11 @@ _GROUP_MODELS = (_MODEL_GROUP, _MODEL_GROUP_UND)
 _OBJ_MODELS = (_MODEL_BOX, _MODEL_OBJECT)
 _MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
 
-radia_objs = []
+#radia_objs = []
 sirepo_objs = {{ objects }}
 
 
-def _add_object(o):
+def _add_object(o, radia_objs, id_map):
     if o.model == _MODEL_BOX:
         ctr = sirepo.util.split_comma_delimited_string(o.center, float)
         sz = sirepo.util.split_comma_delimited_string(o.size, float)
@@ -43,7 +43,7 @@ def _add_object(o):
             m = PKDict(obj)
             if m.id not in id_map.values():
                 # have not added this object yet
-                m_id = _add_object(m)
+                m_id = _add_object(m, radia_objs, id_map)
                 grp.append(m_id)
             else:
                 grp.extend(
@@ -58,50 +58,164 @@ def _add_object(o):
         radia_objs.append(g_id)
     return g_id
 
-id_map = PKDict()
+
+def _build_radia_geom():
+    id_map = PKDict()
+    radia_objs = []
 {% if isExample %}
-g_id = radia_examples.EXAMPLES['{{ geomName }}']()
+    g_id = radia_examples.EXAMPLES['{{ geomName }}']()
 {% elif dmpImportFile %}
-with open('{{ dmpImportFile }}', 'rb') as f:
-    b = f.read()
-    g_id = radia_tk.load_bin(b)
+    with open('{{ dmpImportFile }}', 'rb') as f:
+        b = f.read()
+        g_id = radia_tk.load_bin(b)
 {% else %}
-for obj in sirepo_objs:
-    o = PKDict(obj)
-    if o.model not in _MODELS or o.id in id_map.values():
-        continue
-    o_id = _add_object(o)
-    id_map[o_id] = o.id
+    for obj in sirepo_objs:
+        o = PKDict(obj)
+        if o.model not in _MODELS or o.id in id_map.values():
+            continue
+        o_id = _add_object(o, radia_objs, id_map)
+        id_map[o_id] = o.id
+    g_id = radia_tk.build_container(radia_objs)
+{% endif %}
+    g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
+    with h5py.File('{{ dataFile }}', 'a') as hf:
+        template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
+        template_common.dict_to_h5(id_map, hf, path='idMap')
+    return g_id
+
+
+def _do_solve(g_id):
+    def solve():
+        print(f'SOLVING GID {g_id}')
+        return radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    return solve
+
+def _get_g_id():
+    print(f'GETTING GID FROM DMP')
+    with open('{{ dmpOutputFile }}', 'rb') as f:
+        return radia_tk.load_bin(f.read())
+
+
+def _radia_mpi(on_off):
+    def r_mpi():
+        print(f'SETTING RADIA MPI {on_off}')
+        radia_tk.radia_mpi(on_off)
+    return r_mpi
+
+
+def _write_dmp(g_id):
+    def w_d():
+        print(f'WRTING DMP FOR {g_id}')
+        with open('{{ dmpOutputFile }}', 'wb') as f:
+            f.write(radia_tk.dump_bin(g_id))
+    return w_d
+
+
+def _write_fields():
+{% if viewType == VIEW_TYPE_FIELD %}
+{% if fieldType == FIELD_TYPE_MAG_M %}
+    f = radia_tk.get_magnetization(g_id)
+{% elif fieldType in POINT_FIELD_TYPES %}
+    f = radia_tk.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
+{% else %}
+    f = None
+{% endif %}
+    if f:
+        g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
+        with h5py.File('{{ dataFile }}', 'a') as hf:
+            template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
+{% endif %}
+    pass
+
+
+def _write_solution(s):
+    def w_s():
+        print(f'WRITING SOL {s}')
+        with h5py.File('{{ dataFile }}', 'a') as hf:
+            template_common.dict_to_h5(s, hf, path='{{ h5SolutionPath }}')
+    return w_s
+
+
+def _run_fn(fn, run_once=True):
+    c = None
+    r = 0
+    res = None
+    try:
+        import mpi4py.MPI
+        if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
+            c = mpi4py.MPI.COMM_WORLD
+            r = c.Get_rank()
+    except Exception:
+        pass
+    if r == 0 or not run_once:
+        print(f'RUNNING {fn.__name__} RANK {r}')
+        try:
+            res = fn()
+        except Exception as e:
+            print(f'{fn.__name__} RANK {r} GOT ERR {e}')
+            if c:
+                c.Abort(1)
+            raise e
+    else:
+        print(f'{fn.__name__} SKIP FOR RANK {r}')
+    if c:
+        res = c.bcast(res, root=0)
+    print(f'{fn.__name__} RTN {res} FOR RANK {r}')
+    return res
+
+g_id = _run_fn(_build_radia_geom) or _get_g_id()
+
+#id_map = PKDict()
+{% if isExample %}
+#g_id = radia_examples.EXAMPLES['{{ geomName }}']()
+{% elif dmpImportFile %}
+#with open('{{ dmpImportFile }}', 'rb') as f:
+#    b = f.read()
+#    g_id = radia_tk.load_bin(b)
+{% else %}
+#for obj in sirepo_objs:
+#    o = PKDict(obj)
+#    if o.model not in _MODELS or o.id in id_map.values():
+#        continue
+#    o_id = _add_object(o)
+#    id_map[o_id] = o.id
 # put all objects in a container for now
-g_id = radia_tk.build_container(radia_objs)
+#g_id = radia_tk.build_container(radia_objs)
 #id_map[g_id] = '{{ geomId }}'
 {% endif %}
 
 
-g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
-with h5py.File('{{ dataFile }}', 'a') as hf:
-    template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
-    template_common.dict_to_h5(id_map, hf, path='idMap')
+#g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
+#with h5py.File('{{ dataFile }}', 'a') as hf:
+#    template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
+#    template_common.dict_to_h5(id_map, hf, path='idMap')
 
 {% if doSolve %}
-res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-with h5py.File('{{ dataFile }}', 'a') as hf:
-    template_common.dict_to_h5(res, hf, path='{{ h5SolutionPath }}')
+#res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+#_run_fn(_radia_mpi(True))
+res = _run_fn(_do_solve(g_id), run_once=False)
+#_run_fn(_radia_mpi(False))
+#with h5py.File('{{ dataFile }}', 'a') as hf:
+#    template_common.dict_to_h5(res, hf, path='{{ h5SolutionPath }}')
 {% endif %}
+
+_run_fn(_write_fields)
 
 {% if viewType == VIEW_TYPE_FIELD %}
 {% if fieldType == FIELD_TYPE_MAG_M %}
-f = radia_tk.get_magnetization(g_id)
+#f = radia_tk.get_magnetization(g_id)
 {% elif fieldType in POINT_FIELD_TYPES %}
-f = radia_tk.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
+#f = radia_tk.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
 {% else %}
-f = None
+#f = None
 {% endif %}
-if f:
-    g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
-    with h5py.File('{{ dataFile }}', 'a') as hf:
-        template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
+#if f:
+#    g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
+#    with h5py.File('{{ dataFile }}', 'a') as hf:
+#        template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
 {% endif %}
 
-with open('{{ dmpOutputFile }}', 'wb') as f:
-    f.write(radia_tk.dump_bin(g_id))
+_run_fn(_write_dmp(g_id))
+
+#with open('{{ dmpOutputFile }}', 'wb') as f:
+#    f.write(radia_tk.dump_bin(g_id))

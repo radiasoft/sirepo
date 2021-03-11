@@ -725,18 +725,19 @@ def _read_h_m_file(file_name):
     return f_lines
 
 
+def _read_id_map(sim_id):
+    return PKDict(
+        {k: v.decode('ascii') for k, v in
+         (_read_h5_path(sim_id, _GEOM_FILE, 'idMap') or {}).items()}
+    )
+
+
 def _read_data(sim_id, view_type, field_type):
     res = _read_h5_path(sim_id, _GEOM_FILE, _geom_h5_path(view_type, field_type))
     if res:
         res.idMap = _read_id_map(sim_id)
         res.solution = _read_solution(sim_id)
     return res
-
-
-def _read_id_map(sim_id):
-    return PKDict(
-        {k:v.decode('ascii') for k, v in _read_h5_path(sim_id, _GEOM_FILE, 'idMap').items()}
-    )
 
 
 def _read_kick_map(sim_id):

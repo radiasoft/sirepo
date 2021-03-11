@@ -28,5 +28,5 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warpvnd in
     """
     # limit to 1 until we do parallel properly
-    mpi.cfg.cores = 1
+    mpi.cfg.cores = 2
     template_common.exec_parameters_with_mpi()
