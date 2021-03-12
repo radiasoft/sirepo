@@ -1281,6 +1281,33 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
     };
 });
 
+SIREPO.app.directive('fieldPathLineouts', function(appState, panelState, radiaService) {
+
+    return {
+        restrict: 'A',
+        scope: {
+        },
+        template: [
+            '<div>',
+                  '<div class="row">',
+                    '<select class="form-control" data-ng-model="paths" data-ng-options="p.name for p in paths"></select>',
+                  '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.modelsLoaded = false;
+            $scope.radiaService = radiaService;
+
+            appState.whenModelsLoaded($scope, function () {
+                $scope.paths = appState.models.fieldPaths.paths.filter(function (p) {
+                    return p.type === 'line';
+                });
+                $scope.modelsLoaded = true;
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
 
     return {
