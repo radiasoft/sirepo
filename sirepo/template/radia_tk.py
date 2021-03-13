@@ -225,6 +225,9 @@ def get_field(g_id, f_type, path):
     b = []
     # get every component
     f = radia.Fld(g_id, f_type, path)
+    # a dummy value returned by parallel radia
+    if f == 0:
+        f = numpy.zeros(len(path))
     b.extend(f)
     b = numpy.reshape(b, (-1, 3)).tolist()
     for p_idx, pt in enumerate(p):
@@ -258,6 +261,10 @@ def new_geom_object():
     )
 
 
+def radia_mpi(on_off):
+    return radia.UtiMPI('in' if on_off else 'off')
+
+
 def reset():
     return radia.UtiDelAll()
 
@@ -265,7 +272,7 @@ def reset():
 def solve(g_id, prec, max_iter, solve_method):
     pkdp(f'TK SOLVE {g_id}')
     #pkdp(f'TURNING RAD MPI ON')
-    #v = radia.UtiMPI('on')
+    #v = radia.UtiMPI('in')
     #pkdp(f'RAD MPI IS ON {v}')
     res = radia.Solve(g_id, float(prec), int(max_iter), int(solve_method))
     #radia.UtiMPI('barrier')

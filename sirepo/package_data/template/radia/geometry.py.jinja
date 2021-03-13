@@ -77,23 +77,14 @@ def _build_radia_geom():
         id_map[o_id] = o.id
     g_id = radia_tk.build_container(radia_objs)
 {% endif %}
-    g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
-    with h5py.File('{{ dataFile }}', 'a') as hf:
-        template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
-        template_common.dict_to_h5(id_map, hf, path='idMap')
-    return g_id
+    return g_id, id_map
 
 
-def _do_solve(g_id):
+def _do_solve(g_id, prec, max_iter, method):
     def solve():
         print(f'SOLVING GID {g_id}')
-        return radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+        return radia_tk.solve(g_id, prec, max_iter, method)
     return solve
-
-def _get_g_id():
-    print(f'GETTING GID FROM DMP')
-    with open('{{ dmpOutputFile }}', 'rb') as f:
-        return radia_tk.load_bin(f.read())
 
 
 def _radia_mpi(on_off):
@@ -111,21 +102,22 @@ def _write_dmp(g_id):
     return w_d
 
 
-def _write_fields():
-{% if viewType == VIEW_TYPE_FIELD %}
-{% if fieldType == FIELD_TYPE_MAG_M %}
-    f = radia_tk.get_magnetization(g_id)
-{% elif fieldType in POINT_FIELD_TYPES %}
-    f = radia_tk.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
-{% else %}
-    f = None
-{% endif %}
-    if f:
-        g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
+def _write_geom(g_id, id_map):
+    def w_g():
+        print(f'WRTING GEOM FOR {g_id}')
+        g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
+        with h5py.File('{{ dataFile }}', 'a') as hf:
+            template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
+            template_common.dict_to_h5(id_map, hf, path='idMap')
+    return w_g
+
+
+def _write_fields(g_data):
+    def w_f():
+        print(f'WRTING FIELDS')
         with h5py.File('{{ dataFile }}', 'a') as hf:
             template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
-{% endif %}
-    pass
+    return w_f
 
 
 def _write_solution(s):
@@ -160,10 +152,13 @@ def _run_fn(fn, run_once=True):
         print(f'{fn.__name__} SKIP FOR RANK {r}')
     if c:
         res = c.bcast(res, root=0)
-    print(f'{fn.__name__} RTN {res} FOR RANK {r}')
+    print(f'fn {fn.__name__} RTN {res} FOR RANK {r}')
     return res
 
-g_id = _run_fn(_build_radia_geom) or _get_g_id()
+print('READY TO TURN ON MPI')
+_run_fn(_radia_mpi(True), run_once=False)
+g_id, id_map = _run_fn(_build_radia_geom, run_once=False)
+_run_fn(_write_geom(g_id, id_map))
 
 #id_map = PKDict()
 {% if isExample %}
@@ -192,30 +187,32 @@ g_id = _run_fn(_build_radia_geom) or _get_g_id()
 
 {% if doSolve %}
 #res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-#_run_fn(_radia_mpi(True))
-res = _run_fn(_do_solve(g_id), run_once=False)
-#_run_fn(_radia_mpi(False))
+res = _run_fn(_do_solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }}), run_once=False)
+_run_fn(_write_solution(res))
 #with h5py.File('{{ dataFile }}', 'a') as hf:
 #    template_common.dict_to_h5(res, hf, path='{{ h5SolutionPath }}')
 {% endif %}
 
-_run_fn(_write_fields)
 
 {% if viewType == VIEW_TYPE_FIELD %}
 {% if fieldType == FIELD_TYPE_MAG_M %}
-#f = radia_tk.get_magnetization(g_id)
+f = radia_tk.get_magnetization(g_id)
 {% elif fieldType in POINT_FIELD_TYPES %}
-#f = radia_tk.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
+f = radia_tk.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
 {% else %}
-#f = None
+f = None
 {% endif %}
-#if f:
-#    g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
+if f:
+    g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
+    _run_fn(_write_fields(g_data))
 #    with h5py.File('{{ dataFile }}', 'a') as hf:
 #        template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
 {% endif %}
 
+
 _run_fn(_write_dmp(g_id))
+print('READY TO TURN OFF MPI')
+#_run_fn(_radia_mpi(False), run_once=False)
 
 #with open('{{ dmpOutputFile }}', 'wb') as f:
 #    f.write(radia_tk.dump_bin(g_id))
