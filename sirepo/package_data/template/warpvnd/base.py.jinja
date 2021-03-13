@@ -3,22 +3,36 @@ from __future__ import absolute_import, division, print_function
 import warpoptions
 warpoptions.ignoreUnknownArgs = True
 
+from numpy import linalg
+from scipy import constants
+from scipy import spatial
+from scipy.interpolate import interp1d as scipy_interp1d
 import h5py
+import json
+import math
 import numpy as np
-import sys
-import warp as wp
+import os
 import rswarp
+import scipy
+import sys
+import time
 
-from rswarp.diagnostics import FieldDiagnostic
-from rswarp.cathode import sources
 from rswarp.cathode import injectors
+from rswarp.cathode import sources
+from rswarp.diagnostics import ConductorTemplates
+from rswarp.diagnostics import FieldDiagnostic
+from rswarp.diagnostics import ImpactDensity
+from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.run_files.tec.reflection import particlereflector
 from rswarp.stlconductor import stlconductor
 
-from scipy import constants
 
+import warp as wp
 from warp.data_dumping.openpmd_diag import ParticleDiagnostic
 from warp.field_solvers.generateconductors import XPlane, YPlane, ZPlane, Box, Sphere
+from warp.particles.singleparticle import TraceParticle
+from warp.run_modes.egun_like import gun, gunppzx #needed for egun script
+
 
 {% if isOptimize %}
 def parse_opts():

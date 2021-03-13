@@ -1,12 +1,4 @@
 
-import math
-import scipy
-from numpy import linalg
-from rswarp.diagnostics import ConductorTemplates
-from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
-from rswarp.diagnostics import ImpactDensity
-from scipy import spatial
-
 # To reduce the data, line (plane) coordinates are parametrized.  We respond with
 # the initial values in each coord array and a "slope" in each array dimension
 # rather than every coordinate in the array
@@ -72,7 +64,7 @@ try:
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
 except AssertionError as e:
     density_results = {
-        'error': e.message,
+        'error': str(e),
     }
 
 if can_write_files and not density_results:
@@ -183,8 +175,8 @@ if can_write_files and not density_results:
         all_particles[0] += v[0].tolist()
         all_particles[1] += v[1].tolist()
     np.save('all-particles.npy', all_particles)
-    {% endif %}    
-        
+    {% endif %}
+
     density_results = {
         'dx': plot_density.dx,
         {% if is3D %}
