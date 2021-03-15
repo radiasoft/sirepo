@@ -19,5 +19,18 @@
     <div data-ng-if="beamline.hasFrames()" class="col-sm-12">
       <div data-report-panel="parameter" data-model-name="wavefrontSummaryAnimation"></div>
     </div>
+    <div data-ng-if="beamline.hasLaserProfile(true)" class="col-sm-6">
+      <div data-report-panel="parameter" data-model-name="laserPulse1Animation"></div>
+    </div>
+    <div data-ng-if="beamline.hasLaserProfile(true)" class="col-sm-6">
+      <div data-report-panel="parameter" data-model-name="laserPulse2Animation"></div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-if="beamline.hasLaserProfile(false)" class="col-sm-6">
+      <div data-report-panel="parameter" data-model-name="laserPulse3Animation"></div>
+    </div>
+    <div data-ng-if="beamline.hasLaserProfile(false)" class="col-sm-6">
+      <div data-report-panel="parameter" data-model-name="laserPulse4Animation"></div>
+    </div>
   </div>
 </div>

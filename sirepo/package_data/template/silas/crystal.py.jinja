@@ -119,7 +119,7 @@ def write_row(name, time, values, mode='a'):
     with open('{{ crystalCSV }}', mode) as f:
         f.write('{},{},{}\n'.format(name, time, ','.join([str(x) for x in values])))
 
-tol = 9.e-3  # avoid points outside domain (for a coarse mesh, increase this value)
+tol = {{ crystalSettings_tolerance }} # avoid points outside domain (for a coarse mesh, increase this value)
 xv = np.linspace(xmin * (1 - tol), xmax * (1 - tol), 1000)
 zv = np.linspace(zmin * (1 - tol), zmax * (1 - tol), 1000)
 radpts = [(x_, 0, 0) for x_ in xv]
@@ -138,3 +138,9 @@ for t, u in evolve():
     #res.append([ux, uz])
     write_row('ux', t, ux)
     write_row('uz', t, uz)
+
+uvals = u.compute_vertex_values()
+
+np.save('indices.npy', inds)
+np.save('vertices.npy', mesh.coordinates())
+np.save('intensity.npy', uvals)
