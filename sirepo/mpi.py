@@ -28,6 +28,7 @@ def invoke_single(fn, *args):
         try:
             res = fn(*args)
         except Exception as e:
+            pkdc(f'Exception in invoked function {fn.__name__}: {e}')
             if c:
                 c.Abort(1)
             raise e
