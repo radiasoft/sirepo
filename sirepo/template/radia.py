@@ -250,7 +250,7 @@ def new_simulation(data, new_simulation_data):
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data, True)
+    return _generate_parameters_file(data, False, True)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -260,7 +260,7 @@ def write_parameters(data, run_dir, is_parallel):
         pkio.unchecked_remove(
             _geom_file(sim_id),
             #_get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
-            _get_res_file(sim_id, _GEOM_FILE),
+            #_get_res_file(sim_id, _GEOM_FILE),
             #_dmp_file(sim_id)
         )
     if data.report == 'kickMap':
@@ -268,7 +268,7 @@ def write_parameters(data, run_dir, is_parallel):
         #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, False),
+        _generate_parameters_file(data, is_parallel, False),
     )
 
 
@@ -567,12 +567,15 @@ def _generate_obj_data(g_id, name):
     return radia_tk.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data, for_export):
+def _generate_parameters_file(data, is_parallel, for_export):
     import jinja2
 
     report = data.get('report', '')
     rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
     res, v = template_common.generate_parameters_file(data)
+    v.doSolve = False
+    v.doReset = False
+    v.isParallel = is_parallel
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
@@ -628,13 +631,12 @@ def _generate_parameters_file(data, for_export):
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
     if 'reset' in report:
-        radia_tk.reset()
-        data.report = 'geometry'
-        return _generate_parameters_file(data, False)
+        v.doReset = True
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
+    v.h5IdMapPath = _H5_PATH_ID_MAP
 
     j_file = RADIA_EXPORT_FILE if for_export else f'{rpt_out}.py'
     return template_common.render_jinja(
@@ -728,7 +730,7 @@ def _read_h_m_file(file_name):
 def _read_id_map(sim_id):
     return PKDict(
         {k: v.decode('ascii') for k, v in
-         (_read_h5_path(sim_id, _GEOM_FILE, 'idMap') or {}).items()}
+         (_read_h5_path(sim_id, _GEOM_FILE, _H5_PATH_ID_MAP) or {}).items()}
     )
 
 
@@ -1067,5 +1069,6 @@ def _update_kickmap(km, und, beam_axis):
     km.periodLength = und.periodLength
 
 
+_H5_PATH_ID_MAP = _geom_h5_path('idMap')
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
 _H5_PATH_SOLUTION = _geom_h5_path('solution')

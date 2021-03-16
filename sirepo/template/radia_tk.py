@@ -270,15 +270,7 @@ def reset():
 
 
 def solve(g_id, prec, max_iter, solve_method):
-    pkdp(f'TK SOLVE {g_id}')
-    #pkdp(f'TURNING RAD MPI ON')
-    #v = radia.UtiMPI('in')
-    #pkdp(f'RAD MPI IS ON {v}')
-    res = radia.Solve(g_id, float(prec), int(max_iter), int(solve_method))
-    #radia.UtiMPI('barrier')
-    #pkdp(f'RES {g_id} AFTER BARRIER: {res}')
-    #radia.UtiMPI('off')
-    return res
+    return radia.Solve(g_id, float(prec), int(max_iter), int(solve_method))
 
 
 def vector_field_to_data(g_id, name, pv_arr, units):

@@ -78,50 +78,7 @@ def _build_radia_geom():
     return g_id, id_map
 
 
-def _do_solve(g_id, prec, max_iter, method):
-    def solve():
-        return radia_tk.solve(g_id, prec, max_iter, method)
-    return solve
-
-
-def _radia_mpi(on_off):
-    def r_mpi():
-        radia_tk.radia_mpi(on_off)
-    return r_mpi
-
-
-def _write_dmp(g_id, f_path):
-    def w_d():
-        with open(f_path, 'wb') as f:
-            f.write(radia_tk.dump_bin(g_id))
-    return w_d
-
-
-def _write_geom(g_data, id_map, f_path, h5_path):
-    def w_g():
-        with h5py.File(f_path, 'a') as hf:
-            template_common.dict_to_h5(g_data, hf, path=h5_path)
-            template_common.dict_to_h5(id_map, hf, path='idMap')
-    return w_g
-
-
-def _write_fields(g_data, f_path, h5_path):
-    def w_f():
-        with h5py.File(f_path, 'a') as hf:
-            template_common.dict_to_h5(g_data, hf, path=h5_path)
-    return w_f
-
-
-def _write_solution(s, f_path, h5_path):
-    def w_s():
-        with h5py.File(f_path, 'a') as hf:
-            template_common.dict_to_h5(s, hf, path=h5_path)
-    return w_s
-
-
-
-
-def _run_fn(fn):
+def _run_single(fn, *args):
     c = None
     r = 0
     res = None
@@ -134,7 +91,7 @@ def _run_fn(fn):
         pass
     if r == 0:
         try:
-            res = fn()
+            res = fn(*args)
         except Exception as e:
             if c:
                 c.Abort(1)
@@ -144,19 +101,32 @@ def _run_fn(fn):
     return res
 
 
+def _write_h5_data(data, h5_path):
+    with h5py.File('{{ dataFile }}', 'a') as hf:
+        template_common.dict_to_h5(data, hf, path=h5_path)
 
 
-#_run_fn(_radia_mpi(True), run_once=False)
-_radia_mpi(True)
-#g_id, id_map = _run_fn(_build_radia_geom, run_once=False)
+def _write_dmp(g_id, f_path):
+    with open(f_path, 'wb') as f:
+        f.write(radia_tk.dump_bin(g_id))
+
+
+{% if isParallel %}
+radia_tk.radia_mpi(True)
+{% endif %}
+
+{% if doReset %}
+_run_single(radia_tk.reset)
+{% endif %}
+
 g_id, id_map = _build_radia_geom()
 g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
-_run_fn(_write_geom(g_data, id_map, '{{ dataFile }}', '{{ h5ObjPath }}'))
+_run_single(_write_h5_data, g_data, '{{ h5ObjPath }}')
+_run_single(_write_h5_data, id_map, '{{ h5IdMapPath }}')
 
 {% if doSolve %}
 res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-#res = _run_fn(_do_solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }}), run_once=False)
-_run_fn(_write_solution(res, '{{ dataFile }}', '{{ h5SolutionPath }}'))
+_run_single(_write_h5_data, res, '{{ h5SolutionPath }}')
 {% endif %}
 
 {% if viewType == VIEW_TYPE_FIELD %}
@@ -169,10 +139,11 @@ f = None
 {% endif %}
 if f:
     g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
-    _run_fn(_write_fields(g_data, '{{ dataFile }}', '{{ h5FieldPath }}'))
+    _run_single(_write_h5_data, g_data, '{{ h5FieldPath }}')
 {% endif %}
 
 
-_run_fn(_write_dmp(g_id, '{{ dmpOutputFile }}'))
-#_run_fn(_radia_mpi(False), run_once=False)
-_radia_mpi(False)
+_run_single(_write_dmp, g_id, '{{ dmpOutputFile }}')
+{% if isParallel %}
+radia_tk.radia_mpi(False)
+{% endif %}
