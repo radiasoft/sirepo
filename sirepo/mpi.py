@@ -13,6 +13,29 @@ import re
 import sys
 
 
+def invoke_single(fn, *args):
+    c = None
+    r = 0
+    res = None
+    try:
+        import mpi4py.MPI
+        c = mpi4py.MPI.COMM_WORLD
+        if c.Get_size() > 1:
+            r = c.Get_rank()
+    except Exception:
+        pass
+    if r == 0:
+        try:
+            res = fn(*args)
+        except Exception as e:
+            if c:
+                c.Abort(1)
+            raise e
+    if c:
+        res = c.bcast(res, root=0)
+    return res
+
+
 def run_program(cmd, output='mpi_run.out', env=None):
     """Execute python script with mpi.
 
