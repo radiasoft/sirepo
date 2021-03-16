@@ -1152,7 +1152,7 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
 
             // "raw" examples are from radia_examples.py - a temporary repository
             function isRawExample(name) {
-                return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) > 0;
+                return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
             }
         }
     };
@@ -2441,6 +2441,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         bundle.actor.getProperty().setLighting(isPoly);
                         let info = addActor(objId, gName, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
+                        /*
                         if (isPoly && $.isEmptyObject(gObj)) {
                             //srdbg('add poly obj', gObj);
                             gObj = appState.setModelDefaults(gObj, 'radiaObject');
@@ -2461,6 +2462,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                             didModifyGeom = true;
                         }
+                         */
                         if (! gObj.center || ! gObj.size) {
                             var b = bundle.actor.getBounds();
                             gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])].join(',');
