@@ -322,6 +322,12 @@ def extract_report_data(filename, sim_in):
         'x_units': file_info[filename][1][0],
         'y_units': file_info[filename][1][1],
         'points': data,
+        'z_range' : [np.min(data), np.max(data)],
+        # send the full plot ranges as summaryData
+        'summaryData': PKDict(
+            fieldRange=allrange,
+            fieldIntensityRange=report_model.get('summaryData', {}).get('fieldIntensityRange', [np.min(data), np.max(data)]),
+        ),
     })
     rep_name = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(r) else r
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
@@ -1600,6 +1606,30 @@ def _process_intensity_reports(source_type, undulator_type):
     })
 
 
+def _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd):
+    x_step = (x_range[1] - x_range[0]) / x_range[2]
+    y_step = (y_range[1] - y_range[0]) / y_range[2]
+
+    if horizontalStart < x_range[0]:
+        b = np.zeros((np.shape(ar2d)[0], int((x_range[0] - horizontalStart) / x_step)))
+        ar2d = np.hstack((b, ar2d))
+        x_range[0] = horizontalStart
+    if horizontalEnd > x_range[1]:
+        b = np.zeros((np.shape(ar2d)[0], int((horizontalEnd - x_range[1]) / x_step)))
+        ar2d = np.hstack((ar2d, b))
+        x_range[1] = horizontalEnd
+    if verticalStart < y_range[0]:
+        b = np.zeros((int((y_range[0] - verticalStart) / y_step), np.shape(ar2d)[1]))
+        ar2d = np.vstack((ar2d, b))
+        y_range[0] = verticalStart
+    if verticalEnd > y_range[1]:
+        b = np.zeros((int((verticalEnd - y_range[1]) / y_step), np.shape(ar2d)[1]))
+        ar2d = np.vstack((b, ar2d))
+        y_range[1] = verticalEnd
+    y_range[2], x_range[2] = np.shape(ar2d)
+    return (ar2d, x_range, y_range)
+
+
 def _remap_3d(info, allrange, z_label, z_units, report):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
@@ -1608,7 +1638,23 @@ def _remap_3d(info, allrange, z_label, z_units, report):
     ar2d = info['points']
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
-    ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
+    ar2d = np.reshape(ar2d[0:n], (int(y_range[2]), int(x_range[2])))
+
+    if report.get('usePlotRange', '0') == '1':
+        horizontalStart = (report.horizontalOffset - report.horizontalSize/2) * 1e-3
+        horizontalEnd = (report.horizontalOffset + report.horizontalSize/2) * 1e-3
+        verticalStart = (report.verticalOffset - report.verticalSize/2) * 1e-3
+        verticalEnd = (report.verticalOffset + report.verticalSize/2) * 1e-3
+        ar2d, x_range, y_range = _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd)
+        x_left, x_right = np.clip(x_range[:2], horizontalStart, horizontalEnd)
+        y_left, y_right = np.clip(y_range[:2], verticalStart, verticalEnd)
+        x = np.linspace(x_range[0], x_range[1], int(x_range[2]))
+        y = np.linspace(y_range[0], y_range[1], int(y_range[2]))
+        xsel = ((x >= x_left) & (x <= x_right))
+        ysel = ((y >= y_left) & (y <= y_right))
+        ar2d = np.compress(xsel, np.compress(ysel, ar2d, axis=0), axis=1)
+        x_range = [x_left, x_right, np.shape(ar2d)[1]]
+        y_range = [y_left, y_right, np.shape(ar2d)[0]]
     if report.get('useIntensityLimits', '0') == '1':
         ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
         ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
@@ -1669,6 +1715,7 @@ def _remap_3d(info, allrange, z_label, z_units, report):
 
     if z_units:
         z_label = u'{} [{}]'.format(z_label, z_units)
+
     return PKDict(
         x_range=x_range,
         y_range=y_range,
@@ -1678,6 +1725,8 @@ def _remap_3d(info, allrange, z_label, z_units, report):
         title=info['title'],
         subtitle=_superscript_2(info['subtitle']),
         z_matrix=ar2d.tolist(),
+        z_range = [report.minIntensityLimit, report.maxIntensityLimit] if report.get('useIntensityLimits', '0') == '1'  else [np.min(ar2d), np.max(ar2d)],
+        summaryData=info.summaryData,
     )
 
 

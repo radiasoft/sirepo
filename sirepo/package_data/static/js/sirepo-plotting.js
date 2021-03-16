@@ -36,6 +36,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         log10: safeLog(Math.log10, '10'),
     };
 
+    function broadcastSummaryData(name, summaryData) {
+        // send info in two formats, similar to modelChanged
+        $rootScope.$broadcast(name + '.summaryData', summaryData);
+        $rootScope.$broadcast('summaryData', name, summaryData);
+    }
+
     function colorsFromString(s) {
         return s.match(/.{6}/g).map(function(x) {
             return "#" + x;
@@ -63,7 +69,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     panelState.setError(scope.modelName, null);
                     scope.load(data);
                     if (data.summaryData) {
-                        $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
+                        broadcastSummaryData(scope.modelName, data.summaryData);
                     }
                 }
                 if (scope.isPlaying) {
@@ -190,7 +196,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         scope.clearData();
                         scope.load(data);
                         if (data.summaryData) {
-                            $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
+                            broadcastSummaryData(scope.modelName, data.summaryData);
                         }
                     }
                     else if (forceRunCount++ <= 2) {
@@ -488,6 +494,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
             var scaleFunction = this.scaleFunction(modelName);
             if (scaleFunction) {
+                if (["e", "10", "2"].indexOf(scaleFunction.powerName) >= 0) {
+                    plotRange.min = d3.min(heatmap, function(row) {
+                        return d3.min(row, function(x) {
+                            return x <= 0 ? Infinity : x;});
+                    });
+                }
                 plotRange = {
                     min: scaleFunction(plotRange.min),
                     max: scaleFunction(plotRange.max),
@@ -694,6 +706,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
             var ydom;
+            var min_nonzero = Number.MAX_VALUE;
             var scaleFunction = this.scaleFunction(modelName);
 
             for (var i = 0; i < points.length; i++) {
@@ -712,8 +725,20 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 else {
                     ydom = [d[1], d[1]];
                 }
+                if (d[1] > 0 && d[1] < min_nonzero) { min_nonzero = d[1]; }
+            }
+            if (appState.models[modelName].useIntensityLimits == '1') {
+                var m = appState.models[modelName];
+                ydom = [
+                    m.minIntensityLimit,
+                    m.maxIntensityLimit,
+                ];
             }
             if (ydom) {
+                if (scaleFunction && ydom[0] <= 0 && ['e', '2', '10'].indexOf(scaleFunction.powerName) >= 0) {
+                    ydom[0] = min_nonzero;
+                }
+
                 ydom = this.scaleYDomain(yScale, ydom, scaleFunction, ydom[0] > 0);
                 if (invertAxis) {
                     var x = ydom[0];
@@ -2748,6 +2773,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 select('.z-axis-label').text(json.z_label);
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
+                if ('z_range' in json) { zmin = json.z_range[0]; zmax = json.z_range[1]; }
                 scaleFunction = plotting.scaleFunction($scope.modelName);
                 if (zmin > 0 && ! scaleFunction) {
                     zmin = 0;
