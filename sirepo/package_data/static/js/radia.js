@@ -148,10 +148,13 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.getRadiaData = function(inData, handler) {
         // store inData on the model, so that we can refer to it if
         // getApplicationData fails
+        srdbg('getting data for', inData);
         requestSender.getApplicationData(inData, function (d) {
             if (d.error) {
+                srdbg('ERR');
                 throw new Error(d.error);
             }
+            srdbg('HANDLE');
             handler(d);
         });
     };
@@ -1286,23 +1289,50 @@ SIREPO.app.directive('fieldPathLineouts', function(appState, panelState, radiaSe
     return {
         restrict: 'A',
         scope: {
+            modelName: '@'
         },
         template: [
-            '<div>',
-                  '<div class="row">',
-                    '<select class="form-control" data-ng-model="paths" data-ng-options="p.name for p in paths"></select>',
-                  '</div>',
+            '<div class="col-md-6">',
+                '<div class="panel panel-info">',
+                    '<div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>',
+                    '<div class="panel-body">',
+                        '<select class="form-control" data-ng-model="paths" data-ng-options="p.name for p in paths"></select>',
+                        //'<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
+                    '</div>',
+                '</div>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.radiaService = radiaService;
 
+            function update() {
+                srdbg('updating lineouts');
+
+                let inData = {
+                    fieldPaths: $scope.paths,
+                    fieldType: 'B',
+                    name: appState.models.geometry.name,
+                    method: 'get_field',
+                    simulationId: appState.models.simulation.simulationId,
+                    simulationType: 'radia',
+                    viewType: 'fields',
+                };
+                radiaService.getRadiaData(inData, function(d) {
+                    srdbg('got data', d);
+                    //$scope.data = d;
+                });
+
+
+            }
+
             appState.whenModelsLoaded($scope, function () {
                 $scope.paths = appState.models.fieldPaths.paths.filter(function (p) {
                     return p.type === 'line';
                 });
+                $scope.model = appState.models[$scope.modelName];
                 $scope.modelsLoaded = true;
+                update();
             });
         },
     };

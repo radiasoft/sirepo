@@ -121,6 +121,7 @@ def get_application_data(data, **kwargs):
     if data.method not in _SCHEMA.constants.getDataMethods:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
+    pkdp(f'GET APP DATA FOR {data}')
     g_id = -1
     sim_id = data.simulationId
     try:
