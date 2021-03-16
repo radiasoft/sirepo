@@ -76,6 +76,8 @@ def _build_radia_geom():
         id_map[o_id] = o.id
     g_id = radia_tk.build_container(radia_objs)
 {% endif %}
+    # free symmetries to test parallel?
+    # g_id = radia_tk.free_symmetries(g_id)
     return g_id, id_map
 
 
