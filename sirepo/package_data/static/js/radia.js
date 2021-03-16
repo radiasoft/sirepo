@@ -2383,18 +2383,18 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function buildScene() {
                 //srdbg('buildScene', sceneData);
                 // scene -> multiple data -> multiple actors
-                var name = sceneData.name;
-                var data = sceneData.data;
+                let name = sceneData.name;
+                let data = sceneData.data;
 
                 vtkPlotting.removeActors(renderer);
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
-                    // ***NEED BETTER ID, KNOWN ON BOTH SIDES***
-                    var gname = name + '.' + i;
-                    var sceneDatum = data[i];
-                    var radiaId = sceneDatum.id;
-                    var objId = (sceneData.idMap || {})[radiaId] || radiaId;
+                    // gName is for selection display purposes
+                    var gName = `${name}.${i}`;
+                    let sceneDatum = data[i];
+                    let radiaId = sceneDatum.id;
+                    let objId = (sceneData.idMap || {})[radiaId] || radiaId;
                     //srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
@@ -2404,8 +2404,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
-                        //var gObj = radiaService.getObject(radiaId) || {};
-                        //var gObj = radiaService.getObject(i) || {};
                         let gObj = radiaService.getObject(objId) || {};
                         //srdbg('gobj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
@@ -2441,13 +2439,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        let info = addActor(objId, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        let info = addActor(objId, gName, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
                         if (isPoly && $.isEmptyObject(gObj)) {
                             //srdbg('add poly obj', gObj);
                             gObj = appState.setModelDefaults(gObj, 'radiaObject');
-                            gObj.name = `${gname}.radiaObject`;  //id;
-                            gObj.id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);  //id;
+                            gObj.name = `${gName}.radiaObject`;
+                            gObj.id = objId;
                             if (gColor) {
                                 // **IF GROUP COLOR USE IF NOT USE OBJECT COLOR**
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));

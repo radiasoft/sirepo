@@ -4,6 +4,7 @@ import h5py
 import os
 import re
 from pykern.pkcollections import PKDict
+import sirepo.mpi
 import sirepo.util
 from sirepo.template import radia_examples
 from sirepo.template import radia_tk
@@ -78,29 +79,6 @@ def _build_radia_geom():
     return g_id, id_map
 
 
-def _run_single(fn, *args):
-    c = None
-    r = 0
-    res = None
-    try:
-        import mpi4py.MPI
-        c = mpi4py.MPI.COMM_WORLD
-        if c.Get_size() > 1:
-            r = c.Get_rank()
-    except Exception:
-        pass
-    if r == 0:
-        try:
-            res = fn(*args)
-        except Exception as e:
-            if c:
-                c.Abort(1)
-            raise e
-    if c:
-        res = c.bcast(res, root=0)
-    return res
-
-
 def _write_h5_data(data, h5_path):
     with h5py.File('{{ dataFile }}', 'a') as hf:
         template_common.dict_to_h5(data, hf, path=h5_path)
@@ -116,17 +94,17 @@ radia_tk.radia_mpi(True)
 {% endif %}
 
 {% if doReset %}
-_run_single(radia_tk.reset)
+sirepo.mpi.invoke_single(radia_tk.reset)
 {% endif %}
 
 g_id, id_map = _build_radia_geom()
 g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
-_run_single(_write_h5_data, g_data, '{{ h5ObjPath }}')
-_run_single(_write_h5_data, id_map, '{{ h5IdMapPath }}')
+sirepo.mpi.invoke_single(_write_h5_data, g_data, '{{ h5ObjPath }}')
+sirepo.mpi.invoke_single(_write_h5_data, id_map, '{{ h5IdMapPath }}')
 
 {% if doSolve %}
 res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-_run_single(_write_h5_data, res, '{{ h5SolutionPath }}')
+sirepo.mpi.invoke_single(_write_h5_data, res, '{{ h5SolutionPath }}')
 {% endif %}
 
 {% if viewType == VIEW_TYPE_FIELD %}
@@ -139,11 +117,11 @@ f = None
 {% endif %}
 if f:
     g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
-    _run_single(_write_h5_data, g_data, '{{ h5FieldPath }}')
+    sirepo.mpi.invoke_single(_write_h5_data, g_data, '{{ h5FieldPath }}')
 {% endif %}
 
 
-_run_single(_write_dmp, g_id, '{{ dmpOutputFile }}')
+sirepo.mpi.invoke_single(_write_dmp, g_id, '{{ dmpOutputFile }}')
 {% if isParallel %}
 radia_tk.radia_mpi(False)
 {% endif %}
