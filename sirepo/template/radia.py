@@ -256,16 +256,10 @@ def python_source_for_model(data, model):
 def write_parameters(data, run_dir, is_parallel):
     sim_id = data.simulationId
     if data.report in _SIM_REPORTS:
-        # remove centrailzed geom files
-        pkio.unchecked_remove(
-            _geom_file(sim_id),
-            #_get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
-            #_get_res_file(sim_id, _GEOM_FILE),
-            #_dmp_file(sim_id)
-        )
+        pkio.unchecked_remove(_geom_file(sim_id))
     if data.report == 'kickMap':
+        #is_parallel = True
         pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
-        #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, is_parallel, False),

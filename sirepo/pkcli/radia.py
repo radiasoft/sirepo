@@ -22,10 +22,10 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    """Run warpvnd in ``cfg_dir`` with mpi
+    """Run in ``cfg_dir`` with mpi
 
     Args:
-        cfg_dir (str): directory to run warpvnd in
+        cfg_dir (str): directory to run in
     """
     mpi.cfg.cores = 2
     template_common.exec_parameters_with_mpi()
