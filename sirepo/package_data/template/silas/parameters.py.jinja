@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from scipy import ndimage, constants
-from sirepo.template import silasOpticsLib
+from rslaser import cavity
 import array
 import h5py
 import math
@@ -8,41 +8,8 @@ import numpy as np
 import srwlib
 
 
-def rmsIntensity(IntArray,xvals,yvals):
-    """
-    Compute rms values in x and y from array
-    #IntArray is a 2D array representation of a function
-    #xvals represents the horizontal coordinates
-    #yvals represents the vertical coordinates
-    """
-    datax=np.sum(IntArray,axis=1)
-    datay=np.sum(IntArray,axis=0)
-    sxsq=sum(datax*xvals*xvals)/sum(datax)
-    xavg=sum(datax*xvals)/sum(datax)
-    sx=math.sqrt(sxsq-xavg*xavg)
-
-    sysq=sum(datay*yvals*yvals)/sum(datay)
-    yavg=sum(datay*yvals)/sum(datay)
-    sy=math.sqrt(sysq-yavg*yavg)
-    return sx, sy, xavg, yavg
-
-
-def rmsWavefrontIntensity(wfr):
-    """
-    #Compute rms values from a wavefront object
-    """
-    IntensityArray2D = array.array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D intensity data
-    srwlib.srwl.CalcIntFromElecField(IntensityArray2D, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0) #extracts intensity
-    ##Reshaping electric field data from flat to 2D array
-    IntensityArray2D = np.array(IntensityArray2D).reshape((wfr.mesh.nx, wfr.mesh.ny), order='C')
-    xvals=np.linspace(wfr.mesh.xStart,wfr.mesh.xFin,wfr.mesh.nx)
-    yvals=np.linspace(wfr.mesh.yStart,wfr.mesh.yFin,wfr.mesh.ny)
-    return IntensityArray2D, rmsIntensity(IntensityArray2D,xvals,yvals)
-
-
-def wavefront_to_hdf5(wfr, count, pos):
-    assert wfr.mesh.ne == 1
-    ar2d, (sx, sy, xavg, yavg) = rmsWavefrontIntensity(wfr)
+def intensity_to_hdf5(count, pos, vals):
+    (wfr, ar2d, sx, sy, xavg, yavg) = vals
     with open('{{ summaryCSV }}', 'a' if pos else 'w') as f:
         if pos == 0:
             f.write('count,pos,sx,sy,xavg,yavg\n')
@@ -73,6 +40,16 @@ def wavefront_to_hdf5(wfr, count, pos):
         dset.attrs['pos'] = pos
 
 
+def save_laser_pulse(filename, cav):
+    (lpsxvals,lpsyvals,svals) = cav.laser_pulse.rmsvals()
+    (ivals,svals) = cav.laser_pulse.intensity_vals()
+    np.save(filename, np.array([
+        svals,
+        lpsxvals,
+        lpsyvals,
+        ivals,
+    ]))
+
 #---
 
 #Specify parameters for simulation
@@ -94,52 +71,49 @@ beta0 = math.sqrt(L_eff*(L_cav/4+dfL)-L_eff**2/4)
 print("beta0=",beta0)
 sigx0 = math.sqrt(lam*beta0/4/math.pi)
 print("sigx0=",sigx0)
-sigmaRCenter0 = sigx0
 
 propLen = {{ gaussianBeam_initialPropagationLength }} #Propagation of initial Gaussian [m]. It will then be back-propagated by propLen: a trick to get the Gaussian mode at the waist
 pulseE = {{ gaussianBeam_energyPerPulse }} #Total energy of pulse [eV]
-mx = 0 #Horizontal mode number (0 for Gaussian)
-my = 0 #Vertical mode number (0 for Gaussian)
 poltype = {{ gaussianBeam_polarization }} #Polarization of mode (0=linear horizontal, 1=linear vertical, 2=linear 45 deg, 3=linear 135 deg, 4=circular right, 5=circular left, 6=total)
 sampFact = {{ simulationSettings_sample_factor }} #Determines grid size of initial wavefront
 
+nslice = {{ simulationSettings_nslice }}
+sig_s = {{ simulationSettings_sig_s }} # rms length of Gaussian laser pulse [m]
+if nslice % 2 == 0:
+    nslice += 1
+
+lc = cavity.LaserCavity(
+    n0=n0,
+    n2=n2,
+    L_half_cryst=L_cryst / 2,
+    nslice=nslice,
+    drift_right_length=L_cav / 2 - L_cryst / 2,
+    drift_left_length=L_cav / 2 - L_cryst / 2,
+    lens_left_focal_length=L_cav / 4 + dfR,
+    lens_right_focal_length=L_cav / 4 + dfL,
+    sigrW=sigx0,
+    propLen=propLen,
+    sig_s=sig_s,
+    pulseE=pulseE,
+    poltype=poltype,
+    phE=wavefrontEnergy,
+    sampFact=sampFact,
+)
+
+save_laser_pulse('{{ initialLaserFile }}', lc)
+
 #---
 
-#Now we construct the initial wavefront at the center of cavity
-wfrCenter0=silasOpticsLib.createGsnSrcSRW(sigmaRCenter0,propLen,pulseE,poltype,wavefrontEnergy,sampFact,mx,my) #creates Gaussian wavefront in SRW
-(nx0,ny0)=(wfrCenter0.mesh.nx,wfrCenter0.mesh.ny)
-print("Initial wavefront calculated on a grid of %d x %d points" %(nx0,ny0))
-
-#---
-
-#Now build the different beamline elements we need to propagate to the right and to the left
-propagateHalfCrystal = [silasOpticsLib.createCrystal(n0,n2,L_cryst/2), L_cryst/2]
-propagateRight = [silasOpticsLib.createDriftLensBL2((L_cav-L_cryst)/2, L_cav/4 + dfR), (L_cav-L_cryst)/2]
-propagateLeft = [silasOpticsLib.createDriftLensBL2((L_cav-L_cryst)/2, L_cav/4 + dfL), (L_cav-L_cryst)/2]
-propagateDrift = [silasOpticsLib.createDriftBL(L_cav-L_cryst), (L_cav-L_cryst)/2]
-
-#---
-
-#Now construct a list of wavefront objects starting with initial wavefront wfrCenter0
-
-wfr = wfrCenter0
-count = 1
-pos = 0
-npass = {{ simulationSettings_n_reflections }}
-
-for i in range(npass):
-    for section in (
-        propagateHalfCrystal,
-        propagateRight,
-        propagateDrift,
-        propagateHalfCrystal,
-        propagateHalfCrystal,
-        propagateLeft,
-        propagateDrift,
-        propagateHalfCrystal,
-    ):
-        wavefront_to_hdf5(wfr, count, pos)
-        srwlib.srwl.PropagElecField(wfr, section[0])
-        pos += section[1]
+prev_position = -1
+count = 0
+def intensity_callback(position, vals):
+    global count, prev_position
+    # only record intensity if position has changed
+    if position - prev_position > 0:
         count += 1
-wavefront_to_hdf5(wfr, count, pos)
+        intensity_to_hdf5(count, position, vals)
+    prev_position = position
+
+lc.propagate(num_cycles={{ simulationSettings_n_reflections }}, callback=intensity_callback)
+
+save_laser_pulse('{{ finalLaserFile }}', lc)

@@ -4,7 +4,15 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.SINGLE_FRAME_ANIMATION = ['wavefrontSummaryAnimation', 'plotAnimation', 'plot2Animation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = [
+        'wavefrontSummaryAnimation',
+        'laserPulse1Animation',
+        'laserPulse2Animation',
+        'laserPulse3Animation',
+        'laserPulse4Animation',
+        'plotAnimation',
+        'plot2Animation',
+    ];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">',
           '<div data-select-element="" data-model="model" data-field="field"></div>',
@@ -76,6 +84,16 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     }
 
     self.hasFrames = frameCache.hasFrames;
+
+    self.hasLaserProfile = function(isInitial) {
+        if (! self.hasFrames()) {
+            return false;
+        }
+        if (isInitial) {
+            return true;
+        }
+        return self.simState.getPercentComplete() == 100;
+    };
 
     self.simHandleStatus = (data) => {
         if (! appState.isLoaded()) {
@@ -269,24 +287,10 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {
-
-    function computeCrystalFields() {
-        let m = appState.models.crystalCylinder;
-        m.radialDecay = m.diameter / 2 / 10;
-        m.longitudinalDecay = m.length / 2 / 4;
-    }
-
     $scope.whenSelected = () => {
         appState.models.crystalCylinder.crystalWidth = silasService.getCrystal().width;
         panelState.enableFields('crystalCylinder', [
             'crystalWidth', false,
         ]);
     };
-
-    $scope.watchFields = [
-        [
-            'crystalCylinder.diameter',
-            'crystalCylinder.length',
-        ], computeCrystalFields,
-    ];
 });

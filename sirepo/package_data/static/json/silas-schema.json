@@ -50,6 +50,10 @@
     "frameIdFields": {
         "animation": ["id"],
         "crystalAnimation": [],
+        "laserPulse1Animation": [],
+        "laserPulse2Animation": [],
+        "laserPulse3Animation": [],
+        "laserPulse4Animation": [],
         "wavefrontSummaryAnimation": ["element"],
         "plotAnimation": [],
         "plot2Animation": []
@@ -67,7 +71,8 @@
             "meshDensity": ["Mesh Density", "Integer", 25, "", 10, 1000],
             "time": ["Simulation Time [sec]", "Float", 5, "", 1e-24],
             "steps": ["Number of Time Steps", "Integer", 50, "", 1],
-            "plotInterval": ["Number of Intervals Between Records", "Integer", 10, "", 1]
+            "plotInterval": ["Number of Intervals Between Records", "Integer", 10, "", 1],
+            "tolerance": ["Boundary Tolerance", "Float", 9e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
         },
         "crystalCylinder": {
             "diameter": ["Crystal Diameter [cm]", "Float", 7, "", 1e-24],
@@ -84,6 +89,10 @@
             "polarization": ["Polarization", "GaussianBeamPolarization", "1"],
             "rmsSize": ["RMS Waist [µm]", "Float", 200]
         },
+        "laserPulse1Animation": {},
+        "laserPulse2Animation": {},
+        "laserPulse3Animation": {},
+        "laserPulse4Animation": {},
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
             "position": ["Central Position [m]", "Float"],
@@ -94,7 +103,9 @@
         "simulationSettings": {
             "n_reflections": ["Number of Reflections", "Integer", 15, "", 1, 10000],
             "cavity_length": ["Cavity Distance [m]", "Float", 10.0, "", 1e-6],
-            "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30]
+            "sample_factor": ["Sample Factor", "Float", 12.0, "Sampling factor for adjusting simulation grid resolution.", 1, 30],
+            "sig_s": ["Laser Pulse RMS Length [m]", "Float", 0.1],
+            "nslice": ["Laser Pulse Slice Count", "Integer", 11, "", 3]
         },
         "wavefrontSummaryAnimation": {
             "element": ["Beamline Element", "SelectElement", "all"]
@@ -125,7 +136,8 @@
                 "meshDensity",
                 "time",
                 "steps",
-                "plotInterval"
+                "plotInterval",
+                "tolerance"
             ],
             "advanced": []
         },
@@ -135,10 +147,10 @@
                 "diameter",
                 "crystalWidth",
                 "diffusionConstant",
+                "*Initial Temperator Due to Pump Laser:\n$f = A \\exp\\bigl( -(r/\\rho)^2 - (z/\\zeta)^2 \\bigr)$",
                 "amplitude",
                 "radialDecay",
-                "longitudinalDecay",
-                "*Expression:\n$f = A \\exp\\bigl( -(r/\\rho)^2 - (z/\\zeta)^2 \\bigr)$"
+                "longitudinalDecay"
             ],
             "advanced": []
         },
@@ -151,12 +163,28 @@
                 "focusingError"
             ]
         },
+        "laserPulse1Animation": {
+            "title": "RMS Beam Size Along Laser Pulse",
+            "advanced": []
+        },
+        "laserPulse2Animation": {
+            "title": "Intensity Along Laser Pulse",
+            "advanced": []
+        },
+        "laserPulse3Animation": {
+            "title": "RMS Beam Size Along Laser Pulse",
+            "advanced": []
+        },
+        "laserPulse4Animation": {
+            "title": "Intensity Along Laser Pulse",
+            "advanced": []
+        },
         "plotAnimation": {
-            "title": "Heat Decay Profile",
+            "title": "Radial Temperature Profile",
             "advanced": []
         },
         "plot2Animation": {
-            "title": "Heat Decay Profile",
+            "title": "Longitudinal Temperature Profile",
             "advanced": []
         },
         "simulationSettings": {
@@ -165,13 +193,17 @@
                 "n_reflections",
                 "cavity_length",
                 "gaussianBeam.rmsSize",
-                "sample_factor"
+                "sample_factor",
+                "sig_s",
+                "nslice"
             ],
             "advanced": [
                 ["Main", [
                     "n_reflections",
                     "cavity_length",
-                    "sample_factor"
+                    "sample_factor",
+                    "sig_s",
+                    "nslice"
                 ]],
                 ["Beam", [
                     "gaussianBeam.photonEnergy",
