@@ -1065,7 +1065,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
-        //$scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
         SINGLE_PLOTS.forEach(function(name) {
             frameCache.setFrameCount(0, name);
         });
@@ -1080,17 +1079,17 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         frameCache.setFrameCount(data.frameCount);
     };
 
-    self.startSimulation = function() {
-        self.solution = null;
-        $scope.$broadcast('solveStarted', self.simState);
-        self.simState.saveAndRunSimulation('simulation');
-    };
 
     self.simState = persistentSimulation.initSimulationState(self);
 
     $scope.$on('simulation.editor.show', function(e, o) {
         panelState.enableField('simulation', 'magnetType', false);
     });
+
+    $scope.$on('framesCleared', function () {
+        self.solution = null;
+    });
+
 
 });
 
@@ -3093,8 +3092,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     function(d) {
                         //srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
-                            $scope.viz.simState.state ='completed';
-                            $scope.viz.solution = d.solution;
                             setupSceneData(d);
                             return;
                         }
@@ -3194,9 +3191,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.$on('$destroy', function () {
                 $element.off();
-            });
-
-            $scope.$on('solveStarted', function (e, d) {
             });
 
         },
