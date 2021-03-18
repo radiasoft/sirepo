@@ -5,7 +5,21 @@
         }
     },
     "constants": {
-        "maxBPMPoints": 10
+        "maxBPMPoints": 10,
+        "readoutElements": {
+            "HKICKER": {
+                "fields": ["kick"]
+            },
+            "KICKER": {
+                "fields": ["hkick", "vkick"]
+            },
+            "QUADRUPOLE": {
+                "fields": ["k1"]
+            },
+            "VKICKER": {
+                "fields": ["kick"]
+            }
+        }
     },
     "dynamicFiles": {
         "sirepoLibs": {

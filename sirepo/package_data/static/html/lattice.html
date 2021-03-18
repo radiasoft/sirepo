@@ -67,9 +67,9 @@
   </svg></div>
   <div><svg ng-attr-width="{{ width }}" ng-attr-height="{{ readoutHeight }}">
       <g>
-        <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
-          <g ng-repeat="item in ::group.items track by item.trackHash" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
-            <text ng-attr-x="{{ margin }}" ng-attr-y="{{ 10 * $index }}">{{ $index }}</text>
+        <g ng-repeat="group in svgGroups track by group.trackHash">
+          <g ng-repeat="item in ::group.items  | filter:hasReadout track by item.trackHash">
+            <text ng-attr-x="{{ margin }}" ng-attr-y="{{ 20 * $index }}">{{ item.element.name }}</text>
           </g>
         </g>
       </g>

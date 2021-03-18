@@ -1254,6 +1254,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             var picTypeCache = null;
             var svgBounds = null;
             let numReadouts = 0;
+            let numReadoutCols = 2;
             var zoom = null;
             var zoomScale = 1;
             const ABSOLUTE_POSITION_TYPE = 'absolutePosition';
@@ -1692,12 +1693,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var groupDone = false;
                 for (var i = 0; i < explodedItems.length; i++) {
                     var item = explodedItems[i];
-                    if (item.type === 'KICKER' || item.type.indexOf('MONITOR') >= 0) {
-                        numReadouts += 2;
-                    }
-                    if (item.type === 'HKICKER' || item.type === 'VKICKER' || item.type === 'QUADRUPOLE') {
-                        numReadouts += 1;
-                    }
+                    numReadouts += hasReadout(item) ? 1 : 0;
                     if (groupDone || item.type == ABSOLUTE_POSITION_TYPE) {
                         applyGroup(group, pos);
                         group = [];
@@ -1940,6 +1936,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 latticeService.editElement(item.type, item);
             };
 
+            $scope.hasReadout = function(item) {
+                return hasReadout(item.element);
+            };
+
+            function hasReadout(element) {
+                let e = SIREPO.APP_SCHEMA.constants.readoutElements[element.type];
+                return ((e || {}).fields || []).length > 0;
+            }
+
             $scope.resize = function() {
                 if (select().empty()) {
                     return;
@@ -1958,9 +1963,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 if ($scope.height > windowHeight / maxHeightFactor) {
                     $scope.height = windowHeight / maxHeightFactor;
                 }
-                srdbg(`add space for ${numReadouts} readouts: ${20 * Math.ceil(numReadouts / 2)}`);
-                $scope.readoutHeight = 20 * Math.ceil(numReadouts / 2);
-                //$scope.height += $scope.readoutHeight;
+                $scope.readoutHeight = 20 * Math.ceil(numReadouts / numReadoutCols);
 
                 if (svgBounds) {
                     var w = svgBounds[2] - svgBounds[0];
