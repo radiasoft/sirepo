@@ -60,9 +60,18 @@
           </g>
         </g>
       </g>
-      <g data-ng-if="markerUnits" ng-attr-transform="translate({{ width - margin - 40 }},{{ height - margin - 15 }})">
+      <g data-ng-if="markerUnits" ng-attr-transform="translate({{ width - margin - 40 }},{{ width - margin - 15 }})">
         <path ng-attr-d="{{ 'M-' + markerWidth + ' -26 L -' + markerWidth + ' 14 M-' + markerWidth + ' -6 L 0 -6 M 0 -26 L 0 14' }}" style="stroke: black; stroke-width: 1" />
         <text dx="5" style="font-size: 12px">{{ markerUnits }}</text>
+      </g>
+  </svg></div>
+  <div><svg ng-attr-width="{{ width }}" ng-attr-height="{{ readoutHeight }}">
+      <g>
+        <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
+          <g ng-repeat="item in ::group.items track by item.trackHash" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
+            <text ng-attr-x="{{ margin }}" ng-attr-y="{{ 10 * $index }}">{{ $index }}</text>
+          </g>
+        </g>
       </g>
   </svg></div>
 </div>
