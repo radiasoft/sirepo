@@ -6,8 +6,14 @@ var srdbg = SIREPO.srdbg;
 //import {SirepoDOM, SirepoSelection, SirepoSelectionOption} from './sirepo-dom.module';
 
 SIREPO.app.config(function() {
+    // test enums
+    let tst = ['FieldType', 'FieldScaling'].map(function (e) {
+        return (SIREPO.DOM.UIEnum.enumMatch(e)).toTemplate();
+    }).join('');
+
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
+    SIREPO.appFieldEditors += tst;
     SIREPO.appFieldEditors += [
         //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
         //...new SirepoSelection('MaterialType', false).val,

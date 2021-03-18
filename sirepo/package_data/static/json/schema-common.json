@@ -227,8 +227,11 @@
             },
             "sirepoLibs": {
                 "js": [
+                    "sirepo-utils.js",
+                    "sirepo-dom.js",
                     "sirepo-common.js",
                     "sirepo-components.js",
+                    "sirepo-model.js",
                     "sirepo-plotting.js",
                     "sirepo-plotting-vtk.js",
                     "sirepo-geometry.js"
