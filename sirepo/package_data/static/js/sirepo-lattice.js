@@ -1239,7 +1239,7 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
     };
 });
 
-SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, utilities, $rootScope, $window) {
+SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, utilities, $rootScope, $sce, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1782,6 +1782,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return picTypeCache[type];
             }
 
+            function hasReadout(element) {
+                let e = SIREPO.APP_SCHEMA.constants.readoutElements[element.type];
+                return readoutFields(element).length > 0;
+            }
+
+            function readoutFields(element) {
+                return (SIREPO.APP_SCHEMA.constants.readoutElements[element.type] || {}).fields || [];
+            }
+
             function isAngleItem(picType) {
                 return picType == 'bend' || picType == 'alpha' || picType == 'mirror' || picType == 'malign';
             }
@@ -1825,6 +1834,47 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     appState.saveQuietly('beamlines');
                 }
                 $scope.resize();
+            }
+
+            function readoutDOM() {
+                let g = new SIREPO.DOM.UIElement('g', 'sr-lattice-readouts');
+                let i = 0;
+                for (let element of readoutElements()) {
+                    let t = new SIREPO.DOM.UIElement('text', `${element.name}-readout`, [
+                        new SIREPO.DOM.UIAttribute('x', $scope.margin + 250 * (i % numReadoutCols)),
+                        new SIREPO.DOM.UIAttribute('y', 20 + 20 * Math.floor(i / numReadoutCols)),
+                    ]);
+                    t.text = `${element.name}: `;
+                    for (let f of readoutFields(element)) {
+                        t.text += `${f} = ${element[f]};&nbsp;`;
+                    }
+                    g.addChild(t);
+                    ++i;
+                }
+                return g;
+            }
+
+            function readoutElements() {
+                let elements = [];
+                for (let group of $scope.svgGroups) {
+                    elements.push(...group.items.map(function (item) {
+                        return item.element;
+                    }).filter(hasReadout));
+                }
+                return elements;
+            }
+
+            function setReadout(element, field, value) {
+                let d = readoutDOM();
+                let r = d.getChild(`${element.name}-readout`);
+                if (! r) {
+                    return;
+                }
+
+            }
+
+            function svgTable(data, numCols, borderStyle) {
+
             }
 
             function recalcScaleMarker() {
@@ -1936,14 +1986,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 latticeService.editElement(item.type, item);
             };
 
-            $scope.hasReadout = function(item) {
-                return hasReadout(item.element);
+            $scope.readoutHTML = function() {
+                return $sce.trustAsHtml(readoutDOM().toTemplate());
             };
-
-            function hasReadout(element) {
-                let e = SIREPO.APP_SCHEMA.constants.readoutElements[element.type];
-                return ((e || {}).fields || []).length > 0;
-            }
 
             $scope.resize = function() {
                 if (select().empty()) {

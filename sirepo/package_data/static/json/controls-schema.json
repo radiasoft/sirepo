@@ -25,6 +25,7 @@
         "sirepoLibs": {
             "js": [
                 "controls.js",
+                "sirepo-dom.js",
                 "sirepo-lattice.js"
             ],
              "css": [
