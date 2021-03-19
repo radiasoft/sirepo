@@ -223,12 +223,12 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
                 t = r.pop(0)
                 plots.append(PKDict(
                     points=[float(v) for v in r],
-                    label='{:.3f} seconds [°C]'.format(float(t)),
+                    label='{:.1f} sec'.format(float(t)),
                 ))
     return PKDict(
         title='',
         x_range=[min(x), max(x)],
-        y_label='',
+        y_label='Temperature [°C]',
         x_label=x_heading,
         x_points=x,
         plots=plots,

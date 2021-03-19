@@ -54,9 +54,10 @@ A = {{ crystalCylinder_amplitude }}
 rho =  {{ crystalCylinder_radialDecay }}
 # longitudinal decay length
 zeta = {{ crystalCylinder_longitudinalDecay }}
+deg_sg = {{ crystalCylinder_supergaussian }}
 u_0 = fenics.Expression(
-    'A * exp( -(pow(x[0],2) + pow(x[1],2)) / pow(rho,2) - pow(x[2]/zeta,2) )',
-    degree=1, A=A, rho=rho, zeta=zeta)
+    'A * exp( -pow((pow(x[0],2) + pow(x[1],2)) / pow(rho,2), deg_sg) - pow(pow(x[2]/zeta,2), deg_sg))',
+    degree=2, A=A, rho=rho, zeta=zeta, deg_sg=deg_sg)
 u_n = fenics.interpolate(u_0, V)
 
 # define the variational problem: u' = D.∆u
@@ -120,22 +121,17 @@ def write_row(name, time, values, mode='a'):
         f.write('{},{},{}\n'.format(name, time, ','.join([str(x) for x in values])))
 
 tol = {{ crystalSettings_tolerance }} # avoid points outside domain (for a coarse mesh, increase this value)
-xv = np.linspace(xmin * (1 - tol), xmax * (1 - tol), 1000)
-zv = np.linspace(zmin * (1 - tol), zmax * (1 - tol), 1000)
+xv = np.linspace(xmin * (1 - tol), xmax * (1 - tol), 201)
+zv = np.linspace(zmin * (1 - tol), zmax * (1 - tol), 201)
 radpts = [(x_, 0, 0) for x_ in xv]
 axipts = [(0, 0, z_) for z_ in zv]
 
 write_row('xv', 0, xv, 'w')
 write_row('zv', 0, zv)
 
-idx = 0
 for t, u in evolve():
-    idx += 1
     ux = np.array([u(pt) for pt in radpts])
     uz = np.array([u(pt) for pt in axipts])
-    # fig1.plot(xv, ux, lw=1)
-    # fig2.plot(zv, uz, lw=1)
-    #res.append([ux, uz])
     write_row('ux', t, ux)
     write_row('uz', t, uz)
 

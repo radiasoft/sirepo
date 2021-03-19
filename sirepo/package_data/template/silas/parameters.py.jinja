@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from scipy import ndimage, constants
+from pykern.pkcollections import PKDict
 from rslaser import cavity
+from scipy import ndimage, constants
 import array
 import h5py
 import math
@@ -41,13 +42,16 @@ def intensity_to_hdf5(count, pos, vals):
 
 
 def save_laser_pulse(filename, cav):
-    (lpsxvals,lpsyvals,svals) = cav.laser_pulse.rmsvals()
-    (ivals,svals) = cav.laser_pulse.intensity_vals()
+    svals = cav.laser_pulse.pulsePos()
+    (lpsxvals,lpsyvals) = cav.laser_pulse.rmsvals()
+    ivals = cav.laser_pulse.intensity_vals()
+    evals = cav.laser_pulse.energyvals()
     np.save(filename, np.array([
         svals,
         lpsxvals,
         lpsyvals,
         ivals,
+        evals,
     ]))
 
 #---
@@ -82,7 +86,7 @@ sig_s = {{ simulationSettings_sig_s }} # rms length of Gaussian laser pulse [m]
 if nslice % 2 == 0:
     nslice += 1
 
-lc = cavity.LaserCavity(
+lc = cavity.LaserCavity(PKDict(
     n0=n0,
     n2=n2,
     L_half_cryst=L_cryst / 2,
@@ -98,7 +102,7 @@ lc = cavity.LaserCavity(
     poltype=poltype,
     phE=wavefrontEnergy,
     sampFact=sampFact,
-)
+))
 
 save_laser_pulse('{{ initialLaserFile }}', lc)
 
