@@ -7,7 +7,7 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
-SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
+SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -523,7 +523,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = 255;
                 }
             }
-            cacheCanvas.getContext('2d').putImageData(img, 0, 0);
+            try {
+                cacheCanvas.getContext('2d').putImageData(img, 0, 0);
+            }
+            catch (e) {
+                throw new Error('Plot data size is not supported by the browser');
+            }
             return colorScale;
         },
 
@@ -766,6 +771,28 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             var g = range * ((((c - b) / 256) % 256) / 256.0);
             var r = range * (((c - b - 256 * g) / (256 * 256)) / 256.0);
             return [r, g, b];
+        },
+
+        safeHeatmap: function(heatmap) {
+            const FIREFOX_MAX_SIZE = 16384;
+            // special case for Firefox which limits canvas dimensions
+            // no sampling: just cut array size in half until proper size is reached
+            if ($window.navigator.userAgent.indexOf('Firefox') >= 0) {
+                while (heatmap[0].length > FIREFOX_MAX_SIZE) {
+                    const rows = heatmap.length;
+                    for (let i = 0; i < rows; i++) {
+                        heatmap[i] = heatmap[i].filter((d, idx) => idx % 2 == 0);
+                    }
+                }
+                while (heatmap.length > FIREFOX_MAX_SIZE) {
+                    const rows = parseInt(heatmap.length / 2);
+                    for (let i = 0; i < rows; i++) {
+                        heatmap[i] = heatmap[i * 2];
+                    }
+                    heatmap.length = rows;
+                }
+            }
+            return heatmap;
         },
 
         scaleFunction: function(modelName) {
@@ -2739,17 +2766,17 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 prevDomain = null;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
-                heatmap = appState.clone(json.z_matrix).reverse();
+                heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],
                     [json.y_range[0], json.y_range[1]],
                 ];
-                if ((axes.y.values && axes.y.values.length != json.z_matrix.length)
+                if ((axes.y.values && axes.y.values.length != heatmap.length)
                     || ! appState.deepEquals(fullDomain, newFullDomain)) {
                     fullDomain = newFullDomain;
                     lineOuts = {};
-                    axes.x.values = plotting.linearlySpacedArray(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
-                    axes.y.values = plotting.linearlySpacedArray(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
+                    axes.x.values = plotting.linearlySpacedArray(fullDomain[0][0], fullDomain[0][1], heatmap[0].length);
+                    axes.y.values = plotting.linearlySpacedArray(fullDomain[1][0], fullDomain[1][1], heatmap.length);
                     axes.x.scale.domain(fullDomain[0]);
                     axes.x.indexScale.domain(fullDomain[0]);
                     axes.y.scale.domain(fullDomain[1]);
@@ -3047,7 +3074,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
-                heatmap = appState.clone(json.z_matrix).reverse();
+                heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 globalMin = json.global_min;
                 globalMax = json.global_max;
                 select('.main-title').text(json.title);
