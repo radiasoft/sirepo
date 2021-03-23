@@ -362,7 +362,7 @@ def require_user():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     u = _get_user()
     if s is None:
-        e = 'no user in cookie'
+        pass
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
             f = getattr(_METHOD_MODULES[m], 'validate_login', None)
@@ -395,8 +395,9 @@ def require_user():
         cookie.reset_state('uid={} state={} invalid, cannot continue'.format(s, u))
         p = PKDict(reload_js=True)
         e = 'invalid cookie state={} uid={}'.format(s, u)
-    pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
-    raise util.SRException(r, p, 'user not logged in: {}', e)
+    if e:
+        pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
+    raise util.SRException(r, p, 'user not logged in: {}', e or 'no user in cookie')
 
 
 def reset_state():
