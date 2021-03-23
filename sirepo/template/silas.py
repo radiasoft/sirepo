@@ -23,7 +23,8 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = 'crystal.csv'
 _SUMMARY_CSV_FILE = 'wavefront.csv'
-
+_INITIAL_LASER_FILE = 'initial-laser.npy'
+_FINAL_LASER_FILE = 'final-laser.npy'
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -51,7 +52,7 @@ def background_percent_complete(report, run_dir, is_running):
         if count > 2:
             plot_count = int((count - 2) / 2)
             res.frameCount = plot_count
-            res.percentComplete = plot_count * 100 / (data.models.crystalSettings.steps / data.models.crystalSettings.plotInterval)
+            res.percentComplete = plot_count * 100 / (1 + data.models.crystalSettings.steps / data.models.crystalSettings.plotInterval)
     return res
 
 
@@ -59,9 +60,14 @@ def get_application_data(data, **kwargs):
     if data['method'] == 'compute_rms_size':
         return _compute_rms_size(data)
 
+def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    return _parse_silas_log(run_dir)
+
 
 def python_source_for_model(data, model):
-    if model in ('plotAnimation', 'plot2Animation'):
+    if model in ('crystal3dAnimation', 'plotAnimation', 'plot2Animation'):
         data.report = 'crystalAnimation'
     else:
         data.report = 'animation'
@@ -97,12 +103,39 @@ def sim_frame(frame_args):
         )
 
 
+def sim_frame_crystal3dAnimation(frame_args):
+    intensity = np.load('intensity.npy')
+    return PKDict(
+        title=' ',
+        indices=np.load('indices.npy').flatten().tolist(),
+        vertices=np.load('vertices.npy').flatten().tolist(),
+        intensity=intensity.tolist(),
+        intensity_range=[np.min(intensity), np.max(intensity)],
+    )
+
+
+def sim_frame_laserPulse1Animation(frame_args):
+    return _laser_pulse_report(1, _INITIAL_LASER_FILE, 'Before Propagation', 'RMS x [m]')
+
+
+def sim_frame_laserPulse2Animation(frame_args):
+    return _laser_pulse_report(3, _INITIAL_LASER_FILE, 'Before Propagation', 'Pulse Intensity')
+
+
+def sim_frame_laserPulse3Animation(frame_args):
+    return _laser_pulse_report(1, _FINAL_LASER_FILE, 'After Propagation', 'RMS x [m]')
+
+
+def sim_frame_laserPulse4Animation(frame_args):
+    return _laser_pulse_report(3, _FINAL_LASER_FILE, 'After Propagation', 'Pulse Intensity')
+
+
 def sim_frame_plotAnimation(frame_args):
     return _crystal_plot(frame_args, 'xv', 'ux', '[m]', 1e-2)
 
 
 def sim_frame_plot2Animation(frame_args):
-    return _crystal_plot(frame_args, 'zv', 'uz', '[rad]', 1)
+    return _crystal_plot(frame_args, 'zv', 'uz', '[m]', 1e-2)
 
 
 def sim_frame_wavefrontSummaryAnimation(frame_args):
@@ -201,12 +234,12 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
                 t = r.pop(0)
                 plots.append(PKDict(
                     points=[float(v) for v in r],
-                    label='{:.3f} seconds [degrees C]'.format(float(t)),
+                    label='{:.1f} sec'.format(float(t)),
                 ))
     return PKDict(
         title='',
         x_range=[min(x), max(x)],
-        y_label='',
+        y_label='Temperature [°C]',
         x_label=x_heading,
         x_points=x,
         plots=plots,
@@ -227,6 +260,8 @@ def _generate_parameters_file(data):
         v.leftMirrorFocusingError = beamline[0].focusingError
         v.rightMirrorFocusingError = beamline[-1].focusingError
         v.summaryCSV = _SUMMARY_CSV_FILE
+        v.initialLaserFile = _INITIAL_LASER_FILE
+        v.finalLaserFile = _FINAL_LASER_FILE
         return res + template_common.render_jinja(SIM_TYPE, v)
     if data.report == 'crystalAnimation':
         res, v = template_common.generate_parameters_file(data)
@@ -237,6 +272,43 @@ def _generate_parameters_file(data):
 
 def _get_crystal(data):
     return data.models.beamline[1]
+
+
+def _laser_pulse_report(value_index, filename, title, label):
+    values = np.load(filename)
+    return template_common.parameter_plot(
+        values[0].tolist(),
+        [
+            PKDict(
+                points=values[value_index].tolist(),
+                label=label,
+            ),
+        ],
+        PKDict(),
+        PKDict(
+            title=title,
+            y_label='',
+            x_label='s [m]',
+        ),
+    )
+
+
+def _parse_silas_log(run_dir):
+    res = ''
+    path = run_dir.join(template_common.RUN_LOG)
+    if not path.exists():
+        return res
+    with pkio.open_text(str(path)) as f:
+        for line in f:
+            m = re.search(r'^\s*\*+\s+Error:\s+(.*)$', line)
+            if m:
+                err = m.group(1)
+                if re.search('Unable to evaluate function at point', err):
+                    return 'Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance.'
+                res += err + '\n'
+    if res:
+        return res
+    return 'An unknown error occurred'
 
 
 def _summary_data(frame_args):

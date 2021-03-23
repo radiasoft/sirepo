@@ -8,6 +8,7 @@ import re
 import scipy
 import subprocess
 import sys
+import json
 
 _MAX_VALUE = 1.0
 
@@ -111,8 +112,6 @@ result = minimize(
         'initial_simplex': build_simplex(np.array(bounds)),
         'adaptive': True,
     })
-
-import json
 
 with open('{{ optimizerResultFile }}', 'w') as f:
     json.dump({

@@ -21,8 +21,6 @@ wp.package("w3d")
 wp.generate()
 solverE.mgmaxiters = 100
 
-import time
-
 def analyze_scraped_particles2(top, particles, conductors):
     # reworked ConductorDiagnostics.analyze_scraped_particles
     # to pass in full conductor list, not just the ones registered with the solver
@@ -83,4 +81,3 @@ while time.time() < end_time:
     num_steps = {{ optimizer_optimizerSteps }}
     prev_counts = counts
     prev_result = output['result']
-

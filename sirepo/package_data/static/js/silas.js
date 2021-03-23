@@ -4,7 +4,16 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.SINGLE_FRAME_ANIMATION = ['wavefrontSummaryAnimation', 'plotAnimation', 'plot2Animation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = [
+        'wavefrontSummaryAnimation',
+        'laserPulse1Animation',
+        'laserPulse2Animation',
+        'laserPulse3Animation',
+        'laserPulse4Animation',
+        'plotAnimation',
+        'plot2Animation',
+        'crystal3dAnimation',
+    ];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">',
           '<div data-select-element="" data-model="model" data-field="field"></div>',
@@ -13,12 +22,15 @@ SIREPO.app.config(function() {
     SIREPO.appDownloadLinks = [
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+    ].join('');
 });
 
 SIREPO.app.factory('silasService', function(appState) {
     var self = {};
     self.computeModel = (analysisModel) => {
-        if (['crystalAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
+        if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
         return 'animation';
@@ -77,6 +89,16 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
 
     self.hasFrames = frameCache.hasFrames;
 
+    self.hasLaserProfile = function(isInitial) {
+        if (! self.hasFrames()) {
+            return false;
+        }
+        if (isInitial) {
+            return true;
+        }
+        return self.simState.getPercentComplete() == 100;
+    };
+
     self.simHandleStatus = (data) => {
         if (! appState.isLoaded()) {
             return;
@@ -126,6 +148,10 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
     self.appState = appState;
     self.simScope = $scope;
     self.simAnalysisModel = 'crystalAnimation';
+
+    self.hasCrystal3d = function() {
+        return frameCache.hasFrames() && self.simState.getPercentComplete() == 100;
+    };
 
     self.simHandleStatus = (data) => {
         if (! appState.isLoaded()) {
@@ -269,24 +295,187 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {
-
-    function computeCrystalFields() {
-        let m = appState.models.crystalCylinder;
-        m.radialDecay = m.diameter / 2 / 10;
-        m.longitudinalDecay = m.length / 2 / 4;
-    }
-
     $scope.whenSelected = () => {
         appState.models.crystalCylinder.crystalWidth = silasService.getCrystal().width;
         panelState.enableFields('crystalCylinder', [
             'crystalWidth', false,
         ]);
     };
+});
 
-    $scope.watchFields = [
-        [
-            'crystalCylinder.diameter',
-            'crystalCylinder.length',
-        ], computeCrystalFields,
-    ];
+SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: [
+            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
+              '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let data, fsRenderer, orientationMarker;
+            let mapName = 'Viridis (matplotlib)';
+            let wantEdges = true;
+            let zBound = 0;
+
+            $scope.margin = {
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+            };
+
+            function checkBounds(idx) {
+                let verts = data.vertices;
+                let indices = data.indices;
+                for (let i = 0; i < 3; i++) {
+                    var v = verts[indices[idx + i] * 3 + 2];
+                    if (v > zBound) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // use function in vtk ScalarsToColors if it become public
+            function floatColorToUChar(c) {
+                return Math.floor(c * 255.0 + 0.5);
+            }
+
+            function getIntensityColors(polyData) {
+                let cf = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+                cf.applyColorMap(
+                    vtk.Rendering.Core.vtkColorTransferFunction.vtkColorMaps.getPresetByName(mapName));
+                cf.setMappingRange(...data.intensity_range);
+                let rgb = [];
+                let colors = [];
+                for (let i = 0; i < polyData.PointColor.length; i++) {
+                    cf.getColor(polyData.PointColor[i], rgb);
+                    colors.push(
+                        floatColorToUChar(rgb[0]),
+                        floatColorToUChar(rgb[1]),
+                        floatColorToUChar(rgb[2]));
+                }
+                return colors;
+            }
+
+            function getPolys(polyData) {
+                let polys = [];
+                let polyIdx = 0;
+                for (let i = 0; i < polyData.PolyLen.length; i++) {
+                    let len = polyData.PolyLen[i];
+                    polys.push(len);
+                    for (let j = 0; j < len; j++) {
+                        polys.push(polyData.PolyInd[polyIdx]);
+                        polyIdx++;
+                    }
+                }
+                return polys;
+            }
+
+            function getPolyData() {
+                let len = [];
+                let indices = [];
+                let verts = data.vertices;
+                for (let i = 0; i < data.indices.length; i += 3) {
+                    if (checkBounds(i)) {
+                        indices.push(data.indices[i], data.indices[i + 1], data.indices[i + 2]);
+                        len.push(3);
+                    }
+                }
+                return {
+                    PolyVert: verts,
+                    PolyInd: indices,
+                    PolyLen: len,
+                    PointColor: data.intensity,
+                };
+            }
+
+            function getVtkElement() {
+                return $($element).find('.vtk-canvas-holder');
+            }
+
+            function polyActor(polyData) {
+                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                let actor = vtk.Rendering.Core.vtkActor.newInstance();
+                mapper.setInputData(polyData);
+                actor.setMapper(mapper);
+                actor.getProperty().setLighting(false);
+                if (wantEdges) {
+                    actor.getProperty().setEdgeVisibility(true);
+                    actor.getProperty().setEdgeColor(0.5, 0.5, 0.5);
+                }
+                return actor;
+            }
+
+            function refresh(resetCamera) {
+                removeActors();
+                let polyData = getPolyData();
+                let pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(new window.Float32Array(polyData.PolyVert), 3);
+                pd.getPolys().setData(new window.Uint32Array(getPolys(polyData)));
+                pd.getPointData().setScalars(vtk.Common.Core.vtkDataArray.newInstance({
+                    numberOfComponents: 3,
+                    values: getIntensityColors(polyData),
+                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                }));
+                fsRenderer.getRenderer().addActor(polyActor(pd));
+                let renderer = fsRenderer.getRenderer();
+                if (resetCamera) {
+                    let camera = renderer.get().activeCamera;
+                    camera.setPosition(0, -1, 0.5);
+                    camera.setFocalPoint(0, 0, 0);
+                    camera.setViewUp(0, 1, 0);
+                    renderer.resetCamera();
+                    camera.zoom(1.3);
+                    orientationMarker.updateMarkerOrientation();
+                }
+                fsRenderer.getRenderWindow().render();
+            }
+
+            function removeActors() {
+                let renderer = fsRenderer.getRenderer();
+                renderer.getActors().forEach((actor) => renderer.removeActor(actor));
+            }
+
+            $scope.destroy = function() {
+                getVtkElement().off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+            };
+
+            $scope.init = function() {
+                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+                let rw = getVtkElement();
+                rw.on('dblclick', () => refresh(true));
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 0.97647, 0.929412],
+                    container: rw[0],
+                });
+                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    interactor: fsRenderer.getInteractor()
+                });
+                orientationMarker.setEnabled(true);
+                orientationMarker.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+            };
+
+            $scope.load = function(json) {
+                data = json;
+                refresh(true);
+            };
+
+            $scope.resize = refresh;
+        },
+        link: function link(scope, element) {
+            plotting.vtkPlot(scope, element);
+        },
+    };
 });
