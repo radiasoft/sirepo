@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import server
@@ -105,7 +105,7 @@ def _run_tests():
 
 def _validate_auth_state():
     r = pkcompat.from_bytes(uri_router.call_api('authState').data)
-    m = re.search(r'SIREPO.authState = (.*?);', r)
-    assert m, f'no authState in response: {r}'
+    m = re.search(r'SIREPO.authState\s*=\s*(.*?);', r)
+    assert m, pkdformat('no authState in response={}', r)
     assert pkjson.load_any(m.group(1)).isLoggedIn, \
-        'expecting isLoggedIn: {m.group(1)}'
+        pkdformat('expecting isLoggedIn=', m.group(1))
