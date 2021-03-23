@@ -5,9 +5,10 @@ u"""Sirepo web server status for remote monitoring
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkconfig
 from pykern import pkcompat
+from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkunit import pkre
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import server
@@ -52,6 +53,10 @@ def init_apis(*args, **kwargs):
 
 def _run_tests():
     """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
+    pkre(
+        r'"isLoggedIn": true',
+        pkcompat.from_bytes(uri_router.call_api('authState').data),
+    )
     simulation_type = _SIM_TYPE
     res = uri_router.call_api(
         'findByNameWithAuth',
