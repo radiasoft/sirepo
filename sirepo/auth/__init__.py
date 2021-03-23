@@ -395,9 +395,8 @@ def require_user():
         cookie.reset_state('uid={} state={} invalid, cannot continue'.format(s, u))
         p = PKDict(reload_js=True)
         e = 'invalid cookie state={} uid={}'.format(s, u)
-    if e:
-        pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
-    raise util.SRException(r, p, 'user not logged in: {}', e or 'no user in cookie')
+    pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
+    raise util.SRException(r, p, *(('user not logged in: {}', e) if e else ()))
 
 
 def reset_state():
