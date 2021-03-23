@@ -17,7 +17,8 @@
     "dynamicFiles": {
         "externalLibs": {
             "js": [
-                "dom-to-image.min.js"
+                "dom-to-image.min.js",
+                "vtk.js"
             ]
         },
         "sirepoLibs": {
@@ -27,7 +28,8 @@
             ],
             "css": [
                 "srw.css",
-                "silas.css"
+                "silas.css",
+                "vtk.css"
             ]
         }
     },
@@ -50,6 +52,7 @@
     "frameIdFields": {
         "animation": ["id"],
         "crystalAnimation": [],
+        "crystal3dAnimation": [],
         "laserPulse1Animation": [],
         "laserPulse2Animation": [],
         "laserPulse3Animation": [],
@@ -83,6 +86,7 @@
             "longitudinalDecay": ["zeta $\\zeta$ [cm]", "Float", 0.5, "Longitudinal Decay Length"],
             "supergaussian": ["P", "Integer", 10, "Supergaussian degree", 1, 12]
         },
+        "crystal3dAnimation": {},
         "gaussianBeam": {
             "energyPerPulse": ["Energy per Pulse [J]", "Float", 0.001],
             "initialPropagationLength": ["Initial Propagation Length [m]", "Float", 15],
@@ -154,6 +158,10 @@
                 "longitudinalDecay",
                 "supergaussian"
             ],
+            "advanced": []
+        },
+        "crystal3dAnimation": {
+            "title": "Crystal 3D Mesh",
             "advanced": []
         },
         "mirror": {

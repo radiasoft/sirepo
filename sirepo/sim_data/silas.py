@@ -18,6 +18,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm,
             (
                 'crystalAnimation',
+                'crystal3dAnimation',
                 'crystalCylinder',
                 'crystalSettings',
                 'gaussianBeam',
@@ -33,7 +34,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if analysis_model in ('crystalAnimation', 'plotAnimation', 'plot2Animation'):
+        if analysis_model in ('crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'):
             return 'crystalAnimation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 

@@ -67,7 +67,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
 
 
 def python_source_for_model(data, model):
-    if model in ('plotAnimation', 'plot2Animation'):
+    if model in ('crystal3dAnimation', 'plotAnimation', 'plot2Animation'):
         data.report = 'crystalAnimation'
     else:
         data.report = 'animation'
@@ -101,6 +101,17 @@ def sim_frame(frame_args):
             z_matrix=points.tolist(),
             summaryData=_summary_data(frame_args),
         )
+
+
+def sim_frame_crystal3dAnimation(frame_args):
+    intensity = np.load('intensity.npy')
+    return PKDict(
+        title=' ',
+        indices=np.load('indices.npy').flatten().tolist(),
+        vertices=np.load('vertices.npy').flatten().tolist(),
+        intensity=intensity.tolist(),
+        intensity_range=[np.min(intensity), np.max(intensity)],
+    )
 
 
 def sim_frame_laserPulse1Animation(frame_args):
