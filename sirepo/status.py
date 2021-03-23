@@ -108,4 +108,4 @@ def _validate_auth_state():
     m = re.search(r'SIREPO.authState\s*=\s*(.*?);', r)
     assert m, pkdformat('no authState in response={}', r)
     assert pkjson.load_any(m.group(1)).isLoggedIn, \
-        pkdformat('expecting isLoggedIn=', m.group(1))
+        pkdformat('expecting isLoggedIn={}', m.group(1))
