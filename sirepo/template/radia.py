@@ -92,11 +92,14 @@ def background_percent_complete(report, run_dir, is_running):
         #data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         res.percentComplete = 0.0  #_compute_percent_complete(data, last_element)
         return res
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-        solution=_read_solution(data.simulationId),  #output_info,
-    )
+    res.percentComplete = 100
+    res.frameCount = 1
+    if report == 'solver':
+        res.solution = _read_solution(data.simulationId)
+    #if report == 'kickMap':
+    #    res = _kick_map_plot(data.simulationId, data.models.kickMap)
+    return res
+
 
 
 def create_archive(sim):
@@ -258,7 +261,6 @@ def write_parameters(data, run_dir, is_parallel):
     if data.report in _SIM_REPORTS:
         pkio.unchecked_remove(_geom_file(sim_id))
     if data.report == 'kickMap':
-        #is_parallel = True
         pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),

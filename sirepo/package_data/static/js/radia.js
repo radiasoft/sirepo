@@ -223,13 +223,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         }).length;
     }
 
-    function toFloat(v) {
-        return parseFloat('' + v);
-    }
-    function toInt(v) {
-        return parseInt('' + v);
-    }
-
     function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.pathPtsFileType) {
         fileUpload.uploadFileToUrl(
             inputFile,
@@ -1048,7 +1041,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-    var SINGLE_PLOTS = ['magnetViewer'];
+    var SINGLE_PLOTS = ['magnetViewer', 'kickMap'];
     var self = this;
     self.simScope = $scope;
     $scope.mpiCores = 0;

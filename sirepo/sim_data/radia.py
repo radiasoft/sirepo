@@ -39,6 +39,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         #is_p = m in (
         #    'kickMap',
         #)
+        #pkdp(f'CHECK IS_P FOR {m}: {is_p}')
         #return is_p
 
     @classmethod

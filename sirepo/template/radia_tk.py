@@ -1,8 +1,11 @@
+
 import numpy
 import radia
 import re
 import sirepo.util
 import sys
+
+from mpi4py import MPI
 
 from numpy import linalg
 from pykern.pkcollections import PKDict
@@ -222,13 +225,19 @@ def get_geom_tree(g_id, recurse_depth=0):
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
 def get_field(g_id, f_type, path):
+    import time
+    r = MPI.COMM_WORLD.Get_rank()
+    t0 = time.time()
     if len(path) == 0:
         return []
     pv_arr = []
     p = numpy.reshape(path, (-1, 3)).tolist()
     b = []
-    # get every component
+    # get every component (meaning e.g. passing 'B' and not 'Bx' etc.)
     f = radia.Fld(g_id, f_type, path)
+    t1 = time.time()
+    if r == 0:
+        pkdp(f'Field {f_type} calc in {round(t1 - t0, 2)}s')
     # a dummy value returned by parallel radia
     if f == 0:
         f = numpy.zeros(len(path))
@@ -247,10 +256,17 @@ def kick_map(
         g_id, begin, dir_long, num_periods, period_length, dir_trans, range_trans_1,
         num_pts_trans_1, range_trans_2, num_pts_trans_2
     ):
-    return radia.FldFocKickPer(
+    import time
+    r = MPI.COMM_WORLD.Get_rank()
+    t0 = time.time()
+    km = radia.FldFocKickPer(
         g_id, begin, dir_long, period_length, num_periods, dir_trans, range_trans_1,
         num_pts_trans_1, range_trans_2, num_pts_trans_2
     )
+    t1 = time.time()
+    if r == 0:
+        pkdp(f'Kick map in {round(t1 - t0, 2)}s')
+    return km
 
 
 def load_bin(data):
@@ -265,8 +281,8 @@ def new_geom_object():
     )
 
 
-def radia_mpi(on_off):
-    return radia.UtiMPI('in' if on_off else 'off')
+def radia_mpi(mpi_state):
+    return radia.UtiMPI(mpi_state)
 
 
 def reset():
@@ -274,7 +290,23 @@ def reset():
 
 
 def solve(g_id, prec, max_iter, solve_method):
-    return radia.Solve(g_id, float(prec), int(max_iter), int(solve_method))
+    import time
+    r = MPI.COMM_WORLD.Get_rank()
+    t0 = time.time()
+    #m = radia.RlxPre(g_id)
+    #t1 = time.time()
+    #if r == 0:
+    #    pkdp(f'Interaction Matrix was set up in {round(t1 - t0, 2)}s')
+    #res = radia.RlxAuto(m, prec, max_iter)
+    #t2 = time.time()
+    #if r == 0:
+    #    pkdp(f'Relaxed in {round(t2 - t1, 2)}s')
+    res = radia.Solve(g_id, float(prec), int(max_iter), int(solve_method))
+    t1 = time.time()
+    if r == 0:
+        pkdp(f'Solved in {round(t1 - t0, 2)}s')
+    return res
+    #return radia.Solve(g_id, float(prec), int(max_iter), int(solve_method))
 
 
 def vector_field_to_data(g_id, name, pv_arr, units):

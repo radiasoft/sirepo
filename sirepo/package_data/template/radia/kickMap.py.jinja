@@ -1,19 +1,30 @@
 from __future__ import absolute_import, division, print_function
 
 import h5py
+import sirepo.mpi
 from pykern.pkcollections import PKDict
 from sirepo.template import radia_tk
 from sirepo.template import template_common
+
+def _write_h5_data(data, h5_path):
+    with h5py.File('{{ dataFile }}', 'a') as hf:
+        template_common.dict_to_h5(data, hf, path=h5_path)
 
 g_id = -1
 with open('{{ dmpOutputFile }}', 'rb') as f:
     g_id = radia_tk.load_bin(f.read())
 
+{%  if isParallel %}
+radia_tk.radia_mpi('in')
+{% endif %}
 km = radia_tk.kick_map(
     g_id, [{{ kickMap.begin }}], [{{ kickMap.direction }}], {{ kickMap.numPeriods }}, {{ kickMap.periodLength }},
     [{{ kickMap.transverseDirection }}], {{ kickMap.transverseRange1 }}, {{ kickMap.numTransPoints1 }},
     {{ kickMap.transverseRange2 }}, {{ kickMap.numTransPoints2 }}
 )
+{%  if isParallel %}
+radia_tk.radia_mpi('barrier')
+{% endif %}
 km_dict = PKDict(
     h=km[0],
     v=km[1],
@@ -22,6 +33,9 @@ km_dict = PKDict(
     y=km[4],
     txt=km[5]
 )
-with h5py.File('{{ dataFile }}', 'a') as hf:
-    template_common.dict_to_h5(km_dict, hf, path='{{ h5KickMapPath }}')
-
+sirepo.mpi.invoke_single(_write_h5_data, km_dict, '{{ h5KickMapPath }}')
+#with h5py.File('{{ dataFile }}', 'a') as hf:
+#    template_common.dict_to_h5(km_dict, hf, path='{{ h5KickMapPath }}')
+{%  if isParallel %}
+radia_tk.radia_mpi('off')
+{% endif %}
