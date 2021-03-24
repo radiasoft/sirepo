@@ -303,7 +303,7 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
     };
 });
 
-SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
+SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -312,29 +312,42 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
         },
         template: [
             '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
-              '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
+            //TODO(pjm): use better layout than table
+              '<table><tr><td width="100%">',
+                '<div class="sr-plot vtk-canvas-holder"></div>',
+              '</td><td>',
+                '<div style="margin-left: 1em"><svg width="60" ng-attr-height="{{canvasHeight}}">',
+                  '<g class="colorbar"></g>',
+                '</svg></div>',
+              '</td></tr></table>',
+
+              '<div style="margin-top: 1ex" class="row">',
+                '<div class="col-sm-4">',
+                  '<input data-ng-model="showEdges" data-ng-change="resize()" type="checkbox" id="showEdges" checked="checked" /> <label for="showEdges">Show Edges</label>',
+                '</div>',
+                '<div class="col-sm-7">',
+                  '<div>Thickness cutoff</div>',
+                  '<input data-ng-model="sliderValue" data-ng-change="resize()" class="s_range_slider" type="range" min="0" max="100" />',
+                  '<span class="s_slider_label light left">{{ zBound | number : 2 }} cm</span>',
+                '</div>',
               '</div>',
+
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            let data, fsRenderer, orientationMarker;
+            let colorbar, data, fsRenderer, orientationMarker;
             let mapName = 'Viridis (matplotlib)';
-            let wantEdges = true;
-            let zBound = 0;
-
-            $scope.margin = {
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-            };
+            $scope.zBound = 0;
+            $scope.showEdges = true;
+            $scope.canvasHeight = 100;
+            $scope.sliderValue = 50;
 
             function checkBounds(idx) {
                 let verts = data.vertices;
                 let indices = data.indices;
                 for (let i = 0; i < 3; i++) {
                     var v = verts[indices[idx + i] * 3 + 2];
-                    if (v > zBound) {
+                    if (v > $scope.zBound) {
                         return false;
                     }
                 }
@@ -381,6 +394,8 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
                 let len = [];
                 let indices = [];
                 let verts = data.vertices;
+                let zSize = silasService.getCrystal().width;
+                $scope.zBound = (zSize + 0.01) * ($scope.sliderValue - 50) / 100;
                 for (let i = 0; i < data.indices.length; i += 3) {
                     if (checkBounds(i)) {
                         indices.push(data.indices[i], data.indices[i + 1], data.indices[i + 2]);
@@ -405,7 +420,7 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
                 mapper.setInputData(polyData);
                 actor.setMapper(mapper);
                 actor.getProperty().setLighting(false);
-                if (wantEdges) {
+                if ($scope.showEdges) {
                     actor.getProperty().setEdgeVisibility(true);
                     actor.getProperty().setEdgeColor(0.5, 0.5, 0.5);
                 }
@@ -435,6 +450,9 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
                     orientationMarker.updateMarkerOrientation();
                 }
                 fsRenderer.getRenderWindow().render();
+                $scope.canvasHeight = $($element[0]).find('.vtk-canvas-holder').height();
+                colorbar.barlength($scope.canvasHeight - 20).origin([10, 10]);
+                d3.select($element[0]).select('.colorbar').call(colorbar);
             }
 
             function removeActors() {
@@ -469,6 +487,14 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, utilities) {
 
             $scope.load = function(json) {
                 data = json;
+                //TODO(pjm): use vtk colormap, not sirepo colormap
+                var colorMap = plotting.COLOR_MAP.viridis;
+                var colorScale = d3.scale.linear()
+                    .domain(plotting.linearlySpacedArray(...data.intensity_range, colorMap.length))
+                    .range(colorMap);
+                colorbar = Colorbar()
+                    .scale(colorScale)
+                    .orient("vertical");
                 refresh(true);
             };
 
