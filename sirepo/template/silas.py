@@ -66,6 +66,27 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     return _parse_silas_log(run_dir)
 
 
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if model in ('laserPulseAnimation', 'laserPulse2Animation'):
+        return _INITIAL_LASER_FILE
+    if model in ('laserPulse3Animation', 'laserPulse4Animation'):
+        return _FINAL_LASER_FILE
+    if model == 'wavefrontSummaryAnimation':
+        return _SUMMARY_CSV_FILE
+    if 'wavefrontAnimation' in model:
+        sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        return _wavefront_filename_for_index(
+            sim_in,
+            sim_in.models[model].id,
+            frame,
+        )
+    if 'plotAnimation' in model:
+        return _CRYSTAL_CSV_FILE
+    if model == 'crystal3dAnimation':
+        return 'intensity.npy'
+    raise AssertionError('unknown model={}'.format(model))
+
+
 def python_source_for_model(data, model):
     if model in ('crystal3dAnimation', 'plotAnimation', 'plot2Animation'):
         data.report = 'crystalAnimation'
@@ -75,17 +96,12 @@ def python_source_for_model(data, model):
 
 
 def sim_frame(frame_args):
-    idx = 0
-    beamline = frame_args.sim_in.models.beamline
-    for item in beamline:
-        if str(frame_args.id) == str(item.id):
-            break
-        idx += 1
-    total_count = _total_frame_count(frame_args.sim_in)
-    counts = _counts_for_beamline(total_count, beamline)[1]
-    counts = counts[idx]
-    file_index = counts[frame_args.frameIndex]
-    with h5py.File(f'wfr{file_index:05d}.h5', 'r') as f:
+    filename = _wavefront_filename_for_index(
+        frame_args.sim_in,
+        frame_args.id,
+        frame_args.frameIndex,
+    )
+    with h5py.File(filename, 'r') as f:
         wfr = f['wfr']
         points = np.array(wfr)
         return PKDict(
@@ -319,3 +335,17 @@ def _summary_data(frame_args):
 
 def _total_frame_count(data):
     return data.models.simulationSettings.n_reflections * 2 * (len(data.models.beamline) - 1) + 1
+
+
+def _wavefront_filename_for_index(sim_in, item_id, frame):
+    idx = 0
+    beamline = sim_in.models.beamline
+    for item in beamline:
+        if str(item_id) == str(item.id):
+            break
+        idx += 1
+    total_count = _total_frame_count(sim_in)
+    counts = _counts_for_beamline(total_count, beamline)[1]
+    counts = counts[idx]
+    file_index = counts[frame]
+    return f'wfr{file_index:05d}.h5'
