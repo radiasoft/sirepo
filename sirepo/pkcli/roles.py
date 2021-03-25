@@ -70,10 +70,9 @@ def _parse_args(uid_or_email, roles):
 
     # POSIT: Uid's are from the base62 charset so an '@' implies an email.
     if '@' in uid_or_email:
-        m = sirepo.auth.get_module('email')
-        assert m, \
-            f'uid_or_email={uid_or_email} contains "@" but email not configured'
-        u = m.unchecked_user_by_user_name(uid_or_email)
+        u = sirepo.auth.get_module(
+            'email',
+        ).unchecked_user_by_user_name(uid_or_email)
     else:
         u = sirepo.auth.unchecked_get_user(uid_or_email)
     if not u:

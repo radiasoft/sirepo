@@ -408,13 +408,15 @@ def reset_state():
 
 
 @contextlib.contextmanager
-def set_user_outside_of_http_request(uid):
+def set_user_outside_of_http_request(uid, method='guest'):
     """A user set explicitly outside of flask request cycle"""
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
     with cookie.set_cookie_outside_of_flask_request():
-        import sirepo.auth.guest
-        _login_user(sirepo.auth.guest, uid)
+        _login_user(
+            get_module(method),
+            uid,
+        )
         yield
 
 
