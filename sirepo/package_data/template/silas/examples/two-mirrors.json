@@ -17,7 +17,7 @@
                 "refractionIndex": 2,
                 "title": "Ti-Sapphire Crystal",
                 "type": "crystal",
-                "width": 4
+                "width": 2
             },
             {
                 "focusingError": 1,
@@ -43,7 +43,7 @@
         },
         "simulationSettings": {
             "cavity_length": 8,
-            "n_reflections": 8,
+            "n_reflections": 4,
             "sample_factor": 5
         },
         "wavefrontAnimation4": {

@@ -1280,6 +1280,12 @@ def generate_config_file(run_dir, data):
     )
 
 
+def get_application_data(data, **kwargs):
+    if data.method == 'setup_command':
+        return PKDict(setupCommand=' '.join(setup_command(data)))
+    raise AssertionError(f'unknown method=', data.method)
+
+
 def new_simulation(data, new_simulation_data):
     flash_type = new_simulation_data['flashType']
     data.models.simulation.flashType = flash_type

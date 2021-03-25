@@ -42,7 +42,7 @@
         },
         "simulationSettings": {
             "cavity_length": 10,
-            "n_reflections": 15,
+            "n_reflections": 4,
             "sample_factor": 12
         }
     },
