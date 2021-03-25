@@ -15,7 +15,6 @@ import os
 import pkgutil
 import re
 import sirepo.api_auth
-import sirepo.auth
 import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
@@ -135,7 +134,7 @@ def register_api_module(module=None):
     """Add caller_module to the list of modules which implements apis.
 
     The module must have methods: api_XXX which do not collide with
-    other apis. It must also have init_apis(), which will be called unless
+    other apis. It may also have init_apis(), which will be called unless
     it is already registered.
 
     Args:
@@ -148,7 +147,8 @@ def register_api_module(module=None):
         return
     # prevent recursion
     _api_modules.append(m)
-    m.init_apis()
+    if hasattr(m, 'init_apis'):
+        m.init_apis()
     # It's ok if there are no APIs
     for n, o in inspect.getmembers(m):
         if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
@@ -192,6 +192,8 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
+    import sirepo.auth
+
     with sirepo.auth.process_request():
         try:
             if path is None:

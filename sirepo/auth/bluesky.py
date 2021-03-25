@@ -119,11 +119,14 @@ def auth_hash(req, verify=False):
         )
 
 
-def init_apis(*args, **kwargs):
+def _init():
     global cfg
+
     cfg = pkconfig.init(
         secret=pkconfig.Required(
             str,
             'Shared secret between Sirepo and BlueSky server',
         ),
     )
+
+_init()

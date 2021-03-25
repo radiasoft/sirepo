@@ -116,9 +116,6 @@ def avatar_uri(model, size):
         size,
     )
 
-def init_apis(*args, **kwargs):
-    auth_db.init_model(_init_model)
-
 
 def unchecked_user_by_user_name(user_name):
     with auth_db.thread_lock:
@@ -126,6 +123,10 @@ def unchecked_user_by_user_name(user_name):
        if u:
            return u.uid
        return None
+
+
+def _init():
+    auth_db.init_model(_init_model)
 
 
 def _init_model(base):
@@ -214,3 +215,6 @@ def _verify_confirm(sim_type, token, need_complete_registration):
             d,
         )
     return d.get('displayName')
+
+
+_init()

@@ -417,7 +417,7 @@ def api_robotsTxt():
         # We include dev so we can test
         if pkconfig.channel_in('prod', 'dev'):
             u = [
-                sirepo.uri.api('root', params={'path_info': x})
+                sirepo.uri_router.uri_for_api('root', params={'path_info': x})
                 for x in sorted(feature_config.cfg().sim_types)
             ]
         else:
