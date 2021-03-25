@@ -526,12 +526,11 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def sim(self):
         d = self.data
-        r, v = template_common.generate_parameters_file(d)
-        self.jinja_env = v
+        self.jinja_env = template_common.flatten_data(d.models, PKDict())
         self._code_var = code_var(d.models.rpnVariables)
         if 'bunchReport' in d.get('report', ''):
-            return r + self._bunch_simulation()
-        return r + self._full_simulation()
+            return self._bunch_simulation()
+        return self._full_simulation()
 
     def _bunch_simulation(self):
         v = self.jinja_env
