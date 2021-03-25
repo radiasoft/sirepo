@@ -89,8 +89,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        #data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res.percentComplete = 0.0  #_compute_percent_complete(data, last_element)
+        res.percentComplete = 0.0
         return res
     res.percentComplete = 100
     res.frameCount = 1
@@ -99,7 +98,6 @@ def background_percent_complete(report, run_dir, is_running):
     #if report == 'kickMap':
     #    res = _kick_map_plot(data.simulationId, data.models.kickMap)
     return res
-
 
 
 def create_archive(sim):
