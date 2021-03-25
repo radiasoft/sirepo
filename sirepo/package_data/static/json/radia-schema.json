@@ -380,6 +380,7 @@
             "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Beam direction", "x, y, z"],
             "gapAxis": ["_", "BeamAxis", "z", ""],
             "inProgressText": ["_", "String", "Calculating"],
+            "isSelfContained": ["_", "Boolean", "1"],
             "numPeriods": ["Number of Periods", "Integer", 1],
             "numTransPoints1": ["Number of Points in Gap Direction", "Integer", 10, "", 2],
             "numTransPoints2": ["Number of Points in Transverse Direction", "Integer", 10, "", 2],
