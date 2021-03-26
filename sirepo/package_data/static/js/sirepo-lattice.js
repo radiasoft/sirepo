@@ -1239,7 +1239,7 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
     };
 });
 
-SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, utilities, $rootScope, $sce, $window) {
+SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, utilities, $rootScope, $sanitize, $sce, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1249,14 +1249,17 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var selectedBeamline = null;
-            var panTranslate = [0, 0];
-            var picTypeCache = null;
-            var svgBounds = null;
+            let uiEnv = new SIREPO.DOM.UIEnvironment($sanitize);
+
             let numReadouts = 0;
             let numReadoutCols = 2;
+            let panTranslate = [0, 0];
+            let picTypeCache = null;
+            let readout = SIREPO.DOM ? uiEnv.newInstance('UIElement', 'g', 'sr-lattice-readouts') : null;
+            let selectedBeamline = null;
+            let svgBounds = null;
             var zoom = null;
-            var zoomScale = 1;
+            let zoomScale = 1;
             const ABSOLUTE_POSITION_TYPE = 'absolutePosition';
             $scope.plotStyle = $scope.flatten ? '' : 'cursor: zoom-in;';
             $scope.isClientOnly = true;
@@ -1783,6 +1786,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function hasReadout(element) {
+                if (! readout) {
+                    return false;
+                }
                 let e = SIREPO.APP_SCHEMA.constants.readoutElements[element.type];
                 return readoutFields(element).length > 0;
             }
@@ -1836,22 +1842,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 $scope.resize();
             }
 
-            function readoutDOM() {
-                let g = new SIREPO.DOM.UIElement('g', 'sr-lattice-readouts');
-                let i = 0;
-                for (let element of readoutElements()) {
-                    let t = new SIREPO.DOM.UIElement('text', `${element.name}-readout`, [
-                        new SIREPO.DOM.UIAttribute('x', $scope.margin + 250 * (i % numReadoutCols)),
-                        new SIREPO.DOM.UIAttribute('y', 20 + 20 * Math.floor(i / numReadoutCols)),
-                    ]);
-                    t.text = `${element.name}: `;
-                    for (let f of readoutFields(element)) {
-                        t.text += `${f} = ${element[f]};&nbsp;`;
-                    }
-                    g.addChild(t);
-                    ++i;
-                }
-                return g;
+            function readoutId(element) {
+                return `${element.name}-readout`;
             }
 
             function readoutElements() {
@@ -1864,18 +1856,18 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return elements;
             }
 
-            function setReadout(element, field, value) {
-                let d = readoutDOM();
-                let r = d.getChild(`${element.name}-readout`);
+            function updateReadoutElement(element) {
+                let r = readout.getChild(readoutId(element));
                 if (! r) {
                     return;
                 }
-
+                let txt = `${element.name}: `;
+                for (let f of readoutFields(element)) {
+                    txt += `${f} = ${utilities.roundToPlaces(parseFloat(element[f]), 6)};&nbsp;`;
+                }
+                r.setText(txt);
             }
 
-            function svgTable(data, numCols, borderStyle) {
-
-            }
 
             function recalcScaleMarker() {
                 if ($scope.flatten) {
@@ -1937,6 +1929,26 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
             }
 
+            function updateReadout() {
+                if (! readout) {
+                    return;
+                }
+                let i = 0;
+                for (let element of readoutElements()) {
+                    let c = readout.getChild(readoutId(element));
+                    srdbg('id', readoutId(element), 'sid', $sanitize('<poop></poop>'));
+                    if (! c) {
+                        c = uiEnv.newInstance('UIElement', 'text', readoutId(element), [
+                            uiEnv.newInstance('UIAttribute', 'x', $scope.margin + 300 * (i % numReadoutCols)),
+                            uiEnv.newInstance('UIAttribute', 'y', 20 + 20 * Math.floor(i / numReadoutCols)),
+                        ]);
+                        readout.addChild(c);
+                    }
+                    updateReadoutElement(element);
+                    ++i;
+                }
+            }
+
             function updateZoomAndPan() {
                 recalcScaleMarker();
                 select('.sr-zoom-plot').attr("transform", "translate(" + panTranslate + ")scale(" + zoomScale + ")");
@@ -1987,7 +1999,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.readoutHTML = function() {
-                return $sce.trustAsHtml(readoutDOM().toTemplate());
+                //srdbg('getting gtml');
+                if (! readout) {
+                    return  '';
+                }
+               // return $sce.trustAsHtml(readout.toTemplate());
+                return readout.toTemplate();
             };
 
             $scope.resize = function() {
@@ -2009,6 +2026,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     $scope.height = windowHeight / maxHeightFactor;
                 }
                 $scope.readoutHeight = 20 * Math.ceil(numReadouts / numReadoutCols);
+                updateReadout();
 
                 if (svgBounds) {
                     var w = svgBounds[2] - svgBounds[0];
@@ -2098,6 +2116,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     renderBeamline(false, updateNoWait);
                     resetZoomAndPan();
                 });
+
+                $scope.$on('sr-elementValues', updateReadout);
             });
         },
         link: function link(scope, element) {
