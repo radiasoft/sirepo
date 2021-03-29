@@ -3,6 +3,11 @@
         "canDownloadInputFile": false
     },
     "enum": {
+        "ChannelType": [
+            ["0", "Straight tubes"],
+            ["1", "Twisted toruses"],
+            ["2", "Short straight tubes"]
+        ],
         "DiffuseBoundaryType": [
             ["dirichlet", "dirichlet"],
             ["neumann", "neumann"],
@@ -27,6 +32,12 @@
             ["hydrogen", "Hyrdogen Gas"],
             ["helium", "Helium Gas"],
             ["argon", "Argon Gas"]
+        ],
+        "FillType": [
+            ["0", "Single species"],
+            ["1", "Mixed fill (fill1 and fill2)"],
+            ["2", "fil2 is in buffer region at one end (fil1 elsewhere)"],
+            ["3", "fil2 is in buffer region at both ends (fil1 in between)"]
         ],
         "flashType": [
             ["CapLaserBELLA", "CapLaserBELLA"],
@@ -142,6 +153,10 @@
             ["1", "1"],
             ["4", "4"],
             ["5", "5"]
+        ],
+        "HypreSolverType": [
+            ["hypre_gmres", "hypre_gmres"],
+            ["hypre_pcg", "hypre_pcg"]
         ],
         "Multispecieseos_fillEosType": [
             ["-none-", "-none-"],
@@ -1138,6 +1153,7 @@
             "derefine_cutoff_4": ["Derefine Variable 4", "Float", 0.2, "threshold value to trigger derefinement for refine_var_4"],
             "earlyBlockDistAdjustment": ["earlyBlockDistAdjustment", "Boolean", "1", "If true, let Paramesh redistribute blocks across processors early, so\nthat the block distribution chosen by Paramesh will be in effect when\ntime evolution begins after restart. If earlyBlockDistAdjustment is\nfalse, the block distribution enacted by the IO unit when it read a\ncheckpoint file will normally still be in effect when time evolution\nbegins after a restart. This flag is ignored if not restarting from a\ncheckpoint."],
             "flux_correct": ["flux_correct", "Boolean", "1", "turns on or off flux correction"],
+            "gr_hypreSolverType": ["gr_hypreSolverType", "HypreSolverType", "hypre_pcg", "Type of linear solver."],
             "gr_lrefineMaxByTime": ["gr_lrefineMaxByTime", "Boolean", "0", "This parameter activates the ability to manually specify values for\nlrefine_max as a function of time. You can change the value of\nlrefine_max a total of 20 times. The parameters gr_lrefmaxTime_N (where\nN is a number from 1 to 20) tell FLASH the times at which lrefine_max\nchanges will occur. The analogous parameters gr_lrefmaxTimeValue_N\n(where N is a number from 1 to 20) tell FLASH  the value of lrefine_max\nto use at time gr_lrefmaxTime_N. For example, specifying the following\nlines in your flash.par file tells FLASH to use an lrefine_max value of\n10 at t = 1.0e-09 s and a value of 11 at t = 2.0e-09 s \ngr_lrefmaxTime_1 = 1.0e-09 gr_lrefmaxTimeValue_1 = 10 gr_lrefmaxTime_2 =\n2.0e-09 gr_lrefmaxTimeValue_2 = 10 . NOTE the time values must be in\nsequential order!"],
             "gr_lrefineMaxRedDoByLogR": ["gr_lrefineMaxRedDoByLogR", "Boolean", "0", "Softly force effectively a lower lrefine_max depending on distance from\ncenter. See gr_lrefineMaxRedRadiusFact."],
             "gr_lrefineMaxRedDoByTime": ["gr_lrefineMaxRedDoByTime", "Boolean", "0", "Lower the effective lrefine_max as a function of time. See runtime\nparameters gr_lrefineMaxRedTRef, gr_lrefineMaxRedTimeScale, and\ngr_lrefineMaxRedLogBase."],
@@ -1361,6 +1377,14 @@
             "wr_integrals_freq": ["wr_integrals_freq", "Integer", 1, "Number of timesteps between writing to flash.dat"]
         },
         "Multispecies": {
+            "eos_fil1EosType": ["Fil1 EOS Type", "Multispecieseos_fillEosType", "-none-"],
+            "eos_fil1GroupName": ["eos_fil1GroupName", "String", "-none-"],
+            "eos_fil1SubType": ["Fil1 EOS Subtype", "String", ""],
+            "eos_fil1TableFile": ["Fil1 Table File", "String", ""],
+            "eos_fil2EosType": ["Fil2 EOS Type", "Multispecieseos_fillEosType", "-none-"],
+            "eos_fil2GroupName": ["eos_fil2GroupName", "String", "-none-"],
+            "eos_fil2SubType": ["Fil2 EOS Subtype", "String", ""],
+            "eos_fil2TableFile": ["Fil2 Table File", "String", ""],
             "eos_fillEosType": ["Fill EOS Type", "Multispecieseos_fillEosType", "-none-"],
             "eos_fillGroupName": ["eos_fillGroupName", "String", "-none-"],
             "eos_fillSubType": ["Fill EOS Subtype", "String", ""],
@@ -1369,6 +1393,13 @@
             "eos_wallGroupName": ["eos_wallGroupName", "String", "-none-"],
             "eos_wallSubType": ["Wall EOS Subtype", "String", ""],
             "eos_wallTableFile": ["Wall Table File", "String", ""],
+            "ms_fil1A": ["Fil1 Protons and Neutrons in Nucleus", "Float", -999.0],
+            "ms_fil1Frac": ["ms_fillFractions_1", "Float", -999.0],
+            "ms_fil1Z": ["Fil1 Atomic Number", "Float", -999.0],
+            "ms_fil1ZMin": ["Fil1 ZMin", "Float", -998.0],
+            "ms_fil2A": ["Fil2 Protons and Neutrons in Nucleus", "Float", -999.0],
+            "ms_fil2Z": ["Fil2 Atomic Number", "Float", -999.0],
+            "ms_fil2ZMin": ["Fil2 ZMin", "Float", -998.0],
             "ms_fillA": ["Fill Protons and Neutrons in Nucleus", "Float", -999.0],
             "ms_fillAElems_1": ["ms_fillAElems_1", "Float", -999.0],
             "ms_fillAElems_2": ["ms_fillAElems_2", "Float", -999.0],
@@ -1427,6 +1458,7 @@
             "op_wallLowTemp": ["op_wallLowTemp", "Float", 0.0]
         },
         "physicsDiffuse": {
+            "diff_anisoCondForEle": ["anisoCondForEle", "Boolean", 0],
             "diff_eleFlCoef": ["Flux Limiter Coefficient", "Float", 1.0, "Electron conduction flux limiter coefficient"],
             "diff_eleFlMode": ["diff_eleFlMode", "physicsDiffusediff_eleFlMode", "fl_none", "Electron conduction flux limiter mode"],
             "diff_eleXlBoundaryType": ["X Left Boundary", "DiffuseBoundaryType", "outflow", "Electron conduction bcTypes."],
@@ -1555,6 +1587,16 @@
             "useOpacity": ["Use Opacity", "Boolean", "1", "flags whether the Opacity unit is being used at all"]
         },
         "physicsmaterialPropertiesOpacityMultispecies": {
+            "op_fil1Absorb": ["Fil1 Absorb", "physicsmaterialPropertiesOpacityMultispeciesop_fillAbsorb", "op_undefined"],
+            "op_fil1Emiss": ["Fil1 Emiss", "physicsmaterialPropertiesOpacityMultispeciesop_fillEmiss", "op_undefined"],
+            "op_fil1FileName": ["Fil1 Filename", "String", ""],
+            "op_fil1FileType": ["Fil1 File Type", "String", ""],
+            "op_fil1Trans": ["Fil1 Trans", "physicsmaterialPropertiesOpacityMultispeciesop_fillTrans", "op_undefined"],
+            "op_fil2Absorb": ["Fil2 Absorb", "physicsmaterialPropertiesOpacityMultispeciesop_fillAbsorb", "op_undefined"],
+            "op_fil2Emiss": ["Fil1 Emiss", "physicsmaterialPropertiesOpacityMultispeciesop_fillEmiss", "op_undefined"],
+            "op_fil2FileName": ["Fil2 Filename", "String", ""],
+            "op_fil2FileType": ["Fil2 File Type", "String", ""],
+            "op_fil2Trans": ["Fil1 Trans", "physicsmaterialPropertiesOpacityMultispeciesop_fillTrans", "op_undefined"],
             "op_fillAbsorb": ["Fill Absorb", "physicsmaterialPropertiesOpacityMultispeciesop_fillAbsorb", "op_undefined"],
             "op_fillAbsorbConstant": ["op_fillAbsorbConstant", "Float", -1.0],
             "op_fillEmiss": ["Fill Emiss", "physicsmaterialPropertiesOpacityMultispeciesop_fillEmiss", "op_undefined"],
@@ -1833,6 +1875,7 @@
             "species": ["Species", "String", "", "An alternative to specifying the SPECIES in the Config file."],
             "spherical": ["Spherical", "SetupArgumentShortcut", "0", "Use spherical geometry."],
             "splithydro": ["Hydro Solver", "SetupArgumentShortcut", "0", "Use a split Hydro solver."],
+            "supportAnisoCond": ["supportAnisoCond", "SetupArgumentShortcut", "0"],
             "ug": ["Uniform Grid (Fixed Block Size)", "SetupArgumentShortcut", "0", "Use the uniform grid in a fixed block size mode."],
             "uhd": ["Unsplit Hydro Solver", "SetupArgumentShortcut", "0", "Use the Unsplit Hydro solver."],
             "usm": ["Unsplit Staggered Mesh MHD Solver", "SetupArgumentShortcut", "0", "Use the Unsplit Staggered Mesh MHD solver."],
@@ -1842,24 +1885,42 @@
             "flashType": ["Simulation Type", "flashType", "RTFlame"]
         },
         "SimulationCapLaser3D": {
+            "sim_bottomBuffPos": ["sim_bottomBuffPos", "Float", 0.0, "z-position of bottom buffer where ratio of fil1 material to fil2 is 1:1"],
+            "sim_buffWidth": ["sim_buffWidth", "Float", 0.0, "width over which buffer transitions from fil2 to fil1"],
+            "sim_channelType": ["sim_channelType", "ChannelType", "", "Type of channel"],
+            "sim_channels": ["sim_channels", "Boolean", "1", "Include supply channels"],
+            "sim_condFloor": ["sim_condFloor", "Float", "0", "Thermal conductivity floor (applied to electron conductivity only)"],
             "sim_condWall": ["sim_condWall", "Float", 195000.0, "Wall conductivity at the gas/wall interface"],
+            "sim_coneSlope": ["sim_coneSlope", "Float", "0", "Slope of the cone-shaped opening"],
+            "sim_currFile": ["Current File", "InputFile", "", "file describing current over time"],
+            "sim_currType": ["Current Calculation Type", "SimulationCapLasersim_currType", "1", "how to calculate the current"],
             "sim_eosFill": ["Fill EOS Type", "SimulationCapLasersim_eosFill", "eos_gam"],
             "sim_eosWall": ["Wall EOS Type", "SimulationCapLasersim_eosWall", "eos_tab"],
-            "sim_currType": ["Current Calculation Type", "SimulationCapLasersim_currType", "1", "how to calculate the current"],
-            "sim_currFile": ["Current File", "InputFile", "", "file describing current over time"],
-            "sim_riseTime": ["Rise Time", "Float", 1.8e-9, "rise time to peak current in seconds"],
+            "sim_fillType": ["sim_fillType", "FillType", "", "Fill species setup"],
+            "sim_lrefMaxWall": ["sim_lrefMaxWall", "Float", "", "Maximum refinement level in wall region"],
+            "sim_outlets": ["sim_outlets", "Boolean", 0, "Include outlets"],
             "sim_peakCurr": ["Peak Current", "Float", 3.1e2, "peak current at wall in amperes"],
             "sim_peakField": ["Peak Field", "Float", 2.4e3, "peak field in gauss at capillary wall"],
             "sim_period": ["Circuit Period", "Float", 300e-9 , "circuit period in seconds"],
-            "sim_rhoFill": ["Fill Initial Density", "Float", 2.655e-07],
-            "sim_rhoWall": ["Wall Initial Density", "Float", 2.7],
+            "sim_rBend": ["sim_rBend", "Float", 0.0, "Bend radius of supply tubes"],
+            "sim_rSupply": ["sim_rSupply", "Float", 0.0, "Radius of gas supply tubes"],
             "sim_rWall": ["Wall Gas Radius", "Float", 250.0e-4, "wall radius for position of gas/wall interface"],
+            "sim_rhoFill": ["Fill Initial Density", "Float", 2.655e-07],
+            "sim_rhoSupply": ["sim_rhoSupply", "Float", 0.0, ""],
+            "sim_rhoWall": ["Wall Initial Density", "Float", 2.7],
+            "sim_riseTime": ["Rise Time", "Float", 1.8e-9, "rise time to peak current in seconds"],
+            "sim_taperExp": ["sim_rhoSupply", "Float", 0.0, ""],
+            "sim_taperRho": ["sim_rhoSupply", "Boolean", 1, ""],
             "sim_teleFill": ["Fill Electron Temp.", "Float", 290.11375],
             "sim_teleWall": ["Wall Electron Temp.", "Float", 290.11375],
             "sim_tionFill": ["Fill Ion Temp.", "Float", 290.11375],
             "sim_tionWall": ["Wall Ion Temp.", "Float", 290.11375],
+            "sim_topBuffPos": ["sim_topBuffPos", "Float", 0.0, "z-position of top buffer where ratio of fil1 material to fil2 is 1:1"],
             "sim_tradFill": ["Fill Radiation Temp.", "Float", 290.11375],
             "sim_tradWall": ["Wall Radiation Temp.", "Float", 290.11375],
+            "sim_velSupply": ["sim_velSupply", "Float", 0.0, "z-position of top buffer where ratio of fil1 material to fil2 is 1:1"],
+            "sim_zEdge": ["sim_zEdge", "Float", 0.0, "z-position where cone meets open air"],
+            "sim_zOutlet": ["sim_zOutlet", "Float", 0.0, "Distance from the origin to where the widening begins"],
             "sim_zminWall": ["Wall Minimum Zbar", "Float", 0.0]
         },
         "SimulationCapLaserBELLA": {
@@ -1996,6 +2057,7 @@
             "title": "Diffusive Effects",
             "basic": [
                 "useDiffuse",
+                "diff_anisoCondForEle",
                 "diff_useEleCond",
                 "diff_eleFlMode",
                 "diff_eleFlCoef",

@@ -61,8 +61,8 @@
             "ymin": -0.04,
             "yr_boundary_type": "outflow",
             "zl_boundary_type": "outflow",
-            "zmax": 0.02,
-            "zmin": -0.02,
+            "zmax": 400.0e-04,
+            "zmin": -400.0e-04,
             "zr_boundary_type": "outflow"
         },
         "Gridparamesh": {
@@ -73,6 +73,7 @@
             "derefine_cutoff_4": 0.2,
             "earlyBlockDistAdjustment": "1",
             "flux_correct": "0",
+            "gr_hypreSolverType": "hypre_gmres",
             "gr_lrefineMaxByTime": "0",
             "gr_lrefineMaxRedDoByLogR": "0",
             "gr_lrefineMaxRedDoByTime": "0",
@@ -123,7 +124,7 @@
             "gr_restrictAllMethod": 3,
             "interpol_order": 2,
             "lrefine_del": 0,
-            "lrefine_max": 3,
+            "lrefine_max": 4,
             "lrefine_min": 1,
             "lrefine_min_init": 1,
             "max_particles_per_blk": 100,
@@ -296,22 +297,23 @@
             "wr_integrals_freq": 1
         },
         "Multispecies": {
-            "eos_fillEosType": "eos_tab",
-            "eos_fillGroupName": "-none-",
-            "eos_fillSubType": "ionmix4",
-            "eos_fillTableFile": "helium-fill-imx.cn4",
+            "eos_fil1EosType": "eos_tab",
+            "eos_fil1SubType": "ionmix4",
+            "eos_fil1TableFile": "hydrogen-fill-imx.cn4",
+            "eos_fil2EosType": "eos_tab",
+            "eos_fil2SubType": "ionmix4",
+            "eos_fil2TableFile": "helium-fill-imx.cn4",
             "eos_wallEosType": "eos_tab",
             "eos_wallGroupName": "-none-",
             "eos_wallSubType": "ionmix4",
             "eos_wallTableFile": "alumina-wall-imx.cn4",
-            "ms_fillA": 1.00784,
-            "ms_fillAElems_1": -999,
-            "ms_fillAElems_2": -999,
-            "ms_fillAElems_3": -999,
-            "ms_fillAElems_4": -999,
-            "ms_fillAElems_5": -999,
-            "ms_fillAElems_6": -999,
-            "ms_fillBindEnergy": -999,
+            "ms_fil1A": 1.00784,
+            "ms_fil1Frac": 0.95,
+            "ms_fil1Z": 1,
+            "ms_fil1ZMin": 0.001,
+            "ms_fil2A": 4.002602,
+            "ms_fil2Z": 2,
+            "ms_fil2ZMin": 0.001,
             "ms_fillFractions_1": -999,
             "ms_fillFractions_2": -999,
             "ms_fillFractions_3": -999,
@@ -322,15 +324,6 @@
             "ms_fillNegative": -999,
             "ms_fillNeutral": -999,
             "ms_fillNumElems": 0,
-            "ms_fillSpecies": "hydrogen",
-            "ms_fillZ": 1,
-            "ms_fillZElems_1": -999,
-            "ms_fillZElems_2": -999,
-            "ms_fillZElems_3": -999,
-            "ms_fillZElems_4": -999,
-            "ms_fillZElems_5": -999,
-            "ms_fillZElems_6": -999,
-            "ms_fillZMin": 0.001,
             "ms_wallA": 20.3922,
             "ms_wallAElems_1": -999,
             "ms_wallAElems_2": -999,
@@ -374,6 +367,7 @@
             }
         },
         "physicsDiffuse": {
+            "diff_anisoCondForEle": 1,
             "diff_eleFlCoef": 0.06,
             "diff_eleFlMode": "fl_larsen",
             "diff_eleXlBoundaryType": "neumann",
@@ -600,7 +594,7 @@
             "rt_mgdBounds_97": -1,
             "rt_mgdBounds_98": -1,
             "rt_mgdBounds_99": -1,
-            "rt_mgdFlCoef": 1,
+            "rt_mgdFlCoef": 1.0,
             "rt_mgdFlMode": "fl_harmonic",
             "rt_mgdNumGroups": 6,
             "rt_mgdXlBoundaryTemp": -1,
@@ -630,14 +624,16 @@
             "useOpacity": "1"
         },
         "physicsmaterialPropertiesOpacityMultispecies": {
-            "op_fillAbsorb": "op_tabpa",
-            "op_fillAbsorbConstant": -1,
-            "op_fillEmiss": "op_tabpe",
-            "op_fillEmissConstant": -1,
-            "op_fillFileName": "helium-fill-imx.cn4",
-            "op_fillFileType": "ionmix4",
-            "op_fillTrans": "op_tabro",
-            "op_fillTransConstant": -1,
+            "op_fil1Absorb": "op_tabpa",
+            "op_fil1Emiss": "op_tabpe",
+            "op_fil1FileName": "hydrogen-fill-imx.cn4",
+            "op_fil1FileType": "ionmix4",
+            "op_fil1Trans": "op_tabro",
+            "op_fil2Absorb": "op_tabpa",
+            "op_fil2Emiss": "op_tabpe",
+            "op_fil2FileType": "ionmix4",
+            "op_fil2FileName": "helium-fill-imx.cn4",
+            "op_fil2Trans": "op_tabro",
             "op_wallAbsorb": "op_tabpa",
             "op_wallAbsorbConstant": -1,
             "op_wallEmiss": "op_tabpe",
@@ -709,13 +705,13 @@
             "ed_targetX_1": 0,
             "ed_targetY_1": 0,
             "ed_targetZ_1": 0,
-            "ed_time_1_1": 100.0e-09,
-            "ed_time_1_2": 1.001e-07,
+            "ed_time_1_1": 500.0e-09,
+            "ed_time_1_2": 508.0e-09,
             "ed_time_1_3": 108.0e-09,
-            "ed_time_1_4": 1.081e-07,
+            "ed_time_1_4": 508.1e-09,
             "ed_wavelength_1": 0.523,
             "threadRayTrace": "0",
-            "useEnergyDeposition": "1"
+            "useEnergyDeposition": "0"
         },
         "physicssourceTermsEnergyDepositionLaserLaserIO": {
             "ed_laserIOMaxNumberOfPositions": 10000,
@@ -764,7 +760,8 @@
             "mgd": "1",
             "mgd_meshgroups": 6,
             "mtmmmt": "1",
-            "species": "fill,wall",
+            "species": "fil1,fil2,wall",
+            "supportAnisoCond": "1",
             "usm3t": "1"
         },
         "setupConfigDirectives": [
@@ -816,188 +813,313 @@
             {
                 "_id": 10,
                 "_type": "PARAMETER",
-                "default": 2400.0,
-                "name": "sim_peakField",
-                "type": "REAL"
-            },
-            {
-                "_id": 11,
-                "_type": "PARAMETER",
-                "default": 3e-07,
-                "name": "sim_period",
-                "type": "REAL"
-            },
-            {
-                "_id": 12,
-                "_type": "PARAMETER",
                 "default": "current.dat",
                 "name": "sim_currFile",
                 "type": "STRING"
             },
             {
-                "_id": 13,
+                "_id": 11,
                 "_type": "PARAMETER",
                 "default": 450.0,
                 "name": "sim_peakCurr",
                 "type": "REAL"
             },
             {
-                "_id": 14,
+                "_id": 12,
                 "_type": "PARAMETER",
                 "default": 4e-07,
                 "name": "sim_riseTime",
                 "type": "REAL"
             },
             {
-                "_id": 15,
+                "_id": 13,
                 "_type": "PARAMETER",
                 "default": 0,
-                "name": "sim_runType",
+                "name": "sim_currType",
                 "type": "INTEGER"
             },
             {
-                "_id": 16,
+                "_id": 14,
                 "_type": "PARAMETER",
                 "default": 2.7,
                 "name": "sim_rhoWall",
                 "type": "REAL"
             },
             {
-                "_id": 17,
+                "_id": 15,
                 "_type": "PARAMETER",
                 "default": 290.11375,
                 "name": "sim_teleWall",
                 "type": "REAL"
             },
             {
-                "_id": 18,
+                "_id": 16,
                 "_type": "PARAMETER",
                 "default": 290.11375,
                 "name": "sim_tionWall",
                 "type": "REAL"
             },
             {
-                "_id": 19,
+                "_id": 17,
                 "_type": "PARAMETER",
                 "default": 290.11375,
                 "name": "sim_tradWall",
                 "type": "REAL"
             },
             {
-                "_id": 20,
-                "_type": "PARAMETER",
-                "default": 0.0,
-                "name": "sim_zminWall",
-                "type": "REAL"
-            },
-            {
-                "_id": 21,
-                "_type": "PARAMETER",
-                "default": "eos_tab",
-                "name": "sim_eosWall",
-                "type": "STRING"
-            },
-            {
-                "_id": 22,
-                "_type": "PARAMETER",
-                "default": 195000.0,
-                "name": "sim_condWall",
-                "type": "REAL"
-            },
-            {
-                "_id": 23,
+                "_id": 18,
                 "_type": "PARAMETER",
                 "default": 0.025,
                 "name": "sim_rWall",
                 "type": "REAL"
             },
             {
-                "_id": 24,
+                "_id": 19,
+                "_type": "PARAMETER",
+                "default": 0,
+                "name": "sim_fillType",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 20,
                 "_type": "PARAMETER",
                 "default": 2.655e-07,
                 "name": "sim_rhoFill",
                 "type": "REAL"
             },
             {
-                "_id": 25,
+                "_id": 21,
                 "_type": "PARAMETER",
                 "default": 290.11375,
                 "name": "sim_teleFill",
                 "type": "REAL"
             },
             {
-                "_id": 26,
+                "_id": 22,
                 "_type": "PARAMETER",
                 "default": 290.11375,
                 "name": "sim_tionFill",
                 "type": "REAL"
             },
             {
-                "_id": 27,
+                "_id": 23,
                 "_type": "PARAMETER",
                 "default": 290.11375,
                 "name": "sim_tradFill",
                 "type": "REAL"
             },
             {
+                "_id": 24,
+                "_type": "PARAMETER",
+                "default": 0.95,
+                "name": "sim_fil1Frac",
+                "type": "REAL"
+            },
+            {
+                "_id": 25,
+                "_type": "PARAMETER",
+                "default": -0.015,
+                "name": "sim_bottomBuffPos",
+                "type": "REAL"
+            },
+            {
+                "_id": 26,
+                "_type": "PARAMETER",
+                "default": 0.015,
+                "name": "sim_topBuffPos",
+                "type": "REAL"
+            },
+            {
+                "_id": 27,
+                "_type": "PARAMETER",
+                "default": 0.0025,
+                "name": "sim_buffWidth",
+                "type": "REAL"
+            },
+            {
                 "_id": 28,
                 "_type": "PARAMETER",
-                "default": "eos_tab",
-                "name": "sim_eosFill",
-                "type": "STRING"
+                "default": "0",
+                "name": "sim_outlets",
+                "type": "BOOLEAN"
             },
             {
                 "_id": 29,
+                "_type": "PARAMETER",
+                "default": 0.01,
+                "name": "sim_zOutlet",
+                "type": "REAL"
+            },
+            {
+                "_id": 30,
+                "_type": "PARAMETER",
+                "default": 2.5,
+                "name": "sim_coneSlope",
+                "type": "REAL"
+            },
+            {
+                "_id": 31,
+                "_type": "PARAMETER",
+                "default": 0.0215,
+                "name": "sim_zEdge",
+                "type": "REAL"
+            },
+            {
+                "_id": 32,
+                "_type": "PARAMETER",
+                "default": "0",
+                "name": "sim_taperRho",
+                "type": "BOOLEAN"
+            },
+            {
+                "_id": 33,
+                "_type": "PARAMETER",
+                "default": 1.0,
+                "name": "sim_taperExp",
+                "type": "REAL"
+            },
+            {
+                "_id": 34,
+                "_type": "PARAMETER",
+                "default": "0",
+                "name": "sim_channels",
+                "type": "BOOLEAN"
+            },
+            {
+                "_id": 35,
+                "_type": "PARAMETER",
+                "default": 0,
+                "name": "sim_channelType",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 36,
+                "_type": "PARAMETER",
+                "default": 0.0025,
+                "name": "sim_rSupply",
+                "type": "REAL"
+            },
+            {
+                "_id": 37,
+                "_type": "PARAMETER",
+                "default": 0.025,
+                "name": "sim_rBend",
+                "type": "REAL"
+            },
+            {
+                "_id": 38,
+                "_type": "PARAMETER",
+                "default": 1e-05,
+                "name": "sim_rhoSupply",
+                "type": "REAL"
+            },
+            {
+                "_id": 39,
+                "_type": "PARAMETER",
+                "default": 100000.0,
+                "name": "sim_velSupply",
+                "type": "REAL"
+            },
+            {
+                "_id": 40,
+                "_type": "PARAMETER",
+                "default": 0,
+                "name": "sim_lrefMaxWall",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 41,
+                "_type": "PARAMETER",
+                "default": 1,
+                "name": "sim_geometry",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 42,
+                "_type": "PARAMETER",
+                "default": 10000.0,
+                "name": "sim_condFloor",
+                "type": "REAL"
+            },
+            {
+                "_id": 43,
+                "_type": "PARAMETER",
+                "default": 1,
+                "name": "sim_resistivityForm",
+                "type": "INTEGER"
+            },
+            {
+                "_id": 44,
                 "_type": "VARIABLE",
                 "name": "CVIO"
             },
             {
-                "_id": 30,
+                "_id": 45,
                 "_type": "VARIABLE",
                 "name": "CVEL"
             },
             {
-                "_id": 31,
+                "_id": 46,
                 "_type": "VARIABLE",
                 "name": "KAPA"
             },
             {
-                "_id": 32,
+                "_id": 47,
                 "_type": "VARIABLE",
                 "name": "BDRY"
             },
             {
-                "_id": 33,
+                "_id": 48,
+                "_type": "VARIABLE",
+                "name": "CND1"
+            },
+            {
+                "_id": 49,
+                "_type": "VARIABLE",
+                "name": "CND2"
+            },
+            {
+                "_id": 50,
+                "_type": "VARIABLE",
+                "name": "CND3"
+            },
+            {
+                "_id": 51,
+                "_type": "VARIABLE",
+                "name": "COND"
+            },
+            {
+                "_id": 52,
                 "_type": "VARIABLE",
                 "name": "EX"
             },
             {
-                "_id": 34,
+                "_id": 53,
                 "_type": "VARIABLE",
                 "name": "EY"
             },
             {
-                "_id": 35,
+                "_id": 54,
                 "_type": "VARIABLE",
                 "name": "NELE"
             },
             {
-                "_id": 36,
+                "_id": 55,
                 "_type": "VARIABLE",
                 "name": "BRSC"
             },
             {
-                "_id": 37,
+                "_id": 56,
                 "_type": "VARIABLE",
                 "name": "BRMX"
             },
             {
-                "_id": 38,
+                "_id": 57,
                 "_type": "VARIABLE",
                 "name": "ANGL"
             },
             {
-                "_id": 39,
+                "_id": 58,
                 "_type": "VARIABLE",
                 "name": "RESI"
             }
@@ -1012,24 +1134,40 @@
             "notes": ""
         },
         "SimulationCapLaser3D": {
+            "sim_bottomBuffPos": -150.0e-04,
+            "sim_buffWidth": 25.0e-04,
+            "sim_channelType": "0",
+            "sim_channels": "0",
+            "sim_condFloor": 1.0e4,
             "sim_condWall": 195000,
+            "sim_coneSlope": 250e-02,
             "sim_currFile": "",
             "sim_currType": "1",
             "sim_eosFill": "eos_gam",
             "sim_eosWall": "eos_tab",
+            "sim_fillType": "0",
+            "sim_lrefMaxWall": 0,
+            "sim_outlets": 1,
             "sim_peakCurr": 310,
-            "sim_peakField": 4500,
-            "sim_period": 2e-07,
+            "sim_rBend": 75e-04,
+            "sim_rSupply": 20e-04,
             "sim_rWall": 0.025,
             "sim_rhoFill": 1.467e-5,
+            "sim_rhoSupply": 5e-05,
             "sim_rhoWall": 2.7,
             "sim_riseTime": 1.8e-09,
+            "sim_taperExp": 1.0,
+            "sim_taperRho": 0,
             "sim_teleFill": 11598,
-            "sim_teleWall": 11598,
+            "sim_teleWall": 290.11375,
             "sim_tionFill": 11598,
-            "sim_tionWall": 11598,
+            "sim_tionWall": 290.11375,
+            "sim_topBuffPos": 150.0e-04,
             "sim_tradFill": 11598,
-            "sim_tradWall": 11598,
+            "sim_tradWall": 290.11375,
+            "sim_velSupply": 1000e+05,
+            "sim_zEdge": 315e-04,
+            "sim_zOutlet": 280e-04,
             "sim_zminWall": 0
         },
         "varAnimation": {
