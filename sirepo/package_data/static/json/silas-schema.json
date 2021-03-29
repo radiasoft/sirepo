@@ -71,20 +71,20 @@
         },
         "crystalAnimation": {},
         "crystalSettings": {
-            "meshDensity": ["Mesh Density", "Integer", 25, "", 10, 50],
-            "time": ["Simulation Time [sec]", "Float", 5, "", 1e-24],
-            "steps": ["Number of Time Steps", "Integer", 50, "", 1],
+            "meshDensity": ["Mesh Density", "Integer", 30, "", 10, 50],
+            "time": ["Simulation Time [sec]", "Float", 1, "", 1e-24],
+            "steps": ["Number of Time Steps", "Integer", 100, "", 1],
             "plotInterval": ["Number of Intervals Between Records", "Integer", 10, "", 1],
-            "tolerance": ["Boundary Tolerance", "Float", 9e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
+            "tolerance": ["Boundary Tolerance", "Float", 8e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
         },
         "crystalCylinder": {
             "diameter": ["Crystal Diameter [cm]", "Float", 7, "", 1e-24],
             "crystalWidth": ["Crystal Width [cm]", "Float", 2, "Crystal Width is editable on the Laser Cavity tab"],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
-            "amplitude": ["A [$\\bf \\degree C$]", "Float", 72, "Peak Temperature"],
-            "radialDecay": ["rho $\\rho$ [cm]", "Float", 2.625, "Radial Decay Length"],
-            "longitudinalDecay": ["zeta $\\zeta$ [cm]", "Float", 0.5, "Longitudinal Decay Length"],
-            "supergaussian": ["P", "Integer", 10, "Supergaussian degree", 1, 12]
+            "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
+            "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
+            "wdT": ["$\\Large \\xi$ [cm]", "Float", 1],
+            "supergaussian": ["$\\Large P$", "Integer", 8, "Supergaussian degree", 1, 12]
         },
         "crystal3dAnimation": {},
         "gaussianBeam": {
@@ -152,10 +152,10 @@
                 "diameter",
                 "crystalWidth",
                 "diffusionConstant",
-                "*Initial Temperature Due to Pump Laser:\n$f = A \\exp\\bigl( -(r/\\rho)^{2P} - (z/\\zeta)^{2P} \\bigr)$",
-                "amplitude",
-                "radialDecay",
-                "longitudinalDecay",
+                "*Initial Temperature Due to Pump Laser:\n$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
+                "T0",
+                "dT",
+                "wdT",
                 "supergaussian"
             ],
             "advanced": []
