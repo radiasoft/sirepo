@@ -30,10 +30,15 @@ class CodeVar():
     })
 
     def __init__(self, variables, evaluator, case_insensitive=False):
-        self.variables = self.__variables_by_name(variables, case_insensitive)
+        self.case_insensitive = case_insensitive
+        self.variables = self.__variables_by_name(variables)
         self.postfix_variables = self.__variables_to_postfix(self.variables)
         self.evaluator = evaluator
-        self.case_insensitive = case_insensitive
+
+    def canonicalize(self, expr):
+        if self.case_insensitive:
+            return expr.lower()
+        return expr
 
     def compute_cache(self, data, schema):
         if 'models' not in data:
@@ -48,9 +53,7 @@ class CodeVar():
     def eval_var(self, expr):
         if not self.is_var_value(expr):
             return expr, None
-        if self.case_insensitive:
-            expr = expr.lower()
-        expr = self.infix_to_postfix(expr)
+        expr = self.infix_to_postfix(self.canonicalize(expr))
         return self.evaluator.eval_var(
             expr,
             self.get_expr_dependencies(expr),
@@ -100,8 +103,8 @@ class CodeVar():
         if depends is None:
             depends = []
             visited = {}
-        if self.case_insensitive and self.is_var_value(expr):
-            expr = expr.lower()
+        if self.is_var_value(expr):
+            expr = self.canonicalize(expr)
         for v in str(expr).split(' '):
             if v in self.postfix_variables:
                 if v not in depends:
@@ -136,20 +139,22 @@ class CodeVar():
                 cache[k] = v
 
     def validate_var_delete(self, name, data, schema):
+        search = self.canonicalize(name)
         in_use = []
         for k, value in self.postfix_variables.items():
-            if k == name:
+            if k == search:
                 continue
             for v in str(value).split(' '):
-                if v == name:
+                if v == search:
                     in_use.append(k)
+                    break
         if in_use:
             return '"{}" is in use in variable(s): {}'.format(
                 name,
                 ', '.join(in_use),
             )
         in_use = lattice.LatticeUtil(data, schema).iterate_models(
-            CodeVarDeleteIterator(self, name),
+            CodeVarDeleteIterator(self, search),
         ).result
         if in_use:
             return '"{}" is in use in element(s): {}'.format(
@@ -223,15 +228,13 @@ class CodeVar():
             '{}: must be an expression'.format(tree)
         return ' '.join(_do(tree))
 
-    def __variables_by_name(self, variables, case_insensitive):
+    def __variables_by_name(self, variables):
         res = PKDict()
         for v in variables:
-            n = v['name']
+            n = self.canonicalize(v['name'])
             value = v.get('value', 0)
-            if case_insensitive:
-                n = n.lower()
-                if type(value) == str:
-                    value = value.lower()
+            if self.case_insensitive and type(value) == str:
+                value = value.lower()
             res[n] = value
         return res
 
@@ -275,8 +278,7 @@ class CodeVarIterator(lattice.ModelIterator):
 
     def __add_value(self, value):
         if self.code_var.is_var_value(value):
-            if self.code_var.case_insensitive:
-                value = value.lower()
+            value = self.code_var.canonicalize(value)
             if value not in self.result:
                 v, err = self.code_var.eval_var(value)
                 if err:
@@ -295,7 +297,8 @@ class CodeVarDeleteIterator(lattice.ModelIterator):
     def field(self, model, field_schema, field):
         if field_schema[1] == 'RPNValue' \
            and self.code_var.is_var_value(model[field]):
-            for v in str(model[field]).split(' '):
+            expr =  self.canonicalize(self.code_var.infix_to_postfix(str(model[field])))
+            for v in str(expr).split(' '):
                 if v == self.name:
                     if lattice.LatticeUtil.is_command(model):
                         self.result.append('{}.{}'.format(model._type, field))
