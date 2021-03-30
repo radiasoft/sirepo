@@ -13,7 +13,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import lattice
-from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
@@ -481,6 +480,7 @@ def sim_frame_plotAnimation(frame_args):
 
 
 def sim_frame_plot2Animation(frame_args):
+    from sirepo.template import sdds_util
 
     x = None
     plots = []
