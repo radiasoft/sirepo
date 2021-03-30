@@ -9,7 +9,8 @@ class UIEnvironment {
         if (className === 'UIEnvironment') {
             return this;
         }
-        return new SIREPO.DOM[className](this, ...args);
+        //return new SIREPO.DOM[className](this, ...args);
+        return new SIREPO.DOM[className](...args);
     }
 
     sanitize(str) {
@@ -45,32 +46,36 @@ class UIOutput {
     }
 }
 
-class UIAttribute extends UIOutput {
-    constructor(env, name, value) {
-        super(env);
+class UIAttribute {  //extends UIOutput {
+    constructor(name, value) {
+        //super();
         this.name = name;
         this.value = value;
     }
 
-    static attrsToTempate(arr) {
+    static attrsToTemplate(arr) {
         let s = '';
         for (let attr of arr) {
-            s += attr.toTemplate();
+            s += `${attr.toTemplate()} `;
         }
         return s;
     }
 
     toTemplate() {
-        return `${this.encode(this.name)}="${this.encode(this.value)}"`;
+        //return `${this.encode(this.name)}="${this.encode(this.value)}"`;
+        return `${this.name}="${this.value}"`;
     }
 }
 
-class UIElement extends UIOutput {
+class UIElement {  //extends UIOutput {
     // tag name, id, attrs array
     // even though id is an attribute, give it its own parameter
-    constructor(env, tag, id, attrs) {
-        super(env);
-        this.attrs = [];
+    constructor(tag, id, attrs) {
+        //super();
+        //this.attrs = [];
+        // key-value map to manage attributes
+        //srdbg('bld el', tag, id, attrs);
+        this.attrs = {};
         this.addAttributes(attrs || []);
         if (id) {
             this.addAttribute('id', id);
@@ -85,16 +90,18 @@ class UIElement extends UIOutput {
 
     addAttribute(name, value) {
         let a = this.getAttr(name);
-        if (a) {
-            a.value = value;
+        //srdbg('got a', name, a);
+        if (! a) {
+            a = new UIAttribute(name, value);
+            this.attrs[name] = a;
         }
-        else {
-            this.attrs.push(this.env.newInstance('UIAttribute', name, value));
-        }
+        a.value = value;
     }
 
     addAttributes(arr) {
-        this.attrs.push(...arr);
+        for (let a of arr) {
+            this.addAttribute(a.name, a.value);
+        }
     }
 
     addChild(el) {
@@ -129,12 +136,7 @@ class UIElement extends UIOutput {
     }
 
     getAttr(name) {
-        for (let x of this.attrs) {
-            if (x.name === name) {
-                return  x;
-            }
-        }
-        return null;
+        return this.attrs[name];
     }
 
     getChild(id) {
@@ -187,17 +189,20 @@ class UIElement extends UIOutput {
     }
 
     setText(str) {
-        this.text = this.encode(str);
+        this.text = str;  //this.encode(str);
     }
 
     toTemplate() {
-        let t = this.encode(this.tag);
-        let s = `<${t} ${UIAttribute.attrsToTempate(this.attrs)}>`;
+        let t = this.tag;  //this.encode(this.tag);
+        let s = `<${t} ${UIAttribute.attrsToTemplate(Object.values(this.attrs))}>`;
         s += this.text;
         for (let c of this.children) {
             s += c.toTemplate();
         }
         s += `</${t}>`;
+        for (let c of this.siblings) {
+            s += c.toTemplate();
+        }
         return s;
     }
 }
@@ -306,71 +311,132 @@ class UIEnumOption extends UIElement {
 
 
 
+class SVGGroup extends UIElement {
+    constructor(id) {
+        super('g', id);
+    }
+}
+
 class SVGRect extends UIElement {
-    constructor(id, x, y, width, height) {
+    constructor(id, x, y, width, height, style) {
+        //srdbg('rect args', arguments, 'vs', id, x, y, width, height, style);
         super('rect', id);
-        this.update(x, y, width, height);
+        //this.x = x;
+        //this.y = y;
+        //this.width = width;
+        //this.height = height;
+        //this.style = style;
+        //for (let n of ['x', 'y', 'width', 'height', 'style']) {
+        //    this.addAttribute(n, this[n]);
+        //}
+        this.update(x, y, width, height, style);
     }
 
-    update(x, y, width, height) {
+    update(x, y, width, height, style) {
+        //srdbg('rect update', arguments, 'vs', x, y, width, height, style);
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.addAttributes([
-            new UIAttribute('x', x),
-            new UIAttribute('y', y),
-            new UIAttribute('width', width),
-            new UIAttribute('height', height)
-        ]);
+        this.style = style;
+        for (let n of ['x', 'y', 'width', 'height', 'style']) {
+            this.addAttribute(n, this[n]);
+        }
     }
 
 }
 
-class SVGTable extends SVGRect {
-    constructor(id, x, y, numRows, numCols) {
-        super('rect', id, 0, 0, 0, 0);
+
+class SVGText extends UIElement {
+    constructor(id, x, y, str = '') {
+        super('text', id);
+        this.addAttributes([
+            new UIAttribute('x', x),
+            new UIAttribute('y', y),
+        ]);
+        this.setText(str);
+    }
+}
+
+// fixed size
+class SVGTable extends SVGGroup {
+    constructor(id, x, y, cellWidth, cellHeight, numRows, numCols) {
+        if (! numCols || ! numRows) {
+            throw new Error(`Table must have at least 1 row and 1 column (${numRows} x ${numCols} given)`);
+        }
+        //super(id, x, y, 0, 0, 'stroke:blue; fill:none');
+        super(id);
+        //this.addChild(
+        //    new SVGRect(this.frameId(), x, y, 0, 0, 'stroke:blue; fill:none')
+        //);
+        //srdbg('table', this.attrs);
         this.padding = 2;
-        this.cellWidth = 2 * this.padding;
-        this.cellHeight = 2 * this.padding;
+        this.cellWidth = cellWidth;
+        this.cellHeight = cellHeight;
+        this.numRows = numRows;
+        this.numCols = numCols;
         this.cells = [];
-        this.update(x, y, numRows, numCols);
+        for (let i = 0; i < numRows; ++i) {
+            let r = [];
+            for (let j = 0; j < numCols; ++j) {
+                r.push('');
+                this.addChild(new SVGText(
+                    this.cellId(i, j), this.padding + j * this.cellWidth, 10 + this.padding + i * this.cellHeight)
+                );
+            }
+            this.cells.push(r);
+        }
+        this.update(x, y);
+    }
+
+    frameId() {
+        return `${this.id}-frame`;
     }
 
     cellId(i, j) {
         return `${this.id}-${i}-${j}`;
     }
 
-    setCell(i, j, val) {
-
+    getCell(i, j) {
+        return this.cells[i][j];
     }
 
+    setCell(i, j, val) {
+        this.cells[i][j] = val;
+        let cid  = this.cellId(i, j);
+        let c = this.getChild(cid);
+        //srdbg('set', i, j, cid, c, 'to', val);
+        this.getChild(this.cellId(i, j)).setText(val);
+        //srdbg('cell val now', this.getCell(i, j));
+    }
 
-
-    update(x, y, numRows, numCols) {
-        super.update(
-            x,
-            y,
-            this.padding + numCols * (this.cellWidth + this.padding),
-            this.padding + numRows * (this.cellHeight + this.padding)
-        );
-        let w = this.padding;
-        for (let i = 0; i < numRows; ++i) {
-            let h = this.padding + i * this.cellHeight;
-            for (let j = 0; j < numCols; ++j) {
-                let cId = this.cellId(i, j);
-                let c = this.getSibling();
-                if (! c) {
-                    //c = new SVGRect(cId, )
-                }
+    update(x, y) {
+        //srdbg('table update', x, y, this.numCols, this.numRows, this.style);
+        //this.getChild(this.frameId()).update(
+        //    x,
+        //    y,
+        //    this.padding + this.numCols * (this.cellWidth + this.padding),
+        //    this.padding + this.numRows * (this.cellHeight + this.padding),
+        //    this.style
+        //);
+        /*
+        for (let i = 0; i < this.numRows; ++i) {
+            for (let j = 0; j < this.numCols; ++j) {
+                let c = this.getSibling(this.cellId(i, j));
+                let v = this.getCell(i, j);
+                console.log('set cell', c, v);
+                c.setText(v);
             }
         }
+         */
     }
-
 
 }
 
 SIREPO.DOM = {
+    SVGRect: SVGRect,
+    SVGTable: SVGTable,
+    SVGText: SVGText,
     UIAttribute: UIAttribute,
     UIMatch: UIMatch,
     UIElement: UIElement,
