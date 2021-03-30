@@ -8,6 +8,12 @@
   use_beamline = "bl",
 &end
 
+&insert_elements
+  name="L2AS4END"
+  type="MARK"
+  element_def="watchafl2: WATCH,filename=\"%s-afl2.w1\""
+&end
+
 &sdds_beam
   input = "PCG.sdds",
 &end

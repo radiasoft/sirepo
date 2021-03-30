@@ -662,7 +662,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub(r'[\"\'()]', '', str(v))
+    return re.sub(r'([^\\])[\"\'()]', r'\1', str(v))
 
 
 def _get_notes(data):
