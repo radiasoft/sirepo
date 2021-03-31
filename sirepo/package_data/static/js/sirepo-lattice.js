@@ -232,17 +232,20 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.elementForId = function(id, models) {
         models = models || appState.models;
-        var i;
         id = Math.abs(id);
-        for (i = 0; i < models.beamlines.length; i++) {
-            var b = models.beamlines[i];
+        //srdbg('get el for id', id, 'in', models.beamlines, models.elements);
+        for (let i = 0; i < models.beamlines.length; i++) {
+            let b = models.beamlines[i];
+            //srdbg('check bl', b.id);
             if (b.id == id) {
                 return b;
             }
         }
-        for (i = 0; i < models.elements.length; i++) {
-            var e = models.elements[i];
+        for (let i = 0; i < models.elements.length; i++) {
+            let e = models.elements[i];
+            //srdbg('check el', e, 'vs', id);
             if (e._id == id) {
+                //srdbg('got el', e._id);
                 return e;
             }
         }
@@ -1249,13 +1252,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            let uiEnv = new SIREPO.DOM.UIEnvironment($sanitize);
-
             let numReadouts = 0;
-            let numReadoutCols = 2;
             let panTranslate = [0, 0];
             let picTypeCache = null;
-            //let readout = SIREPO.DOM ? uiEnv.newInstance('UIElement', 'g', 'sr-lattice-readouts') : null;
+            let readoutGroups = utilities.unique(
+                Object.values(SIREPO.APP_SCHEMA.constants.readoutElements || {}).map(function (e) {
+                    return e.group;
+                })
+            );
+            let numReadoutCols = readoutGroups.length;
             let readoutTable = null;
             let selectedBeamline = null;
             let svgBounds = null;
@@ -1787,18 +1792,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function hasReadout(element) {
-                //if (! readout) {
-                //    return false;
-                //}
-                //if (! readoutTable) {
-                //    return false;
-                //}
-                let e = SIREPO.APP_SCHEMA.constants.readoutElements[element.type];
-                return readoutFields(element).length > 0;
+                return SIREPO.DOM && readoutFields(element).length > 0;
             }
 
             function readoutFields(element) {
                 return (SIREPO.APP_SCHEMA.constants.readoutElements[element.type] || {}).fields || [];
+            }
+
+            function readoutGroup(element) {
+                return (SIREPO.APP_SCHEMA.constants.readoutElements[element.type] || {}).group;
             }
 
             function isAngleItem(picType) {
@@ -1851,23 +1853,30 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function readoutElements() {
-                let elements = [];
-                for (let group of $scope.svgGroups) {
-                    elements.push(...group.items.map(function (item) {
+                let elements = {};
+                for (let g of $scope.svgGroups) {
+                    for (let e of g.items.map(function (item) {
                         return item.element;
-                    }).filter(hasReadout));
+                    }).filter(hasReadout)) {
+                        let rg = readoutGroup(e);
+                        if (! elements[rg]) {
+                            elements[rg] = {};
+                        }
+                        elements[rg][e._id] = e;
+                    }
                 }
                 return elements;
             }
 
             function updateReadoutElement(element, i, j) {
+                if (! readoutTable) {
+                    return;
+                }
                 let txt = `${element.name}: `;
                 for (let f of readoutFields(element)) {
                     txt += `${f} = ${utilities.roundToPlaces(parseFloat(element[f]), 6)};&nbsp;`;
                 }
-                if (readoutTable) {
-                    readoutTable.setCell(i, j, txt);
-                }
+                readoutTable.setCell(i, j, txt);
             }
 
 
@@ -1941,7 +1950,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function updateReadout(e, d) {
-                let r = angular.copy(readoutElements());
+                let r = readoutElements();
+                if ($.isEmptyObject(r)) {
+                    return;
+                }
+                let nRows = Object.values(r).map(function (x) {
+                    return Object.keys(x).length;
+                });
+                let maxReadoutRows = Math.max(...nRows);
                 if (! readoutTable) {
                     readoutTable = new SIREPO.DOM.SVGTable(
                         'sr-readout-table',
@@ -1949,7 +1965,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         20,
                         300,
                         20,
-                        Math.floor(r.length / numReadoutCols),
+                        maxReadoutRows,
                         numReadoutCols
                     );
                 }
@@ -1957,17 +1973,30 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 // data is in the format {'el_<id>.<field>': <value>}
                 for (let k in dd) {
                     let mf = k.split('.');
-                    let el_id = mf[0].split('_')[1];
-                    let m = getReadoutElement(r, el_id);
+                    let el_id = parseInt(mf[0].split('_')[1]);
+                    let el = latticeService.elementForId(el_id, $scope.models);
+                    if (! el) {
+                        continue;
+                    }
+                    let g = readoutGroup(el);
+                    if (! g) {
+                        continue;
+                    }
+                    let m = r[g][el_id];
                     if (! m) {
                         continue;
                     }
                     m[mf[1]] = dd[k];
                 }
-                let i = 0;
-                for (let element of r) {
-                    updateReadoutElement(element, Math.floor(i / numReadoutCols), i % numReadoutCols);
-                    ++i;
+                let j = 0;
+                // each readout group is a column
+                for (let g in r) {
+                    let i = 0;
+                    for (let el_id in r[g]) {
+                        updateReadoutElement(r[g][el_id], i, j);
+                        ++i;
+                    }
+                    ++j;
                 }
             }
 

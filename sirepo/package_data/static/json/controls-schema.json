@@ -8,16 +8,20 @@
         "maxBPMPoints": 10,
         "readoutElements": {
             "HKICKER": {
-                "fields": ["kick"]
+                "fields": ["kick"],
+                "group": "Kickers"
             },
             "KICKER": {
-                "fields": ["hkick", "vkick"]
+                "fields": ["hkick", "vkick"],
+                "group": "Kickers"
             },
             "QUADRUPOLE": {
-                "fields": ["k1"]
+                "fields": ["k1"],
+                "group": "Quads"
             },
             "VKICKER": {
-                "fields": ["kick"]
+                "fields": ["kick"],
+                "group": "Kickers"
             }
         }
     },
