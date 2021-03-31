@@ -1027,7 +1027,7 @@
     "frameIdFields": {
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
         "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var"],
-        "varAnimation": ["var"]
+        "varAnimation": ["axis", "var", "zmax", "zmin"]
     },
     "localRoutes": {
         "config": {
@@ -1919,10 +1919,13 @@
             "var": ["Variable", "VariableName", "magz"]
         },
         "varAnimation": {
+            "axis": ["Axis", "Axis", "r"],
             "var": ["Variable Name", "VariableName", "dens"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "zmax": ["Z Max", "OptionalFloat", "", "Maximum limit of color bar values."],
+            "zmin": ["Z Min", "OptionalFloat", "", "Minimum limit of color bar values."]
         }
     },
     "view": {
@@ -2417,9 +2420,12 @@
         "varAnimation": {
             "title": "Variable Plot",
             "advanced": [
+                "axis",
                 "var",
                 "framesPerSecond",
                 "colorMap",
+                "zmax",
+                "zmin",
                 "notes"
             ]
         },

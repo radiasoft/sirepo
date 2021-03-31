@@ -10,6 +10,9 @@ SIREPO.app.config(function() {
         // TODO(e-carlin): this is just copied from sirepo-components
           '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
         '</div>',
+        '<div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">',
+          '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" />',
+        '</div>',
         '<div data-ng-switch-when="PlotFileArray" class="col-sm-7">',
           '<div data-plot-file-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
         '</div>',
@@ -137,6 +140,7 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
                 setReadOnly(modelName);
             }
             else if (modelName == 'Grid') {
+                // TODO(e-carlin): need to also constrain setupArguments geometry options
                 ['polar', 'spherical'].forEach(function(f) {
                     panelState.showEnum(
                         'Grid',
@@ -182,11 +186,19 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
             ['x', 'x'],
             ['y', 'y']
         ];
-        if (appState.models.Grid.geometry == 'cylindrical') {
+        const g = appState.models.Grid.geometry;
+        if (['cylindrical', 'polar', 'spherical'].includes(g)) {
             SIREPO.APP_SCHEMA.enum.Axis = [
                 ['r', 'r'],
-                ['z', 'z']
+                ['theta', 'theta']
             ];
+            if (g === 'spherical') {
+                SIREPO.APP_SCHEMA.enum.Axis[2] = ['phi', 'phi'];
+            }
+        }
+        if (appState.models.setupArguments.d === 3) {
+            let a = g === 'spherical' ? 'phi' : 'z';
+            SIREPO.APP_SCHEMA.enum.Axis.push([a, a]);
         }
         const d = SIREPO.APP_SCHEMA.enum.Axis[0][0];
         SIREPO.APP_SCHEMA.model.oneDimensionProfileAnimation.axis[2]= d;
