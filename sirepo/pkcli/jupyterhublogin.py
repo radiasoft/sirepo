@@ -25,8 +25,8 @@ def create_user(email):
     import sirepo.template
 
 
-    assert pyisemail.is_email(email), \
-        f'invalid email={email}'
+    if not pyisemail.is_email(email):
+        pykern.pkcli.command_error('invalid email={}', email)
     sirepo.server.init()
     sirepo.template.assert_sim_type('jupyterhublogin')
     u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
@@ -39,7 +39,4 @@ def create_user(email):
         )
         if n:
             return n
-        assert not sirepo.sim_api.jupyterhublogin.user_dir(
-            user_name=email.split('@')[0],
-        ).exists(), f'existing user dir with same name as local part of email={email}'
-        return sirepo.sim_api.jupyterhublogin.create_user()
+        return sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)

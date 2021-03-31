@@ -125,10 +125,6 @@ def unchecked_user_by_user_name(user_name):
        return None
 
 
-def _init():
-    auth_db.init_model(_init_model)
-
-
 def _init_model(base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
     global AuthEmailUser, UserModel
@@ -217,4 +213,4 @@ def _verify_confirm(sim_type, token, need_complete_registration):
     return d.get('displayName')
 
 
-_init()
+auth_db.init_model(_init_model)

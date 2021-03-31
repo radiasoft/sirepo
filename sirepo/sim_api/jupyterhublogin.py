@@ -58,7 +58,7 @@ def api_redirectJupyterHub():
     return sirepo.http_reply.gen_json_ok()
 
 
-def create_user(github_handle=None):
+def create_user(github_handle=None, check_dir=False):
     """Create a Jupyter user and possibly migrate their data from old jupyter.
 
     Terminology:
@@ -85,41 +85,50 @@ def create_user(github_handle=None):
 
     Args:
         github_handle (str): The user's github handle
-
+        check_dir (bool): assert that an existing user does not have a dir with
+                          the same name (before modifying the name to eliminate
+                          conflicts)
     Returns:
         user_name (str): The user_name of the new user
     """
-    def __user_name():
-        n = github_handle or sirepo.auth.user_name()
-        if github_handle:
-            if JupyterhubUser.search_by(user_name=github_handle) or \
-               not user_dir(user_name=github_handle).exists():
-                raise sirepo.util.SRException(
-                    'jupyterNameConflict',
-                    PKDict(sim_type='jupyterhublogin'),
-                )
-            return github_handle
-        n = re.sub(
+    def __handle_or_name_sanitized():
+        return re.sub(
             r'\W+',
             _HUB_USER_SEP,
             # Get the local part of the email. Or in the case of another auth
             # method (ex github) it won't have an '@' so it will just be their
             # user name, handle, etc.
-            n.split('@')[0],
+            (github_handle or sirepo.auth.user_name()).split('@')[0],
         ).lower()
+
+
+    def __user_name():
+        if github_handle:
+            if JupyterhubUser.search_by(user_name=github_handle) or \
+               not _user_dir(user_name=github_handle).exists():
+                raise sirepo.util.SRException(
+                    'jupyterNameConflict',
+                    PKDict(sim_type='jupyterhublogin'),
+                )
+            return github_handle
+        n = __handle_or_name_sanitized()
         if JupyterhubUser.search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
             # a unique user name.
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
         return n
 
+    if check_dir:
+        n = __handle_or_name_sanitized()
+        assert not _user_dir(n).exists(), \
+            f'existing user dir with same name={n}'
     with sirepo.auth_db.thread_lock:
         u = __user_name()
         JupyterhubUser(
             uid=sirepo.auth.logged_in_user(),
             user_name=u,
         ).save()
-        pkio.mkdir_parent(user_dir())
+        pkio.mkdir_parent(_user_dir())
         return u
 
 
@@ -151,13 +160,6 @@ def unchecked_jupyterhub_user_name(have_simulation_db=True):
     return _unchecked_hub_user(sirepo.auth.logged_in_user(check_path=have_simulation_db))
 
 
-def user_dir(user_name=None):
-    if not user_name:
-        user_name = unchecked_jupyterhub_user_name()
-        assert user_name, 'must have user to get dir'
-    return cfg.user_db_root_d.join(user_name)
-
-
 def _event_auth_logout(kwargs):
     sirepo.srcontext.set(_JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(kwargs.uid))
 
@@ -181,7 +183,7 @@ def _event_github_authorized(kwargs):
     create_user(github_handle=kwargs.user_name.lower())
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.
-    pkio.mkdir_parent(user_dir())
+    pkio.mkdir_parent(_user_dir())
     raise sirepo.util.Redirect('jupyter')
 
 
@@ -204,3 +206,10 @@ def _unchecked_hub_user(uid):
         if u:
             return u.user_name
         return None
+
+
+def _user_dir(user_name=None):
+    if not user_name:
+        user_name = unchecked_jupyterhub_user_name()
+        assert user_name, 'must have user to get dir'
+    return cfg.user_db_root_d.join(user_name)

@@ -21,9 +21,6 @@ import sirepo.http_request
 import time
 
 
-#: configuration
-cfg = None
-
 AUTH_METHOD = 'bluesky'
 
 #: bots only
@@ -119,14 +116,9 @@ def auth_hash(req, verify=False):
         )
 
 
-def _init():
-    global cfg
-
-    cfg = pkconfig.init(
-        secret=pkconfig.Required(
-            str,
-            'Shared secret between Sirepo and BlueSky server',
-        ),
-    )
-
-_init()
+cfg = pkconfig.init(
+    secret=pkconfig.Required(
+        str,
+        'Shared secret between Sirepo and BlueSky server',
+    ),
+)

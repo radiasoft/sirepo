@@ -74,7 +74,7 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
-#: sirepo.uri_router module
+#: avoid circular import issues by importing in init_apis
 uri_router = None
 
 cfg = None
@@ -153,7 +153,6 @@ def get_module(name):
 
 def init_apis(*args, **kwargs):
     global uri_router
-    assert not uri_router
     assert not cfg.logged_in_user, \
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')

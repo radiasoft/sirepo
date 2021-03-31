@@ -103,11 +103,6 @@ def _cfg_login_days(value):
     return datetime.timedelta(days=value)
 
 
-def _init():
-    global cfg
-    cfg = pkconfig.init(
-        expiry_days=(None, _cfg_login_days, 'when auth login expires'),
-    )
-
-
-_init()
+cfg = pkconfig.init(
+    expiry_days=(None, _cfg_login_days, 'when auth login expires'),
+)

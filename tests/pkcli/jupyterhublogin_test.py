@@ -27,4 +27,5 @@ def test_create_user(auth_fc):
     fc.sr_email_register(e, sim_type='myapp')
     r = e.split('@')[0]
     pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e))
+    # create_user is idempotent. Returns user_name if user already exists
     pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e))
