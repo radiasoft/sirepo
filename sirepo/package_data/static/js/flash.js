@@ -10,6 +10,9 @@ SIREPO.app.config(function() {
         // TODO(e-carlin): this is just copied from sirepo-components
           '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
         '</div>',
+        '<div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">',
+          '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" />',
+        '</div>',
         '<div data-ng-switch-when="PlotFileArray" class="col-sm-7">',
           '<div data-plot-file-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
         '</div>',
@@ -137,6 +140,7 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
                 setReadOnly(modelName);
             }
             else if (modelName == 'Grid') {
+                // TODO(e-carlin): need to also constrain setupArguments geometry options
                 ['polar', 'spherical'].forEach(function(f) {
                     panelState.showEnum(
                         'Grid',
@@ -178,20 +182,43 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     };
 
     function setAxis() {
-        SIREPO.APP_SCHEMA.enum.Axis = [
-            ['x', 'x'],
-            ['y', 'y']
-        ];
-        if (appState.models.Grid.geometry == 'cylindrical') {
-            SIREPO.APP_SCHEMA.enum.Axis = [
+        SIREPO.APP_SCHEMA.enum.Axis = {
+            'cartesian': [
+                ['x', 'x'],
+                ['y', 'y']
+            ],
+            'cylindrical': [
                 ['r', 'r'],
                 ['z', 'z']
-            ];
+            ],
+            'spherical': [
+                ['r', 'r'],
+                ['theta', 'theta']
+            ],
+            'polar': [
+                ['r', 'r'],
+                ['phi', 'phi']
+            ]
+        }[appState.models.Grid.geometry];
+        if (appState.models.setupArguments.d === 3) {
+            let a = 'z';
+            if (['cylindrical', 'spherical'].includes(appState.models.Grid.geometry)) {
+                a = 'phi';
+            }
+            SIREPO.APP_SCHEMA.enum.Axis.push([a, a]);
         }
         const d = SIREPO.APP_SCHEMA.enum.Axis[0][0];
         SIREPO.APP_SCHEMA.model.oneDimensionProfileAnimation.axis[2]= d;
-        appState.models.oneDimensionProfileAnimation.axis = d;
-        appState.saveChanges('oneDimensionProfileAnimation');
+        // Set the axis to be the default if it is currently set to an
+        // axis that is invalid for the selected geometry
+        ['oneDimensionProfileAnimation', 'varAnimation'].forEach((m) => {
+            if (! SIREPO.APP_SCHEMA.enum.Axis.map((a) => a[0]).includes(
+                appState.models[m].axis
+            )) {
+                appState.models[m].axis = d;
+                appState.saveChanges(m);
+            }
+        });
     }
 
     self.simHandleStatus = function(data) {

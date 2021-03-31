@@ -1027,7 +1027,7 @@
     "frameIdFields": {
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
         "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var"],
-        "varAnimation": ["var"]
+        "varAnimation": ["amrGrid", "axis", "var", "vmax", "vmin"]
     },
     "localRoutes": {
         "config": {
@@ -1919,10 +1919,14 @@
             "var": ["Variable", "VariableName", "magz"]
         },
         "varAnimation": {
+            "amrGrid": ["AMR Grid", "Boolean", 1],
+            "axis": ["Axis", "Axis", "r"],
             "var": ["Variable Name", "VariableName", "dens"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "vmax": ["V Max", "OptionalFloat", "", "Maximum limit of color bar values."],
+            "vmin": ["V Min", "OptionalFloat", "", "Minimum limit of color bar values."]
         }
     },
     "view": {
@@ -2417,9 +2421,13 @@
         "varAnimation": {
             "title": "Variable Plot",
             "advanced": [
+                "amrGrid",
+                "axis",
                 "var",
                 "framesPerSecond",
                 "colorMap",
+                "vmax",
+                "vmin",
                 "notes"
             ]
         },

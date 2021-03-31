@@ -1004,6 +1004,7 @@
             "sim_riseTime": 1.8e-9
         },
         "varAnimation": {
+            "axis": "theta",
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
