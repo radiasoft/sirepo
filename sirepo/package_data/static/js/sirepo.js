@@ -176,7 +176,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
     $sanitizeProvider.enableSvg(true);
-    $sanitizeProvider.addValidAttrs(['id', ]);
+    $sanitizeProvider.addValidAttrs(['id', 'style']);
     SIREPO.appFieldEditors = '';
 
     let defaultRoute = null;
