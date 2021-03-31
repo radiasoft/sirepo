@@ -349,8 +349,7 @@ class SVGRect extends UIElement {
 
 class SVGText extends UIElement {
     constructor(id, x, y, str = '') {
-        super('text', id);
-        this.addAttributes([
+        super('text', id, [
             new UIAttribute('x', x),
             new UIAttribute('y', y),
         ]);
@@ -360,28 +359,36 @@ class SVGText extends UIElement {
 
 // fixed size
 class SVGTable extends SVGGroup {
-    constructor(id, x, y, cellWidth, cellHeight, numRows, numCols) {
+    constructor(id, x, y, cellWidth, cellHeight, cellPadding, numRows, numCols, borderStyle, header = []) {
         if (! numCols || ! numRows) {
             throw new Error(`Table must have at least 1 row and 1 column (${numRows} x ${numCols} given)`);
         }
-        //super(id, x, y, 0, 0, 'stroke:blue; fill:none');
         super(id);
-        //this.addChild(
-        //    new SVGRect(this.frameId(), x, y, 0, 0, 'stroke:blue; fill:none')
-        //);
-        //srdbg('table', this.attrs);
-        this.padding = 2;
+        this.border = new SVGRect(this.borderId(), x, y, 0, 0, borderStyle);
+        this.addChild(this.border);
+        this.padding = cellPadding;
         this.cellWidth = cellWidth;
         this.cellHeight = cellHeight;
         this.numRows = numRows;
         this.numCols = numCols;
+        this.borderStyle = borderStyle;
         this.cells = [];
+        let headerOffset = header.length ? cellHeight : 0;
+
+        for (let j = 0; j < header.length; ++j) {
+            this.addChild(new SVGText(
+            `${this.id}-header`,
+                this.padding + x + j * this.cellWidth,
+                this.padding + y + cellHeight,
+                header[j]
+            ));
+        }
         for (let i = 0; i < numRows; ++i) {
             let r = [];
             for (let j = 0; j < numCols; ++j) {
                 r.push('');
                 this.addChild(new SVGText(
-                    this.cellId(i, j), this.padding + j * this.cellWidth, 10 + this.padding + i * this.cellHeight)
+                    this.cellId(i, j), this.padding + x + j * this.cellWidth, this.padding + y + headerOffset + cellHeight + i * this.cellHeight)
                 );
             }
             this.cells.push(r);
@@ -389,8 +396,8 @@ class SVGTable extends SVGGroup {
         this.update(x, y);
     }
 
-    frameId() {
-        return `${this.id}-frame`;
+    borderId() {
+        return `${this.id}-border`;
     }
 
     cellId(i, j) {
@@ -398,6 +405,10 @@ class SVGTable extends SVGGroup {
     }
 
     getCell(i, j) {
+        return $(`#${this.cellId(i, j)}`);
+    }
+
+    getCellVal(i, j) {
         return this.cells[i][j];
     }
 
@@ -405,30 +416,22 @@ class SVGTable extends SVGGroup {
         this.cells[i][j] = val;
         let cid  = this.cellId(i, j);
         let c = this.getChild(cid);
-        //srdbg('set', i, j, cid, c, 'to', val);
         this.getChild(this.cellId(i, j)).setText(val);
-        //srdbg('cell val now', this.getCell(i, j));
+    }
+
+    setBorderStyle(style) {
+        this.borderStyle = style;
+        this.update(this.x, this.y);
     }
 
     update(x, y) {
-        //srdbg('table update', x, y, this.numCols, this.numRows, this.style);
-        //this.getChild(this.frameId()).update(
-        //    x,
-        //    y,
-        //    this.padding + this.numCols * (this.cellWidth + this.padding),
-        //    this.padding + this.numRows * (this.cellHeight + this.padding),
-        //    this.style
-        //);
-        /*
-        for (let i = 0; i < this.numRows; ++i) {
-            for (let j = 0; j < this.numCols; ++j) {
-                let c = this.getSibling(this.cellId(i, j));
-                let v = this.getCell(i, j);
-                console.log('set cell', c, v);
-                c.setText(v);
-            }
-        }
-         */
+        this.border.update(
+            x,
+            y,
+            this.padding + this.numCols * (this.cellWidth + this.padding),
+            this.padding + this.numRows * (this.cellHeight + this.padding),
+            this.borderStyle
+        );
     }
 
 }
