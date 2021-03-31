@@ -318,22 +318,18 @@ class SVGGroup extends UIElement {
 }
 
 class SVGRect extends UIElement {
-    constructor(id, x, y, width, height, style) {
-        //srdbg('rect args', arguments, 'vs', id, x, y, width, height, style);
+    constructor(id, x, y, width, height, style, doRound) {
         super('rect', id);
-        //this.x = x;
-        //this.y = y;
-        //this.width = width;
-        //this.height = height;
-        //this.style = style;
-        //for (let n of ['x', 'y', 'width', 'height', 'style']) {
-        //    this.addAttribute(n, this[n]);
-        //}
+        if (doRound) {
+            this.addAttributes([
+                new UIAttribute('rx', 4),
+                new UIAttribute('ry', 4),
+            ]);
+        }
         this.update(x, y, width, height, style);
     }
 
     update(x, y, width, height, style) {
-        //srdbg('rect update', arguments, 'vs', x, y, width, height, style);
         this.x = x;
         this.y = y;
         this.width = width;
@@ -359,40 +355,58 @@ class SVGText extends UIElement {
 
 // fixed size
 class SVGTable extends SVGGroup {
-    constructor(id, x, y, cellWidth, cellHeight, cellPadding, numRows, numCols, borderStyle, header = []) {
+    constructor(id, x, y, cellWidth, cellHeight, cellPadding, numRows, numCols, borderStyle, doRoundBorder, header = []) {
         if (! numCols || ! numRows) {
             throw new Error(`Table must have at least 1 row and 1 column (${numRows} x ${numCols} given)`);
         }
         super(id);
-        this.border = new SVGRect(this.borderId(), x, y, 0, 0, borderStyle);
-        this.addChild(this.border);
+        this.border = new SVGRect(this.borderId(), x, y, 0, 0, borderStyle, doRoundBorder);
         this.padding = cellPadding;
         this.cellWidth = cellWidth;
         this.cellHeight = cellHeight;
         this.numRows = numRows;
         this.numCols = numCols;
         this.borderStyle = borderStyle;
-        this.cells = [];
-        let headerOffset = header.length ? cellHeight : 0;
+        this.headerOffset = header.length ? cellHeight : 0;
 
         for (let j = 0; j < header.length; ++j) {
-            this.addChild(new SVGText(
-            `${this.id}-header`,
-                this.padding + x + j * this.cellWidth,
-                this.padding + y + cellHeight,
-                header[j]
+            this.addChild(new SVGRect(
+                null,
+                x + j * cellWidth,
+                y,
+                cellWidth,
+                cellHeight, 'stroke:lightgrey; fill:lightgrey', true
             ));
+            let hdr = new SVGText(
+            `${this.id}-header`,
+                x + j * cellWidth + this.padding,
+                y + cellHeight - this.padding,
+                header[j]
+            );
+            hdr.addAttribute('font-weight', 'bold');
+            this.addChild(hdr);
         }
         for (let i = 0; i < numRows; ++i) {
-            let r = [];
             for (let j = 0; j < numCols; ++j) {
-                r.push('');
                 this.addChild(new SVGText(
-                    this.cellId(i, j), this.padding + x + j * this.cellWidth, this.padding + y + headerOffset + cellHeight + i * this.cellHeight)
-                );
+                    this.cellId(i, j),
+                    x + j * cellWidth + this.padding,
+                    y + this.headerOffset + cellHeight + i * cellHeight - this.padding
+                ));
+                this.addChild(new SVGRect(
+                    `${this.cellId(i, j)}-border`,
+                    x + j * cellWidth,
+                    y + this.headerOffset + i * cellHeight,
+                    cellWidth,
+                    cellHeight,
+                    'stroke:black; fill:none',
+                    false
+                ));
             }
-            this.cells.push(r);
         }
+
+        // add border last so it covers edges
+        this.addChild(this.border);
         this.update(x, y);
     }
 
@@ -408,12 +422,8 @@ class SVGTable extends SVGGroup {
         return $(`#${this.cellId(i, j)}`);
     }
 
-    getCellVal(i, j) {
-        return this.cells[i][j];
-    }
 
     setCell(i, j, val) {
-        this.cells[i][j] = val;
         let cid  = this.cellId(i, j);
         let c = this.getChild(cid);
         this.getChild(this.cellId(i, j)).setText(val);
@@ -428,8 +438,8 @@ class SVGTable extends SVGGroup {
         this.border.update(
             x,
             y,
-            this.padding + this.numCols * (this.cellWidth + this.padding),
-            this.padding + this.numRows * (this.cellHeight + this.padding),
+            this.numCols * this.cellWidth,
+            this.headerOffset + this.numRows * this.cellHeight,
             this.borderStyle
         );
     }

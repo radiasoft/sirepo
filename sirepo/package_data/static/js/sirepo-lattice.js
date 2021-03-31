@@ -1260,8 +1260,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 })
             );
             let numReadoutCols = readoutGroups.length || 1;
-            let readoutCellPadding = 2;
-            let readoutCellHeight = 20;
+            let readoutCellPadding = 3;
+            let readoutCellHeight = 22;
             let readoutCellWidth = 300;
             let readoutTable = null;
             let selectedBeamline = null;
@@ -1958,7 +1958,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 let nRows = Object.values(r).map(function (x) {
                     return Object.keys(x).length;
                 });
-                let maxReadoutRows = 1 + Math.max(0, ...nRows);
+                let maxReadoutRows = Math.max(0, ...nRows);
                 if (! readoutTable) {
                     readoutTable = new SIREPO.DOM.SVGTable(
                         'sr-readout-table',
@@ -1969,7 +1969,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         readoutCellPadding,
                         maxReadoutRows,
                         numReadoutCols,
-                        'stroke:blue; fill:none',
+                        'stroke:darkgrey; fill:none',
+                        true,
                         readoutGroups
                     );
                 }
