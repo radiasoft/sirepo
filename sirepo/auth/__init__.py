@@ -23,7 +23,6 @@ import datetime
 import importlib
 import sirepo.auth_role
 import sirepo.feature_config
-import sirepo.simulation_db
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
@@ -158,6 +157,7 @@ def init_apis(*args, **kwargs):
     uri_router = importlib.import_module('sirepo.uri_router')
     for m in _METHOD_MODULES.values():
         uri_router.register_api_module(m)
+    import sirepo.simulation_db
     s = list(sirepo.simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
     assert sorted(s) == sorted(_ALL_PAYMENT_PLANS), \
         f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
@@ -193,6 +193,7 @@ def logged_in_user(check_path=True):
             cookie.unchecked_get_value(_COOKIE_METHOD),
         )
     if check_path:
+        import sirepo.simulation_db
         sirepo.simulation_db.user_path(u, check=True)
     return u
 
@@ -240,6 +241,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             # This handles the case where logging in as guest, creates a user every time
             _login_user(module, uid)
         else:
+            import sirepo.simulation_db
             uid = sirepo.simulation_db.user_create(lambda u: _login_user(module, u))
             _create_roles_for_new_user(module.AUTH_METHOD)
         if model:
@@ -251,6 +253,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         return
     if sim_type:
         if guest_uid and guest_uid != uid:
+            import sirepo.simulation_db
             sirepo.simulation_db.move_user_simulations(guest_uid, uid)
         login_success_response(sim_type, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
@@ -546,6 +549,7 @@ def _auth_hook_from_header(values):
 
 
 def _auth_state():
+    import sirepo.simulation_db
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
         avatarUrl=None,
