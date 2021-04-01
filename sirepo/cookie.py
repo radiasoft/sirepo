@@ -186,6 +186,8 @@ class _State(dict):
         )
 
     def _from_cookie_header(self, header):
+        if not header:
+            return
         s = None
         err = None
         try:

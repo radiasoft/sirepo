@@ -13,7 +13,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import lattice
-from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
@@ -481,6 +480,7 @@ def sim_frame_plotAnimation(frame_args):
 
 
 def sim_frame_plot2Animation(frame_args):
+    from sirepo.template import sdds_util
 
     x = None
     plots = []
@@ -526,12 +526,11 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def sim(self):
         d = self.data
-        r, v = template_common.generate_parameters_file(d)
-        self.jinja_env = v
+        self.jinja_env = template_common.flatten_data(d.models, PKDict())
         self._code_var = code_var(d.models.rpnVariables)
         if 'bunchReport' in d.get('report', ''):
-            return r + self._bunch_simulation()
-        return r + self._full_simulation()
+            return self._bunch_simulation()
+        return self._full_simulation()
 
     def _bunch_simulation(self):
         v = self.jinja_env

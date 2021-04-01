@@ -341,6 +341,66 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
     };
 });
 
+SIREPO.app.directive('setupArgumentsPanel', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div>',
+            '<div class="modal fade" id="sr-setup-command" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-warning">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">Setup Command</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<pre><code>{{ setupCommand }}</code></pre>',
+                      '</div>',
+                      '<br />',
+                      '<div class="row">',
+                        '<div class="col-sm-offset-6 col-sm-3">',
+                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
+                        '</div>',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+              '<div data-basic-editor-panel="" data-view-name="setupArguments">',
+                '<button type="button" class="btn btn-secondary" data-ng-click="showSetupCommand()">',
+                  '<span aria-hidden="true">Show setup command</span>',
+                '</button>',
+              '</div>',
+            '</div>'
+        ].join(''),
+        controller: function($scope, appState, requestSender) {
+            $scope.setupCommand = '';
+            $scope.showSetupCommand= function() {
+                var el = $('#sr-setup-command');
+                el.modal('show');
+                el.on('shown.bs.modal', function() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'setup_command',
+                        models: appState.models,
+                    },
+                    function(data) {
+                        $scope.setupCommand = data.setupCommand;
+                    });
+                });
+                el.on('hidden.bs.modal', function() {
+                    $scope.setupCommand = '';
+                    el.off();
+                });
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('runtimeParametersTable', function() {
     return {
         restrict: 'A',

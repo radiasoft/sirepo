@@ -128,6 +128,8 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             PKDict: structure of files written (debugging only)
         """
 
+        def _unescape(value):
+            return re.sub(r'\\\\', r'\\', value)
 
         class _G(_Generate):
 
@@ -147,7 +149,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             commands=dest_dir.join(source_path.basename),
             lattice=self._lattice_path(dest_dir, data),
         )
-        pkio.write_text(r.commands, v.commands)
+        pkio.write_text(r.commands, _unescape(v.commands))
         if not r.lattice.exists():
             pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
         self._write_input_files(data, source_path, dest_dir)
@@ -879,6 +881,9 @@ class _Generate(sirepo.lib.GenerateBase):
         return [field, value]
 
     def _full_simulation(self):
+        def _escape(v):
+            return re.sub(r'\\', r'\\\\', v)
+
         d = self.data
         if not LatticeUtil.find_first_command(d, 'global_settings'):
             d.models.commands.insert(
@@ -889,8 +894,8 @@ class _Generate(sirepo.lib.GenerateBase):
                 ),
             )
         self.jinja_env.update(
-            commands=self._commands(),
-            lattice=self._lattice(),
+            commands=_escape(self._commands()),
+            lattice=_escape(self._lattice()),
             simulationMode=d.models.simulation.simulationMode,
         )
         return template_common.render_jinja(SIM_TYPE, self.jinja_env)

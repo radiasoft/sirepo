@@ -26,6 +26,7 @@ md = {{ crystalSettings_meshDensity }}
 # derived parameters
 radius = diam / 2  # radius
 lh  = leng / 2  # half-length
+radius2 = radius * radius
 
 print("duration:  ", T)
 print("time-step: ", dt)
@@ -41,32 +42,36 @@ V = fenics.FunctionSpace(mesh, 'P', 1)
 
 #---
 
-# define boundary condition
+# define boundary and initial conditions, and sources
+T0 = {{ crystalCylinder_T0 }}
+dT = {{ crystalCylinder_dT }}
+wdT = {{ crystalCylinder_wdT }}
+sg_px = {{ crystalCylinder_supergaussian }}
+
+# define Dirichlet boundary condition for sides
+tol = 1e-13
 def boundary(x, on_boundary):
-    return on_boundary
+    return on_boundary and fenics.near(x[0]*x[0] + x[1]*x[1], radius2, tol)
 
 bc = fenics.DirichletBC(V, fenics.Constant(0.), boundary)
 
+# exp(decay) x SG
+hse = fenics.Expression(
+    'T0 + dT * (exp(-(x[2]+l/2)/dl) + exp((x[2]-l/2)/dl)) * exp(-0.5 * pow((x[0]*x[0] + x[1]*x[1])/(w*w), px))',
+    degree=1, T0=T0, dT=dT, w=wdT, l=leng, dl=0.8*leng, px=sg_px)
+
 # define initial value
-# amplitude
-A = {{ crystalCylinder_amplitude }}
-# radial decay length
-rho =  {{ crystalCylinder_radialDecay }}
-# longitudinal decay length
-zeta = {{ crystalCylinder_longitudinalDecay }}
-u_0 = fenics.Expression(
-    'A * exp( -(pow(x[0],2) + pow(x[1],2)) / pow(rho,2) - pow(x[2]/zeta,2) )',
-    degree=1, A=A, rho=rho, zeta=zeta)
-u_n = fenics.interpolate(u_0, V)
+u_n = fenics.interpolate(hse, V)
+
+#---
 
 # define the variational problem: u' = D.∆u
 u = fenics.TrialFunction(V)
 v = fenics.TestFunction(V)
 f = fenics.Constant(0)
-F = u*v*fenics.dx + dt*a_saph*fenics.dot(fenics.grad(u), fenics.grad(v))*fenics.dx - (u_n + dt*f)*v*fenics.dx
-a, L = fenics.lhs(F), fenics.rhs(F)
 
-#---
+F = u*v*fenics.dx + dt*a_saph*fenics.dot(fenics.grad(u), fenics.grad(v))*fenics.dx - (u_n + dt*f)*v*fenics.dx  # w/ Dirichlet + initial condition
+a, L = fenics.lhs(F), fenics.rhs(F)
 
 # define time-evolution function
 def evolve():
@@ -119,22 +124,23 @@ def write_row(name, time, values, mode='a'):
     with open('{{ crystalCSV }}', mode) as f:
         f.write('{},{},{}\n'.format(name, time, ','.join([str(x) for x in values])))
 
-tol = 9.e-3  # avoid points outside domain (for a coarse mesh, increase this value)
-xv = np.linspace(xmin * (1 - tol), xmax * (1 - tol), 1000)
-zv = np.linspace(zmin * (1 - tol), zmax * (1 - tol), 1000)
+tol = {{ crystalSettings_tolerance }} # avoid points outside domain (for a coarse mesh, increase this value)
+xv = np.linspace(xmin * (1 - tol), xmax * (1 - tol), 201)
+zv = np.linspace(zmin * (1 - tol), zmax * (1 - tol), 201)
 radpts = [(x_, 0, 0) for x_ in xv]
 axipts = [(0, 0, z_) for z_ in zv]
 
 write_row('xv', 0, xv, 'w')
 write_row('zv', 0, zv)
 
-idx = 0
 for t, u in evolve():
-    idx += 1
     ux = np.array([u(pt) for pt in radpts])
     uz = np.array([u(pt) for pt in axipts])
-    # fig1.plot(xv, ux, lw=1)
-    # fig2.plot(zv, uz, lw=1)
-    #res.append([ux, uz])
     write_row('ux', t, ux)
     write_row('uz', t, uz)
+
+uvals = u.compute_vertex_values()
+
+np.save('indices.npy', inds)
+np.save('vertices.npy', mesh.coordinates())
+np.save('intensity.npy', uvals)
