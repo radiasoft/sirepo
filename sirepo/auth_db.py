@@ -115,8 +115,9 @@ def db_filename():
 
 def init():
     global _session, _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
-    assert not _session
 
+    if _session:
+        return
     f = db_filename()
     _migrate_db_file(f)
     _engine = sqlalchemy.create_engine(
