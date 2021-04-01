@@ -25,10 +25,10 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    _run_opal(with_mpi=True)
+    _run_opal(with_mpi=True, compute_positions=True)
 
 
-def _run_opal(with_mpi=False):
+def _run_opal(with_mpi=False, compute_positions=False):
     if with_mpi and mpi.cfg.cores < 2:
         with_mpi = False
     if with_mpi:
@@ -42,3 +42,5 @@ def _run_opal(with_mpi=False):
             output=template.OPAL_OUTPUT_FILE,
             msg=pkdlog,
         )
+    if compute_positions:
+        template_common.exec_parameters(template.OPAL_POSITION_FILE)
