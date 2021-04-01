@@ -2461,7 +2461,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             else {
                 startElapsedTimeTimer(data.elapsedTime);
             }
-            if (data.percentComplete) {
+            if (data.hasOwnProperty('percentComplete')) {
                 state.percentComplete = data.percentComplete;
             }
             if (state.isProcessing()) {
