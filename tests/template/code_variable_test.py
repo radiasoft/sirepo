@@ -96,13 +96,7 @@ def test_case_insensitive():
     )
     pkeq(
         code_var.compute_cache(
-            PKDict(
-                models=PKDict(
-                    beamlines=[],
-                    elements=[],
-                    commands=[],
-                )
-            ),
+            _empty_data(),
             PKDict(),
         ),
         PKDict({
@@ -114,6 +108,14 @@ def test_case_insensitive():
     pkeq(
         code_var.get_expr_dependencies('Y y +'),
         ['x.x7.x', 'y'],
+    )
+    pkeq(
+        code_var.validate_var_delete(
+            'X.X7.X',
+            _empty_data(),
+            PKDict(),
+        ),
+        '"X.X7.X" is in use in variable(s): y',
     )
 
 
@@ -144,6 +146,14 @@ def test_eval():
     pkeq(True, code_var.is_var_value('abc'))
     pkeq(False, code_var.is_var_value('-1.234e-6'))
     pkeq(False, code_var.is_var_value('0'))
+    pkeq(
+        code_var.validate_var_delete(
+            'bend_energy',
+            _empty_data(),
+            PKDict(),
+        ),
+        '"bend_energy" is in use in variable(s): gamma',
+    )
 
 
 def test_eval2():
@@ -225,3 +235,14 @@ def test_postfix_to_infix():
     pkeq(ppe.postfix_to_infix('30 360 / 2 * pi *'), '((30 / 360) * 2) * pi')
     # leave alone if already in infix format
     pkeq(ppe.postfix_to_infix('x + (y * 2)'), 'x + (y * 2)')
+
+
+def _empty_data():
+    from pykern.pkcollections import PKDict
+    return PKDict(
+        models=PKDict(
+            beamlines=[],
+            elements=[],
+            commands=[],
+        )
+    )

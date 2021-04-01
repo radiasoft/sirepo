@@ -133,7 +133,7 @@ def _do_download_data_file(msg, template):
         c = r.get('content')
         if c is None:
             c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
-                if u.endswith(('py', 'txt', 'csv')) \
+                if u.endswith(('.py', '.txt', '.csv')) \
                 else r.filename.read_binary()
         requests.put(
             msg.dataFileUri + u,

@@ -5,7 +5,6 @@ u"""?
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkio, pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
@@ -44,8 +43,7 @@ def audit_proprietary_lib_files(*uid):
 
 
 def create_examples():
-    """Adds missing app examples to all users.
-    """
+    """Adds missing app examples to all users"""
     import sirepo.server
 
     sirepo.server.init()

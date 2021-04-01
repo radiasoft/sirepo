@@ -43,13 +43,6 @@ def api_authGuestLogin(simulation_type):
     raise AssertionError('auth.login returned unexpectedly')
 
 
-def init_apis(*args, **kwargs):
-    global cfg
-    cfg = pkconfig.init(
-        expiry_days=(None, _cfg_login_days, 'when auth login expires'),
-    )
-
-
 def is_login_expired(res=None):
     """If expiry is configured, check timestamp
 
@@ -108,3 +101,8 @@ def _cfg_login_days(value):
         return None
     assert value >= 1
     return datetime.timedelta(days=value)
+
+
+cfg = pkconfig.init(
+    expiry_days=(None, _cfg_login_days, 'when auth login expires'),
+)

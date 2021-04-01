@@ -47,7 +47,7 @@ RUN_LOG = 'run.log'
 
 _HISTOGRAM_BINS_MAX = 500
 
-_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
+_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
 class ModelUnits():
@@ -662,7 +662,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub(r'[\"\'()]', '', str(v))
+    return re.sub(r'([^\\])[\"\'()]', r'\1', str(v))
 
 
 def _get_notes(data):

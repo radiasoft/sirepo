@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp
 import pykern.pkinspect
 import re
-import sirepo.uri_router
 
 try:
     # py3
@@ -26,11 +25,6 @@ PARAM_RE = r'([\?\*]?)<{}>'
 
 #: optional parameter that consumes rest of parameters
 PATH_INFO_CHAR = '*'
-
-
-def api(*args, **kwargs):
-    """Alias for `uri_router.uri_for_api`"""
-    return uri_router.uri_for_api(*args, **kwargs)
 
 
 def app_root(sim_type):

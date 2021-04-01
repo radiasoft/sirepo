@@ -73,6 +73,11 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
+#: avoid circular import issues by importing in init_apis
+uri_router = None
+
+cfg = None
+
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
     # Needs to be explicit, because we would need a special permission
@@ -146,30 +151,16 @@ def get_module(name):
 
 
 def init_apis(*args, **kwargs):
-    global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
-    assert not _METHOD_MODULES
-
+    global uri_router
     assert not cfg.logged_in_user, \
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
-    simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init()
-    p = pkinspect.this_module().__name__
-    visible_methods = []
-    valid_methods = cfg.methods.union(cfg.deprecated_methods)
-    for n in valid_methods:
-        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+    for m in _METHOD_MODULES.values():
         uri_router.register_api_module(m)
-        _METHOD_MODULES[n] = m
-        if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
-            visible_methods.append(n)
-    visible_methods = tuple(sorted(visible_methods))
-    non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
-    cookie.auth_hook_from_header = _auth_hook_from_header
-    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+    import sirepo.simulation_db
+    s = list(sirepo.simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
     assert sorted(s) == sorted(_ALL_PAYMENT_PLANS), \
         f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
-
 
 
 def is_premium_user():
@@ -202,7 +193,8 @@ def logged_in_user(check_path=True):
             cookie.unchecked_get_value(_COOKIE_METHOD),
         )
     if check_path:
-        simulation_db.user_path(u, check=True)
+        import sirepo.simulation_db
+        sirepo.simulation_db.user_path(u, check=True)
     return u
 
 
@@ -249,7 +241,8 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             # This handles the case where logging in as guest, creates a user every time
             _login_user(module, uid)
         else:
-            uid = simulation_db.user_create(lambda u: _login_user(module, u))
+            import sirepo.simulation_db
+            uid = sirepo.simulation_db.user_create(lambda u: _login_user(module, u))
             _create_roles_for_new_user(module.AUTH_METHOD)
         if model:
             model.uid = uid
@@ -260,7 +253,8 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         return
     if sim_type:
         if guest_uid and guest_uid != uid:
-            simulation_db.move_user_simulations(guest_uid, uid)
+            import sirepo.simulation_db
+            sirepo.simulation_db.move_user_simulations(guest_uid, uid)
         login_success_response(sim_type, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
@@ -362,7 +356,7 @@ def require_user():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     u = _get_user()
     if s is None:
-        e = 'no user in cookie'
+        pass
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
             f = getattr(_METHOD_MODULES[m], 'validate_login', None)
@@ -396,7 +390,7 @@ def require_user():
         p = PKDict(reload_js=True)
         e = 'invalid cookie state={} uid={}'.format(s, u)
     pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
-    raise util.SRException(r, p, 'user not logged in: {}', e)
+    raise util.SRException(r, p, *(('user not logged in: {}', e) if e else ()))
 
 
 def reset_state():
@@ -408,13 +402,15 @@ def reset_state():
 
 
 @contextlib.contextmanager
-def set_user_outside_of_http_request(uid):
+def set_user_outside_of_http_request(uid, method='guest'):
     """A user set explicitly outside of flask request cycle"""
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
     with cookie.set_cookie_outside_of_flask_request():
-        import sirepo.auth.guest
-        _login_user(sirepo.auth.guest, uid)
+        _login_user(
+            get_module(method),
+            uid,
+        )
         yield
 
 
@@ -553,6 +549,7 @@ def _auth_hook_from_header(values):
 
 
 def _auth_state():
+    import sirepo.simulation_db
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
         avatarUrl=None,
@@ -561,7 +558,7 @@ def _auth_state():
         isGuestUser=False,
         isLoggedIn=_is_logged_in(s),
         isLoginExpired=False,
-        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+        jobRunModeMap=sirepo.simulation_db.JOB_RUN_MODE_MAP,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         roles=[],
@@ -604,13 +601,28 @@ def _get_user():
 
 
 def _init():
-    global cfg
+    global cfg, visible_methods, valid_methods, non_guest_methods
 
+    if cfg:
+        return
     cfg = pkconfig.init(
         methods=((METHOD_GUEST,), set, 'for logging in'),
         deprecated_methods=(set(), set, 'for migrating to methods'),
         logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
     )
+    auth_db.init()
+    p = pkinspect.this_module().__name__
+    visible_methods = []
+    valid_methods = cfg.methods.union(cfg.deprecated_methods)
+    for n in valid_methods:
+        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+        _METHOD_MODULES[n] = m
+        if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
+            visible_methods.append(n)
+    visible_methods = tuple(sorted(visible_methods))
+    non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
+    cookie.auth_hook_from_header = _auth_hook_from_header
+
     if not cfg.logged_in_user:
         return
     global logged_in_user, user_dir_not_found

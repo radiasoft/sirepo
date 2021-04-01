@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'plotAnimation', 'plot2Animation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
           '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
@@ -25,6 +25,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">',
           '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
         '</div>',
+    ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
     ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,
@@ -317,6 +320,10 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
     function cleanFilename(fn) {
         return fn.replace(/\.(?:h5|outfn)/g, '');
     }
+
+    self.hasBeamline3d = function() {
+        return frameCache.hasFrames() && self.simState.getPercentComplete() == 100;
+    };
 
     self.simHandleStatus = function (data) {
         self.errorMessage = data.error;
@@ -664,6 +671,112 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
                 }
                 return $scope.missingFiles && $scope.missingFiles.length;
             };
+        },
+    };
+});
+
+SIREPO.app.directive('beamline3d', function(appState, plotting, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: [
+            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
+              '<div class="sr-plot vtk-canvas-holder"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let data, fsRenderer, orientationMarker;
+
+            // use function in vtk ScalarsToColors if it become public
+            function floatColorToUChar(c) {
+                return Math.floor(c * 255.0 + 0.5);
+            }
+
+            function getVtkElement() {
+                return $($element).find('.vtk-canvas-holder');
+            }
+
+            function polyActor(polyData) {
+                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                let actor = vtk.Rendering.Core.vtkActor.newInstance();
+                mapper.setInputData(polyData);
+                actor.setMapper(mapper);
+                return actor;
+            }
+
+            function refresh(resetCamera) {
+                removeActors();
+                let pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(new window.Float32Array(data.points), 3);
+                pd.getPolys().setData(new window.Uint32Array(data.polys));
+                let colors = [];
+                for (let i = 0; i < data.colors.length; i++) {
+                    colors.push(data.colors[i] * 255.0 + 0.5);
+                }
+                pd.getCellData().setScalars(vtk.Common.Core.vtkDataArray.newInstance({
+                    numberOfComponents: 4,
+                    values: colors,
+                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                }));
+                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                let actor = vtk.Rendering.Core.vtkActor.newInstance();
+                mapper.setInputData(pd);
+                actor.setMapper(mapper);
+                fsRenderer.getRenderer().addActor(actor);
+                let renderer = fsRenderer.getRenderer();
+                if (resetCamera) {
+                    let camera = renderer.get().activeCamera;
+                    camera.setPosition(0, 1, 0);
+                    camera.setFocalPoint(0, 0, 0);
+                    camera.setViewUp(1, 0, 0);
+                    renderer.resetCamera();
+                    orientationMarker.updateMarkerOrientation();
+                }
+                fsRenderer.getRenderWindow().render();
+            }
+
+            function removeActors() {
+                let renderer = fsRenderer.getRenderer();
+                renderer.getActors().forEach((actor) => renderer.removeActor(actor));
+            }
+
+            $scope.destroy = function() {
+                getVtkElement().off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+            };
+
+            $scope.init = function() {
+                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+                let rw = getVtkElement();
+                rw.on('dblclick', () => refresh(true));
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 1, 1],
+                    container: rw[0],
+                });
+                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    interactor: fsRenderer.getInteractor()
+                });
+                orientationMarker.setEnabled(true);
+                orientationMarker.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+            };
+
+            $scope.load = function(json) {
+                data = json;
+                refresh(true);
+            };
+
+            $scope.resize = refresh;
+        },
+        link: function link(scope, element) {
+            plotting.vtkPlot(scope, element);
         },
     };
 });

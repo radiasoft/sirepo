@@ -1695,8 +1695,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         applyGroup(group, pos);
                         group = [];
                         groupDone = false;
-                        pos.edgeStart = item.elemedge - pos.radius;
-
+                        pos.edgeStart = 0;
+                        if (i > 0) {
+                            let prev = explodedItems[i - 1];
+                            if (prev.hasOwnProperty('l')) {
+                                pos.edgeStart = prev.elemedge + rpnValue(prev.l);
+                            }
+                        }
                     }
                     var picType = getPicType(item.type);
                     //TODO(pjm): CHANGREF is zgoubi-specific
