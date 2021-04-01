@@ -261,11 +261,11 @@ def _run_mode(request_content):
         return request_content
     if j not in simulation_db.JOB_RUN_MODE_MAP:
         raise sirepo.util.Error(
-            'invalid jobRunMode={} computeModel={} computeJid={}'.format(
-                j,
-                request_content.computeModel,
-                request_content.computeJid,
-            )
+            'invalid jobRunMode',
+            'invalid jobRunMode={} computeModel={} computeJid={}',
+            j,
+            request_content.computeModel,
+            request_content.computeJid,
         )
     request_content.jobRunMode = j
     return _validate_and_add_sbatch_fields(request_content, m)

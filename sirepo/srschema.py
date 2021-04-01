@@ -36,7 +36,7 @@ def parse_folder(folder):
         str: cleaned up folder name
     """
     if folder is None or len(folder) == 0:
-        raise util.Error('blank folder')
+        raise util.Error('blank folder', 'blank folder={}', folder)
     res = []
     for f in folder.split('/'):
         if len(f):
@@ -52,18 +52,19 @@ def parse_name(name):
     Returns:
         str: cleaned up folder name
     """
-    if name is None:
-        name = ''
+    n = name
+    if n is None:
+        n = ''
     else:
         # ignore leading and trailing spaces
-        name = name.strip()
+        n = name.strip()
     # don't raise an error on invalid name - the client is not looking for them
     # instead, remove illegal characters and throw an error if nothing is left
-    name = re.sub(_NAME_ILLEGALS_RE, '', name)
-    name = re.sub(_NAME_ILLEGAL_PERIOD, '', name)
-    if len(name) == 0:
-        raise util.Error('blank name')
-    return name
+    n = re.sub(_NAME_ILLEGALS_RE, '', n)
+    n = re.sub(_NAME_ILLEGAL_PERIOD, '', n)
+    if len(n) == 0:
+        raise util.Error('blank name', 'blank name={}', name)
+    return n
 
 
 def validate_fields(data, schema):

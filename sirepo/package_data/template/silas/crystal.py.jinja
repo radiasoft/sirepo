@@ -26,6 +26,7 @@ md = {{ crystalSettings_meshDensity }}
 # derived parameters
 radius = diam / 2  # radius
 lh  = leng / 2  # half-length
+radius2 = radius * radius
 
 print("duration:  ", T)
 print("time-step: ", dt)
@@ -41,33 +42,36 @@ V = fenics.FunctionSpace(mesh, 'P', 1)
 
 #---
 
-# define boundary condition
+# define boundary and initial conditions, and sources
+T0 = {{ crystalCylinder_T0 }}
+dT = {{ crystalCylinder_dT }}
+wdT = {{ crystalCylinder_wdT }}
+sg_px = {{ crystalCylinder_supergaussian }}
+
+# define Dirichlet boundary condition for sides
+tol = 1e-13
 def boundary(x, on_boundary):
-    return on_boundary
+    return on_boundary and fenics.near(x[0]*x[0] + x[1]*x[1], radius2, tol)
 
 bc = fenics.DirichletBC(V, fenics.Constant(0.), boundary)
 
+# exp(decay) x SG
+hse = fenics.Expression(
+    'T0 + dT * (exp(-(x[2]+l/2)/dl) + exp((x[2]-l/2)/dl)) * exp(-0.5 * pow((x[0]*x[0] + x[1]*x[1])/(w*w), px))',
+    degree=1, T0=T0, dT=dT, w=wdT, l=leng, dl=0.8*leng, px=sg_px)
+
 # define initial value
-# amplitude
-A = {{ crystalCylinder_amplitude }}
-# radial decay length
-rho =  {{ crystalCylinder_radialDecay }}
-# longitudinal decay length
-zeta = {{ crystalCylinder_longitudinalDecay }}
-deg_sg = {{ crystalCylinder_supergaussian }}
-u_0 = fenics.Expression(
-    'A * exp( -pow((pow(x[0],2) + pow(x[1],2)) / pow(rho,2), deg_sg) - pow(pow(x[2]/zeta,2), deg_sg))',
-    degree=2, A=A, rho=rho, zeta=zeta, deg_sg=deg_sg)
-u_n = fenics.interpolate(u_0, V)
+u_n = fenics.interpolate(hse, V)
+
+#---
 
 # define the variational problem: u' = D.∆u
 u = fenics.TrialFunction(V)
 v = fenics.TestFunction(V)
 f = fenics.Constant(0)
-F = u*v*fenics.dx + dt*a_saph*fenics.dot(fenics.grad(u), fenics.grad(v))*fenics.dx - (u_n + dt*f)*v*fenics.dx
-a, L = fenics.lhs(F), fenics.rhs(F)
 
-#---
+F = u*v*fenics.dx + dt*a_saph*fenics.dot(fenics.grad(u), fenics.grad(v))*fenics.dx - (u_n + dt*f)*v*fenics.dx  # w/ Dirichlet + initial condition
+a, L = fenics.lhs(F), fenics.rhs(F)
 
 # define time-evolution function
 def evolve():

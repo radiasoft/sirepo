@@ -146,12 +146,12 @@ def api_errorLogging():
             ip,
             simulation_db.generate_json(http_request.parse_json(), pretty=True),
         )
-    except ValueError as e:
+    except Exception as e:
         pkdlog(
-            '{}: error parsing javascript app_error: {} input={}',
+            'ip={}: error parsing javascript exception={} input={}',
             ip,
             e,
-            flask.request.data.decode('unicode-escape'),
+            flask.request.data and flask.request.data.decode('unicode-escape'),
         )
     return http_reply.gen_json_ok()
 
@@ -305,7 +305,11 @@ def api_importFile(simulation_type):
     try:
         f = flask.request.files.get('file')
         if not f:
-            raise sirepo.util.Error('must supply a file')
+            raise sirepo.util.Error(
+                'must supply a file',
+                'no file in request={}',
+                flask.request.data,
+            )
         req = http_request.parse_params(
             filename=f.filename,
             folder=flask.request.form.get('folder'),
@@ -329,7 +333,11 @@ def api_importFile(simulation_type):
             data = sirepo.importer.read_zip(req.file_stream.read(), sim_type=req.type)
         else:
             if not hasattr(req.template, 'import_file'):
-                raise sirepo.util.Error('Only zip files are supported')
+                raise sirepo.util.Error(
+                    'Only zip files are supported',
+                    'no import_file in template req={}',
+                    req,
+                )
             with simulation_db.tmp_dir() as d:
                 data = req.template.import_file(req, tmp_dir=d, reply_op=s)
             if 'error' in data:
@@ -555,10 +563,18 @@ def api_updateFolder():
     req = http_request.parse_post()
     o = srschema.parse_folder(req.req_data['oldName'])
     if o == '/':
-        raise sirepo.util.Error('cannot rename root ("/") folder')
+        raise sirepo.util.Error(
+            'cannot rename root ("/") folder',
+            'old folder is root req={}',
+            req,
+        )
     n = srschema.parse_folder(req.req_data['newName'])
     if n == '/':
-        raise sirepo.util.Error('cannot folder to root ("/")')
+        raise sirepo.util.Error(
+            'cannot rename folder to root ("/")',
+            'new folder is root req={}',
+            req,
+        )
     for r in simulation_db.iterate_simulation_datafiles(req.type, _simulation_data_iterator):
         f = r.models.simulation.folder
         l = o.lower()
