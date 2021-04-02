@@ -2978,6 +2978,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 simulationId: item.simulationId,
                 lastModified: item.last_modified,
                 isExample: item.isExample,
+                notes: item.simulation.notes,
             };
             currentFolder.children.push(newItem);
         }
@@ -3740,7 +3741,10 @@ SIREPO.app.filter('simulationName', function() {
         if (name) {
             // clean up name so it formats well in HTML
             name = name.replace(/\_/g, ' ');
-            name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+            if (name.search(/[A-Z]{2}/) == -1) {
+                // format camel case as words
+                name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+            }
         }
         return name;
     };

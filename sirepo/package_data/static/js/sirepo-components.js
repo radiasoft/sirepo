@@ -500,6 +500,43 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate) {
+    return {
+        restrict: 'A',
+        scope: {
+            'tooltip': '@srTooltip',
+        },
+        template: [
+            '<span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span>',
+        ],
+        link: function link(scope, element) {
+            if (scope.tooltip) {
+                $(element).find('.sr-info-pointer').tooltip({
+                    title: function() {
+                        var res = scope.tooltip;
+                        res = res.replace('\n', '<br>');
+                        // evaluate angular text first if {{ }} is present
+                        if (/\{\{.*?\}\}/.test(res)) {
+                            scope.appState = appState;
+                            res = $interpolate(res)(scope);
+                        }
+                        if (mathRendering.textContainsMath(res)) {
+                            return mathRendering.mathAsHTML(res);
+                        }
+                        return res;
+                    },
+                    html: true,
+                    placement: 'bottom',
+                    container: 'body',
+                });
+                scope.$on('$destroy', function() {
+                    $(element).find('.sr-info-pointer').tooltip('destroy');
+                });
+            }
+        },
+    };
+});
+
 SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $interpolate) {
     return {
         restrict: 'A',
@@ -508,28 +545,8 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
             'tooltip': '@',
         },
         template: [
-            '<label><span data-text-with-math="label"></span>&nbsp;<span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></label>',
+            '<label><span data-text-with-math="label"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>',
         ],
-        link: function link(scope, element) {
-            if (scope.tooltip) {
-                $(element).find('.sr-info-pointer').tooltip({
-                    title: function() {
-                        var res = scope.tooltip;
-                        // evaluate angular text first if {{ }} is present
-                        if (/\{\{.*?\}\}/.test(res)) {
-                            scope.appState = appState;
-                            res = $interpolate(res)(scope);
-                        }
-                        return mathRendering.mathAsHTML(res);
-                    },
-                    html: true,
-                    placement: 'bottom',
-                });
-                scope.$on('$destroy', function() {
-                    $(element).find('.sr-info-pointer').tooltip('destroy');
-                });
-            }
-        },
     };
 });
 
