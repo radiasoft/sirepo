@@ -11,7 +11,7 @@
     </div>
     <div class="col-md-6" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
       <div data-simple-panel="simulationStatus">
-        <div data-sim-status-panel="visualization.simState"></div>
+        <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
       </div>
     </div>
     <div data-ng-if="visualization.simState.hasFrames()">

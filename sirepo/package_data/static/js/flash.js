@@ -172,6 +172,11 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     self.plotClass = 'col-md-6 col-xl-4';
     self.gridEvolutionColumnsSet = false;
 
+    self.startSimulation = function() {
+        appState.models.oneDimensionProfileAnimation.selectedPlotFiles = [];
+        self.simState.saveAndRunSimulation(['simulation', 'oneDimensionProfileAnimation'])
+    };
+
     function setAxis() {
         SIREPO.APP_SCHEMA.enum.Axis = [
             ['x', 'x'],

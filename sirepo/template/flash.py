@@ -19,6 +19,8 @@ import re
 import scipy.constants
 import sirepo.sim_data
 
+yt = None
+
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _DEFAULT_VALUES = {
@@ -1287,22 +1289,15 @@ _PLOT_VARIABLE_LABELS = PKDict(
 
 def background_percent_complete(report, run_dir, is_running):
     def _plot_filenames():
-        def _t(data, filename):
-            return _time_and_units(
-                int(re.search(
-                    r'{}(\d+)'.format(_PLOT_FILE_PREFIX),
-                    str(filename),
-                ).group(1)) * data.models.IO.plotFileIntervalTime
-            )
-        d = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         res.plotFiles = [
             PKDict(
-                time=_t(d, f.basename),
+                time=_time_and_units(yt.load(str(f)).parameters['time']),
                 filename=f.basename,
             )
             for f in files
         ]
 
+    _init_yt()
     files = _h5_file_list(run_dir)
     count = len(files)
     if is_running and count:
@@ -1413,10 +1408,7 @@ def sim_frame_gridEvolutionAnimation(frame_args):
 
 
 def sim_frame_oneDimensionProfileAnimation(frame_args):
-    import yt
     import rsflash.plotting.extracts
-    # TODO(e-carlin): centralize somewhere
-    yt.funcs.mylog.setLevel(50)
 
     def _interpolate_max(files):
         m = -1
@@ -1431,6 +1423,7 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
             return [str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')]
         return [str(_h5_file_list(frame_args.run_dir)[-1])]
 
+    _init_yt()
     plots = []
     x_points = []
     f = _files()
@@ -1446,7 +1439,6 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
         y = ys[i]
         plots.append(PKDict(
             name=i,
-            # TODO(e-carlin): this time is different than the time supplied by the plot file
             label=_time_and_units(times[i]),
             points=y.tolist(),
             x_points=x.tolist(),
@@ -1623,6 +1615,16 @@ def _has_species_selection(flash_type):
     return flash_type in ('CapLaserBELLA', 'CapLaser3D')
 
 
+def _init_yt():
+    global yt
+    if yt:
+        return
+    import yt
+    # 50 disables logging
+    # https://yt-project.org/doc/reference/configuration.html#configuration-options-at-runtime
+    yt.funcs.mylog.setLevel(50)
+
+
 def _h5_file_list(run_dir):
     return pkio.sorted_glob(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))
 
@@ -1641,7 +1643,13 @@ def _rounded_int(v):
 
 def _time_and_units(time):
     u = 's'
-    if time < 1e-6:
+    if time < 1e-12:
+        time *= 1e15
+        u  = 'fs'
+    elif time < 1e-9:
+        time *= 1e12
+        u  = 'ps'
+    elif time < 1e-6:
         time *= 1e9
         u  = 'ns'
     elif time < 1e-3:
@@ -1650,4 +1658,4 @@ def _time_and_units(time):
     elif time < 1:
         time *= 1e3
         u = 'ms'
-    return f'{time:.2} {u}'
+    return f'{time:.2f} {u}'
