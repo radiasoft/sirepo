@@ -61,7 +61,7 @@ _DEFAULT_VALUES = {
         },
         'oneDimensionProfileAnimation': {
             'axis': 'x',
-            'selectedPlotFileBasenames': [],
+            'selectedPlotFiles': [],
             'var': 'dens'
         },
         'physicsGravityConstant': {
@@ -426,7 +426,7 @@ _DEFAULT_VALUES = {
         },
         'oneDimensionProfileAnimation': {
             'axis': 'r',
-            'selectedPlotFileBasenames': [],
+            'selectedPlotFiles': [],
             'var': 'magz'
         },
         'physicsDiffuse': {
@@ -860,7 +860,7 @@ _DEFAULT_VALUES = {
         },
         'oneDimensionProfileAnimation': {
             'axis': 'x',
-            'selectedPlotFileBasenames': [],
+            'selectedPlotFiles': [],
             'var': 'magz'
         },
         'physicsDiffuse': {
@@ -1286,6 +1286,23 @@ _PLOT_VARIABLE_LABELS = PKDict(
 )
 
 def background_percent_complete(report, run_dir, is_running):
+    def _plot_filenames():
+        def _t(data, filename):
+            return _time_and_units(
+                int(re.search(
+                    r'{}(\d+)'.format(_PLOT_FILE_PREFIX),
+                    str(filename),
+                ).group(1)) * data.models.IO.plotFileIntervalTime
+            )
+        d = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        res.plotFiles = [
+            PKDict(
+                time=_t(d, f.basename),
+                filename=f.basename,
+            )
+            for f in files
+        ]
+
     files = _h5_file_list(run_dir)
     count = len(files)
     if is_running and count:
@@ -1297,7 +1314,7 @@ def background_percent_complete(report, run_dir, is_running):
     c = _grid_evolution_columns(run_dir)
     if c:
         res.gridEvolutionColumns = [x for x in c if x[0] != '#']
-    res.plotFileBasenames = [x.basename for x in files]
+    _plot_filenames()
     return res
 
 def generate_config_file(run_dir, data):
@@ -1410,8 +1427,8 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
 
 
     def _files():
-        if frame_args.selectedPlotFileBasenames:
-            return [str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFileBasenames.split(',')]
+        if frame_args.selectedPlotFiles:
+            return [str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')]
         return [str(_h5_file_list(frame_args.run_dir)[-1])]
 
     plots = []
@@ -1429,7 +1446,8 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
         y = ys[i]
         plots.append(PKDict(
             name=i,
-            label='{:.1f} {}'.format(times[i], _PLOT_VARIABLE_LABELS.time),
+            # TODO(e-carlin): this time is different than the time supplied by the plot file
+            label=_time_and_units(times[i]),
             points=y.tolist(),
             x_points=x.tolist(),
         ))
@@ -1472,24 +1490,13 @@ def sim_frame_varAnimation(frame_args):
 
     # imgplot = plt.imshow(grid, extent=[xdomain[0], xdomain[1], ydomain[1], ydomain[0]], cmap='PiYG')
     aspect_ratio = float(params['nblocky']) / params['nblockx']
-    time_units = 's'
-    if params['time'] != 0:
-        if params['time'] < 1e-6:
-            params['time'] *= 1e9
-            time_units = 'ns'
-        elif params['time'] < 1e-3:
-            params['time'] *= 1e6
-            time_units = 'µs'
-        elif params['time'] < 1:
-            params['time'] *= 1e3
-            time_units = 'ms'
     return {
         'x_range': [xdomain[0] / 100, xdomain[1] / 100, len(grid[0])],
         'y_range': [ydomain[0] / 100, ydomain[1] / 100, len(grid)],
         'x_label': 'x [m]',
         'y_label': 'y [m]',
         'title': '{}'.format(field),
-        'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_args.frameIndex + 1),
+        'subtitle': 'Time: {}, Plot {}'.format(_time_and_units(params['time']), frame_args.frameIndex + 1),
         'aspectRatio': aspect_ratio,
         'z_matrix': grid.tolist(),
         'amr_grid': amr_grid,
@@ -1630,3 +1637,17 @@ def _parameters(f):
 
 def _rounded_int(v):
     return int(round(v))
+
+
+def _time_and_units(time):
+    u = 's'
+    if time < 1e-6:
+        time *= 1e9
+        u  = 'ns'
+    elif time < 1e-3:
+        time *= 1e6
+        u  = 'µs'
+    elif time < 1:
+        time *= 1e3
+        u = 'ms'
+    return f'{time:.2} {u}'

@@ -373,7 +373,7 @@
         },
         "oneDimensionProfileAnimation": {
             "axis": "x",
-            "selectedPlotFileBasenames": [],
+            "selectedPlotFiles": [],
             "var": "dens"
         },
         "physicsDiffuse": {

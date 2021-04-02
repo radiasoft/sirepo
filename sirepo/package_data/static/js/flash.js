@@ -222,8 +222,8 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
             }
             appState.saveChanges('gridEvolutionAnimation');
         }
-        if (data.plotFileBasenames) {
-            appState.models.oneDimensionProfileAnimation.plotFileBasenames = data.plotFileBasenames;
+        if (data.plotFiles) {
+            appState.models.oneDimensionProfileAnimation.plotFiles = data.plotFiles;
             appState.saveChanges('oneDimensionProfileAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
@@ -380,9 +380,9 @@ SIREPO.app.directive('plotFileSelectionList', function() {
             '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
               '<table class="table table-condensed table-hover" style="margin:0">',
                 '<tbody>',
-                  '<tr data-ng-repeat="file in plotFileBasenames track by $index" data-ng-click="toggleFile(file)">',
-                    '<td>{{ file }}</td>',
-                    '<td><input type="checkbox" data-ng-checked="isSelected(file)"></td>',
+                  '<tr data-ng-repeat="file in plotFiles track by $index" data-ng-click="toggleFile(file.filename)">',
+                    '<td>{{ file.time }}</td>',
+                    '<td><input type="checkbox" data-ng-checked="isSelected(file.filename)"></td>',
                   '</tr>',
                 '</tbody>',
               '</table>',
@@ -390,7 +390,7 @@ SIREPO.app.directive('plotFileSelectionList', function() {
         ].join(''),
         controller: function($scope, appState, directiveService) {
             function loadPlotFiles() {
-                $scope.plotFileBasenames = appState.models.oneDimensionProfileAnimation.plotFileBasenames;
+                $scope.plotFiles = appState.models.oneDimensionProfileAnimation.plotFiles;
             }
 
             $scope.isSelected = function(file) {
@@ -414,7 +414,7 @@ SIREPO.app.directive('plotFileSelectionList', function() {
             appState.whenModelsLoaded($scope, loadPlotFiles);
             appState.watchModelFields(
                 $scope,
-                ['oneDimensionProfileAnimation.plotFileBasenames'],
+                ['oneDimensionProfileAnimation.plotFiles'],
                 loadPlotFiles
             );
         },

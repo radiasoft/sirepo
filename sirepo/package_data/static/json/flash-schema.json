@@ -1026,7 +1026,7 @@
     },
     "frameIdFields": {
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
-        "oneDimensionProfileAnimation": ["axis", "selectedPlotFileBasenames", "var"],
+        "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var"],
         "varAnimation": ["var"]
     },
     "localRoutes": {
@@ -1915,7 +1915,7 @@
         "simulationStatus": {},
         "oneDimensionProfileAnimation": {
             "axis": ["Axis", "Axis", "r"],
-            "selectedPlotFileBasenames": ["Plot Files", "PlotFileArray", []],
+            "selectedPlotFiles": ["Plot Files", "PlotFileArray", []],
             "var": ["Variable", "VariableName", "magz"]
         },
         "varAnimation": {
@@ -2009,7 +2009,7 @@
             "advanced": [
                 "axis",
                 "var",
-                "selectedPlotFileBasenames"
+                "selectedPlotFiles"
             ]
         },
         "physicsDiffuse": {

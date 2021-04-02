@@ -375,7 +375,7 @@
         },
         "oneDimensionProfileAnimation": {
             "axis": "r",
-            "selectedPlotFileBasenames": [],
+            "selectedPlotFiles": [],
             "var": "magz"
         },
         "physicsDiffuse": {
