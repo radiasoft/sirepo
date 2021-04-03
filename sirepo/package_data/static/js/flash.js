@@ -174,7 +174,7 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
 
     self.startSimulation = function() {
         appState.models.oneDimensionProfileAnimation.selectedPlotFiles = [];
-        self.simState.saveAndRunSimulation(['simulation', 'oneDimensionProfileAnimation'])
+        self.simState.saveAndRunSimulation(['simulation', 'oneDimensionProfileAnimation']);
     };
 
     function setAxis() {

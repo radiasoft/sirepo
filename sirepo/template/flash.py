@@ -1410,20 +1410,20 @@ def sim_frame_gridEvolutionAnimation(frame_args):
 def sim_frame_oneDimensionProfileAnimation(frame_args):
     import rsflash.plotting.extracts
 
-    def _interpolate_max(files):
-        m = -1
-        for f in files:
-            d = yt.load(f)
-            m = max(d.domain_width[0] + d.index.grid_left_edge[0][0], m)
-        return m
+    # def _interpolate_max(files):
+    #     m = -1
+    #     for f in files:
+    #         d = yt.load(f)
+    #         m = max(d.domain_width[0] + d.index.grid_left_edge[0][0], m)
+    #     return m
 
 
     def _files():
         if frame_args.selectedPlotFiles:
-            return [str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')]
+            return sorted([str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')])
         return [str(_h5_file_list(frame_args.run_dir)[-1])]
 
-    _init_yt()
+    #_init_yt()
     plots = []
     x_points = []
     f = _files()
@@ -1432,24 +1432,23 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
         frame_args.var,
         frame_args.axis,
         _LINEOUTS_SAMPLING_SIZE,
-        interpolate_max=_interpolate_max(f),
+        # interpolate_max=_interpolate_max(f),
     )
+    x = xs[0]
     for i, _ in enumerate(ys):
-        x = xs[i]
+        assert x.all() == xs[i].all(), 'Plots must use the same x values'
         y = ys[i]
         plots.append(PKDict(
             name=i,
             label=_time_and_units(times[i]),
             points=y.tolist(),
-            x_points=x.tolist(),
         ))
-        x_points.append(x.tolist())
     return PKDict(
         plots=plots,
         title=frame_args.var,
         x_label=_PLOT_VARIABLE_LABELS.length,
-        x_points = x_points,
-        x_range=[np.amin(x_points), np.amax(x_points)],
+        x_points = x.tolist(),
+        x_range=[np.min(x), np.max(x)],
         y_label=_PLOT_VARIABLE_LABELS[frame_args.var],
         y_range=template_common.compute_plot_color_and_range(plots),
     )
