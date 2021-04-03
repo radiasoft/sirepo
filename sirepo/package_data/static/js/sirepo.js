@@ -2916,10 +2916,12 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         for(var i = 0; i < data.length; i++) {
             var item = findSimInTree(data[i].simulationId);
             if (item) {
-                item.name = data[i].name;
+                let sim = data[i].simulation;
+                item.name = sim.name;
+                item.notes = sim.notes;
             }
             else {
-                self.addToTree(data[i]);
+                self.addToTree(data[i].simulation);
             }
         }
         var listItemIds = data.map(function(item) {
@@ -2978,7 +2980,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 simulationId: item.simulationId,
                 lastModified: item.last_modified,
                 isExample: item.isExample,
-                notes: item.simulation.notes,
+                notes: item.notes,
             };
             currentFolder.children.push(newItem);
         }
