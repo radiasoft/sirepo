@@ -229,7 +229,7 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
         }
         if (data.plotFiles) {
             appState.models.oneDimensionProfileAnimation.plotFiles = data.plotFiles;
-            appState.saveChanges('oneDimensionProfileAnimation');
+            appState.saveQuietly('oneDimensionProfileAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
     };
