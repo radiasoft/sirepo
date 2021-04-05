@@ -507,18 +507,20 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate
             'tooltip': '@srTooltip',
         },
         template: [
-            '<span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span>',
+            '<span data-ng-show="hasTooltip()" class="glyphicon glyphicon-info-sign sr-info-pointer"></span>',
         ],
-        link: function link(scope, element) {
-            if (scope.tooltip) {
-                $(element).find('.sr-info-pointer').tooltip({
+        controller: function($scope, $element) {
+            let tooltipLinked = false;
+
+            function linkTooltip() {
+                $($element).find('.sr-info-pointer').tooltip({
                     title: function() {
-                        var res = scope.tooltip;
+                        var res = $scope.tooltip;
                         res = res.replace('\n', '<br>');
                         // evaluate angular text first if {{ }} is present
                         if (/\{\{.*?\}\}/.test(res)) {
-                            scope.appState = appState;
-                            res = $interpolate(res)(scope);
+                            $scope.appState = appState;
+                            res = $interpolate(res)($scope);
                         }
                         if (mathRendering.textContainsMath(res)) {
                             return mathRendering.mathAsHTML(res);
@@ -529,10 +531,21 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate
                     placement: 'bottom',
                     container: 'body',
                 });
-                scope.$on('$destroy', function() {
-                    $(element).find('.sr-info-pointer').tooltip('destroy');
+                $scope.$on('$destroy', function() {
+                    $($element).find('.sr-info-pointer').tooltip('destroy');
                 });
             }
+
+            $scope.hasTooltip = () => {
+                if ($scope.tooltip) {
+                    if (! tooltipLinked) {
+                        tooltipLinked = true;
+                        linkTooltip();
+                    }
+                    return true;
+                }
+                return false;
+            };
         },
     };
 });
