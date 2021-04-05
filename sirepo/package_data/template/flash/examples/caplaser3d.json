@@ -65,6 +65,18 @@
             "zmin": -0.02,
             "zr_boundary_type": "outflow"
         },
+        "gridEvolutionAnimation": {
+            "notes": "",
+            "y1": "x-momentum",
+            "y2": "y-momentum",
+            "y3": "E_kinetic",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": []
+
+            }
+        },
         "Gridparamesh": {
             "convertToConsvdInMeshInterp": "1",
             "derefine_cutoff_1": 0.2,
@@ -361,17 +373,10 @@
             "op_fillLowTemp": 0,
             "op_wallLowTemp": 0
         },
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic",
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": []
-
-            }
+        "oneDimensionProfileAnimation": {
+            "axis": "x",
+            "selectedPlotFiles": [],
+            "var": "magz"
         },
         "physicsDiffuse": {
             "diff_eleFlCoef": 0.06,

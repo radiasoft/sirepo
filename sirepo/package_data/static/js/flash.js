@@ -9,15 +9,20 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="NoDashInteger" data-ng-class="fieldClass">',
         // TODO(e-carlin): this is just copied from sirepo-components
           '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
-        '</div>'
+        '</div>',
+        '<div data-ng-switch-when="PlotFileArray" class="col-sm-7">',
+          '<div data-plot-file-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
+        '</div>',
     ].join('');
     SIREPO.FILE_UPLOAD_TYPE = {
         'problemFiles-archive': '.zip',
     };
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
-    SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = [
+        'gridEvolutionAnimation',
+        'oneDimensionProfileAnimation'
+    ];
 });
-
 
 SIREPO.app.factory('directiveService', function(appState, panelState, validationService) {
     const self = {};
@@ -79,11 +84,6 @@ SIREPO.app.controller('PhysicsController', function (flashService) {
 
 SIREPO.app.controller('RuntimeParamsController', function () {
     var self = this;
-});
-
-SIREPO.app.controller('PhysicsController', function (flashService) {
-    var self = this;
-    self.flashService = flashService;
 });
 
 SIREPO.app.controller('SourceController', function (appState, flashService, panelState, $scope) {
@@ -172,17 +172,39 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     self.plotClass = 'col-md-6 col-xl-4';
     self.gridEvolutionColumnsSet = false;
 
+    self.startSimulation = function() {
+        appState.models.oneDimensionProfileAnimation.selectedPlotFiles = [];
+        self.simState.saveAndRunSimulation(['simulation', 'oneDimensionProfileAnimation']);
+    };
+
+    function setAxis() {
+        SIREPO.APP_SCHEMA.enum.Axis = [
+            ['x', 'x'],
+            ['y', 'y']
+        ];
+        if (appState.models.Grid.geometry == 'cylindrical') {
+            SIREPO.APP_SCHEMA.enum.Axis = [
+                ['r', 'r'],
+                ['z', 'z']
+            ];
+        }
+        const d = SIREPO.APP_SCHEMA.enum.Axis[0][0];
+        SIREPO.APP_SCHEMA.model.oneDimensionProfileAnimation.axis[2]= d;
+        appState.models.oneDimensionProfileAnimation.axis = d;
+        appState.saveChanges('oneDimensionProfileAnimation');
+    }
+
     self.simHandleStatus = function(data) {
-        var i = 0;
         // moved function out of for loop to avoid jshint warning
         function addValue(e) {
-            appState.models.gridEvolutionAnimation.valueList[e].push(
-                data.gridEvolutionColumns[i]
-            );
         }
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
-            ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
+            [
+                'gridEvolutionAnimation',
+                'oneDimensionProfileAnimation',
+                'varAnimation'
+            ].forEach(function(m) {
                 appState.saveQuietly(m);
                 frameCache.setFrameCount(data.frameCount, m);
             });
@@ -194,10 +216,20 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
                 y2: [],
                 y3: []
             };
-            for (i = 0; i < data.gridEvolutionColumns.length; i++) {
-                ['y1', 'y2', 'y3'].forEach(addValue);
+            for (let i = 0; i < data.gridEvolutionColumns.length; i++) {
+                /*jshint -W083 */
+                ['y1', 'y2', 'y3'].forEach((e) => {
+                    appState.models.gridEvolutionAnimation.valueList[e].push(
+                        data.gridEvolutionColumns[i]
+                    );
+                });
+                /*jshint +W083 */
             }
             appState.saveChanges('gridEvolutionAnimation');
+        }
+        if (data.plotFiles) {
+            appState.models.oneDimensionProfileAnimation.plotFiles = data.plotFiles;
+            appState.saveQuietly('oneDimensionProfileAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
     };
@@ -205,6 +237,7 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     self.simState = persistentSimulation.initSimulationState(self);
 
     appState.whenModelsLoaded($scope, function() {
+        setAxis();
         $scope.$on('varAnimation.summaryData', function(e, data) {
             var newPlotClass = self.plotClass;
             if (data.aspectRatio > 2) {
@@ -337,6 +370,58 @@ SIREPO.app.directive('configTable', function(appState, directiveService, panelSt
                 });
                 loadDirectives();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('plotFileSelectionList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            modelName: '=',
+        },
+        template: [
+            '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
+              '<table class="table table-condensed table-hover" style="margin:0">',
+                '<tbody>',
+                  '<tr data-ng-repeat="file in plotFiles track by $index" data-ng-click="toggleFile(file.filename)">',
+                    '<td>{{ file.time }}</td>',
+                    '<td><input type="checkbox" data-ng-checked="isSelected(file.filename)"></td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, appState, directiveService) {
+            function loadPlotFiles() {
+                $scope.plotFiles = appState.models.oneDimensionProfileAnimation.plotFiles;
+            }
+
+            $scope.isSelected = function(file) {
+                if ($scope.field) {
+                    return $scope.field.indexOf(file) >= 0;
+                }
+                return false;
+            };
+
+            $scope.toggleFile = function(file) {
+                if ($scope.field) {
+                    if ($scope.isSelected(file)) {
+                        $scope.field.splice($scope.field.indexOf(file), 1);
+                    }
+                    else {
+                        $scope.field.push(file);
+                    }
+                }
+            };
+
+            appState.whenModelsLoaded($scope, loadPlotFiles);
+            appState.watchModelFields(
+                $scope,
+                ['oneDimensionProfileAnimation.plotFiles'],
+                loadPlotFiles
+            );
         },
     };
 });
