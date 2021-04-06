@@ -2142,8 +2142,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 return {
                     pos: $(vtkCanvasHolder).position(),
                     size: {
-                        width: $(vtkCanvasHolder).width(),
-                        height: $(vtkCanvasHolder).height()
+                        width: Math.max(0, $(vtkCanvasHolder).width()),
+                        height: Math.max(0, $(vtkCanvasHolder).height()),
                     }
                 };
             };

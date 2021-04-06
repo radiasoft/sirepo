@@ -6,7 +6,20 @@
     },
     "constants": {
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
-        "defaultGeomColor": "#ffffff",
+        "dataDownloads": {
+            "_default": [
+                {
+                    "title": "Save as SDDS",
+                    "suffix": ""
+                }
+            ],
+            "kickMap": [
+                {
+                    "title": "Save as Text",
+                    "suffix": "txt"
+                }
+            ]
+        },
         "detailFields": {
             "fieldPath": {
                 "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
@@ -33,22 +46,20 @@
         ],
         "inProgressText": "Solving",
         "objectScale": 0.001,
+        "parameterizedMagnets": {
+            "hybridUndulator": {
+                "objectNames": {
+                    "halfPole": "Half Pole",
+                    "magnetBlock": "Magnet Block",
+                    "pole": "Pole",
+                    "magPole": "Magnet-Pole Pair",
+                    "endBlock": "End Block"
+                }
+            }
+        },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
-        "dataDownloads": {
-            "_default": [
-                {
-                    "title": "Save as SDDS",
-                    "suffix": ""
-                }
-            ],
-            "kickMap": [
-                {
-                    "title": "Save as Text",
-                    "suffix": "txt"
-                }
-            ]
-        },
+        "rawExamples": ["Dipole", "Wiggler"],
         "toolbarItems": [
             {
                 "canDrag": true,
@@ -189,16 +200,20 @@
             ["h", "Horizontal"],
             ["v", "Vertical"]
         ],
+        "MagnetType": [
+            ["freehand", "Freehand"],
+            ["undulator", "Undulator"]
+        ],
         "MaterialType": [
-            ["NdFeB", "Neodymium Iron Boron (anisotropic)"],
-            ["SmCo5", "Samarium Cobalt (SmCo5 anisotropic)"],
-            ["Sm2Co17", "Samarium Cobalt (Sm2Co17 anisotropic)"],
-            ["Ferrite", "Ferrite (anisotropic)"],
-            ["Xc06", "Industeel"],
-            ["Steel37", "Steel37"],
-            ["Steel42", "Steel42"],
-            ["AFK502", "Aperam 502"],
-            ["AFK1", "Aperam 1"],
+            ["NdFeB", "Neodymium Iron Boron (linear anisotropic)"],
+            ["SmCo5", "Samarium Cobalt (SmCo5, linear anisotropic)"],
+            ["Sm2Co17", "Samarium Cobalt (Sm2Co17,linear anisotropic)"],
+            ["Ferrite", "Ferrite (linear anisotropic)"],
+            ["Xc06", "Industeel (nonlinnear isotropic)"],
+            ["Steel37", "Steel37 (nonlinnear isotropic)"],
+            ["Steel42", "Steel42 (nonlinnear isotropic)"],
+            ["AFK502", "Aperam 502 (nonlinnear isotropic)"],
+            ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
         ],
         "ObjectType": [
@@ -269,11 +284,11 @@
         },
         "cloneTransform": {
             "_super": ["_", "model", "transform"],
+            "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "angle": ["Angle (deg)", "Float", "0.0"],
             "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
-            "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
@@ -307,7 +322,8 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "name": ["Name", "String", ""]
+            "name": ["Name", "String", ""],
+            "objects": ["_", "Group", []]
         },
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
@@ -318,13 +334,12 @@
             "_super": ["_", "model", "radiaObject"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
-            "doDivide": ["Divide", "Boolean", "0"],
             "id": ["_", "String", ""],
             "layoutShape":  ["_", "String", "rect"],
-            "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "mapId": ["_", "String", "???.0"],
+            "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
-            "materialFile": ["H-B from File", "InputFile", "0", "H, B (T)"],
+            "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
@@ -334,22 +349,44 @@
             "gap": ["Gap", "Float", 1.0],
             "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
         },
+        "hybridUndulator": {
+            "_super": ["_", "model", "undulator"],
+            "magnetColor": ["Color", "Color", "#00ffff"],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
+            "magnetDivision": ["Segments", "IntStringArray", "1, 1, 3", "", "Transverse, Gap, Beam"],
+            "magnetLength": ["Thickness [mm]", "Float", 18.0, "Period length/2 - pole length"],
+            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
+            "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
+            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "", "H, M (T)"],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
+            "poleColor": ["Color", "Color", "#ff00ff"],
+            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
+            "poleDivision": ["Segments", "IntStringArray", "2, 5, 2", "", "Transverse, Gap, Beam"],
+            "poleLength": ["Thickness [mm]", "Float", 5.0, "Length along beam axis"],
+            "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
+            "poleMaterial": ["Material", "MaterialType", "custom"],
+            "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0]
+        },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
         },
         "kickMap": {
+            "beamAxis": ["_", "BeamAxis", "z", ""],
             "begin": ["Start", "FloatStringArray", "0, 0, 0", "Start point", "x, y, z"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
-            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Longitudinal direction", "x, y, z"],
+            "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Beam direction", "x, y, z"],
+            "gapAxis": ["_", "BeamAxis", "z", ""],
             "inProgressText": ["_", "String", "Calculating"],
-            "numPeriods": ["Number of Periods Along Path ", "Integer", 1],
-            "numTransPoints1": ["Number of Points Transverse to Path", "Integer", 10, "", 2],
-            "numTransPoints2": ["Num Points transverse to path", "Integer", 10, "", 2],
-            "periodLength": ["Period (mmm)", "Float", 1.0],
-            "transverseDirection": ["Transverse Direction", "FloatStringArray", "0, 1, 0", "Any transverse direction", "x, y, z"],
-            "transverseRange1": ["Range in Transverse Direction (mm)", "Float", 1.0, ""],
-            "transverseRange2": ["Range in Other Transverse Direction (mm)", "Float", 1.0]
+            "numPeriods": ["Number of Periods", "Integer", 1],
+            "numTransPoints1": ["Number of Points in Gap Direction", "Integer", 10, "", 2],
+            "numTransPoints2": ["Number of Points in Transverse Direction", "Integer", 10, "", 2],
+            "periodLength": ["Period Length [mm]", "Float", 1.0],
+            "transverseDirection": ["Gap Direction", "FloatStringArray", "0, 1, 0", "Gap direction", "x, y, z"],
+            "transverseRange1": ["Range in Gap Direction [mm]", "Float", 1.0, ""],
+            "transverseRange2": ["Range in Transverse Direction [mm]", "Float", 1.0]
         },
         "layoutObject": {
             "color": ["Color", "Color", "#cccccc"],
@@ -416,7 +453,8 @@
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
-            "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"]
+            "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
+            "magnetType": ["Magnet Type", "MagnetType", "freehand"]
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],
@@ -454,8 +492,12 @@
         },
         "undulator": {
             "_super": ["_", "model", "radiaObject"],
-            "gap": ["Gap", "Float", 0.0, "", 0.0],
-            "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
+            "enableKickMaps": ["Enable Kick Maps", "Boolean", "1"],
+            "gap": ["Gap [mm]", "Float", 20.0, "", 1.0],
+            "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
+            "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
+            "periodLength": ["Period Length [mm]", "Float", 46.0],
+            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
     "strings": {
@@ -546,9 +588,9 @@
                 ["Main", [
                     "name",
                     "magnetization",
+                    "remanentMag",
                     "material",
                     "materialFile",
-                    "doDivide",
                     "division",
                     "center",
                     "size",
@@ -556,6 +598,39 @@
             ]],
                 ["Transforms", [
                     "transforms"
+                ]]
+            ]
+        },
+        "hybridUndulator": {
+            "title": "Undulator",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "gap",
+                    "gapAxis",
+                    "numPeriods",
+                    "periodLength"
+                ]],
+                ["Poles", [
+                    "poleCrossSection",
+                    "poleLength",
+                    "poleDivision",
+                    "poleMaterial",
+                    "poleMaterialFile",
+                    "poleMagnetization",
+                    "poleRemanentMag",
+                    "poleColor"
+                ]],
+                ["Permanent Magnets", [
+                    "magnetCrossSection",
+                    "magnetLength",
+                    "gapOffset",
+                    "magnetDivision",
+                    "magnetMaterial",
+                    "magnetMaterialFile",
+                    "magnetMagnetization",
+                    "magnetRemanentMag",
+                    "magnetColor"
                 ]]
             ]
         },
@@ -684,8 +759,8 @@
             "advanced": [
                 "name",
                 "folder",
-                "beamAxis",
-                "enableKickMaps"
+                "magnetType",
+                "beamAxis"
             ]
         },
         "solver": {
@@ -733,6 +808,34 @@
             ],
             "advanced": [
                 "distance"
+            ]
+        },
+        "undulator": {
+            "title": "Undulator",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "gap",
+                    "gapAxis",
+                    "numPeriods",
+                    "periodLength"
+                ]],
+                ["Poles", [
+                    "hybridUndulator.poleCrossSection",
+                    "hybridUndulator.poleLength",
+                    "hybridUndulator.poleDivision",
+                    "hybridUndulator.poleMaterial",
+                    "hybridUndulator.poleMaterialFile",
+                    "hybridUndulator.poleColor"
+                ]],
+                ["Permanent Magnets", [
+                    "hybridUndulator.magnetCrossSection",
+                    "hybridUndulator.magnetDivision",
+                    "hybridUndulator.magnetMaterial",
+                    "hybridUndulator.magnetMaterialFile",
+                    "hybridUndulator.gapOffset",
+                    "hybridUndulator.magnetColor"
+                ]]
             ]
         }
     }

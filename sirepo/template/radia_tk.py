@@ -42,7 +42,9 @@ def _apply_clone(g_id, xform):
     for clone_xform in xform.transforms:
         cxf = PKDict(clone_xform)
         if cxf.model == 'translateClone':
-            txf = radia.TrfTrsl(sirepo.util.split_comma_delimited_string(cxf.distance, float))
+            txf = radia.TrfTrsl(
+                sirepo.util.split_comma_delimited_string(cxf.distance, float)
+            )
             xf = radia.TrfCmbL(xf, txf)
         if cxf.model == 'rotateClone':
             rxf = radia.TrfRot(
@@ -54,6 +56,13 @@ def _apply_clone(g_id, xform):
     if xform.alternateFields != '0':
         xf = radia.TrfCmbL(xf, radia.TrfInv())
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
+
+
+def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
+    xf = radia.TrfTrsl(distance)
+    if alternate_fields:
+        xf = radia.TrfCmbL(xf, radia.TrfInv())
+    radia.TrfMlt(g_id, xf, num_copies + 1)
 
 
 def _apply_rotation(g_id, xform):
@@ -94,6 +103,14 @@ def _geom_bnds(g_id):
     )
 
 
+def _radia_material(material_type, magnetization_magnitude, h_m_curve):
+    if material_type == 'custom':
+        return radia.MatSatIsoTab(
+            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
+        )
+    return radia.MatStd(material_type, magnetization_magnitude)
+
+
 _TRANSFORMS = PKDict(
     cloneTransform=_apply_clone,
     symmetryTransform=_apply_symmetry,
@@ -110,18 +127,11 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
 
-def build_box(center, size, material, magnetization, div, h_m_curve=None):
-    n_mag = numpy.linalg.norm(magnetization)
+def build_cuboid(center, size, material, magnetization, rem_mag, segments, h_m_curve=None):
     g_id = radia.ObjRecMag(center, size, magnetization)
-    if div:
-        radia.ObjDivMag(g_id, div)
-    if material == 'custom':
-        mat = radia.MatSatIsoTab(
-            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
-        )
-    else:
-        mat = radia.MatStd(material, n_mag)
-    radia.MatApl(g_id, mat)
+    if segments and any([s > 1 for s in segments]):
+        radia.ObjDivMag(g_id, segments)
+    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
     return g_id
 
 
@@ -263,6 +273,7 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     if len(numpy.shape(pv_arr)) == 2:
         pv_arr = [pv_arr]
     v_data = new_geom_object()
+    v_data.id = g_id
     v_data.vectors.lengths = []
     v_data.vectors.colors = []
     v_max = 0.

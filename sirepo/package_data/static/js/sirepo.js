@@ -1054,6 +1054,23 @@ SIREPO.app.service('validationService', function(utilities) {
         return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
     };
 
+    // html5 validation
+    this.validateField = function (model, field, inputType, isValid, msg) {
+        const mfId = utilities.modelFieldID(model, field);
+        const f = $(`.${mfId} ${inputType}`)[0];
+        if (! f) {
+            return;
+        }
+        const fWarn = $(`.${mfId} .sr-input-warning`);
+        fWarn.text(msg);
+        fWarn.hide();
+        f.setCustomValidity('');
+        if (! isValid) {
+            f.setCustomValidity(msg);
+            fWarn.show();
+        }
+    };
+
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
             // null files OK, at least sometimes
@@ -1660,6 +1677,9 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if ($(editorId).length) {
             $(editorId).modal('show');
             $rootScope.$broadcast(showEvent);
+            if (modelKey === 'simulation') {
+                $rootScope.$emit(showEvent);
+            }
         }
         else {
             if (! template) {

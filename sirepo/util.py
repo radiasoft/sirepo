@@ -270,6 +270,10 @@ def split_comma_delimited_string(s, f_type):
     return [f_type(x) for x in re.split(r'\s*,\s*', s)]
 
 
+def to_comma_delimited_string(arr):
+    return ','.join([str(x) for x in arr])
+
+
 def url_safe_hash(value):
     return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
