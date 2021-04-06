@@ -402,13 +402,26 @@ def reset_state():
 
 
 @contextlib.contextmanager
-def set_user_outside_of_http_request(uid, method='guest'):
-    """A user set explicitly outside of flask request cycle"""
+def set_user_outside_of_http_request(uid):
+    """A user set explicitly outside of flask request cycle
+
+    This will guess the auth method the user used to authenticate.
+    If the method cannot be guessed it will default to guest if configured
+    otherwise raise.
+    """
+    def _auth_module():
+        for m in _METHOD_MODULES.values():
+            if _method_user_model(m, uid):
+                return m
+        assert 'guest' in _METHOD_MODULES, \
+            f'no module found for uid={uid} and "guest" not in _METHOD_MODULES={_METHOD_MODULES.keys()}'
+        return _METHOD_MODULES['guest']
+
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
     with cookie.set_cookie_outside_of_flask_request():
         _login_user(
-            get_module(method),
+            _auth_module(),
             uid,
         )
         yield
@@ -462,15 +475,17 @@ def user_if_logged_in(method):
 
 
 def user_name():
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
     u = getattr(
-        _METHOD_MODULES[cookie.unchecked_get_value(
-            _COOKIE_METHOD,
-        )],
+        _METHOD_MODULES[m],
         'UserModel',
     )
     if u:
         with auth_db.thread_lock:
             return  u.search_by(uid=logged_in_user()).user_name
+    raise AssertionError(
+        f'user_name not found for uid={logged_in_user()} with method={m}',
+    )
 
 
 def user_registration(uid):
