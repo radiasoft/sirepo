@@ -1977,21 +1977,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 let dd = d[d.length - 1];
                 // data is in the format {'el_<id>.<field>': <value>}
                 for (let k in dd) {
-                    let mf = k.split('.');
-                    let el_id = parseInt(mf[0].split('_')[1]);
-                    let el = latticeService.elementForId(el_id, $scope.models);
-                    if (! el) {
+                    let p = parseElementModelField(k);
+                    if (! p.element || ! p.group) {
                         continue;
                     }
-                    let g = readoutGroup(el);
-                    if (! g) {
-                        continue;
-                    }
-                    let m = r[g][el_id];
+                    let m = r[p.group][p.id];
                     if (! m) {
                         continue;
                     }
-                    m[mf[1]] = dd[k];
+                    m[p.field] = dd[k];
                 }
                 let j = 0;
                 // each readout group is a column
@@ -2003,6 +1997,30 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     }
                     ++j;
                 }
+            }
+
+            function parseElementModelField(modelField) {
+                let mf = modelField.split('.');
+                let el_id = parseInt(mf[0].split('_')[1]);
+                return {
+                    element: latticeService.elementForId(el_id, $scope.models),
+                    field: mf[1],
+                    group: readoutGroup(el),
+                    id: el_id,
+                    model: mf[0],
+                };
+            }
+
+            function updateReadoutForElement(elInfo) {
+                if (! elInfo.element) {
+                    return;
+                }
+                let r = readoutElements();
+                updateReadoutElement(
+                    elInfo.element,
+                    Object.keys(r[elInfo.group]).indexOf(`${elInfo.id}`),
+                    Object.keys(r).indexOf(elInfo.group)
+                );
             }
 
             function updateZoomAndPan() {
@@ -2170,6 +2188,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             renderBeamline(true);
                         }
                     }
+
+                    updateReadoutForElement(parseElementModelField(name));
                 });
 
                 $scope.$on('activeBeamlineChanged', function($event, updateNoWait) {
