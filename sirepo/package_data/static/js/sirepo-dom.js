@@ -422,11 +422,16 @@ class SVGTable extends SVGGroup {
         return $(`#${this.cellId(i, j)}`);
     }
 
+    getCellBorder(i, j) {
+        return $(`#${this.cellId(i, j)}-border`);
+    }
 
-    setCell(i, j, val) {
+
+    setCell(i, j, val, color=null) {
         let cid  = this.cellId(i, j);
         let c = this.getChild(cid);
         this.getChild(this.cellId(i, j)).setText(val);
+        this.getCellBorder(i, j).css('fill', color);
     }
 
     setBorderStyle(style) {

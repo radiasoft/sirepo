@@ -1265,6 +1265,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             let readoutCellWidth = 300;
             let readoutTable = null;
             let selectedBeamline = null;
+            let selectedItem = null;
             let svgBounds = null;
             var zoom = null;
             let zoomScale = 1;
@@ -1792,8 +1793,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return picTypeCache[type];
             }
 
-            function hasReadout(element) {
-                return SIREPO.DOM && readoutFields(element).length > 0;
+            function hasReadout(item) {
+                return SIREPO.DOM && readoutFields(item.element).length > 0;
             }
 
             function readoutFields(element) {
@@ -1853,23 +1854,21 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return `${element.name}-readout`;
             }
 
-            function readoutElements() {
+            function readoutItems() {
                 let elements = {};
                 for (let g of $scope.svgGroups) {
-                    for (let e of g.items.map(function (item) {
-                        return item.element;
-                    }).filter(hasReadout)) {
-                        let rg = readoutGroup(e);
+                    for (let item of g.items.filter(hasReadout)) {
+                        let rg = readoutGroup(item.element);
                         if (! elements[rg]) {
                             elements[rg] = {};
                         }
-                        elements[rg][e._id] = e;
+                        elements[rg][item.element._id] = item;
                     }
                 }
                 return elements;
             }
 
-            function updateReadoutElement(element, i, j) {
+            function updateReadoutElement(element, i, j, color=null) {
                 if (! readoutTable) {
                     return;
                 }
@@ -1877,7 +1876,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 for (let f of readoutFields(element)) {
                     txt += `${f} = ${utilities.roundToPlaces(parseFloat(element[f]), 6)};&nbsp;`;
                 }
-                readoutTable.setCell(i, j, txt);
+                readoutTable.setCell(i, j, txt, color);
             }
 
 
@@ -1941,17 +1940,18 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
             }
 
-            function getReadoutElement(rr, id) {
-                for (let e of rr) {
-                    if (parseInt(e._id) === parseInt(id)) {
-                        return e;
+            function getReadoutItem(id) {
+                let r = readoutItems();
+                for (let g in r) {
+                    if (r[g][id]) {
+                        return r[g][id];
                     }
                 }
                 return null;
             }
 
             function updateReadout(e, d) {
-                let r = readoutElements();
+                let r = readoutItems();
                 if ($.isEmptyObject(r)) {
                     return;
                 }
@@ -1992,7 +1992,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 for (let g in r) {
                     let i = 0;
                     for (let el_id in r[g]) {
-                        updateReadoutElement(r[g][el_id], i, j);
+                        updateReadoutElement(r[g][el_id].element, i, j);
                         ++i;
                     }
                     ++j;
@@ -2002,10 +2002,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             function parseElementModelField(modelField) {
                 let mf = modelField.split('.');
                 let el_id = parseInt(mf[0].split('_')[1]);
+                let e = latticeService.elementForId(el_id, $scope.models);
                 return {
-                    element: latticeService.elementForId(el_id, $scope.models),
+                    element: e,
                     field: mf[1],
-                    group: readoutGroup(el),
+                    group: readoutGroup(e),
                     id: el_id,
                     model: mf[0],
                 };
@@ -2015,11 +2016,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 if (! elInfo.element) {
                     return;
                 }
-                let r = readoutElements();
+                let r = readoutItems();
                 updateReadoutElement(
                     elInfo.element,
                     Object.keys(r[elInfo.group]).indexOf(`${elInfo.id}`),
-                    Object.keys(r).indexOf(elInfo.group)
+                    Object.keys(r).indexOf(elInfo.group),
                 );
             }
 
@@ -2098,7 +2099,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 if ($scope.height > windowHeight / maxHeightFactor) {
                     $scope.height = windowHeight / maxHeightFactor;
                 }
-                let r = readoutElements();
+                let r = readoutItems();
                 let nRows = Object.values(r).map(function (x) {
                     return Object.keys(x).length;
                 });
@@ -2198,6 +2199,43 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 });
 
                 $scope.$on('sr-elementValues', updateReadout);
+                $scope.$on('sr-beamlineItemSelected', function(e, idx) {
+                    let id = selectedBeamline.items[idx];
+                    let item = getReadoutItem(id);
+                    if (! item) {
+                        return;
+                    }
+                    let r = readoutItems();
+                    srdbg(r);
+                    let c = 'none';
+                    //srdbg('check', item, 'vs', selectedItem);
+                    if (selectedItem) {
+                        let g = readoutGroup(selectedItem.element);
+                        srdbg('old selected', selectedItem, g, Object.keys(r[g]).indexOf(`${selectedItem.element._id}`), Object.keys(r).indexOf(g));
+                        updateReadoutElement(
+                            selectedItem.element,
+                            Object.keys(r[g]).indexOf(`${id}`),
+                            Object.keys(r).indexOf(g),
+                            c
+                        );
+                    }
+                    if (item == selectedItem) {
+                        selectedItem = null;
+                    }
+                    else {
+                        selectedItem = item;
+                        c = item.color;
+                    }
+                    let g = readoutGroup(item.element);
+                    srdbg(id, item, g, Object.keys(r[g]).indexOf(`${id}`), Object.keys(r).indexOf(g));
+                    updateReadoutElement(
+                        item.element,
+                        Object.keys(r[g]).indexOf(`${id}`),
+                        Object.keys(r).indexOf(g),
+                        c
+                    );
+
+                });
             });
         },
         link: function link(scope, element) {
