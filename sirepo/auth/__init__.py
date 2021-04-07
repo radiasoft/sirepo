@@ -624,7 +624,7 @@ def _get_user():
 
 
 def _init():
-    global cfg, visible_methods, valid_methods, non_guest_methods
+    global cfg
 
     if cfg:
         return
@@ -633,6 +633,14 @@ def _init():
         deprecated_methods=(set(), set, 'for migrating to methods'),
         logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
     )
+    if cfg.logged_in_user:
+        _init_logged_in_user()
+    else:
+        _init_full()
+
+def _init_full():
+    global visible_methods, valid_methods, non_guest_methods
+
     auth_db.init()
     p = pkinspect.this_module().__name__
     visible_methods = []
@@ -646,8 +654,8 @@ def _init():
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
-    if not cfg.logged_in_user:
-        return
+
+def _init_logged_in_user():
     global logged_in_user, user_dir_not_found
 
     def logged_in_user(*args, **kwargs):
