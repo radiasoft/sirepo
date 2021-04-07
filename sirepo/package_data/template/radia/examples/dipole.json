@@ -47,7 +47,8 @@
         "simulation": {
             "beamAxis": "x",
             "documentationUrl": "",
-            "enableKickMaps": false,
+            "enableKickMaps": "0",
+            "exampleName": "Dipole",
             "folder": "/Examples",
             "isExample": true,
             "name": "Dipole",

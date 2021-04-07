@@ -51,7 +51,8 @@
         "simulation": {
             "beamAxis": "z",
             "documentationUrl": "",
-            "enableKickMaps": false,
+            "enableKickMaps": "0",
+            "exampleName": "Wiggler",
             "folder": "/Examples",
             "isExample": true,
             "name": "Wiggler",
