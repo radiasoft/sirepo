@@ -402,13 +402,34 @@ def reset_state():
 
 
 @contextlib.contextmanager
-def set_user_outside_of_http_request(uid, method='guest'):
-    """A user set explicitly outside of flask request cycle"""
+def set_user_outside_of_http_request(uid):
+    """A user set explicitly outside of flask request cycle
+
+    This will try to guess the auth method the user used to authenticate.
+    """
+    def _auth_module():
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if _method_user_model(a, uid):
+                return a
+        # Only try methods without UserModel after methods with have been
+        # exhausted. This ensures that if there is a method with a UserModel
+        # we use it so calls like `user_name` work.
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if not hasattr(a, 'UserModel'):
+                return a
+        raise AssertionError(
+            f'no module found for uid={uid} in cfg.methods={cfg.methods}',
+        )
+
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
+    assert auth_db.UserRegistration.search_by(uid=uid), \
+        f'no registered user with uid={uid}'
     with cookie.set_cookie_outside_of_flask_request():
         _login_user(
-            get_module(method),
+            _auth_module(),
             uid,
         )
         yield
@@ -462,15 +483,17 @@ def user_if_logged_in(method):
 
 
 def user_name():
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
     u = getattr(
-        _METHOD_MODULES[cookie.unchecked_get_value(
-            _COOKIE_METHOD,
-        )],
+        _METHOD_MODULES[m],
         'UserModel',
     )
     if u:
         with auth_db.thread_lock:
             return  u.search_by(uid=logged_in_user()).user_name
+    raise AssertionError(
+        f'user_name not found for uid={logged_in_user()} with method={m}',
+    )
 
 
 def user_registration(uid):
