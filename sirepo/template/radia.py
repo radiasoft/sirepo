@@ -737,10 +737,8 @@ def _read_data(sim_id, view_type, field_type):
 
 def _read_id_map(sim_id):
     m = _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
-    if not m:
-        return PKDict()
-    return PKDict(
-        {k:v.decode('ascii') for k, v in m.items()}
+    return PKDict() if not m else PKDict(
+        {k:(v if isinstance(v, int) else v.decode('ascii')) for k, v in m.items()}
     )
 
 

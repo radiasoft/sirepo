@@ -31,12 +31,14 @@
             "objects": [
                 {
                     "color": "#ff0000",
+                    "id": "1c3a32be-c19b-42f8-a303-28fecaa5c1f0",
                     "material": "",
                     "name": "Dipole.Geom.0.polygons",
                     "type": ""
                 },
                 {
                     "color": "#0000ff",
+                    "id": "f904f1d1-93d5-4a84-bafb-cebf9efa0b35",
                     "material": "",
                     "name": "Dipole.Geom.1.polygons",
                     "type": ""

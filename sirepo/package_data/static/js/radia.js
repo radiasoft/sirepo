@@ -3271,7 +3271,10 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
             // may not always be colors in the data
             var c = t.colors || [];
             for (var i = 0; i < c.length; i++) {
-                var cc = (color || [])[i % 3] || c[i];
+                let cc = (color || [])[i % 3];
+                if (! cc && cc !== 0) {
+                    cc = c[i];
+                }
                 colors.push(Math.floor(255 * cc));
                 if (i % 3 === 2) {
                     colors.push(255);
