@@ -405,21 +405,28 @@ def reset_state():
 def set_user_outside_of_http_request(uid):
     """A user set explicitly outside of flask request cycle
 
-    This will guess the auth method the user used to authenticate.
-    If the method cannot be guessed it will default to guest if configured
-    otherwise raise.
+    This will try to guess the auth method the user used to authenticate.
     """
     def _auth_module():
         for m in cfg.methods:
             a = _METHOD_MODULES[m]
             if _method_user_model(a, uid):
                 return a
-        assert METHOD_GUEST in cfg.methods, \
-            f'no module found for uid={uid} and "{METHOD_GUEST}" not in cfg.methods={cfg.methods}'
-        return _METHOD_MODULES[METHOD_GUEST]
+        # Only try methods without UserModel after methods with have been
+        # exhausted. This ensures that if there is a method with a UserModel
+        # we use it so calls like `user_name` work.
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if not hasattr(a, 'UserModel'):
+                return a
+        raise AssertionError(
+            f'no module found for uid={uid} in cfg.methods={cfg.methods}',
+        )
 
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
+    assert auth_db.UserRegistration.search_by(uid=uid), \
+        f'no registered user with uid={uid}'
     with cookie.set_cookie_outside_of_flask_request():
         _login_user(
             _auth_module(),
