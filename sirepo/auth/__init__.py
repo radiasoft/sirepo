@@ -410,11 +410,12 @@ def set_user_outside_of_http_request(uid):
     otherwise raise.
     """
     def _auth_module():
-        for m in _METHOD_MODULES.values():
-            if _method_user_model(m, uid):
-                return m
-        assert METHOD_GUEST in _METHOD_MODULES, \
-            f'no module found for uid={uid} and "{METHOD_GUEST}" not in _METHOD_MODULES={_METHOD_MODULES.keys()}'
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if _method_user_model(a, uid):
+                return a
+        assert METHOD_GUEST in cfg.methods, \
+            f'no module found for uid={uid} and "{METHOD_GUEST}" not in cfg.methods={cfg.methods}'
         return _METHOD_MODULES[METHOD_GUEST]
 
     assert not util.in_flask_request(), \
