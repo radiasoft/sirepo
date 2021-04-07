@@ -413,9 +413,9 @@ def set_user_outside_of_http_request(uid):
         for m in _METHOD_MODULES.values():
             if _method_user_model(m, uid):
                 return m
-        assert 'guest' in _METHOD_MODULES, \
-            f'no module found for uid={uid} and "guest" not in _METHOD_MODULES={_METHOD_MODULES.keys()}'
-        return _METHOD_MODULES['guest']
+        assert METHOD_GUEST in _METHOD_MODULES, \
+            f'no module found for uid={uid} and "{METHOD_GUEST}" not in _METHOD_MODULES={_METHOD_MODULES.keys()}'
+        return _METHOD_MODULES[METHOD_GUEST]
 
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
