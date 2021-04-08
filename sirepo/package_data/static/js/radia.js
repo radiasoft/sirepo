@@ -2443,26 +2443,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         bundle.actor.getProperty().setLighting(isPoly);
                         let info = addActor(objId, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
-                        if (isPoly && $.isEmptyObject(gObj)) {
-                            //srdbg('add poly obj', gObj);
-                            gObj = appState.setModelDefaults(gObj, 'radiaObject');
-                            gObj.name = `${gname}.radiaObject`;  //id;
-                            gObj.id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);  //id;
-                            if (gColor) {
-                                // **IF GROUP COLOR USE IF NOT USE OBJECT COLOR**
-                                gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
-                            }
-                            // temporary handling of examples until they are "buildaable"
-                            // ***KEEPS ADDING OVER AND OVER***
-                            if (appState.models.simulation.isExample || appState.models.simulation.dmpImportFile) {
-                                if (! appState.models.geometry.objects) {
-                                    appState.models.geometry.objects = [];
-                                }
-                                appState.models.geometry.objects.push(gObj);
-                            }
-
-                            didModifyGeom = true;
-                        }
                         if (! gObj.center || ! gObj.size) {
                             var b = bundle.actor.getBounds();
                             gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])].join(',');
