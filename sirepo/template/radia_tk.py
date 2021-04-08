@@ -177,6 +177,7 @@ def geom_to_data(g_id, name=None, divide=True):
     c = radia.ObjCntStuf(g_id)
     l = len(c)
     if not divide or l == 0:
+        d.id = g_id
         pd.data = [d]
     else:
         d_arr = []
@@ -194,6 +195,7 @@ def geom_to_data(g_id, name=None, divide=True):
         # across its elements, a symmetry or other "additive" transformation has
         # been applied and we cannot get at the individual elements
         if n_verts > n_s_verts:
+            d.id = g_id
             d_arr = [d]
         pd.data = d_arr
     pd.bounds = radia.ObjGeoLim(g_id)

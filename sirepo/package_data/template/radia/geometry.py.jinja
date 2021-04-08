@@ -57,12 +57,11 @@ def _add_object(o, radia_objs, id_map):
         radia_objs.append(g_id)
     return g_id
 
-
 def _build_radia_geom():
     id_map = PKDict()
     radia_objs = []
-{% if isExample %}
-    g_id = radia_examples.EXAMPLES['{{ geomName }}']()
+{% if isRaw %}
+    g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
 {% elif dmpImportFile %}
     with open('{{ dmpImportFile }}', 'rb') as f:
         b = f.read()
@@ -77,7 +76,7 @@ def _build_radia_geom():
     g_id = radia_tk.build_container(radia_objs)
 {% endif %}
     # free symmetries to test parallel?
-    g_id = radia_tk.free_symmetries(g_id)
+    #g_id = radia_tk.free_symmetries(g_id)
     return g_id, id_map
 
 
