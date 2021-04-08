@@ -402,13 +402,34 @@ def reset_state():
 
 
 @contextlib.contextmanager
-def set_user_outside_of_http_request(uid, method='guest'):
-    """A user set explicitly outside of flask request cycle"""
+def set_user_outside_of_http_request(uid):
+    """A user set explicitly outside of flask request cycle
+
+    This will try to guess the auth method the user used to authenticate.
+    """
+    def _auth_module():
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if _method_user_model(a, uid):
+                return a
+        # Only try methods without UserModel after methods with have been
+        # exhausted. This ensures that if there is a method with a UserModel
+        # we use it so calls like `user_name` work.
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if not hasattr(a, 'UserModel'):
+                return a
+        raise AssertionError(
+            f'no module found for uid={uid} in cfg.methods={cfg.methods}',
+        )
+
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
+    assert auth_db.UserRegistration.search_by(uid=uid), \
+        f'no registered user with uid={uid}'
     with cookie.set_cookie_outside_of_flask_request():
         _login_user(
-            get_module(method),
+            _auth_module(),
             uid,
         )
         yield
@@ -462,15 +483,17 @@ def user_if_logged_in(method):
 
 
 def user_name():
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
     u = getattr(
-        _METHOD_MODULES[cookie.unchecked_get_value(
-            _COOKIE_METHOD,
-        )],
+        _METHOD_MODULES[m],
         'UserModel',
     )
     if u:
         with auth_db.thread_lock:
             return  u.search_by(uid=logged_in_user()).user_name
+    raise AssertionError(
+        f'user_name not found for uid={logged_in_user()} with method={m}',
+    )
 
 
 def user_registration(uid):
@@ -601,7 +624,7 @@ def _get_user():
 
 
 def _init():
-    global cfg, visible_methods, valid_methods, non_guest_methods
+    global cfg
 
     if cfg:
         return
@@ -610,6 +633,14 @@ def _init():
         deprecated_methods=(set(), set, 'for migrating to methods'),
         logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
     )
+    if cfg.logged_in_user:
+        _init_logged_in_user()
+    else:
+        _init_full()
+
+def _init_full():
+    global visible_methods, valid_methods, non_guest_methods
+
     auth_db.init()
     p = pkinspect.this_module().__name__
     visible_methods = []
@@ -623,8 +654,8 @@ def _init():
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
-    if not cfg.logged_in_user:
-        return
+
+def _init_logged_in_user():
     global logged_in_user, user_dir_not_found
 
     def logged_in_user(*args, **kwargs):
