@@ -182,12 +182,16 @@ class OpalParser(lattice.LatticeParser):
             v.value = re.sub(r'(\w+)\s*\^\s*([\d.]+)', r'pow(\1,\2)', v.value)
 
     def __legacy_fixups(self):
+        res = []
         for cmd in self.data.models.commands:
             if cmd._type == 'distribution' \
                and not cmd.type \
                and 'distribution' in cmd:
                 cmd.type = cmd.distribution
                 del cmd['distribution']
+            if cmd._type != 'select':
+                res.append(cmd)
+        self.data.models.commands = res
 
     def __remove_bend_default_fmap(self):
         for el in self.data.models.elements:

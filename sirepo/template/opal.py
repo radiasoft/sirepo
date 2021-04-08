@@ -28,6 +28,7 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OPAL_INPUT_FILE = 'opal.in'
 OPAL_OUTPUT_FILE = 'opal.out'
+OPAL_POSITION_FILE = 'opal-vtk.py'
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -36,6 +37,7 @@ _DIM_INDEX = PKDict(
 )
 _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
+_OPAL_VTK_FILE = 'opal_ElementPositions.vtk'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
 
@@ -228,7 +230,7 @@ class OpalMadxConverter(MadxConverter):
             if element_in.type in ('SBEND', 'RBEND'):
                 # kenetic energy in MeV
                 element_out.designenergy = round(
-                    (self.particle_energy.energy - self.beam.mass) * 1e3,
+                    (math.sqrt(self.particle_energy.energy ** 2 + self.beam.mass ** 2) - self.beam.mass) * 1e3,
                     6,
                 )
                 element_out.gap = 2 * self.__val(element_in.hgap)
@@ -336,9 +338,11 @@ def get_application_data(data, **kwargs):
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:
         return _OPAL_H5_FILE
-    elif model == 'plot2Animation':
+    if model == 'plot2Animation':
         return _OPAL_SDDS_FILE
-    elif 'elementAnimation' in model:
+    if model == 'beamline3dAnimation':
+        return _OPAL_VTK_FILE
+    if 'elementAnimation' in model:
         return _file_name_for_element_animation(run_dir, model)
     raise AssertionError('unknown model={}'.format(model))
 
@@ -433,6 +437,39 @@ def sim_frame(frame_args):
     )
 
 
+def sim_frame_beamline3dAnimation(frame_args):
+    res = PKDict(
+        title=' ',
+        points=[],
+        polys=[],
+        colors=[],
+    )
+    state = None
+    with pkio.open_text(_OPAL_VTK_FILE) as f:
+        for line in f:
+            if line == '\n':
+                continue
+            if line.startswith('POINTS '):
+                state = 'points'
+                continue
+            if line.startswith('CELLS '):
+                state = 'polys'
+                continue
+            if line.startswith('CELL_TYPES'):
+                state = None
+                continue
+            if line.startswith('COLOR_SCALARS'):
+                state = 'colors'
+                continue
+            if state == 'points' or state == 'colors':
+                for v in line.split(' '):
+                    res[state].append(float(v))
+            elif state == 'polys':
+                for v in line.split(' '):
+                    res[state].append(int(v))
+    return res
+
+
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
     a.update(frame_args)
@@ -516,6 +553,12 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(OPAL_INPUT_FILE),
         _generate_parameters_file(data),
     )
+    if is_parallel:
+        pkio.write_text(
+            run_dir.join(OPAL_POSITION_FILE),
+            'import os\n' \
+            + 'os.system("python data/opal_ElementPositions.py --export-vtk")\n',
+        )
 
 
 class _Generate(sirepo.lib.GenerateBase):

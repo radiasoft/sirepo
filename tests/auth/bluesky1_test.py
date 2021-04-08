@@ -22,7 +22,6 @@ def test_srw_auth_hash(monkeypatch):
     import time
     import werkzeug.exceptions
 
-    bluesky.init_apis()
     monkeypatch.setattr(bluesky, '_AUTH_NONCE_REPLAY_SECS', 1)
     req = pkcollections.Dict(
         simulationType='xyz',
@@ -53,7 +52,6 @@ def test_srw_auth_hash_copy():
     import numconv
     import random
     import time
-    bluesky.init_apis()
 
     req = dict(
         simulationType='xyz',

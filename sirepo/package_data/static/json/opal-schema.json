@@ -359,6 +359,7 @@
         }
     },
     "frameIdFields": {
+        "beamline3dAnimation": [],
         "bunchAnimation": [
             "x",
             "y",
@@ -423,6 +424,7 @@
             "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the particle source"],
             "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the particle source"]
         },
+        "beamline3dAnimation": {},
         "beamlineReport": {
         },
         "bunchReport": {
@@ -1182,6 +1184,10 @@
                 "phi",
                 "psi"
             ]
+        },
+        "beamline3dAnimation": {
+            "title": "3D Beamline",
+            "advanced": []
         },
         "beamlineReport": {
             "title": "Lattice",

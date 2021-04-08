@@ -383,13 +383,12 @@ def api_exportJupyterNotebook(simulation_type, simulation_id, model=None, title=
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
     d = simulation_db.default_data(req.type)
-#TODO(pjm): update fields from schema values across new_simulation_data values
+    d.models.simulation.pkupdate(
+        {k: v for k, v in req.req_data.items() if k in d.models.simulation}
+    )
     d.models.simulation.pkupdate(
         name=req.name,
         folder=req.folder,
-    )
-    d.models.simulation.pkupdate(
-        {k: v for k, v in req.req_data.items() if k in d.models.simulation}
     )
     if hasattr(req.template, 'new_simulation'):
         req.template.new_simulation(d, req.req_data)
@@ -419,7 +418,7 @@ def api_robotsTxt():
         # We include dev so we can test
         if pkconfig.channel_in('prod', 'dev'):
             u = [
-                sirepo.uri.api('root', params={'path_info': x})
+                sirepo.uri_router.uri_for_api('root', params={'path_info': x})
                 for x in sorted(feature_config.cfg().sim_types)
             ]
         else:

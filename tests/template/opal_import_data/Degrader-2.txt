@@ -245,7 +245,6 @@ BEAMLINE_A2: LINE=("UPAC#0","D1#0","D1#1","D2#0","MMAP10Y#0","MMAP10Y#1","D3#0",
 DISTRIB1: distribution,corrx=0.503,corry=0.858,cutofflong=5.0,cutoffpx=5.0,cutoffpy=5.0,cutoffpz=5.0,cutoffx=5.0,cutoffy=5.0,inputmounits="NONE",offsetx=-0.00181235969188,offsety=OY,sigmapx=0.001485*gambet,sigmapy=0.001291*gambet,sigmapz=0.0007*gambet,sigmax=0.001861,sigmay=0.001974,sigmaz=1e-05,type="GAUSS";
 FS1: fieldsolver,bboxincr=1.0,fstype="NONE",greensf="STANDARD",mt=64.0,mx=64.0,my=64.0,parfftt=false,parfftx=true;
 BEAM_A2: beam,bcurrent=NProt*1.6e-19*rf,bfreq=rf * 1e-6,charge=1.0,npart=NProt,particle="PROTON",pc=P0;
-SE1: select,line=BEAMLINE_A2;
 TR1: track,beam=BEAM_A2,dt={TSlow,TDeg,TSlow},line=BEAMLINE_A2,maxsteps={5E+8, 5E+8, 5E+8},zstop={3.60, 4.60,20.2825};
  run, beam=BEAM_A2,distribution=DISTRIB1,fieldsolver=FS1,method="PARALLEL-T";
 endtrack;

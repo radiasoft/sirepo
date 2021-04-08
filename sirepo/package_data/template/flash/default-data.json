@@ -359,6 +359,7 @@
             "op_fillLowTemp": 0.0,
             "op_wallLowTemp": 0.0
         },
+        "oneDimensionProfileAnimation": {},
         "SimulationRTFlame": {},
         "SimulationCapLaser3D": {},
         "SimulationCapLaserBELLA": {},
