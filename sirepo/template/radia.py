@@ -723,13 +723,6 @@ def _read_h_m_file(file_name):
     return f_lines
 
 
-def _read_id_map(sim_id):
-    return PKDict(
-        {k: v.decode('ascii') for k, v in
-         (_read_h5_path(sim_id, _GEOM_FILE, _H5_PATH_ID_MAP) or {}).items()}
-    )
-
-
 def _read_data(sim_id, view_type, field_type):
     res = _read_h5_path(sim_id, _GEOM_FILE, _geom_h5_path(view_type, field_type))
     if res:
