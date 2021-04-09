@@ -2010,10 +2010,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 // data is in the format {'el_<id>.<field>': <value>}
                 for (let k in dd) {
                     let p = parseElementModelField(k);
-                    if (! p.element || ! p.group) {
+                    let g = readoutGroup(p.element);
+                    if (! p.element || ! g) {
                         continue;
                     }
-                    let m = r[p.group][p.id];
+                    let m = r[g][p.element._id];
                     if (! m) {
                         continue;
                     }
@@ -2032,8 +2033,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return {
                     element: e,
                     field: mf[1],
-                    group: readoutGroup(e),
-                    id: el_id,
                     model: mf[0],
                 };
             }
