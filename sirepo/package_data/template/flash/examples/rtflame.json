@@ -65,6 +65,18 @@
             "zmin": -750000,
             "zr_boundary_type": "periodic"
         },
+        "gridEvolutionAnimation": {
+            "notes": "",
+            "y1": "mass",
+            "y2": "Burned Mass",
+            "y3": "Burning rate",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": []
+
+            }
+        },
         "Gridparamesh": {
             "convertToConsvdInMeshInterp": "1",
             "derefine_cutoff_1": 0.2,
@@ -359,17 +371,10 @@
             "op_fillLowTemp": 0,
             "op_wallLowTemp": 0
         },
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "mass",
-            "y2": "Burned Mass",
-            "y3": "Burning rate",
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": []
-
-            }
+        "oneDimensionProfileAnimation": {
+            "axis": "x",
+            "selectedPlotFiles": [],
+            "var": "dens"
         },
         "physicsDiffuse": {
             "diff_eleFlCoef": 1,

@@ -12,7 +12,7 @@ _MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
 
 {% if not isExample and not dmpImportFile %}
 radia_objs = []
-model_objs = {{ objects }}
+sirepo_objs = {{ objects }}
 
 {% include 'radia_tk.py' %}
 {% endif %}
@@ -27,8 +27,8 @@ def _add_object(o):
         ctr = _split_comma_delimited_string(o['center'], float)
         sz = _split_comma_delimited_string(o['size'], float)
         m = _split_comma_delimited_string(o['magnetization'], float)
-        div = _split_comma_delimited_string(o['division'], int) if o['doDivide'] != '0' else None
-        g_id = build_box(ctr, sz, o['material'], m, div, h_m_curve=o['h_m_curve'])
+        div = _split_comma_delimited_string(o['division'], int)
+        g_id = build_cuboid(ctr, sz, o['material'], m, o['remanentMag'], div, h_m_curve=o['h_m_curve'])
         if o['color']:
             radia.ObjDrwAtr(
                 g_id,
@@ -37,17 +37,24 @@ def _add_object(o):
     if o['model'] in _GROUP_MODELS:
         grp = []
         for obj_id in o['members']:
-            obj = [mobj for mobj in model_objs if mobj['id'] == obj_id][0]
-            if obj['mapId'] not in id_map:
-                # have not added this object yet, do so now
-                grp.append(_add_object(m))
+            obj = [mobj for mobj in sirepo_objs if mobj['id'] == obj_id][0]
+            m = PKDict(obj)
+            if m.id not in id_map.values():
+                # have not added this yet
+                m_id = _add_object(m)
+                grp.append(m_id)
             else:
-                grp.append(id_map[obj['mapId']] )
+                for k, v in id_map.items():
+                    if v == m.id:
+                        grp.append(k)
+                        break
         g_id = radia.ObjCnt(grp)
     for transform in o['transforms']:
-        apply_transform(g_id, transform)
-    id_map[o['mapId']] = g_id
-    radia_objs.append(g_id)
+        apply_transform(g_id, PKDict(transform))
+    id_map[g_id] = o['id']
+    # don't add objects if they are already in a group
+    if not o['groupId']:
+        radia_objs.append(g_id)
     return g_id
 
 def _split_comma_delimited_string(s, f_type):
@@ -56,6 +63,7 @@ def _split_comma_delimited_string(s, f_type):
 {% endif %}
 
 # ** BEGIN **
+id_map = {}
 {% if isExample %}
 g_id = EXAMPLES['{{ geomName }}']()
 {% elif dmpImportFile %}
@@ -63,12 +71,10 @@ with open('{{ dmpImportFile }}', 'rb') as f:
     b = f.read()
     g_id = radia.UtiDmpPrs(b)
 {% else %}
-id_map = {}
 {% for obj in objects %}
-if '{{ obj['mapId'] }}' not in id_map:
-    g_id = _add_object({{ obj }})
-    id_map['{{ obj['mapId'] }}'] = g_id
-    radia_objs.append(g_id)
+if '{{ obj['id'] }}' not in id_map.values():
+    o_id = _add_object({{ obj }})
+    id_map[o_id] = '{{ obj['id'] }}'
 {% endfor %}
 g_id = radia.ObjCnt(radia_objs)
 {% endif %}

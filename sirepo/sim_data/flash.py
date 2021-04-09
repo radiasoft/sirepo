@@ -35,6 +35,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 del dm[m]
         cls.__fixup_old_data_problem_files(data)
         cls.__fixup_old_data_setup_arguments(data)
+        cls.__fixup_old_data_one_dimension_profile_animation(data)
         cls._init_models(dm)
         cls.__fixup_old_data_setup_config_directives(data)
         cls.__fixup_old_data_setup_arguments_units(data)
@@ -288,6 +289,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         ]
 
     @classmethod
+    def __fixup_old_data_one_dimension_profile_animation(cls, data):
+        dm = data.models
+        if 'oneDimensionProfileAnimation' in dm:
+            return
+        dm.oneDimensionProfileAnimation = cls._get_example_for_flash_type(
+            dm.simulation.flashType,
+        ).models.oneDimensionProfileAnimation
+
+    @classmethod
     def __fixup_old_data_problem_files(cls, data):
         dm = data.models
         if 'problemFiles' in dm:
@@ -303,8 +313,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         if 'setupArguments' in dm:
             return
-        e = cls._get_example_for_flash_type(dm.simulation.flashType)
-        dm.setupArguments = e.models.setupArguments
+        dm.setupArguments = cls._get_example_for_flash_type(
+            dm.simulation.flashType,
+        ).models.setupArguments
 
     @classmethod
     def __fixup_old_data_setup_arguments_units(cls, data):

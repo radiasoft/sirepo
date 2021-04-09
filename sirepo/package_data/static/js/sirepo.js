@@ -1056,6 +1056,23 @@ SIREPO.app.service('validationService', function(utilities) {
         return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
     };
 
+    // html5 validation
+    this.validateField = function (model, field, inputType, isValid, msg) {
+        const mfId = utilities.modelFieldID(model, field);
+        const f = $(`.${mfId} ${inputType}`)[0];
+        if (! f) {
+            return;
+        }
+        const fWarn = $(`.${mfId} .sr-input-warning`);
+        fWarn.text(msg);
+        fWarn.hide();
+        f.setCustomValidity('');
+        if (! isValid) {
+            f.setCustomValidity(msg);
+            fWarn.show();
+        }
+    };
+
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
             // null files OK, at least sometimes
@@ -1662,6 +1679,9 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if ($(editorId).length) {
             $(editorId).modal('show');
             $rootScope.$broadcast(showEvent);
+            if (modelKey === 'simulation') {
+                $rootScope.$emit(showEvent);
+            }
         }
         else {
             if (! template) {
@@ -2463,7 +2483,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             else {
                 startElapsedTimeTimer(data.elapsedTime);
             }
-            if (data.percentComplete) {
+            if (data.hasOwnProperty('percentComplete')) {
                 state.percentComplete = data.percentComplete;
             }
             if (state.isProcessing()) {
@@ -2918,10 +2938,12 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         for(var i = 0; i < data.length; i++) {
             var item = findSimInTree(data[i].simulationId);
             if (item) {
-                item.name = data[i].name;
+                let sim = data[i].simulation;
+                item.name = sim.name;
+                item.notes = sim.notes;
             }
             else {
-                self.addToTree(data[i]);
+                self.addToTree(data[i].simulation);
             }
         }
         var listItemIds = data.map(function(item) {
@@ -2980,6 +3002,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 simulationId: item.simulationId,
                 lastModified: item.last_modified,
                 isExample: item.isExample,
+                notes: item.notes,
             };
             currentFolder.children.push(newItem);
         }
@@ -3742,7 +3765,10 @@ SIREPO.app.filter('simulationName', function() {
         if (name) {
             // clean up name so it formats well in HTML
             name = name.replace(/\_/g, ' ');
-            name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+            if (name.search(/[A-Z]{2}/) == -1) {
+                // format camel case as words
+                name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+            }
         }
         return name;
     };

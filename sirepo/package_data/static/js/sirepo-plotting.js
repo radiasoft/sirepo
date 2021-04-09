@@ -3450,6 +3450,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 $scope.axes.x.points = json.x_points
                     || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
+                if (angular.isArray($scope.axes.x.points[0])) {
+                    throw new Error('expecting a single array for x values: ' + $scope.modelName);
+                }
                 var xdom = [json.x_range[0], json.x_range[1]];
                 //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
                 if ($scope.onRefresh && xdom[1] > 0) {

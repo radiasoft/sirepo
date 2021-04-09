@@ -47,7 +47,7 @@ RUN_LOG = 'run.log'
 
 _HISTOGRAM_BINS_MAX = 500
 
-_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
+_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
 class ModelUnits():
@@ -373,13 +373,15 @@ def h5_to_dict(hf, path=None):
         # assume this is a single-valued entry
         return hf[path][()]
     # replace dicts with arrays on a 2nd pass
-    d_keys = d.keys()
     try:
-        indices = [int(k) for k in d_keys]
+        indices = [int(k) for k in d.keys()]
         d_arr = [None] * len(indices)
         for i in indices:
             d_arr[i] = d[str(i)]
         d = d_arr
+    except IndexError:
+        # integer keys but not an array
+        pass
     except ValueError:
         # keys not all integers, we're done
         pass
@@ -662,7 +664,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub(r'[\"\'()]', '', str(v))
+    return re.sub(r'([^\\])[\"\'()]', r'\1', str(v))
 
 
 def _get_notes(data):
