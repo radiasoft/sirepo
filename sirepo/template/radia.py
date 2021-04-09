@@ -584,6 +584,8 @@ def _generate_parameters_file(data, for_export):
             )
     v.isExample = data.models.simulation.get('isExample', False) and \
         data.models.simulation.name in radia_examples.EXAMPLES
+    v.exampleName = data.models.simulation.get('exampleName', None)
+    v.isRaw = v.exampleName in _SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
@@ -734,8 +736,9 @@ def _read_data(sim_id, view_type, field_type):
 
 
 def _read_id_map(sim_id):
-    return PKDict(
-        {k:v.decode('ascii') for k, v in _read_h5_path(sim_id, _GEOM_FILE, 'idMap').items()}
+    m = _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
+    return PKDict() if not m else PKDict(
+        {k:(v if isinstance(v, int) else v.decode('ascii')) for k, v in m.items()}
     )
 
 
