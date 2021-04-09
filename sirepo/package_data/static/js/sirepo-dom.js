@@ -388,11 +388,6 @@ class SVGTable extends SVGGroup {
         }
         for (let i = 0; i < numRows; ++i) {
             for (let j = 0; j < numCols; ++j) {
-                this.addChild(new SVGText(
-                    this.cellId(i, j),
-                    x + j * cellWidth + this.padding,
-                    y + this.headerOffset + cellHeight + i * cellHeight - this.padding
-                ));
                 this.addChild(new SVGRect(
                     `${this.cellId(i, j)}-border`,
                     x + j * cellWidth,
@@ -401,6 +396,11 @@ class SVGTable extends SVGGroup {
                     cellHeight,
                     'stroke:black; fill:none',
                     false
+                ));
+                this.addChild(new SVGText(
+                    this.cellId(i, j),
+                    x + j * cellWidth + this.padding,
+                    y + this.headerOffset + cellHeight + i * cellHeight - this.padding
                 ));
             }
         }
@@ -427,11 +427,11 @@ class SVGTable extends SVGGroup {
     }
 
 
-    setCell(i, j, val, color=null) {
+    setCell(i, j, val, color=null, borderWidth=1.0) {
         let cid  = this.cellId(i, j);
         let c = this.getChild(cid);
         this.getChild(this.cellId(i, j)).setText(val);
-        this.getCellBorder(i, j).css('fill', color);
+        this.getCellBorder(i, j).css('stroke', color).css('stroke-width', borderWidth);
     }
 
     setBorderStyle(style) {
