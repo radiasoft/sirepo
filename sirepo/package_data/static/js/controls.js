@@ -59,6 +59,10 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         appState.models.externalLattice.models.beamlines[0].items.forEach(
             elId => {
                 const element = elementForId(elId);
+                // skip editable elements
+                if (((SIREPO.APP_SCHEMA.view[element.type] || {}).advanced || []).length) {
+                    return;
+                }
                 if (schema[element.type]) {
                     const m = modelDataForElement(element);
                     if (element.type.indexOf('MONITOR') >= 0) {
