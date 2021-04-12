@@ -199,6 +199,24 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
     self.simScope = $scope;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
+    let coordinateExtractionPoints = [];
+    let hasCoordinates = false;
+
+
+    $scope.$on('sr-plotEvent', function (e, data) {
+        if (data.name !== 'mouseclick') {
+            return;
+        }
+        coordinateExtractionPoints.push(data.point)
+        if (coordinateExtractionPoints.length > 1) {
+            const c = appState.models.coordinateExtractionAnimation;
+            [c.x1, c.y1] = coordinateExtractionPoints[0];
+            [c.x2, c.y2] = coordinateExtractionPoints[1];
+            coordinateExtractionPoints = [];
+            appState.saveChanges('coordinateExtractionAnimation');
+            hasCoordinates = true;
+        }
+    });
 
     self.startSimulation = function() {
         appState.models.oneDimensionProfileAnimation.selectedPlotFiles = [];

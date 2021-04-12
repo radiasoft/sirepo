@@ -627,6 +627,7 @@
         }
     },
     "frameIdFields": {
+        "coordinateExtractionAnimation": ["x1", "y1", "x2", "y2"],
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
         "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var"],
         "varAnimation": ["amrGrid", "axis", "var", "vmax", "vmin"]
@@ -662,6 +663,12 @@
         }
     },
     "model": {
+        "coordinateExtractionAnimation": {
+            "x1": ["x1", "Float", 1.0],
+            "y1": ["y1", "Float", 1.0],
+            "x2": ["x2", "Float", 1.0],
+            "y2": ["y2", "Float", 1.0]
+        },
         "gridEvolutionAnimation": {
             "y1": ["Y1 Value", "ValueList", ""],
             "y2": ["Y2 Value", "ValueList", ""],
@@ -720,6 +727,17 @@
             "var": ["Variable Name", "ValueList", ""],
             "vmax": ["V Max", "OptionalFloat", "", "Maximum limit of color bar values."],
             "vmin": ["V Min", "OptionalFloat", "", "Minimum limit of color bar values."]
+        }
+    },
+    "view": {
+        "coordinateExtractionAnimation": {
+            "title": "Coordinate Extraction",
+            "advanced": [
+                "x1",
+                "y1",
+                "x2",
+                "y2"
+            ]
         },
         "DATAFILES": {
             "wildcard": ["Wildcard", "String"]

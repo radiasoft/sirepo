@@ -51,6 +51,7 @@ _PLOT_VARIABLE_LABELS = PKDict(
     ye='',
 )
 
+_SCALE_FACTOR = 100
 
 def background_percent_complete(report, run_dir, is_running):
     def _grid_columns():
@@ -183,6 +184,75 @@ def setup_command(data):
     ] + c
 
 
+def sim_frame_coordinateExtractionAnimation(frame_args):
+    _init_yt()
+    c = [
+        [0, 0, 0],
+        [0, 0, 0],
+    ]
+    l = PKDict(
+        cartesian=[
+            PKDict(x=0),
+            PKDict(x=0, y=1),
+            PKDict(x=0, y=1, z=2),
+        ],
+        # cylindrical=[
+        #     PKDict(x=),
+        #     PKDict(x=, y=),
+        #     PKDict(x=, y=, z=),
+        # ],
+        # polar=[
+        #     PKDict(x=),
+        #     PKDict(x=, y=),
+        #     PKDict(x=, y=, z=),
+        # ],
+        # spherical=[
+        #     PKDict(x=),
+        #     PKDict(x=, y=),
+        #     PKDict(x=, y=, z=),
+        # ],
+    )
+    for i, e in enumerate(c):
+        # TODO(e-carlin): for a in l[frame_args.sim_in.Grid.geometry][int(frame_args.sim_in.setupArguments.d) - 1]:
+        for k, v in l['cartesian'][0].items():
+            e[p['cartesian']['3'][a]]  = float(frame_args[f'{a}{i}']) * _SCALE_FACTOR
+            c[i][v] = float(frame_args[f'{k}{i}']) * _SCALE_FACTOR
+
+    xc2, yc2, zc2, z_vals2, B_zvals2 = rsflash.plotting.extracts.extract_line(
+        # TODO(e-carlin): from frame_args
+        yt.load('/home/vagrant/src/radiasoft/sirepo/run/user/0pFsG3za/flash/E0BqU2nK/animation/flash_hdf5_plt_cnt_0003'),
+        'pres',
+        'z',
+        256,
+        interp=False,
+        interpolate_max=0.025, # TODO(e-carlin): calculate?
+        # TODO(e-carlin): is this right? Middle value is hardcoded 0?
+        coordinates=[
+            (float(frame_args.x1) * 100, 0, float(frame_args.y1) * 100),
+            (float(frame_args.x2) * 100, 0, float(frame_args.y2) * 100),
+        ],
+        # coordinates=[
+        #     (0.01,0,-0.01),
+        #     (0.02,0,0.01),
+        # ],
+        xyz=True,
+    )
+    p = [PKDict(
+        name='# TODO(e-carlin): plot namej',
+        label='# TODO(e-carlin): plot label',
+        points=B_zvals2.tolist(),
+    )]
+    return PKDict(
+        plots=p,
+        title='# TODO(e-carlin): title',
+        x_label=_PLOT_VARIABLE_LABELS.length,
+        x_points = xc2.tolist(),
+        x_range=[np.min(xc2), np.max(xc2)],
+        y_label='# TODO(e-carlin): y_label',
+        y_range=template_common.compute_plot_color_and_range(p),
+    )
+
+
 def sim_frame_gridEvolutionAnimation(frame_args):
     c = _grid_evolution_columns(frame_args.run_dir)
     dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
@@ -260,8 +330,8 @@ def sim_frame_varAnimation(frame_args):
         g = []
         for b, _ in ds.all_data().blocks:
             g.append([
-                [float(b.LeftEdge[0] / 100), float(b.RightEdge[0] / 100)],
-                [float(b.LeftEdge[1] / 100), float(b.RightEdge[1] / 100)],
+                [float(b.LeftEdge[0] / _SCALE_FACTOR), float(b.RightEdge[0] / _SCALE_FACTOR)],
+                [float(b.LeftEdge[1] / _SCALE_FACTOR), float(b.RightEdge[1] / _SCALE_FACTOR)],
             ])
         return g
 
@@ -294,6 +364,9 @@ def sim_frame_varAnimation(frame_args):
     d = yt.SlicePlot(
         ds,
         frame_args.axis,
+        # TODO(e-carlin): how does slicing across z work in a 2d sim?
+        # frame_args.axis,
+        'z',
         f,
         origin='native',
         aspect=1,
@@ -307,9 +380,9 @@ def sim_frame_varAnimation(frame_args):
         ),
         title='{}'.format(f),
         x_label=f'{l[g][frame_args.axis].x} [m]',
-        x_range=[ds.parameters['xmin'] / 100, ds.parameters['xmax'] / 100, d.shape[0]],
+        x_range=[ds.parameters['xmin'] / _SCALE_FACTOR, ds.parameters['xmax'] / _SCALE_FACTOR, d.shape[0]],
         y_label=f'{l[g][frame_args.axis].y} [m]',
-        y_range=[ds.parameters['ymin'] / 100, ds.parameters['ymax'] / 100, d.shape[1]],
+        y_range=[ds.parameters['ymin'] / _SCALE_FACTOR, ds.parameters['ymax'] / _SCALE_FACTOR, d.shape[1]],
         z_matrix=d.tolist(),
         amr_grid=_amr_grid(),
     )

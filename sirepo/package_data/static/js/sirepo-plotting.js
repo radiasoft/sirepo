@@ -2935,16 +2935,22 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
+            function dataPointOfMousePoint() {
+                return [
+                    axes.x.scale.invert(mouseMovePoint[0] - 1),
+                    axes.y.scale.invert(mouseMovePoint[1] - 1)
+                ];
+            }
+
             var mouseMove = utilities.debounce(function() {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = mouseMovePoint;
+                let x0, y0;
+                [x0, y0] = dataPointOfMousePoint();
                 var xRange = getRange(axes.x.values);
                 var yRange = getRange(axes.y.values);
-                var x0 = axes.x.scale.invert(point[0] - 1);
-                var y0 = axes.y.scale.invert(point[1] - 1);
                 var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
                 var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
                 try {
@@ -3046,11 +3052,18 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 });
                 resetZoom();
                 canvas = select('canvas').node();
-                select('.mouse-rect').on('mousemove', function() {
-                    // mouseMove is debounced, so save the point before calling
-                    mouseMovePoint = d3.mouse(this);
-                    mouseMove();
-                });
+                select('.mouse-rect')
+                    .on('mousemove', function() {
+                        // mouseMove is debounced, so save the point before calling
+                        mouseMovePoint = d3.mouse(this);
+                        mouseMove();
+                    })
+                    .on('click', function() {
+                        $scope.broadcastEvent({
+                            name: 'mouseclick',
+                            point: dataPointOfMousePoint(),
+                        });
+                    });
                 ctx = canvas.getContext('2d');
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
@@ -3084,6 +3097,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     axis.parseLabelAndUnits(json[dim + '_label']);
                     select('.' + dim + '-axis-label').text(json[dim + '_label']);
                     axis.scale.domain(getRange(axis.values));
+
                 });
                 cacheCanvas.width = axes.x.values.length;
                 cacheCanvas.height = axes.y.values.length;
