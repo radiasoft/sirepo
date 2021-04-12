@@ -190,6 +190,9 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.editElement = function(type, item) {
+        if (! appState.viewInfo(type)) {
+            return;
+        }
         appState.models[type] = item;
         self.setValidator(type, item);
         panelState.showModalEditor(type);
@@ -233,19 +236,15 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     self.elementForId = function(id, models) {
         models = models || appState.models;
         id = Math.abs(id);
-        //srdbg('get el for id', id, 'in', models.beamlines, models.elements);
         for (let i = 0; i < models.beamlines.length; i++) {
             let b = models.beamlines[i];
-            //srdbg('check bl', b.id);
             if (b.id == id) {
                 return b;
             }
         }
         for (let i = 0; i < models.elements.length; i++) {
             let e = models.elements[i];
-            //srdbg('check el', e, 'vs', id);
             if (e._id == id) {
-                //srdbg('got el', e._id);
                 return e;
             }
         }
@@ -2080,9 +2079,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.itemDblClicked = function(item) {
-                if ($scope.pathToModels) {
-                    return;
-                }
+                //if ($scope.pathToModels) {
+                //    return;
+                //}
                 latticeService.editElement(item.type, item);
             };
 

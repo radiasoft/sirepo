@@ -142,6 +142,12 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         }
     }
 
+    function updateLatticeFields() {
+        enableLatticeFields(
+            ['pending', 'running'].indexOf(appState.models.simulationStatus.animation.state) < 0
+        );
+    }
+
     function updateKickers(event, rows) {
         var values = rows[rows.length -1];
         self.editorColumns.forEach(m => {
@@ -186,10 +192,13 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         $scope.$on('externalLattice.changed', buildEditorColumns);
         $scope.$on('modelChanged', saveLattice);
         $scope.$on('sr-elementValues', updateKickers);
+        for (let bl of appState.models.externalLattice.models.beamlines) {
+            for (let i of bl.items) {
+                $scope.$on(`${elementForId(i).type}.editor.show`, updateLatticeFields);
+            }
+        }
         appState.watchModelFields($scope, ['simulationStatus.animation.state'], () => {
-            enableLatticeFields(
-                ['pending', 'running'].indexOf(
-                    appState.models.simulationStatus.animation.state) < 0);
+            updateLatticeFields();
         });
         self.simState = persistentSimulation.initSimulationState(self);
     });

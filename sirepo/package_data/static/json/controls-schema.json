@@ -190,7 +190,9 @@
         "HKICKER": {
             "title": "HKICKER",
             "description": "Horizontal Corrector",
-            "advanced": [],
+            "advanced": [
+                "kick"
+            ],
             "basic": [
                 "kick"
             ]
@@ -206,7 +208,10 @@
                 "hkick",
                 "vkick"
             ],
-            "advanced": []
+            "advanced": [
+                "hkick",
+                "vkick"
+            ]
         },
         "MONITOR": {
             "title": "MONITOR",
@@ -218,12 +223,16 @@
             "basic": [
                 "k1"
             ],
-            "advanced": []
+            "advanced": [
+                "k1"
+            ]
         },
         "VKICKER": {
             "title": "VKICKER",
             "description": "Vertical Corrector",
-            "advanced": [],
+            "advanced": [
+                "kick"
+            ],
             "basic": [
                 "kick"
             ]
