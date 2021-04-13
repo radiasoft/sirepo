@@ -373,6 +373,11 @@
             "op_fillLowTemp": 0,
             "op_wallLowTemp": 0
         },
+        "oneDimensionProfileAnimation": {
+            "axis": "r",
+            "selectedPlotFiles": [],
+            "var": "magz"
+        },
         "physicsDiffuse": {
             "diff_eleFlCoef": 0.06,
             "diff_eleFlMode": "fl_larsen",

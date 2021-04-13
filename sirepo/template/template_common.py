@@ -373,13 +373,15 @@ def h5_to_dict(hf, path=None):
         # assume this is a single-valued entry
         return hf[path][()]
     # replace dicts with arrays on a 2nd pass
-    d_keys = d.keys()
     try:
-        indices = [int(k) for k in d_keys]
+        indices = [int(k) for k in d.keys()]
         d_arr = [None] * len(indices)
         for i in indices:
             d_arr[i] = d[str(i)]
         d = d_arr
+    except IndexError:
+        # integer keys but not an array
+        pass
     except ValueError:
         # keys not all integers, we're done
         pass

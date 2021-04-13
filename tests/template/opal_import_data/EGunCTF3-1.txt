@@ -32,7 +32,6 @@ FS1: fieldsolver,bboxincr=1.0,fstype="FFT",mt=32.0,mx=16.0,my=16.0,parfftx=true,
 DIST1: distribution,ekin=0.4,nbin=5.0,sigmax=0.000395,sigmay=0.000395,tfall=7.45e-12,tpulsefwhm=1.04e-11,trise=7.45e-12,type="GUNGAUSSFLATTOPTH";
 DIST2: distribution,fname="command_distribution-fname.ReferenceParticles.dat",type="FROMFILE";
 BEAM1: beam,bcurrent=BC,bfreq=BF,charge=-1.0,npart=20000.0,particle="ELECTRON",pc=P0;
-SE1: select,line=Injector;
 TR1: track,beam=beam1,dt=1e-12,line=Injector,maxsteps=100.0,zstop=0.14;
  run, beam=beam1,distribution=Dist1,fieldsolver=Fs1,method="PARALLEL-T";
 endtrack;

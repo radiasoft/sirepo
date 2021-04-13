@@ -24,6 +24,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                'beamline3dAnimation',
                 'bunchAnimation',
                 'plotAnimation',
                 'plot2Animation',

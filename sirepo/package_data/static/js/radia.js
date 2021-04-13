@@ -7,6 +7,8 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
+    SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
+    SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
@@ -128,10 +130,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.getObject = function(id) {
-        var objs = appState.models.geometry.objects || [];
-        for (var i in objs) {
-            if (objs[i].id == id) {
-                return objs[i];
+        let objs = appState.models.geometry.objects || [];
+        for (let o of objs) {
+            if (o.id == id) {
+                return o;
             }
         }
         return null;
@@ -259,16 +261,28 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomObject.magnetization',
         'geomObject.material',
         'geomObject.symmetryType',
-        'geomObject.doDivide',
+        'simulation.beamAxis',
     ];
     const groupModels = [
         'geomGroup',
-        'geomUndulatorGroup'
+        'geomUndulatorGroup',
+    ];
+    const undulatorEditorFields = [
+        'hybridUndulator.magnetMagnetization',
+        'hybridUndulator.magnetMaterial',
+        'hybridUndulator.periodLength',
+        'hybridUndulator.poleLength',
+        'hybridUndulator.poleMagnetization',
+        'hybridUndulator.poleMaterial',
+        'simulation.beamAxis',
     ];
     var watchedModels = [
         'geomObject',
         'geomGroup',
-        'radiaObject'
+        'hybridUndulator',
+        'radiaObject',
+        'simulation',
+        'undulator',
     ];
 
     self.builderCfg = {
@@ -283,6 +297,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.dropEnabled = true;
+    self.modelsLoaded = false;
     self.selectedObject = null;
     self.shapes = [];
     self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
@@ -347,6 +362,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.editObject = function(o) {
         self.selectObject(o);
         panelState.showModalEditor(o.model);
+    };
+
+    self.showDesigner = function() {
+        if (! self.modelsLoaded) {
+            return false;
+        }
+        return self.modelsLoaded && appState.models.simulation.magnetType === 'freehand';
+    };
+
+    self.showParams = function() {
+        if (! self.modelsLoaded) {
+            return false;
+        }
+        return self.modelsLoaded && appState.models.simulation.magnetType !== 'freehand';
+    };
+
+    self.getMagnetType = function() {
+        return appState.models.simulation.magnetType;
     };
 
     self.getObject = function(id) {
@@ -494,7 +527,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addObject(o) {
         o.id  = self.nextId();
-        o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
         // for groups, set the group id of all members
         //var n = 0;
@@ -662,11 +694,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return groupShape;
     }
 
-    // used to map the client-created object to a server-created Radia id
-    function getMapId(o) {
-        return o.name + '.' + o.id;
-    }
-
     // recursive dive through all subgroups
     function getMembers(o) {
         if (! o) {
@@ -815,6 +842,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let txm = [];
         for (let m of getMembers(o)) {
             let shape = self.getShape(m.id);
+            if (! shape) {
+                // may be later in array if created externally
+                addShapesForObject(self.getObject(m.id));
+                shape = self.getShape(m.id);
+            }
             let v = getVirtualShapes(shape, excludedIds);
             txm.push(addTxShape(shape, xform, txFunction).id);
             for (let s of v) {
@@ -851,16 +883,61 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
+    function updateUndulatorEditor() {
+        let modelName = 'hybridUndulator';
+        let u = appState.models[modelName];
+
+            panelState.enableField('hybridUndulator', 'magnetLength', false);
+
+            for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            let axis = e[SIREPO.ENUM_INDEX_VALUE];
+            panelState.showEnum(modelName, 'gapAxis', axis, axis !== appState.models.simulation.beamAxis);
+        }
+
+        for (let m of ['pole', 'magnet']) {
+            const matField = `${m}Material`;
+            panelState.showField(
+                modelName,
+                `${m}MaterialFile`,
+                u[matField] === 'custom'
+            );
+            const mag = Math.hypot(
+                ...radiaService.stringToFloatArray(u[`${m}Magnetization`] || SIREPO.ZERO_STR)
+            );
+            validationService.validateField(
+                modelName,
+                matField,
+                'select',
+                SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(u[matField]) < 0 || mag > 0,
+                anisotropicMaterialMsg
+            );
+        }
+        const lengthsValid = u.periodLength > u.poleLength / 2;
+        if (lengthsValid) {
+            u.magnetLength = u.periodLength / 2 - u.poleLength;
+            appState.saveQuietly(modelName);
+        }
+        validationService.validateField(
+            modelName,
+            'periodLength',
+            'input',
+            lengthsValid,
+            `Period length must be > pole length/2 (${u.poleLength / 2}mm)`
+        );
+        validationService.validateField(
+            modelName,
+            'poleLength',
+            'input',
+            lengthsValid,
+            `Pole length must be < 2*period length (${u.periodLength * 2}mm)`
+        );
+    }
+
     function updateObjectEditor() {
         var o = self.selectedObject;
         if (! o) {
             return;
         }
-        panelState.showField(
-            'geomObject',
-            'division',
-            o.doDivide == '1'
-        );
         panelState.showField(
             'geomObject',
             'materialFile',
@@ -870,18 +947,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const mag = Math.hypot(
             ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
         );
-        const mfId = utilities.modelFieldID('geomObject' ,'material');
-        $(`.${mfId} .sr-input-warning`).text(anisotropicMaterialMsg);
-        const f = $(`.${mfId} select`)[0];
-        const fWarn = $(`.${mfId} .sr-input-warning`);
-        f.setCustomValidity('');
-        fWarn.hide();
-        if (SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) >= 0) {
-            if (mag === 0) {
-                f.setCustomValidity(anisotropicMaterialMsg);
-                fWarn.show();
-            }
-        }
+        validationService.validateField(
+            'geomObject',
+            'material',
+            'select',
+            SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) < 0 || mag > 0,
+            anisotropicMaterialMsg
+        );
     }
 
     function updateToolEditor(toolItem) {
@@ -900,9 +972,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     appState.whenModelsLoaded($scope, function() {
+        self.modelsLoaded = true;
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
+        });
+        appState.watchModelFields($scope, undulatorEditorFields, function(d) {
+            updateUndulatorEditor();
         });
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
@@ -913,31 +989,46 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
             }
-            var o = self.selectedObject;
-            if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
-                // catch unrelated saved objects
-                if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
-                    addObject(o);
-                }
-                else {
-                    self.selectedObject = null;
-                }
+            if (
+                modelName === 'simulation' ||
+                Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
+            ) {
+                appState.models.geometry.lastModified = Date.now();
+                appState.models.kickMap.periodLength = appState.models.hybridUndulator.periodLength;
+                appState.saveQuietly('kickMap');
             }
-            if (o.materialFile) {
-                o.hmFileName = o.materialFile.name;
-                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
+            let o = self.selectedObject;
+            if (o) {
+                if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
+                    // catch unrelated saved objects
+                    if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
+                        addObject(o);
+                    }
+                    else {
+                        self.selectedObject = null;
+                    }
+                }
+                if (o.materialFile) {
+                    o.hmFileName = o.materialFile.name;
+                    radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
+                }
             }
             appState.saveChanges('geometry', function (d) {
-                //srdbg('geometry ch', self.selectedObject);
-                if (self.selectedObject) {
-                    loadShapes();
-                }
-                //self.selectedObject = null;
-                //loadShapes();
+                panelState.clear('geometry');
+                // need to rebuild the geometry after changes were made
+                panelState.requestData('geometry', function(data) {
+
+                    if (self.selectedObject) {
+                        loadShapes();
+                    }
+                });
             });
         });
         $scope.$on('geomObject.editor.show', function(e, o) {
             updateObjectEditor();
+        });
+        $scope.$on('simulation.editor.show', function(e, o) {
+            panelState.enableField('simulation', 'magnetType', false);
         });
         $scope.$on('tool.editor.show', function(e, o) {
             updateToolEditor();
@@ -952,6 +1043,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
         $scope.$on('drop.target.enabled', function (e, val) {
             self.dropEnabled = val;
+        });
+        $scope.$parent.$on('sr-tabSelected', function(event, modelName) {
+            updateUndulatorEditor();
         });
     });
 });
@@ -996,6 +1090,11 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.$on('simulation.editor.show', function(e, o) {
+        panelState.enableField('simulation', 'magnetType', false);
+    });
+
 });
 
 
@@ -1050,9 +1149,14 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
                 $('#simulation-import').modal('show');
             };
             $scope.isImported = function() {
-                return (appState.models.simulation || {}).isExample ||
-                    (appState.models.simulation || {}).dmpImportFile;
+                let sim = appState.models.simulation || {};
+                return isRawExample(sim.exampleName) || sim.dmpImportFile;
             };
+
+            // "raw" examples are from radia_examples.py - a temporary repository
+            function isRawExample(name) {
+                return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
+            }
         }
     };
 });
@@ -2297,7 +2401,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             // stash the actor and associated info to avoid recalculation
             function addActor(id, group, actor, geomType, pickable) {
-                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', type, 'pick', pickable);
+                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', geomType, 'pick', pickable);
                 var pData = actor.getMapper().getInputData();
                 var info = {
                     actor: actor,
@@ -2346,18 +2450,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     // ***NEED BETTER ID, KNOWN ON BOTH SIDES***
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
+                    var radiaId = sceneDatum.id;
+                    var objId = (sceneData.idMap || {})[radiaId] || radiaId;
+                    //srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
-                    for (var j = 0; j < radiaVtkUtils.GEOM_TYPES.length; ++j) {
-                        var t = radiaVtkUtils.GEOM_TYPES[j];
-                        var id = gname + '.' + t;
+                    for (let t of radiaVtkUtils.GEOM_TYPES) {
                         var d = sceneDatum[t];
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             continue;
                         }
                         var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
-                        //var gObj = radiaService.getObject(id) || {};
-                        var gObj = radiaService.getObject(i) || {};
+                        //var gObj = radiaService.getObject(radiaId) || {};
+                        //var gObj = radiaService.getObject(i) || {};
+                        let gObj = radiaService.getObject(objId) || {};
                         //srdbg('gobj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         // use colors from Radia for groups
@@ -2392,28 +2498,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        let info = addActor(objId, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
-                        if (isPoly && $.isEmptyObject(gObj)) {
-                            //srdbg('add poly obj', gObj);
-                            gObj = appState.setModelDefaults(gObj, 'radiaObject');
-                            gObj.name = id;
-                            gObj.id = id;
-                            if (gColor) {
-                                // **IF GROUP COLOR USE IF NOT USE OBJECT COLOR**
-                                gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
-                            }
-                            // temporary handling of examples until they are "buildaable"
-                            // ***KEEPS ADDING OVER AND OVER***
-                            if (appState.models.simulation.isExample || appState.models.simulation.dmpImportFile) {
-                                if (! appState.models.geometry.objects) {
-                                    appState.models.geometry.objects = [];
-                                }
-                                appState.models.geometry.objects.push(gObj);
-                            }
-
-                            didModifyGeom = true;
-                        }
                         if (! gObj.center || ! gObj.size) {
                             var b = bundle.actor.getBounds();
                             gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])].join(',');
@@ -2543,16 +2629,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return null;
                 }
                 return s.getData().slice(inds[0], inds[0] + 3);
-            }
-
-            function getGeomObj(id) {
-                var gObjs = appState.models.geometry.objects || [];
-                for (var i = 0; i < gObjs.length; ++i) {
-                    if (gObjs[i].id === id) {
-                        return gObjs[i];
-                    }
-                }
-                return null;
             }
 
             function getInfoForActor(actor) {
@@ -2775,7 +2851,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
                    //srdbg(info.name, 'poly tup', cid, selectedColor);
 
-                    var g = getGeomObj(info.id);
+                    let g = radiaService.getObject(info.id);
                     //srdbg(info.id, 'selected', g);
                     if (selectedObj === g) {
                         selectedObj = null;
@@ -3232,7 +3308,10 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
             // may not always be colors in the data
             var c = t.colors || [];
             for (var i = 0; i < c.length; i++) {
-                var cc = (color || [])[i % 3] || c[i];
+                let cc = (color || [])[i % 3];
+                if (! cc && cc !== 0) {
+                    cc = c[i];
+                }
                 colors.push(Math.floor(255 * cc));
                 if (i % 3 === 2) {
                     colors.push(255);

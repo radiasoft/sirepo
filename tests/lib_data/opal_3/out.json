@@ -1,5 +1,6 @@
 {
     "models": {
+        "beamline3dAnimation": {},
         "beamlines": [
             {
                 "id": 113,

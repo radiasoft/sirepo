@@ -27,11 +27,24 @@ import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
 import time
+import uuid
 
 _BEAM_AXIS_ROTATIONS = PKDict(
     x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+)
+
+_BEAM_AXIS_VECTORS = PKDict(
+    x=[1, 0, 0],
+    y=[0, 1, 0],
+    z=[0, 0, 1]
+)
+
+_GAP_AXIS_MAP = PKDict(
+    x='z',
+    y='z',
+    z='y'
 )
 
 _DMP_FILE = 'geometry.dat'
@@ -56,6 +69,8 @@ _REPORT_RES_MAP = PKDict(
 )
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
+
+_ZERO = [0, 0, 0]
 
 GEOM_PYTHON_FILE = 'geometry.py'
 KICK_PYTHON_FILE = 'kickMap.py'
@@ -134,26 +149,11 @@ def get_application_data(data, **kwargs):
     id_map = _read_id_map(sim_id)
     if data.method == 'get_field':
         f_type = data.get('fieldType')
-        if f_type in radia_tk.POINT_FIELD_TYPES:
-            #TODO(mvk): won't work for subsets of available paths, figure that out
-            pass
-            #try:
-            #    res = _read_data(sim_id, data.viewType, f_type)
-            #except KeyError:
-            #    res = None
-            #if res:
-            #    v = [d.vectors.vertices for d in res.data if _SCHEMA.constants.geomTypeVectors in d]
-            #    old_pts = [p for a in v for p in a]
-            #    new_pts = _build_field_points(data.fieldPaths)
-            #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
-            #        return res
-        #return _read_or_generate(g_id, data)
         res = _generate_field_data(
             g_id, data.name, f_type, data.get('fieldPaths', None)
         )
         res.solution = _read_solution(sim_id)
         res.idMap = id_map
-        # moved addition of lines from client
         tmp_f_type = data.fieldType
         data.fieldType = None
         data.geomTypes = [_SCHEMA.constants.geomTypeLines]
@@ -173,7 +173,7 @@ def get_application_data(data, **kwargs):
             'geomTypes',
             [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
         )
-        g_types.extend(['center', 'name', 'size'])
+        g_types.extend(['center', 'name', 'size', 'id'])
         res = _read_or_generate(g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
@@ -235,11 +235,22 @@ def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     data.models.geometry.name = new_simulation_data.name
+    data.models.geometry.id = str(uuid.uuid4())
     if new_simulation_data.get('dmpImportFile', None):
         data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+    beam_axis = new_simulation_data.beamAxis
+    #TODO(mvk): dict of magnet types to builder methods
+    if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
+        _build_undulator(data.models.geometry, beam_axis)
+        data.models.fieldPaths.paths.append(_build_field_axis(
+            (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
+            beam_axis
+        ))
+        data.models.simulation.enableKickMaps = '1'
+        _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
 
 
-def python_source_for_model(data):
+def python_source_for_model(data, model):
     return _generate_parameters_file(data, True)
 
 
@@ -249,11 +260,13 @@ def write_parameters(data, run_dir, is_parallel):
         # remove centrailzed geom files
         pkio.unchecked_remove(
             _geom_file(sim_id),
-            _get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
-            _dmp_file(sim_id)
+            #_get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
+            _get_res_file(sim_id, _GEOM_FILE),
+            #_dmp_file(sim_id)
         )
     if data.report == 'kickMap':
         pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
+        #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, False),
@@ -263,6 +276,31 @@ def write_parameters(data, run_dir, is_parallel):
 def _add_obj_lines(field_data, obj):
     for d in obj.data:
         field_data.data.append(PKDict(lines=d.lines))
+
+
+def _build_clone_xform(num_copies, alt_fields, transforms):
+    tx = _build_geom_obj('cloneTransform')
+    tx.numCopies = num_copies
+    tx.alternateFields = alt_fields
+    tx.transforms = transforms
+    return tx
+
+
+def _build_cuboid(
+        center=None, size=None, segments=None, material=None, matFile=None,
+        magnetization=None, rem_mag=None, name=None, color=None
+    ):
+    return _update_cuboid(
+        _build_geom_obj('box', obj_name=name),
+        center or [0.0, 0.0, 0.0],
+        size or [1.0, 1.0, 1.0],
+        segments or [1, 1, 1],
+        material,
+        matFile,
+        magnetization or [0.0, 0.0, 0.0],
+        rem_mag or 0.0,
+        color
+    )
 
 
 # have to include points for file type?
@@ -360,6 +398,82 @@ def _build_field_circle_pts(f_path):
     return res
 
 
+def _build_geom_obj(model_name, obj_name=None, obj_color=None):
+    o_id = str(uuid.uuid4())
+    o = PKDict(
+        name=obj_name if obj_name else f'{model_name}.{o_id}',
+        model=model_name,
+        id=o_id,
+        color=obj_color,
+    )
+    _SIM_DATA.update_model_defaults(o, model_name)
+    return o
+
+
+def _build_group(members, name=None):
+    g = _build_geom_obj('geomGroup', obj_name=name)
+    return _update_group(g, members, do_replace=True)
+
+
+def _build_symm_xform(plane, point, type):
+    tx = _build_geom_obj('symmetryTransform')
+    tx.symmetryPlane = sirepo.util.to_comma_delimited_string(plane)
+    tx.symmetryPoint = sirepo.util.to_comma_delimited_string(point)
+    tx.symmetryType = type
+    return tx
+
+
+def _build_translate_clone(dist):
+    tx = _build_geom_obj('translateClone')
+    tx.distance = sirepo.util.to_comma_delimited_string(dist)
+    return tx
+
+
+def _build_undulator(geom, beam_axis):
+
+    # arrange objects
+    geom.objects = []
+    half_pole = _build_cuboid(name='Half Pole')
+    geom.objects.append(half_pole)
+    magnet_block = _build_cuboid(name='Magnet Block')
+    geom.objects.append(magnet_block)
+    pole = _build_cuboid(name='Pole')
+    geom.objects.append(pole)
+    mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
+    geom.objects.append(mag_pole_grp)
+    magnet_cap = _build_cuboid(name='End Block')
+    geom.objects.append(magnet_cap)
+    oct_grp = _build_group([half_pole, mag_pole_grp, magnet_cap], name='Octant')
+    geom.objects.append(oct_grp)
+
+    return _update_geom_from_undulator(
+        geom,
+        _build_geom_obj('hybridUndulator', obj_name=geom.name),
+        beam_axis
+    )
+
+
+def _build_field_axis(length, beam_axis):
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    f = PKDict(
+        begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
+        end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
+        id=str(uuid.uuid4()),
+        name=f'{beam_axis} axis',
+        numPoints=round(length / 2) + 1
+    )
+    _SIM_DATA.update_model_defaults(f, 'linePath')
+    return f
+
+
+# deep copy of an object, but with a new id
+def _copy_geom_obj(o):
+    import copy
+    o_copy = copy.deepcopy(o)
+    o_copy.id = str(uuid.uuid4())
+    return o_copy
+
+
 _FIELD_PT_BUILDERS = {
     'circle': _build_field_circle_pts,
     'fieldMap': _build_field_map_pts,
@@ -371,10 +485,17 @@ _FIELD_PT_BUILDERS = {
 
 def _dmp_file(sim_id):
     return _get_res_file(sim_id, _DMP_FILE)
+    #return _get_lib_file(sim_id, _DMP_FILE)
 
 
 def _fields_file(sim_id):
     return _get_res_file(sim_id, _FIELDS_FILE)
+    #return _get_lib_file(sim_id, _FIELDS_FILE)
+
+
+def _find_obj_by_name(obj_arr, obj_name):
+    a = [o for o in obj_arr if o.name == obj_name]
+    return a[0] if a else None
 
 
 def _generate_field_data(g_id, name, field_type, field_paths):
@@ -462,7 +583,13 @@ def _generate_parameters_file(data, for_export):
             simulation_db.simulation_lib_dir(SIM_TYPE).join(
                 f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
             )
-    v.isExample = data.models.simulation.get('isExample', False)
+    v.isExample = data.models.simulation.get('isExample', False) and \
+        data.models.simulation.name in radia_examples.EXAMPLES
+    v.exampleName = data.models.simulation.get('exampleName', None)
+    v.isRaw = v.exampleName in _SCHEMA.constants.rawExamples
+    v.magnetType = data.models.simulation.get('magnetType', 'freehand')
+    if v.magnetType == 'undulator':
+        _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable
@@ -485,7 +612,7 @@ def _generate_parameters_file(data, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else f'{rpt_out}.h5'
+    v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -498,6 +625,7 @@ def _generate_parameters_file(data, for_export):
     v.kickMap = data.models.get('kickMap', None)
     if 'solver' in report or for_export:
         v.doSolve = True
+        v.gId = _get_g_id(sim_id)
         s = data.models.solver
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
@@ -554,54 +682,6 @@ def _get_sdds(cols, units):
     return _cfg.sdds
 
 
-def _read_h5_path(sim_id, run_dir, filename, h5path):
-    try:
-        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
-            return template_common.h5_to_dict(hf, path=h5path)
-    except IOError as e:
-        if pkio.exception_is_not_found(e):
-            # need to generate file
-            return None
-    except KeyError:
-        # no such path in file
-        return None
-    # propagate other errors
-
-
-def _read_h_m_file(file_name):
-    h_m_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
-        file_name,
-        'h-m'
-    ))
-    lines = [r for r in sirepo.csv.open_csv(h_m_file)]
-    f_lines = []
-    for l in lines:
-        f_lines.append([float(c.strip()) for c in l])
-    return f_lines
-
-
-def _read_data(sim_id, view_type, field_type):
-    res = _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, _geom_h5_path(view_type, field_type))
-    if res:
-        res.solution = _read_solution(sim_id)
-    return res
-
-
-def _read_id_map(sim_id):
-    return _read_h5_path(sim_id, _GEOM_DIR, _GEOM_FILE, 'idMap')
-
-
-def _read_kick_map(sim_id):
-    return _read_h5_path(sim_id, 'kickMap', _KICK_FILE, _H5_PATH_KICK_MAP)
-
-
-def _read_or_generate_kick_map(g_id, data):
-    res = _read_kick_map(data.simulationId)
-    if res:
-        return res
-    return _generate_kick_map(g_id, data.model)
-
-
 def _kick_map_plot(sim_id, model):
     from sirepo import srschema
     g_id = _get_g_id(sim_id)
@@ -620,6 +700,53 @@ def _kick_map_plot(sim_id, model):
     )
 
 
+def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
+    try:
+        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
+            return template_common.h5_to_dict(hf, path=h5path)
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            pkdc(f'{filename} not found in {run_dir}')
+            # need to generate file
+            return None
+    except KeyError:
+        # no such path in file
+        pkdc(f'path {h5path} not found in {run_dir}/{filename}')
+        return None
+    # propagate other errors
+
+
+def _read_h_m_file(file_name):
+    h_m_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
+        file_name,
+        'h-m'
+    ))
+    lines = [r for r in sirepo.csv.open_csv(h_m_file)]
+    f_lines = []
+    for l in lines:
+        f_lines.append([float(c.strip()) for c in l])
+    return f_lines
+
+
+def _read_data(sim_id, view_type, field_type):
+    res = _read_h5_path(sim_id, _GEOM_FILE, _geom_h5_path(view_type, field_type))
+    if res:
+        res.idMap = _read_id_map(sim_id)
+        res.solution = _read_solution(sim_id)
+    return res
+
+
+def _read_id_map(sim_id):
+    m = _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
+    return PKDict() if not m else PKDict(
+        {k:(v if isinstance(v, int) else v.decode('ascii')) for k, v in m.items()}
+    )
+
+
+def _read_kick_map(sim_id):
+    return _read_h5_path(sim_id, _KICK_FILE, _H5_PATH_KICK_MAP, run_dir='kickMap')
+
+
 def _read_or_generate(g_id, data):
     f_type = data.get('fieldType', None)
     res = _read_data(data.simulationId, data.viewType, f_type)
@@ -635,12 +762,18 @@ def _read_or_generate(g_id, data):
     return get_application_data(data)
 
 
+def _read_or_generate_kick_map(g_id, data):
+    res = _read_kick_map(data.simulationId)
+    if res:
+        return res
+    return _generate_kick_map(g_id, data.model)
+
+
 def _read_solution(sim_id):
     s = _read_h5_path(
         sim_id,
-        _SIM_DATA.compute_model('solver'),
         _GEOM_FILE,
-        _H5_PATH_SOLUTION
+        _H5_PATH_SOLUTION,
     )
     if not s:
         return None
@@ -778,6 +911,163 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
+
+
+def _update_cuboid(b, center, size, segments, material, mat_file, magnetization, rem_mag, color):
+    b.center = sirepo.util.to_comma_delimited_string(center)
+    b.color = color
+    b.magnetization = sirepo.util.to_comma_delimited_string(magnetization)
+    b.remanentMag = rem_mag
+    b.material = material
+    b.materialFile = mat_file
+    b.size = sirepo.util.to_comma_delimited_string(size)
+    b.division = sirepo.util.to_comma_delimited_string(segments)
+    return b
+
+
+def _update_geom_from_undulator(geom, und, beam_axis):
+
+    # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
+    # along the remaining axis
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    # assign a valid gap direction if the user provided an invalid one
+    if und.gapAxis == beam_axis:
+        und.gapAxis = _GAP_AXIS_MAP[beam_axis]
+    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
+
+    # we don't care about the direction of the cross product
+    width_dir = abs(numpy.cross(beam_dir, gap_dir))
+
+    dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
+
+    pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
+    mag_x = sirepo.util.split_comma_delimited_string(und.magnetCrossSection, float)
+
+    # put the magnetization and segmentation in the correct order
+    pole_mag = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
+    )
+    mag_mag = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
+    )
+    pole_segs = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.poleDivision, int)
+    )
+    mag_segs = dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.magnetDivision, int)
+    )
+
+    # pole and magnet dimensions, including direction
+    pole_dim = PKDict(
+        width=width_dir * pole_x[0],
+        height=gap_dir * pole_x[1],
+        length=beam_dir * und.poleLength,
+    )
+    magnet_dim = PKDict(
+        width=width_dir * mag_x[0],
+        height=gap_dir * mag_x[1],
+        length=beam_dir * (und.periodLength / 2 - pole_dim.length),
+    )
+
+    # convenient constants
+    pole_dim_half = PKDict({k:v / 2 for k, v in pole_dim.items()})
+    magnet_dim_half = PKDict({k: v / 2 for k, v in magnet_dim.items()})
+    gap_half_height = gap_dir * und.gap / 2
+    gap_offset = gap_dir * und.gapOffset
+
+    pole_transverse_ctr = pole_dim_half.width / 2 - \
+                          (pole_dim_half.height + gap_half_height)
+    magnet_transverse_ctr = magnet_dim_half.width / 2 - \
+                            (gap_offset + magnet_dim_half.height + gap_half_height)
+
+    pos = pole_dim_half.length / 2
+    half_pole = _update_cuboid(
+        _find_obj_by_name(geom.objects, 'Half Pole'),
+        pole_transverse_ctr + pos,
+        pole_dim_half.width + pole_dim.height + pole_dim_half.length,
+        pole_segs,
+        und.poleMaterial,
+        und.poleMaterialFile,
+        pole_mag,
+        und.poleRemanentMag,
+        und.poleColor
+    )
+
+    pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
+    magnet_block = _update_cuboid(
+        _find_obj_by_name(geom.objects, 'Magnet Block'),
+        magnet_transverse_ctr + pos,
+        magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
+        mag_segs,
+        und.magnetMaterial,
+        und.magnetMaterialFile,
+        mag_mag,
+        und.magnetRemanentMag,
+        und.magnetColor
+    )
+
+    pos += (pole_dim_half.length + magnet_dim_half.length)
+    pole = _update_cuboid(
+        _find_obj_by_name(geom.objects, 'Pole'),
+        pole_transverse_ctr + pos,
+        pole_dim_half.width + pole_dim.height + pole_dim.length,
+        pole_segs,
+        und.poleMaterial,
+        und.poleMaterialFile,
+        pole_mag,
+        und.poleRemanentMag,
+        und.poleColor
+    )
+
+    mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
+    mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
+        [_build_clone_xform(
+            und.numPeriods - 1,
+            True,
+            [_build_translate_clone(beam_dir * und.periodLength / 2)]
+        )]
+
+    pos = pole_dim_half.length + \
+          magnet_dim_half.length / 2 + \
+          beam_dir * und.numPeriods * und.periodLength / 2
+    magnet_cap = _update_cuboid(
+        _find_obj_by_name(geom.objects, 'End Block'),
+        magnet_transverse_ctr + pos,
+        magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
+        mag_segs,
+        und.magnetMaterial,
+        und.magnetMaterialFile,
+        (-1) ** und.numPeriods * mag_mag,
+        und.magnetRemanentMag,
+        und.magnetColor
+    )
+
+    oct_grp = _find_obj_by_name(geom.objects, 'Octant')
+    oct_grp.transforms = [
+        _build_symm_xform(width_dir, _ZERO, 'perpendicular'),
+        _build_symm_xform(gap_dir, _ZERO, 'parallel'),
+        _build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
+    ]
+    return oct_grp
+
+
+def _update_group(g, members, do_replace=False):
+    if do_replace:
+        g.members = []
+    for m in members:
+        m.groupId = g.id
+        g.members.append(m.id)
+    return g
+
+
+def _update_kickmap(km, und, beam_axis):
+    km.direction = sirepo.util.to_comma_delimited_string(_BEAM_AXIS_VECTORS[beam_axis])
+    km.transverseDirection = sirepo.util.to_comma_delimited_string(
+        _BEAM_AXIS_VECTORS[_GAP_AXIS_MAP[beam_axis]]
+    )
+    km.transverseRange1 = und.gap
+    km.numPeriods = und.numPeriods
+    km.periodLength = und.periodLength
 
 
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
