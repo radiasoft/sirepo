@@ -53,10 +53,6 @@ class UIElement {  //extends UIOutput {
     // tag name, id, attrs array
     // even though id is an attribute, give it its own parameter
     constructor(tag, id, attrs) {
-        //super();
-        //this.attrs = [];
-        // key-value map to manage attributes
-        //srdbg('bld el', tag, id, attrs);
         this.attrs = {};
         this.addAttributes(attrs || []);
         if (id) {
@@ -72,7 +68,6 @@ class UIElement {  //extends UIOutput {
 
     addAttribute(name, value) {
         let a = this.getAttr(name);
-        //srdbg('got a', name, a);
         if (! a) {
             a = new UIAttribute(name, value);
             this.attrs[name] = a;
@@ -343,13 +338,15 @@ class SVGTable extends SVGGroup {
         }
         super(id);
         this.border = new SVGRect(this.borderId(), x, y, 0, 0, borderStyle, doRoundBorder);
-        this.padding = cellPadding;
+        this.borderStyle = borderStyle;
         this.cellWidth = cellWidth;
         this.cellHeight = cellHeight;
+        this.headerOffset = header.length ? cellHeight : 0;
         this.numRows = numRows;
         this.numCols = numCols;
-        this.borderStyle = borderStyle;
-        this.headerOffset = header.length ? cellHeight : 0;
+        this.padding = cellPadding;
+        this.x = x;
+        this.y = y;
 
         for (let j = 0; j < header.length; ++j) {
             this.addChild(new SVGRect(

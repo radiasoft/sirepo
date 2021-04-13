@@ -1697,10 +1697,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     readoutCellPadding,
                     Math.max(0, ...numRows),
                     numReadoutCols,
-                    'stroke:red; fill:none; stroke-width:1.5px',
+                    null,
                     true,
                     readoutGroups
                 );
+                readoutTable.addClasses('sr-readout-table sr-readout-table-idle');
                 updateReadoutElements();
             }
 
@@ -1899,8 +1900,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
                 return elements;
             }
-
-            //function updateReadoutElement(element, i, j, color, borderWidth) {
+            
             function updateReadoutElement(element, color, borderWidth) {
                 if (! readoutTable || ! element) {
                     return;
@@ -2206,14 +2206,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 });
 
                 $scope.$on('sr-clearElementValues', () => {
-                    readoutTable.setBorderStyle(
-                        //'stroke:red; stroke-width:1.5px; stroke-dasharray:6px; stroke-dashoffset: 6px; fill:none;'
-                        'stroke:red; stroke-width:1.5px; fill:none;'
-                    );
+                    readoutTable.removeClasses('sr-readout-table-idle');
+                    readoutTable.addClasses('sr-readout-table-active');
                 });
                 $scope.$on('sr-elementValues', updateReadout);
                 $scope.$on('sr-latticeUpdateComplete', () => {
-                    readoutTable.setBorderStyle('stroke:darkgrey; stroke-width:1.5px; fill:none;');
+                    if (! readoutTable) {
+                        return;
+                    }
+                    readoutTable.removeClasses('sr-readout-table-active');
+                    readoutTable.addClasses('sr-readout-table-idle');
                 });
                 $scope.$on('sr-beamlineItemSelected', function(e, idx) {
                     let id = selectedBeamline.items[idx];

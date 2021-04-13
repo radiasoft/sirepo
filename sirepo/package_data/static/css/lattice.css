@@ -86,3 +86,25 @@ div.sr-lattice-icon-disabled span {
 .sr-lattice rect, .sr-lattice polygon, .sr-lattice line, .sr-lattice path, .sr-lattice ellipse, .sr-lattice circle {
   cursor: pointer;
 }
+
+.sr-readout-table rect#sr-readout-table-border {
+  stroke-width: 1.5px;
+  fill: none;
+}
+
+.sr-readout-table-active rect#sr-readout-table-border {
+  stroke: green;
+  stroke-dasharray: 6px;
+  stroke-dashoffset: 12px;
+  animation: sr-stroke-ants 0.2s linear infinite;
+}
+@keyframes sr-stroke-ants {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+
+.sr-readout-table-idle > rect#sr-readout-table-border {
+  stroke: darkgray;
+}
