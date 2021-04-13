@@ -170,6 +170,10 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
             ? 6 : 4;
     }
 
+    self.cancelCallback = () => {
+        $scope.$broadcast('sr-latticeUpdateComplete');
+    };
+
     self.hasMadxLattice = () => {
         return appState.isLoaded() && appState.applicationState().externalLattice;
     };
@@ -178,6 +182,9 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         if (data.elementValues) {
             frameCache.setFrameCount(1);
             $scope.$broadcast('sr-elementValues', data.elementValues);
+        }
+        if (! self.simState.isProcessing()) {
+            $scope.$broadcast('sr-latticeUpdateComplete');
         }
     };
 

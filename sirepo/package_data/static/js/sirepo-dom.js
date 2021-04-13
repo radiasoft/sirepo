@@ -1,23 +1,5 @@
 // will get rid of angular stuff but need it initially
 
-class UIEnvironment {
-    constructor(sanitizer=null) {
-        this.sanitizer = sanitizer;
-    }
-
-    newInstance(className, ...args) {
-        if (className === 'UIEnvironment') {
-            return this;
-        }
-        //return new SIREPO.DOM[className](this, ...args);
-        return new SIREPO.DOM[className](...args);
-    }
-
-    sanitize(str) {
-        return this.sanitizer ? this.sanitizer(str) : str;
-    }
-}
-
 // any UI stuff seen on screen
 class UIOutput {
     constructor(env = null) {
@@ -375,7 +357,9 @@ class SVGTable extends SVGGroup {
                 x + j * cellWidth,
                 y,
                 cellWidth,
-                cellHeight, 'stroke:lightgrey; fill:lightgrey', true
+                cellHeight,
+                'stroke:lightgrey; fill:lightgrey',
+                true
             ));
             let hdr = new SVGText(
             `${this.id}-header`,
@@ -389,7 +373,7 @@ class SVGTable extends SVGGroup {
         for (let i = 0; i < numRows; ++i) {
             for (let j = 0; j < numCols; ++j) {
                 this.addChild(new SVGRect(
-                    `${this.cellId(i, j)}-border`,
+                    this.cellBorderId(i, j),
                     x + j * cellWidth,
                     y + this.headerOffset + i * cellHeight,
                     cellWidth,
@@ -418,14 +402,17 @@ class SVGTable extends SVGGroup {
         return `${this.id}-${i}-${j}`;
     }
 
+    cellBorderId(i, j) {
+        return `${this.cellId(i, j)}-border`;
+    }
+
     getCell(i, j) {
         return $(`#${this.cellId(i, j)}`);
     }
 
     getCellBorder(i, j) {
-        return $(`#${this.cellId(i, j)}-border`);
+        return $(`#${this.cellBorderId(i, j)}`);
     }
-
 
     setCell(i, j, val, color=null, borderWidth=1.0) {
         let cid  = this.cellId(i, j);
@@ -460,7 +447,6 @@ SIREPO.DOM = {
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
-    UIEnvironment: UIEnvironment,
     UIInput: UIInput,
     UIWarning: UIWarning,
 };

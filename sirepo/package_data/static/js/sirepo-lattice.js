@@ -1697,7 +1697,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     readoutCellPadding,
                     Math.max(0, ...numRows),
                     numReadoutCols,
-                    'stroke:darkgrey; fill:none',
+                    'stroke:red; fill:none; stroke-width:1.5px',
                     true,
                     readoutGroups
                 );
@@ -2079,9 +2079,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.itemDblClicked = function(item) {
-                //if ($scope.pathToModels) {
-                //    return;
-                //}
                 latticeService.editElement(item.type, item);
             };
 
@@ -2089,7 +2086,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 if (! readoutTable) {
                     return  '';
                 }
-                // return $sce.trustAsHtml(readout.toTemplate());
                 return readoutTable.toTemplate();
             };
 
@@ -2201,7 +2197,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             renderBeamline(true);
                         }
                     }
-
                     updateReadoutElement((parseElementModelField(name) || {}).element);
                 });
 
@@ -2210,7 +2205,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     resetZoomAndPan();
                 });
 
+                $scope.$on('sr-clearElementValues', () => {
+                    readoutTable.setBorderStyle(
+                        //'stroke:red; stroke-width:1.5px; stroke-dasharray:6px; stroke-dashoffset: 6px; fill:none;'
+                        'stroke:red; stroke-width:1.5px; fill:none;'
+                    );
+                });
                 $scope.$on('sr-elementValues', updateReadout);
+                $scope.$on('sr-latticeUpdateComplete', () => {
+                    readoutTable.setBorderStyle('stroke:darkgrey; stroke-width:1.5px; fill:none;');
+                });
                 $scope.$on('sr-beamlineItemSelected', function(e, idx) {
                     let id = selectedBeamline.items[idx];
                     let item = getReadoutItem(id);
