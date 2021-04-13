@@ -93,7 +93,7 @@ div.sr-lattice-icon-disabled span {
 }
 
 .sr-readout-table-active rect#sr-readout-table-border {
-  stroke: green;
+  stroke: blue;
   stroke-dasharray: 6px;
   stroke-dashoffset: 12px;
   animation: sr-stroke-ants 0.2s linear infinite;
