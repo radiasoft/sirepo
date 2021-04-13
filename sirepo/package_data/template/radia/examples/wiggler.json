@@ -5,6 +5,7 @@
             "paths": []
         },
         "geometry": {
+            "isSolvable": "0",
             "name": "Wiggler",
             "beamAxis": "y",
             "objects": [
