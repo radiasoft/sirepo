@@ -15,6 +15,7 @@ import sirepo.auth_db
 import sirepo.job
 import sirepo.sim_data
 import sirepo.simulation_db
+import sirepo.srcontext
 import sirepo.srdb
 import sirepo.srtime
 import sirepo.template
@@ -27,16 +28,18 @@ _PREVENT_DB_UPGRADE_FILE = 'prevent-db-upgrade'
 def do_all():
     assert not _prevent_db_upgrade_file().exists(), \
         f'prevent_db_upgrade_file={_prevent_db_upgrade_file()} found'
-    a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
-    f = pkinspect.module_functions('_2')
-    for n in sorted(set(f.keys()) - set(a)):
-        with _backup_db_and_prevent_upgrade_on_error():
-            pkdlog('running upgrade {}', n)
-            f[n]()
-            sirepo.auth_db.DbUpgrade(
-                name=n,
-                created=sirepo.srtime.utc_now(),
-            ).save()
+
+    with sirepo.srcontext.create():
+        a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
+        f = pkinspect.module_functions('_2')
+        for n in sorted(set(f.keys()) - set(a)):
+            with _backup_db_and_prevent_upgrade_on_error():
+                pkdlog('running upgrade {}', n)
+                f[n]()
+                sirepo.auth_db.DbUpgrade(
+                    name=n,
+                    created=sirepo.srtime.utc_now(),
+                ).save()
 
 
 

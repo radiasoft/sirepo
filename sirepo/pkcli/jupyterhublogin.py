@@ -22,6 +22,7 @@ def create_user(email):
     import sirepo.auth
     import sirepo.server
     import sirepo.sim_api.jupyterhublogin
+    import sirepo.srcontext
     import sirepo.template
 
 
@@ -29,7 +30,8 @@ def create_user(email):
         pykern.pkcli.command_error('invalid email={}', email)
     sirepo.server.init()
     sirepo.template.assert_sim_type('jupyterhublogin')
-    u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
+    with sirepo.srcontext.create():
+        u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
     if not u:
         pykern.pkcli.command_error('no sirepo user with email={}', email)
     with sirepo.auth.set_user_outside_of_http_request(u):

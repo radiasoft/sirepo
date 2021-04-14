@@ -38,7 +38,12 @@ def test_adm_jobs_forbidden(auth_fc):
 
     def _op(fc, sim_type):
         import sirepo.auth_db
-        sirepo.auth_db.UserRole.delete_all_for_column_by_values('uid', [fc.sr_auth_state().uid, ])
+
+        with sirepo.srcontext.create():
+            sirepo.auth_db.UserRole.delete_all_for_column_by_values(
+                'uid',
+                [fc.sr_auth_state().uid, ],
+            )
         r = fc.sr_post(
             'admJobs',
             PKDict(simulationType=sim_type),
@@ -69,13 +74,15 @@ def test_srw_user_see_only_own_jobs(auth_fc):
     from pykern.pkdebug import pkdp
     import sirepo.auth_db
     import sirepo.auth_role
+    import sirepo.srcontext
 
     def _cancel_job(user, cancel_req):
         _login_as_user(user)
         fc.sr_post('runCancel', cancel_req)
 
     def _clear_role_db():
-        sirepo.auth_db.UserRole.delete_all()
+        with sirepo.srcontext.create():
+            sirepo.auth_db.UserRole.delete_all()
 
     def _get_jobs(adm, job_count):
         r = fc.sr_post(
@@ -118,7 +125,8 @@ def test_srw_user_see_only_own_jobs(auth_fc):
             uid,
             sirepo.auth_role.ROLE_ADM,
         )
-        r = sirepo.auth_db.UserRole.search_all_for_column('uid')
+        with sirepo.srcontext.create():
+            r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(1, len(r), 'One user with role adm r={}', r)
         pkunit.pkeq(r[0], uid, 'Expected same uid as user')
 

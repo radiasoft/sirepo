@@ -23,6 +23,7 @@ import datetime
 import importlib
 import sirepo.auth_role
 import sirepo.feature_config
+import sirepo.srcontext
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
@@ -311,7 +312,7 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(unit_test=None):
-    with cookie.process_header(unit_test):
+    with sirepo.srcontext.create(), cookie.process_header(unit_test):
         # Logging happens after the return to Flask so the log user must persist
         # beyond the life of process_request
         _set_log_user()
@@ -425,9 +426,10 @@ def set_user_outside_of_http_request(uid):
 
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
-    assert auth_db.UserRegistration.search_by(uid=uid), \
-        f'no registered user with uid={uid}'
-    with cookie.set_cookie_outside_of_flask_request():
+    with sirepo.srcontext.create(), \
+         cookie.set_cookie_outside_of_flask_request():
+        assert auth_db.UserRegistration.search_by(uid=uid), \
+            f'no registered user with uid={uid}'
         _login_user(
             _auth_module(),
             uid,
