@@ -297,6 +297,8 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
+        "fieldLineoutReport": {
+        },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -530,6 +532,10 @@
                 "numCopies",
                 "alternateFields"
             ]
+        },
+        "fieldLineoutReport": {
+            "title": "B Field",
+            "basic": []
         },
         "fieldMapPath": {
             "title": "Field Map",

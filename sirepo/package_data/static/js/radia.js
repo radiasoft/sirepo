@@ -1398,10 +1398,10 @@ SIREPO.app.directive('fieldPathLineouts', function(appState, panelState, radiaSe
         template: [
             '<div class="col-md-6">',
                 '<div class="panel panel-info">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>',
+                    '<div class="panel-heading"><span class="sr-panel-heading">Fields on Path</span></div>',
                     '<div class="panel-body">',
-                        '<select class="form-control" data-ng-model="paths" data-ng-options="p.name for p in paths"></select>',
-                        //'<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
+                        '<select class="form-control" data-ng-model="selectedPath" data-ng-options="p.name for p in paths" data-ng-change="load()"></select>',
+                        '<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
                     '</div>',
                 '</div>',
             '</div>',
@@ -1409,6 +1409,12 @@ SIREPO.app.directive('fieldPathLineouts', function(appState, panelState, radiaSe
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.radiaService = radiaService;
+            $scope.selectedPath = appState.models.linePath;  //null;
+
+            $scope.load = function() {
+                srdbg('load for', $scope.selectedPath);
+                update();
+            };
 
             function update() {
                 srdbg('updating lineouts');
@@ -1422,12 +1428,11 @@ SIREPO.app.directive('fieldPathLineouts', function(appState, panelState, radiaSe
                     simulationType: 'radia',
                     viewType: 'fields',
                 };
-                radiaService.getRadiaData(inData, function(d) {
-                    srdbg('got data', d);
-                    //$scope.data = d;
-                });
-
-
+                //srdbg('should load');
+                //radiaService.getRadiaData(inData, function(d) {
+                //    srdbg('got data', d);
+                //    //$scope.data = d;
+                //});
             }
 
             appState.whenModelsLoaded($scope, function () {

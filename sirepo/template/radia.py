@@ -110,6 +110,7 @@ def create_archive(sim):
 
 
 def extract_report_data(run_dir, sim_in):
+    pkdp(f'EXTRACT RPT {sim_in.report}')
     assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
     if 'reset' in sim_in.report:
         template_common.write_sequential_result({}, run_dir=run_dir)
@@ -248,6 +249,11 @@ def new_simulation(data, new_simulation_data):
         ))
         data.models.simulation.enableKickMaps = '1'
         _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
+
+
+def prepare_sequential_output_file(run_dir, data):
+    pkdp(f'YEP PREPARE {data.report}')
+
 
 
 def python_source_for_model(data, model):
