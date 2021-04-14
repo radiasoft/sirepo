@@ -119,7 +119,7 @@ def api_authLogout(simulation_type=None):
 
 
 def check_user_has_role(uid, role, raise_forbidden=True):
-    if sirepo.auth_db.UserRole.has_role(uid, role):
+    if auth_db.UserRole.has_role(uid, role):
         return True
     if raise_forbidden:
         sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
@@ -311,7 +311,7 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(unit_test=None):
-    with cookie.process_header(unit_test):
+    with auth_db.session_context(), cookie.process_header(unit_test):
         # Logging happens after the return to Flask so the log user must persist
         # beyond the life of process_request
         _set_log_user()

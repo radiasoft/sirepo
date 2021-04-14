@@ -7,11 +7,11 @@ u"""Support for unit tests
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
+import contextlib
 import flask
 import flask.testing
 import json
 import re
-
 
 #: Default "app"
 MYAPP = 'myapp'
@@ -97,6 +97,13 @@ def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg
     fc = flask_client(sim_types=sim_types or [sim_type or MYAPP], cfg=cfg)
     fc.sr_login_as_guest()
     return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
+
+
+@contextlib.contextmanager
+def srcontext():
+    import sirepo.auth_db
+    with sirepo.auth_db.session_context():
+        yield
 
 
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, want_user=True, **kwargs):

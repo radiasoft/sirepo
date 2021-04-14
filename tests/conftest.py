@@ -57,16 +57,18 @@ def fc_module(request, cfg=None):
 def import_req(request):
 
     def w(path):
+        import sirepo.srunit
         import sirepo.http_request
-        req = sirepo.http_request.parse_params(
-            filename=path.basename,
-            folder='/import_test',
-            template=True,
-            type=_sim_type(request),
-        )
-        # Supports read() for elegant and zgoubi
-        req.file_stream = path
-        return req
+        with sirepo.srunit.srcontext():
+            req = sirepo.http_request.parse_params(
+                filename=path.basename,
+                folder='/import_test',
+                template=True,
+                type=_sim_type(request),
+            )
+            # Supports read() for elegant and zgoubi
+            req.file_stream = path
+            return req
 
     return w
 

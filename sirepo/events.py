@@ -19,12 +19,14 @@ The events:
 - 'github_authorized' emitted once the authorized github user is retrieved and
   confirmed valid but before that user is logged in or the github db is updated.
   kwargs contains user_name, the github handle.
+- 'srcontext_created' emitted when the srcontext object is populated.
+- 'srcontext_destroyed' emitted when the srcontext object is destroyed.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+# Limit imports
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
 import aenum
 
 #: Map of events to handlers. Note: this is the list of all possible events.
@@ -32,10 +34,12 @@ _MAP = PKDict(
     auth_logout=[],
     end_api_call=[],
     github_authorized=[],
+    srcontext_created=[],
+    srcontext_destroyed=[],
 )
 
 
-def emit(event, kwargs):
+def emit(event, kwargs=None):
     """Call the handlers for `event` with `kwargs`
 
     Handlers will be called in registration order (FIFO).

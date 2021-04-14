@@ -28,8 +28,10 @@ def test_cookie_outside_of_flask_request():
     from pykern import pkcompat
     from pykern.pkunit import pkeq
     from sirepo import cookie
+    from sirepo import srunit
 
-    with cookie.set_cookie_outside_of_flask_request():
+    with srunit.srcontext(), \
+         cookie.set_cookie_outside_of_flask_request():
         cookie.set_value('hi4', 'hello')
         r = _Response(status_code=200)
         cookie.save_to_cookie(r)

@@ -20,6 +20,7 @@ def create_user(email):
     """
     import pyisemail
     import sirepo.auth
+    import sirepo.auth_db
     import sirepo.server
     import sirepo.sim_api.jupyterhublogin
     import sirepo.template
@@ -29,14 +30,15 @@ def create_user(email):
         pykern.pkcli.command_error('invalid email={}', email)
     sirepo.server.init()
     sirepo.template.assert_sim_type('jupyterhublogin')
-    u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
-    if not u:
-        pykern.pkcli.command_error('no sirepo user with email={}', email)
-    with sirepo.auth.set_user_outside_of_http_request(u):
-        # TODO(e-carlin): locking
-        n = sirepo.sim_api.jupyterhublogin.unchecked_jupyterhub_user_name(
-            have_simulation_db=False,
-        )
-        if n:
-            return n
-        return sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
+    with sirepo.auth_db.session_context():
+        u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
+        if not u:
+            pykern.pkcli.command_error('no sirepo user with email={}', email)
+        with sirepo.auth.set_user_outside_of_http_request(u):
+            # TODO(e-carlin): locking
+            n = sirepo.sim_api.jupyterhublogin.unchecked_jupyterhub_user_name(
+                have_simulation_db=False,
+            )
+            if n:
+                return n
+            return sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)

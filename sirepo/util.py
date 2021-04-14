@@ -187,8 +187,10 @@ def flask_app():
     return flask.current_app or None
 
 def in_flask_request():
+    import sys
+    if 'flask' not in sys.modules:
+        return None
     import flask
-
     return flask.request or None
 
 
