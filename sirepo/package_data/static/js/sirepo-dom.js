@@ -411,11 +411,11 @@ class SVGTable extends SVGGroup {
         return $(`#${this.cellBorderId(i, j)}`);
     }
 
-    setCell(i, j, val, color=null, borderWidth=1.0) {
+    setCell(i, j, val, color=null, opacity=0.0, borderWidth=1.0) {
         let cid  = this.cellId(i, j);
         let c = this.getChild(cid);
         this.getChild(this.cellId(i, j)).setText(val);
-        this.getCellBorder(i, j).css('stroke', color).css('stroke-width', borderWidth);
+        this.getCellBorder(i, j).css('fill', color).css('fill-opacity', opacity).css('stroke-width', borderWidth);
     }
 
     setBorderStyle(style) {

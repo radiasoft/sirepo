@@ -1901,7 +1901,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return elements;
             }
             
-            function updateReadoutElement(element, color, borderWidth) {
+            function updateReadoutElement(element, color, opacity, borderWidth) {
                 if (! readoutTable || ! element) {
                     return;
                 }
@@ -1916,6 +1916,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     Object.keys(r).indexOf(g),
                     txt,
                     color,
+                    opacity,
                     borderWidth
                 );
             }
@@ -2223,10 +2224,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (! item) {
                         return;
                     }
-                    let c = 'black';
+                    let c = 'none';
+                    let o = 0.0;
                     let b = 1.0;
                     if (selectedItem) {
-                        updateReadoutElement(selectedItem.element, c, b);
+                        updateReadoutElement(selectedItem.element, c, o, b);
                     }
                     if (item == selectedItem) {
                         selectedItem = null;
@@ -2234,9 +2236,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     else {
                         selectedItem = item;
                         c = item.color;
+                        o = 0.25;
                         b = 2.0;
                     }
-                    updateReadoutElement(item.element, c, b);
+                    updateReadoutElement(item.element, c, o, b);
                 });
             });
         },
