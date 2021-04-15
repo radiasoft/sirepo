@@ -29,6 +29,9 @@ def do_all():
     assert not _prevent_db_upgrade_file().exists(), \
         f'prevent_db_upgrade_file={_prevent_db_upgrade_file()} found'
 
+    # TODO(e-carlin): this doesn't actually work. audit_proprietary_lib_files
+    # will also create a context (needs to be reentrant or moved to protect)
+    # just relevant bits
     with sirepo.srcontext.create():
         a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
         f = pkinspect.module_functions('_2')
