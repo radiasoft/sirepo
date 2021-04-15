@@ -22,6 +22,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
+        '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
+          '<select class="form-control" data-ng-model="model[field]" data-ng-options="p.name for p in appState.models.fieldPaths.paths"></select>',
+        '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
@@ -150,13 +153,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.getRadiaData = function(inData, handler) {
         // store inData on the model, so that we can refer to it if
         // getApplicationData fails
-        srdbg('getting data for', inData);
         requestSender.getApplicationData(inData, function (d) {
             if (d.error) {
-                srdbg('ERR');
                 throw new Error(d.error);
             }
-            srdbg('HANDLE');
             handler(d);
         });
     };
@@ -1383,65 +1383,6 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
-            });
-        },
-    };
-});
-
-SIREPO.app.directive('fieldPathLineouts', function(appState, panelState, radiaService) {
-
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '@'
-        },
-        template: [
-            '<div class="col-md-6">',
-                '<div class="panel panel-info">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Fields on Path</span></div>',
-                    '<div class="panel-body">',
-                        '<select class="form-control" data-ng-model="selectedPath" data-ng-options="p.name for p in paths" data-ng-change="load()"></select>',
-                        '<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
-                    '</div>',
-                '</div>',
-            '</div>',
-        ].join(''),
-        controller: function($scope, $element) {
-            $scope.modelsLoaded = false;
-            $scope.radiaService = radiaService;
-            $scope.selectedPath = appState.models.linePath;  //null;
-
-            $scope.load = function() {
-                srdbg('load for', $scope.selectedPath);
-                update();
-            };
-
-            function update() {
-                srdbg('updating lineouts');
-
-                let inData = {
-                    fieldPaths: $scope.paths,
-                    fieldType: 'B',
-                    name: appState.models.geometry.name,
-                    method: 'get_field',
-                    simulationId: appState.models.simulation.simulationId,
-                    simulationType: 'radia',
-                    viewType: 'fields',
-                };
-                //srdbg('should load');
-                //radiaService.getRadiaData(inData, function(d) {
-                //    srdbg('got data', d);
-                //    //$scope.data = d;
-                //});
-            }
-
-            appState.whenModelsLoaded($scope, function () {
-                $scope.paths = appState.models.fieldPaths.paths.filter(function (p) {
-                    return p.type === 'line';
-                });
-                $scope.model = appState.models[$scope.modelName];
-                $scope.modelsLoaded = true;
-                update();
             });
         },
     };
