@@ -187,6 +187,7 @@ def flask_app():
     return flask.current_app or None
 
 def in_flask_request():
+    # TODO(e-carlin): instead of import check sys.modules
     import flask
 
     return flask.request or None

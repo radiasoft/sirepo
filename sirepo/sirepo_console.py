@@ -15,6 +15,7 @@ from pykern import pkcli
 
 
 def main():
+    # TODO(e-carlin): create context here
     return pkcli.main('sirepo')
 
 

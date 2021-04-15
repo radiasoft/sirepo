@@ -12,6 +12,11 @@ import flask.testing
 import json
 import re
 
+# TODO(e-carlin): create fn that is hook for creating srcontext
+# just provides a one stop where this happens
+@contextlib.contextmanager
+def srcontext_create():
+
 
 #: Default "app"
 MYAPP = 'myapp'

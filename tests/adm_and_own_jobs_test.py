@@ -121,10 +121,11 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _make_user_adm(uid):
         import sirepo.pkcli.roles
-        sirepo.pkcli.roles.add_roles(
-            uid,
-            sirepo.auth_role.ROLE_ADM,
-        )
+        with sirepo.srcontext.create():
+            sirepo.pkcli.roles.add_roles(
+                uid,
+                sirepo.auth_role.ROLE_ADM,
+            )
         with sirepo.srcontext.create():
             r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(1, len(r), 'One user with role adm r={}', r)

@@ -4,10 +4,11 @@ u"""Manage global context in threaded (Flask) and non-threaded (Tornado) applica
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+# Limit imports
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
 import contextlib
+import sirepo.events
 import sirepo.util
 
 _FLASK_G_SR_CONTEXT_KEY = 'srcontext'
@@ -20,7 +21,7 @@ def create():
     """Create an srcontext approprieate for our current state (flask or not)
 
     It is possible to have both _non_threaded_context and flask.g set
-    (ex in tests, supervisor).
+    (ex in tests).
     """
     try:
         if sirepo.util.in_flask_request():

@@ -8,13 +8,14 @@ import subprocess
 MAX_CASE_RUN_SECS = int(os.getenv('SIREPO_CONFTEST_MAX_CASE_RUN_SECS', 120))
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
     auth_fc_module.sr_get_root()
     auth_fc_module.sr_email_confirm = email_confirm
-    return auth_fc_module
+    with sirepo.srcontext.create():
+        yield auth_fc_module
 
 
 @pytest.fixture
