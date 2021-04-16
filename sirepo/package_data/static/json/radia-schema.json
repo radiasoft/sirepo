@@ -299,6 +299,7 @@
         },
         "fieldLineoutReport": {
             "fieldPath": ["Path", "FieldPaths", []],
+            "fieldPaths": "fieldPaths.paths",
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
         },

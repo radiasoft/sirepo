@@ -137,7 +137,7 @@ def extract_report_data(run_dir, sim_in):
                 sim_in.simulationId,
                 sim_in.models.simulation.name,
                 sim_in.models.fieldLineoutReport.fieldType,
-                sim_in.models.linePath,
+                sim_in.models.fieldLineoutReport.fieldPath,
                 beam_axis,
                 v_axis,
                 h_axis

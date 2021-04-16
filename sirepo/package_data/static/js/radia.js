@@ -23,7 +23,7 @@ SIREPO.app.config(function() {
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
-          '<select class="form-control" data-ng-model="model[field]" data-ng-options="p.name for p in appState.models.fieldPaths.paths"></select>',
+          '<select class="form-control" data-ng-model="model[field]" data-ng-options="p.name for p in model.fieldPaths"></select>',
         '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
@@ -1384,6 +1384,35 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             appState.whenModelsLoaded($scope, function () {
                 $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
             });
+        },
+    };
+});
+
+SIREPO.app.directive('fieldLineoutReport', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.dataCleared = true;
+            appState.whenModelsLoaded($scope, function() {
+                $scope.model = appState.models.fieldLineoutReport;
+                if (! $scope.model.fieldPath) {
+                    $scope.model.fieldPath = $scope.model.fieldPaths[0];
+                }
+                //$scope.model.paths = appState.models.fieldPaths.paths;
+                srdbg($scope.model);
+               // wait until we have some data to update
+               $scope.$on('radiaViewer.loaded', function () {
+                   $scope.dataCleared = false;
+               });
+            });
+
         },
     };
 });
