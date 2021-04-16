@@ -1,33 +1,5 @@
 // will get rid of angular stuff but need it initially
 
-// any UI stuff seen on screen
-class UIOutput {
-    constructor(env = null) {
-        this.env = env;
-    }
-
-    encode(str) {
-        const ENTITY_MAP = {
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;',
-          '/': '&#x2F;',
-          '`': '&#x60;',
-          '=': '&#x3D;'
-        };
-        return String(str).replace(/[&<>"'`=\/]/g, function (s) {
-            return ENTITY_MAP[s];
-        });
-    }
-
-
-    sanitize(str) {
-        return this.env.sanitize(str);
-    }
-}
-
 class UIAttribute {  //extends UIOutput {
     constructor(name, value) {
         //super();
