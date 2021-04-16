@@ -2,7 +2,6 @@
 
 class UIAttribute {  //extends UIOutput {
     constructor(name, value) {
-        //super();
         this.name = name;
         this.value = value;
     }
