@@ -170,7 +170,8 @@ SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies',
 SIREPO.app.value('localRoutes', {});
 
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider, $sanitizeProvider) {
-    var localRoutes = localRoutesProvider.$get();
+    let localRoutes = localRoutesProvider.$get();
+    let defaultRoute = null;
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
     $compileProvider.commentDirectivesEnabled(false);
@@ -179,7 +180,6 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $sanitizeProvider.addValidAttrs(['id', 'style']);
     SIREPO.appFieldEditors = '';
 
-    let defaultRoute = null;
     function addRoute(routeName) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
         if (! routeInfo.config) {
@@ -191,6 +191,9 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         if (cfg.templateUrl) {
             cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         }
+        if (routeInfo.route.search(/:simulationId/) >= 0 && cfg.controller) {
+            cfg.template = simulationDetailTemplate(cfg);
+        }
         $routeProvider.when(routeInfo.route, cfg);
         if (routeName === SIREPO.APP_SCHEMA.appDefaults.route) {
             defaultRoute = routeName;
@@ -200,6 +203,22 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
             cfg.redirectTo = routeInfo.route;
             $routeProvider.otherwise(cfg);
         }
+    }
+
+    function simulationDetailTemplate(cfg) {
+        let res = '<div data-simulation-detail-page="" data-controller="' + cfg.controller + '"';
+        delete cfg.controller;
+        if (cfg.templateUrl) {
+            res += ' data-template-url="' + cfg.templateUrl + '"';
+            delete cfg.templateUrl;
+        }
+        else if (cfg.template) {
+            res += ' data-template="' + cfg.template.replaceAll('"', '&quot;') + '"';
+        }
+        else {
+            throw new Error('route must have template or templateUrl attribute: ' + cfg);
+        }
+        return res + '></div>';
     }
 
     for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {

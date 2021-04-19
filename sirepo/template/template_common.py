@@ -461,6 +461,20 @@ def parse_enums(enum_schema):
     return res
 
 
+def parse_mpi_log(run_dir):
+    e = None
+    f = run_dir.join('mpi_run.out')
+    if f.exists():
+        m = re.search(
+            r'^Traceback .*?^\w*Error: (.*?)\n',
+            pkio.read_text(f),
+            re.MULTILINE | re.DOTALL,
+        )
+        if m:
+            e = m.group(1)
+    return e
+
+
 def read_last_csv_line(path):
     # for performance, don't read whole file if only last line is needed
     if not path.exists():

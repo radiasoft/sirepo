@@ -26,6 +26,7 @@
             "viewType": "objects"
         },
        "geometry": {
+           "isSolvable": "1",
             "name": "Dipole",
             "beamAxis": "x",
             "objects": [
