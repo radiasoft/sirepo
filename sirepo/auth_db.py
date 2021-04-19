@@ -117,18 +117,6 @@ def db_filename():
 
 
 def init():
-    def _create_session(_):
-        s = sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
-        assert not s, \
-            f'existing session={s}'
-        sirepo.srcontext.set(
-            _SRCONTEXT_SESSION_KEY,
-            sqlalchemy.orm.Session(bind=_engine),
-        )
-
-    def _destroy_session(kwargs):
-        kwargs.srcontext.pop(_SRCONTEXT_SESSION_KEY).rollback()
-
     global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
 
     if _engine:
@@ -279,6 +267,20 @@ def session_context():
     init()
     with sirepo.srcontext.create():
         yield
+
+
+def _create_session(_):
+    s = sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+    assert not s, \
+        f'existing session={s}'
+    sirepo.srcontext.set(
+        _SRCONTEXT_SESSION_KEY,
+        sqlalchemy.orm.Session(bind=_engine),
+    )
+
+
+def _destroy_session(kwargs):
+    kwargs.srcontext.pop(_SRCONTEXT_SESSION_KEY).rollback()
 
 
 def _migrate_db_file(fn):
