@@ -30,7 +30,7 @@ def test_cookie_outside_of_flask_request():
     from sirepo import cookie
     from sirepo import srunit
 
-    with srunit.srcontext(), \
+    with srunit.auth_db_session(), \
          cookie.set_cookie_outside_of_flask_request():
         cookie.set_value('hi4', 'hello')
         r = _Response(status_code=200)

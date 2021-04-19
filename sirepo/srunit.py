@@ -30,6 +30,13 @@ CONFTEST_DEFAULT_CODES = None
 
 SR_SIM_TYPE_DEFAULT = MYAPP
 
+@contextlib.contextmanager
+def auth_db_session():
+    import sirepo.auth_db
+    with sirepo.auth_db.session():
+        yield
+
+
 def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
 
@@ -97,13 +104,6 @@ def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg
     fc = flask_client(sim_types=sim_types or [sim_type or MYAPP], cfg=cfg)
     fc.sr_login_as_guest()
     return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
-
-
-@contextlib.contextmanager
-def srcontext():
-    import sirepo.auth_db
-    with sirepo.auth_db.session():
-        yield
 
 
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, want_user=True, **kwargs):

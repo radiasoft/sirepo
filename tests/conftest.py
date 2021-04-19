@@ -59,7 +59,7 @@ def import_req(request):
     def w(path):
         import sirepo.srunit
         import sirepo.http_request
-        with sirepo.srunit.srcontext():
+        with sirepo.srunit.auth_db_session():
             req = sirepo.http_request.parse_params(
                 filename=path.basename,
                 folder='/import_test',

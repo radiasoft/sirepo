@@ -39,7 +39,7 @@ def test_adm_jobs_forbidden(auth_fc):
     import sirepo.auth_db
 
     def _op(fc, sim_type):
-        with srunit.srcontext():
+        with srunit.auth_db_session():
             sirepo.auth_db.UserRole.delete_all_for_column_by_values(
                 'uid',
                 [fc.sr_auth_state().uid, ],
@@ -81,7 +81,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
         fc.sr_post('runCancel', cancel_req)
 
     def _clear_role_db():
-        with srunit.srcontext():
+        with srunit.auth_db_session():
             sirepo.auth_db.UserRole.delete_all()
 
     def _get_jobs(adm, job_count):
@@ -125,7 +125,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
             uid,
             sirepo.auth_role.ROLE_ADM,
         )
-        with srunit.srcontext():
+        with srunit.auth_db_session():
             r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(1, len(r), 'One user with role adm r={}', r)
         pkunit.pkeq(r[0], uid, 'Expected same uid as user')
