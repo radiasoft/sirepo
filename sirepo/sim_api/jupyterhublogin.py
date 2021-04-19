@@ -206,11 +206,10 @@ def _init_model(base):
 
 
 def _unchecked_hub_user(uid):
-    with sirepo.auth_db.thread_lock:
-        u = JupyterhubUser.search_by(uid=uid)
-        if u:
-            return u.user_name
-        return None
+    u = JupyterhubUser.search_by(uid=uid)
+    if u:
+        return u.user_name
+    return None
 
 
 def _user_dir(user_name=None):
