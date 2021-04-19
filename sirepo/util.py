@@ -188,10 +188,8 @@ def flask_app():
 
 def in_flask_request():
     import sys
-    if 'flask' not in sys.modules:
-        return None
-    import flask
-    return flask.request or None
+    f = sys.modules.get('flask')
+    return f and f.request or None
 
 
 def init(server_context=False):
