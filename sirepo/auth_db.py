@@ -263,7 +263,7 @@ def init_model(callback):
 
 
 @contextlib.contextmanager
-def session_context():
+def session():
     init()
     with sirepo.srcontext.create():
         yield

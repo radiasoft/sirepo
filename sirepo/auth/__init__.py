@@ -311,7 +311,7 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(unit_test=None):
-    with auth_db.session_context(), cookie.process_header(unit_test):
+    with auth_db.session(), cookie.process_header(unit_test):
         # Logging happens after the return to Flask so the log user must persist
         # beyond the life of process_request
         _set_log_user()

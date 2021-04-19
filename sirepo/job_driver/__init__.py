@@ -129,7 +129,7 @@ class DriverBase(PKDict):
     def make_lib_dir_symlink(self, op):
         import sirepo.auth_db
         m = op.msg
-        with sirepo.auth_db.session_context(), \
+        with sirepo.auth_db.session(), \
              sirepo.auth.set_user_outside_of_http_request(m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(

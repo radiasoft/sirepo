@@ -28,7 +28,7 @@ def do_all():
     assert not _prevent_db_upgrade_file().exists(), \
         f'prevent_db_upgrade_file={_prevent_db_upgrade_file()} found'
 
-    with sirepo.auth_db.session_context():
+    with sirepo.auth_db.session():
         a = sirepo.auth_db.DbUpgrade.search_all_for_column('name')
         f = pkinspect.module_functions('_2')
         for n in sorted(set(f.keys()) - set(a)):

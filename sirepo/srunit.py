@@ -102,7 +102,7 @@ def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg
 @contextlib.contextmanager
 def srcontext():
     import sirepo.auth_db
-    with sirepo.auth_db.session_context():
+    with sirepo.auth_db.session():
         yield
 
 

@@ -290,7 +290,7 @@ class _ComputeJob(PKDict):
                 sirepo.srtime.utc_now_as_int()
                 - cfg.purge_non_premium_after_secs
             )
-            with sirepo.auth_db.session_context():
+            with sirepo.auth_db.session():
                 for u, v in _get_uids_and_files():
                     with sirepo.auth.set_user_outside_of_http_request(u):
                         for f in v:
