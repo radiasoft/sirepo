@@ -12,6 +12,7 @@ from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import flash_parser
 from sirepo.template import template_common
+import glob
 import os
 import re
 import sirepo.sim_data
@@ -55,22 +56,25 @@ def config_to_schema(path):
     return flash_parser.ConfigParser().parse(pkio.read_text(path))
 
 
-def par_to_schema(sim_path, par_path):
-    """Update a simulation from parsed flash.par values.
+def parse_par(sim_id, par_path):
+    """Returns parsed flash.par values.
     """
+    sim_path = _sim_path_from_id(sim_id)
     return flash_parser.ParameterParser().parse(
         pkjson.load_any(pkio.read_text(sim_path)),
         pkio.read_text(par_path),
     )
 
 
-def update_sim_from_config(sim_path, config_path):
+def update_sim_from_config(sim_id, config_path):
+    sim_path = _sim_path_from_id(sim_id)
     data = pkjson.load_any(pkio.read_text(sim_path))
     data.models.setupConfigDirectives = config_to_schema(config_path)
     pkjson.dump_pretty(data, sim_path)
 
 
-def update_sim_from_par(sim_path, par_path):
+def update_sim_from_par(sim_id, par_path):
+    sim_path = _sim_path_from_id(sim_id)
     data = pkjson.load_any(pkio.read_text(sim_path))
     parser = flash_parser.ParameterParser()
     values = parser.parse(data, pkio.read_text(par_path))
@@ -82,3 +86,13 @@ def update_sim_from_par(sim_path, par_path):
             else:
                 data.models[m][f] = fields[f][2]
     pkjson.dump_pretty(data, sim_path)
+
+
+def _sim_path_from_id(sim_id):
+    for f in glob.glob('{}/*/{}/{}/{}'.format(
+        simulation_db.user_path(),
+        _SIM_DATA.sim_type(),
+        sim_id,
+        simulation_db.SIMULATION_DATA_FILE,
+    )):
+        return f

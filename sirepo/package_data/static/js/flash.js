@@ -232,6 +232,9 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
                 m.valueList[f] = appState.clone(values);
                 m.valueList[f].unshift('None');
             }
+            if (! m[f]) {
+                m[f] = values[0];
+            }
         });
         appState.saveQuietly(modelName);
     }

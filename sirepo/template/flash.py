@@ -379,7 +379,7 @@ def _generate_parameters_file(data, run_dir=None):
         for f in sorted(data.models[m]):
             if f not in schema:
                 continue
-            if f == 'basenm':
+            if f in ('basenm', 'checkpointFileIntervalTime', 'checkpointFileIntervalStep'):
                 # Simulation.basenm must remain the default
                 # plotting routines depend on the constant name
                 continue
