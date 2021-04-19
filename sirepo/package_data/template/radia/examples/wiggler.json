@@ -5,8 +5,9 @@
             "paths": []
         },
         "geometry": {
+            "isSolvable": "0",
             "name": "Wiggler",
-            "beamAxis": "z",
+            "beamAxis": "y",
             "objects": [
                 {
                     "id": "48022af9-3b43-424f-b43b-5cbeb0d36bd6",
@@ -25,7 +26,7 @@
         },
         "simFolder": {},
         "simulation": {
-            "beamAxis": "z",
+            "beamAxis": "y",
             "documentationUrl": "",
             "enableKickMaps": "0",
             "exampleName": "Wiggler",
