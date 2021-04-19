@@ -15,6 +15,30 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
+SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
+    return {
+        restrict: 'A',
+        scope: {
+            controller: '@',
+            template: '@',
+            templateUrl: '@',
+        },
+        link: function(scope, element) {
+            scope.appState = appState;
+            let template = '<div data-ng-if="appState.isLoaded()"><div data-ng-controller="'
+                + scope.controller + '"';
+            if (scope.template) {
+                template +=  '>' + scope.template;
+            }
+            else if (scope.templateUrl) {
+                template += ' data-ng-include="templateUrl">';
+            }
+            template += '</div></div>';
+            element.append($compile(template)(scope));
+        },
+    };
+});
+
 SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compile) {
     return {
         restrict: 'A',
@@ -1386,6 +1410,7 @@ SIREPO.app.directive('modelField', function(appState) {
     };
 });
 
+//TODO(pjm): remove this, old browsers won't support new javascript
 SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interval) {
     return {
         restrict: 'A',

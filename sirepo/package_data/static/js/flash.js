@@ -24,69 +24,94 @@ SIREPO.app.config(function() {
     ];
 });
 
-SIREPO.app.factory('directiveService', function(appState, panelState, validationService) {
-    const self = {};
-    const DIRECTIVE_PREFIX = 'directive_';
-
-    function modelName(item) {
-        return DIRECTIVE_PREFIX + item._type;
-    }
-
-    self.description = function(directive) {
-        return {
-            PARAMETER: `${directive.name} ${directive.type} ${directive.default}`,
-            PARTICLEPROP: `${directive.name} ${directive.type}`,
-            PARTICLEMAP: `TO ${directive.partName} FROM ${directive.varType} ${directive.varName}`,
-            REQUIRES: `${directive.unit}`,
-            REQUESTS: `${directive.unit}`,
-            VARIABLE: `${directive.name}`
-        }[directive._type];
-    };
-
-    return self;
-});
-
-SIREPO.app.factory('flashService', function(appState, panelState) {
+SIREPO.app.factory('flashService', function(appState, panelState, $rootScope) {
     var self = {};
+    const ORIGINAL_SCHEMA = appState.clone(SIREPO.APP_SCHEMA);
 
-    self.computeModel = function(analysisModel) {
+    self.computeModel = (analysisModel) => {
+        if (analysisModel == 'setupAnimation') {
+            return analysisModel;
+        }
         return 'animation';
     };
 
-    self.isCapLaser = function() {
-        return appState.isLoaded()
-            &&  appState.models.simulation.flashType.indexOf('CapLaser') >= 0;
-    };
-
-    self.isFlashType = function(simType) {
-        return appState.isLoaded()
-            && simType == appState.models.simulation.flashType;
-    };
-
-    self.simulationModel = function() {
-        return 'Simulation' + appState.models.simulation.flashType;
+    self.updateSchema = () => {
+        const schema = appState.clone(ORIGINAL_SCHEMA);
+        const flashSchema = appState.models.flashSchema;
+        for (const section in flashSchema) {
+            for (const name in flashSchema[section]) {
+                schema[section][name] = flashSchema[section][name];
+            }
+        }
+        SIREPO.APP_SCHEMA = schema;
     };
 
     appState.setAppService(self);
 
+    appState.whenModelsLoaded($rootScope, self.updateSchema);
+
+    $rootScope.$on('modelsUnloaded', () => SIREPO.APP_SCHEMA = ORIGINAL_SCHEMA);
+
     return self;
 });
 
-SIREPO.app.controller('ConfigController', function (directiveService, flashService) {
+SIREPO.app.controller('ConfigController', function(appState, flashService) {
+    var self = this;
+    self.appState = appState;
+    self.flashService = flashService;
+});
+
+SIREPO.app.controller('ParamsController', function(appState) {
+    var self = this;
+    self.appState = appState;
+});
+
+SIREPO.app.controller('PhysicsController', function(flashService) {
     var self = this;
     self.flashService = flashService;
 });
 
-SIREPO.app.controller('PhysicsController', function (flashService) {
-    var self = this;
-    self.flashService = flashService;
-});
-
-SIREPO.app.controller('RuntimeParamsController', function () {
+SIREPO.app.controller('RuntimeParamsController', function() {
     var self = this;
 });
 
-SIREPO.app.controller('SourceController', function (appState, flashService, panelState, $scope) {
+SIREPO.app.controller('SetupController', function(appState, flashService, persistentSimulation, $scope) {
+    var self = this;
+    self.appState = appState;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'setupAnimation';
+
+    function updateSchema(data) {
+        appState.models.flashSchema = data.flashSchema;
+        flashService.updateSchema();
+        let updateModels = ['flashSchema'];
+        for (const name in data.flashSchema.model) {
+            //TODO(pjm): need to check for new fields as well
+            if (! appState.models[name]) {
+                appState.models[name] = appState.setModelDefaults({}, name);
+                updateModels.push(name);
+            }
+        }
+        appState.saveChanges(updateModels);
+    }
+
+    self.startSimulation = () => {
+        self.successMessage = '';
+        self.simState.runSimulation();
+    };
+
+
+    self.simHandleStatus = function(data) {
+        if (data.flashSchema) {
+            updateSchema(data.flashSchema);
+            self.successMessage = 'Setup and Compile completed successfully';
+        }
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+});
+
+SIREPO.app.controller('SourceController', function(appState, flashService, panelState, $scope) {
     var self = this;
     self.flashService = flashService;
 
@@ -127,50 +152,49 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
     }
 
     appState.whenModelsLoaded($scope, function() {
-        if (! flashService.isCapLaser()) {
-            return;
-        }
-        $scope.$on('sr-tabSelected', function(event, modelName) {
-            if (['SimulationCapLaser3D', 'SimulationCapLaserBELLA'].indexOf(modelName) >= 0) {
-                // Must be done on sr-tabSelected because changing tabs clears the
-                // readonly prop. This puts readonly back on.
-                setReadOnly(modelName);
-            }
-            else if (modelName == 'Grid') {
-                ['polar', 'spherical'].forEach(function(f) {
-                    panelState.showEnum(
-                        'Grid',
-                        'geometry',
-                        f,
-                        ! flashService.isCapLaser()
-                    );
-                });
-            }
-        });
-        appState.watchModelFields(
-            $scope,
-            ['Wall', 'Fill'].map(
-                function(x) {
-                    return flashService.simulationModel() + '.sim_tele' + x;
-                }
-            ),
-            makeTempsEqual
-        );
-        processCurrType();
-        appState.watchModelFields(
-            $scope,
-            [flashService.simulationModel() + '.sim_currType'],
-            processCurrType
-        );
+        // if (! flashService.isCapLaser()) {
+        //     return;
+        // }
+        // $scope.$on('sr-tabSelected', function(event, modelName) {
+        //     if (['SimulationCapLaser3D', 'SimulationCapLaserBELLA'].indexOf(modelName) >= 0) {
+        //         // Must be done on sr-tabSelected because changing tabs clears the
+        //         // readonly prop. This puts readonly back on.
+        //         setReadOnly(modelName);
+        //     }
+        //     else if (modelName == 'Grid') {
+        //         ['polar', 'spherical'].forEach(function(f) {
+        //             panelState.showEnum(
+        //                 'Grid',
+        //                 'geometry',
+        //                 f,
+        //                 ! flashService.isCapLaser()
+        //             );
+        //         });
+        //     }
+        // });
+        // appState.watchModelFields(
+        //     $scope,
+        //     ['Wall', 'Fill'].map(
+        //         function(x) {
+        //             return flashService.simulationModel() + '.sim_tele' + x;
+        //         }
+        //     ),
+        //     makeTempsEqual
+        // );
+        // processCurrType();
+        // appState.watchModelFields(
+        //     $scope,
+        //     [flashService.simulationModel() + '.sim_currType'],
+        //     processCurrType
+        // );
     });
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
+SIREPO.app.controller('VisualizationController', function(appState, flashService, frameCache, persistentSimulation, $scope, $window) {
     var self = this;
     self.simScope = $scope;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
-    self.gridEvolutionColumnsSet = false;
 
     self.startSimulation = function() {
         appState.models.oneDimensionProfileAnimation.selectedPlotFiles = [];
@@ -194,10 +218,25 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
         appState.saveChanges('oneDimensionProfileAnimation');
     }
 
-    self.simHandleStatus = function(data) {
-        // moved function out of for loop to avoid jshint warning
-        function addValue(e) {
+    function updateValueList(modelName, fields, values) {
+        if (! values) {
+            return;
         }
+        const m = appState.models[modelName];
+        if (! m.valueList) {
+            m.valueList = {};
+        }
+        fields.forEach((f) => {
+            m.valueList[f] = values;
+            if (f == 'y2' || f == 'y3') {
+                m.valueList[f] = appState.clone(values);
+                m.valueList[f].unshift('None');
+            }
+        });
+        appState.saveQuietly(modelName);
+    }
+
+    self.simHandleStatus = function(data) {
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             [
@@ -209,24 +248,10 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
                 frameCache.setFrameCount(data.frameCount, m);
             });
         }
-        if (! self.gridEvolutionColumnsSet && data.gridEvolutionColumns) {
-            self.gridEvolutionColumnsSet = true;
-            appState.models.gridEvolutionAnimation.valueList = {
-                y1: [],
-                y2: [],
-                y3: []
-            };
-            for (let i = 0; i < data.gridEvolutionColumns.length; i++) {
-                /*jshint -W083 */
-                ['y1', 'y2', 'y3'].forEach((e) => {
-                    appState.models.gridEvolutionAnimation.valueList[e].push(
-                        data.gridEvolutionColumns[i]
-                    );
-                });
-                /*jshint +W083 */
-            }
-            appState.saveChanges('gridEvolutionAnimation');
-        }
+        updateValueList('gridEvolutionAnimation', ['y1', 'y2', 'y3'], data.gridEvolutionColumns);
+        updateValueList('oneDimensionProfileAnimation', ['var'], data.plotVars);
+        updateValueList('varAnimation', ['var'], data.plotVars);
+        self.hasPlotVars = data.plotVars && data.plotVars.length > 0;
         if (data.plotFiles) {
             appState.models.oneDimensionProfileAnimation.plotFiles = data.plotFiles;
             appState.saveQuietly('oneDimensionProfileAnimation');
@@ -257,7 +282,8 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     });
 });
 
-SIREPO.app.directive('appFooter', function() {
+//TODO(pjm): flashService import is important to be sure the service is loaded initially
+SIREPO.app.directive('appFooter', function(flashService) {
     return {
         restrict: 'A',
         scope: {
@@ -281,11 +307,13 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'config\')}"><a href data-ng-click="nav.openSection(\'config\')"><span class="glyphicon glyphicon-cog"></span> Config</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'runtimeParams\')}"><a href data-ng-click="nav.openSection(\'runtimeParams\')"><span class="glyphicon glyphicon-scale"></span> Runtime Params</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>',
+                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'config\')}"><a href data-ng-click="nav.openSection(\'config\')"><span class="glyphicon glyphicon-list"></span> Config</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'setup\')}"><a href data-ng-click="nav.openSection(\'setup\')"><span class="glyphicon glyphicon-tasks"></span> Setup</a></li>',
+                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'params\')}"><a href data-ng-click="nav.openSection(\'params\')"><span class="glyphicon glyphicon-edit"></span> Parameters</a></li>',
+                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'runtimeParams\')}"><a href data-ng-click="nav.openSection(\'runtimeParams\')"><span class="glyphicon glyphicon-scale"></span> Runtime Params</a></li>',
+                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -294,80 +322,80 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
+        controller: function(appState, $scope) {
+            $scope.appState = appState;
+        },
     };
 });
 
-SIREPO.app.directive('configTable', function(appState, directiveService, panelState) {
+SIREPO.app.directive('configTable', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="pull-right">',
-              '</div>',
-              '<table class="table table-hover" style="width: 100%">',
-              '<tbody data-ng-repeat="(name, category) in tree">',
-                '<tr>',
-                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(name, category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': ! category.isCollapsed, \'glyphicon-collapse-down\': category.isCollapsed}"></span> <b>{{ name }}</b></td>',
-                '</tr>',
-                '<tr data-ng-show="! category.isCollapsed" data-ng-repeat="directive in category.directives track by $index">',
-                  '<td>',
-                    '<div>',
-                      '<div style="font-size: 14px" class="badge sr-badge-icon">{{ directive._type }}</div>',
-                    '</div>',
-                    '<div style="white-space: pre-wrap">{{ directive.description }}</div>',
-                  '</td>',
-                '</tr>',
-              '</tbody>',
-              '</table>',
-            '</div>',
+            '<table class="table table-hover" style="width: 100%">',
+              '<tr data-ng-repeat="item in configList track by item._id">',
+                '<td>',
+                  '<span style="white-space: pre">{{ item.pad }}</span>',
+                  '<span style="font-size: 14px" class="badge sr-badge-icon">{{ item._type }}</span>',
+                  ' <strong>{{ item.first }}</strong> <span> {{ item.description }}</span>',
+                  '<div style="margin-left: 4em" data-ng-if="item.comment">{{ item.comment }}</div>',
+                '</td>',
+              '</tr>',
+            '</table>',
         ].join(''),
-        controller: function($injector, $scope) {
-            var selectedDirective = null;
-            const collapsedCategories = {};
-            $scope.tree = {};
+        controller: function($scope) {
+            const fieldOrder = SIREPO.APP_SCHEMA.constants.flashDirectives.fieldOrder;
+            const labels = SIREPO.APP_SCHEMA.constants.flashDirectives.labels;
 
-            function loadDirectives() {
-                $scope.tree = {};
-                const tree = {};
-                [
-                    'REQUIRES',
-                    'REQUESTS',
-                    'PARAMETER',
-                    'PARTICLEPROP',
-                    'PARTICLEMAP',
-                    'VARIABLE',
-                ].forEach((n) => {
-                    tree[n] = {
-                            directives: [],
-                            isCollapsed: collapsedCategories[n],
-                    };
-                });
-                const directives = appState.applicationState().setupConfigDirectives || [];
-                directives.forEach((d) => {
-                    const t = d._type;
-                    tree[t].directives.push(Object.assign(
-                        {description: directiveService.description(d),}, d
-                    ));
-                });
-                for (const k in tree) {
-                    if (tree[k].directives.length === 0) {
-                        delete tree[k];
+            function createItem(item, level) {
+                const v = appState.clone(item);
+                v.pad = '  '.repeat(level * 4);
+                let desc = '';
+                v.first = item[fieldOrder[item._type][0]];
+                fieldOrder[item._type].forEach((f, idx) => {
+                    if (idx > 0 && angular.isDefined(item[f])) {
+                        let v = item[f];
+                        if (f == 'isConstant') {
+                            if (v == '1') {
+                                desc += ' CONSTANT';
+                            }
+                            return;
+                        }
+                        if (f == 'default' && item.type == 'STRING') {
+                            v = '"' + v + '"';
+                        }
+                        if (! v.length) {
+                            return;
+                        }
+                        if (f == 'range') {
+                            v = '[' + v + ']';
+                        }
+                        else if (labels[f]) {
+                            v = labels[f] + ' ' + v;
+                        }
+                        desc += ' ' + v;
                     }
-                }
-                $scope.tree = tree;
+                });
+                v.description = desc;
+                return v;
             }
 
-            $scope.toggleCategory = function(name, category) {
-                category.isCollapsed = ! category.isCollapsed;
-                collapsedCategories[name] = category.isCollapsed;
-            };
+            function addConfigItem(item, level) {
+                level = level || 0;
+                $scope.configList.push(createItem(item, level));
+                if (item.statements) {
+                    item.statements.forEach((subitem) => addConfigItem(subitem, level + 1));
+                }
+            }
 
-            appState.whenModelsLoaded($scope, function() {
-                $scope.$on('modelChanged', function(e, name) {
-                    if (name == 'setupConfigDirectives') {
-                        loadDirectives();
-                    }
-                });
+            function loadDirectives() {
+                $scope.configList = [];
+                appState.applicationState().setupConfigDirectives.forEach((item) => addConfigItem(item));
+            }
+
+            appState.whenModelsLoaded($scope, () => {
+                $scope.$on('setupConfigDirectives.changed', loadDirectives);
                 loadDirectives();
             });
         },
@@ -393,7 +421,7 @@ SIREPO.app.directive('plotFileSelectionList', function() {
               '</table>',
             '</div>',
         ].join(''),
-        controller: function($scope, appState, directiveService) {
+        controller: function($scope, appState) {
             function loadPlotFiles() {
                 $scope.plotFiles = appState.models.oneDimensionProfileAnimation.plotFiles;
             }
@@ -422,6 +450,28 @@ SIREPO.app.directive('plotFileSelectionList', function() {
                 ['oneDimensionProfileAnimation.plotFiles'],
                 loadPlotFiles
             );
+        },
+    };
+});
+
+SIREPO.app.directive('parametersPanel', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div style="margin-bottom: 1ex" data-ng-repeat="name in modelNames track by name">',
+            '<button class="btn btn-default" data-ng-click="showModal(name)">{{ name }}</button>',
+            '</div>',
+        ].join(''),
+        controller: function(appState, panelState, $scope) {
+            $scope.showModal = (name) => panelState.showModalEditor(name);
+
+            appState.whenModelsLoaded($scope, () => {
+                $scope.modelNames = [];
+                for (const name in appState.models.flashSchema.model) {
+                    $scope.modelNames.push(name);
+                }
+            });
         },
     };
 });
@@ -486,47 +536,47 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
     };
 });
 
-SIREPO.app.directive('runtimeParametersTable', function() {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: [
-            '<table class="table table-hover" style="width: 100%">',
-              '<thead>',
-                '<tr>',
-                  '<th scope="col">Name</th>',
-                  '<th scope="col">Value</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody data-ng-repeat="param in parameters">',
-                '<tr>',
-                  '<td>',
-                    '<div style="font-size: 14px" class="badge sr-badge-icon">{{ param.name }}</div>',
-                  '</td>',
-                  '<td>',
-                    '<div>{{ param.value }}</div>',
-                  '</td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
-        controller: function($scope, appState, directiveService) {
-            $scope.parameters = [];
-            function loadParameters() {
-                const m = appState.models[`Simulation${appState.models.simulation.flashType}`];
-                $scope.parameters =  Object.keys(m).map((k) => {
-                    return {name: k, value: m[k]};
-                });
-            }
+// SIREPO.app.directive('runtimeParametersTable', function() {
+//     return {
+//         restrict: 'A',
+//         scope: {},
+//         template: [
+//             '<table class="table table-hover" style="width: 100%">',
+//               '<thead>',
+//                 '<tr>',
+//                   '<th scope="col">Name</th>',
+//                   '<th scope="col">Value</th>',
+//                 '</tr>',
+//               '</thead>',
+//               '<tbody data-ng-repeat="param in parameters">',
+//                 '<tr>',
+//                   '<td>',
+//                     '<div style="font-size: 14px" class="badge sr-badge-icon">{{ param.name }}</div>',
+//                   '</td>',
+//                   '<td>',
+//                     '<div>{{ param.value }}</div>',
+//                   '</td>',
+//                 '</tr>',
+//               '</tbody>',
+//             '</table>',
+//         ].join(''),
+//         controller: function($scope, appState, directiveService) {
+//             $scope.parameters = [];
+//             function loadParameters() {
+//                 const m = appState.models[`Simulation${appState.models.simulation.flashType}`];
+//                 $scope.parameters =  Object.keys(m).map((k) => {
+//                     return {name: k, value: m[k]};
+//                 });
+//             }
 
-            appState.whenModelsLoaded($scope, function() {
-                $scope.$on('modelChanged', function(e, name) {
-                    if (name == 'setupConfigDirectives') {
-                        loadParameters();
-                    }
-                });
-                loadParameters();
-            });
-        },
-    };
-});
+//             appState.whenModelsLoaded($scope, function() {
+//                 $scope.$on('modelChanged', function(e, name) {
+//                     if (name == 'setupConfigDirectives') {
+//                         loadParameters();
+//                     }
+//                 });
+//                 loadParameters();
+//             });
+//         },
+//     };
+// });
