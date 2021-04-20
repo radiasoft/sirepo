@@ -34,8 +34,7 @@ def create():
             assert not _non_threaded_context, \
                 'existing _non_threaded_context{_non_threaded_context}'
             _non_threaded_context = PKDict()
-        sirepo.events.emit('srcontext_created')
-        yield
+        yield _context()
     finally:
         if sirepo.util.in_flask_request():
             import flask
@@ -43,7 +42,6 @@ def create():
         else:
             c = _non_threaded_context
             _non_threaded_context = None
-        sirepo.events.emit('srcontext_destroyed', PKDict(srcontext=c))
 
 
 def get(key, default=None):

@@ -15,7 +15,6 @@ import threading
 # limit imports here
 import sirepo.auth_role
 import sirepo.srcontext
-import sirepo.events
 import sirepo.srdb
 
 
@@ -129,10 +128,6 @@ def init():
         # we access a single connection across threads
         connect_args={'check_same_thread': False},
     )
-    sirepo.events.register(PKDict(
-        srcontext_created=_create_session,
-        srcontext_destroyed=_destroy_session,
-    ))
 
     @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
@@ -265,8 +260,12 @@ def init_model(callback):
 @contextlib.contextmanager
 def session():
     init()
-    with sirepo.srcontext.create():
-        yield
+    with sirepo.srcontext.create() as c:
+        try:
+            _create_session(c)
+            yield
+        finally:
+            _destroy_session(c)
 
 
 @contextlib.contextmanager
@@ -276,18 +275,15 @@ def session_and_lock():
     with session():
         yield
 
-def _create_session(_):
-    s = sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+def _create_session(context):
+    s = context.get(_SRCONTEXT_SESSION_KEY)
     assert not s, \
         f'existing session={s}'
-    sirepo.srcontext.set(
-        _SRCONTEXT_SESSION_KEY,
-        sqlalchemy.orm.Session(bind=_engine),
-    )
+    context[_SRCONTEXT_SESSION_KEY] = sqlalchemy.orm.Session(bind=_engine)
 
 
-def _destroy_session(kwargs):
-    kwargs.srcontext.pop(_SRCONTEXT_SESSION_KEY).rollback()
+def _destroy_session(context):
+    context.pop(_SRCONTEXT_SESSION_KEY).rollback()
 
 
 def _migrate_db_file(fn):
