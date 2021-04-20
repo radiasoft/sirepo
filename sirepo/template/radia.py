@@ -718,7 +718,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
         plots.append(
             PKDict(
                 points=(m * f[:, _AXES.index(c)]).tolist(),
-                label=f'{labels[c]} [{radia_tk.FIELD_UNITS[f_type]}]',
+                label=f'{labels[c]} ({c}) [{radia_tk.FIELD_UNITS[f_type]}]',
                 style='line'
             )
         )
@@ -727,7 +727,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
         plots,
         PKDict(),
         PKDict(
-            title='',
+            title=f'{f_type} on {f_path.name}',
             y_label=f_type,
             x_label=f'{beam_axis} [mm]',
             summaryData=PKDict(),

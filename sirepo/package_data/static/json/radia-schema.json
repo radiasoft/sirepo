@@ -298,8 +298,8 @@
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
         "fieldLineoutReport": {
-            "fieldPath": ["Path", "FieldPaths", []],
-            "fieldPaths": "fieldPaths.paths",
+            "fieldPath": ["_", "Object", {}],
+            "fieldPaths": ["Path", "FieldPaths", []],
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
         },
@@ -538,13 +538,13 @@
             ]
         },
         "fieldLineoutReport": {
-            "title": "B Field",
+            "title": "Field on Path",
             "advanced": [
-                "fieldPath",
+                "fieldPaths",
                 "fieldType"
             ],
              "basic": [
-                 "fieldPath",
+                 "fieldPaths",
                  "fieldType"
             ]
         },

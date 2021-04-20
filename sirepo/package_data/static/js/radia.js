@@ -23,7 +23,7 @@ SIREPO.app.config(function() {
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
-          '<select class="form-control" data-ng-model="model[field]" data-ng-options="p.name for p in model.fieldPaths"></select>',
+          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
         '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
@@ -1392,23 +1392,28 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
     return {
         restrict: 'A',
         scope: {
+            modelName: '@'
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>',
+                '<div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.dataCleared = true;
-            appState.whenModelsLoaded($scope, function() {
-                $scope.model = appState.models.fieldLineoutReport;
-                if (! $scope.model.fieldPath) {
-                    $scope.model.fieldPath = $scope.model.fieldPaths[0];
+
+            $scope.hasPaths = () => {
+                return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
+            };
+
+            appState.whenModelsLoaded($scope, () => {
+                $scope.model = appState.models[$scope.modelName];
+                if ($.isEmptyObject($scope.model.fieldPath) && $scope.hasPaths() ) {
+                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
+                    appState.saveQuietly($scope.modelName);
                 }
-                //$scope.model.paths = appState.models.fieldPaths.paths;
-                srdbg($scope.model);
-               // wait until we have some data to update
-               $scope.$on('radiaViewer.loaded', function () {
+               // wait until we have some data
+               $scope.$on('radiaViewer.loaded', () => {
                    $scope.dataCleared = false;
                });
             });

@@ -51,7 +51,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             None,
             dynamic=lambda m: cls.__dynamic_defaults(data, m)
         )
-        if not data.models.fieldPaths.get('paths', []):
+        if not data.models.fieldPaths.get('paths'):
             data.models.fieldPaths.paths = []
         cls._organize_example(data)
 
