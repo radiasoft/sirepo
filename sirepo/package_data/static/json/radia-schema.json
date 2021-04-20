@@ -364,7 +364,7 @@
             "magnetLength": ["Thickness [mm]", "Float", 18.0, "Period length/2 - pole length"],
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
-            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "", "H, M (T)"],
+            "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
             "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleColor": ["Color", "Color", "#ff00ff"],
@@ -373,7 +373,7 @@
             "poleLength": ["Thickness [mm]", "Float", 5.0, "Length along beam axis"],
             "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
             "poleMaterial": ["Material", "MaterialType", "custom"],
-            "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "poleMaterialFile": ["Tabulated H-M Curve File", "HMFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0]
         },
         "invertField": {
