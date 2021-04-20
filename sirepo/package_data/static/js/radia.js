@@ -1061,14 +1061,17 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.solution = null;
 
     self.enableKickMaps = function() {
-        return (appState.models.simulation || {}).enableKickMaps === '1';
+        return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
+    };
+
+    self.isSolvable = function() {
+        return appState.isLoaded() && appState.models.geometry.isSolvable == '1';
     };
 
     self.simHandleStatus = function(data) {
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
-        //$scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
         SINGLE_PLOTS.forEach(function(name) {
             frameCache.setFrameCount(0, name);
         });

@@ -5,12 +5,31 @@
         }
     },
     "constants": {
-        "maxBPMPoints": 10
+        "maxBPMPoints": 10,
+        "readoutElements": {
+            "HKICKER": {
+                "fields": ["kick"],
+                "group": "Kickers"
+            },
+            "KICKER": {
+                "fields": ["hkick", "vkick"],
+                "group": "Kickers"
+            },
+            "QUADRUPOLE": {
+                "fields": ["k1"],
+                "group": "Quads"
+            },
+            "VKICKER": {
+                "fields": ["kick"],
+                "group": "Kickers"
+            }
+        }
     },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
                 "controls.js",
+                "sirepo-dom.js",
                 "sirepo-lattice.js"
             ],
              "css": [
@@ -171,7 +190,9 @@
         "HKICKER": {
             "title": "HKICKER",
             "description": "Horizontal Corrector",
-            "advanced": [],
+            "advanced": [
+                "kick"
+            ],
             "basic": [
                 "kick"
             ]
@@ -187,7 +208,10 @@
                 "hkick",
                 "vkick"
             ],
-            "advanced": []
+            "advanced": [
+                "hkick",
+                "vkick"
+            ]
         },
         "MONITOR": {
             "title": "MONITOR",
@@ -199,12 +223,16 @@
             "basic": [
                 "k1"
             ],
-            "advanced": []
+            "advanced": [
+                "k1"
+            ]
         },
         "VKICKER": {
             "title": "VKICKER",
             "description": "Vertical Corrector",
-            "advanced": [],
+            "advanced": [
+                "kick"
+            ],
             "basic": [
                 "kick"
             ]

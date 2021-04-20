@@ -328,6 +328,7 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "isSolvable": ["_", "Boolean", "1"],
             "name": ["Name", "String", ""],
             "objects": ["_", "Group", []]
         },

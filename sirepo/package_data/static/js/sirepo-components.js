@@ -15,6 +15,30 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
+SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
+    return {
+        restrict: 'A',
+        scope: {
+            controller: '@',
+            template: '@',
+            templateUrl: '@',
+        },
+        link: function(scope, element) {
+            scope.appState = appState;
+            let template = '<div data-ng-if="appState.isLoaded()"><div data-ng-controller="'
+                + scope.controller + '"';
+            if (scope.template) {
+                template +=  '>' + scope.template;
+            }
+            else if (scope.templateUrl) {
+                template += ' data-ng-include="templateUrl">';
+            }
+            template += '</div></div>';
+            element.append($compile(template)(scope));
+        },
+    };
+});
+
 SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compile) {
     return {
         restrict: 'A',
@@ -3552,6 +3576,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
     return {
         restrict: 'A',
         scope: {
+            cancelCallback: '&?',
             simState: '=simStatusPanel',
             startFunction: '&?',
         },
@@ -3569,7 +3594,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 '</div>',
               '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
+                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation(cancelCallback)">{{ stopButtonLabel() }}</button>',
               '</div>',
             '</form>',
             '<div data-canceled-due-to-timeout-alert="simState"></div>',

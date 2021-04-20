@@ -3,7 +3,7 @@
       <div class="sr-plot">
         <div data-radia-viewer="" data-model-name="magnetDisplay" data-viz="viz"></div>
       </div>
-      <div data-radia-solver="" data-model-name="solver" data-viz="viz"></div>
+      <div data-ng-if="viz.isSolvable()" data-radia-solver="" data-model-name="solver" data-viz="viz"></div>
       <div data-radia-field-paths="" data-model-name="fieldPaths"></div>
       <div data-field-lineout-report="" data-model-name="fieldLineoutReport"></div>
       <div data-field-integral-table="" data-model-name="fieldPaths"></div>

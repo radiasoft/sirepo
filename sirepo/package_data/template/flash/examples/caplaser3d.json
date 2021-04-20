@@ -1038,6 +1038,7 @@
             "sim_zminWall": 0
         },
         "varAnimation": {
+            "axis": "z",
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
