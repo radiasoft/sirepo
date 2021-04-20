@@ -70,7 +70,7 @@ def list_roles(*args):
 @contextlib.contextmanager
 def _parse_args(uid_or_email, roles):
     sirepo.server.init()
-    with sirepo.auth_db.session():
+    with sirepo.auth_db.session_and_lock():
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if '@' in uid_or_email:
             u = sirepo.auth.get_module(

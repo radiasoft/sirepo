@@ -37,9 +37,9 @@ def audit_proprietary_lib_files(*uid):
     import sirepo.auth_db
     import sirepo.auth
 
-    #TODO(robnagler) locking
-    for u in uid or sirepo.auth_db.all_uids():
-        sirepo.auth_db.audit_proprietary_lib_files(u)
+    with sirepo.auth_db.session_and_lock():
+        for u in uid or sirepo.auth_db.all_uids():
+            sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
 def create_examples():
@@ -52,7 +52,7 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        with sirepo.auth_db.session(), \
+        with sirepo.auth_db.session_and_lock(), \
              auth.set_user_outside_of_http_request(uid):
             for sim_type in feature_config.cfg().sim_types:
                 simulation_db.verify_app_directory(sim_type)

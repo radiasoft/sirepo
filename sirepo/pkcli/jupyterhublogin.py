@@ -30,12 +30,11 @@ def create_user(email):
         pykern.pkcli.command_error('invalid email={}', email)
     sirepo.server.init()
     sirepo.template.assert_sim_type('jupyterhublogin')
-    with sirepo.auth_db.session():
+    with sirepo.auth_db.session_and_lock():
         u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
         if not u:
             pykern.pkcli.command_error('no sirepo user with email={}', email)
         with sirepo.auth.set_user_outside_of_http_request(u):
-            # TODO(e-carlin): locking
             n = sirepo.sim_api.jupyterhublogin.unchecked_jupyterhub_user_name(
                 have_simulation_db=False,
             )

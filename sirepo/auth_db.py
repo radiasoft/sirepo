@@ -269,6 +269,13 @@ def session():
         yield
 
 
+@contextlib.contextmanager
+def session_and_lock():
+    # TODO(e-carlin): Need locking across processes
+    # git.radiasoft.org/sirepo/issues/3516
+    with session():
+        yield
+
 def _create_session(_):
     s = sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
     assert not s, \
