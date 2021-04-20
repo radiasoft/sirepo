@@ -2689,7 +2689,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                     '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">Variables</span>',
                   '</div>',
-                  '<div class="modal-body" style="max-height: 80vh; overflow-y: scroll;">',
+                  '<div class="modal-body" style="max-height: 80vh; overflow-y: auto;">',
                     '<div class="container-fluid">',
                       '<form name="form" class="form-horizontal" autocomplete="off">',
                         '<div class="form-group form-group-sm">',

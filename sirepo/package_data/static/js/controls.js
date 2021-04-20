@@ -8,6 +8,9 @@ SIREPO.app.config(() => {
         '<div data-ng-switch-when="MadxSimList" data-ng-class="fieldClass">',
           '<div data-sim-list="" data-model="model" data-field="field" data-code="madx" data-route="lattice"></div>',
         '</div>',
+        '<div data-ng-switch-when="AmpTable" data-ng-class="fieldClass">',
+          '<div data-amp-table="" data-model="model" data-field="field"></div>',
+        '</div>',
     ].join('');
     // TODO(e-carlin): copied from madx
     SIREPO.lattice = {
@@ -121,8 +124,10 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
     }
 
     function saveLattice(e, name) {
-        //TODO(pjm): not a good element model detector
         if (name == name.toUpperCase()) {
+            const m = appState.models[name];
+            $.extend(elementForId(m._id), m);
+            delete appState.models[name];
             appState.saveQuietly('externalLattice');
         }
         if (['command_beam', 'command_twiss'].includes(name)) {
@@ -647,6 +652,58 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
 
             buildReadoutTable();
             windowResize();
+        },
+    };
+});
+
+SIREPO.app.directive('ampTable', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <input id="sr-amp-table-input" type="file" data-file-model="ampTableFile" accept=".csv"/>
+            <div style="margin-top: 1em; max-height: 30vh; overflow-y: auto;" data-ng-if="model[field].length">
+              <table class="table table-hover table-condensed">
+                <tr><th class="text-center">K1</th><th class="text-center">Factor</th></tr>
+                <tr data-ng-repeat="row in model[field] track by $index">
+                  <td class="text-right" data-ng-repeat="cell in row track by $index">{{ cell }}</td>
+                </tr>
+              </table>
+            </div>`,
+        controller: function($scope) {
+            if (! $scope.model[$scope.field]) {
+                $scope.model[$scope.field] = [];
+            }
+
+            function parseText(text) {
+                let rows = [];
+                text.split(/\s*\n/).forEach(line => {
+                    let row = line.split(/\s*,\s*/);
+                    if (row.length >= 2) {
+                        rows.push(row);
+                    }
+                });
+                if (rows.length && rows[0][0].search(/\w/) >= 0) {
+                    // ignore header
+                    rows.shift();
+                }
+                $scope.model[$scope.field] = rows.map(row => row.map(v => parseFloat(v)));
+                $scope.$applyAsync();
+            }
+
+            $scope.$watch('ampTableFile', () => {
+                if ($scope.ampTableFile) {
+                    $scope.ampTableFile.text().then(parseText);
+                }
+            });
+            $scope.$on('cancelChanges', () => {
+                $scope.ampTableFile = null;
+                $('#sr-amp-table-input').val(null);
+            });
         },
     };
 });

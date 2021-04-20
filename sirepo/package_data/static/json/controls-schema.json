@@ -105,21 +105,25 @@
             "weight": ["Weight", "Float", 0.1]
         },
         "HKICKER": {
-            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PX$"]
+            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PX$"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "HMONITOR": {
         },
         "KICKER": {
             "hkick": ["HKICK", "Float", 0.0, "The horizontal momentum change $\\delta PX$"],
-            "vkick": ["VKICK", "Float", 0.0, "The vertical momentum change $\\delta PY$"]
+            "vkick": ["VKICK", "Float", 0.0, "The vertical momentum change $\\delta PY$"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "MONITOR": {
         },
         "QUADRUPOLE": {
-            "k1": ["K1 [$\\bf m^{-2}$]", "Float", 0.0, "The normal quadrupole coefficient"]
+            "k1": ["K1 [$\\bf m^{-2}$]", "Float", 0.0, "The normal quadrupole coefficient"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "VKICKER": {
-            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PY$"]
+            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PY$"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "VMONITOR": {
         }
@@ -191,10 +195,8 @@
             "title": "HKICKER",
             "description": "Horizontal Corrector",
             "advanced": [
-                "kick"
-            ],
-            "basic": [
-                "kick"
+                "kick",
+                "ampTable"
             ]
         },
         "HMONITOR": {
@@ -204,13 +206,10 @@
         "KICKER": {
             "title": "KICKER",
             "description": "Corrector",
-            "basic": [
-                "hkick",
-                "vkick"
-            ],
             "advanced": [
                 "hkick",
-                "vkick"
+                "vkick",
+                "ampTable"
             ]
         },
         "MONITOR": {
@@ -220,21 +219,17 @@
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
             "description": "Quadrupole",
-            "basic": [
-                "k1"
-            ],
             "advanced": [
-                "k1"
+                "k1",
+                "ampTable"
             ]
         },
         "VKICKER": {
             "title": "VKICKER",
             "description": "Vertical Corrector",
             "advanced": [
-                "kick"
-            ],
-            "basic": [
-                "kick"
+                "kick",
+                "ampTable"
             ]
         },
         "VMONITOR": {
