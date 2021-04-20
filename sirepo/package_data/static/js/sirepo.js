@@ -169,13 +169,15 @@ SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies',
 
 SIREPO.app.value('localRoutes', {});
 
-SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
+SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider, $sanitizeProvider) {
     let localRoutes = localRoutesProvider.$get();
     let defaultRoute = null;
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
+    $sanitizeProvider.enableSvg(true);
+    $sanitizeProvider.addValidAttrs(['id', 'style']);
     SIREPO.appFieldEditors = '';
 
     function addRoute(routeName) {

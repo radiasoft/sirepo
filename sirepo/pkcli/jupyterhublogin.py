@@ -35,9 +35,4 @@ def create_user(email):
         if not u:
             pykern.pkcli.command_error('no sirepo user with email={}', email)
         with sirepo.auth.set_user_outside_of_http_request(u):
-            n = sirepo.sim_api.jupyterhublogin.unchecked_jupyterhub_user_name(
-                have_simulation_db=False,
-            )
-            if n:
-                return n
             return sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
