@@ -190,6 +190,9 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.editElement = function(type, item) {
+        if (! appState.viewInfo(type)) {
+            return;
+        }
         appState.models[type] = item;
         self.setValidator(type, item);
         panelState.showModalEditor(type);
@@ -232,16 +235,15 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.elementForId = function(id, models) {
         models = models || appState.models;
-        var i;
         id = Math.abs(id);
-        for (i = 0; i < models.beamlines.length; i++) {
-            var b = models.beamlines[i];
+        for (let i = 0; i < models.beamlines.length; i++) {
+            let b = models.beamlines[i];
             if (b.id == id) {
                 return b;
             }
         }
-        for (i = 0; i < models.elements.length; i++) {
-            var e = models.elements[i];
+        for (let i = 0; i < models.elements.length; i++) {
+            let e = models.elements[i];
             if (e._id == id) {
                 return e;
             }
@@ -1249,12 +1251,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var selectedBeamline = null;
-            var panTranslate = [0, 0];
-            var picTypeCache = null;
-            var svgBounds = null;
+            let panTranslate = [0, 0];
+            let picTypeCache = null;
+            let selectedBeamline = null;
+            let svgBounds = null;
             var zoom = null;
-            var zoomScale = 1;
+            let zoomScale = 1;
             const ABSOLUTE_POSITION_TYPE = 'absolutePosition';
             $scope.plotStyle = $scope.flatten ? '' : 'cursor: zoom-in;';
             $scope.isClientOnly = true;
@@ -1932,9 +1934,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.itemDblClicked = function(item) {
-                if ($scope.pathToModels) {
-                    return;
-                }
                 latticeService.editElement(item.type, item);
             };
 

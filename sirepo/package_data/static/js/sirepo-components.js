@@ -3576,6 +3576,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
     return {
         restrict: 'A',
         scope: {
+            cancelCallback: '&?',
             simState: '=simStatusPanel',
             startFunction: '&?',
         },
@@ -3593,7 +3594,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 '</div>',
               '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
+                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation(cancelCallback)">{{ stopButtonLabel() }}</button>',
               '</div>',
             '</form>',
             '<div data-canceled-due-to-timeout-alert="simState"></div>',
