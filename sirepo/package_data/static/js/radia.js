@@ -997,8 +997,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
             ) {
                 appState.models.geometry.lastModified = Date.now();
-                appState.models.kickMap.periodLength = appState.models.hybridUndulator.periodLength;
-                appState.saveQuietly('kickMap');
+                appState.models.kickMapReport.periodLength = appState.models.hybridUndulator.periodLength;
+                appState.saveQuietly('kickMapReport');
             }
             let o = self.selectedObject;
             if (o) {
@@ -1828,7 +1828,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
-SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1837,7 +1837,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1855,7 +1855,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
                 });
             }
             appState.whenModelsLoaded($scope, function() {
-               $scope.model = appState.models.kickMap;
+               $scope.model = appState.models.kickMapReport;
                // wait until we have some data to update
                $scope.$on('radiaViewer.loaded', function () {
                    $scope.dataCleared = false;
