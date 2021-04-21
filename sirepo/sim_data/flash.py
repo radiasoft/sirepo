@@ -15,11 +15,15 @@ import re
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.util
+import subprocess
 import zipfile
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+
     SETUP_PARAMS_SCHEMA_FILE = 'setup_params.json'
+    _COMPILE_LOG = 'compile.log'
+    _SETUP_LOG = 'setup.log'
     _FLASH_EXE_PREFIX = 'flash_exe'
     _FLASH_FILE_NAME_SEP = '-'
 
@@ -93,7 +97,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _flash_create_sim_files(cls, data, run_dir):
         import sirepo.mpi
         import sirepo.template.flash
-        import subprocess
 
         subprocess.check_output(
             [
@@ -119,28 +122,31 @@ class SimData(sirepo.sim_data.SimDataBase):
                 pkio.write_text(p, r())
         sirepo.template.flash.generate_config_file(run_dir, data)
         t = s.join(cls.schema().constants.flashAppName)
-        with run_dir.join(template_common.COMPILE_LOG).open('w') as log:
-            k = PKDict(
-                check=True,
-                stdout=log,
-                stderr=log
-            )
-            c = sirepo.template.flash.setup_command(data)
-            pkdc('setup_command={}', ' '.join(c))
-            subprocess.run(c, cwd=s, **k)
-            flash_schema = flash_parser.SetupParameterParser(
-                run_dir.join(cls.sim_type(), cls.schema().constants.flashAppName)
-            ).generate_schema()
-            cls._add_default_views(flash_schema)
-            pkio.write_text(
-                run_dir.join(cls.SETUP_PARAMS_SCHEMA_FILE),
-                pkjson.dump_pretty(PKDict(
-                    flashSchema=flash_schema,
-                ))
-            )
-            datafiles = flash_schema.enum.SetupDatafiles
-            subprocess.run(['make', f'-j{sirepo.mpi.cfg.cores}'], cwd=t, **k)
-
+        c = sirepo.template.flash.setup_command(data)
+        pkdc('setup_command={}', ' '.join(c))
+        cls._flash_run_command_and_pare_log_on_error(
+            c,
+            s,
+            cls._SETUP_LOG,
+            r'.*PPDEFINE.*$',
+        )
+        flash_schema = flash_parser.SetupParameterParser(
+            run_dir.join(cls.sim_type(), cls.schema().constants.flashAppName)
+        ).generate_schema()
+        cls._add_default_views(flash_schema)
+        pkio.write_text(
+            run_dir.join(cls.SETUP_PARAMS_SCHEMA_FILE),
+            pkjson.dump_pretty(PKDict(
+                flashSchema=flash_schema,
+            ))
+        )
+        datafiles = flash_schema.enum.SetupDatafiles
+        cls._flash_run_command_and_pare_log_on_error(
+            ['make', f'-j{sirepo.mpi.cfg.cores}'],
+            t,
+            cls._COMPILE_LOG,
+            r'^(?:Error): (.*)',
+        )
         for c, b in PKDict({
             v: v for v in [f[0] for f in datafiles]
         }).pkupdate(
@@ -198,6 +204,38 @@ class SimData(sirepo.sim_data.SimDataBase):
             'archive',
             data.models.problemFiles.archive,
        )
+
+    @classmethod
+    def _flash_run_command_and_pare_log_on_error(
+            cls,
+            command,
+            work_dir,
+            log_file,
+            regex,
+    ):
+        p = pkio.py_path(log_file)
+        with pkio.open_text(p.ensure(), mode='r+') as l:
+            try:
+                subprocess.run(
+                    command,
+                    check=True,
+                    cwd=work_dir,
+                    stderr=l,
+                    stdout=l,
+                )
+            except subprocess.CalledProcessError as e:
+                l.seek(0)
+                c = l.read()
+                m = re.findall(regex, c, re.MULTILINE)
+                if m:
+                    r = ', '.join(m)
+                else:
+                    r = c.splitlines()[-1]
+                raise sirepo.util.UserAlert(
+                    r,
+                    '{}',
+                    e
+                )
 
     @classmethod
     def _flash_src_tarball_basename(cls):

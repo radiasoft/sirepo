@@ -25,9 +25,6 @@ import subprocess
 import types
 
 
-#: Code compilation stderr and stdout
-COMPILE_LOG = 'compile.log'
-
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
