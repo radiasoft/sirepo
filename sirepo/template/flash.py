@@ -151,22 +151,6 @@ def get_application_data(data, **kwargs):
     raise AssertionError(f'unknown method={data.method}')
 
 
-def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
-    # TODO(e-carlin): share with synergia (and possibly radia)
-    if success_exit:
-        return None
-    e = None
-    f = run_dir.join('mpi_run.out')
-    if f.exists():
-        m = re.search(
-            r'^ Error message is (.*?)\n',
-            pkio.read_text(f),
-            re.MULTILINE | re.DOTALL,
-        )
-        if m:
-            e = m.group(1)
-    return e
-
 def setup_command(data):
     c = []
     for k, v in data.models.setupArguments.items():
