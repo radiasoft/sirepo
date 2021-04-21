@@ -250,6 +250,12 @@ def new_simulation(data, new_simulation_data):
         _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
 
 
+def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
+    if success_exit or not is_parallel:
+        return None
+    return template_common.parse_mpi_log(run_dir)
+
+
 def python_source_for_model(data, model):
     return _generate_parameters_file(data, False, True)
 

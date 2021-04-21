@@ -150,11 +150,11 @@ def _init_model(base):
         @classmethod
         def delete_changed_email(cls, user):
             with auth_db.thread_lock:
-                cls._session.query(cls).filter(
+                cls._session().query(cls).filter(
                     (cls.user_name == user.unverified_email),
                     cls.unverified_email != user.unverified_email
                 ).delete()
-                cls._session.commit()
+                cls._session().commit()
 
     UserModel = AuthEmailUser
 

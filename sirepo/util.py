@@ -187,9 +187,9 @@ def flask_app():
     return flask.current_app or None
 
 def in_flask_request():
-    import flask
-
-    return flask.request or None
+    import sys
+    f = sys.modules.get('flask')
+    return f and f.request or None
 
 
 def init(server_context=False):

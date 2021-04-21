@@ -5,12 +5,31 @@
         }
     },
     "constants": {
-        "maxBPMPoints": 10
+        "maxBPMPoints": 10,
+        "readoutElements": {
+            "HKICKER": {
+                "fields": ["kick"],
+                "group": "Kickers"
+            },
+            "KICKER": {
+                "fields": ["hkick", "vkick"],
+                "group": "Kickers"
+            },
+            "QUADRUPOLE": {
+                "fields": ["k1"],
+                "group": "Quads"
+            },
+            "VKICKER": {
+                "fields": ["kick"],
+                "group": "Kickers"
+            }
+        }
     },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
                 "controls.js",
+                "sirepo-dom.js",
                 "sirepo-lattice.js"
             ],
              "css": [
@@ -86,21 +105,21 @@
             "weight": ["Weight", "Float", 0.1]
         },
         "HKICKER": {
-            "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
+            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PX$"]
         },
         "HMONITOR": {
         },
         "KICKER": {
-            "hkick": ["HKICK", "MiniFloat", 0.0, "The horizontal momentum change $\\delta PX$"],
-            "vkick": ["VKICK", "MiniFloat", 0.0, "The vertical momentum change $\\delta PY$"]
+            "hkick": ["HKICK", "Float", 0.0, "The horizontal momentum change $\\delta PX$"],
+            "vkick": ["VKICK", "Float", 0.0, "The vertical momentum change $\\delta PY$"]
         },
         "MONITOR": {
         },
         "QUADRUPOLE": {
-            "k1": ["K1 [$\\bf m^{-2}$]", "MiniFloat", 0.0, "The normal quadrupole coefficient"]
+            "k1": ["K1 [$\\bf m^{-2}$]", "Float", 0.0, "The normal quadrupole coefficient"]
         },
         "VKICKER": {
-            "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PY$"]
+            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PY$"]
         },
         "VMONITOR": {
         }
@@ -171,7 +190,9 @@
         "HKICKER": {
             "title": "HKICKER",
             "description": "Horizontal Corrector",
-            "advanced": [],
+            "advanced": [
+                "kick"
+            ],
             "basic": [
                 "kick"
             ]
@@ -187,7 +208,10 @@
                 "hkick",
                 "vkick"
             ],
-            "advanced": []
+            "advanced": [
+                "hkick",
+                "vkick"
+            ]
         },
         "MONITOR": {
             "title": "MONITOR",
@@ -199,12 +223,16 @@
             "basic": [
                 "k1"
             ],
-            "advanced": []
+            "advanced": [
+                "k1"
+            ]
         },
         "VKICKER": {
             "title": "VKICKER",
             "description": "Vertical Corrector",
-            "advanced": [],
+            "advanced": [
+                "kick"
+            ],
             "basic": [
                 "kick"
             ]

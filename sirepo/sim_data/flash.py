@@ -36,6 +36,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls.__fixup_old_data_problem_files(data)
         cls.__fixup_old_data_setup_arguments(data)
         cls.__fixup_old_data_one_dimension_profile_animation(data)
+        cls.__fixup_old_data_var_animation_axis(data)
         cls._init_models(dm)
         cls.__fixup_old_data_setup_config_directives(data)
         cls.__fixup_old_data_setup_arguments_units(data)
@@ -336,3 +337,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             return
         e = cls._get_example_for_flash_type(data.models.simulation.flashType)
         data.models.setupConfigDirectives = e.models.setupConfigDirectives
+
+    @classmethod
+    def __fixup_old_data_var_animation_axis(cls, data):
+        if 'axis' in data.models.varAnimation:
+            return
+        e = cls._get_example_for_flash_type(data.models.simulation.flashType)
+        data.models.varAnimation.axis = e.models.varAnimation.axis
