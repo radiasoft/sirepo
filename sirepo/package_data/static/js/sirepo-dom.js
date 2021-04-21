@@ -1,3 +1,8 @@
+'use strict';
+
+var srlog = SIREPO.srlog;
+var srdbg = SIREPO.srdbg;
+
 // will get rid of angular stuff but need it initially
 
 class UIAttribute {  //extends UIOutput {

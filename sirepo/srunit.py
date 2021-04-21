@@ -7,11 +7,11 @@ u"""Support for unit tests
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
+import contextlib
 import flask
 import flask.testing
 import json
 import re
-
 
 #: Default "app"
 MYAPP = 'myapp'
@@ -29,6 +29,13 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 CONFTEST_DEFAULT_CODES = None
 
 SR_SIM_TYPE_DEFAULT = MYAPP
+
+@contextlib.contextmanager
+def auth_db_session():
+    import sirepo.auth_db
+    with sirepo.auth_db.session():
+        yield
+
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.

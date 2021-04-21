@@ -5,24 +5,26 @@ u"""Auth database
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import contextlib
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import threading
 # limit imports here
 import sirepo.auth_role
+import sirepo.srcontext
 import sirepo.srdb
 
 
 #: sqlite file located in sirepo_db_dir
 _SQLITE3_BASENAME = 'auth.db'
 
+_SRCONTEXT_SESSION_KEY = 'auth_db_session'
+
 #: SQLAlchemy database engine
 _engine = None
-
-#: SQLAlchemy session instance
-_session = None
 
 #: Keeps track of upgrades applied to the database
 DbUpgrade = None
@@ -114,9 +116,9 @@ def db_filename():
 
 
 def init():
-    global _session, _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
+    global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
 
-    if _session:
+    if _engine:
         return
     f = db_filename()
     _migrate_db_file(f)
@@ -126,13 +128,11 @@ def init():
         # we access a single connection across threads
         connect_args={'check_same_thread': False},
     )
-    _session = sqlalchemy.orm.Session(bind=_engine)
 
     @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
         STRING_ID = sqlalchemy.String(8)
         STRING_NAME =  sqlalchemy.String(100)
-        _session = _session
 
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
@@ -140,45 +140,50 @@ def init():
 
         def delete(self):
             with thread_lock:
-                self._session.delete(self)
-                self._session.commit()
+                self._session().delete(self)
+                self._session().commit()
 
         @classmethod
         def delete_all(cls):
             with thread_lock:
-                cls._session.query(cls).delete()
-                cls._session.commit()
+                cls._session().query(cls).delete()
+                cls._session().commit()
 
         def save(self):
             with thread_lock:
-                self._session.add(self)
-                self._session.commit()
+                self._session().add(self)
+                self._session().commit()
 
         @classmethod
         def search_all_by(cls, **kwargs):
             with thread_lock:
-                return cls._session.query(cls).filter_by(**kwargs).all()
+                return cls._session().query(cls).filter_by(**kwargs).all()
 
         @classmethod
         def search_by(cls, **kwargs):
             with thread_lock:
-                return cls._session.query(cls).filter_by(**kwargs).first()
+                return cls._session().query(cls).filter_by(**kwargs).first()
 
         @classmethod
         def search_all_for_column(cls, column, **filter_by):
             with thread_lock:
                 return [
                     getattr(r, column) for r
-                    in cls._session.query(cls).filter_by(**filter_by)
+                    in cls._session().query(cls).filter_by(**filter_by)
                 ]
 
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with thread_lock:
-                cls._session.query(cls).filter(
+                cls._session().query(cls).filter(
                     getattr(cls, column).in_(values),
                 ).delete(synchronize_session='fetch')
-                cls._session.commit()
+                cls._session().commit()
+
+        @classmethod
+        def _session(cls):
+            return sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+
 
     class DbUpgrade(UserDbBase):
         __tablename__ = 'db_upgrade_t'
@@ -201,7 +206,7 @@ def init():
         def all_roles(cls):
             with thread_lock:
                 return [
-                    r[0] for r in cls._session.query(cls.role.distinct()).all()
+                    r[0] for r in cls._session().query(cls.role.distinct()).all()
                 ]
 
         @classmethod
@@ -214,12 +219,12 @@ def init():
         @classmethod
         def delete_roles(cls, uid, roles):
             with thread_lock:
-                cls._session.query(cls).filter(
+                cls._session().query(cls).filter(
                     cls.uid == uid,
                 ).filter(
                     cls.role.in_(roles),
                 ).delete(synchronize_session='fetch')
-                cls._session.commit()
+                cls._session().commit()
                 audit_proprietary_lib_files(uid)
 
         @classmethod
@@ -239,7 +244,7 @@ def init():
         @classmethod
         def uids_of_paid_users(cls):
             return [
-                x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
+                x[0] for x in cls._session().query(cls).with_entities(cls.uid).filter(
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
@@ -250,6 +255,35 @@ def init_model(callback):
     with thread_lock:
         callback(UserDbBase)
         UserDbBase.metadata.create_all(_engine)
+
+
+@contextlib.contextmanager
+def session():
+    init()
+    with sirepo.srcontext.create() as c:
+        try:
+            _create_session(c)
+            yield
+        finally:
+            _destroy_session(c)
+
+
+@contextlib.contextmanager
+def session_and_lock():
+    # TODO(e-carlin): Need locking across processes
+    # git.radiasoft.org/sirepo/issues/3516
+    with session():
+        yield
+
+def _create_session(context):
+    s = context.get(_SRCONTEXT_SESSION_KEY)
+    assert not s, \
+        f'existing session={s}'
+    context[_SRCONTEXT_SESSION_KEY] = sqlalchemy.orm.Session(bind=_engine)
+
+
+def _destroy_session(context):
+    context.pop(_SRCONTEXT_SESSION_KEY).rollback()
 
 
 def _migrate_db_file(fn):
