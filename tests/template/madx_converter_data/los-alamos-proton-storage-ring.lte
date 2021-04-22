@@ -9,8 +9,8 @@ lattice_file = """
 % 6.069332 sto sr_beta_x
 % 6.6338782 sto sr_beta_y
 % -0.0 sto sr_dp_s_coupling
-% 1 sr_alpha_x 2 pow + sr_beta_x / sto sr_gamma_x
-% 1 sr_alpha_y 2 pow + sr_beta_y / sto sr_gamma_y
+% 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
+% 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
 % 1000.0 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
@@ -24,11 +24,11 @@ lattice_file = """
 "Q2": QUAD,k1=0.40048073035,l=0.5
 "S1": SEXT,k2=-0.49289936043,l=0.5
 "S2": SEXT,k2=0.32859957362,l=0.5
-"BL1": LINE=(D1,Q1,D2,B1,D2,Q2,D1)
-"RING1": LINE=(M1,BL1,BL1,BL1,BL1,BL1,BL1,BL1,BL1,BL1,BL1)
-"BL2": LINE=(D1,Q1,D2,B1,D2,Q2,D3,S2,D4)
-"BL3": LINE=(D4,S1,D3,Q1,D2,B1,D2,Q2,D1)
-"RING2": LINE=(BL1,BL2,BL3,BL1,BL1,BL1,BL2,BL3,BL1,BL1)
+"BL1": LINE=("D1","Q1","D2","B1","D2","Q2","D1")
+"RING1": LINE=("M1","BL1","BL1","BL1","BL1","BL1","BL1","BL1","BL1","BL1","BL1")
+"BL2": LINE=("D1","Q1","D2","B1","D2","Q2","D3","S2","D4")
+"BL3": LINE=("D4","S1","D3","Q1","D2","B1","D2","Q2","D1")
+"RING2": LINE=("BL1","BL2","BL3","BL1","BL1","BL1","BL2","BL3","BL1","BL1")
 
 """
 
