@@ -303,8 +303,6 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             $scope.$on(name + '.changed', function() {
                 saveCommandList(type);
             });
-            $('#sr-command_beam-basicEditor h5').hide();
-            $('#sr-command_distribution-basicEditor h5').hide();
         });
     });
     latticeService.initSourceController(self);

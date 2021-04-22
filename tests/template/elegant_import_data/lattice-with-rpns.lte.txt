@@ -6,4 +6,4 @@
 % x y z + + sto c
 "D1": DRIF,l="c 0.1 +"
 "W1": WATCH,filename="W1.filename.sdds"
-"BL1": LINE=(D1,W1,D1)
+"BL1": LINE=("D1","W1","D1")

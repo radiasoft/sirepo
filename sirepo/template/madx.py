@@ -557,6 +557,7 @@ def _generate_lattice(filename_map, util):
         lattice.LatticeIterator(filename_map, _format_field_value),
         want_semicolon=True,
         want_var_assign=True,
+        madx_name=True,
     )
 
 
