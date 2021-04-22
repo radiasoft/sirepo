@@ -216,6 +216,10 @@
             ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
         ],
+        "ObjectShape": [
+            ["cuboid", "Cuboid"],
+            ["tee", "Tee"]
+        ],
         "ObjectType": [
             ["box", "Cuboid"],
             ["racetrack", "RaceTrack"]
@@ -360,6 +364,7 @@
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "", "H, M (T)"],
             "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "magnetShape": ["Shape", "ObjectShape", "cuboid"],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleColor": ["Color", "Color", "#ff00ff"],
             "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
@@ -368,7 +373,8 @@
             "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
-            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0]
+            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
+            "poleShape": ["Shape", "ObjectShape", "cuboid"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -613,6 +619,7 @@
                     "periodLength"
                 ]],
                 ["Poles", [
+                    "poleShape",
                     "poleCrossSection",
                     "poleLength",
                     "poleDivision",
@@ -623,6 +630,7 @@
                     "poleColor"
                 ]],
                 ["Permanent Magnets", [
+                    "magnetShape",
                     "magnetCrossSection",
                     "magnetLength",
                     "gapOffset",

@@ -14,28 +14,31 @@ SIREPO.app.config(function() {
         //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
         //...new SirepoSelection('MaterialType', false).val,
         //'</div>',
-        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
-            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
-            '<div class="sr-input-warning">',
-            '</div>',
-        '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
-        '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
-        '</div>',
         '<div data-ng-switch-when="Group" class="col-sm-12">',
           '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
         '</div>',
-        '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
-          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
+        '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
+            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="ObjectShape" class="col-sm-7">',
+            '<div data-shape-picker="" class="dropdown" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+            '<div class="sr-input-warning">',
+            '</div>',
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
+        '</div>',
+        '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
+          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
         '</div>',
     ].join('');
 });
@@ -3316,4 +3319,25 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     };
 
     return self;
+});
+
+SIREPO.app.directive('shapePicker', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            fieldClass: '=',
+        },
+        template: [
+          '<div data-ng-class="fieldClass">',
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+            '<div><svg></svg></div>',
+          '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            srdbg('LD SHAPE PICKER', $scope.model, $scope.field);
+            $scope.enum = SIREPO.APP_SCHEMA.enum;
+        },
+    };
 });
