@@ -425,8 +425,6 @@ def set_user_outside_of_http_request(uid):
 
     assert not util.in_flask_request(), \
         'Only call from outside a flask request context'
-    assert auth_db.UserRegistration.search_by(uid=uid), \
-        f'no registered user with uid={uid}'
     with cookie.set_cookie_outside_of_flask_request():
         _login_user(
             _auth_module(),
