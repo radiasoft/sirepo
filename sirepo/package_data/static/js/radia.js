@@ -1020,7 +1020,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 panelState.clear('geometry');
                 // need to rebuild the geometry after changes were made
                 panelState.requestData('geometry', function(data) {
-
                     if (self.selectedObject) {
                         loadShapes();
                     }
@@ -1054,14 +1053,25 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-    var SINGLE_PLOTS = ['magnetViewer'];
-    var self = this;
+    let SINGLE_PLOTS = ['magnetViewer',];
+    let POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport',];
+
+    let solving = false;
+
+    let self = this;
     self.simScope = $scope;
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
     self.solution = null;
+
+    function updateReports() {
+        POST_SIM_REPORTS.forEach((name) => {
+            appState.models[name].lastModified = Date.now();
+            appState.saveChanges(name);
+        });
+    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -1071,8 +1081,19 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         return appState.isLoaded() && appState.models.geometry.isSolvable == '1';
     };
 
+    self.resetSimulation = function() {
+        self.solution = null;
+        solving = false;
+        panelState.clear('geometry');
+        panelState.requestData('reset', () => {
+            frameCache.setFrameCount(0);
+            }, true);
+        updateReports();
+    };
+
     self.simHandleStatus = function(data) {
         if (data.error) {
+            solving = false;
             throw new Error('Solver failed: ' + data.error);
         }
         SINGLE_PLOTS.forEach(function(name) {
@@ -1084,6 +1105,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(1, name);
                 });
+                if (solving) {
+                    updateReports();
+                }
+                solving = false;
             }
         }
         frameCache.setFrameCount(data.frameCount);
@@ -1091,7 +1116,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.startSimulation = function() {
         self.solution = null;
-        $scope.$broadcast('solveStarted', self.simState);
+        solving = true;
         self.simState.saveAndRunSimulation('simulation');
     };
 
@@ -1099,6 +1124,23 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     $scope.$on('simulation.editor.show', function(e, o) {
         panelState.enableField('simulation', 'magnetType', false);
+    });
+
+    appState.whenModelsLoaded($scope, () => {
+        $scope.$on('modelChanged', (e, modelName) => {
+            let m = appState.models[modelName];
+            if (modelName === 'fieldPaths') {
+                const rpt= 'fieldLineoutReport';
+                for (let r of appState.models.fieldPaths.paths) {
+                    if (r.name !== appState.models[rpt].fieldPath.name) {
+                        continue;
+                    }
+                    appState.models[rpt].fieldPath = r;
+                    appState.saveChanges(rpt);
+                    break;
+                }
+            }
+        });
     });
 
 });
@@ -1423,7 +1465,6 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
                    $scope.dataCleared = false;
                });
             });
-
         },
     };
 });
@@ -2229,7 +2270,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
-                        '<div data-sim-status-panel="viz.simState"></div>',
+                        '<div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation()"></div>',
                         '<div data-ng-show="viz.solution">',
                                 '<div><strong>Time:</strong> {{ solution().time }}ms</div>',
                                 '<div><strong>Step Count:</strong> {{ solution().steps }}</div>',
@@ -2238,7 +2279,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                         '</div>',
                         '<div data-ng-hide="viz.solution">No solution found</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
-                            '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
+                            '<button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>',
                         '</div>',
                     '</div>',
                 '</div>',
@@ -2260,11 +2301,15 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             };
 
             $scope.reset = function() {
+                $scope.viz.resetSimulation();
+                /*
                 $scope.viz.solution = null;
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
                     frameCache.setFrameCount(0);
                 }, true);
+
+                 */
             };
 
             appState.whenModelsLoaded($scope, function () {
@@ -3217,9 +3262,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.$on('$destroy', function () {
                 $element.off();
-            });
-
-            $scope.$on('solveStarted', function (e, d) {
             });
 
         },
