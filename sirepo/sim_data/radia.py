@@ -38,7 +38,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             None,
             dynamic=lambda m: cls.__dynamic_defaults(data, m)
         )
-        if not dm.fieldPaths.get('paths', []):
+        if not dm.fieldPaths.get('paths'):
             dm.fieldPaths.paths = []
         if dm.simulation.get('isExample') and dm.simulation.name == 'Wiggler':
             dm.geometry.isSolvable = '0'

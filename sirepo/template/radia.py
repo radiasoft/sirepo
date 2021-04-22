@@ -29,6 +29,8 @@ import sirepo.util
 import time
 import uuid
 
+_AXES = ['x', 'y', 'z']
+
 _BEAM_AXIS_ROTATIONS = PKDict(
     x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
@@ -61,8 +63,9 @@ _KICK_FILE = 'kickMap.h5'
 _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
+_POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
 _SIM_REPORTS = ['geometry', 'reset', 'solver']
-_REPORTS = ['geometry', 'kickMap', 'reset', 'solver']
+_REPORTS = ['fieldLineoutReport', 'geometry', 'kickMapReport', 'reset', 'solver']
 _REPORT_RES_MAP = PKDict(
     reset='geometry',
     solver='geometry',
@@ -72,10 +75,7 @@ _SDDS_INDEX = 0
 
 _ZERO = [0, 0, 0]
 
-GEOM_PYTHON_FILE = 'geometry.py'
-KICK_PYTHON_FILE = 'kickMap.py'
 RADIA_EXPORT_FILE = 'radia_export.py'
-MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
 
 # cfg contains sdds instance
@@ -121,9 +121,27 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
-    if 'kickMap' in sim_in.report:
+    if 'kickMapReport' in sim_in.report:
         template_common.write_sequential_result(
-            _kick_map_plot(sim_in.simulationId, sim_in.models.kickMap),
+            _kick_map_plot(sim_in.simulationId, sim_in.models.kickMapReport),
+            run_dir=run_dir,
+        )
+    if 'fieldLineoutReport' in sim_in.report:
+        beam_axis = sim_in.models.simulation.beamAxis
+        v_axis = sim_in.models.undulator.gapAxis if \
+            sim_in.models.simulation.magnetType == 'undulator' else \
+            _GAP_AXIS_MAP[beam_axis]
+        h_axis = next(iter(set(_AXES) - {beam_axis, v_axis}))
+        template_common.write_sequential_result(
+            _field_lineout_plot(
+                sim_in.simulationId,
+                sim_in.models.simulation.name,
+                sim_in.models.fieldLineoutReport.fieldType,
+                sim_in.models.fieldLineoutReport.fieldPath,
+                beam_axis,
+                v_axis,
+                h_axis
+            ),
             run_dir=run_dir,
         )
 
@@ -216,7 +234,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     name = simulation_db.read_json(
         run_dir.join(template_common.INPUT_BASE_NAME)
     ).models.simulation.name
-    if model == 'kickMap':
+    if model == 'kickMapReport':
         sfx = (options.suffix or 'sdds') if options and 'suffix' in options else 'sdds'
         sim_id = simulation_db.sid_from_compute_file(
             pkio.py_path(f'{run_dir}/{_KICK_FILE}')
@@ -246,7 +264,7 @@ def new_simulation(data, new_simulation_data):
             beam_axis
         ))
         data.models.simulation.enableKickMaps = '1'
-        _update_kickmap(data.models.kickMap, data.models.hybridUndulator, beam_axis)
+        _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, beam_axis)
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -269,8 +287,8 @@ def write_parameters(data, run_dir, is_parallel):
             _get_res_file(sim_id, _GEOM_FILE),
             #_dmp_file(sim_id)
         )
-    if data.report == 'kickMap':
-        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMap'))
+    if data.report == 'kickMapReport':
+        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMapReport'))
         #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -579,6 +597,9 @@ def _generate_parameters_file(data, for_export):
     report = data.get('report', '')
     rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
     res, v = template_common.generate_parameters_file(data)
+    if rpt_out in _POST_SIM_REPORTS:
+        return res
+
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
@@ -627,7 +648,7 @@ def _generate_parameters_file(data, for_export):
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
-    v.kickMap = data.models.get('kickMap', None)
+    v.kickMap = data.models.get('kickMapReport', None)
     if 'solver' in report or for_export:
         v.doSolve = True
         v.gId = _get_g_id(sim_id)
@@ -685,6 +706,39 @@ def _get_sdds(cols, units):
                 n, '', units[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
             )
     return _cfg.sdds
+
+
+def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
+    g_id = _get_g_id(sim_id)
+    v = _generate_field_data(g_id, name, f_type, [f_path]).data[0].vectors
+    pts = numpy.array(v.vertices).reshape(-1, 3)
+    plots = []
+    labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
+    x = pts[:, _AXES.index(beam_axis)]
+    y = pts[:, _AXES.index(h_axis)]
+    z = pts[:, _AXES.index(v_axis)]
+    f = numpy.array(v.directions).reshape(-1, 3)
+    m = numpy.array(v.magnitudes)
+
+    for c in (h_axis, v_axis):
+        plots.append(
+            PKDict(
+                points=(m * f[:, _AXES.index(c)]).tolist(),
+                label=f'{labels[c]} ({c}) [{radia_tk.FIELD_UNITS[f_type]}]',
+                style='line'
+            )
+        )
+    return template_common.parameter_plot(
+        x.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title=f'{f_type} on {f_path.name}',
+            y_label=f_type,
+            x_label=f'{beam_axis} [mm]',
+            summaryData=PKDict(),
+        ),
+    )
 
 
 def _kick_map_plot(sim_id, model):
@@ -749,7 +803,7 @@ def _read_id_map(sim_id):
 
 
 def _read_kick_map(sim_id):
-    return _read_h5_path(sim_id, _KICK_FILE, _H5_PATH_KICK_MAP, run_dir='kickMap')
+    return _read_h5_path(sim_id, _KICK_FILE, _H5_PATH_KICK_MAP, run_dir='kickMapReport')
 
 
 def _read_or_generate(g_id, data):
