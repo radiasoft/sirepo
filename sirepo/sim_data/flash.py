@@ -109,6 +109,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             stderr=subprocess.STDOUT,
         )
         s = run_dir.join(cls.sim_type())
+        d = []
         if data.models.problemFiles.archive:
             for i, r in cls._flash_extract_problem_files_archive(
                     run_dir.join(cls._flash_problem_files_archive_basename(data)),
@@ -120,6 +121,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 p = cls.flash_simulation_unit_file_path(run_dir, data, b)
                 pkio.mkdir_parent_only(p)
                 pkio.write_text(p, r())
+                d.append(p.basename)
+        cls._flash_check_datafiles(data, d)
         sirepo.template.flash.generate_config_file(run_dir, data)
         t = s.join(cls.schema().constants.flashAppName)
         c = sirepo.template.flash.setup_command(data)
@@ -240,6 +243,19 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _flash_src_tarball_basename(cls):
         return 'flash.tar.gz'
+
+    @classmethod
+    def _flash_check_datafiles(cls, data, filenames):
+        e = []
+        for d in data.models.setupConfigDirectives:
+            if d._type != 'DATAFILES':
+                continue
+            if d.wildcard not in filenames:
+                e.append(d.wildcard)
+        if e:
+            raise sirepo.util.UserAlert(
+                f'{e} missing from supplied datafiles {filenames}'
+            )
 
     @classmethod
     def _lib_file_basenames(cls, data):
