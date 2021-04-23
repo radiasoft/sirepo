@@ -3332,12 +3332,16 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         template: [
           '<div data-ng-class="fieldClass">',
             '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
-            '<div><svg></svg></div>',
+            '<div><svg class="sr-shape-picker" width="32" height="32"><rect width="30" height="30" x="1" y="1" style="fill: none; stroke: black"></rect></svg></div>',
           '</div>',
         ].join(''),
         controller: function($scope, $element) {
             srdbg('LD SHAPE PICKER', $scope.model, $scope.field);
             $scope.enum = SIREPO.APP_SCHEMA.enum;
+
+            $scope.loadImage = function() {
+
+            };
         },
     };
 });

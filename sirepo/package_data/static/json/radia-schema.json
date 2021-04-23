@@ -507,6 +507,20 @@
             "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
+    "snippets": [
+        {
+            "snippetType": "default",
+            "fileType": "svg",
+            "name": "cuboid",
+            "src": "cuboid.svg"
+        },
+        {
+            "snippetType": "default",
+            "fileType": "svg",
+            "name": "tee",
+            "src": "tee.svg"
+        }
+    ],
     "strings": {
         "completionState": "",
         "typeOfSimulation": "solve"
