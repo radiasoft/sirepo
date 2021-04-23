@@ -127,11 +127,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         t = s.join(cls.schema().constants.flashAppName)
         c = sirepo.template.flash.setup_command(data)
         pkdc('setup_command={}', ' '.join(c))
-        cls._flash_run_command_and_pare_log_on_error(
+        cls._flash_run_command_and_parse_log_on_error(
             c,
             s,
             cls._SETUP_LOG,
-            r'.*PPDEFINE.*$',
+            r'(.*PPDEFINE.*$)|(^\s+\*.*$(\n\w+.*)?)',
         )
         flash_schema = flash_parser.SetupParameterParser(
             run_dir.join(cls.sim_type(), cls.schema().constants.flashAppName)
@@ -144,7 +144,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             ))
         )
         datafiles = flash_schema.enum.SetupDatafiles
-        cls._flash_run_command_and_pare_log_on_error(
+        cls._flash_run_command_and_parse_log_on_error(
             ['make', f'-j{sirepo.mpi.cfg.cores}'],
             t,
             cls._COMPILE_LOG,
@@ -209,7 +209,7 @@ class SimData(sirepo.sim_data.SimDataBase):
        )
 
     @classmethod
-    def _flash_run_command_and_pare_log_on_error(
+    def _flash_run_command_and_parse_log_on_error(
             cls,
             command,
             work_dir,
@@ -229,9 +229,13 @@ class SimData(sirepo.sim_data.SimDataBase):
             except subprocess.CalledProcessError as e:
                 l.seek(0)
                 c = l.read()
-                m = re.findall(regex, c, re.MULTILINE)
+                m = [x.group().strip() for x in re.finditer(
+                    regex,
+                    c,
+                    re.MULTILINE,
+                )]
                 if m:
-                    r = ', '.join(m)
+                    r = '\n'.join(m)
                 else:
                     r = c.splitlines()[-1]
                 raise sirepo.util.UserAlert(

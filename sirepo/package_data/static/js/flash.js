@@ -81,6 +81,7 @@ SIREPO.app.controller('RuntimeParamsController', function() {
 SIREPO.app.controller('SetupController', function(appState, flashService, persistentSimulation, $scope) {
     var self = this;
     self.appState = appState;
+    self.errorMessage = '';
     self.simScope = $scope;
     self.simAnalysisModel = 'setupAnimation';
 
@@ -105,6 +106,7 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
 
 
     self.simHandleStatus = function(data) {
+        self.errorMessage = data.error;
         if (data.flashSchema) {
             updateSchema(data.flashSchema);
             self.successMessage = 'Setup and Compile completed successfully';
@@ -112,6 +114,10 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+
+    self.simState.errorMessage = function() {
+        return self.errorMessage;
+    };
 });
 
 SIREPO.app.controller('SourceController', function(appState, flashService, panelState, $scope) {
