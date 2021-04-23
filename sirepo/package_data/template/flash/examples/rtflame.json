@@ -1031,6 +1031,7 @@
             "vel_pert_wavelength1": 1
         },
         "varAnimation": {
+            "axis": "x",
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",

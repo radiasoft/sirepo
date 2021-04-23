@@ -12,9 +12,9 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import h5py
 import numpy as np
 import re
+import rsflash.plotting.extracts
 import sirepo.sim_data
 
 yt = None
@@ -210,15 +210,12 @@ def sim_frame_gridEvolutionAnimation(frame_args):
 
 
 def sim_frame_oneDimensionProfileAnimation(frame_args):
-    import rsflash.plotting.extracts
-
     # def _interpolate_max(files):
     #     m = -1
     #     for f in files:
     #         d = yt.load(f)
     #         m = max(d.domain_width[0] + d.index.grid_left_edge[0][0], m)
     #     return m
-
 
     def _files():
         if frame_args.selectedPlotFiles:
@@ -257,46 +254,65 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
 
 
 def sim_frame_varAnimation(frame_args):
-    field = frame_args['var']
-    with h5py.File(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex])) as f:
-        params = _parameters(f)
-        node_type = f['node type']
-        bounding_box = f['bounding box']
-        xdomain = [params['xmin'], params['xmax']]
-        ydomain = [params['ymin'], params['ymax']]
-        size = _cell_size(f, params['lrefine_max'])
-        dim = (
-            _rounded_int((ydomain[1] - ydomain[0]) / size[1]) * params['nyb'],
-            _rounded_int((xdomain[1] - xdomain[0]) / size[0]) * params['nxb'],
-        )
-        grid = np.zeros(dim)
-        values = f[field]
-        amr_grid = []
-        for i in range(len(node_type)):
-            if node_type[i] == 1:
-                bounds = bounding_box[i]
-                _apply_to_grid(grid, values[i, 0], bounds, size, xdomain, ydomain)
-                amr_grid.append([
-                    (bounds[0] / 100).tolist(),
-                    (bounds[1] / 100).tolist(),
-                ])
+    def _amr_grid():
+        if not int(frame_args.amrGrid):
+            return None
+        g = []
+        for b, _ in ds.all_data().blocks:
+            g.append([
+                [float(b.LeftEdge[0] / 100), float(b.RightEdge[0] / 100)],
+                [float(b.LeftEdge[1] / 100), float(b.RightEdge[1] / 100)],
+            ])
+        return g
 
-    # imgplot = plt.imshow(grid, extent=[xdomain[0], xdomain[1], ydomain[1], ydomain[0]], cmap='PiYG')
-    aspect_ratio = float(params['nblocky']) / params['nblockx']
-    return {
-        'x_range': [xdomain[0] / 100, xdomain[1] / 100, len(grid[0])],
-        'y_range': [ydomain[0] / 100, ydomain[1] / 100, len(grid)],
-        'x_label': 'x [m]',
-        'y_label': 'y [m]',
-        'title': '{}'.format(field),
-        'subtitle': 'Time: {}, Plot {}'.format(_time_and_units(params['time']), frame_args.frameIndex + 1),
-        'aspectRatio': aspect_ratio,
-        'z_matrix': grid.tolist(),
-        'amr_grid': amr_grid,
-        'summaryData': {
-            'aspectRatio': aspect_ratio,
-        },
-    }
+    l = PKDict(
+        cartesian=PKDict(
+            x=PKDict(x='y', y='z'),
+            y=PKDict(x='z', y='x'),
+            z=PKDict(x='x', y='y'),
+        ),
+        cylindrical=PKDict(
+            r=PKDict(x='theta', y='z'),
+            z=PKDict(x='r', y='theta'),
+            theta=PKDict(x='r', y='z'),
+        ),
+        polar=PKDict(
+            r=PKDict(x='phi', y='z'),
+            phi=PKDict(x='r', y='z'),
+            z=PKDict(x='r', y='phi'),
+        ),
+        spherical=PKDict(
+            r=PKDict(x='theta', y='phi'),
+            theta=PKDict(x='r', y='phi'),
+            phi=PKDict(x='r', y='theta'),
+        ),
+    )
+    _init_yt()
+    f = frame_args.var
+    ds = yt.load(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex]))
+    g = frame_args.sim_in.models.Grid.geometry
+    d = yt.SlicePlot(
+        ds,
+        frame_args.axis,
+        f,
+        origin='native',
+        aspect=1,
+    ).frb[f]
+    return PKDict(
+        global_max=float(frame_args.vmax) if frame_args.vmax else None,
+        global_min=float(frame_args.vmin) if frame_args.vmin else None,
+        subtitle='Time: {}, Plot {}'.format(
+            _time_and_units(ds.parameters['time']),
+            frame_args.frameIndex + 1,
+        ),
+        title='{}'.format(f),
+        x_label=f'{l[g][frame_args.axis].x} [m]',
+        x_range=[ds.parameters['xmin'] / 100, ds.parameters['xmax'] / 100, d.shape[0]],
+        y_label=f'{l[g][frame_args.axis].y} [m]',
+        y_range=[ds.parameters['ymin'] / 100, ds.parameters['ymax'] / 100, d.shape[1]],
+        z_matrix=d.tolist(),
+        amr_grid=_amr_grid(),
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -306,30 +322,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(_FLASH_PAR_FILE),
         _generate_parameters_file(data, run_dir=run_dir),
     )
-
-
-def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
-    xsize = len(values)
-    ysize = len(values[0])
-    xi = _rounded_int((bounds[0][0] - xdomain[0]) / cell_size[0]) * xsize
-    yi = _rounded_int((bounds[1][0] - ydomain[0]) / cell_size[1]) * ysize
-    xscale = _rounded_int((bounds[0][1] - bounds[0][0]) / cell_size[0])
-    yscale = _rounded_int((bounds[1][1] - bounds[1][0]) / cell_size[1])
-    for x in range(xsize):
-        for y in range(ysize):
-            for x1 in range(xscale):
-                for y1 in range(yscale):
-                    grid[yi + (y * yscale) + y1][xi + (x * xscale) + x1] = values[y][x]
-
-
-def _cell_size(f, refine_max):
-    refine_level = f['refine level']
-    while refine_max > 0:
-        for i in range(len(refine_level)):
-            if refine_level[i] == refine_max:
-                return f['block size'][i]
-        refine_max -= 1
-    assert False, 'no blocks with appropriate refine level'
 
 
 def _find_setup_config_directive(data, name):
@@ -408,6 +400,10 @@ def _has_species_selection(flash_type):
     return flash_type in ('CapLaserBELLA', 'CapLaser3D')
 
 
+def _h5_file_list(run_dir):
+    return pkio.sorted_glob(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))
+
+
 def _init_yt():
     global yt
     if yt:
@@ -416,22 +412,6 @@ def _init_yt():
     # 50 disables logging
     # https://yt-project.org/doc/reference/configuration.html#configuration-options-at-runtime
     yt.funcs.mylog.setLevel(50)
-
-
-def _h5_file_list(run_dir):
-    return pkio.sorted_glob(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))
-
-
-def _parameters(f):
-    res = {}
-    for name in ('integer scalars', 'integer runtime parameters', 'real scalars', 'real runtime parameters'):
-        for v in f[name]:
-            res[pkcompat.from_bytes(v[0].strip())] = v[1]
-    return res
-
-
-def _rounded_int(v):
-    return int(round(v))
 
 
 def _time_and_units(time):
