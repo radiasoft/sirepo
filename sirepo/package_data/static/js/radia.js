@@ -3340,7 +3340,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
             $scope.enum = SIREPO.APP_SCHEMA.enum;
 
             $scope.loadImage = function() {
-
+                $('.sr-shape-picker');
             };
         },
     };
