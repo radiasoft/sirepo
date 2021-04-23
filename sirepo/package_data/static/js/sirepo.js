@@ -119,6 +119,26 @@ angular.element(document).ready(function() {
         return $.map(mods, loadDynamicModule);
     }
 
+    function loadFromPath(path, type, callback, errCallback, finallyCallback) {
+        let d = $.Deferred();
+        srdbg('PTH', `${path}${SIREPO.SOURCE_CACHE_KEY}`);
+        $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (res) {
+            callback(res);
+        }, type)
+            .fail(function (res) {
+                if (errCallback) {
+                    errCallback(res);
+                }
+            })
+            .always(function (res) {
+                if (finallyCallback) {
+                    finallyCallback(res);
+                }
+                d.resolve();
+            });
+        return d.promise();
+    }
+
     function loadSnippet(b) {
         let val = null;
         let ok = false;
