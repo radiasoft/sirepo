@@ -3,17 +3,12 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-//import {SirepoDOM, SirepoSelection, SirepoSelectionOption} from './sirepo-dom.module';
-
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
-        //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
-        //...new SirepoSelection('MaterialType', false).val,
-        //'</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
@@ -27,7 +22,7 @@ SIREPO.app.config(function() {
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="ObjectShape" class="col-sm-7">',
-            '<div data-shape-picker="" class="dropdown" data-model="model" data-field="field"></div>',
+            '<div data-shape-picker="" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
         '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
             '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
@@ -3322,6 +3317,27 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 });
 
 SIREPO.app.directive('shapePicker', function(appState, panelState) {
+
+    const shapeDivId = 'sr-shape-picker';
+    let sel = new SIREPO.DOM.UISelect('', [
+        new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
+        new SIREPO.DOM.UIAttribute('data-ng-change', 'loadImage()'),
+    ]);
+    sel.addClasses('form-control');
+    sel.addOptions(SIREPO.APP_SCHEMA.enum.ObjectShape.map(o => {
+        return new SIREPO.DOM.UIEnumOption('', o);
+    }));
+
+    let svg = new SIREPO.DOM.UIElement('svg', shapeDivId, [
+        new SIREPO.DOM.UIAttribute('width', 32),
+        new SIREPO.DOM.UIAttribute('height', 32),
+    ]);
+    svg.addChild(new SIREPO.DOM.SVGRect('sr-shape-picker-border', 1, 1, 30, 30, 'fill: none; stroke: black'));
+
+    const shapeGrpId = 'sr-shape-picker-shape';
+    let shapeGrp = new SIREPO.DOM.SVGGroup(shapeGrpId);
+    svg.addChild(shapeGrp);
+
     return {
         restrict: 'A',
         scope: {
@@ -3331,17 +3347,18 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         },
         template: [
           '<div data-ng-class="fieldClass">',
-            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
-            '<div><svg class="sr-shape-picker" width="32" height="32"><rect width="30" height="30" x="1" y="1" style="fill: none; stroke: black"></rect></svg></div>',
+            sel.toTemplate(),
+            '<svg class="sr-shape-picker" width="32" height="32"><rect width="30" height="30" x="1" y="1" style="fill: none; stroke: black"></rect><g id="sr-shape-picker-shape"></g></svg>',
           '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            srdbg('LD SHAPE PICKER', $scope.model, $scope.field);
             $scope.enum = SIREPO.APP_SCHEMA.enum;
 
             $scope.loadImage = function() {
-                $('.sr-shape-picker');
+                $(`#${shapeGrpId}`).html(SIREPO.SNIPPETS[$scope.model[$scope.field]]);
             };
+
+            $scope.loadImage();
         },
     };
 });

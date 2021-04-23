@@ -121,7 +121,6 @@ angular.element(document).ready(function() {
 
     function loadFromPath(path, type, callback, errCallback, finallyCallback) {
         let d = $.Deferred();
-        srdbg('PTH', `${path}${SIREPO.SOURCE_CACHE_KEY}`);
         $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (res) {
             callback(res);
         }, type)
@@ -222,7 +221,8 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
     $sanitizeProvider.enableSvg(true);
-    $sanitizeProvider.addValidAttrs(['id', 'style']);
+    $sanitizeProvider.addValidAttrs(['id', 'label', 'style']);
+    $sanitizeProvider.addValidElements(['select', 'option']);
     SIREPO.appFieldEditors = '';
 
     function addRoute(routeName) {

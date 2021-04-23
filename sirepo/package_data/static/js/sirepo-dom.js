@@ -65,6 +65,12 @@ class UIElement {  //extends UIOutput {
         }
     }
 
+    addChildren(arr) {
+        for (let c of arr) {
+            this.addChild(c);
+        }
+    }
+
     // add a class to the existing list, or set it.  Can be space-delimited
     // list
     addClasses(cl) {
@@ -115,6 +121,9 @@ class UIElement {  //extends UIOutput {
         return null;
     }
 
+    removeAttribute(name) {
+        delete this.attrs[name];
+    }
 
     removeClasses(cl) {
         let a = this.getClasses();
@@ -186,6 +195,61 @@ class UIWarning extends UIElement {
     }
 }
 
+
+// wrapper for raw html strings
+class UIHTML {
+    constructor(html) {
+        this.html = html;
+    }
+
+    toTemplate() {
+        return this.html;
+    }
+}
+
+class UIHTMLSnippet {
+    constructor(path, dataType) {
+        this.val = null;
+        let ok = false;
+        return UIHTMLSnippet.load(path, dataType, function (res) {
+            this.val = res;
+            ok = true;
+        }, function(res) {
+            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
+            // However we can get a successful read anyway; if so assign the response text
+            ok = res.status == 200;
+            this.val = res.responseText;
+        }, function (res) {
+            if (! ok) {
+                throw new Error(`${status}: Failed to load snippet ${name} from ${path}`);
+            }
+        });
+    }
+
+    static load(path, type, callback, errCallback, finallyCallback) {
+        let d = $.Deferred();
+        $.get(path, function (res) {
+            callback(res);
+        }, type)
+            .fail(function (res) {
+                if (errCallback) {
+                    errCallback(res);
+                }
+            })
+            .always(function (res) {
+                if (finallyCallback) {
+                    finallyCallback(res);
+                }
+                d.resolve();
+            });
+        return d.promise();
+    }
+
+    toTemplate() {
+        return this.val;
+    }
+}
+
 class UIInput extends UIElement {
     constructor(tag, id, attrs) {
         super(tag, id, attrs);
@@ -254,11 +318,35 @@ class UIEnumButton extends UIElement {
     }
 }
 
-class UIEnumOption extends UIElement {
-    constructor(enumItem) {
-        super('option');
-        this.addAttribute('label', `${enumItem.label}`);
-        this.addAttribute('value', `${enumItem.value}`);
+class UISelect extends UIElement {
+    constructor(id, attrs, options=[]) {
+        super('select', id, attrs);
+        this.addChildren(options);
+    }
+
+    // sugar
+    addOption(o) {
+        this.addChild(o);
+    }
+
+    addOptions(arr) {
+        this.addChildren(arr);
+    }
+}
+
+class UISelectOption extends UIElement {
+    constructor(id, label, value) {
+        super('option', id, [
+            new UIAttribute('label', label),
+            new UIAttribute('value', value),
+        ]);
+
+    }
+}
+
+class UIEnumOption extends UISelectOption {
+    constructor(id, enumItem) {
+        super(id, `${enumItem[1]}`, `${enumItem[0]}`);
     }
 }
 
@@ -412,6 +500,7 @@ class SVGTable extends SVGGroup {
 }
 
 SIREPO.DOM = {
+    SVGGroup:SVGGroup,
     SVGRect: SVGRect,
     SVGTable: SVGTable,
     SVGText: SVGText,
@@ -420,6 +509,9 @@ SIREPO.DOM = {
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
+    UIHTMLSnippet: UIHTMLSnippet,
     UIInput: UIInput,
+    UISelect: UISelect,
+    UISelectOption: UISelectOption,
     UIWarning: UIWarning,
 };
