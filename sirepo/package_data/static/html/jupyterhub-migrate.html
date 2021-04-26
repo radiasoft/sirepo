@@ -7,8 +7,10 @@
     <div class="col-sm-6 col-sm-offset-2">
       <h1>Merge your Jupyter account</h1>
       <p>We’re improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. This means you may need to do a one-time merge with your existing GitHub account to access Jupyter. Do you have an existing Jupyter account that you would like to merge with your Sirepo account?</p>
-      <button data-ng-click="jupyterhubmigrate.migrate(true)" class="btn btn-large btn-primary">Yes</button>
-      <button data-ng-click="jupyterhubmigrate.migrate(false)" class="btn btn-large btn-default">No</button>
+      <div data-disable-after-click="">
+        <button data-ng-click="jupyterhubmigrate.migrate(true)" class="btn btn-large btn-primary">Yes</button>
+        <button data-ng-click="jupyterhubmigrate.migrate(false)" class="btn btn-large btn-default">No</button>
+      </div>
     </div>
   </div>
 </div>
