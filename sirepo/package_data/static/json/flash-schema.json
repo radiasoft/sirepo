@@ -54,6 +54,10 @@
             ["REAL", "Real"],
             ["STRING", "String"]
         ],
+        "PlotType": [
+            ["heatmap", "Heatmap"],
+            ["3d", "Heatmap with Line-outs"]
+        ],
         "SetupArgumentDimension": [
             ["1", "1"],
             ["2", "2"],
@@ -712,14 +716,15 @@
             "var": ["Variable", "ValueList", ""]
         },
         "varAnimation": {
-            "amrGrid": ["AMR Grid", "Boolean", 1],
+            "amrGrid": ["AMR Grid", "Boolean", "0"],
             "axis": ["Axis", "Axis", "r"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""],
             "var": ["Variable Name", "ValueList", ""],
             "vmax": ["V Max", "OptionalFloat", "", "Maximum limit of color bar values."],
-            "vmin": ["V Min", "OptionalFloat", "", "Minimum limit of color bar values."]
+            "vmin": ["V Min", "OptionalFloat", "", "Minimum limit of color bar values."],
+            "plotType": ["Plot Type", "PlotType", "heatmap"]
         },
         "DATAFILES": {
             "wildcard": ["Wildcard", "String"]
@@ -880,13 +885,14 @@
         "varAnimation": {
             "title": "Variable Plot",
             "advanced": [
-                "amrGrid",
-                "axis",
                 "var",
-                "framesPerSecond",
-                "colorMap",
+                "axis",
                 "vmax",
                 "vmin",
+                "plotType",
+                "framesPerSecond",
+                "amrGrid",
+                "colorMap",
                 "notes"
             ]
         }

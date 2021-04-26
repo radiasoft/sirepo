@@ -17,7 +17,7 @@
         <div data-report-panel="parameter" data-model-name="oneDimensionProfileAnimation"></div>
       </div>
       <div ng-attr-class="{{ visualization.plotClass }}" data-ng-if="visualization.hasPlotVars">
-        <div data-report-panel="heatmap" data-model-name="varAnimation"></div>
+        <div data-report-panel="{{ visualization.reportType() }}" data-model-name="varAnimation"></div>
       </div>
     </div>
   </div>

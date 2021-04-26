@@ -254,16 +254,36 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
 
 
 def sim_frame_varAnimation(frame_args):
-    def _amr_grid():
+    def _amr_grid(all):
         if not int(frame_args.amrGrid):
             return None
         g = []
-        for b, _ in ds.all_data().blocks:
+        for b, _ in all.blocks:
             g.append([
                 [float(b.LeftEdge[0] / 100), float(b.RightEdge[0] / 100)],
                 [float(b.LeftEdge[1] / 100), float(b.RightEdge[1] / 100)],
             ])
         return g
+    _init_yt()
+    from yt.visualization import plot_window
+    from yt.visualization.fixed_resolution import FixedResolutionBuffer
+    f = frame_args.var
+    ds = yt.load(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex]))
+    axis = ['x', 'y', 'z'].index(frame_args.axis)
+    (bounds, center, display_center) =  plot_window.get_window_parameters(axis, 'c', None, ds)
+    slc = ds.slice(axis, center[axis], center=center)
+    all = ds.all_data()
+    dim = ds.domain_dimensions
+    scale = 2 ** all.max_level
+    if axis == 0:
+        buff_size = (dim[1] * scale, dim[2] * scale)
+    elif axis == 1:
+        buff_size = (dim[0] * scale, dim[2] * scale)
+    else:
+        buff_size = (dim[0] * scale, dim[1] * scale)
+
+    #TODO(pjm): antialis=True is important to get grid aligned?
+    d = FixedResolutionBuffer(slc, bounds, buff_size, True)[f]
 
     l = PKDict(
         cartesian=PKDict(
@@ -287,17 +307,9 @@ def sim_frame_varAnimation(frame_args):
             phi=PKDict(x='r', y='theta'),
         ),
     )
-    _init_yt()
-    f = frame_args.var
-    ds = yt.load(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex]))
+
     g = frame_args.sim_in.models.Grid.geometry
-    d = yt.SlicePlot(
-        ds,
-        frame_args.axis,
-        f,
-        origin='native',
-        aspect=1,
-    ).frb[f]
+    aspect_ratio = buff_size[1] / buff_size[0]
     return PKDict(
         global_max=float(frame_args.vmax) if frame_args.vmax else None,
         global_min=float(frame_args.vmin) if frame_args.vmin else None,
@@ -307,11 +319,15 @@ def sim_frame_varAnimation(frame_args):
         ),
         title='{}'.format(f),
         x_label=f'{l[g][frame_args.axis].x} [m]',
-        x_range=[ds.parameters['xmin'] / 100, ds.parameters['xmax'] / 100, d.shape[0]],
+        x_range=[ds.parameters['xmin'] / 100, ds.parameters['xmax'] / 100, d.shape[1]],
         y_label=f'{l[g][frame_args.axis].y} [m]',
-        y_range=[ds.parameters['ymin'] / 100, ds.parameters['ymax'] / 100, d.shape[1]],
+        y_range=[ds.parameters['ymin'] / 100, ds.parameters['ymax'] / 100, d.shape[0]],
         z_matrix=d.tolist(),
-        amr_grid=_amr_grid(),
+        amr_grid=_amr_grid(all),
+        aspectRatio=aspect_ratio,
+        summaryData=PKDict(
+            aspectRatio=aspect_ratio,
+        ),
     )
 
 

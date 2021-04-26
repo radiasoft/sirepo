@@ -262,11 +262,13 @@ class ParameterParser():
                     f'Unknown enum value for field: {ftype}: {v}'
                 res[fn] = enum_map[ftype][v.lower()]
             elif ftype == 'Boolean':
+                v = SetupParameterParser.remove_quotes(v)
                 m = re.search(r'^\.(true|false)\.$', v, re.IGNORECASE)
                 assert m, f'invalid boolean for field {f}: {v}'
                 res[fn] = '1' if m.group(1).lower() == 'true' else '0'
             else:
-                res[fn] = SetupParameterParser.parse_string_or_number(ftype, fields[f])
+                res[fn] = SetupParameterParser.parse_string_or_number(
+                    ftype, fields[f], maybe_quoted=True)
         return res
 
 
@@ -344,21 +346,28 @@ class SetupParameterParser():
         return '_'.join(filter(lambda x: not re.search(r'Main$', x), text.split('/')))
 
     @classmethod
-    def parse_string_or_number(cls, field_type, value):
+    def parse_string_or_number(cls, field_type, value, maybe_quoted=False):
+        if field_type == 'String' or field_type == 'OptionalString':
+            return cls.__parse_string(value)
+        if maybe_quoted:
+            value = cls.remove_quotes(value)
         if re.search(r'^(-)?(HUGE|TINY)', value):
             return cls.__parse_special_number(field_type, value)
         if field_type == 'Integer':
             assert re.search(r'^([\-|+])?\d+$', str(value)), \
                 f'{field.name} invalid flash integer: {value}'
             return int(value)
-        if field_type == 'String' or field_type == 'OptionalString':
-            return cls.__parse_string(value)
         if field_type == 'Float':
             value = re.sub(r'\+$', '', value)
             assert template_common.NUMERIC_RE.search(value), \
-                f'{field.name} invalid flash float: {value}'
+                f'invalid flash float: {value}'
             return float(value)
         assert False, f'unknown field type: {field_type}, value: {value}'
+
+    @classmethod
+    def remove_quotes(cls, value):
+        # any value may be quoted
+        return re.sub(r'^"(.*)"$', r'\1', value)
 
     def __create_views(self, schema):
         schema.view = self.views
@@ -369,7 +378,7 @@ class SetupParameterParser():
             )
 
     def __field_default(self, field):
-        if field.type == 'Constant':
+        if field.is_constant:
             assert field.default, f'missing constant value: {field.name}'
             return field.default
         return self.__value_for_type(field, field.default)
@@ -379,6 +388,7 @@ class SetupParameterParser():
             f'unknown field type: {field.type}'
         field.type = self._TYPE_MAP[field.type]
         if field.is_constant:
+            field.type = 'Constant'
             return
         if self.__is_file_field(field):
             field.type = 'SetupDatafilesOptional'
@@ -543,7 +553,7 @@ class SetupParameterParser():
     def __parse_string(cls, value):
         assert re.search(r'^".*"$', value), \
             f'invalid string: {value}'
-        return re.sub(r'^"(.*)"$', r'\1', value)
+        return cls.remove_quotes(value)
 
     def __parse_vars(self, in_stream):
         res = set()

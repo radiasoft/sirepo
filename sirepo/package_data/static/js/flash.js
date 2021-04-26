@@ -16,11 +16,15 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PlotFileArray" class="col-sm-7">',
           '<div data-plot-file-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
         '</div>',
+        '<div data-ng-switch-when="Constant" class="col-sm-3">',
+          '<div data-constant-field="" data-model-name="modelName" data-field="field"></div>',
+        '</div>',
     ].join('');
     SIREPO.FILE_UPLOAD_TYPE = {
         'problemFiles-archive': '.zip',
     };
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
+    SIREPO.PLOTTING_YMIN_ZERO = false;
     SIREPO.SINGLE_FRAME_ANIMATION = [
         'gridEvolutionAnimation',
         'oneDimensionProfileAnimation'
@@ -198,7 +202,7 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
     var self = this;
     self.simScope = $scope;
     self.flashService = flashService;
-    self.plotClass = 'col-md-6 col-xl-4';
+    self.plotClass = 'col-md-6';
 
     self.startSimulation = function() {
         appState.models.oneDimensionProfileAnimation.selectedPlotFiles = [];
@@ -209,7 +213,8 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
         SIREPO.APP_SCHEMA.enum.Axis = {
             'cartesian': [
                 ['x', 'x'],
-                ['y', 'y']
+                ['y', 'y'],
+                ['z', 'z'],
             ],
             'cylindrical': [
                 ['r', 'r'],
@@ -266,6 +271,8 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
         appState.saveQuietly(modelName);
     }
 
+    self.reportType = () => appState.applicationState().varAnimation.plotType;
+
     self.simHandleStatus = function(data) {
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
@@ -296,13 +303,13 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
         $scope.$on('varAnimation.summaryData', function(e, data) {
             var newPlotClass = self.plotClass;
             if (data.aspectRatio > 2) {
-                newPlotClass = 'col-md-5 col-xl-4';
+                newPlotClass = 'col-md-5';
             }
             else if (data.aspectRatio < 1) {
-                newPlotClass = 'col-md-12 col-xl-6';
+                newPlotClass = 'col-md-12 col-xl-8';
             }
             else {
-                newPlotClass = 'col-md-6 col-xl-4';
+                newPlotClass = 'col-md-6';
             }
             if (newPlotClass != self.plotClass) {
                 self.plotClass = newPlotClass;
@@ -506,6 +513,23 @@ SIREPO.app.directive('parametersPanel', function() {
     };
 });
 
+SIREPO.app.directive('constantField', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            field: '=',
+        },
+        template: '<div class="form-control-static text-right">{{ ::schemaValue() }}</div>',
+        controller: function($scope) {
+            $scope.schemaValue = () => {
+                return SIREPO.APP_SCHEMA.model[$scope.modelName][$scope.field][2];
+            };
+        },
+    };
+
+});
+
 SIREPO.app.directive('setupArgumentsPanel', function() {
     return {
         restrict: 'A',
@@ -610,3 +634,28 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
 //         },
 //     };
 // });
+
+SIREPO.viewLogic('varAnimationView', function(appState, panelState, $scope) {
+
+    function updateHeatmapFields() {
+        let isHeatmap = appState.models.varAnimation.plotType == 'heatmap';
+        panelState.showFields('varAnimation', [
+            'vmax', isHeatmap,
+            'vmin', isHeatmap,
+            'amrGrid', isHeatmap,
+        ]);
+    }
+
+    $scope.whenSelected = () => {
+        panelState.showField(
+            'varAnimation',
+            'axis',
+            appState.models.Grid_paramesh_paramesh4_Paramesh4dev
+                && appState.models.Grid_paramesh_paramesh4_Paramesh4dev.gr_pmrpNdim > 2);
+        updateHeatmapFields();
+    };
+
+    $scope.watchFields = [
+        ['varAnimation.plotType'], updateHeatmapFields,
+    ];
+});

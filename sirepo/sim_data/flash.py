@@ -30,7 +30,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        for m in ('setupArguments',):
+        for m in ('setupArguments', 'varAnimation'):
             cls.update_model_defaults(dm[m], m)
 
     @classmethod
@@ -250,11 +250,22 @@ class SimData(sirepo.sim_data.SimDataBase):
         for d in data.models.setupConfigDirectives:
             if d._type != 'DATAFILES':
                 continue
-            if d.wildcard not in filenames:
+            if '*' in d.wildcard:
+                search = re.sub(r'\*', '.*', d.wildcard)
+                found = False
+                for fn in filenames:
+                    if re.search(rf'{search}', fn):
+                        found = True
+                        break
+                if not found:
+                    e.append(d.wildcard)
+            elif d.wildcard not in filenames:
                 e.append(d.wildcard)
         if e:
+            zipname = data.models.problemFiles.archive
+            names = ', '.join(e)
             raise sirepo.util.UserAlert(
-                f'{e} missing from supplied datafiles {filenames}'
+                f'Zip Archive {zipname} is missing required DATAFILES {names}'
             )
 
     @classmethod
