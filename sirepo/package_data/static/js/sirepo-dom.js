@@ -207,77 +207,15 @@ class UIHTML {
     }
 }
 
-class UIRemoteHTMLSnippet {
-    constructor(path, dataType) {
-        this.val = null;
-        this.path = path;
-        this.dataType = dataType;
-        let self = this;
-        return (async () => {
-            await self.init();
-            return this;
-        })();
-        //this.init();
-        //let ok = false;
-        //let self = this;
-        /*
-        this.load(function (res) {
-            self.val = res;
-            ok = true;
-        }, function(res) {
-            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
-            // However we can get a successful read anyway; if so assign the response text
-            ok = res.status == 200;
-            self.val = res.responseText;
-        }, function (res) {
-            if (! ok) {
-                throw new Error(`${status}: Failed to load snippet ${name} from ${path}`);
-            }
-        });
 
-         */
-    }
-
-    //static async getInstance
-    init() {
-        let ok = false;
-        let self = this;
-        this.load(function (res) {
-            self.val = res;
-            ok = true;
-        }, function(res) {
-            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
-            // However we can get a successful read anyway; if so assign the response text
-            ok = res.status == 200;
-            self.val = res.responseText;
-        }, function (res) {
-            if (! ok) {
-                throw new Error(`${status}: Failed to load snippet ${name} from ${self.path}`);
-            }
-        });
-    }
-
-    load(callback, errCallback, finallyCallback) {
-        let d = $.Deferred();
-        $.get(this.path, function (res) {
-            callback(res);
-        }, this.dataType)
-            .fail(function (res) {
-                if (errCallback) {
-                    errCallback(res);
-                }
-            })
-            .always(function (res) {
-                if (finallyCallback) {
-                    finallyCallback(res);
-                }
-                d.resolve();
-            });
-        return d.promise();
+// wrapper for html strings. No parsing (yet)
+class UIRawHTML {
+    constructor(html) {
+        this.html = html;
     }
 
     toTemplate() {
-        return this.val;
+        return this.html;
     }
 }
 
@@ -540,8 +478,8 @@ SIREPO.DOM = {
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
-    UIRemoteHTMLSnippet: UIRemoteHTMLSnippet,
     UIInput: UIInput,
+    UIRawHTML: UIRawHTML,
     UISelect: UISelect,
     UISelectOption: UISelectOption,
     UIWarning: UIWarning,

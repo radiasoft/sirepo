@@ -3400,10 +3400,6 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
 SIREPO.app.directive('shapePicker', function(appState, panelState) {
 
-    let s = SIREPO.APP_SCHEMA.snippets;
-    let c = new SIREPO.DOM.UIRemoteHTMLSnippet(s[0].path, s[0].fileType);
-    srdbg(c.toTemplate());
-    const shapeDivId = 'sr-shape-picker';
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
         new SIREPO.DOM.UIAttribute('data-ng-change', 'loadImage()'),
@@ -3413,7 +3409,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         return new SIREPO.DOM.UIEnumOption('', o);
     }));
 
-    let svg = new SIREPO.DOM.UIElement('svg', shapeDivId, [
+    let svg = new SIREPO.DOM.UIElement('svg', 'sr-shape-picker', [
         new SIREPO.DOM.UIAttribute('width', 32),
         new SIREPO.DOM.UIAttribute('height', 32),
     ]);
@@ -3437,10 +3433,8 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
           '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            $scope.enum = SIREPO.APP_SCHEMA.enum;
-
             $scope.loadImage = function() {
-                $(`#${shapeGrpId}`).html(SIREPO.SNIPPETS[$scope.model[$scope.field]]);
+                $(`#${shapeGrpId}`).html(SIREPO.SNIPPETS[$scope.model[$scope.field]].toTemplate());
             };
 
             $scope.loadImage();

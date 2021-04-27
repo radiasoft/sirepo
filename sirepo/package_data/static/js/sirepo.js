@@ -153,7 +153,7 @@ angular.element(document).ready(function() {
             if (! ok) {
                 throw new Error(`${status}: Failed to load snippet ${b.name}`);
             }
-            SIREPO.SNIPPETS[b.name] = val;
+            SIREPO.SNIPPETS[b.name] = new SIREPO.DOM.UIRawHTML(val);
         });
     }
 

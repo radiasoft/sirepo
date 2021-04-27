@@ -379,7 +379,8 @@
             "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
-            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0]
+            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
+            "poleShape": ["Shape", "ObjectShape", "cuboid"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
