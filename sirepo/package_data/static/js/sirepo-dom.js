@@ -207,30 +207,61 @@ class UIHTML {
     }
 }
 
-class UIHTMLSnippet {
+class UIRemoteHTMLSnippet {
     constructor(path, dataType) {
         this.val = null;
-        let ok = false;
-        return UIHTMLSnippet.load(path, dataType, function (res) {
-            this.val = res;
+        this.path = path;
+        this.dataType = dataType;
+        let self = this;
+        return (async () => {
+            await self.init();
+            return this;
+        })();
+        //this.init();
+        //let ok = false;
+        //let self = this;
+        /*
+        this.load(function (res) {
+            self.val = res;
             ok = true;
         }, function(res) {
             // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
             // However we can get a successful read anyway; if so assign the response text
             ok = res.status == 200;
-            this.val = res.responseText;
+            self.val = res.responseText;
         }, function (res) {
             if (! ok) {
                 throw new Error(`${status}: Failed to load snippet ${name} from ${path}`);
             }
         });
+
+         */
     }
 
-    static load(path, type, callback, errCallback, finallyCallback) {
+    //static async getInstance
+    init() {
+        let ok = false;
+        let self = this;
+        this.load(function (res) {
+            self.val = res;
+            ok = true;
+        }, function(res) {
+            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
+            // However we can get a successful read anyway; if so assign the response text
+            ok = res.status == 200;
+            self.val = res.responseText;
+        }, function (res) {
+            if (! ok) {
+                throw new Error(`${status}: Failed to load snippet ${name} from ${self.path}`);
+            }
+        });
+    }
+
+    load(callback, errCallback, finallyCallback) {
         let d = $.Deferred();
-        $.get(path, function (res) {
+        $.get(this.path, function (res) {
             callback(res);
-        }, type)
+        }, this.dataType)
             .fail(function (res) {
                 if (errCallback) {
                     errCallback(res);
@@ -509,7 +540,7 @@ SIREPO.DOM = {
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
-    UIHTMLSnippet: UIHTMLSnippet,
+    UIRemoteHTMLSnippet: UIRemoteHTMLSnippet,
     UIInput: UIInput,
     UISelect: UISelect,
     UISelectOption: UISelectOption,

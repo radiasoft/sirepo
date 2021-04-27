@@ -3318,6 +3318,9 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
 SIREPO.app.directive('shapePicker', function(appState, panelState) {
 
+    let s = SIREPO.APP_SCHEMA.snippets;
+    let c = new SIREPO.DOM.UIRemoteHTMLSnippet(s[0].path, s[0].fileType);
+    srdbg(c.toTemplate());
     const shapeDivId = 'sr-shape-picker';
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
