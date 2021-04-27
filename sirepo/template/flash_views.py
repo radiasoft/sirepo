@@ -17,6 +17,23 @@ def _fields(templates, values):
 
 class SpecializedViews():
     _LABELS = PKDict(
+        UnitSystem='System of Units',
+        cfl='Courant Factor',
+        eosMode='Eos Mode',
+        eosModeInit='Initial Eos Mode',
+        geometry='Grid Geometry',
+        grav_boundary_type='Boundary Condition',
+        lrefine_max='Maximum Refinement Level',
+        lrefine_min='Minimum Refinement Level',
+        refine_var_count='Refine Variable Count',
+        threadHydroBlockList='Block List Threading',
+        threadHydroWithinBlock='Within Block Threading',
+        updateHydroFluxes='Update Hydro Fluxes',
+        useGravity='Use Gravity',
+        useHydro='Use Hydro Calculation',
+        use_cma_advection='Use CMA Advection',
+        use_cma_flattening='Use CMA Flattening',
+        useFlame='Use Flame',
         **_fields([
             ['{}l_boundary_type', '{} Lower Boundary Type'],
             ['{}r_boundary_type', '{} Upper Boundary Type'],
@@ -24,24 +41,18 @@ class SpecializedViews():
             ['{}max', '{} Maximum'],
             ['nblock{}', 'Blocks in {}'],
         ], ['x', 'y', 'z']),
-        lrefine_min='Minimum Refinement Level',
-        lrefine_max='Maximum Refinement Level',
-        refine_var_count='Refine Variable Count',
         **_fields([
             ['refine_var_{}', 'Name Variable {}'],
             ['refine_cutoff_{}', 'Refine Variable {}'],
             ['derefine_cutoff_{}', 'Derefine Variable {}'],
         ], [str(v) for v in range(1, 7)]),
-        geometry='Grid Geometry',
-        eosModeInit='Initial Eos Mode',
-        eosMode='Eos Mode',
-        grav_boundary_type='Boundary Condition',
-        useGravity='Use Gravity',
-        gconst='Acceleration Constant',
-        gdirec='Direction of Acceleration',
     )
 
     _VIEW_BY_NAME = PKDict(
+        physics_sourceTerms_Flame=PKDict(
+            advanced=[],
+            basic=['useFlame'],
+        ),
         Grid=PKDict(
             basic=[
                 ['Main', [
@@ -100,11 +111,24 @@ class SpecializedViews():
             ],
         ),
         physics_Gravity=PKDict(
+            advanced=[],
             basic=[
                 'useGravity',
-                'grav_boundary_type',
-                'physics_Gravity_Constant.gconst',
-                'physics_Gravity_Constant.gdirec',
+                'grav_boundary_type'
+            ],
+        ),
+        physics_Hydro=PKDict(
+            advanced=[
+                'threadHydroBlockList',
+                'threadHydroWithinBlock',
+                'updateHydroFluxes',
+                'use_cma_advection',
+                'use_cma_flattening',
+            ],
+            basic=[
+                'useHydro',
+                'cfl',
+                'UnitSystem',
             ],
         ),
     )
@@ -115,21 +139,22 @@ class SpecializedViews():
         return schema
 
     def __update_labels(self, schema):
-        self._LABELS['xl_boundary_type']
-        for m in schema.model:
-            for f in schema.model[m]:
-                if f in self._LABELS:
-                    info = schema.model[m][f]
-                    if info[3]:
-                        info[3] = '{} {}'.format(f, info[3])
-                    else:
-                        info[3] = f
-                    info[0] = self._LABELS[f]
+        for m in schema.model.values():
+            for f in m:
+                if f not in self._LABELS:
+                    continue
+                info = m[f]
+                if len(info) == 3:
+                    info.append(f)
+                elif info[3]:
+                    info[3] = '{} {}'.format(f, info[3])
+                else:
+                    info[3] = f
+                info[0] = self._LABELS[f]
 
     def __update_views(self, schema):
-        for n in self._VIEW_BY_NAME:
+        for n, v in self._VIEW_BY_NAME.items():
             if n not in schema.view:
                 continue
-            v = self._VIEW_BY_NAME[n]
             for f in v:
                 schema.view[n][f] = v[f]
