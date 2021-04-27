@@ -503,6 +503,33 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
     };
 });
 
+SIREPO.app.directive('disableAfterClick', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        template: [
+            '<fieldset ng-disabled="isDisabled" data-ng-click="click()"><ng-transclude></ng-transclude>'
+        ].join(''),
+        controller: function($scope, $timeout) {
+            $scope.isDisabled = false;
+
+
+            $scope.click = function() {
+                $scope.isDisabled = true;
+            };
+
+
+            $scope.$on('sr-clearDisableAfterClick', () => {
+                // allow disable to be set before clearing it
+                $timeout(function(){
+                    $scope.isDisabled = false;
+                });
+            });
+        },
+    };
+
+});
+
 SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -2674,7 +2701,9 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
               '</div>',
               '<div class="form-group">',
                 '<div class="col-sm-offset-2 col-sm-10">',
-                  '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
+                  ' <div data-disable-after-click="">',
+                    '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
+                  '</div>',
                   '<p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>',
                 '</div>',
               '</div>',
@@ -2705,11 +2734,11 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 if (! ( e && e.match(/^.+@.+\..+$/) )) {
                     $scope.showWarning = true;
                     $scope.warningText = 'Email address is invalid. Please update and resubmit.';
+                    $scope.$broadcast('sr-clearDisableAfterClick');
                     return;
                 }
                 $scope.showWarning = false;
                 $scope.data.sentEmail = $scope.data.email;
-                //TODO(robnagler): change button to sending
                 requestSender.sendRequest(
                     'authEmailLogin',
                     handleResponse,
