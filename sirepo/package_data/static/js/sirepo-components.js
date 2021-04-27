@@ -1606,19 +1606,6 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
         ].join(''),
         controller: function(appState, stringsService, $sce, $scope) {
 
-            //TODO(pjm): move into stringsService
-            function format(template, args) {
-                return template.replace(
-                    /{(\w*)}/g,
-                    function(m, k) {
-                        if (! (k in args)) {
-                            throw new Error('k=' + k + ' not found in args=' + args);
-                        }
-                        return args[k];
-                    }
-                );
-            }
-
             $scope.message = function() {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
@@ -1640,7 +1627,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 };
                 return  $sce.trustAsHtml(
                     '<div>' +
-                    format(s.simulationState + c, a) +
+                    stringsService.formatTemplate(s.simulationState + c, a) +
                     '</div>'
                 );
             };
@@ -3629,7 +3616,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
               '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>',
               '<div data-ng-show="simState.isStateError()">',
-                '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
+                '<div class="col-sm-12">{{ stateAsText() }}</div>',
               '</div>',
               '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">',
                 '<div class="col-sm-12" data-simulation-status-timer="simState"></div>',
@@ -3694,6 +3681,15 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.startButtonLabel = function() {
                 return stringsService.startButtonLabel();
+            };
+
+            $scope.stateAsText = function() {
+                if ($scope.errorMessage()) {
+                    return stringsService.formatTemplate(
+                        SIREPO.APP_SCHEMA.strings.genericSimulationError
+                    );
+                }
+                return callSimState('stateAsText');
             };
 
             $scope.stopButtonLabel = function() {
