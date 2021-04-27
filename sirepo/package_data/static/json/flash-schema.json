@@ -643,11 +643,25 @@
                 "templateUrl": "/static/html/flash-config.html"
             }
         },
+        "physics": {
+            "route": "/physics/:simulationId",
+            "config": {
+                "controller": "PhysicsController as physics",
+                "templateUrl": "/static/html/flash-physics.html"
+            }
+        },
         "setup": {
             "route": "/setup/:simulationId",
             "config": {
                 "controller": "SetupController as setup",
                 "templateUrl": "/static/html/flash-setup.html"
+            }
+        },
+        "source": {
+            "route": "/source/:simulationId",
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/flash-source.html"
             }
         },
         "params": {

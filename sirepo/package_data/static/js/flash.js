@@ -42,6 +42,13 @@ SIREPO.app.factory('flashService', function(appState, panelState, $rootScope) {
         return 'animation';
     };
 
+    self.getNdim = function() {
+        if (appState.models.Grid_paramesh_paramesh4_Paramesh4dev) {
+            return appState.models.Grid_paramesh_paramesh4_Paramesh4dev.gr_pmrpNdim;
+        }
+        return 0;
+    };
+
     self.updateSchema = () => {
         const schema = appState.clone(ORIGINAL_SCHEMA);
         const flashSchema = appState.models.flashSchema;
@@ -76,6 +83,7 @@ SIREPO.app.controller('ParamsController', function(appState) {
 SIREPO.app.controller('PhysicsController', function(flashService) {
     var self = this;
     self.flashService = flashService;
+    self.panels = ['physics_Hydro', 'physics_sourceTerms_Flame', 'physics_Gravity'];
 });
 
 SIREPO.app.controller('RuntimeParamsController', function() {
@@ -122,41 +130,41 @@ SIREPO.app.controller('SourceController', function(appState, flashService, panel
     var self = this;
     self.flashService = flashService;
 
-    function setReadOnly(modelName) {
-        [
-            'sim_tionWall', 'sim_tionFill', 'sim_tradWall', 'sim_tradFill',
-        ].forEach(function(f) {
-            panelState.enableField(modelName, f, false);
-        });
-        // TODO(e-carlin): If we support more than alumina for wall species
-        // then we should remove this readonly or keep it and update the Z and A
-        // when the species changes.
-        ['ms_wallA', 'ms_wallZ'].forEach(function(f) {
-            panelState.enableField('Multispecies', f, false);
-        });
-    }
+    // function setReadOnly(modelName) {
+    //     [
+    //         'sim_tionWall', 'sim_tionFill', 'sim_tradWall', 'sim_tradFill',
+    //     ].forEach(function(f) {
+    //         panelState.enableField(modelName, f, false);
+    //     });
+    //     // TODO(e-carlin): If we support more than alumina for wall species
+    //     // then we should remove this readonly or keep it and update the Z and A
+    //     // when the species changes.
+    //     ['ms_wallA', 'ms_wallZ'].forEach(function(f) {
+    //         panelState.enableField('Multispecies', f, false);
+    //     });
+    // }
 
-    function makeTempsEqual(modelField) {
-        var t = modelField.indexOf('Fill') >= 0 ? 'Fill' : 'Wall';
-        var s = appState.parseModelField(modelField);
-        ['ion', 'rad'].forEach(function(f) {
-            appState.models[flashService.simulationModel()]['sim_t' + f + t] = appState.models[s[0]][s[1]];
-        });
-    }
+    // function makeTempsEqual(modelField) {
+    //     var t = modelField.indexOf('Fill') >= 0 ? 'Fill' : 'Wall';
+    //     var s = appState.parseModelField(modelField);
+    //     ['ion', 'rad'].forEach(function(f) {
+    //         appState.models[flashService.simulationModel()]['sim_t' + f + t] = appState.models[s[0]][s[1]];
+    //     });
+    // }
 
-    function processCurrType() {
-        var modelName = flashService.simulationModel();
+    // function processCurrType() {
+    //     var modelName = flashService.simulationModel();
 
-        function showField(field, isShown) {
-            panelState.showField(modelName, field, isShown);
-        }
+    //     function showField(field, isShown) {
+    //         panelState.showField(modelName, field, isShown);
+    //     }
 
-        var isFile = appState.models[modelName].sim_currType === '2';
-        showField('sim_currFile', isFile);
-        ['sim_peakCurr', 'sim_riseTime'].forEach(function(f) {
-            showField(f, !isFile);
-        });
-    }
+    //     var isFile = appState.models[modelName].sim_currType === '2';
+    //     showField('sim_currFile', isFile);
+    //     ['sim_peakCurr', 'sim_riseTime'].forEach(function(f) {
+    //         showField(f, !isFile);
+    //     });
+    // }
 
     appState.whenModelsLoaded($scope, function() {
         // if (! flashService.isCapLaser()) {
@@ -344,10 +352,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>',
-                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'config\')}"><a href data-ng-click="nav.openSection(\'config\')"><span class="glyphicon glyphicon-list"></span> Config</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'setup\')}"><a href data-ng-click="nav.openSection(\'setup\')"><span class="glyphicon glyphicon-tasks"></span> Setup</a></li>',
+                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>',
+                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>',
                   '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'params\')}"><a href data-ng-click="nav.openSection(\'params\')"><span class="glyphicon glyphicon-edit"></span> Parameters</a></li>',
                   // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'runtimeParams\')}"><a href data-ng-click="nav.openSection(\'runtimeParams\')"><span class="glyphicon glyphicon-scale"></span> Runtime Params</a></li>',
                   '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
@@ -635,7 +643,7 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
 //     };
 // });
 
-SIREPO.viewLogic('varAnimationView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('varAnimationView', function(appState, flashService, panelState, $scope) {
 
     function updateHeatmapFields() {
         let isHeatmap = appState.models.varAnimation.plotType == 'heatmap';
@@ -650,8 +658,7 @@ SIREPO.viewLogic('varAnimationView', function(appState, panelState, $scope) {
         panelState.showField(
             'varAnimation',
             'axis',
-            appState.models.Grid_paramesh_paramesh4_Paramesh4dev
-                && appState.models.Grid_paramesh_paramesh4_Paramesh4dev.gr_pmrpNdim > 2);
+            flashService.getNdim() > 2);
         updateHeatmapFields();
     };
 

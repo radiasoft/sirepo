@@ -8,6 +8,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo.template import template_common
+from sirepo.template import flash_views
 import os.path
 import re
 
@@ -375,6 +376,7 @@ class SetupParameterParser():
             schema.view[m].pkupdate(
                 fieldsPerTab=8,
                 advanced=[v for v in schema.model[m].keys()],
+                basic=[],
             )
 
     def __field_default(self, field):
@@ -436,7 +438,7 @@ class SetupParameterParser():
                         fields[fname].append(self.__value_for_type(field, field.max))
             res.model[name] = fields
         self.__create_views(res)
-        return res
+        return flash_views.SpecializedViews().update_schema(res)
 
     def __init_schema(self):
         enums = PKDict()
