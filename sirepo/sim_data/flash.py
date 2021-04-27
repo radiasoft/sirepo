@@ -74,10 +74,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _add_default_views(cls, flashSchema):
-        flashSchema.view.Driver.basic = [
+        flashSchema.view.Driver_DriverMain.basic = [
             'tmax',
             'dtinit',
-            'IO.plotFileIntervalTime',
+            # TODO(e-carlin):  IO may not be available
+            'IO_IOMain.plotFileIntervalTime',
             'allowDtSTSDominate',
         ]
 

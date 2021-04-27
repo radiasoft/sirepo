@@ -43,8 +43,8 @@ SIREPO.app.factory('flashService', function(appState, panelState, $rootScope) {
     };
 
     self.getNdim = function() {
-        if (appState.models.Grid_paramesh_paramesh4_Paramesh4dev) {
-            return appState.models.Grid_paramesh_paramesh4_Paramesh4dev.gr_pmrpNdim;
+        if (appState.models.Grid_GridMain_paramesh_paramesh4_Paramesh4dev) {
+            return appState.models.Grid_GridMain_paramesh_paramesh4_Paramesh4dev.gr_pmrpNdim;
         }
         return 0;
     };
@@ -80,10 +80,22 @@ SIREPO.app.controller('ParamsController', function(appState) {
     self.appState = appState;
 });
 
-SIREPO.app.controller('PhysicsController', function(flashService) {
+SIREPO.app.controller('PhysicsController', function(appState, flashService) {
     var self = this;
     self.flashService = flashService;
-    self.panels = ['physics_Hydro', 'physics_sourceTerms_Flame', 'physics_Gravity'];
+    self.panels = [];
+    [
+        'physics_Diffuse_DiffuseMain',
+        'physics_Gravity_GravityMain',
+        'physics_Hydro_HydroMain',
+        'physics_RadTrans_RadTransMain_MGD',
+        'physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser',
+        'physics_sourceTerms_Flame_FlameMain',
+    ].forEach((m) => {
+        if (m in appState.models) {
+            self.panels.push(m);
+        }
+    });
 });
 
 SIREPO.app.controller('RuntimeParamsController', function() {
@@ -242,10 +254,10 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
                 ['r', 'r'],
                 ['phi', 'phi']
             ]
-        }[appState.models.Grid.geometry];
+        }[appState.models.Grid_GridMain.geometry];
         if (appState.models.setupArguments.d === 3) {
             let a = 'z';
-            if (['cylindrical', 'spherical'].includes(appState.models.Grid.geometry)) {
+            if (['cylindrical', 'spherical'].includes(appState.models.Grid_GridMain.geometry)) {
                 a = 'phi';
             }
             SIREPO.APP_SCHEMA.enum.Axis.push([a, a]);
