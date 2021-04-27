@@ -521,7 +521,7 @@
                 "phi": 0.0,
                 "phi0": 0.0,
                 "psi": 0.0,
-                "rfcavity_type": "",
+                "rfcavity_type": "STANDING",
                 "rmax": 0.0,
                 "rmin": 0.0,
                 "shunt": 0.0,
