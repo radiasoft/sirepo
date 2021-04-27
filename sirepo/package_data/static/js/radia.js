@@ -1136,7 +1136,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                         continue;
                     }
                     appState.models[rpt].fieldPath = r;
-                    appState.saveChanges(rpt);
+                    appState.saveQuietly(rpt);
                     break;
                 }
             }
