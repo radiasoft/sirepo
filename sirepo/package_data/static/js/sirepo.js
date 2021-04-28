@@ -1007,6 +1007,21 @@ SIREPO.app.factory('stringsService', function() {
         formatKey: (name) => {
             return ucfirst(strings[name]);
         },
+        formatTemplate: (template, args) => {
+            return template.replace(
+                /{(\w*)}/g,
+                function(m, k) {
+                    if (! (k in (args || {}))) {
+                        if (! (k in strings)) {
+                            throw new Error(`k=${k} not found in args=${args} or strings=${strings}`);
+                        }
+                        return strings[k];
+                    }
+                    return args[k];
+                }
+            );
+
+        },
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
