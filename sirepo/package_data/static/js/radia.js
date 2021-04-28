@@ -3424,7 +3424,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
     let shapes = {};
     for (let name in SIREPO.APP_SCHEMA.constants.geomObjShapes) {
         const s = SIREPO.APP_SCHEMA.constants.geomObjShapes[name];
-        shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, s.offsets, s.doClose);
+        shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, s.offsets, s.doClose, s.stroke, s.fill);
     }
 
     return {
@@ -3442,7 +3442,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         ].join(''),
         controller: function($scope, $element) {
             $scope.loadImage = function() {
-                $(`#${shapeGrpId}`).html(SIREPO.SNIPPETS[$scope.model[$scope.field]].toTemplate());
+                $(`#${shapeGrpId}`).html(shapes[$scope.model[$scope.field]].toTemplate());
             };
 
             $scope.loadImage();
