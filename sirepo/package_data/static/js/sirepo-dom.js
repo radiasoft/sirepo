@@ -320,6 +320,14 @@ class UIEnumOption extends UISelectOption {
 }
 
 
+class SVGContainer extends UIElement {
+    constructor(id, width, height) {
+        super('svg', id, [
+            new UIAttribute('width', width),
+            new UIAttribute('height', height),
+        ]);
+    }
+}
 
 class SVGGroup extends UIElement {
     constructor(id) {
@@ -469,6 +477,7 @@ class SVGTable extends SVGGroup {
 }
 
 SIREPO.DOM = {
+    SVGContainer: SVGContainer,
     SVGGroup:SVGGroup,
     SVGRect: SVGRect,
     SVGTable: SVGTable,

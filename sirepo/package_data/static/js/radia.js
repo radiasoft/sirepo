@@ -1134,7 +1134,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                         continue;
                     }
                     appState.models[rpt].fieldPath = r;
-                    appState.saveChanges(rpt);
+                    appState.saveQuietly(rpt);
                     break;
                 }
             }
@@ -3409,10 +3409,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         return new SIREPO.DOM.UIEnumOption('', o);
     }));
 
-    let svg = new SIREPO.DOM.UIElement('svg', 'sr-shape-picker', [
-        new SIREPO.DOM.UIAttribute('width', 32),
-        new SIREPO.DOM.UIAttribute('height', 32),
-    ]);
+    let svg = new SIREPO.DOM.SVGContainer('sr-shape-picker', 32, 32);
     svg.addChild(new SIREPO.DOM.SVGRect('sr-shape-picker-border', 1, 1, 30, 30, 'fill: none; stroke: black'));
 
     const shapeGrpId = 'sr-shape-picker-shape';

@@ -59,7 +59,7 @@
         },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
-        "rawExamples": ["Dipole", "Wiggler"],
+        "rawExamples": ["Dipole", "SAGU", "Wiggler"],
         "toolbarItems": [
             {
                 "canDrag": true,
@@ -215,6 +215,12 @@
             ["AFK502", "Aperam 502 (nonlinnear isotropic)"],
             ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
+        ],
+        "ObjectEdge": [
+            ["bottom", "Bottom"],
+            ["left", "Left"],
+            ["right", "Right"],
+            ["top", "Top"]
         ],
         "ObjectShape": [
             ["cuboid", "Cuboid"],
@@ -434,6 +440,17 @@
         "material": {
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
+        },
+        "objectChamfer": {
+            "angle": ["Angle (deg)", "Float", 45.0],
+            "amount": ["Cut Distance (mm)", "Float", 1.0],
+            "edge": ["Cut Edge", "ObjectEdge", "top"]
+        },
+        "objectShape": {
+            "chamfers": ["Chamfers", "ChamferList", []],
+            "name": ["Name", "String", ""],
+            "screenAxis": ["_", "BeamAxis", "y"],
+            "shape": ["Shape", "ObjectShape", "cuboid"]
         },
         "racetrack": {
             "_super": ["_", "model", "geomObject"],
