@@ -8,7 +8,7 @@ var srdbg = SIREPO.srdbg;
 class UIAttribute {  //extends UIOutput {
     constructor(name, value) {
         this.name = name;
-        this.value = value;
+        this.setValue(value);
     }
 
     static attrsToTemplate(arr) {
@@ -17,6 +17,10 @@ class UIAttribute {  //extends UIOutput {
             s += `${attr.toTemplate()} `;
         }
         return s;
+    }
+
+    setValue(value) {
+        this.value = value;
     }
 
     toTemplate() {
@@ -48,7 +52,7 @@ class UIElement {  //extends UIOutput {
             a = new UIAttribute(name, value);
             this.attrs[name] = a;
         }
-        a.value = value;
+        a.setValue(value);
     }
 
     addAttributes(arr) {
@@ -141,13 +145,17 @@ class UIElement {  //extends UIOutput {
         this.setClass(arr.join(' '));
     }
 
+    setAttribute(name, val) {
+        this.getAttr(name)
+    }
+
     setClass(cl) {
         let a = this.getClasses();
         if (! a) {
             this.addAttribute('class', cl);
             return;
         }
-        a.value = cl;
+        a.setValue(cl);
     }
 
     setText(str) {
@@ -335,6 +343,32 @@ class SVGGroup extends UIElement {
     }
 }
 
+class SVGPath extends UIElement {
+    constructor(id, points, offsets, doClose, strokeColor, fillColor) {
+        super('path', id);
+        this.doClose = doClose;
+        this.fillColor = fillColor;
+        this.offsets = offsets;
+        this.points = points;
+        this.strokeColor = strokeColor;
+
+        this.addAttribute('d', '');
+        this.addAttribute('fill', fillColor);
+        this.addAttribute('stroke', strokeColor);
+        this.update();
+    }
+
+    update() {
+        let p = `M${this.offsets[0]},${this.offsets[0]} `;
+        for (let pt of this.points) {
+            p += `L${pt[0]},${pt[1]} `;
+        }
+        p += (this.doClose ? 'z' : '');
+        this.getAttr('d').setValue(p);
+    }
+
+}
+
 class SVGRect extends UIElement {
     constructor(id, x, y, width, height, style, doRound) {
         super('rect', id);
@@ -479,6 +513,7 @@ class SVGTable extends SVGGroup {
 SIREPO.DOM = {
     SVGContainer: SVGContainer,
     SVGGroup:SVGGroup,
+    SVGPath: SVGPath,
     SVGRect: SVGRect,
     SVGTable: SVGTable,
     SVGText: SVGText,

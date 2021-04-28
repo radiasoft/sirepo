@@ -3400,6 +3400,10 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
 SIREPO.app.directive('shapePicker', function(appState, panelState) {
 
+    const width = 64;
+    const height = 64;
+    const inset = 1;
+
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
         new SIREPO.DOM.UIAttribute('data-ng-change', 'loadImage()'),
@@ -3409,12 +3413,19 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         return new SIREPO.DOM.UIEnumOption('', o);
     }));
 
-    let svg = new SIREPO.DOM.SVGContainer('sr-shape-picker', 32, 32);
-    svg.addChild(new SIREPO.DOM.SVGRect('sr-shape-picker-border', 1, 1, 30, 30, 'fill: none; stroke: black'));
+    let svg = new SIREPO.DOM.SVGContainer('sr-shape-picker', width, height);
+    svg.addChild(new SIREPO.DOM.SVGRect(
+        'sr-shape-picker-border', inset, inset, width - 2 * inset, height - 2 * inset, 'fill: none; stroke: black')
+    );
 
     const shapeGrpId = 'sr-shape-picker-shape';
-    let shapeGrp = new SIREPO.DOM.SVGGroup(shapeGrpId);
-    svg.addChild(shapeGrp);
+    svg.addChild(new SIREPO.DOM.SVGGroup(shapeGrpId));
+
+    let shapes = {};
+    for (let name in SIREPO.APP_SCHEMA.constants.geomObjShapes) {
+        const s = SIREPO.APP_SCHEMA.constants.geomObjShapes[name];
+        shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, s.offsets, s.doClose);
+    }
 
     return {
         restrict: 'A',
@@ -3426,7 +3437,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         template: [
           '<div data-ng-class="fieldClass">',
             sel.toTemplate(),
-            '<svg class="sr-shape-picker" width="32" height="32"><rect width="30" height="30" x="1" y="1" style="fill: none; stroke: black"></rect><g id="sr-shape-picker-shape"></g></svg>',
+            svg.toTemplate(),
           '</div>',
         ].join(''),
         controller: function($scope, $element) {

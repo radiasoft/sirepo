@@ -38,6 +38,26 @@
                 "rotateClone": ["name", "angle", "axis", "center"]
             }
         },
+        "geomObjShapes": {
+            "cuboid": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "offsets": [0, 0],
+                "points": [
+                    [24, 0], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
+            "tee": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "offsets": [0, 0],
+                "points": [
+                    [24, 0], [24, 12], [18, 12], [18, 24], [6, 24], [6, 16], [6, 12], [0, 12]
+                ],
+                "stroke": "black"
+            }
+        },
         "geomTypeLines": "lines",
         "geomTypePolys": "polygons",
         "geomTypeVectors": "vectors",
