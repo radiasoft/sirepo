@@ -252,7 +252,6 @@ def kick_map(
         g_id, begin, dir_long, num_periods, period_length, dir_trans, range_trans_1,
         num_pts_trans_1, range_trans_2, num_pts_trans_2
     ):
-    import time
     km = radia.FldFocKickPer(
         g_id, begin, dir_long, period_length, num_periods, dir_trans, range_trans_1,
         num_pts_trans_1, range_trans_2, num_pts_trans_2

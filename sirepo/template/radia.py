@@ -91,14 +91,11 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         res.percentComplete = 0.0
         return res
-    res.percentComplete = 100
-    res.frameCount = 1
-    if report == 'solver':
-        res.solution = _read_solution(data.simulationId)
-    #if report == 'kickMap':
-    #    res = _kick_map_plot(data.simulationId, data.models.kickMap)
-    return res
-
+    return PKDict(
+        percentComplete=100,
+        frameCount=1,
+        solution=_read_solution(data.simulationId),
+    )
 
 def create_archive(sim):
     if sim.filename.endswith('dat'):
