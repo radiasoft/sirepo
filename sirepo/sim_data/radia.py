@@ -26,16 +26,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
-    def _is_parallel(cls, analysis_model):
-        return False
-        #m = analysis_model.report if isinstance(analysis_model, dict) else analysis_model
-        #is_p = m in (
-        #    'kickMap',
-        #)
-        #pkdp(f'CHECK IS_P FOR {m}: {is_p}')
-        #return is_p
-
-    @classmethod
     def __dynamic_defaults(cls, data, model):
         """defaults that depend on the current data"""
         return PKDict()
