@@ -40,7 +40,7 @@ _CODES = PKDict(
             name='SPEAR3',
             reports=(
                 PKDict(report='bunchReport2', binary_data_file=False),
-                PKDict(report='elementAnimation62-3', binary_data_file=True),
+                PKDict(report='elementAnimation62-20', binary_data_file=True),
             ),
         ),
     ),
@@ -190,10 +190,11 @@ class _App(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(sim_type={} email={})',
+            '{}(sim_type={} email={} uid={})',
             self.__class__.__name__,
             self.sim_type,
             self.client.email,
+            self.client.uid,
         )
 
 
@@ -211,6 +212,7 @@ class _Client(PKDict):
     def __init__(self, email, **kwargs):
         super().__init__(
             email=email,
+            uid='<unknown>',
             _headers=PKDict({'User-Agent': 'test_http'}),
             **kwargs
         )
@@ -258,6 +260,10 @@ class _Client(PKDict):
                 PKDict(displayName=self.email),
                 self,
             )
+        self.uid = re.search(
+            r'"uid": "(\w+)"',
+            await self.get('/auth-state', self),
+        ).group(1)
         return self
 
     def parse_response(self, resp, expect_binary_body=False):
@@ -288,9 +294,10 @@ class _Client(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(email={})',
+            '{}(email={} uid={})',
             self.__class__.__name__,
             self.email,
+            self.uid,
         )
 
     async def post(self, uri, data, caller):
@@ -323,7 +330,7 @@ class _Client(PKDict):
         yield
         if 'run-status' not in uri:
             pkdlog(
-                '{} {} elapsed_time={}',
+                '{} {} elapsed_time={:.6}',
                 uri,
                 caller.pkdebug_str(),
                 time.time() - s,
@@ -417,12 +424,14 @@ class _Sim(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(email={} sim_type={} sid={} report={} task={} waiting_on={})',
+            '{}(email={} sim_type={} computeJid={} task={} waiting_on={})',
             self.__class__.__name__,
             self._app.client.email,
             self._app.sim_type,
-            self._sid,
-            self._report,
+            self._app.sim_data.parse_jid(
+                PKDict(simulationId=self._sid, report=self._report),
+                uid=self._app.client.uid,
+            ),
             self.get('_task_id', '<unknown>'),
             self.get('_waiting_on', '<unknown>'),
         )
@@ -448,6 +457,8 @@ class _Sim(PKDict):
         g = self._app.sim_data.frame_id(self._data, next_request, self._report, 0)
         with self._set_waiting_on_status():
             f = await self._app.client.get('/simulation-frame/' + g, self)
+        assert f.state == 'completed', \
+            f'{self.pkdebug_str()} expected state completed frame={f}'
         assert 'title' in f, \
             '{} no title in frame={}'.format(self.pkdebug_str(), f)
         with self._set_waiting_on_status():
@@ -520,6 +531,7 @@ def _init():
     global cfg
     if cfg:
         return
+    sirepo.util.init()
     c = sirepo.pkcli.service._cfg()
     cfg = pkconfig.init(
         emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),

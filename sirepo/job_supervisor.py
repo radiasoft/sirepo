@@ -741,7 +741,7 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
-            sirepo.util.raise_not_found('invalid {}', req)
+            sirepo.util.raise_not_found('invalid req={}', req)
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
