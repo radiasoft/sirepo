@@ -619,10 +619,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.isReportModelName = function(name) {
         //TODO(pjm): need better name for this, a model which doesn't affect other models
-        return  name.indexOf('Report') >= 0 ||
-            self.isAnimationModelName(name) ||
-            name.indexOf('Status') >= 0 ||
-            self.models[name].isSelfContained == '1';
+        return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
     self.listSimulations = function(op, search) {
