@@ -191,7 +191,8 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         if (cfg.templateUrl) {
             cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         }
-        if (routeInfo.route.search(/:simulationId/) >= 0 && cfg.controller) {
+        //TODO(pjm): may want to add an attribute to the route info rather than depend on the route param
+        if (routeInfo.route.search(/:simulationId\b/) >= 0 && cfg.controller) {
             cfg.template = simulationDetailTemplate(cfg);
         }
         $routeProvider.when(routeInfo.route, cfg);
@@ -964,6 +965,21 @@ SIREPO.app.factory('stringsService', function() {
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
+        },
+        formatTemplate: (template, args) => {
+            return template.replace(
+                /{(\w*)}/g,
+                function(m, k) {
+                    if (! (k in (args || {}))) {
+                        if (! (k in strings)) {
+                            throw new Error(`k=${k} not found in args=${args} or strings=${strings}`);
+                        }
+                        return strings[k];
+                    }
+                    return args[k];
+                }
+            );
+
         },
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;

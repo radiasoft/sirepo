@@ -22,8 +22,14 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
+        '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
+          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
+        '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
+            '<div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>',
         '</div>',
         '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
@@ -984,8 +990,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
             ) {
                 appState.models.geometry.lastModified = Date.now();
-                appState.models.kickMap.periodLength = appState.models.hybridUndulator.periodLength;
-                appState.saveQuietly('kickMap');
+                appState.models.kickMapReport.periodLength = appState.models.hybridUndulator.periodLength;
+                appState.saveQuietly('kickMapReport');
             }
             let o = self.selectedObject;
             if (o) {
@@ -1007,7 +1013,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 panelState.clear('geometry');
                 // need to rebuild the geometry after changes were made
                 panelState.requestData('geometry', function(data) {
-
                     if (self.selectedObject) {
                         loadShapes();
                     }
@@ -1041,14 +1046,26 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-    var SINGLE_PLOTS = ['magnetViewer', 'kickMap'];
-    var self = this;
+
+    let SINGLE_PLOTS = ['magnetViewer',];
+    let POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport',];
+
+    let solving = false;
+
+    let self = this;
     self.simScope = $scope;
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
     self.solution = null;
+
+    function updateReports() {
+        POST_SIM_REPORTS.forEach((name) => {
+            appState.models[name].lastModified = Date.now();
+            appState.saveChanges(name);
+        });
+    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -1058,8 +1075,19 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         return appState.isLoaded() && appState.models.geometry.isSolvable == '1';
     };
 
+    self.resetSimulation = function() {
+        self.solution = null;
+        solving = false;
+        panelState.clear('geometry');
+        panelState.requestData('reset', () => {
+            frameCache.setFrameCount(0);
+            }, true);
+        updateReports();
+    };
+
     self.simHandleStatus = function(data) {
         if (data.error) {
+            solving = false;
             throw new Error('Solver failed: ' + data.error);
         }
         SINGLE_PLOTS.forEach(function(name) {
@@ -1071,11 +1099,20 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(1, name);
                 });
+                if (solving) {
+                    updateReports();
+                }
+                solving = false;
             }
         }
         frameCache.setFrameCount(data.frameCount);
     };
 
+    self.startSimulation = function() {
+        self.solution = null;
+        solving = true;
+        self.simState.saveAndRunSimulation('simulation');
+    };
 
     self.simState = persistentSimulation.initSimulationState(self);
 
@@ -1083,10 +1120,22 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         panelState.enableField('simulation', 'magnetType', false);
     });
 
-    $scope.$on('framesCleared', function () {
-        self.solution = null;
+    appState.whenModelsLoaded($scope, () => {
+        $scope.$on('modelChanged', (e, modelName) => {
+            let m = appState.models[modelName];
+            if (modelName === 'fieldPaths') {
+                const rpt= 'fieldLineoutReport';
+                for (let r of appState.models.fieldPaths.paths) {
+                    if (r.name !== appState.models[rpt].fieldPath.name) {
+                        continue;
+                    }
+                    appState.models[rpt].fieldPath = r;
+                    appState.saveQuietly(rpt);
+                    break;
+                }
+            }
+        });
     });
-
 
 });
 
@@ -1376,6 +1425,39 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('fieldLineoutReport', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@'
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.dataCleared = true;
+
+            $scope.hasPaths = () => {
+                return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
+            };
+
+            appState.whenModelsLoaded($scope, () => {
+                $scope.model = appState.models[$scope.modelName];
+                if ($.isEmptyObject($scope.model.fieldPath) && $scope.hasPaths() ) {
+                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
+                    appState.saveQuietly($scope.modelName);
+                }
+               // wait until we have some data
+               $scope.$on('radiaViewer.loaded', () => {
+                   $scope.dataCleared = false;
+               });
             });
         },
     };
@@ -1781,7 +1863,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
-SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1790,7 +1872,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1808,7 +1890,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
                 });
             }
             appState.whenModelsLoaded($scope, function() {
-               $scope.model = appState.models.kickMap;
+               $scope.model = appState.models.kickMapReport;
                // wait until we have some data to update
                $scope.$on('radiaViewer.loaded', function () {
                    $scope.dataCleared = false;
@@ -2182,7 +2264,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
-                        '<div data-sim-status-panel="viz.simState"></div>',
+                        '<div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation()"></div>',
                         '<div data-ng-show="viz.solution">',
                                 '<div><strong>Time:</strong> {{ solution().time }}ms</div>',
                                 '<div><strong>Step Count:</strong> {{ solution().steps }}</div>',
@@ -2191,7 +2273,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                         '</div>',
                         '<div data-ng-hide="viz.solution">No solution found</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
-                            '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
+                            '<button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>',
                         '</div>',
                     '</div>',
                 '</div>',
@@ -2213,11 +2295,15 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             };
 
             $scope.reset = function() {
+                $scope.viz.resetSimulation();
+                /*
                 $scope.viz.solution = null;
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
                     frameCache.setFrameCount(0);
                 }, true);
+
+                 */
             };
 
             appState.whenModelsLoaded($scope, function () {

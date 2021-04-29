@@ -297,7 +297,7 @@ class CodeVarDeleteIterator(lattice.ModelIterator):
     def field(self, model, field_schema, field):
         if field_schema[1] == 'RPNValue' \
            and self.code_var.is_var_value(model[field]):
-            expr =  self.canonicalize(self.code_var.infix_to_postfix(str(model[field])))
+            expr =  self.code_var.canonicalize(self.code_var.infix_to_postfix(str(model[field])))
             for v in str(expr).split(' '):
                 if v == self.name:
                     if lattice.LatticeUtil.is_command(model):

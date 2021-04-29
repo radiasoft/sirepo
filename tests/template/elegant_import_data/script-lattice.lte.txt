@@ -4,4 +4,4 @@
 "S2": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam2.sdds -merge %o",no_new_particles=0,use_csh=0
 "S3": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam3.sdds -merge %o",no_new_particles=0,use_csh=0
 "S4": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam4.sdds -merge %o",no_new_particles=0,use_csh=0
-"BL": LINE=(LINAC,D,S1,D,LINAC,D,S2,D,LINAC,D,S3,D,LINAC,D,S4,D,LINAC)
+"BL": LINE=("LINAC","D","S1","D","LINAC","D","S2","D","LINAC","D","S3","D","LINAC","D","S4","D","LINAC")

@@ -73,7 +73,7 @@ def set_optics(v=None):
 
 
 varParam = srwl_bl.srwl_uti_ext_options([
-    ['name', 's', 'Boron Fiber CRL with 3 lenses', 'simulation name'],
+    ['name', 's', 'Boron Fiber (CRL with 3 lenses)', 'simulation name'],
 
 #---Data Folder
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
