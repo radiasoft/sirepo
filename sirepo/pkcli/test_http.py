@@ -152,6 +152,8 @@ def default_command():
                 s.append(
                     _Sim(a, e.name, r.report, r.binary_data_file).create_task(),
                 )
+                # Sleep a bit to not completely flood server
+                await tornado.gen.sleep(1)
         return s
 
     random.seed()
@@ -200,6 +202,8 @@ class _App(PKDict):
 
 async def _cancel_all_tasks(tasks):
     for t in tasks:
+        # Sleep a bit to not completely flood server
+        await tornado.gen.sleep(1)
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
     # finally blocks (ex await post('run-cancel)). We need return_exceptions
