@@ -240,13 +240,6 @@ class SimDataBase(object):
         Returns:
             bool: True if parallel job
         """
-        #return cls._is_parallel(data_or_model) or \
-        #    bool(
-        #        _IS_PARALLEL_RE.search(
-        #            cls.compute_model(data_or_model) if isinstance(data_or_model, dict) \
-        #         else data_or_model
-        #        ),
-        #    )
         return bool(
             _IS_PARALLEL_RE.search(
                 cls.compute_model(data_or_model) if isinstance(data_or_model, dict) \
