@@ -1259,22 +1259,19 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 }
                 let data = null;
                 let a = inputFile.name.split('.');
-                let t = `.${a[a.length - 1]}`;
-                if (RADIA_IMPORT_FORMATS.indexOf(t) >= 0) {
+                let t = `${a[a.length - 1]}`;
+                if (RADIA_IMPORT_FORMATS.indexOf(`.${t}`) >= 0) {
                     data = newSimFromRadia(inputFile);
                 }
-                import(inputFile, data);
+                importFile(inputFile, t, data);
             };
 
-            // turn a dict into a delimited string so it can be added to the FormData.
-            // works for simple values, not arrays or other dicts
-            function importFileArguments(o) {
-                let d = SIREPO.APP_SCHEMA.constants.inputFileArgDelims;
-                let s = '';
-                for (let k in o) {
-                    s += `${k}${d.item}${o[k]}${d.list}`;
-                }
-                return s;
+            function cleanup(simId) {
+                $('#simulation-import').modal('hide');
+                $scope.inputFile = null;
+                URL.revokeObjectURL($scope.fileURL);
+                $scope.fileURL = null;
+                requestSender.localRedirectHome(simId);
             }
 
             function newSimFromRadia(inputFile) {
@@ -1285,7 +1282,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 return model;
             }
 
-            function import(inputFile, data={}) {
+            function importFile(inputFile, fileType, data={}) {
                 let f = fileManager.getActiveFolderPath();
                 if (fileManager.isFolderExample(f)) {
                     f = fileManager.rootFolder();
@@ -1302,22 +1299,45 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         }),
                     function(d) {
-                        srdbg('GOT D', d);
+                        let simId = d.models.simulation.simulationId;
+                        if (RADIA_IMPORT_FORMATS.indexOf(fileType) < 0) {
+                            cleanup(simId);
+                            return;
+                        }
+                        upload(inputFile, fileType, simId);
+                    }, function (err) {
+                        throw new Error(inputFile + ': Error during import ' + err);
+                    });
+            }
 
-                        $('#simulation-import').modal('hide');
-                        $scope.inputFile = null;
-                        URL.revokeObjectURL($scope.fileURL);
-                        $scope.fileURL = null;
-                        requestSender.localRedirectHome(d.models.simulation.simulationId);
+            // turn a dict into a delimited string so it can be added to the FormData.
+            // works for simple values, not arrays or other dicts
+            function importFileArguments(o) {
+                let d = SIREPO.APP_SCHEMA.constants.inputFileArgDelims;
+                let s = '';
+                for (let k in o) {
+                    s += `${k}${d.item}${o[k]}${d.list}`;
+                }
+                return s;
+            }
+
+            function upload(inputFile, fileType, simId) {
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    null,
+                    requestSender.formatUrl(
+                        'uploadFile',
+                        {
+                            '<simulation_id>': simId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': SIREPO.APP_SCHEMA.constants.radiaDmpFileType,
+                        }),
+                    function(d) {
+                        cleanup(simId);
                     }, function (err) {
                         throw new Error(inputFile + ': Error during upload ' + err);
                     });
             }
-
-            function upload(inputFile) {
-                
-            }
-
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
