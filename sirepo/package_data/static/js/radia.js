@@ -1154,7 +1154,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-dmp-import-dialog="" data-title="Dump File" data-description="Import Radia dump file"></div>',
+            `<div data-dmp-import-dialog="" data-title="Import File" data-description="Select Radia dmp (.dat), STL (.stl), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)"></div>`,
         ].join(''),
     };
 });
@@ -1210,6 +1210,11 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
 });
 
 SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
+
+    //const RADIA_IMPORT_FORMATS = ['.dat', '.stl'];
+    const RADIA_IMPORT_FORMATS = ['.dat',];
+    const IMPORT_FORMATS = RADIA_IMPORT_FORMATS.concat(['.zip',]);
+
     return {
         restrict: 'A',
         scope: {
@@ -1228,7 +1233,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                         '<form>',
-                        '<div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
+                        `<div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>`,
                           '<div class="col-sm-6 pull-right">',
                             '<button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
                             ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
@@ -1248,59 +1253,63 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
             };
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.title = $scope.title || 'Import Dump File';
-            $scope.description = $scope.description || 'Select File';
-
             $scope.importDmpFile = function(inputFile) {
                 if (! inputFile) {
                     return;
                 }
-                newSimFromDmp(inputFile);
+                let data = null;
+                let a = inputFile.name.split('.');
+                let t = `.${a[a.length - 1]}`;
+                if (RADIA_IMPORT_FORMATS.indexOf(t) >= 0) {
+                    data = newSimFromRadia(inputFile);
+                }
+                upload(inputFile, data);
             };
 
-            function upload(inputFile, data) {
-                var simId = data.models.simulation.simulationId;
+            // turn a dict into a delimited string so it can be added to the FormData.
+            // works for simple values, not arrays or other dicts
+            function importFileArguments(o) {
+                let d = SIREPO.APP_SCHEMA.constants.inputFileArgDelims;
+                let s = '';
+                for (let k in o) {
+                    s += `${k}${d.item}${o[k]}${d.list}`;
+                }
+                return s;
+            }
+
+            function newSimFromRadia(inputFile) {
+                let model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.dmpImportFile = inputFile.name;
+                return model;
+            }
+
+            function upload(inputFile, data={}) {
+                let f = fileManager.getActiveFolderPath();
+                if (fileManager.isFolderExample(f)) {
+                    f = fileManager.rootFolder();
+                }
                 fileUpload.uploadFileToUrl(
                     inputFile,
-                    $scope.isConfirming
-                        ? {
-                            confirm: $scope.isConfirming,
-                        }
-                        : null,
+                    {
+                        folder: f,
+                        arguments: importFileArguments(data)
+                    },
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'importFile',
                         {
-                            '<simulation_id>': simId,
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': SIREPO.APP_SCHEMA.constants.radiaDmpFileType,
                         }),
                     function(d) {
                         $('#simulation-import').modal('hide');
                         $scope.inputFile = null;
                         URL.revokeObjectURL($scope.fileURL);
                         $scope.fileURL = null;
-                        requestSender.localRedirectHome(simId);
+                        requestSender.localRedirectHome(d.models.simulation.simulationId);
                     }, function (err) {
                         throw new Error(inputFile + ': Error during upload ' + err);
                     });
-            }
-
-            function newSimFromDmp(inputFile) {
-                var url = $scope.fileURL;
-                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
-                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
-                model.folder = fileManager.getActiveFolderPath();
-                model.dmpImportFile = inputFile.name;
-                appState.newSimulation(
-                    model,
-                    function (data) {
-                        $scope.isUploading = false;
-                        upload(inputFile, data);
-                    },
-                    function (err) {
-                        throw new Error(inputFile + ': Error creating simulation ' + err);
-                    }
-                );
             }
 
         },

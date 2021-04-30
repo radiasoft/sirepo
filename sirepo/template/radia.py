@@ -248,13 +248,20 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return f
 
 
+def import_file(req, tmp_dir=None, **kwargs):
+    data = simulation_db.default_data(req.type)
+    data.models.simulation.pkupdate(
+        {k: v for k, v in req.req_data.items() if k in data.models.simulation}
+    )
+    data.models.simulation.pkupdate(_parse_input_file_arg_str(req.import_file_arguments))
+    _prep_new_sim(data)
+    return data
+
+
 def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
-    data.models.geometry.name = new_simulation_data.name
-    data.models.geometry.id = str(uuid.uuid4())
-    if new_simulation_data.get('dmpImportFile', None):
-        data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+    _prep_new_sim(data)
     beam_axis = new_simulation_data.beamAxis
     #TODO(mvk): dict of magnet types to builder methods
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
@@ -757,6 +764,21 @@ def _kick_map_plot(sim_id, model):
         y_label='y [mm]',
         z_matrix=z,
     )
+
+
+def _parse_input_file_arg_str(s):
+    d = PKDict()
+    for kvp in s.split(_SCHEMA.constants.inputFileArgDelims.list):
+        if not kvp:
+            continue
+        kv = kvp.split(_SCHEMA.constants.inputFileArgDelims.item)
+        d[kv[0]] = kv[1]
+    return d
+
+
+def _prep_new_sim(data):
+    data.models.geometry.name = data.models.simulation.name
+    data.models.geometry.id = str(uuid.uuid4())
 
 
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):

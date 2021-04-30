@@ -45,6 +45,10 @@
             "get_field", "get_field_integrals", "get_geom", "get_kick_map_plot", "save_field"
         ],
         "inProgressText": "Solving",
+        "inputFileArgDelims": {
+            "list": ",",
+            "item": ":"
+        },
         "objectScale": 0.001,
         "parameterizedMagnets": {
             "hybridUndulator": {
