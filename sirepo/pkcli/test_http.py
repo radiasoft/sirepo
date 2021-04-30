@@ -204,6 +204,7 @@ async def _cancel_all_tasks(tasks):
     for t in tasks:
         # Sleep a bit to not completely flood server
         await tornado.gen.sleep(1)
+        pkdlog('cancelling task={}', _task_id(t))
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
     # finally blocks (ex await post('run-cancel)). We need return_exceptions
@@ -389,7 +390,7 @@ class _Sim(PKDict):
         async def _run():
             _sims.append(self)
             # Must be set here once we are in the _run() task
-            self._task_id = str(id(asyncio.current_task()))[-4:]
+            self._task_id = _task_id(asyncio.current_task())
             with self._set_waiting_on_status():
                 self._data = await self._app.get_sim(self._sim_name)
             try:
@@ -548,5 +549,10 @@ def _init():
         run_max_secs=(120, pkconfig.parse_seconds, 'maximum amount of time to let a simulation run'),
         validate_cert=(not pkconfig.channel_in('dev'), bool, 'whether or not to validate server tls cert')
     )
+
+
+def _task_id(task):
+    return str(id(task))[-4:]
+
 
 _init()
