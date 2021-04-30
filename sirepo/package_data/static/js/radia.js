@@ -1263,7 +1263,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 if (RADIA_IMPORT_FORMATS.indexOf(t) >= 0) {
                     data = newSimFromRadia(inputFile);
                 }
-                upload(inputFile, data);
+                import(inputFile, data);
             };
 
             // turn a dict into a delimited string so it can be added to the FormData.
@@ -1285,7 +1285,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 return model;
             }
 
-            function upload(inputFile, data={}) {
+            function import(inputFile, data={}) {
                 let f = fileManager.getActiveFolderPath();
                 if (fileManager.isFolderExample(f)) {
                     f = fileManager.rootFolder();
@@ -1302,6 +1302,8 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         }),
                     function(d) {
+                        srdbg('GOT D', d);
+
                         $('#simulation-import').modal('hide');
                         $scope.inputFile = null;
                         URL.revokeObjectURL($scope.fileURL);
@@ -1310,6 +1312,10 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                     }, function (err) {
                         throw new Error(inputFile + ': Error during upload ' + err);
                     });
+            }
+
+            function upload(inputFile) {
+                
             }
 
         },
