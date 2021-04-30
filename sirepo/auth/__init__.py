@@ -606,9 +606,6 @@ def _auth_state():
         v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
-    # TODO(e-carlin): discuss with rn. Ok to leak uid on alpha? Could parse cookie...
-    # Not strictly necessary but I think makes debuggin easier by having the uid
-    # in the test_http logs
     if pkconfig.channel_in_internal_test():
         # useful for testing/debugging
         v.uid = u
