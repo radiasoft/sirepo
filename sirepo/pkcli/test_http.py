@@ -215,7 +215,7 @@ class _Client(PKDict):
     def __init__(self, email, **kwargs):
         super().__init__(
             email=email,
-            uid='<unknown>',
+            uid=None,
             _headers=PKDict({'User-Agent': 'test_http'}),
             **kwargs
         )
