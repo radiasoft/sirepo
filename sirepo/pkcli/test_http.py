@@ -397,11 +397,13 @@ class _Sim(PKDict):
                 r = await self._run_sim_until_completion()
                 if self._app.sim_data.is_parallel(self._report):
                     g = await self._get_sim_frame(r)
-                    c = None
                     e = False
+                    c = None
                     try:
                         with self._set_waiting_on_status():
-                            c = await self._run_sim()
+                            c = True
+                            await self._run_sim()
+                            c = False
                         with self._set_waiting_on_status():
                             f = await self._app.client.get('/simulation-frame/' + g, self)
                         assert f.state == 'error', \
