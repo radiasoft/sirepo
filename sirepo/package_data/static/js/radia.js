@@ -1154,7 +1154,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            `<div data-dmp-import-dialog="" data-title="Import File" data-description="Select Radia dmp (.dat), STL (.stl), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)"></div>`,
+            `<div data-dmp-import-dialog="" data-title="Import File" data-description="Select Radia dmp (.dat) or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)"></div>`,
         ].join(''),
     };
 });
