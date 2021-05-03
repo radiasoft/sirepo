@@ -812,11 +812,11 @@ def _read_or_generate(g_id, data):
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
-    with h5py.File(_geom_file(data.simulationId), 'a') as hf:
-        template_common.dict_to_h5(
+    with h5py.File(_geom_file(data.simulationId), 'a') as f:
+        template_common.write_dict_to_h5(
             _generate_data(g_id, data, add_lines=False),
-            hf,
-            path=_geom_h5_path(data.viewType, f_type)
+            f,
+            h5_path=_geom_h5_path(data.viewType, f_type)
         )
     return get_application_data(data)
 

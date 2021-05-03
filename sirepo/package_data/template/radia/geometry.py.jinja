@@ -79,8 +79,8 @@ def _build_radia_geom():
 
 
 def _write_h5_data(data, h5_path):
-    with h5py.File('{{ dataFile }}', 'a') as hf:
-        template_common.dict_to_h5(data, hf, path=h5_path)
+    with h5py.File('{{ dataFile }}', 'a') as f:
+        template_common.write_dict_to_h5(data, f, h5_path=h5_path)
 
 
 def _write_dmp(g_id, f_path):
