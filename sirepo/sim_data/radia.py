@@ -47,6 +47,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
+        if 'dmpImportFile' in data.models.simulation:
+            res.append(f'{cls.schema().constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}')
         if 'fieldType' in data:
             res.append(cls.lib_file_name_with_model_field(
                 'fieldPath',
