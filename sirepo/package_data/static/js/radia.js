@@ -1154,7 +1154,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            `<div data-dmp-import-dialog="" data-title="Import File" data-description="Select Radia dmp (.dat) or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)"></div>`,
+            `<div data-dmp-import-dialog="" data-title="Import File" data-description="Select Radia dump (.dat) or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)"></div>`,
         ].join(''),
     };
 });
@@ -1260,7 +1260,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 let data = null;
                 let a = inputFile.name.split('.');
                 let t = `${a[a.length - 1]}`;
-                if (RADIA_IMPORT_FORMATS.indexOf(`.${t}`) >= 0) {
+                if (isRadiaImport(t)) {
                     data = newSimFromImport(inputFile);
                 }
                 importFile(inputFile, t, data);
@@ -1300,7 +1300,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                         }),
                     function(d) {
                         let simId = d.models.simulation.simulationId;
-                        if (RADIA_IMPORT_FORMATS.indexOf(fileType) < 0) {
+                        if (! isRadiaImport(fileType)) {
                             cleanup(simId);
                             return;
                         }
@@ -1319,6 +1319,10 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                     s += `${k}${d.item}${o[k]}${d.list}`;
                 }
                 return s;
+            }
+
+            function isRadiaImport(fileType) {
+                return RADIA_IMPORT_FORMATS.indexOf(`.${fileType}`) >= 0;
             }
 
             function upload(inputFile, fileType, simId) {
