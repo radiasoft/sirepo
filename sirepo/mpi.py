@@ -28,7 +28,7 @@ def restrict_op_to_first_rank(op):
         try:
             res = op()
         except Exception as e:
-            pkdc(f'Exception in invoked function {op.__name__}: {e}')
+            pkdlog('op={} exception={} stack={}', op, e, pkdexc())
             if c:
                 c.Abort(1)
             raise e
