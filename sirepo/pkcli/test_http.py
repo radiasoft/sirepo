@@ -40,7 +40,7 @@ _CODES = PKDict(
             name='SPEAR3',
             reports=(
                 PKDict(report='bunchReport2', binary_data_file=False),
-                PKDict(report='elementAnimation62-3', binary_data_file=True),
+                PKDict(report='elementAnimation62-20', binary_data_file=True),
             ),
         ),
     ),
@@ -152,6 +152,8 @@ def default_command():
                 s.append(
                     _Sim(a, e.name, r.report, r.binary_data_file).create_task(),
                 )
+                # Sleep a bit to not completely flood server
+                await tornado.gen.sleep(1)
         return s
 
     random.seed()
@@ -190,15 +192,19 @@ class _App(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(sim_type={} email={})',
+            '{}(sim_type={} email={} uid={})',
             self.__class__.__name__,
             self.sim_type,
             self.client.email,
+            self.client.uid,
         )
 
 
 async def _cancel_all_tasks(tasks):
     for t in tasks:
+        # Sleep a bit to not completely flood server
+        await tornado.gen.sleep(1)
+        pkdlog('cancelling task={}', _task_id(t))
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
     # finally blocks (ex await post('run-cancel)). We need return_exceptions
@@ -211,6 +217,7 @@ class _Client(PKDict):
     def __init__(self, email, **kwargs):
         super().__init__(
             email=email,
+            uid='<unknown>',
             _headers=PKDict({'User-Agent': 'test_http'}),
             **kwargs
         )
@@ -258,6 +265,10 @@ class _Client(PKDict):
                 PKDict(displayName=self.email),
                 self,
             )
+        self.uid = re.search(
+            r'"uid": "(\w+)"',
+            await self.get('/auth-state', self),
+        ).group(1)
         return self
 
     def parse_response(self, resp, expect_binary_body=False):
@@ -288,9 +299,10 @@ class _Client(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(email={})',
+            '{}(email={} uid={})',
             self.__class__.__name__,
             self.email,
+            self.uid,
         )
 
     async def post(self, uri, data, caller):
@@ -323,7 +335,7 @@ class _Client(PKDict):
         yield
         if 'run-status' not in uri:
             pkdlog(
-                '{} {} elapsed_time={}',
+                '{} {} elapsed_time={:.6}',
                 uri,
                 caller.pkdebug_str(),
                 time.time() - s,
@@ -378,18 +390,20 @@ class _Sim(PKDict):
         async def _run():
             _sims.append(self)
             # Must be set here once we are in the _run() task
-            self._task_id = str(id(asyncio.current_task()))[-4:]
+            self._task_id = _task_id(asyncio.current_task())
             with self._set_waiting_on_status():
                 self._data = await self._app.get_sim(self._sim_name)
             try:
                 r = await self._run_sim_until_completion()
                 if self._app.sim_data.is_parallel(self._report):
                     g = await self._get_sim_frame(r)
-                    c = None
                     e = False
+                    c = None
                     try:
                         with self._set_waiting_on_status():
-                            c = await self._run_sim()
+                            c = True
+                            await self._run_sim()
+                            c = False
                         with self._set_waiting_on_status():
                             f = await self._app.client.get('/simulation-frame/' + g, self)
                         assert f.state == 'error', \
@@ -417,12 +431,14 @@ class _Sim(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(email={} sim_type={} sid={} report={} task={} waiting_on={})',
+            '{}(email={} sim_type={} computeJid={} task={} waiting_on={})',
             self.__class__.__name__,
             self._app.client.email,
             self._app.sim_type,
-            self._sid,
-            self._report,
+            self._app.sim_data.parse_jid(
+                PKDict(simulationId=self._sid, report=self._report),
+                uid=self._app.client.uid,
+            ),
             self.get('_task_id', '<unknown>'),
             self.get('_waiting_on', '<unknown>'),
         )
@@ -448,6 +464,8 @@ class _Sim(PKDict):
         g = self._app.sim_data.frame_id(self._data, next_request, self._report, 0)
         with self._set_waiting_on_status():
             f = await self._app.client.get('/simulation-frame/' + g, self)
+        assert f.state == 'completed', \
+            f'{self.pkdebug_str()} expected state completed frame={f}'
         assert 'title' in f, \
             '{} no title in frame={}'.format(self.pkdebug_str(), f)
         with self._set_waiting_on_status():
@@ -520,6 +538,7 @@ def _init():
     global cfg
     if cfg:
         return
+    sirepo.util.init()
     c = sirepo.pkcli.service._cfg()
     cfg = pkconfig.init(
         emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
@@ -532,5 +551,10 @@ def _init():
         run_max_secs=(120, pkconfig.parse_seconds, 'maximum amount of time to let a simulation run'),
         validate_cert=(not pkconfig.channel_in('dev'), bool, 'whether or not to validate server tls cert')
     )
+
+
+def _task_id(task):
+    return str(id(task))[-4:]
+
 
 _init()
