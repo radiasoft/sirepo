@@ -12,10 +12,12 @@ from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import re
 import sys
 
+FIRST_RANK = 0
+
 
 def restrict_op_to_first_rank(op):
     c = None
-    r = 0
+    r = FIRST_RANK
     res = None
     try:
         import mpi4py.MPI
@@ -24,7 +26,7 @@ def restrict_op_to_first_rank(op):
             r = c.Get_rank()
     except Exception:
         pass
-    if r == 0:
+    if r == FIRST_RANK:
         try:
             res = op()
         except Exception as e:
@@ -33,7 +35,7 @@ def restrict_op_to_first_rank(op):
                 c.Abort(1)
             raise e
     if c:
-        res = c.bcast(res, root=0)
+        res = c.bcast(res, root=FIRST_RANK)
     return res
 
 
