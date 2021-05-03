@@ -614,7 +614,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.isExample = data.models.simulation.get('isExample', False) and \
         data.models.simulation.name in radia_examples.EXAMPLES
     v.exampleName = data.models.simulation.get('exampleName', None)
-    v.isRaw = v.exampleName in _SCHEMA.constants.rawExamples
+    v.is_raw = v.exampleName in _SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)

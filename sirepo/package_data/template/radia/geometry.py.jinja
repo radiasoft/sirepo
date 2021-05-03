@@ -60,7 +60,7 @@ def _add_object(o, radia_objs, id_map):
 def _build_radia_geom():
     id_map = PKDict()
     radia_objs = []
-{% if isRaw %}
+{% if is_raw %}
     g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
 {% elif dmpImportFile %}
     with open('{{ dmpImportFile }}', 'rb') as f:
