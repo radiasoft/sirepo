@@ -1261,7 +1261,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 let a = inputFile.name.split('.');
                 let t = `${a[a.length - 1]}`;
                 if (RADIA_IMPORT_FORMATS.indexOf(`.${t}`) >= 0) {
-                    data = newSimFromRadia(inputFile);
+                    data = newSimFromImport(inputFile);
                 }
                 importFile(inputFile, t, data);
             };
@@ -1274,7 +1274,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 requestSender.localRedirectHome(simId);
             }
 
-            function newSimFromRadia(inputFile) {
+            function newSimFromImport(inputFile) {
                 let model = appState.setModelDefaults(appState.models.simulation, 'simulation');
                 model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
                 model.folder = fileManager.getActiveFolderPath();
