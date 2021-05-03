@@ -471,7 +471,7 @@
             "method": ["Method", "SolveMethod", "0"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
-            "sbatchCores": ["Cores", "Integer", 4],
+            "sbatchCores": ["Cores", "Integer", 1],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
