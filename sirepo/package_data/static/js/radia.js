@@ -1279,6 +1279,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
                 model.folder = fileManager.getActiveFolderPath();
                 model.dmpImportFile = inputFile.name;
+                model.notes = `Imported from ${inputFile.name}`;
                 return model;
             }
 
