@@ -13,7 +13,7 @@ import re
 import sys
 
 
-def invoke_single(fn, *args):
+def restrict_op_to_first_rank(op):
     c = None
     r = 0
     res = None
@@ -26,9 +26,9 @@ def invoke_single(fn, *args):
         pass
     if r == 0:
         try:
-            res = fn(*args)
+            res = op()
         except Exception as e:
-            pkdc(f'Exception in invoked function {fn.__name__}: {e}')
+            pkdc(f'Exception in invoked function {op.__name__}: {e}')
             if c:
                 c.Abort(1)
             raise e

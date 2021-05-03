@@ -100,15 +100,15 @@ radia_tk.reset()
 
 g_id, id_map = _build_radia_geom()
 g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
-sirepo.mpi.invoke_single(_write_h5_data, g_data, '{{ h5ObjPath }}')
-sirepo.mpi.invoke_single(_write_h5_data, id_map, '{{ h5IdMapPath }}')
+sirepo.mpi.restrict_op_to_first_rank(lambda: _write_h5_data(g_data, '{{ h5ObjPath }}'))
+sirepo.mpi.restrict_op_to_first_rank(lambda: _write_h5_data(id_map, '{{ h5IdMapPath }}'))
 
 {% if doSolve %}
 res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
 {% if isParallel %}
 radia_tk.radia_mpi('barrier')
 {% endif %}
-sirepo.mpi.invoke_single(_write_h5_data, res, '{{ h5SolutionPath }}')
+sirepo.mpi.restrict_op_to_first_rank(lambda: _write_h5_data(res, '{{ h5SolutionPath }}'))
 {% endif %}
 
 {% if viewType == VIEW_TYPE_FIELD %}
@@ -124,10 +124,10 @@ radia_tk.radia_mpi('barrier')
 {% endif %}
 if f:
     g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
-    sirepo.mpi.invoke_single(_write_h5_data, g_data, '{{ h5FieldPath }}')
+    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_h5_data(g_data , '{{ h5FieldPath }}'))
 {% endif %}
 
-sirepo.mpi.invoke_single(_write_dmp, g_id, '{{ dmpOutputFile }}')
+sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
 {% if isParallel %}
 radia_tk.radia_mpi('off')
 {% endif %}
