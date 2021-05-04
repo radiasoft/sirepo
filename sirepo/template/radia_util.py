@@ -184,7 +184,7 @@ def free_symmetries(g_id):
 def geom_to_data(g_id, name=None, divide=True):
 
     def _to_pkdict(d):
-        if not isinstance(d, dict) or isinstance(d, PKDict):
+        if not isinstance(d, dict):
             return d
         rv = PKDict()
         for k, v in d.items():
