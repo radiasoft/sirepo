@@ -6,7 +6,6 @@ u"""Toolkit and/or utils for calling Radia functions
 """
 import numpy
 import radia
-import re
 import sirepo.util
 import sys
 
@@ -40,6 +39,25 @@ FIELD_UNITS = PKDict({
 
 _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
+
+
+class MPI:
+    def __init__(self):
+        radia.UtiMPI('in')
+        self.is_mpi_running = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, t, value, traceback):
+        if not self.is_mpi_running:
+            return
+        radia.UtiMPI('off')
+
+    def barrier(self):
+        if not self.is_mpi_running:
+            return
+        radia.UtiMPI('barrier')
 
 
 def _apply_clone(g_id, xform):
@@ -273,10 +291,6 @@ def new_geom_object():
         polygons=PKDict(colors=[], lengths=[], vertices=[]),
         vectors=PKDict(directions=[], magnitudes=[], vertices=[]),
     )
-
-
-def radia_mpi(mpi_state):
-    return radia.UtiMPI(mpi_state)
 
 
 def reset():
