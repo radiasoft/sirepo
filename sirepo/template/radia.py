@@ -16,7 +16,7 @@ from pykern.pkdebug import pkdc, pkdp
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template import radia_tk
+from sirepo.template import radia_util
 from sirepo.template import radia_examples
 import h5py
 import math
@@ -520,11 +520,11 @@ def _find_obj_by_name(obj_arr, obj_name):
 
 
 def _generate_field_data(g_id, name, field_type, field_paths):
-    if field_type == radia_tk.FIELD_TYPE_MAG_M:
-        f = radia_tk.get_magnetization(g_id)
-    elif field_type in radia_tk.POINT_FIELD_TYPES:
-        f = radia_tk.get_field(g_id, field_type, _build_field_points(field_paths))
-    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[field_type])
+    if field_type == radia_util.FIELD_TYPE_MAG_M:
+        f = radia_util.get_magnetization(g_id)
+    elif field_type in radia_util.POINT_FIELD_TYPES:
+        f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
+    return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
 
 
 def _generate_field_integrals(g_id, f_paths):
@@ -538,8 +538,8 @@ def _generate_field_integrals(g_id, f_paths):
             res[p.name] = PKDict()
             p1 = sirepo.util.split_comma_delimited_string(p.begin, float)
             p2 = sirepo.util.split_comma_delimited_string(p.end, float)
-            for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
-                res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
+            for i_type in radia_util.INTEGRABLE_FIELD_TYPES:
+                res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
     except RuntimeError as e:
         pkdc('Radia error {}', e.message)
@@ -564,7 +564,7 @@ def _generate_data(g_id, in_data, add_lines=True):
 
 
 def _generate_kick_map(g_id, model):
-    km = radia_tk.kick_map(
+    km = radia_util.kick_map(
         g_id,
         sirepo.util.split_comma_delimited_string(model.begin, float),
         sirepo.util.split_comma_delimited_string(model.direction, float),
@@ -586,7 +586,7 @@ def _generate_kick_map(g_id, model):
 
 
 def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name)
+    return radia_util.geom_to_data(g_id, name=name)
 
 
 def _generate_parameters_file(data, is_parallel, for_export):
@@ -632,9 +632,9 @@ def _generate_parameters_file(data, is_parallel, for_export):
     # for rendering conveneince
     v.VIEW_TYPE_OBJ = _SCHEMA.constants.viewTypeObjects
     v.VIEW_TYPE_FIELD = _SCHEMA.constants.viewTypeFields
-    v.FIELD_TYPE_MAG_M = radia_tk.FIELD_TYPE_MAG_M
-    v.POINT_FIELD_TYPES = radia_tk.POINT_FIELD_TYPES
-    v.INTEGRABLE_FIELD_TYPES = radia_tk.INTEGRABLE_FIELD_TYPES
+    v.FIELD_TYPE_MAG_M = radia_util.FIELD_TYPE_MAG_M
+    v.POINT_FIELD_TYPES = radia_util.POINT_FIELD_TYPES
+    v.INTEGRABLE_FIELD_TYPES = radia_util.INTEGRABLE_FIELD_TYPES
 
     f_type = None
     if v_type not in VIEW_TYPES:
@@ -643,9 +643,9 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
-        if f_type not in radia_tk.FIELD_TYPES:
+        if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(
-                'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
+                'Invalid field {} ({})'.format(f_type, radia_util.FIELD_TYPES)
             )
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
@@ -688,7 +688,7 @@ def _geom_h5_path(view_type, field_type=None):
 
 def _get_g_id(sim_id):
     with open(str(_dmp_file(sim_id)), 'rb') as f:
-        return radia_tk.load_bin(f.read())
+        return radia_util.load_bin(f.read())
 
 
 def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
@@ -725,7 +725,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
         plots.append(
             PKDict(
                 points=(m * f[:, _AXES.index(c)]).tolist(),
-                label=f'{labels[c]} ({c}) [{radia_tk.FIELD_UNITS[f_type]}]',
+                label=f'{labels[c]} ({c}) [{radia_util.FIELD_UNITS[f_type]}]',
                 style='line'
             )
         )
