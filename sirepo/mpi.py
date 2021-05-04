@@ -16,6 +16,14 @@ FIRST_RANK = 0
 
 
 def restrict_op_to_first_rank(op):
+    """If the process has rank FIRST_RANK, call a function. Otherwise do nothing.
+
+    Use this to call a function that will cause conflicts if called by multiple processes,
+    such as writing results to a file
+
+    Args:
+        op (function): function to call
+    """
     c = None
     r = FIRST_RANK
     res = None
