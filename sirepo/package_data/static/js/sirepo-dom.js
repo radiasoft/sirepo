@@ -92,10 +92,14 @@ class UIElement {  //extends UIOutput {
     }
 
     addSibling(el) {
-        this.siblings.push(el);
         if (this.parent) {
+            this.siblings.push(el);
             this.parent.addChild(el);
         }
+    }
+
+    clearChildren() {
+        this.children = [];
     }
 
     getAttr(name) {
@@ -116,6 +120,10 @@ class UIElement {  //extends UIOutput {
         return this.getAttr('class');
     }
 
+    getIdSelector() {
+        return `#${this.id}`;
+    }
+
     getSibling(id) {
         for (let x of this.siblings) {
             if (x.id === id) {
@@ -127,6 +135,13 @@ class UIElement {  //extends UIOutput {
 
     removeAttribute(name) {
         delete this.attrs[name];
+    }
+
+    removeChild(id) {
+        let c = this.getChild(id);
+        if (c) {
+            this.children.splice(this.children.indexOf(c), 1);
+        }
     }
 
     removeClasses(cl) {
@@ -143,6 +158,16 @@ class UIElement {  //extends UIOutput {
             }
         }
         this.setClass(arr.join(' '));
+    }
+
+    removeSibling(id) {
+        let s = this.getSibling(id);
+        if (s) {
+            this.siblings.splice(this.children.indexOf(s), 1);
+            if (this.parent) {
+                this.parent.removeChild(id);
+            }
+        }
     }
 
     setAttribute(name, val) {
@@ -358,12 +383,48 @@ class SVGPath extends UIElement {
         this.update();
     }
 
-    update() {
-        let p = `M${this.offsets[0]},${this.offsets[0]} `;
-        for (let pt of this.points) {
-            p += `L${pt[0]},${pt[1]} `;
+    closestCorner(x, y) {
+        let d = Number.MAX_VALUE;
+        let closest = null;
+        for (let c of this.corners) {
+            let d2 = (c[0] - x) * (c[0] - x) + (c[1] - y) * (c[1] - y);
+            if (d2 < d) {
+                d = d2;
+                closest = c;
+            }
         }
-        p += (this.doClose ? 'z' : '');
+        return closest;
+    }
+
+    closestLines(x, y) {
+        return this.linesWithCorner(this.closestCorner(x, y));
+    }
+
+    linesWithCorner(c) {
+        let lines = [];
+        for (let l of this.lines) {
+            if (l[0] == c || l[1] == c) {
+                lines.push(l);
+            }
+        }
+        return lines;
+    }
+
+    update() {
+        let c = [this.offsets[0] + this.points[0][0], this.offsets[1] + this.points[0][1]];
+        this.corners = [c];
+        this.lines = [];
+        let p = `M${c[0]},${c[1]} `;
+        for (let i = 1; i < this.points.length; ++i) {
+            c = [this.offsets[0] + this.points[i][0], this.offsets[1] + this.points[i][1]];
+            this.lines.push([c, this.corners[this.corners.length - 1]]);
+            this.corners.push(c);
+            p += `L${c[0]},${c[1]} `;
+        }
+        if (this.doClose) {
+            this.lines.push([this.corners[this.corners.length - 1], this.corners[0]]);
+            p += 'z';
+        }
         this.getAttr('d').setValue(p);
     }
 

@@ -3398,7 +3398,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     return self;
 });
 
-SIREPO.app.directive('shapePicker', function(appState, panelState) {
+SIREPO.app.directive('shapePicker', function(appState, panelState, plotting) {
 
     const width = 64;
     const height = 64;
@@ -3413,13 +3413,18 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
         return new SIREPO.DOM.UIEnumOption('', o);
     }));
 
-    let svg = new SIREPO.DOM.SVGContainer('sr-shape-picker', width, height);
+    const shapePickerId = 'sr-shape-picker';
+    let svg = new SIREPO.DOM.SVGContainer(shapePickerId, width, height);
     svg.addChild(new SIREPO.DOM.SVGRect(
         'sr-shape-picker-border', inset, inset, width - 2 * inset, height - 2 * inset, 'fill: none; stroke: black')
     );
 
     const shapeGrpId = 'sr-shape-picker-shape';
     svg.addChild(new SIREPO.DOM.SVGGroup(shapeGrpId));
+
+    const shapeHighlightGrpId = 'sr-shape-picker-shape-highlight';
+    let shapeHighlight = new SIREPO.DOM.SVGGroup(shapeHighlightGrpId);
+    svg.addChild(shapeHighlight);
 
     let shapes = {};
     for (let name in SIREPO.APP_SCHEMA.constants.geomObjShapes) {
@@ -3441,11 +3446,37 @@ SIREPO.app.directive('shapePicker', function(appState, panelState) {
           '</div>',
         ].join(''),
         controller: function($scope, $element) {
+            let selectedLines = null;
+
+            plotting.setupSelector($scope, $element);
             $scope.loadImage = function() {
+                shapeHighlight.clearChildren();
                 $(`#${shapeGrpId}`).html(shapes[$scope.model[$scope.field]].toTemplate());
             };
 
             $scope.loadImage();
+
+            $scope.select(svg.getIdSelector())
+                .on('click', onClick);
+
+            function onClick() {
+                let s = shapes[$scope.model[$scope.field]];
+                let lines = s.closestLines(d3.event.layerX, d3.event.layerY);
+                //srdbg('L', lines);
+                if (selectedLines) {
+                    shapeHighlight.clearChildren();
+                    selectedLines = null;
+                }
+                let pts = [];
+                for (let c of lines) {
+                    pts.push(...c);
+                }
+                selectedLines = new SIREPO.DOM.SVGPath(`${$scope.model[$scope.field]}-highlight`, pts, [0, 0], false, 'red', 'none');
+                shapeHighlight.addChild(selectedLines);
+                srdbg('L PATHS', selectedLines, shapeHighlight);
+            }
+
+
         },
     };
 });
