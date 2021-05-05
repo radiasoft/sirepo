@@ -270,23 +270,26 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     return y_range
 
 
-def write_dict_to_h5(d, h5_file, h5_path=None):
+def write_dict_to_h5(d, file_path, mode, h5_path=None):
+    import h5py
     if h5_path is None:
         h5_path = ''
     try:
         for i in range(len(d)):
             p = f'{h5_path}/{i}'
             try:
-                h5_file.create_dataset(p, data=d[i])
+                with h5py.File(file_path, mode) as f:
+                    f.create_dataset(p, data=d[i])
             except TypeError:
-                write_dict_to_h5(d[i], h5_file, h5_path=p)
+                write_dict_to_h5(d[i], file_path, mode, h5_path=p)
     except KeyError:
         for k in d:
             p = f'{h5_path}/{k}'
             try:
-                h5_file.create_dataset(p, data=d[k])
+                with h5py.File(file_path, mode) as f:
+                    f.create_dataset(p, data=d[k])
             except TypeError:
-                write_dict_to_h5(d[k], h5_file, h5_path=p)
+                write_dict_to_h5(d[k], file_path, mode, h5_path=p)
 
 
 def enum_text(schema, name, value):

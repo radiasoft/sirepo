@@ -29,4 +29,4 @@ with radia_util.MPI() as m:
         y=km[4],
         txt=km[5]
     )
-    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(km_dict, '{{ h5KickMapPath }}'))
+    sirepo.mpi.restrict_op_to_first_rank(lambda: template_commonwrite_dict_to_h5(km_dict, '{{ dataFile }}', 'a', '{{ h5KickMapPath }}'))

@@ -93,13 +93,13 @@ with radia_util.MPI() as m:
 {% endif %}
     g_id, id_map = _build_radia_geom()
     g_data = radia_util.geom_to_data(g_id, name='{{ geomName }}')
-    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(g_data, '{{ h5ObjPath }}'))
-    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(id_map, '{{ h5IdMapPath }}'))
+    sirepo.mpi.restrict_op_to_first_rank(lambda: template_common.write_dict_to_h5(g_data, '{{ dataFile }}', 'a', h5_path='{{ h5ObjPath }}'))
+    sirepo.mpi.restrict_op_to_first_rank(lambda: template_common.write_dict_to_h5(id_map, '{{ dataFile }}', 'a', h5_path='{{ h5IdMapPath }}'))
 
 {% if doSolve %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     m.barrier()
-    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(res, '{{ h5SolutionPath }}'))
+    sirepo.mpi.restrict_op_to_first_rank(lambda: template_common.write_dict_to_h5(res, '{{ dataFile }}', 'a', h5_path='{{ h5SolutionPath }}'))
 {% endif %}
 
 {% if viewType == VIEW_TYPE_FIELD %}
@@ -113,7 +113,7 @@ with radia_util.MPI() as m:
     m.barrier()
     if f:
         g_data = radia_util.vector_field_to_data(g_id, '{{ geomName }}', f, radia_util.FIELD_UNITS['{{ fieldType }}'])
-        sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(g_data , '{{ h5FieldPath }}'))
+        sirepo.mpi.restrict_op_to_first_rank(lambda: template_common.write_dict_to_h5(g_data , '{{ dataFile }}', 'a', h5_path='{{ h5FieldPath }}'))
 {% endif %}
     sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
 
