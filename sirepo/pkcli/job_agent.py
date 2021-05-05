@@ -342,7 +342,8 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
-        _assert_run_dir_exists(pkio.py_path(msg.runDir))
+        if msg.runDir:
+            _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
@@ -352,7 +353,8 @@ class _Dispatcher(PKDict):
             self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
             m.fastcgiFile = self._fastcgi_file
-            # Runs in a agent's directory, but chdir's to real runDirs
+            # Runs in an agent's directory and chdirs to real runDirs.
+            # Except in stateless_compute which doesn't interact with the db.
             m.runDir = pkio.py_path()
             # Kind of backwards, but it makes sense since we need to listen
             # so _do_fastcgi can connect

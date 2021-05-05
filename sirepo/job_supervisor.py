@@ -303,6 +303,7 @@ class _ComputeJob(PKDict):
                 cfg.purge_non_premium_task_secs,
                 cls.purge_free_simulations,
             )
+
     @classmethod
     async def receive(cls, req):
         if req.content.get('api') != 'api_runStatus':
@@ -747,6 +748,13 @@ class _ComputeJob(PKDict):
             job.OP_ANALYSIS,
             req,
             jobCmd='get_simulation_frame'
+        )
+
+    async def _receive_api_statelessCompute(self, req):
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='stateless_compute'
         )
 
     def _create_op(self, opName, req, **kwargs):

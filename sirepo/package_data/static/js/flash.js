@@ -633,7 +633,7 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
                 var el = $('#sr-setup-command');
                 el.modal('show');
                 el.on('shown.bs.modal', function() {
-                requestSender.getApplicationData(
+                requestSender.statelessCompute(
                     {
                         method: 'setup_command',
                         models: appState.models,
