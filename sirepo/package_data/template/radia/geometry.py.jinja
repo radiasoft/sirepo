@@ -87,11 +87,7 @@ def _write_dmp(g_id, f_path):
     with open(f_path, 'wb') as f:
         f.write(radia_util.dump_bin(g_id))
 
-{% if isParallel %}
 with radia_util.MPI() as m:
-{% else %}
-if True:
-{% endif %}
 {% if doReset %}
     radia_util.reset()
 {% endif %}
@@ -102,9 +98,7 @@ if True:
 
 {% if doSolve %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-    {% if isParallel %}
     m.barrier()
-    {% endif %}
     sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(res, '{{ h5SolutionPath }}'))
 {% endif %}
 
@@ -116,9 +110,7 @@ if True:
 {% else %}
     f = None
 {% endif %}
-    {% if isParallel %}
     m.barrier()
-    {% endif %}
     if f:
         g_data = radia_util.vector_field_to_data(g_id, '{{ geomName }}', f, radia_util.FIELD_UNITS['{{ fieldType }}'])
         sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dict_to_h5(g_data , '{{ h5FieldPath }}'))

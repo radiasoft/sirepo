@@ -43,21 +43,24 @@ _ZERO = [0, 0, 0]
 
 class MPI:
     def __init__(self):
-        radia.UtiMPI('in')
-        self.is_mpi_running = True
+        # Null op for when not in MPI
+        self._uti_mpi = lambda x: None
+        try:
+            import mpi4py.MPI
+            if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
+                self._uti_mpi = radia.UtiMPI
+        except Exception:
+            pass
 
     def __enter__(self):
+        self._uti_mpi('in')
         return self
 
     def __exit__(self, t, value, traceback):
-        if not self.is_mpi_running:
-            return
-        radia.UtiMPI('off')
+        self._uti_mpi('off')
 
     def barrier(self):
-        if not self.is_mpi_running:
-            return
-        radia.UtiMPI('barrier')
+        self._uti_mpi('barrier')
 
 
 def _apply_clone(g_id, xform):
