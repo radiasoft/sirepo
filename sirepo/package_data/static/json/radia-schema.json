@@ -465,6 +465,7 @@
             "magnetType": ["Magnet Type", "MagnetType", "freehand"]
         },
         "solver":  {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "0"],
