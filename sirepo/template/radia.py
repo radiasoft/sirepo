@@ -12,7 +12,7 @@ from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
 from sirepo.template import template_common
