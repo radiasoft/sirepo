@@ -7,8 +7,9 @@ from sirepo.template import radia_util
 from sirepo.template import template_common
 
 def _write_dict_to_h5(data, h5_path):
-    with h5py.File('{{ dataFile }}', 'a') as f:
-        template_common.write_dict_to_h5(data, f, h5_path=h5_path)
+    sirepo.mpi.restrict_op_to_first_rank(
+        lambda: template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
+    )
 
 g_id = -1
 with open('{{ dmpOutputFile }}', 'rb') as f:
@@ -29,4 +30,4 @@ with radia_util.MPI() as m:
         y=km[4],
         txt=km[5]
     )
-    sirepo.mpi.restrict_op_to_first_rank(lambda: template_commonwrite_dict_to_h5(km_dict, '{{ dataFile }}', 'a', '{{ h5KickMapPath }}'))
+    _write_dict_to_h5(km_dict, '{{ h5KickMapPath }}')
