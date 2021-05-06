@@ -538,7 +538,6 @@ def _init():
     global cfg
     if cfg:
         return
-    sirepo.util.init()
     c = sirepo.pkcli.service._cfg()
     cfg = pkconfig.init(
         emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
