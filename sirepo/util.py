@@ -34,8 +34,8 @@ AUTH_HEADER = 'Authorization'
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
-#: Locking for global simulation_db operations
-THREAD_LOCK = None
+#: Lock for operations across Sirepo (flask)
+THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
@@ -189,21 +189,6 @@ def in_flask_request():
     return f and f.request or None
 
 
-def init(server_context=False):
-    global cfg, THREAD_LOCK
-
-    assert not cfg
-    cfg = pkconfig.init(
-        create_token_secret=('oh so secret!', str, 'used for internal test only'),
-    )
-    if server_context:
-        THREAD_LOCK = threading.RLock()
-        return
-    # Use nullcontext instead of an actual lock because supervisor is in tornado
-    # which is single threaded
-    THREAD_LOCK = contextlib.nullcontext()
-
-
 def json_dump(obj, path=None, pretty=False, **kwargs):
     """Formats as json as string, and writing atomically to disk
 
@@ -281,3 +266,8 @@ def _raise(exc, fmt, *args, **kwargs):
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
+
+
+cfg = pkconfig.init(
+    create_token_secret=('oh so secret!', str, 'used for internal test only'),
+)

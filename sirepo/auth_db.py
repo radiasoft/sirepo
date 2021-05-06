@@ -11,7 +11,6 @@ import contextlib
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-import threading
 # limit imports here
 import sirepo.auth_role
 import sirepo.srcontext

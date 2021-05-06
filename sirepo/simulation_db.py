@@ -30,7 +30,6 @@ import sirepo.auth
 import sirepo.job
 import sirepo.srdb
 import sirepo.template
-import threading
 import time
 
 #: Names to display to use for jobRunMode
