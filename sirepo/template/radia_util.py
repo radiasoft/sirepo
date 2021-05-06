@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Toolkit and/or utils for calling Radia functions
+u"""Utilities and wrappers for calling Radia functions
 
 :copyright: Copyright (c) 2017-2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
