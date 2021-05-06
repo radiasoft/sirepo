@@ -34,11 +34,8 @@ AUTH_HEADER = 'Authorization'
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
-#: Context where we can do sim_db_file operations (supervisor)
-SIM_DB_FILE_LOCK = None
-
-#: Locking for global simulation_db operations (server)
-SIMULATION_DB_LOCK = None
+#: Locking for global simulation_db operations
+THREAD_LOCK = None
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
@@ -193,18 +190,18 @@ def in_flask_request():
 
 
 def init(server_context=False):
-    global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_LOCK
+    global cfg, THREAD_LOCK
 
     assert not cfg
     cfg = pkconfig.init(
         create_token_secret=('oh so secret!', str, 'used for internal test only'),
     )
     if server_context:
-        SIMULATION_DB_LOCK = threading.RLock()
+        THREAD_LOCK = threading.RLock()
         return
     # Use nullcontext instead of an actual lock because supervisor is in tornado
     # which is single threaded
-    SIM_DB_FILE_LOCK = contextlib.nullcontext()
+    THREAD_LOCK = contextlib.nullcontext()
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):

@@ -16,6 +16,7 @@ import threading
 import sirepo.auth_role
 import sirepo.srcontext
 import sirepo.srdb
+import sirepo.util
 
 
 #: sqlite file located in sirepo_db_dir
@@ -37,9 +38,6 @@ UserRegistration = None
 
 #: roles for each user
 UserRole = None
-
-#: Locking of db calls
-thread_lock = threading.RLock()
 
 
 def all_uids():
@@ -139,34 +137,34 @@ def init():
                 setattr(self, k, v)
 
         def delete(self):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 self._session().delete(self)
                 self._session().commit()
 
         @classmethod
         def delete_all(cls):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 cls._session().query(cls).delete()
                 cls._session().commit()
 
         def save(self):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 self._session().add(self)
                 self._session().commit()
 
         @classmethod
         def search_all_by(cls, **kwargs):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 return cls._session().query(cls).filter_by(**kwargs).all()
 
         @classmethod
         def search_by(cls, **kwargs):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 return cls._session().query(cls).filter_by(**kwargs).first()
 
         @classmethod
         def search_all_for_column(cls, column, **filter_by):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 return [
                     getattr(r, column) for r
                     in cls._session().query(cls).filter_by(**filter_by)
@@ -174,7 +172,7 @@ def init():
 
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 cls._session().query(cls).filter(
                     getattr(cls, column).in_(values),
                 ).delete(synchronize_session='fetch')
@@ -204,21 +202,21 @@ def init():
 
         @classmethod
         def all_roles(cls):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 return [
                     r[0] for r in cls._session().query(cls.role.distinct()).all()
                 ]
 
         @classmethod
         def add_roles(cls, uid, roles):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 for r in roles:
                     UserRole(uid=uid, role=r).save()
                 audit_proprietary_lib_files(uid)
 
         @classmethod
         def delete_roles(cls, uid, roles):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 cls._session().query(cls).filter(
                     cls.uid == uid,
                 ).filter(
@@ -229,7 +227,7 @@ def init():
 
         @classmethod
         def get_roles(cls, uid):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 return UserRole.search_all_for_column(
                     'role',
                     uid=uid,
@@ -238,7 +236,7 @@ def init():
 
         @classmethod
         def has_role(cls, uid, role):
-            with thread_lock:
+            with sirepo.util.THREAD_LOCK:
                 return bool(cls.search_by(uid=uid, role=role))
 
         @classmethod
@@ -252,7 +250,7 @@ def init():
 
 
 def init_model(callback):
-    with thread_lock:
+    with sirepo.util.THREAD_LOCK:
         callback(UserDbBase)
         UserDbBase.metadata.create_all(_engine)
 

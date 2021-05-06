@@ -365,7 +365,7 @@ def move_user_simulations(from_uid, to_uid):
         to_uid (str): dest user
 
     """
-    with util.SIMULATION_DB_LOCK:
+    with util.THREAD_LOCK:
         for path in glob.glob(
                 str(user_path(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
         ):
@@ -552,7 +552,7 @@ def save_simulation_json(data, do_validate=True, uid=None):
     s = data.models.simulation
     sim_type = data.simulationType
     fn = sim_data_file(sim_type, s.simulationId, uid=uid)
-    with util.SIMULATION_DB_LOCK:
+    with util.THREAD_LOCK:
         need_validate = True
         try:
             # OPTIMIZATION: If folder/name same, avoid reading entire folder
@@ -800,7 +800,7 @@ def validate_serial(req_data):
     """
     if req_data.get('version') != SCHEMA_COMMON.version:
         raise util.SRException('serverUpgraded', None)
-    with util.SIMULATION_DB_LOCK:
+    with util.THREAD_LOCK:
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
         sid = req_data.models.simulation.simulationId
         req_ser = req_data.models.simulation.simulationSerial
@@ -1049,7 +1049,7 @@ def _serial_new():
     """
     global _serial_prev
     res = int(time.time() * 1000000)
-    with util.SIMULATION_DB_LOCK:
+    with util.THREAD_LOCK:
         # Good enough assertion. Any collisions will also be detected
         # by parameter hash so order isn't only validation
         assert res > _serial_prev, \
