@@ -1064,6 +1064,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetRemanentMag,
         und.magnetColor
     )
+    und.magnetBaseObjectId = magnet_block.id
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
@@ -1077,6 +1078,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleRemanentMag,
         und.poleColor
     )
+    und.poleBaseObjectId = pole.id
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
     mag_pole_grp.transforms = [] if und.numPeriods < 2 else \

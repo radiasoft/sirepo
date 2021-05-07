@@ -3457,7 +3457,12 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting) {
             $scope.loadImage();
 
             $scope.select(svg.getIdSelector())
-                .on('click', onClick);
+                .on('dblclick', editShape);
+                //.on('click', onClick);
+
+            function editShape() {
+                srlog($scope.field);
+            }
 
             function onClick() {
                 let s = shapes[$scope.model[$scope.field]];
