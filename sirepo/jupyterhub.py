@@ -35,8 +35,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
     async def authenticate(self, handler, data):
         with _set_cookie(handler):
             try:
-                sirepo.auth.require_user()
-                sirepo.auth.require_sim_type('jupyterhublogin')
+                self._check_permissions()
             except werkzeug.exceptions.Forbidden:
                 # returning None means the user is forbidden (403)
                 # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.authenticate
@@ -58,13 +57,19 @@ class Authenticator(jupyterhub.auth.Authenticator):
     async def refresh_user(self, user, handler=None):
         with _set_cookie(handler):
             try:
-                sirepo.auth.require_user()
+                self._check_permissions()
             except sirepo.util.SRException:
                 # Returning False is what the jupyterhub API expects and jupyterhub
                 # will handle re-authenticating the user.
                 # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.refresh_user
                 return False
             return True
+
+    def _check_permissions(self):
+        sirepo.auth.require_user()
+        sirepo.auth.require_sim_type('jupyterhublogin')
+
+
 
 
 @contextlib.contextmanager
