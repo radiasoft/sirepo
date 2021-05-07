@@ -118,7 +118,7 @@ def create_user(github_handle=None, check_dir=False):
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
         return n
 
-    with sirepo.auth_db.thread_lock:
+    with sirepo.util.THREAD_LOCK:
         n = unchecked_jupyterhub_user_name()
         if n:
             return n

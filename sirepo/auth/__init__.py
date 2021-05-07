@@ -131,7 +131,7 @@ def complete_registration(name=None):
     Guests will have no name.
     """
     u = _get_user()
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         r = user_registration(u)
         if cookie.unchecked_get_value(_COOKIE_METHOD) is METHOD_GUEST:
             assert name is None, \
@@ -436,7 +436,7 @@ def set_user_outside_of_http_request(uid):
 
 
 def unchecked_get_user(uid):
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         u = auth_db.UserRegistration.search_by(uid=uid)
         if u:
             return u.uid
@@ -451,7 +451,7 @@ def user_dir_not_found(user_dir, uid):
     Args:
         uid (str): user that does not exist
     """
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         for m in _METHOD_MODULES.values():
             u = _method_user_model(m, uid)
             if u:
@@ -489,7 +489,7 @@ def user_name():
         'UserModel',
     )
     if u:
-        with auth_db.thread_lock:
+        with util.THREAD_LOCK:
             return  u.search_by(uid=logged_in_user()).user_name
     raise AssertionError(
         f'user_name not found for uid={logged_in_user()} with method={m}',
@@ -606,7 +606,10 @@ def _auth_state():
         v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
-    if pkconfig.channel_in('dev'):
+    # TODO(e-carlin): discuss with rn. Ok to leak uid on alpha? Could parse cookie...
+    # Not strictly necessary but I think makes debuggin easier by having the uid
+    # in the test_http logs
+    if pkconfig.channel_in_internal_test():
         # useful for testing/debugging
         v.uid = u
     pkdc('state={}', v)

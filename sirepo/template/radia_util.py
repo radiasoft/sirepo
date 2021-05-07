@@ -1,8 +1,14 @@
+# -*- coding: utf-8 -*-
+u"""Utilities and wrappers for calling Radia functions
+
+:copyright: Copyright (c) 2017-2021 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
 import numpy
 import radia
-import re
 import sirepo.util
 import sys
+
 
 from numpy import linalg
 from pykern.pkcollections import PKDict
@@ -33,6 +39,28 @@ FIELD_UNITS = PKDict({
 
 _MU_0 = 4 * numpy.pi / 1e7
 _ZERO = [0, 0, 0]
+
+
+class MPI:
+    def __init__(self):
+        # Null op for when not in MPI
+        self._uti_mpi = lambda x: None
+        try:
+            import mpi4py.MPI
+            if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
+                self._uti_mpi = radia.UtiMPI
+        except Exception:
+            pass
+
+    def __enter__(self):
+        self._uti_mpi('in')
+        return self
+
+    def __exit__(self, t, value, traceback):
+        self._uti_mpi('off')
+
+    def barrier(self):
+        self._uti_mpi('barrier')
 
 
 def _apply_clone(g_id, xform):
@@ -152,10 +180,14 @@ def field_integral(g_id, f_type, p1, p2):
     return radia.FldInt(g_id, 'inf', f_type, p1, p2)
 
 
+def free_symmetries(g_id):
+    return radia.ObjDpl(g_id, 'FreeSym->True')
+
+
 def geom_to_data(g_id, name=None, divide=True):
 
     def _to_pkdict(d):
-        if not isinstance(d, dict) or isinstance(d, PKDict):
+        if not isinstance(d, dict):
             return d
         rv = PKDict()
         for k, v in d.items():
@@ -225,8 +257,11 @@ def get_field(g_id, f_type, path):
     pv_arr = []
     p = numpy.reshape(path, (-1, 3)).tolist()
     b = []
-    # get every component
+    # get every component (meaning e.g. passing 'B' and not 'Bx' etc.)
     f = radia.Fld(g_id, f_type, path)
+    # a dummy value returned by parallel radia
+    if f == 0:
+        f = numpy.zeros(len(path))
     b.extend(f)
     b = numpy.reshape(b, (-1, 3)).tolist()
     for p_idx, pt in enumerate(p):
@@ -242,10 +277,11 @@ def kick_map(
         g_id, begin, dir_long, num_periods, period_length, dir_trans, range_trans_1,
         num_pts_trans_1, range_trans_2, num_pts_trans_2
     ):
-    return radia.FldFocKickPer(
+    km = radia.FldFocKickPer(
         g_id, begin, dir_long, period_length, num_periods, dir_trans, range_trans_1,
         num_pts_trans_1, range_trans_2, num_pts_trans_2
     )
+    return km
 
 
 def load_bin(data):

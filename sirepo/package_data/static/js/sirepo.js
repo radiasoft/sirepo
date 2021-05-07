@@ -236,7 +236,8 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         if (cfg.templateUrl) {
             cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         }
-        if (routeInfo.route.search(/:simulationId/) >= 0 && cfg.controller) {
+        //TODO(pjm): may want to add an attribute to the route info rather than depend on the route param
+        if (routeInfo.route.search(/:simulationId\b/) >= 0 && cfg.controller) {
             cfg.template = simulationDetailTemplate(cfg);
         }
         $routeProvider.when(routeInfo.route, cfg);

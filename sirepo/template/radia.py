@@ -12,11 +12,11 @@ from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template import radia_tk
+from sirepo.template import radia_util
 from sirepo.template import radia_examples
 import h5py
 import math
@@ -89,15 +89,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        #data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res.percentComplete = 0.0  #_compute_percent_complete(data, last_element)
+        res.percentComplete = 0.0
         return res
     return PKDict(
         percentComplete=100,
         frameCount=1,
-        solution=_read_solution(data.simulationId),  #output_info,
+        solution=_read_solution(data.simulationId),
     )
-
 
 def create_archive(sim):
     if sim.filename.endswith('dat'):
@@ -274,7 +272,7 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data, True)
+    return _generate_parameters_file(data, False, True)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -292,7 +290,7 @@ def write_parameters(data, run_dir, is_parallel):
         #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, False),
+        _generate_parameters_file(data, is_parallel, False),
     )
 
 
@@ -522,11 +520,11 @@ def _find_obj_by_name(obj_arr, obj_name):
 
 
 def _generate_field_data(g_id, name, field_type, field_paths):
-    if field_type == radia_tk.FIELD_TYPE_MAG_M:
-        f = radia_tk.get_magnetization(g_id)
-    elif field_type in radia_tk.POINT_FIELD_TYPES:
-        f = radia_tk.get_field(g_id, field_type, _build_field_points(field_paths))
-    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[field_type])
+    if field_type == radia_util.FIELD_TYPE_MAG_M:
+        f = radia_util.get_magnetization(g_id)
+    elif field_type in radia_util.POINT_FIELD_TYPES:
+        f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
+    return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
 
 
 def _generate_field_integrals(g_id, f_paths):
@@ -540,8 +538,8 @@ def _generate_field_integrals(g_id, f_paths):
             res[p.name] = PKDict()
             p1 = sirepo.util.split_comma_delimited_string(p.begin, float)
             p2 = sirepo.util.split_comma_delimited_string(p.end, float)
-            for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
-                res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
+            for i_type in radia_util.INTEGRABLE_FIELD_TYPES:
+                res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
     except RuntimeError as e:
         pkdc('Radia error {}', e.message)
@@ -566,7 +564,7 @@ def _generate_data(g_id, in_data, add_lines=True):
 
 
 def _generate_kick_map(g_id, model):
-    km = radia_tk.kick_map(
+    km = radia_util.kick_map(
         g_id,
         sirepo.util.split_comma_delimited_string(model.begin, float),
         sirepo.util.split_comma_delimited_string(model.direction, float),
@@ -588,10 +586,10 @@ def _generate_kick_map(g_id, model):
 
 
 def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name)
+    return radia_util.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data, for_export):
+def _generate_parameters_file(data, is_parallel, for_export):
     import jinja2
 
     report = data.get('report', '')
@@ -599,6 +597,10 @@ def _generate_parameters_file(data, for_export):
     res, v = template_common.generate_parameters_file(data)
     if rpt_out in _POST_SIM_REPORTS:
         return res
+
+    v.doSolve = False
+    v.doReset = False
+    v.isParallel = is_parallel
 
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
@@ -612,7 +614,7 @@ def _generate_parameters_file(data, for_export):
     v.isExample = data.models.simulation.get('isExample', False) and \
         data.models.simulation.name in radia_examples.EXAMPLES
     v.exampleName = data.models.simulation.get('exampleName', None)
-    v.isRaw = v.exampleName in _SCHEMA.constants.rawExamples
+    v.is_raw = v.exampleName in _SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
@@ -630,9 +632,9 @@ def _generate_parameters_file(data, for_export):
     # for rendering conveneince
     v.VIEW_TYPE_OBJ = _SCHEMA.constants.viewTypeObjects
     v.VIEW_TYPE_FIELD = _SCHEMA.constants.viewTypeFields
-    v.FIELD_TYPE_MAG_M = radia_tk.FIELD_TYPE_MAG_M
-    v.POINT_FIELD_TYPES = radia_tk.POINT_FIELD_TYPES
-    v.INTEGRABLE_FIELD_TYPES = radia_tk.INTEGRABLE_FIELD_TYPES
+    v.FIELD_TYPE_MAG_M = radia_util.FIELD_TYPE_MAG_M
+    v.POINT_FIELD_TYPES = radia_util.POINT_FIELD_TYPES
+    v.INTEGRABLE_FIELD_TYPES = radia_util.INTEGRABLE_FIELD_TYPES
 
     f_type = None
     if v_type not in VIEW_TYPES:
@@ -641,9 +643,9 @@ def _generate_parameters_file(data, for_export):
     v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
-        if f_type not in radia_tk.FIELD_TYPES:
+        if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(
-                'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
+                'Invalid field {} ({})'.format(f_type, radia_util.FIELD_TYPES)
             )
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get('paths', [])
@@ -657,13 +659,12 @@ def _generate_parameters_file(data, for_export):
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
     if 'reset' in report:
-        radia_tk.reset()
-        data.report = 'geometry'
-        return _generate_parameters_file(data, False)
+        v.doReset = True
     v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
     v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
+    v.h5IdMapPath = _H5_PATH_ID_MAP
 
     j_file = RADIA_EXPORT_FILE if for_export else f'{rpt_out}.py'
     return template_common.render_jinja(
@@ -687,7 +688,7 @@ def _geom_h5_path(view_type, field_type=None):
 
 def _get_g_id(sim_id):
     with open(str(_dmp_file(sim_id)), 'rb') as f:
-        return radia_tk.load_bin(f.read())
+        return radia_util.load_bin(f.read())
 
 
 def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
@@ -724,7 +725,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
         plots.append(
             PKDict(
                 points=(m * f[:, _AXES.index(c)]).tolist(),
-                label=f'{labels[c]} ({c}) [{radia_tk.FIELD_UNITS[f_type]}]',
+                label=f'{labels[c]} ({c}) [{radia_util.FIELD_UNITS[f_type]}]',
                 style='line'
             )
         )
@@ -801,7 +802,6 @@ def _read_id_map(sim_id):
         {k:(v if isinstance(v, int) else v.decode('ascii')) for k, v in m.items()}
     )
 
-
 def _read_kick_map(sim_id):
     return _read_h5_path(sim_id, _KICK_FILE, _H5_PATH_KICK_MAP, run_dir='kickMapReport')
 
@@ -812,11 +812,11 @@ def _read_or_generate(g_id, data):
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
-    with h5py.File(_geom_file(data.simulationId), 'a') as hf:
-        template_common.dict_to_h5(
+    with h5py.File(_geom_file(data.simulationId), 'a') as f:
+        template_common.write_dict_to_h5(
             _generate_data(g_id, data, add_lines=False),
-            hf,
-            path=_geom_h5_path(data.viewType, f_type)
+            f,
+            h5_path=_geom_h5_path(data.viewType, f_type)
         )
     return get_application_data(data)
 
@@ -1131,5 +1131,6 @@ def _update_kickmap(km, und, beam_axis):
     km.periodLength = und.periodLength
 
 
+_H5_PATH_ID_MAP = _geom_h5_path('idMap')
 _H5_PATH_KICK_MAP = _geom_h5_path('kickMap')
 _H5_PATH_SOLUTION = _geom_h5_path('solution')
