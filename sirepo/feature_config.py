@@ -121,6 +121,9 @@ def _init():
     i = _cfg.proprietary_sim_types.intersection(_cfg.default_proprietary_sim_types)
     assert not i, \
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
+    _cfg.all_proprietary_sim_types = frozenset(
+        _cfg.proprietary_sim_types.union(_cfg.default_proprietary_sim_types),
+    )
     s = set(
         _cfg.sim_types or (
             _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES

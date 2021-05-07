@@ -334,8 +334,7 @@ def require_auth_basic():
 
 
 def require_sim_type(sim_type):
-    if sim_type not in sirepo.feature_config.cfg().proprietary_sim_types:
-        # only check role for proprietary_sim_types
+    if sim_type not in sirepo.feature_config.cfg().all_proprietary_sim_types:
         return
     if not _is_logged_in():
         # If a user is not logged in, we allow any sim_type, because
