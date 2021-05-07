@@ -145,6 +145,14 @@ def _do_download_data_file(msg, template):
 def _do_fastcgi(msg, template):
     import socket
 
+    @contextlib.contextmanager
+    def _update_run_dir_and_maybe_chdir(msg):
+        msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
+        with pkio.save_chdir(
+                msg.runDir,
+        ) if msg.runDir else contextlib.nullcontext():
+            yield
+
     def _recv():
         m = b''
         while True:
@@ -169,10 +177,7 @@ def _do_fastcgi(msg, template):
             m = _recv()
             if not m:
                 return
-            m.runDir = pkio.py_path(m.runDir) if m.runDir else None
-            with pkio.save_chdir(
-                    m.runDir,
-            ) if m.runDir else contextlib.nullcontext():
+            with _update_run_dir_and_maybe_chdir(m):
                 r = globals()['_do_' + m.jobCmd](
                     m,
                     sirepo.template.import_module(m.simulationType)
