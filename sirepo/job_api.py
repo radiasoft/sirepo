@@ -178,9 +178,10 @@ def api_sbatchLogin():
 def api_statelessCompute():
     return _request(
         req_data=PKDict(
+            **sirepo.http_request.parse_post().req_data,
+        ).pkupdate(
             computeJobHash='unused',
             report='statelessCompute',
-            **sirepo.http_request.parse_post().req_data
         ),
         runDir=None,
     )
