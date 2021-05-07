@@ -571,6 +571,13 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
+def stateless_compute_dispatch(data):
+    return getattr(
+        sirepo.template.import_module(data.simulationType),
+        f'stateless_compute_{data.method}',
+    )(data)
+
+
 def subprocess_output(cmd, env=None):
     """Run cmd and return output or None, logging errors.
 

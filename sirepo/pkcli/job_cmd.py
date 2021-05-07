@@ -240,7 +240,7 @@ def _do_sequential_result(msg, template):
 
 def _do_stateless_compute(msg, template):
     try:
-        return template.stateless_compute(msg.data)
+        return template_common.stateless_compute_dispatch(msg.data)
     except Exception as e:
         return _maybe_parse_user_alert(e)
 

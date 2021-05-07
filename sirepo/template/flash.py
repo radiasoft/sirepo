@@ -145,10 +145,8 @@ def generate_config_file(run_dir, data):
     )
 
 
-def stateless_compute(data, **kwargs):
-    if data.method == 'setup_command':
+def stateless_compute_setup_command(data):
         return PKDict(setupCommand=' '.join(setup_command(data)))
-    raise AssertionError(f'unknown method={data.method}')
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
