@@ -71,7 +71,6 @@ class Authenticator(jupyterhub.auth.Authenticator):
 
 
 
-
 @contextlib.contextmanager
 def _set_cookie(handler):
     import sirepo.auth_db
