@@ -40,8 +40,19 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
         if not dm.fieldPaths.get('paths'):
             dm.fieldPaths.paths = []
-        if dm.simulation.get('isExample') and dm.simulation.name == 'Wiggler':
-            dm.geometry.isSolvable = '0'
+        if dm.simulation.get('isExample'):
+            if not dm.simulation.get('exampleName'):
+                dm.simulation.exampleName = dm.simulation.name
+            if dm.simulation.name == 'Wiggler':
+                dm.geometry.isSolvable = '0'
+        sch = cls.schema()
+        for m in [m for m in dm if m in sch.model]:
+            s_m = sch.model[m]
+            for f in [
+                f for f in s_m if f in dm[m] and s_m[f][1] == 'Boolean' and
+                    not dm[m][f]
+            ]:
+                dm[m][f] = '0'
         cls._organize_example(data)
 
     @classmethod
