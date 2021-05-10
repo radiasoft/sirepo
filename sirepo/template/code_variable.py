@@ -68,7 +68,7 @@ class CodeVar():
         except ValueError:
             return v
 
-    def get_application_data(self, args, schema, ignore_array_values=False):
+    def get_application_data(self, args, schema, ignore_array_values):
         from sirepo import simulation_db
         if args.method == 'rpn_value':
             if ignore_array_values and re.search(r'^\{.*\}$', args.value):

@@ -27,7 +27,7 @@ def test_file_iterator():
     from sirepo.template.lattice import LatticeUtil
     from pykern.pkunit import pkeq
     data = _find_example('bunchComp - fourDipoleCSR')
-    v = LatticeUtil(data, _elegant()._SCHEMA).iterate_models(
+    v = LatticeUtil(data, _elegant().SCHEMA).iterate_models(
         lattice.InputFileIterator(_elegant()._SIM_DATA)).result
     pkeq(v, ['WAKE-inputfile.knsl45.liwake.sdds'])
 
@@ -42,8 +42,10 @@ def _elegant():
 
 def _expr(expr, expect, variables=None):
     from pykern.pkunit import pkok, pkfail
-    res = _elegant().get_application_data(PKDict(
+    from sirepo.template import template_common
+    res = template_common.simulation_db_dispatch(PKDict(
         method='rpn_value',
+        simulationType='elegant',
         value=expr,
         variables=variables or {},
     ))

@@ -70,13 +70,13 @@ _REPORT_RES_MAP = PKDict(
     reset='geometry',
     solver='geometry',
 )
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
 _ZERO = [0, 0, 0]
 
 RADIA_EXPORT_FILE = 'radia_export.py'
-VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
+VIEW_TYPES = [SCHEMA.constants.viewTypeObjects, SCHEMA.constants.viewTypeFields]
 
 # cfg contains sdds instance
 _cfg = PKDict(sdds=None)
@@ -114,7 +114,7 @@ def extract_report_data(run_dir, sim_in):
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type ==\
-            _SCHEMA.constants.viewTypeFields else None
+            SCHEMA.constants.viewTypeFields else None
         template_common.write_sequential_result(
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
@@ -149,7 +149,7 @@ def extract_report_data(run_dir, sim_in):
 def get_application_data(data, **kwargs):
     if 'method' not in data:
         raise RuntimeError('no application data method')
-    if data.method not in _SCHEMA.constants.getDataMethods:
+    if data.method not in SCHEMA.constants.getDataMethods:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
@@ -171,9 +171,9 @@ def get_application_data(data, **kwargs):
         res.idMap = id_map
         tmp_f_type = data.fieldType
         data.fieldType = None
-        data.geomTypes = [_SCHEMA.constants.geomTypeLines]
+        data.geomTypes = [SCHEMA.constants.geomTypeLines]
         data.method = 'get_geom'
-        data.viewType = _SCHEMA.constants.viewTypeObjects
+        data.viewType = SCHEMA.constants.viewTypeObjects
         new_res = get_application_data(data)
         res.data += new_res.data
         data.fieldType = tmp_f_type
@@ -186,7 +186,7 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_geom':
         g_types = data.get(
             'geomTypes',
-            [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
+            [SCHEMA.constants.geomTypeLines, SCHEMA.constants.geomTypePolys]
         )
         g_types.extend(['center', 'name', 'size', 'id'])
         res = _read_or_generate(g_id, data)
@@ -335,7 +335,7 @@ def _build_cuboid(
 def _build_field_file_pts(f_path):
     pts_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
         f_path.fileName,
-        _SCHEMA.constants.pathPtsFileType
+        SCHEMA.constants.pathPtsFileType
     ))
     lines = [float(l.strip()) for l in pkio.read_text(pts_file).split(',')]
     if len(lines) % 3 != 0:
@@ -556,9 +556,9 @@ def _generate_field_integrals(g_id, f_paths):
 def _generate_data(g_id, in_data, add_lines=True):
     try:
         o = _generate_obj_data(g_id, in_data.name)
-        if in_data.viewType == _SCHEMA.constants.viewTypeObjects:
+        if in_data.viewType == SCHEMA.constants.viewTypeObjects:
             return o
-        elif in_data.viewType == _SCHEMA.constants.viewTypeFields:
+        elif in_data.viewType == SCHEMA.constants.viewTypeFields:
             g = _generate_field_data(
                 g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
             )
@@ -616,12 +616,12 @@ def _generate_parameters_file(data, is_parallel, for_export):
     if 'dmpImportFile' in data.models.simulation:
         v.dmpImportFile = data.models.simulation.dmpImportFile if for_export else \
             simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
+                f'{SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
             )
     v.isExample = data.models.simulation.get('isExample', False) and \
         data.models.simulation.name in radia_examples.EXAMPLES
     v.exampleName = data.models.simulation.get('exampleName', None)
-    v.is_raw = v.exampleName in _SCHEMA.constants.rawExamples
+    v.is_raw = v.exampleName in SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
@@ -637,8 +637,8 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v_type = disp.viewType
 
     # for rendering conveneince
-    v.VIEW_TYPE_OBJ = _SCHEMA.constants.viewTypeObjects
-    v.VIEW_TYPE_FIELD = _SCHEMA.constants.viewTypeFields
+    v.VIEW_TYPE_OBJ = SCHEMA.constants.viewTypeObjects
+    v.VIEW_TYPE_FIELD = SCHEMA.constants.viewTypeFields
     v.FIELD_TYPE_MAG_M = radia_util.FIELD_TYPE_MAG_M
     v.POINT_FIELD_TYPES = radia_util.POINT_FIELD_TYPES
     v.INTEGRABLE_FIELD_TYPES = radia_util.INTEGRABLE_FIELD_TYPES
@@ -648,7 +648,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
     v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
-    if v_type == _SCHEMA.constants.viewTypeFields:
+    if v_type == SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(
@@ -667,9 +667,9 @@ def _generate_parameters_file(data, is_parallel, for_export):
         v.solveMethod = s.method
     if 'reset' in report:
         v.doReset = True
-    v.h5FieldPath = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
+    v.h5FieldPath = _geom_h5_path(SCHEMA.constants.viewTypeFields, f_type)
     v.h5KickMapPath = _H5_PATH_KICK_MAP
-    v.h5ObjPath = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
+    v.h5ObjPath = _geom_h5_path(SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
     v.h5IdMapPath = _H5_PATH_ID_MAP
 
@@ -758,7 +758,7 @@ def _kick_map_plot(sim_id, model):
         return None
     z = km[component]
     return PKDict(
-        title=f'{srschema.get_enums(_SCHEMA, "KickMapComponent")[component]} (T2m2)',
+        title=f'{srschema.get_enums(SCHEMA, "KickMapComponent")[component]} (T2m2)',
         x_range=[km.x[0], km.x[-1], len(z)],
         y_range=[km.y[0], km.y[-1], len(z[0])],
         x_label='x [mm]',
@@ -769,10 +769,10 @@ def _kick_map_plot(sim_id, model):
 
 def _parse_input_file_arg_str(s):
     d = PKDict()
-    for kvp in s.split(_SCHEMA.constants.inputFileArgDelims.list):
+    for kvp in s.split(SCHEMA.constants.inputFileArgDelims.list):
         if not kvp:
             continue
-        kv = kvp.split(_SCHEMA.constants.inputFileArgDelims.item)
+        kv = kvp.split(SCHEMA.constants.inputFileArgDelims.item)
         d[kv[0]] = kv[1]
     return d
 
@@ -958,7 +958,7 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
 def _validate_objects(objects):
     from numpy import linalg
     for o in objects:
-        if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
+        if 'material' in o and o.material in SCHEMA.constants.anisotropicMaterials:
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
                 raise ValueError(
                     f'{o.name}: anisotropic material {o.material} requires non-0 magnetization'

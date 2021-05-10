@@ -238,6 +238,13 @@ def _do_sequential_result(msg, template):
     return r
 
 
+def _do_simulation_db(msg, template):
+    try:
+        return template_common.simulation_db_dispatch(msg.data)
+    except Exception as e:
+        return _maybe_parse_user_alert(e)
+
+
 def _do_stateless_compute(msg, template):
     try:
         return template_common.stateless_compute_dispatch(msg.data)

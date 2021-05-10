@@ -263,7 +263,7 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
 
     function computeRMSSize(field, saveChanges) {
         var beamline = appState.applicationState().beamline;
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
             method: 'compute_rms_size',

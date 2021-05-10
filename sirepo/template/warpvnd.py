@@ -23,7 +23,7 @@ import sirepo.sim_data
 import sirepo.util
 
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 COMPARISON_STEP_SIZE = 100
 WANT_BROWSER_FRAME_CACHE = True
@@ -367,7 +367,7 @@ def _create_plots(dimension, params, values, ranges, is3d):
     other_axes = re.sub('[' + dimension + ']', '', all_axes)
     y_range = None
     plots = []
-    color = _SCHEMA.constants.cellColors
+    color = SCHEMA.constants.cellColors
     label_fmts = {
         'x': u'{:.0f} nm',
         'y': u'{:.0f} nm',
@@ -778,7 +778,7 @@ def _generate_optimizer_file(data, v):
 
 def _generate_parameters_file(data):
     v = None
-    template_common.validate_models(data, _SCHEMA)
+    template_common.validate_models(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE

@@ -530,7 +530,7 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
 
     function calculateBunchParameters() {
         updateParticle();
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'calculate_bunch_parameters',

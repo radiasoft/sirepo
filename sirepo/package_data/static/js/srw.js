@@ -90,7 +90,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         if (! (self.isIdealizedUndulator() || self.isTabulatedUndulator())) {
             return;
         }
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'process_undulator_definition',
@@ -186,7 +186,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.computeBeamParameters = function() {
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'process_beam_parameters',
@@ -212,7 +212,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.computeDeltaAttenCharacteristics = function(item) {
         self.updateMaterialFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'compute_delta_atten_characteristics',
@@ -231,7 +231,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         // fiber or zonePlate items
         var prefixes = attenuationPrefixes(item);
         self.updateDualFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'compute_dual_characteristics',
@@ -253,7 +253,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.computeFields = function(method, item, fields) {
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: method,
@@ -271,11 +271,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             return 'multiElectronAnimation';
         }
         return analysisModel;
-    };
-
-    self.computeOnServer = function(method, args, callback) {
-        args.method = method;
-        requestSender.getApplicationData(args, callback);
     };
 
     self.disableReloadOnSearch = function() {
@@ -376,11 +371,12 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.loadModelList = function(modelName, callback, sig) {
-        return self.computeOnServer(
-            'model_list',
+        return requestSender.sendSimulationDb(
+            appState,
             {
-                model_name: modelName,
+                method: 'model_list',
                 methodSignature: 'model_list ' + modelName + (sig || ''),
+                model_name: modelName,
             },
             callback);
     };
@@ -826,10 +822,9 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             }
 
             $scope.openShadowSimulation = function() {
-                srwService.computeOnServer(
-                    'create_shadow_simulation',
-                    appState.models,
-                    createNewSim);
+                const d = appState.models;
+                d.method = 'create_shadow_simulation';
+                requestSender.sendSimulationDb(appState, d, createNewSim);
             };
         },
     };
@@ -952,7 +947,7 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender
 
     function computeCRLCharacteristics(item) {
         updateCRLFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'compute_crl_characteristics',
@@ -1002,7 +997,7 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
 
     function computeCrystalOrientation(item) {
         updateCrystalOrientationFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'compute_crystal_orientation',
@@ -1237,7 +1232,7 @@ SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSe
 
     function computePGMValue(item) {
         updateGratingFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
             {
                 method: 'compute_PGM_value',
@@ -1334,15 +1329,16 @@ SIREPO.viewLogic('simulationGridView', function($scope, srwService) {
     ];
 });
 
-SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, srwService, $scope) {
+SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, requestSender, srwService, $scope) {
     if ($scope.fieldDef == 'basic') {
         return;
     }
 
     function computeUndulatorLength() {
-        srwService.computeOnServer(
-            'compute_undulator_length',
+        requestSender.sendSimulationDb(
+            appState,
             {
+                method: 'compute_undulator_length',
                 tabulated_undulator: appState.models.tabulatedUndulator,
             },
             function(data) {
@@ -1786,7 +1782,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
               '</ul>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, requestSender) {
 
             function addNewModel(model) {
                 model.id = appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
@@ -1823,13 +1819,15 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
             $scope.deleteItem = function(item, $event) {
                 $event.stopPropagation();
                 $event.preventDefault();
-                srwService.computeOnServer(
-                    'delete_user_models',
+                requestSender.sendSimulationDb(
+                    appState,
                     {
                         electron_beam: $scope.isElectronBeam() ? item : null,
+                        method: 'delete_user_models',
                         tabulated_undulator: $scope.isTabulatedUndulator() ? item : null,
                     },
-                    $scope.loadModelList);
+                    $scope.loadModelList
+                );
             };
             $scope.isElectronBeam = function() {
                 return $scope.modelName == 'electronBeam';
