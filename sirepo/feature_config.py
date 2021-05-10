@@ -57,6 +57,17 @@ VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _DEFAULT_PROPRIETARY_CODES)
 _cfg = None
 
 
+def auth_controlled_sim_types():
+    """All sim types that require granted authentication to access
+
+    Returns:
+      frozenset:  enabled sim types that require role
+    """
+    return frozenset(
+        cfg().proprietary_sim_types.union(cfg().default_proprietary_sim_types),
+    )
+
+
 def cfg():
     """global configuration
 
@@ -121,9 +132,6 @@ def _init():
     i = _cfg.proprietary_sim_types.intersection(_cfg.default_proprietary_sim_types)
     assert not i, \
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
-    _cfg.all_proprietary_sim_types = frozenset(
-        _cfg.proprietary_sim_types.union(_cfg.default_proprietary_sim_types),
-    )
     s = set(
         _cfg.sim_types or (
             _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES

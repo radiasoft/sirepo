@@ -22,9 +22,8 @@ def for_new_user(is_guest):
 
 
 def get_all():
-    c = sirepo.feature_config.cfg()
     return [
-        for_sim_type(t) for t in c.all_proprietary_sim_types
+        for_sim_type(t) for t in sirepo.feature_config.auth_controlled_sim_types()
     ] + [
         ROLE_ADM,
         ROLE_PAYMENT_PLAN_ENTERPRISE,
