@@ -678,7 +678,7 @@
                         "k1": 5,
                         "k1s": 0,
                         "l": 0.1,
-                        "name": "Q5",
+                        "name": "QUAD3",
                         "thick": "0",
                         "tilt": 0,
                         "type": "QUADRUPOLE"
@@ -699,7 +699,7 @@
                         "k1": -5,
                         "k1s": 0,
                         "l": 0.1,
-                        "name": "Q7",
+                        "name": "QUAD4",
                         "thick": "0",
                         "tilt": 0,
                         "type": "QUADRUPOLE"

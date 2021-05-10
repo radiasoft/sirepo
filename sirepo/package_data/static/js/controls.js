@@ -8,8 +8,11 @@ SIREPO.app.config(() => {
         '<div data-ng-switch-when="MadxSimList" data-ng-class="fieldClass">',
           '<div data-sim-list="" data-model="model" data-field="field" data-code="madx" data-route="lattice"></div>',
         '</div>',
-        '<div data-ng-switch-when="AmpTable" data-ng-class="fieldClass">',
-          '<div data-amp-table="" data-model="model" data-field="field"></div>',
+        '<div data-ng-switch-when="AmpTable">',
+          '<div data-amp-table=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="AmpField">',
+          '<div data-amp-field=""></div>',
         '</div>',
     ].join('');
     // TODO(e-carlin): copied from madx
@@ -18,7 +21,9 @@ SIREPO.app.config(() => {
             OCTUPOLE: 'yellow',
             QUADRUPOLE: 'red',
             SEXTUPOLE: 'lightgreen',
-            VKICKER: 'blue',
+            KICKER: 'black',
+            HKICKER: 'black',
+            VKICKER: 'black',
         },
         elementPic: {
             aperture: ['COLLIMATOR', 'ECOLLIMATOR', 'RCOLLIMATOR'],
@@ -41,42 +46,140 @@ SIREPO.app.config(() => {
 
 SIREPO.app.factory('controlsService', function(appState) {
     const self = {};
+    const mevToKg = 5.6096e26;
+    const defaultFactor = 100;
+    const elementaryCharge = 1.602e-19; // Coulomb
+    const fieldMap = {
+        QUADRUPOLE: 'K1',
+        KICKER: 'KICK',
+        HKICKER: 'KICK',
+        VKICKER: 'KICK',
+    };
+
+    function beamInfo() {
+        const beam = appState.applicationState().command_beam;
+        let pInfo = SIREPO.APP_SCHEMA.constants.particleMassAndCharge[beam.particle];
+        if (! pInfo) {
+            pInfo = [beam.mass, beam.charge];
+        }
+        return {
+            mass: pInfo[0] / mevToKg,
+            charge: pInfo[1] * elementaryCharge,
+            gamma: beam.gamma,
+            beta: Math.sqrt(1 - (1 / (beam.gamma * beam.gamma))),
+        };
+    }
+
+    function computeCurrent(kick, factor) {
+        const b = beamInfo();
+        return kick * b.gamma * b.mass * b.beta * SIREPO.APP_SCHEMA.constants.clight
+            / (b.charge * factor);
+    }
+
+    function computeKick(current, factor) {
+        const b = beamInfo();
+        return current * b.charge * factor
+            / (b.gamma * b.mass * b.beta * SIREPO.APP_SCHEMA.constants.clight);
+    }
+
+    function interpolateTable(value, tableName, fromIndex, toIndex) {
+        const table = self.getAmpTables()[tableName];
+        if (! table || table.length == 0) {
+            return defaultFactor;
+        }
+        if (table.length == 1 || value < table[0][fromIndex]) {
+            return table[0][toIndex];
+        }
+        let i = 1;
+        while (i < table.length) {
+            if (table[i][fromIndex] > value) {
+                return (value - table[i-1][fromIndex]) / (table[i][fromIndex] - table[i-1][fromIndex])
+                    * (table[i][toIndex] - table[i-1][toIndex]) + table[i-1][toIndex];
+            }
+            i += 1;
+        }
+        return table[table.length - 1][toIndex];
+    }
+
+    self.buildReverseMap = (tableName) => {
+        const table = self.getAmpTables()[tableName];
+        table.forEach((row) => row[2] = computeKick(row[0], row[1]));
+    };
+
     self.computeModel = () => 'animation';
+
+    self.currentField = (kickField) => 'current_' + kickField;
+
+    self.currentToKick = (model, kickField) => {
+        const current = model[self.currentField(kickField)];
+        if (! model.ampTable) {
+            return computeKick(current, defaultFactor);
+        }
+        return computeKick(
+            current,
+            interpolateTable(current, model.ampTable, 0, 1));
+    };
+
+    self.fieldForCurrent = (modelName) => fieldMap[modelName];
+
+    self.getAmpTables = () => {
+        return appState.applicationState().ampTables || {};
+    };
+
+    self.isKickField = (field) => field.search(/^(.?kick|k1)$/) >= 0;
+
+    self.kickField = (currentField) => currentField.replace('current_', '');
+
+    self.kickToCurrent = (model, kickField) => {
+        const kick = model[kickField];
+        if (! model.ampTable) {
+            return computeCurrent(kick, defaultFactor);
+        }
+        self.buildReverseMap(model.ampTable);
+        return computeCurrent(
+            kick,
+            interpolateTable(kick, model.ampTable, 2, 1));
+    };
+
+    self.latticeModels = () => appState.models.externalLattice.models;
+
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('ControlsController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope, $window) {
+SIREPO.app.controller('ControlsController', function(appState, controlsService, frameCache, latticeService, panelState, persistentSimulation, requestSender, $scope, $window) {
     const self = this;
     self.appState = appState;
     self.simScope = $scope;
 
-    function buildEditorColumns() {
-        self.editorColumns = [];
+    function buildWatchColumns() {
         self.watches = [];
         const schema = SIREPO.APP_SCHEMA.model;
-        appState.models.externalLattice.models.beamlines[0].items.forEach(
+        controlsService.latticeModels().beamlines[0].items.forEach(
             elId => {
                 const element = elementForId(elId);
-                // skip editable elements
-                if (((SIREPO.APP_SCHEMA.view[element.type] || {}).advanced || []).length) {
-                    return;
-                }
-                if (schema[element.type]) {
+                if (element.type.indexOf('MONITOR') >= 0) {
                     const m = modelDataForElement(element);
-                    if (element.type.indexOf('MONITOR') >= 0) {
-                        m.plotType = element.type == 'MONITOR'
-                            ? 'bpmMonitor'
-                            : (element.type == 'HMONITOR'
-                               ? 'bpmHMonitor'
-                               : 'bpmVMonitor');
-                        m.modelKey += 'Report';
-                        self.watches.push(m);
-                        return;
-                    }
-                    self.editorColumns.push(m);
+                    m.plotType = element.type == 'MONITOR'
+                        ? 'bpmMonitor'
+                        : (element.type == 'HMONITOR'
+                           ? 'bpmHMonitor'
+                           : 'bpmVMonitor');
+                    m.modelKey += 'Report';
+                    self.watches.push(m);
                 }
             });
+    }
+
+    function computeCurrent() {
+        for (let el of controlsService.latticeModels().elements) {
+            for (let f in el) {
+                if (controlsService.isKickField(f)
+                    && ! el[controlsService.currentField(f)]) {
+                    el[controlsService.currentField(f)] = controlsService.kickToCurrent(el, f);
+                }
+            }
+        }
     }
 
     function dataFileChanged() {
@@ -89,6 +192,8 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
             $.extend(appState.models.command_twiss, findExternalCommand('twiss'));
             $.extend(appState.models.command_beam, findExternalCommand('beam'));
             appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice', 'optimizerSettings']);
+            computeCurrent();
+            appState.saveChanges('externalLattice');
         });
     }
 
@@ -102,7 +207,7 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
 
     function findInContainer(container, key, value) {
         let res;
-        appState.models.externalLattice.models[container].some(m => {
+        controlsService.latticeModels()[container].some(m => {
             if (m[key] == value) {
                 res = m;
                 return true;
@@ -127,25 +232,32 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
         if (name == name.toUpperCase()) {
             const m = appState.models[name];
             $.extend(elementForId(m._id), m);
-            delete appState.models[name];
-            appState.saveQuietly('externalLattice');
+            appState.removeModel(name);
+            appState.saveChanges('externalLattice');
         }
         if (['command_beam', 'command_twiss'].includes(name)) {
             $.extend(findExternalCommand(name), appState.models[name]);
-            appState.saveQuietly('externalLattice');
+            appState.saveChanges('externalLattice');
         }
     }
 
-    function updateKickers(event, rows) {
-        var values = rows[rows.length -1];
-        self.editorColumns.forEach(m => {
-            Object.keys(values).forEach(k => {
-                const modelField = appState.parseModelField(k);
-                if (modelField[0] == m.modelKey) {
-                    m.getData()[modelField[1]] = values[k];
+    function updateKickers(values) {
+        if (! values.length) {
+            return;
+        }
+        for (let k in values[values.length - 1]) {
+            let mf = k.split('.');
+            if (controlsService.isKickField(mf[1])) {
+                const el = latticeService.elementForId(
+                    mf[0].split('_')[1],
+                    controlsService.latticeModels());
+                el[mf[1]] = values[values.length - 1][k];
+                el[controlsService.currentField(mf[1])] = controlsService.kickToCurrent(el, mf[1]);
+                if (appState.models[el._type] && appState.models[el._type]._id == el._id) {
+                    appState.models[el._type] = el;
                 }
-            });
-        });
+            }
+        }
         appState.saveQuietly('externalLattice');
     }
 
@@ -160,9 +272,17 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
 
     self.hasMadxLattice = () => appState.applicationState().externalLattice;
 
+    //TODO(pjm): init from template to allow listeners to register before data is received
+    self.init = () => {
+        if (! self.simState) {
+            self.simState = persistentSimulation.initSimulationState(self);
+        }
+    };
+
     self.simHandleStatus = data => {
         if (data.elementValues) {
             frameCache.setFrameCount(1);
+            updateKickers(data.elementValues);
             $scope.$broadcast('sr-elementValues', data.elementValues);
         }
         if (! self.simState.isProcessing()) {
@@ -176,15 +296,25 @@ SIREPO.app.controller('ControlsController', function(appState, frameCache, panel
     };
 
     if (self.hasMadxLattice()) {
-        buildEditorColumns();
+        buildWatchColumns();
+        if (! appState.models.ampTables) {
+            computeCurrent();
+        }
+    }
+    else {
+        $scope.$on('dataFile.changed', dataFileChanged);
+        $scope.$on('externalLattice.changed', buildWatchColumns);
     }
     windowResize();
     $scope.$on('sr-window-resize', windowResize);
-    $scope.$on('dataFile.changed', dataFileChanged);
-    $scope.$on('externalLattice.changed', buildEditorColumns);
     $scope.$on('modelChanged', saveLattice);
-    $scope.$on('sr-elementValues', updateKickers);
-    self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.$on('cancelChanges', function(e, name) {
+        if (name == name.toUpperCase()) {
+            appState.removeModel(name);
+            appState.cancelChanges('externalLattice');
+        }
+    });
 
     return self;
 });
@@ -315,14 +445,15 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                     .attr('cx', $scope.graphLine.x())
                     .attr('cy', $scope.graphLine.y())
                     .attr('style', (d, i) => {
-                        let opacity = i == points.length - 1
-                            ? 1
-                            : (i + 1) / points.length * 0.8;
+                        if (i == points.length - 1) {
+                            return `fill: rgba(0, 0, 255, 0.7); stroke-width: 4; stroke: black`;
+                        }
+                        let opacity = (i + 1) / points.length * 0.5;
                         return `fill: rgba(0, 0, 255, ${opacity}); stroke-width: 1; stroke: black`;
                     });
             };
 
-            $scope.$on('sr-elementValues', (event, rows) => {
+          $scope.$on('sr-elementValues', (event, rows) => {
                 if (rows.length > 1) {
                     clearPoints();
                 }
@@ -364,10 +495,10 @@ SIREPO.viewLogic('commandBeamView', function(appState, panelState, $scope) {
 const disableKickerLogic = function(panelState, $scope) {
     $scope.whenSelected = () => {
         panelState.enableFields('KICKER', [
-            ['hkick', 'vkick'], false,
+            ['current_hkick', 'current_vkick'], false,
         ]);
-        panelState.enableField('HKICKER', 'kick', false);
-        panelState.enableField('VKICKER', 'kick', false);
+        panelState.enableField('HKICKER', 'current_kick', false);
+        panelState.enableField('VKICKER', 'current_kick', false);
     };
 };
 
@@ -429,29 +560,48 @@ SIREPO.app.directive('optimizerTable', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('latticeFooter', function(appState, latticeService, utilities) {
+SIREPO.app.directive('latticeFooter', function(appState, controlsService, latticeService, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {
             width: '@',
         },
         template: `
-            <div>
-              <svg ng-bind-html="readoutHTML()" ng-attr-width="{{ width }}" ng-attr-height="{{ readoutHeight }}"></svg>
-            </div>`,
+            <div style="display: inline-block">
+              <svg ng-bind-html="readoutHTML()" ng-attr-width="{{ readoutWidth }}" ng-attr-height="{{ readoutHeight }}"></svg>
+            </div>
+            <div data-ng-if="monitors.length" style="display: inline-block; vertical-align: top">
+              <table class="table table-hover table-condensed">
+                <tr><th colspan="3">Monitors</th></tr>
+                <tr data-ng-repeat="m in monitors track by m.name">
+                  <td><strong>{{m.name}}</strong></td>
+                  <td class="text-right">{{m.x}}</td>
+                  <td class="text-right">{{m.y}}</td>
+                </tr>
+              </table>
+            </div>
+            `,
         controller: function($scope) {
-            let readoutGroups = utilities.unique(
+            const labels = {
+                current_k1: 'current',
+                current_hkick: 'hcurrent',
+                current_vkick: 'vcurrent',
+                current_kick: 'current',
+            };
+            const readoutGroups = utilities.unique(
                 Object.values(SIREPO.APP_SCHEMA.constants.readoutElements || {}).map(function (e) {
                     return e.group;
                 })
             );
-            let numReadoutCols = readoutGroups.length || 1;
-            let readoutCellPadding = 3;
-            let readoutCellHeight = 22;
-            let readoutCellWidth = 300;
+            const margin = 3;
+            const numReadoutCols = readoutGroups.length || 1;
+            const readoutCellHeight = 22;
+            const readoutCellPadding = 3;
+            const readoutCellWidth = 350;
             let readoutTable = null;
             let selectedItem = null;
-            $scope.margin = 3;
+            $scope.readoutWidth = (readoutCellWidth + margin) * 2;
+            $scope.monitors = [];
 
             function buildReadoutTable() {
                 if (readoutTable) {
@@ -466,8 +616,8 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
                 });
                 readoutTable = new SIREPO.DOM.SVGTable(
                     'sr-readout-table',
-                    $scope.margin,
-                    $scope.margin,
+                    margin,
+                    margin,
                     readoutCellWidth,
                     readoutCellHeight,
                     readoutCellPadding,
@@ -481,11 +631,38 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
                 updateReadoutElements();
             }
 
+            function detectOverlap(positions, pos) {
+                for (let p of positions) {
+                    if (rectanglesOverlap(pos, p)) {
+                        return p;
+                    }
+                }
+            }
+
+            function elementClicked(name) {
+                const models = controlsService.latticeModels();
+                models.elements.some((el) => {
+                    if (el.name == name) {
+                        latticeService.editElement(el.type, el, models);
+                        return true;
+                    }
+                });
+            }
+
+            function formatMonitorValue(value) {
+                if (value) {
+                    return parseFloat(value).toFixed(6);
+                }
+                return '';
+            }
+
             function getReadoutItem(id) {
                 let r = readoutItems();
                 for (let g in r) {
-                    if (r[g][id]) {
-                        return r[g][id];
+                    for (let item of r[g]) {
+                        if (item.element._id == id) {
+                            return item;
+                        }
                     }
                 }
                 return null;
@@ -499,28 +676,13 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
                 return (SIREPO.APP_SCHEMA.constants.readoutElements[element.type] || {}).fields || [];
             }
 
-            function parseElementModelField(modelField) {
-                let mf = modelField.split('.');
-                let el_id = parseInt(mf[0].split('_')[1]);
-                const models = appState.models.externalLattice.models;
-                let e = latticeService.elementForId(el_id, models);
-                if (! e) {
-                    return null;
-                }
-                return {
-                    element: e,
-                    field: mf[1],
-                    model: mf[0],
-                };
-            }
-
             function readoutGroup(element) {
                 return (SIREPO.APP_SCHEMA.constants.readoutElements[element.type] || {}).group;
             }
 
             function readoutItems() {
                 let elements = {};
-                const models = appState.models.externalLattice.models;
+                const models = controlsService.latticeModels();
                 models.beamlines[0].items.forEach(elId => {
                     let el = latticeService.elementForId(elId, models);
                     let rg = readoutGroup(el);
@@ -528,13 +690,110 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
                         return;
                     }
                     if (! elements[rg]) {
-                        elements[rg] = {};
+                        elements[rg] = [];
                     }
-                    elements[rg][elId] = {
+                    // elements are in beamline order
+                    elements[rg].push({
                         element: el,
-                    };
+                    });
                 });
                 return elements;
+            }
+
+            function rectanglesOverlap(pos1, pos2) {
+                if (pos1.rect.left > pos2.rect.right || pos2.rect.left > pos1.rect.right) {
+                    return false;
+                }
+                if (pos1.rect.top + pos1.yOffset > pos2.rect.bottom + pos2.yOffset
+                    || pos2.rect.top + pos2.yOffset > pos1.rect.bottom + pos1.yOffset) {
+                    return false;
+                }
+                return true;
+            }
+
+            function labelElements() {
+                $('.sr-lattice-label').remove();
+                const parentRect = $('#sr-lattice')[0].getBoundingClientRect();
+                const positions = [];
+                $('#sr-lattice').find('title').each((v, el) => {
+                    const values = $(el).text().split(': ');
+                    if (! SIREPO.APP_SCHEMA.model[values[1]]) {
+                        return;
+                    }
+                    const isMonitor = values[1].indexOf('MONITOR') >= 0;
+                    const rect = el.parentElement.getBoundingClientRect();
+                    let pos = [
+                        rect.left - parentRect.left + (rect.right - rect.left),
+                        rect.top - parentRect.top,
+                    ];
+                    if (! isMonitor) {
+                        pos[0] -= 25;
+                        pos[1] = rect.bottom - parentRect.top + 5;
+                    }
+
+                    let div = $('<div/>', {
+                        class: 'sr-lattice-label badge'
+                    })
+                        .html(values[0])
+                        .css({
+                            left: pos[0],
+                            top: pos[1],
+                            position: 'absolute',
+                            //'z-index': 1000,
+                            cursor: 'pointer',
+                            'user-select': 'none',
+                        })
+                        .on('dblclick', () => elementClicked(values[0]))
+                        .appendTo($('.sr-lattice-holder'));
+                    let divPos = {
+                        rect: div[0].getBoundingClientRect(),
+                        // need to track offset manually
+                        // subsequent calls to getBoundingClientRect() return old rect
+                        yOffset: 0,
+                    };
+
+                    const maxChecks = 3;
+                    let checkCount = 1;
+                    let p = detectOverlap(positions, divPos);
+                    while (p) {
+                        let yOffset = 0;
+                        if (isMonitor) {
+                            yOffset -= divPos.rect.height - p.rect.top - p.yOffset + divPos.rect.top + 5;
+                        }
+                        else {
+                            yOffset += divPos.rect.height + p.rect.top + p.yOffset - divPos.rect.top + 5;
+                        }
+                        divPos.yOffset = yOffset;
+                        div.css({
+                            top: pos[1] + yOffset,
+                        });
+                        p = detectOverlap(positions, divPos);
+                        if (checkCount++ > maxChecks) {
+                            break;
+                        }
+                    }
+                    positions.push(divPos);
+                });
+            }
+
+            function updateMonitors(event, rows) {
+                $scope.monitors = [];
+                if (! rows.length) {
+                    return;
+                }
+                const models = controlsService.latticeModels();
+                models.beamlines[0].items.forEach(elId => {
+                    const el = latticeService.elementForId(elId, models);
+                    if (el.type.indexOf('MONITOR') < 0) {
+                        return;
+                    }
+                    const el_id = 'el_' + el._id;
+                    $scope.monitors.push({
+                        name: el.name,
+                        x: formatMonitorValue(rows[0][el_id + '.x']),
+                        y: formatMonitorValue(rows[0][el_id + '.y']),
+                    });
+                });
             }
 
             function updateReadoutElement(element, color, opacity, borderWidth) {
@@ -545,10 +804,17 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
                 let g = readoutGroup(element);
                 let txt = `${element.name}: `;
                 for (let f of readoutFields(element)) {
-                    txt += `${f} = ${utilities.roundToPlaces(parseFloat(element[f]), 6)};&nbsp;`;
+                    txt += `${labels[f]} = ${utilities.roundToPlaces(parseFloat(element[f]), 6)};&nbsp;`;
+                }
+                let idx = 0;
+                while (r[g][idx].element._id != element._id) {
+                    idx += 1;
+                    if (idx >= r[g].length) {
+                        throw new Error('element not found: ', element);
+                    }
                 }
                 readoutTable.setCell(
-                    Object.keys(r[g]).indexOf(`${element._id}`),
+                    idx,
                     Object.keys(r).indexOf(g),
                     txt,
                     color,
@@ -557,47 +823,27 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
                 );
             }
 
-            function updateReadout(e, d) {
-                let r = readoutItems();
-                if ($.isEmptyObject(r)) {
-                    return;
-                }
-                let dd = d[d.length - 1];
-                // data is in the format {'el_<id>.<field>': <value>}
-                for (let k in dd) {
-                    let p = parseElementModelField(k);
-                    let g = readoutGroup(p.element);
-                    if (! p.element || ! g) {
-                        continue;
-                    }
-                    let m = r[g][p.element._id];
-                    if (! m) {
-                        continue;
-                    }
-                    m.element[p.field] = dd[k];
-                }
-                updateReadoutElements();
-            }
-
             function updateReadoutElements() {
                 let r = readoutItems();
                 // each readout group is a column
                 for (let g in r) {
-                    for (let id in r[g]) {
-                        updateReadoutElement(r[g][id].element);
+                    for (let item of r[g]) {
+                        updateReadoutElement(item.element);
                     }
                 }
             }
 
             function windowResize() {
                 let r = readoutItems();
-                let nRows = Object.values(r).map(function (x) {
-                    return Object.keys(x).length;
-                });
+                let nRows = Object.values(r).map(x => x.length);
                 let maxReadoutRows = 1 + Math.max(0, ...nRows);
-                $scope.readoutHeight = 2 * $scope.margin +
+                $scope.readoutHeight = 2 * margin +
                     (maxReadoutRows + 1) * readoutCellPadding + readoutCellHeight * maxReadoutRows;
             }
+
+            $scope.destroy = function() {
+                $('.sr-lattice-label').off();
+            };
 
             $scope.readoutHTML = function() {
                 if (! readoutTable) {
@@ -607,14 +853,16 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
             };
 
             $scope.$on('modelChanged', function(e, name) {
-                updateReadoutElement((parseElementModelField(name) || {}).element);
+                if (SIREPO.APP_SCHEMA.constants.readoutElements[name]) {
+                    updateReadoutElements();
+                }
             });
 
             $scope.$on('sr-clearElementValues', () => {
                 readoutTable.removeClasses('sr-readout-table-idle');
                 readoutTable.addClasses('sr-readout-table-active');
             });
-            $scope.$on('sr-elementValues', updateReadout);
+            $scope.$on('sr-elementValues', updateReadoutElements);
             $scope.$on('sr-latticeUpdateComplete', () => {
                 if (! readoutTable) {
                     return;
@@ -624,7 +872,7 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
             });
 
             $scope.$on('sr-beamlineItemSelected', function(e, idx) {
-                const models = appState.models.externalLattice.models;
+                const models = controlsService.latticeModels();
                 let id = models.beamlines[0].items[idx];
                 let item = getReadoutItem(id);
                 if (! item) {
@@ -649,6 +897,8 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
             });
 
             $scope.$on('sr-window-resize', windowResize);
+            $scope.$on('sr-elementValues', updateMonitors);
+            $scope.$on('sr-renderBeamline', () => panelState.waitForUI(labelElements));
 
             buildReadoutTable();
             windowResize();
@@ -656,27 +906,46 @@ SIREPO.app.directive('latticeFooter', function(appState, latticeService, utiliti
     };
 });
 
-SIREPO.app.directive('ampTable', function(appState) {
+SIREPO.app.directive('ampTable', function(appState, controlsService) {
     return {
         restrict: 'A',
-        scope: {
-            modelName: '=',
-            model: '=',
-            field: '=',
-        },
         template: `
-            <input id="sr-amp-table-input" type="file" data-file-model="ampTableFile" accept=".csv"/>
-            <div style="margin-top: 1em; max-height: 30vh; overflow-y: auto;" data-ng-if="model[field].length">
+            <div class="col-sm-6">
+            <div class="lead">
+              <span>{{ fieldName }}</span>
+              = <span data-text-with-math="desc"></span></div>
+            <div class="text-warning">{{ errorMessage }}</div>
+            <div data-ng-show="showFileInput()">
+              <input id="sr-amp-table-input" type="file" data-file-model="ampTableFile" accept=".csv"/>
+            </div>
+            <select data-ng-show="! showFileInput()" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in fileNames"></select>
+            <div style="margin-top: 1em; max-height: 30vh; overflow-y: auto;" data-ng-if="model[field]">
               <table class="table table-hover table-condensed">
-                <tr><th class="text-center">K1</th><th class="text-center">Factor</th></tr>
-                <tr data-ng-repeat="row in model[field] track by $index">
+                <tr>
+                  <th class="text-center">Current</th>
+                  <th class="text-center">Factor</th>
+                  <th class="text-center">{{ fieldHeading }}</th>
+                </tr>
+                <tr data-ng-repeat="row in getTable() track by $index">
                   <td class="text-right" data-ng-repeat="cell in row track by $index">{{ cell }}</td>
                 </tr>
               </table>
-            </div>`,
+            </div>
+            </div>
+            `,
         controller: function($scope) {
-            if (! $scope.model[$scope.field]) {
-                $scope.model[$scope.field] = [];
+            $scope.fieldName = controlsService.fieldForCurrent($scope.modelName);
+            $scope.fieldHeading = 'Computed ' + $scope.fieldName[0].toUpperCase()
+                + $scope.fieldName.toLowerCase().substring(1);
+            $scope.desc = '$\\frac {current [\\text A] \\cdot charge [\\text C]} {gamma \\cdot mass [\\text{kg}] \\cdot beta \\cdot c [\\text{m/s}]} \\cdot factor$';
+            const addNewFile = '<Add New File>';
+            buildFileNames();
+
+            function buildFileNames() {
+                let names = Object.keys(controlsService.getAmpTables()).sort((a, b) => a.localeCompare(b));
+                names.unshift('');
+                names.push(addNewFile);
+                $scope.fileNames = names;
             }
 
             function parseText(text) {
@@ -691,9 +960,71 @@ SIREPO.app.directive('ampTable', function(appState) {
                     // ignore header
                     rows.shift();
                 }
-                $scope.model[$scope.field] = rows.map(row => row.map(v => parseFloat(v)));
+                if (! appState.models.ampTables) {
+                    appState.models.ampTables = {};
+                }
+                const name = $scope.ampTableFile.name;
+                const table = rows.map(
+                    row => row.map(v => parseFloat(v))
+                ).sort((a, b) => a[0] - b[0]);
+                if (! validateTable(table)) {
+                    $scope.$applyAsync();
+                    return;
+                }
+                appState.models.ampTables[name] = table;
+                appState.saveQuietly('ampTables');
+                $scope.model[$scope.field] = name;
+                controlsService.buildReverseMap(name);
+                // buildReverseMap works on saved model values, need to update working models
+                appState.models.ampTables[name] = appState.applicationState().ampTables[name];
+                buildFileNames();
                 $scope.$applyAsync();
             }
+
+            function validateTable(table) {
+                $scope.errorMessage = '';
+                if (! table.length) {
+                    $scope.errorMessage = 'No rows found';
+                    return false;
+                }
+                for (let i = 0; i < table.length; i++) {
+                    const row = table[i];
+                    if (row.length < 2) {
+                        $scope.errorMessage = `Row #${i + 1}: Invalid row: ${row}`;
+                        return false;
+                    }
+                    else if (isNaN(row[0]) || isNaN(row[1])) {
+                        $scope.errorMessage = `Row #${i + 1}: Invalid number: ${row}`;
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            function selectFile() {
+                const v = $scope.model[$scope.field];
+                if (v == addNewFile) {
+                    $scope.showFile = true;
+                }
+            }
+
+            $scope.getTable = () => controlsService.getAmpTables()[$scope.model[$scope.field]];
+
+            $scope.showFileInput = () => {
+                if (! $scope.model) {
+                    return false;
+                }
+                if (! $scope.model[$scope.field]) {
+                    $scope.model[$scope.field] = '';
+                }
+                if ($scope.showFile) {
+                    return true;
+                }
+                if ($scope.fileNames.length <= 2) {
+                    return true;
+                }
+                return false;
+            };
 
             $scope.$watch('ampTableFile', () => {
                 if ($scope.ampTableFile) {
@@ -703,7 +1034,44 @@ SIREPO.app.directive('ampTable', function(appState) {
             $scope.$on('cancelChanges', () => {
                 $scope.ampTableFile = null;
                 $('#sr-amp-table-input').val(null);
+                $scope.showFile = false;
+                $scope.errorMessage = '';
             });
+            appState.watchModelFields($scope, [$scope.modelName + '.' + $scope.field], selectFile);
+        },
+    };
+});
+
+SIREPO.app.directive('ampField', function(appState, controlsService) {
+    return {
+        restrict: 'A',
+        template: `
+            <div class="col-sm-3">
+              <input data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />
+            </div>
+            <div class="col-sm-4"><div class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap"><strong>{{ fieldForCurrent() }}</strong> {{ computedKick(); }}</div></div>`,
+        controller: function($scope) {
+
+            $scope.computedKick = () => {
+                if (! $scope.model) {
+                    return;
+                }
+                if (! $scope.model[$scope.field]) {
+                    $scope.model[$scope.field] = controlsService.kickToCurrent(
+                        $scope.model,
+                        controlsService.kickField($scope.field));
+                }
+                const res = controlsService.currentToKick(
+                    $scope.model,
+                    controlsService.kickField($scope.field));
+                if (! isNaN(res)) {
+                    return res.toFixed(6);
+                }
+            };
+
+            $scope.fieldForCurrent = () => {
+                return controlsService.fieldForCurrent($scope.modelName);
+            };
         },
     };
 });

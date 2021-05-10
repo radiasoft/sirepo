@@ -189,9 +189,12 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return;
     };
 
-    self.editElement = function(type, item) {
+    self.editElement = function(type, item, models) {
         if (! appState.viewInfo(type)) {
             return;
+        }
+        if (models) {
+            item = self.elementForId(item._id, models);
         }
         appState.models[type] = item;
         self.setValidator(type, item);
@@ -1909,6 +1912,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
                 updateZoomAndPan();
                 $scope.$digest();
+                $scope.$broadcast('sr-renderBeamline');
             }
 
             $scope.destroy = function() {
@@ -1934,7 +1938,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.itemDblClicked = function(item) {
-                latticeService.editElement(item.type, item);
+                latticeService.editElement(item.type, item, $scope.models);
             };
 
             $scope.resize = function() {
@@ -1980,6 +1984,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     $scope.xOffset = - svgBounds[0] * scale + xOffset;
                     $scope.yOffset = - svgBounds[1] * scale + yOffset;
                     recalcScaleMarker();
+                    $scope.$broadcast('sr-renderBeamline');
                 }
             };
 
@@ -2039,6 +2044,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                 });
+
+                $scope.$on('cancelChanges', getModels);
 
                 $scope.$on('activeBeamlineChanged', function($event, updateNoWait) {
                     renderBeamline(false, updateNoWait);
