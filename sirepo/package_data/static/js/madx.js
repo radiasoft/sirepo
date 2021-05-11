@@ -164,15 +164,6 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
     ];
     self.advancedNames = [];
 
-    function addCommands(commands) {
-        commands.forEach(function(cmd) {
-            cmd._id = latticeService.nextId();
-            appState.models.commands.push(appState.setModelDefaults(
-                cmd,
-                commandService.commandModelName(cmd._type)));
-        });
-    }
-
     self.createElement = function(name) {
         panelState.showModalEditor(commandService.createCommand(name));
     };
@@ -180,38 +171,6 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
     self.titleForName = function(name) {
         return (SIREPO.APP_SCHEMA.view[commandService.commandModelName(name)] || {}).description;
     };
-
-    self.useTemplate = function() {
-        var sim = appState.models.simulation;
-        if (sim.commandTemplate == 'particle') {
-            addCommands([
-                { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
-                { _type: 'ptc_create_layout' },
-                { _type: 'ptc_track', element_by_element: '1', file: '1' },
-                { _type: 'ptc_track_end' },
-                { _type: 'ptc_end' },
-            ]);
-        }
-        else if (sim.commandTemplate == 'matching') {
-            addCommands([
-                { _type: 'match', sequence: appState.models.simulation.activeBeamlineId },
-                { _type: 'vary', step: 1e-5 },
-                { _type: 'lmdif', calls: 50, tolerance: 1e-8 },
-                { _type: 'endmatch' },
-            ]);
-        }
-        appState.saveChanges(['commands', 'simulation']);
-    };
-
-    appState.whenModelsLoaded($scope, function() {
-        var sim = appState.models.simulation;
-        if (! sim.hideCommandTemplatePrompt
-            && appState.models.commands.length <= 2
-            && sim.commandTemplate != 'none') {
-            sim.hideCommandTemplatePrompt = true;
-            $('#sr-madx-command-confirmation').modal('show');
-        }
-    });
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService) {
@@ -497,6 +456,69 @@ SIREPO.app.directive('matchSummaryPanel', function(appState, plotting) {
         link: function link(scope, element) {
             scope.modelName = 'matchSummaryAnimation';
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('commandConfirmation', function(appState, commandService, latticeService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-confirmation-modal="" data-id="sr-madx-command-confirmation" data-title="MAD-X Command Template" data-ok-text="OK" data-ok-clicked="useTemplate()">
+              <form class="form-horizontal" autocomplete="off">
+                <div class="form-group text-center">
+                  <div>Would you like to preconfigure the commands for this simulation?</div>
+                </div>
+                <div class="form-group">
+                  <div data-model-field="'commandTemplate'" data-model-name="'simulation'" data-label-size="4" data-field-size="8"></div>
+                </div>
+              </form>
+              {{ init() }}
+            </div>`,
+        controller: function($scope) {
+            function addCommands(commands) {
+                commands.forEach(function(cmd) {
+                    cmd._id = latticeService.nextId();
+                    appState.models.commands.push(appState.setModelDefaults(
+                        cmd,
+                        commandService.commandModelName(cmd._type)));
+                });
+            }
+            let isInitialized = false;
+
+            $scope.init = () => {
+                if (isInitialized) {
+                    return;
+                }
+                isInitialized = true;
+                var sim = appState.models.simulation;
+                if (appState.models.commands.length <= 2 && sim.commandTemplate != 'none') {
+                    $('#sr-madx-command-confirmation').modal('show');
+                }
+            };
+
+            $scope.useTemplate = () => {
+                var sim = appState.models.simulation;
+                if (sim.commandTemplate == 'particle') {
+                    addCommands([
+                        { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
+                        { _type: 'ptc_create_layout' },
+                        { _type: 'ptc_track', element_by_element: '1', file: '1' },
+                        { _type: 'ptc_track_end' },
+                        { _type: 'ptc_end' },
+                    ]);
+                }
+                else if (sim.commandTemplate == 'matching') {
+                    addCommands([
+                        { _type: 'match', sequence: appState.models.simulation.activeBeamlineId },
+                        { _type: 'vary', step: 1e-5 },
+                        { _type: 'lmdif', calls: 50, tolerance: 1e-8 },
+                        { _type: 'endmatch' },
+                    ]);
+                }
+                appState.saveChanges(['commands', 'simulation']);
+            };
         },
     };
 });

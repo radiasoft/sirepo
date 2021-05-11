@@ -107,3 +107,8 @@ div.sr-lattice-icon-disabled span {
 .sr-readout-table-idle > rect#sr-readout-table-border {
   stroke: darkgray;
 }
+
+.sr-lattice-holder {
+  position: relative;
+  overflow: hidden;
+}

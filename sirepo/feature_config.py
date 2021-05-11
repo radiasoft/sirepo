@@ -57,6 +57,17 @@ VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _DEFAULT_PROPRIETARY_CODES)
 _cfg = None
 
 
+def auth_controlled_sim_types():
+    """All sim types that require granted authentication to access
+
+    Returns:
+      frozenset:  enabled sim types that require role
+    """
+    return frozenset(
+        cfg().proprietary_sim_types.union(cfg().default_proprietary_sim_types),
+    )
+
+
 def cfg():
     """global configuration
 

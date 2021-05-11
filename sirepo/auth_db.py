@@ -51,7 +51,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
     Args:
       uid (str): The uid of the user to audit
       force (bool): Overwrite existing lib files with the same name as new ones
-      sim_types (set): Set of sim_types to audit (all proprietary_sim_types if None)
+      sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
     import contextlib
     import py
