@@ -469,16 +469,16 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
-        "objectChamfer": {
-            "angle": ["Angle (deg)", "Float", 45.0],
-            "amount": ["Cut Distance (mm)", "Float", 1.0],
-            "edge": ["Cut Edge", "ObjectEdge", "top"]
+        "objectBevel": {
+            "amountGap": ["Cut Distance in Gap Direction (mm)", "Float", 1.0],
+            "amountTrans": ["Cut Distance in Transverse Direction (mm)", "Float", 1.0],
+            "edge": ["Cut Edge", "Integer", 0, "Index of Base Shape Edge to Cut"]
         },
         "objectShape": {
-            "chamfers": ["Chamfers", "ChamferList", []],
+            "bevels": ["Bevels", "BevelTable", []],
             "name": ["Name", "String", ""],
             "screenAxis": ["_", "BeamAxis", "y"],
-            "shape": ["Shape", "ObjectShape", "cuboid"]
+            "shape": ["Base Shape", "ObjectShape", "cuboid"]
         },
         "racetrack": {
             "_super": ["_", "model", "geomObject"],
@@ -770,6 +770,23 @@
                 "ptX",
                 "ptY",
                 "ptZ"
+            ]
+        },
+        "objectBevel": {
+            "title": "Bevel",
+            "basic": [
+                "edge",
+                "amountGap",
+                "amountTrans"
+            ]
+        },
+        "objectShape": {
+            "title": "Object Shape Editor",
+            "basic": [
+                "bevels"
+            ],
+            "advanced": [
+                "bevels"
             ]
         },
         "racetrack": {

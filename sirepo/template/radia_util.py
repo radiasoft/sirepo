@@ -63,6 +63,16 @@ class MPI:
         self._uti_mpi('barrier')
 
 
+def _apply_chamfer(g_id, beam_dir, gap_dir, trans_dir, shape, chamfer):
+
+    #chamfer.amountGap
+    #chamfer.amountTrans
+    #chamfer.edge
+
+    # object id, plane normal, point in plane
+    radia.ObjCutMag(g_id, [0, 0, 0], [1, 0, 1])
+
+
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'

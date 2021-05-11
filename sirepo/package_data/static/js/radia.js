@@ -9,6 +9,9 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
+          '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-parent-controller="parentController"></div>',
+        '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
@@ -1201,6 +1204,143 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
     };
 });
 
+SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            modelName: '=',
+            parentController: '='
+        },
+        template: [
+            '<div class="sr-object-table">',
+              '<div style="overflow-y: scroll; overflow-x: hidden; height: 100px;">',
+              '<table class="table table-hover" style="width: 100%; height: 15%; table-layout: fixed;">',
+                '<tr data-ng-repeat="item in loadItems()">',
+                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="sr-command-icon-holder">',
+                      '<a style="-moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>',
+                    '</div>',
+                '</tr>',
+              '</table>',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var expanded = {};
+            var isEditing = false;
+            var watchedModels =[];
+
+            srdbg($scope);
+            $scope.items = [];
+            $scope.radiaService = radiaService;
+            $scope.selectedItem = null;
+
+            function itemIndex(data) {
+                return $scope.items.indexOf(data);
+            }
+
+            $scope.addItem = function(item) {
+                $scope.editItem(item, true);
+            };
+
+            $scope.deleteItem = function(item) {
+                var index = itemIndex(item);
+                if (index < 0) {
+                    return;
+                }
+                $scope.field.splice(index, 1);
+                appState.saveChanges('geometry');
+            };
+
+            $scope.editItem = function(item, isNew) {
+                isEditing = ! isNew;
+                $scope.selectedItem = item;
+                if (isNew) {
+                    appState.models[item.model] = appState.setModelDefaults({}, item.model);
+                    appState.models[item.model].model = item.model;
+                }
+                else {
+                    appState.models[item.model] = item;
+                }
+                panelState.showModalEditor(item.model);
+            };
+
+            $scope.getSelected = function() {
+                return $scope.selectedItem;
+            };
+
+            $scope.itemDetails = function(item) {
+                var res = '';
+                var info = appState.modelInfo(item.model);
+                var d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
+                d.forEach(function (f, i) {
+                    var fi = info[f];
+                    var val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
+                    res += (fi[0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
+                });
+                return res;
+            };
+
+            $scope.isExpanded = function(item) {
+                return expanded[itemIndex(item)];
+            };
+
+            $scope.loadItems = function() {
+                $scope.items = $scope.field;
+                return $scope.items;
+            };
+
+
+            $scope.toggleExpand = function(item) {
+                expanded[itemIndex(item)] = ! expanded[itemIndex(item)];
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+
+                $scope.$on('modelChanged', function(e, modelName) {
+                    if (watchedModels.indexOf(modelName) < 0) {
+                        return;
+                    }
+                    $scope.selectedItem = null;
+                    if (! isEditing) {
+                        $scope.field.push(appState.models[modelName]);
+                        isEditing = true;
+                    }
+                    appState.saveChanges('geometry', function () {
+                        $scope.loadItems();
+                    });
+                });
+
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (watchedModels.indexOf(name) < 0) {
+                        return;
+                    }
+                    appState.removeModel(name);
+                });
+
+                $scope.$on('$destroy', function () {
+                });
+
+                $scope.$watch($scope.modelName, function () {
+                    //srdbg('watch saw', $scope.modelName);
+                });
+
+                $scope.$watch('items', function () {
+                    //srdbg('watch saw', $scope.items);
+                });
+
+                $scope.loadItems();
+            });
+
+        },
+    };
+});
+
 SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
 
     //const RADIA_IMPORT_FORMATS = ['.dat', '.stl'];
@@ -2020,6 +2160,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             //'<div data-confirmation-modal="" data-id="sr-delete-item-confirmation" data-title="Delete {{ itemClass }}?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
         ].join(''),
         controller: function($scope, $element) {
+            srdbg('xforms', $scope);
             var expanded = {};
             var isEditing = false;
             var spatialTransforms = [
@@ -3478,6 +3619,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting) {
         controller: function($scope, $element) {
             let selectedLines = null;
 
+            srdbg($scope);
             plotting.setupSelector($scope, $element);
             $scope.loadImage = function() {
                 shapeHighlight.clearChildren();
@@ -3491,7 +3633,9 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting) {
                 //.on('click', onClick);
 
             function editShape() {
-                srlog($scope.field);
+                srdbg('edit', $scope.model[$scope.field]);
+                appState.models.objectShape = $scope.model[$scope.field];
+                panelState.showModalEditor('objectShape');
             }
 
             function onClick() {
@@ -3508,9 +3652,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting) {
                 }
                 selectedLines = new SIREPO.DOM.SVGPath(`${$scope.model[$scope.field]}-highlight`, pts, [0, 0], false, 'red', 'none');
                 shapeHighlight.addChild(selectedLines);
-                srdbg('L PATHS', selectedLines, shapeHighlight);
             }
-
 
         },
     };
