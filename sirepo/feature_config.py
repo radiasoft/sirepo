@@ -15,6 +15,7 @@ _DEPENDENT_CODES = [
 
 #: Codes on prod
 _PROD_FOSS_CODES = frozenset((
+    'controls',
     'elegant',
     'jspec',
     'madx',
@@ -32,7 +33,6 @@ _PROD_FOSS_CODES = frozenset((
 
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
-    'controls',
     'irad',
     'myapp',
     'rcscon',
