@@ -573,8 +573,8 @@ def sim_frame_dispatch(frame_args):
 
 def stateless_compute_dispatch(data):
     m = data.method
-    assert re.search(r'^\w*$', m), \
-        f'method={m} not a valid python function name'
+    assert re.search(r'^\w{1,30}$', m), \
+        f'method={m} not a valid python function name or too long'
     return getattr(
         sirepo.template.import_module(data.simulationType),
         f'stateless_compute_{m}',
