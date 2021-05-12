@@ -334,15 +334,19 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
         }
         dataFile.oldFile = dataFile.file;
         appState.saveQuietly('dataFile');
-        requestSender.getApplicationData({
-            method: 'compute_column_info',
-            dataFile: dataFile,
-        }, function(data) {
-            appState.models.columnInfo = data;
-            computeDefaultPartition();
-            appState.models.columnReports = [];
-            appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
-        });
+        requestSender.sendStatefulCompute(
+            appState,
+            function(data) {
+                appState.models.columnInfo = data;
+                computeDefaultPartition();
+                appState.models.columnReports = [];
+                appState.saveChanges(['columnInfo', 'columnReports', 'partition']);
+            },
+            {
+                method: 'compute_column_info',
+                dataFile: dataFile,
+            }
+        );
     }
 
     function computeDefaultPartition() {

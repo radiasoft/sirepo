@@ -175,14 +175,14 @@ SIREPO.app.directive('metadataTable', function() {
 		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
-	    requestSender.statelessCompute(
+	    requestSender.sendStatelessCompute(
 		appState,
+		(data) => {
+		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
+		},
 		{
 		    method: 'metadata',
 		    category: $scope.category
-		},
-		(data) => {
-		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
 		},
 		{
 		    modelName: $scope.modelName,

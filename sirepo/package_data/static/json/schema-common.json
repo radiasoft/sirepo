@@ -162,6 +162,7 @@
         "simulationSchema": "/simulation-schema",
         "srUnit": "/ srunit",
         "srwLight": "/light",
+        "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",

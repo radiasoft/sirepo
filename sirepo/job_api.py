@@ -152,6 +152,15 @@ def api_runStatus():
 
 
 @api_perm.require_user
+def api_sbatchLogin():
+    r = _request_content(
+        PKDict(computeJobHash='unused', jobRunMode=sirepo.job.SBATCH),
+    )
+    r.sbatchCredentials = r.pkdel('data')
+    return _request(_request_content=r)
+
+
+@api_perm.require_user
 def api_simulationFrame(frame_id):
     return template_common.sim_frame(
         frame_id,
@@ -166,26 +175,13 @@ def api_simulationFrame(frame_id):
 
 
 @api_perm.require_user
-def api_sbatchLogin():
-    r = _request_content(
-        PKDict(computeJobHash='unused', jobRunMode=sirepo.job.SBATCH),
-    )
-    r.sbatchCredentials = r.pkdel('data')
-    return _request(_request_content=r)
+def api_statefulCompute():
+    return _request_compute()
 
 
 @api_perm.require_user
 def api_statelessCompute():
-    return _request(
-        jobRunMode=sirepo.job.SEQUENTIAL,
-        req_data=PKDict(
-            **sirepo.http_request.parse_post().req_data,
-        ).pkupdate(
-            computeJobHash='unused',
-            report='statelessCompute',
-        ),
-        runDir=None,
-    )
+    return _request_compute()
 
 
 def init_apis(*args, **kwargs):
@@ -225,6 +221,19 @@ def _request(**kwargs):
     )
     r.raise_for_status()
     return pkjson.load_any(r.content)
+
+
+def _request_compute():
+    return _request(
+        jobRunMode=sirepo.job.SEQUENTIAL,
+        req_data=PKDict(
+            **sirepo.http_request.parse_post().req_data,
+        ).pkupdate(
+            computeJobHash='unused',
+            report='statefulOrStatelessCompute',
+        ),
+        runDir=None,
+    )
 
 
 def _request_content(kwargs):

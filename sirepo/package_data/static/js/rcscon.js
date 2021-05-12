@@ -593,10 +593,14 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
             return;
         }
         if (appState.applicationState().dataSource.source == 'files') {
-            requestSender.getApplicationData({
-                method: 'compute_column_count',
-                files: files,
-            }, callback);
+            requestSender.sendStatefulCompute(
+                appState,
+                callback,
+                {
+                    method: 'compute_column_count',
+                    files: files,
+                }
+            );
         }
     }
 
