@@ -334,7 +334,6 @@ def extract_report_data(filename, sim_in):
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], report_model)
     return info
 
-
 def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
@@ -353,44 +352,11 @@ def get_application_data(data, **kwargs):
         return SRWShadowConverter().srw_to_shadow(data)
     if data['method'] == 'delete_user_models':
         return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
-    if data['method'] == 'compute_grazing_orientation':
-        return _compute_grazing_orientation(data['optical_element'])
-    elif data['method'] == 'compute_crl_characteristics':
-        return compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
-    elif data['method'] == 'compute_dual_characteristics':
-        return _compute_material_characteristics(
-            _compute_material_characteristics(
-                data['optical_element'],
-                data['photon_energy'],
-                prefix=data['prefix1'],
-            ),
-            data['photon_energy'],
-            prefix=data['prefix2'],
-        )
-    elif data['method'] == 'compute_delta_atten_characteristics':
-        return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
-    elif data['method'] == 'compute_PGM_value':
-        return _compute_PGM_value(data['optical_element'])
-    elif data['method'] == 'compute_grating_orientation':
-        return _compute_grating_orientation(data['optical_element'])
-    elif data['method'] == 'compute_crystal_init':
-        return _compute_crystal_init(data['optical_element'])
-    elif data['method'] == 'compute_crystal_orientation':
-        return _compute_crystal_orientation(data['optical_element'])
-    elif data['method'] == 'process_beam_parameters':
-        data.ebeam = srw_common.process_beam_parameters(data.ebeam)
-        data['ebeam']['drift'] = calculate_beam_drift(
-            data['ebeam_position'],
-            data['source_type'],
-            data['undulator_type'],
-            data['undulator_length'],
-            data['undulator_period'],
-        )
-        return data['ebeam']
+    # TODO(e-carlin): This doesn't seem to be used in GUI? Discuss with pjm
+    # elif data['method'] == 'compute_grating_orientation':
+    #     return _compute_grating_orientation(data['optical_element'])
     elif data['method'] == 'compute_undulator_length':
         return compute_undulator_length(data['tabulated_undulator'])
-    elif data['method'] == 'process_undulator_definition':
-        return process_undulator_definition(data)
     elif data['method'] == 'processedImage':
         try:
             return _process_image(data, kwargs['tmp_dir'])
@@ -629,6 +595,64 @@ def python_source_for_model(data, model):
 
 def remove_last_frame(run_dir):
     pass
+
+
+def stateless_compute_compute_PGM_value(data):
+    return _compute_PGM_value(data.optical_element)
+
+
+def stateless_compute_compute_crl_characteristics(data):
+    return compute_crl_focus(_compute_material_characteristics(
+        data.optical_element,
+        data.photon_energy,
+    ))
+
+
+def stateless_compute_compute_crystal_init(data):
+    return _compute_crystal_init(data.optical_element)
+
+
+def stateless_compute_compute_crystal_orientation(data):
+    return _compute_crystal_orientation(data.optical_element)
+
+
+def stateless_compute_compute_delta_atten_characteristics(data):
+    return _compute_material_characteristics(
+        data.optical_element,
+        data.photon_energy,
+    )
+
+
+def stateless_compute_compute_dual_characteristics(data):
+    return _compute_material_characteristics(
+        _compute_material_characteristics(
+            data.optical_element,
+            data.photon_energy,
+            prefix=data.prefix1,
+        ),
+        data.photon_energy,
+        prefix=data.prefix2,
+    )
+
+
+def stateless_compute_compute_grazing_orientation(data):
+    return _compute_grazing_orientation(data.optical_element)
+
+
+def stateless_compute_process_beam_parameters(data):
+    data.ebeam = srw_common.process_beam_parameters(data.ebeam)
+    data.ebeam.drift = calculate_beam_drift(
+        data.ebeam_position,
+        data.source_type,
+        data.undulator_type,
+        data.undulator_length,
+        data.undulator_period,
+    )
+    return data.ebeam
+
+
+def stateless_compute_process_undulator_definition(data):
+    return process_undulator_definition(data)
 
 
 def validate_file(file_type, path):
