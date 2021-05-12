@@ -263,7 +263,7 @@ def new_simulation(data, new_simulation_data):
     beam_axis = new_simulation_data.beamAxis
     #TODO(mvk): dict of magnet types to builder methods
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        _build_undulator(data.models.geometry, beam_axis)
+        _build_undulator_objects(data.models.geometry, data.models.hybridUndulator, beam_axis)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
             beam_axis
@@ -427,14 +427,14 @@ def _build_field_circle_pts(f_path):
 
 
 def _build_geom_obj(model_name, obj_name=None, obj_color=None):
-    o_id = str(uuid.uuid4())
     o = PKDict(
-        name=obj_name if obj_name else f'{model_name}.{o_id}',
+        name=obj_name,
         model=model_name,
-        id=o_id,
         color=obj_color,
     )
     _SIM_DATA.update_model_defaults(o, model_name)
+    if not o.name:
+        o.name = f'{model_name}.{o.id}'
     return o
 
 
@@ -457,7 +457,7 @@ def _build_translate_clone(dist):
     return tx
 
 
-def _build_undulator(geom, beam_axis):
+def _build_undulator_objects(geom, und, beam_axis):
 
     # arrange objects
     geom.objects = []
@@ -465,8 +465,10 @@ def _build_undulator(geom, beam_axis):
     geom.objects.append(half_pole)
     magnet_block = _build_cuboid(name='Magnet Block')
     geom.objects.append(magnet_block)
+    und.magnetBaseObjectId = magnet_block.id
     pole = _build_cuboid(name='Pole')
     geom.objects.append(pole)
+    und.poleBaseObjectId = pole.id
     mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
     geom.objects.append(mag_pole_grp)
     magnet_cap = _build_cuboid(name='End Block')
@@ -486,7 +488,6 @@ def _build_field_axis(length, beam_axis):
     f = PKDict(
         begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
         end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
-        id=str(uuid.uuid4()),
         name=f'{beam_axis} axis',
         numPoints=round(length / 2) + 1
     )
@@ -779,7 +780,6 @@ def _parse_input_file_arg_str(s):
 
 def _prep_new_sim(data):
     data.models.geometry.name = data.models.simulation.name
-    data.models.geometry.id = str(uuid.uuid4())
 
 
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
