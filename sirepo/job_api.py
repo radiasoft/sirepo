@@ -177,6 +177,7 @@ def api_sbatchLogin():
 @api_perm.require_user
 def api_statelessCompute():
     return _request(
+        jobRunMode=sirepo.job.SEQUENTIAL,
         req_data=PKDict(
             **sirepo.http_request.parse_post().req_data,
         ).pkupdate(
@@ -263,7 +264,7 @@ def _request_content(kwargs):
 
 
 def _run_mode(request_content):
-    if 'models' not in request_content.data:
+    if 'models' not in request_content.data or 'jobRunMode' in request_content:
         return request_content
 #TODO(robnagler) make sure this is set for animation sim frames
     m = request_content.data.models.get(request_content.computeModel)
