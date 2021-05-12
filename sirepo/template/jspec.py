@@ -21,7 +21,7 @@ import re
 import sdds
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 JSPEC_INPUT_FILENAME = 'jspec.in'
 
@@ -325,14 +325,14 @@ def _compute_range_across_files(run_dir, data):
     res = PKDict({
         _X_FIELD: [],
     })
-    for v in _SCHEMA.enum.BeamColumn:
+    for v in SCHEMA.enum.BeamColumn:
         res[_map_field_name(v[0])] = []
-    for v in _SCHEMA.enum.CoolingRatesColumn:
+    for v in SCHEMA.enum.CoolingRatesColumn:
         res[_map_field_name(v[0])] = []
     sdds_util.process_sdds_page(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 0, _compute_sdds_range, res)
     if run_dir.join(_FORCE_TABLE_FILENAME).exists():
         res2 = PKDict()
-        for v in _SCHEMA.enum.ForceTableColumn:
+        for v in SCHEMA.enum.ForceTableColumn:
             res2[_map_field_name(v[0])] = []
             sdds_util.process_sdds_page(str(run_dir.join(_FORCE_TABLE_FILENAME)), 0, _compute_sdds_range, res2)
         res.update(res2)
@@ -340,7 +340,7 @@ def _compute_range_across_files(run_dir, data):
     ion_files = _ion_files(run_dir)
     if ion_files:
         res2 = PKDict()
-        for v in _SCHEMA.enum.ParticleColumn:
+        for v in SCHEMA.enum.ParticleColumn:
             res2[_map_field_name(v[0])] = []
         for filename in ion_files:
             sdds_util.process_sdds_page(filename, 0, _compute_sdds_range, res2)

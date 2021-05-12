@@ -17,7 +17,7 @@ import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.madx
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 
 
@@ -33,7 +33,7 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         elementValues=_read_summary_line(
             run_dir,
-            _SCHEMA.constants.maxBPMPoints,
+            SCHEMA.constants.maxBPMPoints,
         )
     )
 

@@ -20,7 +20,7 @@ import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _SIM_REPORTS = [
     'analysisReport',

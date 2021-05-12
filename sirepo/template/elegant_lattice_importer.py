@@ -28,11 +28,11 @@ _IGNORE_FIELD = [
     'semaphore_file',
 ]
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('elegant')
 
 _ELEGANT_TYPE_RE = re.compile(r'^[A-Z]+$')
 
-_ELEGANT_TYPES = set(n for n in _SCHEMA.model if _ELEGANT_TYPE_RE.search(n))
+_ELEGANT_TYPES = set(n for n in SCHEMA.model if _ELEGANT_TYPE_RE.search(n))
 
 
 def elegant_code_var(variables):
@@ -121,7 +121,7 @@ def import_file(text, data=None, update_filenames=True):
     data['models']['elements'] = models['elements']
     data['models']['beamlines'] = models['beamlines']
     data['models']['rpnVariables'] = models['rpnVariables']
-    lattice.LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
+    lattice.LatticeUtil(data, SCHEMA).sort_elements_and_beamlines()
 
     if default_beamline_id:
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id
@@ -138,9 +138,9 @@ def validate_fields(el, rpn_cache, code_var=None, update_filenames=True):
     for field in el.copy():
         _validate_field(el, field, rpn_cache, code_var, update_filenames)
     model_name = lattice.LatticeUtil.model_name_for_data(el)
-    for field in _SCHEMA['model'][model_name]:
+    for field in SCHEMA['model'][model_name]:
         if field not in el:
-            el[field] = _SCHEMA['model'][model_name][field][2]
+            el[field] = SCHEMA['model'][model_name][field][2]
 
 
 def _create_name_map(models):
@@ -162,9 +162,9 @@ def _field_type_for_field(el, field):
         field = re.sub(r'\[\d+\]$', '', field)
     field_type = None
     model_name = lattice.LatticeUtil.model_name_for_data(el)
-    for f in _SCHEMA['model'][model_name]:
+    for f in SCHEMA['model'][model_name]:
         if f == field:
-            field_type = _SCHEMA['model'][model_name][f][1]
+            field_type = SCHEMA['model'][model_name][f][1]
             break
     if not field_type:
         if not field in _IGNORE_FIELD:
@@ -198,7 +198,7 @@ def _validate_enum(el, field, field_type):
     search = el[field].lower()
     exact_match = ''
     close_match = ''
-    for v in _SCHEMA['enum'][field_type]:
+    for v in SCHEMA['enum'][field_type]:
         if v[0] == search:
             exact_match = v[0]
             break
@@ -232,7 +232,7 @@ def _validate_field(el, field, rpn_cache, code_var, update_filenames):
         _validate_rpn_field(el, field, rpn_cache, code_var)
     elif field_type.endswith('StringArray'):
         _validate_string_array_field(el, field)
-    elif field_type in _SCHEMA['enum']:
+    elif field_type in SCHEMA['enum']:
         _validate_enum(el, field, field_type)
     elif 'type' in el and el['type'] == 'SCRIPT' and field == 'command':
         _validate_script(el)
@@ -302,7 +302,7 @@ def _validate_string_array_field(el, field):
     index = int(m.group(2))
     if not field in el:
         model_name = lattice.LatticeUtil.model_name_for_data(el)
-        el[field] = _SCHEMA['model'][model_name][field][2]
+        el[field] = SCHEMA['model'][model_name][field][2]
     value_array = re.split(r'\s*,\s*', el[field])
     m = re.search(r'^(\d+)\*(.*)$', value)
     if m:
