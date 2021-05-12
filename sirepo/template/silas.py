@@ -56,10 +56,6 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def get_application_data(data, **kwargs):
-    if data['method'] == 'compute_rms_size':
-        return _compute_rms_size(data)
-
 def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     if success_exit:
         return None
@@ -196,6 +192,10 @@ def sim_frame_wavefrontSummaryAnimation(frame_args):
         y_range=template_common.compute_plot_color_and_range(plots),
         summaryData=_summary_data(frame_args),
     )
+
+
+def stateless_compute_compute_rms_size(data):
+    return _compute_rms_size(data)
 
 
 def write_parameters(data, run_dir, is_parallel):

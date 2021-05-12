@@ -4,6 +4,13 @@
             "localRoute": "laser-cavity"
         }
     },
+    "constants": {
+        "methods": {
+            "statelessCompute": {
+                "compute_rms_size": "compute_rms_size"
+            }
+        }
+    },
     "enum": {
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"],
