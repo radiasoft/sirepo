@@ -16,17 +16,17 @@
     "constants": {
         "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
         "methods": {
-            "statelessCompute": {
-                "compute_PGM_value": "compute_PGM_value",
-                "compute_crl_characteristics": "compute_crl_characteristics",
-                "compute_crystal_init": "compute_crystal_init",
-                "compute_crystal_orientation": "compute_crystal_orientation",
-                "compute_delta_atten_characteristics": "compute_delta_atten_characteristics",
-                "compute_dual_characteristics": "compute_dual_characteristics",
-                "compute_grazing_orientation": "compute_grazing_orientation",
-                "process_beam_parameters": "process_beam_parameters",
-                "process_undulator_definition": "process_undulator_definition"
-            }
+            "statelessCompute": [
+                "compute_PGM_value",
+                "compute_crl_characteristics",
+                "compute_crystal_init",
+                "compute_crystal_orientation",
+                "compute_delta_atten_characteristics",
+                "compute_dual_characteristics",
+                "compute_grazing_orientation",
+                "process_beam_parameters",
+                "process_undulator_definition"
+            ]
         }
     },
     "enum": {

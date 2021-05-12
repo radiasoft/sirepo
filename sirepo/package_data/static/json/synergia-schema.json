@@ -4,6 +4,13 @@
             "localRoute": "lattice"
         }
     },
+    "constants": {
+        "methods": {
+            "statelessCompute": [
+                "calculate_bunch_parameters"
+            ]
+        }
+    },
     "enum": {
         "BeamCharge": [
             ["1", "1"],
