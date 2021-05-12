@@ -5,7 +5,7 @@ u"""Simulation schema
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern import pkconfig
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -20,7 +20,7 @@ _NAME_ILLEGAL_PERIOD = re.compile(r'^\.|\.$')
 
 
 def get_enums(schema, name):
-    enum_dict = pkcollections.Dict()
+    enum_dict = PKDict()
     for info in schema.enum[name]:
         enum_name = info[0]
         enum_dict[enum_name] = enum_name
@@ -77,8 +77,8 @@ def validate_fields(data, schema):
         cookie definitions (see _validate_cookie_def)
 
     Args:
-        data (pkcollections.Dict): model data
-        schema (pkcollections.Dict): schema which data inmplements
+        data (PKDict): model data
+        schema (PKDict): schema which data inmplements
     """
     sch_models = schema.model
     sch_enums = schema.enum
@@ -109,7 +109,7 @@ def validate_name(data, data_files, max_copies):
     sim_id = s.simulationId
     n = s.name
     f = s.folder
-    starts_with = pkcollections.Dict()
+    starts_with = PKDict()
     for d in data_files:
         n2 = d.models.simulation.name
         if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
@@ -131,9 +131,10 @@ def validate(schema):
         Existence of dynamic modules
         Enums keyed by string value
         Model names containing special characters
+        Method name for API calls with them are valid python function names and not too long
 
     Args:
-        schema (pkcollections.Dict): app schema
+        schema (PKDict): app schema
     """
     sch_models = schema.model
     sch_enums = schema.enum
@@ -164,6 +165,15 @@ def validate(schema):
         for src in schema.dynamicModules[t]:
             pkresource.filename(src[1:])
     _validate_strings(schema.strings)
+    _validate_constants_methods(schema.constants.get('methods', PKDict()))
+
+
+def _validate_constants_methods(methods):
+    for t in methods.values():
+        for m in t.values():
+            assert re.search(r'^\w{1,40}$', m), \
+                f'method={m} not a valid python function name or too long'
+
 
 def _validate_cookie_def(c_def):
     """Validate the cookie definitions in the schema
@@ -174,7 +184,7 @@ def _validate_cookie_def(c_def):
         timeout must be numeric if provided
 
     Args:
-        data (pkcollections.Dict): cookie definition object from the schema
+        data (PKDict): cookie definition object from the schema
     """
     c_delims = '|:;='
     c_delim_re = re.compile('[{}]'.format(c_delims))
@@ -195,7 +205,7 @@ def _validate_enum(val, sch_field_info, sch_enums):
     Args:
         val: enum value to validate
         sch_field_info ([str]): field info array from schema
-        sch_enums (pkcollections.Dict): enum section of the schema
+        sch_enums (PKDict): enum section of the schema
     """
     type = sch_field_info[1]
     if not type in sch_enums:

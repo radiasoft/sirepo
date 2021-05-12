@@ -2245,6 +2245,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     self.statelessCompute = function(appState, data, callback) {
         data.simulationId = appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
+        data.method = SIREPO.APP_SCHEMA.constants.methods.statelessCompute[data.method];
         self.sendRequest('statelessCompute', callback, data);
     };
 
