@@ -1879,7 +1879,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>',
                 '</ul>',
               '</div>',
-              '<a href data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
+              '<a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -1896,6 +1896,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             var view = appState.viewInfo(viewKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
             $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
+            $scope.canFullScreen = view && view.hasOwnProperty('canFullScreen') ? view.canFullScreen : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
