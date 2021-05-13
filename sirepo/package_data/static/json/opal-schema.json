@@ -9,11 +9,6 @@
             "rank", "real", "const", "vector", "constraint", "objective", "true", "false",
             "string", "bool", "constant"
         ],
-        "methods": {
-            "statelessCompute": [
-                "calculate_bunch_parameters"
-            ]
-        },
         "particleMassAndCharge": {
             "ELECTRON": [0.51099895000e-03, -1.0],
             "PROTON": [0.93827208816, 1.0],
