@@ -17,14 +17,13 @@
         <div class=".sr-plot-legend .plot-visibility">
         <div class="row">
             <div class="col-sm-12">
-                <div style="padding-bottom: 8px"><span>{{ modeText[interactionMode] }}</span><span data-ng-show="enableSelection" class="pull-right">{{  selection.info }}</span></div>
+                <div style="padding-top: 5px; padding-bottom: 8px"><span>{{ modeText[interactionMode] }}</span><span data-ng-show="enableSelection" class="pull-right">{{  selection.info }}</span></div>
                 <div data-ng-show="enableSelection" data-toggle="tooltip" title="Select" class="btn btn-default" data-ng-class="{'btn-primary': interactionMode == vtkUtils.INTERACTION_MODE_SELECT}" style="margin: 2px;" data-ng-click="setInteractionMode(vtkUtils.INTERACTION_MODE_SELECT)">&#x2B09;</div>
                 <div data-ng-show="enableSelection" data-toggle="tooltip" title="Manipulate" class="btn btn-default" data-ng-class="{'btn-primary': interactionMode == vtkUtils.INTERACTION_MODE_MOVE}" style="margin: 2px;" data-ng-click="setInteractionMode(vtkUtils.INTERACTION_MODE_MOVE)"><span class="glyphicon glyphicon-hand-up"></span></div>
                 <div data-toggle="tooltip" title="View along x axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'x'}" style="margin: 2px;" data-ng-click="showSide('x')">X{{ axisDirs.dir == 1 ? '+' : '-' }}</div>
                 <div data-toggle="tooltip" title="View along y axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'y'}" style="margin: 2px;" data-ng-click="showSide('y')">Y{{ axisDirs.dir == 1 ? '+' : '-' }}</div>
                 <div data-toggle="tooltip" title="View along z axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'z'}" style="margin: 2px;" data-ng-click="showSide('z')">Z{{ axisDirs.dir == 1 ? '+' : '-' }}</div>
-                <!-- maybe toggling on clicking the marker itself would be better -->
-                <input type="checkbox" data-ng-if="hasMarker()" data-ng-model="markerState.enabled" data-ng-change="toggleMarker()"> Toggle Marker
+                <div class="checkbox checkbox-inline"><label data-ng-if="hasMarker()"><input type="checkbox" id="sr-toggle-marker" data-ng-model="markerState.enabled" data-ng-change="toggleMarker()"> Toggle Marker</label></div>
                 <div data-ng-if="enableSelection && selection.model" data-advanced-editor-pane="" data-view-name="selection.model.modelKey" data-model-data="selection.model" data-want-buttons="true"></div>
             </div>
         </div>
