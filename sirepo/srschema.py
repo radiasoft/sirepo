@@ -169,7 +169,6 @@ def validate(schema):
 
 
 def _validate_constants_methods(methods):
-    # TODO(e-carlin): add code_var methods to schema
     for t in methods.values():
         for m in t:
             assert re.search(r'^\w{1,40}$', m), \

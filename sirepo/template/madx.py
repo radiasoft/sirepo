@@ -221,6 +221,11 @@ def generate_parameters_file(data):
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
+def get_application_data(data, **kwargs):
+    if code_var(data.variables).get_application_data(data, SCHEMA, ignore_array_values=True):
+        return data
+
+
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
