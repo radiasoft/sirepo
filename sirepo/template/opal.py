@@ -830,15 +830,15 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
     for idx in range(len(items)):
         item_id = items[idx]
         item = util.id_map[abs(item_id)]
-        name = item.name
+        name = item.name.upper()
         if name not in count_by_name:
             count_by_name[name] = 0
         if 'type' in item:
             # element
             name = '"{}#{}"'.format(name, count_by_name[name])
-            count_by_name[item.name] += 1
+            count_by_name[item.name.upper()] += 1
             pos = beamline.positions[idx]
-            res += '{}: "{}",elemedge={};\n'.format(name, item.name, pos.elemedge)
+            res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), pos.elemedge)
             names.append(name)
             visited.add(item_id)
         else :
@@ -884,13 +884,13 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
         item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
-            name = item.name
+            name = item.name.upper()
             if name not in count_by_name:
                 count_by_name[name] = 0
             name = '"{}#{}"'.format(name, count_by_name[name])
-            count_by_name[item.name] += 1
+            count_by_name[item.name.upper()] += 1
             if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
-                res += '"{}": {};\n'.format(name, item.name)
+                res += '"{}": {};\n'.format(name, item.name.upper())
                 names.append(name)
                 visited.add(item_id)
                 continue
@@ -899,7 +899,7 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
                 # don't include reverse drifts, for positioning only
                 pass
             else:
-                res += '{}: "{}",elemedge={};\n'.format(name, item.name, edge)
+                res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), edge)
                 names.append(name)
                 if item.type == 'SBEND' and run_method == 'THICK':
                     # use arclength for SBEND with THICK tracker (only?)
