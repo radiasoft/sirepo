@@ -256,7 +256,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         requestSender.statelessCompute(
             appState,
             {
-                // TODO(e-carlin): consider moving methods onto the schema so we have an easily searchable record of them
                 method: method,
                 optical_element: item,
             },
@@ -274,7 +273,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return analysisModel;
     };
 
-    // TODO(e-carlin): can computeOnServer be deleted?
     self.computeOnServer = function(method, args, callback) {
         args.method = method;
         requestSender.getApplicationData(args, callback);
