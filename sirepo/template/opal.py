@@ -878,7 +878,7 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
     beamline = util.id_map[abs(beamline_id)]
     items = beamline['items']
     if beamline_id < 0:
-        items = reversed(items)
+        items = list(reversed(items))
     for idx in range(len(items)):
         item_id = items[idx]
         item = util.id_map[abs(item_id)]
