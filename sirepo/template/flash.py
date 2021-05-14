@@ -72,7 +72,7 @@ def background_percent_complete(report, run_dir, is_running):
         if len(files):
             io = simulation_db.read_json(
                 run_dir.join(template_common.INPUT_BASE_NAME),
-            ).models.IO
+            ).models.IO_IOMain
             idx = 1
             while io.get(f'plot_var_{idx}', ''):
                 n = io[f'plot_var_{idx}']
@@ -324,7 +324,7 @@ def sim_frame_varAnimation(frame_args):
         ),
     )
 
-    g = frame_args.sim_in.models.Grid.geometry
+    g = frame_args.sim_in.models.Grid_GridMain.geometry
     aspect_ratio = buff_size[1] / buff_size[0]
     return PKDict(
         global_max=float(frame_args.vmax) if frame_args.vmax else None,

@@ -344,7 +344,9 @@ class SetupParameterParser():
 
     @classmethod
     def model_name_from_flash_unit_name(cls, text):
-        return '_'.join(filter(lambda x: not re.search(r'Main$', x), text.split('/')))
+        # TODO(e-carlin): discuss with pjm. Main units have different vars than the non-main
+        # return '_'.join(filter(lambda x: not re.search(r'Main$', x), text.split('/')))
+        return '_'.join(text.split('/'))
 
     @classmethod
     def parse_string_or_number(cls, field_type, value, maybe_quoted=False):
