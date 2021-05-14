@@ -48,11 +48,6 @@
             "pi", "twopi", "raddeg", "degrad", "e", "emass", "pmass",
             "nmass", "mumass", "clight", "qelect", "hbar", "erad", "prad"
         ],
-        "methods": {
-            "statelessCompute": [
-                "calculate_bunch_parameters"
-            ]
-        },
         "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
             "electron": [0.510998928e-03, -1],

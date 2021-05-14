@@ -2243,7 +2243,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     };
 
     self.statelessCompute = function(appState, data, callback) {
-        const m = SIREPO.APP_SCHEMA.constants.methods.statelessCompute
         data.simulationId = appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
         if (!m.includes(data.method)) {
