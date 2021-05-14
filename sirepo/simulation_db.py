@@ -742,17 +742,18 @@ def update_rsmanifest(data):
         raise
 
 
-def user_create(login_callback):
+def user_create():
     """Create a user and initialize the directory
 
     Returns:
         str: New user id
     """
     uid = _random_id(user_path())['id']
-    # Must logged in before calling simulation_dir
-    login_callback(uid)
     for simulation_type in feature_config.cfg().sim_types:
-        _create_lib_and_examples(simulation_type)
+        _create_lib_and_examples(
+            simulation_type,
+            uid=uid,
+        )
     return uid
 
 

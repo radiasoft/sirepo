@@ -5,18 +5,26 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import pykern.pkcli
+from pykern import pkcli
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog
 
 
-def create_user(email):
+def create_user(email, display_name):
     """Create a JupyterHubUser
+
+    This is idempotent. It will create a Sirepo email user if none exists for
+    the email before creating a jupyterhub user
+
+    It will update the user's display_name if the one supplied is different than
+    the one in the db.
 
     Args:
         email (str): Email of user to create.
+        display_name (str): UserRegistration display_name
 
     Returns:
-        user_name (str): The user_name of the newly created user or existing user
-                        if email already exists.
+        user_name (str): The jupyterhub user_name of the user
     """
     import pyisemail
     import sirepo.auth
@@ -25,14 +33,54 @@ def create_user(email):
     import sirepo.sim_api.jupyterhublogin
     import sirepo.template
 
+    def maybe_create_sirepo_user(module, email, display_name):
+        u = module.unchecked_user_by_user_name(email)
+        if u:
+            # Fully registered email user
+            r = sirepo.auth_db.UserRegistration.search_by(uid=u)
+            assert r.display_name, \
+                f'uid={u} authorized AuthEmailUser record but no UserRegistration.display_name'
+            if not r.display_name == display_name:
+                pkdlog(
+                    'changing uid={} display_name from={} to={}',
+                    u,
+                    r.display_name,
+                    display_name,
+                )
+                r.display_name = display_name
+                r.save()
+            return u
+        m = module.AuthEmailUser.search_by(unverified_email=email)
+        if m:
+            # Email user that needs to complete registration (no display_name but have unverified_email)
+            assert sirepo.auth.need_complete_registration(m), \
+                'email={email} has no display_name but does not need to complete registration'
+            pkcli.command_error(
+                'email={} needs complete registration but we do not have their uid (in cookie)',
+                email,
+            )
+        # Completely new Sirepo user
+        u = sirepo.auth.create_new_user(
+            lambda u: sirepo.auth.user_registration(u, display_name=display_name),
+            module,
+        )
+        module.AuthEmailUser(
+            unverified_email=email,
+            uid=u,
+            user_name=email,
+        ).save()
+        return u
 
     if not pyisemail.is_email(email):
-        pykern.pkcli.command_error('invalid email={}', email)
+        pkcli.command_error('invalid email={}', email)
     sirepo.server.init()
     sirepo.template.assert_sim_type('jupyterhublogin')
     with sirepo.auth_db.session_and_lock():
-        u = sirepo.auth.get_module('email').unchecked_user_by_user_name(email)
-        if not u:
-            pykern.pkcli.command_error('no sirepo user with email={}', email)
+        u = maybe_create_sirepo_user(
+            sirepo.auth.get_module('email'),
+            email,
+            display_name,
+        )
         with sirepo.auth.set_user_outside_of_http_request(u):
-            return sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
+            n = sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
+            return PKDict(email=email, jupyterhub_user_name=n)

@@ -15,17 +15,16 @@ def setup_module(module):
     )
 
 
-def test_create_user(auth_fc):
+def test_create_new_user(auth_fc):
     from pykern import pkunit
+    from pykern.pkcollections import PKDict
     import sirepo.pkcli.jupyterhublogin
     import sirepo.srdb
 
     fc = auth_fc
     e = 'e-t@b.c'
-    with pkunit.pkexcept(f'no sirepo user with email={e}'):
-        sirepo.pkcli.jupyterhublogin.create_user(e)
-    fc.sr_email_register(e, sim_type='myapp')
-    r = e.split('@')[0]
-    pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e))
+    n = 'foo'
+    r = PKDict(email=e, jupyterhub_user_name=e.split('@')[0])
+    pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e, n))
     # create_user is idempotent. Returns user_name if user already exists
-    pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e))
+    pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e, n))
