@@ -39,7 +39,7 @@ SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
     };
 });
 
-SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compile) {
+SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilities, $compile) {
     return {
         restrict: 'A',
         scope: {
@@ -60,7 +60,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
               '<br data-ng-if="pages" />',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
                 '<div class="lead text-center" data-ng-if="::isLabel(f)" style="white-space: pre-wrap;"><span data-text-with-math="::labelText(f)"</span></div>',
-                '<div class="form-group form-group-sm" data-ng-if="::isField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
+                '<div class="form-group form-group-sm" data-ng-if="::isField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData" data-view-name="viewName"></div>',
                 '<div data-ng-if="::isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
               '<div data-ng-if="wantButtons" class="row">',
@@ -99,8 +99,8 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             }
             // create a View component for app business logic
             $element.append($compile(
-                '<div data-' + camelToKebabCase($scope.viewName)
-                    + '-view="{{ fieldDef }}"'
+                '<div ' + utilities.viewLogicName($scope.viewName)
+                    + '="{{ fieldDef }}"'
                     + ' data-model-name="modelName" data-model-data="modelData">'
                     + '</div>')($scope));
 
@@ -624,6 +624,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             labelSize: '@',
             fieldSize: '@',
             form: '=',
+            viewName: '=',
         },
         template: [
             '<div data-ng-class="utilities.modelFieldID(modelName, field)">',
@@ -767,6 +768,12 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             };
 
             $scope.fieldValidatorName = utilities.modelFieldID($scope.modelName, $scope.field);
+
+            // the viewLogic element is a child of advancedEditorPane, which is a parent of this field.
+            // this gets the controller so the field's scope can use it
+            $scope.viewLogic = angular.element($($element).closest('div[data-advanced-editor-pane]').find(
+                `div[${utilities.viewLogicName($scope.viewName)}]`
+            ).eq(0)).controller(`${$scope.viewName}View`);
 
             $scope.clearViewValue = function(model) {
                 model.$setViewValue('');
@@ -1405,9 +1412,10 @@ SIREPO.app.directive('modelField', function(appState) {
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
             form: '=',
+            viewName: '=',
         },
         template: [
-            '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
+            '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>',
         ].join(''),
         controller: function($scope) {
             var modelName = $scope.modelName;
@@ -4185,6 +4193,10 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return 'model-' + modelName + '-' + fieldName;
     };
 
+    this.viewLogicName = function(viewName) {
+        return `data-${this.camelToKebabCase(viewName)}-view`;
+    };
+
     this.ngModelForElement = function(el) {
         return angular.element(el).controller('ngModel');
     };
@@ -4222,6 +4234,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return wds.map(function (value, index) {
             return wds.slice(0, index).join('') + value;
         });
+    };
+
+    this.camelToKebabCase = function(v) {
+        if (v.toUpperCase() == v) {
+            return v.toLowerCase();
+        }
+        v = v.charAt(0).toLowerCase() + v.slice(1);
+        v = v.replace(/\_/g, '-');
+        return v.replace(/([A-Z])/g, '-$1').toLowerCase();
     };
 
     // fullscreen utilities
