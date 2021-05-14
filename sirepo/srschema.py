@@ -165,14 +165,6 @@ def validate(schema):
         for src in schema.dynamicModules[t]:
             pkresource.filename(src[1:])
     _validate_strings(schema.strings)
-    _validate_constants_methods(schema.constants.get('methods', PKDict()))
-
-
-def _validate_constants_methods(methods):
-    for t in methods.values():
-        for m in t:
-            assert re.search(r'^\w{1,40}$', m), \
-                f'method={m} not a valid python function name or too long'
 
 
 def _validate_cookie_def(c_def):

@@ -1,11 +1,4 @@
 {
-    "constants": {
-        "methods": {
-            "statelessCompute": [
-                "compute_harmonic_photon_energy"
-            ]
-        }
-    },
     "enum": {
         "AbsoluteOrigin": [
             ["0", "Absolute"],
