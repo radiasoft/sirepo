@@ -374,6 +374,7 @@
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
+            "bevels": ["Bevels", "BevelTable", []],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "id": ["_", "UUID", ""],
@@ -414,7 +415,8 @@
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleShape": ["Shape", "ObjectShape", "cuboid"]
+            "poleShape": ["Shape", "ObjectShape", "cuboid"],
+            "autoTerminate": ["Auto Terminate", "Boolean", "1", "When true, the undulator is terminated with a magnet block of half thickness immediately following the final period. Otherwise the termination must be specified."]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -472,13 +474,7 @@
         "objectBevel": {
             "amountGap": ["Cut Distance in Gap Direction (mm)", "Float", 1.0],
             "amountTrans": ["Cut Distance in Transverse Direction (mm)", "Float", 1.0],
-            "edge": ["Cut Edge", "Integer", 0, "Index of Base Shape Edge to Cut"]
-        },
-        "objectShape": {
-            "bevels": ["Bevels", "BevelTable", []],
-            "name": ["Name", "String", ""],
-            "screenAxis": ["_", "BeamAxis", "y"],
-            "shape": ["Base Shape", "ObjectShape", "cuboid"]
+            "edge": ["Cut Edge", "Integer", 0, "Index of Base Shape Edge to Cut", 0, 3]
         },
         "racetrack": {
             "_super": ["_", "model", "geomObject"],
@@ -782,6 +778,7 @@
         },
         "objectShape": {
             "title": "Object Shape Editor",
+            "model": "geomObject",
             "basic": [
                 "bevels"
             ],

@@ -624,6 +624,13 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.exampleName = data.models.simulation.get('exampleName', None)
     v.is_raw = v.exampleName in _SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
+    wd, hd, bd = _geom_directions(
+        data.models.simulation.beamAxis,
+        data.models.hybridUndulator.gapAxis if v.magnetType == 'undulator' else 'y'
+    )
+    v.width_dir = wd.tolist()
+    v.height_dir = hd.tolist()
+    v.beam_dir = bd.tolist()
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
     v.objects = g.get('objects', [])
@@ -681,6 +688,17 @@ def _generate_parameters_file(data, is_parallel, for_export):
         j_file,
         jinja_env=PKDict(loader=jinja2.PackageLoader('sirepo', 'template'))
     )
+
+
+def _geom_directions(beam_axis, vert_axis):
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    if not vert_axis or vert_axis == beam_axis:
+        vert_axis = _GAP_AXIS_MAP[beam_axis]
+    vert_dir = numpy.array(_BEAM_AXIS_VECTORS[vert_axis])
+
+    # we don't care about the direction of the cross product
+    width_dir = abs(numpy.cross(beam_dir, vert_dir))
+    return width_dir, vert_dir, beam_dir
 
 
 def _geom_file(sim_id):
@@ -1010,14 +1028,15 @@ def _update_geom_from_undulator(geom, und, beam_axis):
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
-    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    #beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
     # assign a valid gap direction if the user provided an invalid one
-    if und.gapAxis == beam_axis:
-        und.gapAxis = _GAP_AXIS_MAP[beam_axis]
-    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
+    #if und.gapAxis == beam_axis:
+    #    und.gapAxis = _GAP_AXIS_MAP[beam_axis]
+    #gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
 
     # we don't care about the direction of the cross product
-    width_dir = abs(numpy.cross(beam_dir, gap_dir))
+    #width_dir = abs(numpy.cross(beam_dir, gap_dir))
+    width_dir, gap_dir, beam_dir = _geom_directions(beam_axis, und.gapAxis)
 
     dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
 

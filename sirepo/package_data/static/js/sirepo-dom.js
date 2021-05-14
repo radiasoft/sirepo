@@ -187,6 +187,10 @@ class UIElement {  //extends UIOutput {
         this.text = str;  //this.encode(str);
     }
 
+    toDOM() {
+        return document.getElementById(this.id);
+    }
+
     toTemplate() {
         let t = this.tag;  //this.encode(this.tag);
         let s = `<${t} ${UIAttribute.attrsToTemplate(Object.values(this.attrs))}>`;
@@ -253,11 +257,43 @@ class UIRawHTML {
 }
 
 class UIInput extends UIElement {
-    constructor(tag, id, attrs) {
-        super(tag, id, attrs);
+    constructor(id, type, initVal, attrs) {
+        super('input', id, attrs);
+        this.addAttribute('type', type);
+        this.addAttribute('value', initVal);
         this.addSibling(new UIWarning());
     }
+
+    getValue() {
+        return this.toDOM().value;
+    }
 }
+
+
+class UIIntegerInput extends UIInput {
+    constructor(id, min, max, initVal, attrs) {
+        super(id, 'number', initVal, attrs);
+        this.addAttribute('min', min);
+        this.addAttribute('max', max);
+        this.addAttribute('step', 1);
+        this.addAttribute('value', Math.max(Math.min(initVal, max), min));
+    }
+
+    getValue() {
+        return parseInt(super.getValue());
+    }
+}
+
+class UIFloatInput extends UIInput {
+    constructor(id, initVal, attrs) {
+        super(id, 'text', initVal, attrs);
+    }
+
+    getValue() {
+        return parseFloat(super.getValue());
+    }
+}
+
 
 class UIEnum extends UIInput {
     static ENUM_LAYOUT_PROPS() {
@@ -583,7 +619,9 @@ SIREPO.DOM = {
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
+    UIFloatInput: UIFloatInput,
     UIInput: UIInput,
+    UIIntegerInput: UIIntegerInput,
     UIRawHTML: UIRawHTML,
     UISelect: UISelect,
     UISelectOption: UISelectOption,
