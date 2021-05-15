@@ -72,15 +72,6 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
 
-            function camelToKebabCase(v) {
-                if (v.toUpperCase() == v) {
-                    return v.toLowerCase();
-                }
-                v = v.charAt(0).toLowerCase() + v.slice(1);
-                v = v.replace(/\_/g, '-');
-                return v.replace(/([A-Z])/g, '-$1').toLowerCase();
-            }
-
             function tabSelectedEvent() {
                 appState.whenModelsLoaded($scope, function() {
                     panelState.waitForUI(function() {
@@ -4194,6 +4185,9 @@ SIREPO.app.service('utilities', function($window, $interval) {
     };
 
     this.viewLogicName = function(viewName) {
+        if (! viewName) {
+            return null;
+        }
         return `data-${this.camelToKebabCase(viewName)}-view`;
     };
 

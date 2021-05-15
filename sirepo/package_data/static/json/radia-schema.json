@@ -240,11 +240,11 @@
             ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
         ],
-        "ObjectEdge": [
-            ["bottom", "Bottom"],
-            ["left", "Left"],
-            ["right", "Right"],
-            ["top", "Top"]
+        "BevelEdge": [
+            ["0", "Top Left"],
+            ["1", "Top Right"],
+            ["2", "Bottom Right"],
+            ["3", "Bottom Left"]
         ],
         "ObjectShape": [
             ["cuboid", "Cuboid"],
@@ -474,9 +474,12 @@
         "objectBevel": {
             "amountGap": ["Cut Distance in Gap Direction (mm)", "Float", 1.0],
             "amountTrans": ["Cut Distance in Transverse Direction (mm)", "Float", 1.0],
-            "edge": ["Cut Edge", "Integer", 0, "Index of Base Shape Edge to Cut", 0, 3]
+            "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"]
         },
-        "racetrack": {
+         "objectShape": {
+            "viewAxis": ["View Along Axis", "BeamAxis", "z"]
+        },
+       "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
             "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
@@ -774,16 +777,22 @@
                 "edge",
                 "amountGap",
                 "amountTrans"
+            ],
+            "advanced": [
+                "edge",
+                "amountGap",
+                "amountTrans"
             ]
         },
         "objectShape": {
             "title": "Object Shape Editor",
-            "model": "geomObject",
             "basic": [
-                "bevels"
+                "viewAxis",
+                "geomObject.bevels"
             ],
             "advanced": [
-                "bevels"
+                "viewAxis",
+                "geomObject.bevels"
             ]
         },
         "racetrack": {

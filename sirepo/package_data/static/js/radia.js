@@ -10,7 +10,7 @@ SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
-          '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-object="object"></div>',
+          '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
         '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
@@ -31,7 +31,7 @@ SIREPO.app.config(function() {
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="ObjectShape" class="col-sm-7">',
-            '<div data-shape-picker="" data-model="model" data-field="field" data-field-class="fieldClass" parentController="parentController"></div>',
+            '<div data-shape-picker="" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>',
         '</div>',
         '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
             '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
@@ -1207,8 +1207,9 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
 SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) {
 
     let table = new SIREPO.DOM.UIElement('table', 'sr-bevel-table');
+    table.addClasses('table table-hover');
     let newButton = new SIREPO.DOM.UIElement('button', 'sr-new-bevel', [
-        new SIREPO.DOM.UIAttribute('data-ng-click', 'addBevel()')
+        new SIREPO.DOM.UIAttribute('data-ng-click', 'addItem()')
     ]);
     newButton.addClasses('btn btn-info btn-xs pull-right');
     newButton.setText('New Bevel ');
@@ -1229,90 +1230,50 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             itemClass: '@',
             model: '=',
             modelName: '=',
-            parentController: '='
+            parentController: '=',
+            object: '=',
         },
 
         template: [
-                        //newButton.toTemplate(),
-                        //'<button class="btn btn-info btn-xs pull-right" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New Bevel</button>',
-
-            '<table>',
-            '<tr>',
-            '<td>', edgeInput.toTemplate(), '</td>',
-            '<td>', amountGapInput.toTemplate(), '</td>',
-            '<td>', amountTransInput.toTemplate(), '</td>',
-            '<td>', newButton.toTemplate(), '</td>',
-            '</tr>',
-                '<tr data-ng-repeat="item in loadItems()">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
-                    '<div class="sr-command-icon-holder">',
-                      '<a style="-moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>',
-                    '</div>',
-                '</tr>',
-              '</table>',
-/*
-            '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
+            '<table class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
-                '<col style="width: 10ex">',
-                '<col style="width: 10ex">',
-                '<col style="width: 100%">',
-                '<col style="width: 10ex">',
+                '<col style="width: 20ex">',
+                '<col style="width: 20ex">',
               '</colgroup>',
               '<thead>',
                 '<tr>',
-                  '<th>Name</th>',
-                  '<th>Type</th>',
-                  '<th>Num. points</th>',
-                  '<th>Details</th>',
+                  '<th>Edge Index</th>',
+                  '<th>Gap Dist</th>',
+                  '<th>Transverse Dist</th>',
                   '<th></th>',
                 '</tr>',
               '</thead>',
-              '<tbody>',
-                '<tr data-ng-repeat="path in paths track by $index">',
-                  '<td><div class="badge sr-badge-icon sr-lattice-icon"><span>{{ path.name }}</span></div></td>',
-                  '<td><span>{{ path.type }}</span></td>',
-                  '<td><span>{{ path.numPoints }}</span></td>',
-                  '<td><span>{{ pathDetails(path) }}</span></td>',
+             '<tbody>',
+            '<tr>',
+            '</tr>',
+                '<tr data-ng-repeat="item in loadItems()">',
+                    '<td>{{ item.edge }}</td>',
+                    '<td>{{ item.amountGap }}mm</td>',
+                    '<td>{{ item.amountTrans }}mm</td>',
                   '<td style="text-align: right">',
                     '<div class="sr-button-bar-parent">',
                         '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
-                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>',
-                            ' <button data-ng-click="editPath(path)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-click="svc.showFieldDownload(true, path)" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-cloud-download"></span></button>',
-                            ' <button data-ng-click="deletePath(path, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                            ' <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
                         '</div>',
                     '<div>',
                   '</td>',
                 '</tr>',
-              '</tbody>',
+            '</tbody>',
             '</table>',
-             */
+            newButton.toTemplate(),
         ].join(''),
-
-        /*
-        template: [
-            '<div class="sr-object-table">',
-              '<div style="overflow-y: scroll; overflow-x: hidden; height: 100px;">',
-              '<table class="table table-hover" style="width: 100%; height: 15%; table-layout: fixed;">',
-                '<tr data-ng-repeat="item in loadItems()">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
-                    '<div class="sr-command-icon-holder">',
-                      '<a style="-moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>',
-                    '</div>',
-                '</tr>',
-              '</table>',
-            '</div>',
-            '</div>',
-        ].join(''),
-
-         */
         controller: function($scope, $element) {
-            var expanded = {};
-            var isEditing = false;
-            var watchedModels =[];
+            let isEditing = false;
+            let itemModel = 'objectBevel';
+            let watchedModels = [];
 
-            srdbg('BEVEL TABLE', $scope);
             $scope.items = [];
             $scope.radiaService = radiaService;
             $scope.selectedItem = null;
@@ -1321,17 +1282,9 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 return $scope.items.indexOf(data);
             }
 
-            $scope.addBevel = function() {
-                let b = appState.setModelDefaults({}, 'objectBevel');
-                b.edge = parseInt(edgeInput.getValue());
-                b.gapInput = parseFloat(amountGapInput.getValue());
-                b.transInput = parseFloat(amountTransInput.getValue());
-                $scope.field.push(b);
-
-            };
-
-            $scope.addItem = function(item) {
-                $scope.editItem(item, true);
+            $scope.addItem = function() {
+                let b = appState.setModelDefaults({}, itemModel);
+                $scope.editItem(b, true);
             };
 
             $scope.deleteItem = function(item) {
@@ -1346,14 +1299,8 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             $scope.editItem = function(item, isNew) {
                 isEditing = ! isNew;
                 $scope.selectedItem = item;
-                if (isNew) {
-                    appState.models[item.model] = appState.setModelDefaults({}, item.model);
-                    appState.models[item.model].model = item.model;
-                }
-                else {
-                    appState.models[item.model] = item;
-                }
-                panelState.showModalEditor(item.model);
+                appState.models[itemModel] = item;
+                panelState.showModalEditor(itemModel);
             };
 
             $scope.getSelected = function() {
@@ -3655,7 +3602,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     return self;
 });
 
-SIREPO.app.directive('shapePicker', function(appState, panelState, plotting, radiaService) {
+SIREPO.app.directive('shapePicker', function(appState, panelState, plotting, radiaService, utilities) {
 
     const width = 64;
     const height = 64;
@@ -3670,23 +3617,46 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting, rad
         return new SIREPO.DOM.UIEnumOption('', o);
     }));
 
+    let btn = new SIREPO.DOM.UIElement('button', null, [
+        new SIREPO.DOM.UIAttribute('data-ng-click', 'editShape()')
+    ]);
     const shapePickerId = 'sr-shape-picker';
-    let svg = new SIREPO.DOM.SVGContainer(shapePickerId, width, height);
-    svg.addChild(new SIREPO.DOM.SVGRect(
-        'sr-shape-picker-border', inset, inset, width - 2 * inset, height - 2 * inset, 'fill: none; stroke: black')
-    );
+    //let svg = new SIREPO.DOM.SVGContainer(shapePickerId, width, height);
+    //svg.addChild(new SIREPO.DOM.SVGRect(
+    //    'sr-shape-picker-border', inset, inset, width - 2 * inset, height - 2 * inset, 'fill: none; stroke: black')
+    //);
 
     const shapeGrpId = 'sr-shape-picker-shape';
-    svg.addChild(new SIREPO.DOM.SVGGroup(shapeGrpId));
+    //svg.addChild(new SIREPO.DOM.SVGGroup(shapeGrpId));
 
-    const shapeHighlightGrpId = 'sr-shape-picker-shape-highlight';
-    let shapeHighlight = new SIREPO.DOM.SVGGroup(shapeHighlightGrpId);
-    svg.addChild(shapeHighlight);
+    //const shapeHighlightGrpId = 'sr-shape-picker-shape-highlight';
+    //let shapeHighlight = new SIREPO.DOM.SVGGroup(shapeHighlightGrpId);
+    //svg.addChild(shapeHighlight);
 
     let shapes = {};
+    let w = 0;
+    let h = 0;
     for (let name in SIREPO.APP_SCHEMA.constants.geomObjShapes) {
         const s = SIREPO.APP_SCHEMA.constants.geomObjShapes[name];
-        shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, s.offsets, s.doClose, s.stroke, s.fill);
+        w = Math.max(w, Math.abs(ptsBounds(s.points)[0].max - ptsBounds(s.points)[0].min));
+        h = Math.max(h, Math.abs(ptsBounds(s.points)[1].max - ptsBounds(s.points)[1].min));
+        shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, [inset, inset], s.doClose, s.stroke, s.fill);
+    }
+    w += 2 * inset;
+    h += 2 * inset;
+    let svg = new SIREPO.DOM.SVGContainer(shapePickerId, w, h);
+    btn.addChild(svg);
+
+    function ptsBounds(pts) {
+        let b = [{min: Number.MAX_VALUE, max: -Number.MAX_VALUE}, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE}];
+        for (let p of pts) {
+            for (let x of ['min', 'max']) {
+                for (let i of [0, 1]) {
+                    b[i][x] = Math[x](b[i][x], p[i]);
+                }
+            }
+        }
+        return b;
     }
 
     return {
@@ -3696,46 +3666,54 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting, rad
             field: '=',
             fieldClass: '=',
             parentController: '=',
+            viewName: '=',
+            object: '=',
         },
         template: [
           '<div data-ng-class="fieldClass">',
             sel.toTemplate(),
-            svg.toTemplate(),
+            btn.toTemplate(),
+            //svg.toTemplate(),
           '</div>',
         ].join(''),
         controller: function($scope, $element) {
             let selectedLines = null;
-            let selectedObject = null;
-            srdbg('shape picker', $scope);
-            // HACKY - will send in the object or id
-            let o = radiaService.getObject(
-                $scope.model[`${$scope.field.substr(0, $scope.field.indexOf('Shape'))}BaseObjectId`]
-            );
+            //srdbg('shape picker', $scope.object);
+            let size = $scope.object.size.split(/\s*,\s*/).map((x) => {
+                return parseFloat(x);
+            });
 
             plotting.setupSelector($scope, $element);
             $scope.loadImage = function() {
-                shapeHighlight.clearChildren();
-                $(`#${shapeGrpId}`).html(shapes[$scope.model[$scope.field]].toTemplate());
+                //shapeHighlight.clearChildren();
+
+                $(`#${shapePickerId}`).html(shapes[$scope.model[$scope.field]].toTemplate());
             };
 
             $scope.loadImage();
 
-            $scope.select(svg.getIdSelector())
-                .on('dblclick', editShape);
+            //$scope.select(svg.getIdSelector())
+            //    .on('dblclick', editShape);
                 //.on('click', onClick);
 
-            function editShape() {
-                srdbg('edit', o);
-                appState.models.objectShape = o;
+            //function editShape() {
+            $scope.editShape = function() {
+                srdbg('edit', $scope.object);
+                appState.models.geomObject = $scope.object;
+                //appState.saveQuietly('objectShape');
                 panelState.showModalEditor('objectShape');
-            }
+            };
+
+            $scope.$on('objectShape.changed', () => {
+                appState.saveChanges('geometry');
+            });
 
             function onClick() {
                 let s = shapes[$scope.model[$scope.field]];
                 let lines = s.closestLines(d3.event.layerX, d3.event.layerY);
                 //srdbg('L', lines);
                 if (selectedLines) {
-                    shapeHighlight.clearChildren();
+                    //shapeHighlight.clearChildren();
                     selectedLines = null;
                 }
                 let pts = [];
@@ -3743,7 +3721,7 @@ SIREPO.app.directive('shapePicker', function(appState, panelState, plotting, rad
                     pts.push(...c);
                 }
                 selectedLines = new SIREPO.DOM.SVGPath(`${$scope.model[$scope.field]}-highlight`, pts, [0, 0], false, 'red', 'none');
-                shapeHighlight.addChild(selectedLines);
+                //shapeHighlight.addChild(selectedLines);
             }
 
         },
@@ -3755,22 +3733,30 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, $scope) {
     $scope.modelData = appState.models[$scope.modelName];
 });
 
-SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
     //srdbg('huv', $scope);
 
     const baseObjectNames = {
         'Poles': 'pole',
-        'Permanent Mangets': 'magnet'
+        'Permanent Magnets': 'magnet'
     };
 
+    $scope.modelData = appState.models[$scope.modelName];
+
     $scope.getBaseObjectId = function() {
-        let n = baseObjectNames[$scope.$parent.activePage];
-        return n ?  $scope.model[`${n}BaseObjectId`] : null;
+        let n = baseObjectNames[$scope.$parent.activePage.name];
+        //srdbg('b', $scope.$parent.activePage.name, n);
+        return n ?  $scope.modelData[`${n}BaseObjectId`] : null;
     };
 
     $scope.whenSelected = function() {
         //srdbg($scope.$parent.activePage);
     };
 
-
+    return {
+        getObjectId: $scope.getBaseObjectId,
+        getBaseObject: function() {
+            return radiaService.getObject($scope.getBaseObjectId());
+        },
+    };
 });
