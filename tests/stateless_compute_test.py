@@ -14,11 +14,11 @@ def test_madx_calculate_bunch_parameters(fc):
     pkunit.pkok(r.command_beam, 'unexpected response={}', r)
 
 
-def test_uknown_method(fc):
+def test_invalid_method(fc):
     from pykern import pkunit
-    m = 'uknown'
+    m = '-x23'
     r = _do(fc, m)
-    pkunit.pkre(f'method={m} not defined in schema', r.error)
+    pkunit.pkre(f'method={m} not a valid python function name or too long', r.error)
 
 
 def _do(fc, method):
