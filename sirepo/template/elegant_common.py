@@ -11,7 +11,7 @@ from sirepo.template import template_common
 import sirepo.sim_data
 import os
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('elegant')
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
 
 
 def subprocess_env():

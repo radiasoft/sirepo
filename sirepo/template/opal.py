@@ -24,7 +24,7 @@ import sirepo.lib
 import sirepo.sim_data
 
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OPAL_INPUT_FILE = 'opal.in'
 OPAL_OUTPUT_FILE = 'opal.out'
@@ -70,7 +70,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         r = PKDict(commands=dest_dir.join(source_path.basename))
         pkio.write_text(r.commands, g.sim())
         self._write_input_files(data, source_path, dest_dir)
-        r.output_files = LatticeUtil(data, SCHEMA).iterate_models(
+        r.output_files = LatticeUtil(data, _SCHEMA).iterate_models(
             OpalOutputFileIterator(),
         ).result.keys_in_order
         return r
@@ -198,7 +198,7 @@ class OpalMadxConverter(MadxConverter):
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
         for f in ob:
-            if f in mb and f in SCHEMA.model.command_beam:
+            if f in mb and f in _SCHEMA.model.command_beam:
                 mb[f] = ob[f]
                 if f in ('gamma', 'energy', 'pc') and mb[f]:
                     madx.models.bunch.beamDefinition = f
@@ -339,7 +339,7 @@ def code_var(variables):
 def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if code_var(data.variables).get_application_data(data, SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
@@ -398,7 +398,7 @@ def post_execution_processing(
 
 
 def prepare_for_client(data):
-    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -573,7 +573,7 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def __init__(self, data):
         self.data = data
-        self._schema = SCHEMA
+        self._schema = _SCHEMA
 
     def sim(self):
         d = self.data
@@ -762,7 +762,7 @@ def _compute_range_across_frames(run_dir, data):
                 else:
                     res[field] = [min1, max1]
     res = PKDict()
-    for v in SCHEMA.enum.PhaseSpaceCoordinate:
+    for v in _SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = None
     return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, res)
 
@@ -929,7 +929,7 @@ def _iterate_hdf5_steps(path, callback, state):
 def _output_info(run_dir):
     #TODO(pjm): cache to file with version, similar to template.elegant
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    files = LatticeUtil(data, SCHEMA).iterate_models(OpalOutputFileIterator()).result
+    files = LatticeUtil(data, _SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
     for k in files.keys_in_order:
         if run_dir.join(files[k]).exists():

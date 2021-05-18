@@ -30,7 +30,7 @@ import sirepo.lib
 import sirepo.sim_data
 import stat
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 ELEGANT_LOG_FILE = 'elegant.log'
 
@@ -95,7 +95,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
     def parse_file(self, path):
 
         def _input_files(model_type):
-            return [k for k, v in SCHEMA.model[model_type].items() if 'InputFile' in v[1]];
+            return [k for k, v in _SCHEMA.model[model_type].items() if 'InputFile' in v[1]];
 
         def _verify_files(model, model_type):
             self._verify_files(
@@ -408,9 +408,9 @@ class ElegantMadxConverter(MadxConverter):
             return
         if not _var(ers.p_central_mev):
             #TODO(pjm): use particle mass, don't assume electron
-            ers.p_central_mev = _var(ers.p_central) * SCHEMA.constants.ELEGANT_ME_EV
+            ers.p_central_mev = _var(ers.p_central) * _SCHEMA.constants.ELEGANT_ME_EV
         beam.p_central_mev = _var(ers.p_central_mev)
-        beta_gamma = beam.p_central_mev / SCHEMA.constants.ELEGANT_ME_EV
+        beta_gamma = beam.p_central_mev / _SCHEMA.constants.ELEGANT_ME_EV
         for f in ('x', 'y'):
             emit = _var(beam[f'emit_{f}'])
             if not emit:
@@ -532,7 +532,7 @@ def get_application_data(data, **kwargs):
                 _SIM_DATA.lib_file_abspath(data.input_file),
             )
         return data
-    if code_var(data.variables).get_application_data(data, SCHEMA):
+    if code_var(data.variables).get_application_data(data, _SCHEMA):
         return data
 
 
@@ -619,7 +619,7 @@ def parse_input_text(path, text=None, input_data=None, update_filenames=True):
 
 
 def prepare_for_client(data):
-    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -745,7 +745,7 @@ class _Generate(sirepo.lib.GenerateBase):
     def __init__(self, data, validate=True, update_output_filenames=True):
         self.data = data
         self._filename_map = None
-        self._schema = SCHEMA
+        self._schema = _SCHEMA
         self._update_output_filenames = update_output_filenames
         if validate:
             self._validate_data()
@@ -779,8 +779,8 @@ class _Generate(sirepo.lib.GenerateBase):
     def _bunch_simulation(self):
         d = self.data
         v = self.jinja_env
-        for f in SCHEMA.model.bunch:
-            info = SCHEMA.model.bunch[f]
+        for f in _SCHEMA.model.bunch:
+            info = _SCHEMA.model.bunch[f]
             if info[1] == 'RPNValue':
                 field = f'bunch_{f}'
                 v[field] = _format_rpn_value(v[field], is_command=True)
@@ -955,20 +955,20 @@ class _Generate(sirepo.lib.GenerateBase):
             if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
                 m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
 
-        enum_info = template_common.validate_models(self.data, SCHEMA)
+        enum_info = template_common.validate_models(self.data, _SCHEMA)
         _fix(self.data.models.bunch)
         for t in ['elements', 'commands']:
             for m in self.data.models[t]:
                 template_common.validate_model(
                     m,
-                    SCHEMA.model[LatticeUtil.model_name_for_data(m)],
+                    _SCHEMA.model[LatticeUtil.model_name_for_data(m)],
                     enum_info,
                 )
                 _fix(m)
 
 
 def _build_filename_map(data):
-    return _build_filename_map_from_util(LatticeUtil(data, SCHEMA))
+    return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
 
 
 def _build_filename_map_from_util(util, update_filenames=True):

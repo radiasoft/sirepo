@@ -22,7 +22,7 @@ import sirepo.util
 import six
 
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 SIM_TYPE = 'webcon'
 
@@ -913,7 +913,7 @@ def _fit_to_equation(x, y, equation, var, params):
     #     Variable and parameters must be 1 alphabetic character
 
     eq_ops = [t for t in _tokenize_equation(equation) if t != var and t not in params]
-    eq_ops_rejected = [op for op in eq_ops if op not in SCHEMA.constants.allowedEquationOps]
+    eq_ops_rejected = [op for op in eq_ops if op not in _SCHEMA.constants.allowedEquationOps]
     assert len(eq_ops_rejected) == 0, \
         sirepo.util.err(eq_ops_rejected, 'operation fobidden')
     assert _validate_eq_var(var), \

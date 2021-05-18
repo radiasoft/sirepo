@@ -23,7 +23,7 @@ import srwl_bl
 import sirepo.sim_data
 
 _JS_DIR = py.path.local(pkresource.filename('static/js'))
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('srw')
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('srw')
 
 
 class SRWParser(object):

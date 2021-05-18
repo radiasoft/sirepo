@@ -24,7 +24,7 @@ import sirepo.sim_data
 import werkzeug
 import zipfile
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 BUNCH_SUMMARY_FILE = 'bunch.json'
 
@@ -293,7 +293,7 @@ def background_percent_complete(report, run_dir, is_running):
         in_file = run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME))
         if in_file.exists():
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-            show_tunes_report = _particle_count(data) <= SCHEMA.constants.maxFilterPlotParticles \
+            show_tunes_report = _particle_count(data) <= _SCHEMA.constants.maxFilterPlotParticles \
                 and data.models.simulationSettings.npass >= 10
             show_spin_3d = data.models.SPNTRK.KSO == '1'
         count = read_frame_count(run_dir)
@@ -343,7 +343,7 @@ def extract_tunes_report(run_dir, data):
 
     if report.particleSelector == 'all':
         axis = report.plotAxis
-        title = template_common.enum_text(SCHEMA, 'TunesAxis', axis)
+        title = template_common.enum_text(_SCHEMA, 'TunesAxis', axis)
         x_idx = col_names.index('q{}'.format(axis))
         y_idx = col_names.index('amp_{}'.format(axis))
         p_idx = col_names.index('nspec')
@@ -370,7 +370,7 @@ def extract_tunes_report(run_dir, data):
                     x.append(float(row[x_idx]))
                 points.append(float(row[y_idx]))
             plots.append(PKDict(
-                label=template_common.enum_text(SCHEMA, 'TunesAxis', axis),
+                label=template_common.enum_text(_SCHEMA, 'TunesAxis', axis),
                 points=points,
             ))
     for plot in plots:
@@ -474,12 +474,12 @@ def save_sequential_report_data(data, run_dir):
             points = column_data(report[f], col_names, rows)
             if any(map(lambda x: math.isnan(x), points)):
                 error = 'Twiss data could not be computed for {}'.format(
-                    template_common.enum_text(SCHEMA, enum_name, report[f]),
+                    template_common.enum_text(_SCHEMA, enum_name, report[f]),
                 )
                 break
             plots.append(PKDict(
                 points=points,
-                label=template_common.enum_text(SCHEMA, enum_name, report[f]),
+                label=template_common.enum_text(_SCHEMA, enum_name, report[f]),
             ))
         if error:
             res = PKDict(
@@ -537,9 +537,9 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
 
 def _compute_range_across_frames(run_dir, data):
     res = PKDict()
-    for v in SCHEMA.enum.PhaseSpaceCoordinate:
+    for v in _SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = []
-    for v in SCHEMA.enum.EnergyPlotVariable:
+    for v in _SCHEMA.enum.EnergyPlotVariable:
         res[v[0]] = []
     col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE))
     for field in res:
@@ -602,7 +602,7 @@ def _extract_animation(frame_args):
     it_index = int(col_names.index('IT'))
     kex_index = int(col_names.index('KEX'))
     it_filter = None
-    if _particle_count(frame_args.sim_in) <= SCHEMA.constants.maxFilterPlotParticles:
+    if _particle_count(frame_args.sim_in) <= _SCHEMA.constants.maxFilterPlotParticles:
         if frame_args.particleSelector != 'all':
             it_filter = frame_args.particleSelector
 
@@ -741,7 +741,7 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
         elif el.type == 'SCALING':
             #TODO(pjm): convert to fake element jinja template
             form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
-            max_family = SCHEMA.constants.maxScalingFamily
+            max_family = _SCHEMA.constants.maxScalingFamily
             count = 0
             scale_values = ''
             for idx in range(1, max_family + 1):
@@ -772,13 +772,13 @@ def _generate_beamline_elements(report, data):
         if 'dipoles' in el:
             for dipole in el.dipoles:
                 zgoubi_importer.MODEL_UNITS.scale_to_native(dipole.type, dipole)
-    beamline_id = lattice.LatticeUtil(data, SCHEMA).select_beamline().id
+    beamline_id = lattice.LatticeUtil(data, _SCHEMA).select_beamline().id
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
 
 def _generate_pyzgoubi_element(el, schema_type=None):
     res = 'line.add(core.{}("{}"'.format(el.type, el.name)
-    for f in sorted(SCHEMA.model[schema_type or el.type].keys()):
+    for f in sorted(_SCHEMA.model[schema_type or el.type].keys()):
         #TODO(pjm): need ignore list
         if f == 'name' or f == 'order' or f == 'format':
             continue

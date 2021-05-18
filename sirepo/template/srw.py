@@ -37,7 +37,7 @@ import uti_plot_com
 import werkzeug
 import zipfile
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = False
 
@@ -303,11 +303,11 @@ def extract_report_data(filename, sim_in):
     subtitle_datum = ''
     subtitle_format = '{}'
     if r in ('intensityReport',):
-        schema_enum = SCHEMA['enum']['Polarization']
+        schema_enum = _SCHEMA['enum']['Polarization']
         subtitle_datum = report_model['polarization']
         subtitle_format = '{} Polarization'
     elif r in ('initialIntensityReport', 'sourceIntensityReport') or _SIM_DATA.is_watchpoint(r):
-        schema_enum = SCHEMA['enum']['Characteristic']
+        schema_enum = _SCHEMA['enum']['Characteristic']
         subtitle_datum = report_model['characteristic']
     # Schema enums are indexed by strings, but model data may be numeric
     schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
@@ -1094,7 +1094,7 @@ def _extract_beamline_orientation(filename):
 
 
 def _extract_brilliance_report(model, data):
-    label = template_common.enum_text(SCHEMA, 'BrillianceReportType', model['reportType'])
+    label = template_common.enum_text(_SCHEMA, 'BrillianceReportType', model['reportType'])
     if model['reportType'] in ('3', '4'):
         label += ' [rad]'
     elif model['reportType'] in ('5', '6'):
@@ -1109,7 +1109,7 @@ def _extract_brilliance_report(model, data):
         if m:
             x_points.append((np.array(data[f]['data']) * scale_adjustment).tolist())
             points.append(data['e{}'.format(m.group(1))]['data'])
-    title = template_common.enum_text(SCHEMA, 'BrightnessComponent', model['brightnessComponent'])
+    title = template_common.enum_text(_SCHEMA, 'BrightnessComponent', model['brightnessComponent'])
     if model['brightnessComponent'] == 'k-tuning':
         if model['initialHarmonic'] == model['finalHarmonic']:
             title += ', Harmonic {}'.format(model['initialHarmonic'])
@@ -1131,7 +1131,7 @@ def _extract_brilliance_report(model, data):
 
 def _extract_trajectory_report(model, data):
     available_axes = PKDict()
-    for s in SCHEMA['enum']['TrajectoryPlotAxis']:
+    for s in _SCHEMA['enum']['TrajectoryPlotAxis']:
         available_axes[s[0]] = s[1]
     x_points = data[model['plotAxisX']]['data']
     plots = []
@@ -1395,7 +1395,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['finalPhotonEnergy'] = data['models']['simulation']['photonEnergy'] + half_width
         data['models']['simulation']['photonEnergy'] -= half_width
 
-    _validate_data(data, SCHEMA)
+    _validate_data(data, _SCHEMA)
     last_id = None
     if _SIM_DATA.is_watchpoint(report):
         last_id = _SIM_DATA.watchpoint_id(report)
@@ -1546,7 +1546,7 @@ def _intensity_units(is_gaussian, sim_in):
             i = sim_in['models'][sim_in['report']]['fieldUnits']
         else:
             i = sim_in['models']['initialIntensityReport']['fieldUnits']
-        return SCHEMA['enum']['FieldUnits'][int(i)][1]
+        return _SCHEMA['enum']['FieldUnits'][int(i)][1]
     return 'ph/s/.1%bw/mm^2'
 
 

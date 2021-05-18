@@ -11,7 +11,7 @@ import math
 import sirepo.sim_data
 from sirepo.template import srw_common
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('srw')
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('srw')
 
 def do(template, data):
     _do_beamline(template, data)
@@ -45,7 +45,7 @@ def _do_beamline(template, data):
         if t == 'crl' and i.get('focalDistance', 0) == 0:
             template.compute_crl_focus(i)
         if t == 'crystal' and i.get('diffractionAngle', 0) == 0:
-            allowed_angles = [x[0] for x in SCHEMA.enum.DiffractionPlaneAngle]
+            allowed_angles = [x[0] for x in _SCHEMA.enum.DiffractionPlaneAngle]
             i.diffractionAngle = _SIM_DATA.srw_find_closest_angle(i.grazingAngle or 0, allowed_angles)
             if i.tvx == '':
                 i.tvx = i.tvy = 0

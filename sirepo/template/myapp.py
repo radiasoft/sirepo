@@ -18,7 +18,7 @@ import sirepo.util
 import time
 
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 INPUT_NAME = 'hundli.yml'
 

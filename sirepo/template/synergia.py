@@ -25,7 +25,7 @@ import sirepo.util
 import werkzeug
 
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OUTPUT_FILE = PKDict(
     bunchReport='particles.h5',
@@ -142,7 +142,7 @@ def import_file(req, tmp_dir=None, **kwargs):
         data = _import_elegant_file(f)
     else:
         raise sirepo.util.UserAlert('invalid file extension, expecting .madx or .mad8')
-    LatticeUtil(data, SCHEMA).sort_elements_and_beamlines()
+    LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
     data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', req.filename, flags=re.IGNORECASE)
     return data
 
@@ -220,8 +220,8 @@ def save_sequential_report_data(data, run_dir):
             y = f['particles'][:, getattr(synergia.bunch.Bunch, report['y'])]
         res = template_common.heatmap([x, y], report, {
             'title': '',
-            'x_label': label(report.x, SCHEMA.enum.PhaseSpaceCoordinate8),
-            'y_label': label(report.y, SCHEMA.enum.PhaseSpaceCoordinate8),
+            'x_label': label(report.x, _SCHEMA.enum.PhaseSpaceCoordinate8),
+            'y_label': label(report.y, _SCHEMA.enum.PhaseSpaceCoordinate8),
             'summaryData': {
                 'bunchTwiss': twiss0,
             },
@@ -239,7 +239,7 @@ def save_sequential_report_data(data, run_dir):
                 name = report[yfield]
                 plots.append({
                     'name': name,
-                    'label': label(report[yfield], SCHEMA.enum.TwissParameter),
+                    'label': label(report[yfield], _SCHEMA.enum.TwissParameter),
                     'points': f[name][:].tolist(),
                 })
         res = {
@@ -270,7 +270,7 @@ def sim_frame_beamEvolutionAnimation(frame_args):
                     )
             plots.append(PKDict(
                 points=points,
-                label=label(frame_args[yfield], SCHEMA.enum.BeamColumn),
+                label=label(frame_args[yfield], _SCHEMA.enum.BeamColumn),
             ))
         return PKDict(
             title='',
@@ -333,7 +333,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
                 }
             plots.append({
                 'points': p,
-                'label': '{} turn {}'.format(label(frame_args.y, SCHEMA.enum.BeamColumn), turn),
+                'label': '{} turn {}'.format(label(frame_args.y, _SCHEMA.enum.BeamColumn), turn),
             })
         return {
             'title': '',
@@ -377,7 +377,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _calc_bunch_parameters(bunch):
     bunch_def = bunch.beam_definition
-    bunch_enums = get_enums(SCHEMA, 'BeamDefinition')
+    bunch_enums = get_enums(_SCHEMA, 'BeamDefinition')
     mom = foundation.Four_momentum(bunch.mass)
     _calc_particle_info(bunch)
     try:
@@ -403,7 +403,7 @@ def _calc_bunch_parameters(bunch):
 def _calc_particle_info(bunch):
     from synergia.foundation import pconstants
     particle = bunch.particle
-    particle_enums = get_enums(SCHEMA, 'Particle')
+    particle_enums = get_enums(_SCHEMA, 'Particle')
     if particle == particle_enums.other:
         return
     mass = 0
@@ -435,7 +435,7 @@ def _calc_particle_info(bunch):
 
 def _compute_range_across_files(run_dir, data):
     res = PKDict()
-    for v in SCHEMA.enum.PhaseSpaceCoordinate6:
+    for v in _SCHEMA.enum.PhaseSpaceCoordinate6:
         res[v[0]] = []
     for filename in _particle_file_list(run_dir):
         with h5py.File(str(filename), 'r') as f:
@@ -465,9 +465,9 @@ def _generate_lattice(data, util):
 
 
 def _generate_parameters_file(data):
-    _validate_data(data, SCHEMA)
+    _validate_data(data, _SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    util = LatticeUtil(data, SCHEMA)
+    util = LatticeUtil(data, _SCHEMA)
     v.update({
         'lattice': _generate_lattice(data, util),
         'use_beamline': util.select_beamline().name.lower(),
@@ -585,7 +585,7 @@ def _import_elegant_file(text):
                 continue
         el.name = re.sub(r':', '_', el.name)
         name = _ELEGANT_NAME_MAP[el.type]
-        schema = SCHEMA.model[name]
+        schema = _SCHEMA.model[name]
         m = PKDict(
             _id=el._id,
             type=name,
@@ -637,7 +637,7 @@ def _import_elements(lattice, data):
         for attr in el.get_vector_attributes():
             attrs[attr] = '{' + ','.join(map(str, el.get_vector_attribute(attr))) + '}'
         model_name = el.get_type().upper()
-        if model_name not in SCHEMA.model:
+        if model_name not in _SCHEMA.model:
             raise IOError('Unsupported element type: {}'.format(model_name))
         m = _SIM_DATA.model_defaults(model_name)
         if 'l' in attrs:
@@ -655,7 +655,7 @@ def _import_elements(lattice, data):
         beamline['items'].append(current_id)
         m._id = current_id
         name_to_id[m.name] = m._id
-        info = SCHEMA.model[model_name]
+        info = _SCHEMA.model[model_name]
         for f in info.keys():
             if f in attrs:
                 m[f] = attrs[f]
@@ -755,7 +755,7 @@ def _nlinsert_field_values(model, id_map):
                 beamlines=[],
             ),
         ),
-        SCHEMA,
+        _SCHEMA,
     ).iterate_models(
         SynergiaLatticeIterator(_format_field_value),
         'elements',

@@ -16,7 +16,7 @@ import os
 import re
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _OUTPUT_FILE = PKDict(
     fitOutputFile='fit.csv',

@@ -25,7 +25,7 @@ def process_beam_parameters(ebeam):
         """Convert values from the schema to SI units (m, rad) and back.
 
         Args:
-            field_name: name of the field in SCHEMA['model']['electronBeam'].
+            field_name: name of the field in _SCHEMA['model']['electronBeam'].
             value: value of the field.
             to_si: if set to True, convert to SI units, otherwise convert back to the units in the schema.
 

@@ -13,13 +13,13 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _FRAME_FILENAME = PKDict({
-    SCHEMA.constants.dicomFrameId: _SIM_DATA.CT_FILE,
-    SCHEMA.constants.doseFrameId: _SIM_DATA.RTDOSE_FILE,
-    SCHEMA.constants.roiFrameId: _SIM_DATA.RTSTRUCT_FILE,
-    SCHEMA.constants.dose2FrameId: _SIM_DATA.RTDOSE2_FILE,
+    _SCHEMA.constants.dicomFrameId: _SIM_DATA.CT_FILE,
+    _SCHEMA.constants.doseFrameId: _SIM_DATA.RTDOSE_FILE,
+    _SCHEMA.constants.roiFrameId: _SIM_DATA.RTSTRUCT_FILE,
+    _SCHEMA.constants.dose2FrameId: _SIM_DATA.RTDOSE2_FILE,
 })
 
 

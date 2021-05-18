@@ -34,7 +34,7 @@ try:
 except ImportError:
     import dicom
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 RTSTRUCT_EXPORT_FILENAME = 'rtstruct.dcm'
 RTDOSE_EXPORT_FILENAME = 'dose.dcm'

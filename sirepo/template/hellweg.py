@@ -19,7 +19,7 @@ import py.path
 import re
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 HELLWEG_DUMP_FILE = 'all-data.bin'
 
@@ -188,7 +188,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _compute_range_across_files(run_dir, data):
     res = {}
-    for v in SCHEMA.enum.BeamReportType:
+    for v in _SCHEMA.enum.BeamReportType:
         x, y = v[0].split('-')
         res[x] = []
         res[y] = []
@@ -215,7 +215,7 @@ def _dump_file(run_dir):
 
 
 def _enum_text(enum_name, v):
-    enum_values = SCHEMA['enum'][enum_name]
+    enum_values = _SCHEMA['enum'][enum_name]
     for e in enum_values:
         if e[0] == v:
             return e[1]
@@ -317,7 +317,7 @@ def _generate_options(models):
 
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
-    template_common.validate_models(data, SCHEMA)
+    template_common.validate_models(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
     v['optionsCommand'] = _generate_options(data['models'])
     v['solenoidCommand'] = _generate_solenoid(data['models'])
