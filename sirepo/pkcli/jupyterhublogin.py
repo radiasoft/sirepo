@@ -37,18 +37,8 @@ def create_user(email, display_name):
         u = module.unchecked_user_by_user_name(email)
         if u:
             # Fully registered email user
-            r = sirepo.auth_db.UserRegistration.search_by(uid=u)
-            assert r.display_name, \
+            assert sirepo.auth_db.UserRegistration.search_by(uid=u).display_name, \
                 f'uid={u} authorized AuthEmailUser record but no UserRegistration.display_name'
-            if not r.display_name == display_name:
-                pkdlog(
-                    'changing uid={} display_name from={} to={}',
-                    u,
-                    r.display_name,
-                    display_name,
-                )
-                r.display_name = display_name
-                r.save()
             return u
         m = module.AuthEmailUser.search_by(unverified_email=email)
         if m:
