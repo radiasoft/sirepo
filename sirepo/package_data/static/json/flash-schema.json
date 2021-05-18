@@ -63,6 +63,13 @@
             ["2", "2"],
             ["3", "3"]
         ],
+        "SetupArgumentGridGeometry": [
+            ["-none-", "-none-"],
+            ["cartesian", "cartesian"],
+            ["polar", "polar"],
+            ["cylindrical", "cylindrical"],
+            ["spherical", "spherical"]
+        ],
         "SetupArgumentUnit": [
             ["Driver", "Driver"],
             ["Driver/DriverMain", "Driver/DriverMain"],
@@ -690,36 +697,27 @@
             "archive": ["ZIP Archive", "InputFile", "", "ZIP archive containing files for a FLASH problem (Config, Makefile, F90)."]
         },
         "setupArguments": {
-            "auto": ["Auto", "Boolean", "0", "Enable setup to generate a 'rough draft' of a Units file."],
-            "cartesian": ["Cartesian", "SetupArgumentShortcut", "0", "Use Cartesian geometry."],
-            "cylindrical": ["Cylindrical", "SetupArgumentShortcut", "0", "Use cylindrical geometry."],
-            "d": ["Dimensions", "SetupArgumentDimension", "2", "Dimensionality of problem to solve."],
-            "ed_maxBeams": ["Maxmimum Laser Beams", "NoDashInteger", 6, "Maximum number of laser beams."],
-            "ed_maxPulseSections": ["Maximum Sections per Laser Pulse", "NoDashInteger", 20, "Maximum number of laser beams."],
-            "ed_maxPulses": ["Maximum Laser Pulses", "NoDashInteger", 5, "Maximum number of laser pulses"],
-            "hdf5typeio": ["HDF5 Parallel IO Output", "SetupArgumentShortcut", "0", "Use  hdf5 with parallel io capability for compatible binary IO output."],
-            "laser": ["Laser", "SetupArgumentShortcut", "0", "Use source terms for energy deposition."],
-            "maxblocks": ["Maximum Blocks", "Integer", "", "Maximum number of blocks per process."],
-            "mgd": ["Magento Gas Dynamics", "SetupArgumentShortcut", "0", "Use the MGD (magneto gas dynamic) radiative transfermodule."],
-            "mgd_meshgroups": ["Magneto Gas Dynamics Mesh Groups", "NoDashInteger", 1, "mgd ̇meshgroups * meshCopyCount sets the MAXIMUM number of radiation groups that can be used in a simulation."],
-            "mtmmmt": ["MultiTemp/MultiType and Tabulated EOSes", "SetupArgumentShortcut", "0", "Use the MultiTemp/MultiType and Tabulated EOSes (for HEDPsimulations)."],
-            "nofbs": ["Uniform Grid (Non-Fixed Block Size)", "SetupArgumentShortcut", "0", "Use the uniform grid in a non-fixed block size mode."],
-            "noio": ["No IO", "SetupArgumentShortcut", "0", "Disable IO."],
-            "nxb": ["Zones Per Block (X)", "Integer", 8, "How many cells each block of the mesh contains (not counting guard cells)."],
-            "nyb": ["Zones Per Block (Y)", "Integer", 8, "How many cells each block of the mesh contains (not counting guard cells)."],
-            "nzb": ["Zones Per Block (Z)", "Integer", 8, "How many cells each block of the mesh contains (not counting guard cells)."],
-            "opt": ["Compiler Optimization", "Boolean", "0", "Enable compiler optimization."],
-            "pm2": ["PARAMESH2 Grid", "SetupArgumentShortcut", "0", "Use the PARAMESH2 grid."],
-            "pm40": ["PARAMESH4.0 Grid", "SetupArgumentShortcut", "0", "Use the PARAMESH4.0 grid."],
-            "pm4dev": ["PARAMESH4DEV Grid", "SetupArgumentShortcut", "0", "Use the PARAMESH4DEV grid."],
-            "polar": ["Polar", "SetupArgumentShortcut", "0", "Use polar geometry."],
+            "auto": ["Auto", "Boolean", "0", "Enable setup to generate a 'rough draft' of a Units file (-auto)."],
+            "d": ["Dimensions", "SetupArgumentDimension", "2", "Dimensionality of problem to solve (-[x]d)."],
+            "ed_maxBeams": ["Maxmimum Laser Beams", "NoDashInteger", 6, "Maximum number of laser beams (ed_maxBeams)."],
+            "ed_maxPulseSections": ["Maximum Sections per Laser Pulse", "NoDashInteger", 20, "Maximum number of sections per laser pulse (ed_maxPulseSections)."],
+            "ed_maxPulses": ["Maximum Laser Pulses", "NoDashInteger", 5, "Maximum number of laser pulses (ed_maxPulses)."],
+            "geometry": ["Grid geometry", "SetupArgumentGridGeometry", "-none-", "What type of grid geometry (ex +cartesian)."],
+            "hdf5typeio": ["HDF5 Parallel IO Output", "SetupArgumentShortcut", "0", "Use  hdf5 with parallel io capability for compatible binary IO output (+hdf5typeio)."],
+            "laser": ["Laser", "SetupArgumentShortcut", "0", "Use source terms for energy deposition (+laser)."],
+            "maxblocks": ["Maximum Blocks", "OptionalInteger", "", "Maximum number of blocks per process (maxblocks)."],
+            "mgd": ["Magento Gas Dynamics", "SetupArgumentShortcut", "0", "Use the MGD (magneto gas dynamic) radiative transfermodule (+mgd)."],
+            "mgd_meshgroups": ["Magneto Gas Dynamics Mesh Groups", "NoDashInteger", 1, "mgd ̇meshgroups * meshCopyCount sets the MAXIMUM number of radiation groups that can be used in a simulation (mgd_meshgroups)."],
+            "mtmmmt": ["MultiTemp/MultiType and Tabulated EOSes", "SetupArgumentShortcut", "0", "Use the MultiTemp/MultiType and Tabulated EOSes (for HEDPsimulations) (+mtmmmt)."],
+            "nofbs": ["Uniform Grid - Non-Fixed Block Size", "SetupArgumentShortcut", "0", "Use the uniform grid in a non-fixed block size mode (+nofbs)."],
+            "noio": ["No IO", "SetupArgumentShortcut", "0", "Disable IO (+noio)."],
+            "nxb": ["Zones Per Block (X)", "Integer", 8, "How many cells each block of the mesh contains (not counting guard cells) (nxb)."],
+            "nyb": ["Zones Per Block (Y)", "Integer", 8, "How many cells each block of the mesh contains (not counting guard cells) (nyb)."],
+            "nzb": ["Zones Per Block (Z)", "Integer", 8, "How many cells each block of the mesh contains (not counting guard cells) (nzb)."],
+            "opt": ["Compiler Optimization", "Boolean", "0", "Enable compiler optimization (-opt)."],
             "species": ["Species", "OptionalString", "", "An alternative to specifying the SPECIES in the Config file."],
-            "spherical": ["Spherical", "SetupArgumentShortcut", "0", "Use spherical geometry."],
-            "splithydro": ["Hydro Solver", "SetupArgumentShortcut", "0", "Use a split Hydro solver."],
-            "ug": ["Uniform Grid (Fixed Block Size)", "SetupArgumentShortcut", "0", "Use the uniform grid in a fixed block size mode."],
-            "uhd": ["Unsplit Hydro Solver", "SetupArgumentShortcut", "0", "Use the Unsplit Hydro solver."],
-            "usm": ["Unsplit Staggered Mesh MHD Solver", "SetupArgumentShortcut", "0", "Use the Unsplit Staggered Mesh MHD solver."],
-            "usm3t": ["Unsplit MHD with MultiTemp EOS", "SetupArgumentShortcut", "0", "Use unsplit MHD with MultiTemp EOS."]
+            "ug": ["Uniform Grid - Fixed Block Size", "SetupArgumentShortcut", "0", "Use the uniform grid in a fixed block size mode (+ug)."],
+            "usm3t": ["Unsplit MHD with MultiTemp EOS", "SetupArgumentShortcut", "0", "Use unsplit MHD with MultiTemp EOS (+usm3t)."]
         },
         "setupAnimation": {},
         "simulation": {},
@@ -844,19 +842,9 @@
                 ["Common", [
                     "auto",
                     "opt",
-                    "cartesian",
-                    "cylindrical",
-                    "polar",
-                    "spherical",
+                    "geometry",
                     "d",
                     "species"
-                ]],
-                ["Laser", [
-                    "laser",
-                    "ed_maxBeams",
-                    "ed_maxPulseSections",
-                    "ed_maxPulses"
-
                 ]],
                 ["Blocks", [
                     "nofbs",
@@ -866,31 +854,27 @@
                     "nyb",
                     "nzb"
                 ]],
-                ["Paramesh", [
-                    "pm2",
-                    "pm40",
-                    "pm4dev"
-                ]]
-            ],
-            "advanced": [
-                ["IO", [
-                    "noio",
-                    "hdf5typeio"
-                ]],
-                ["Magneto Gas Dynamics", [
-                    "mgd",
-                    "mgd_meshgroups"
-                ]],
                 ["Equation Of State", [
                     "mtmmmt",
                     "usm3t"
                 ]],
-                ["Solver", [
-                    "splithydro",
-                    "uhd",
-                    "usm"
+                ["IO", [
+                    "noio",
+                    "hdf5typeio"
+                ]],
+                ["Laser", [
+                    "laser",
+                    "ed_maxBeams",
+                    "ed_maxPulseSections",
+                    "ed_maxPulses"
+
+                ]],
+                ["Magneto Gas Dynamics", [
+                    "mgd",
+                    "mgd_meshgroups"
                 ]]
-            ]
+            ],
+            "advanced": []
         },
         "simulationStatus": {
             "title": "Simulation Status",

@@ -10,6 +10,9 @@ SIREPO.app.config(function() {
         // TODO(e-carlin): this is just copied from sirepo-components
           '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
         '</div>',
+        '<div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">',
+          '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" />',
+        '</div>',
         '<div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">',
           '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" />',
         '</div>',
@@ -58,6 +61,22 @@ SIREPO.app.factory('flashService', function(appState, panelState, $rootScope) {
             }
         }
         SIREPO.APP_SCHEMA = schema;
+    };
+
+    self.updateGridEnum = function() {
+        ['Grid_GridMain', 'setupArguments'].forEach(function(m) {
+            ['polar', 'spherical'].forEach(function(f) {
+                if (! appState.models[m]) {
+                    return;
+                }
+                panelState.showEnum(
+                    m,
+                    'geometry',
+                    f,
+                    ! appState.models.simulation.name.indexOf('Cap Laser') >= 0
+                );
+            });
+        });
     };
 
     appState.setAppService(self);
@@ -224,6 +243,11 @@ SIREPO.app.controller('SourceController', function(appState, flashService, panel
         //     [flashService.simulationModel() + '.sim_currType'],
         //     processCurrType
         // );
+        $scope.$on('sr-tabSelected', function(event, modelName) {
+            if (modelName == 'Grid_GridMain') {
+                flashService.updateGridEnum();
+            }
+        });
     });
 });
 
@@ -239,6 +263,9 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
     };
 
     function setAxis() {
+        if (! appState.models.Grid_GridMain) {
+            return;
+        }
         SIREPO.APP_SCHEMA.enum.Axis = {
             'cartesian': [
                 ['x', 'x'],
@@ -569,29 +596,29 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
         scope: {},
         template: [
             '<div>',
-            '<div class="modal fade" id="sr-setup-command" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-warning">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">Setup Command</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<pre><code>{{ setupCommand }}</code></pre>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div class="col-sm-offset-6 col-sm-3">',
-                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
+              '<div class="modal fade" id="sr-setup-command" tabindex="-1" role="dialog">',
+                '<div class="modal-dialog modal-lg">',
+                  '<div class="modal-content">',
+                    '<div class="modal-header bg-warning">',
+                      '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                      '<span class="lead modal-title text-info">Setup Command</span>',
+                    '</div>',
+                    '<div class="modal-body">',
+                      '<div class="container-fluid">',
+                        '<div class="row">',
+                          '<pre><code>{{ setupCommand }}</code></pre>',
+                        '</div>',
+                        '<br />',
+                        '<div class="row">',
+                          '<div class="col-sm-offset-6 col-sm-3">',
+                            '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
+                          '</div>',
                         '</div>',
                       '</div>',
                     '</div>',
                   '</div>',
                 '</div>',
               '</div>',
-            '</div>',
               '<div data-basic-editor-panel="" data-view-name="setupArguments">',
                 '<button type="button" class="btn btn-secondary" data-ng-click="showSetupCommand()">',
                   '<span aria-hidden="true">Show setup command</span>',
@@ -599,7 +626,7 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
               '</div>',
             '</div>'
         ].join(''),
-        controller: function($scope, appState, requestSender) {
+        controller: function($scope, appState, flashService, requestSender) {
             $scope.setupCommand = '';
             $scope.showSetupCommand= function() {
                 var el = $('#sr-setup-command');
@@ -619,6 +646,20 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
                     el.off();
                 });
             };
+            appState.watchModelFields(
+                $scope,
+                ['setupArguments.geometry'],
+                function() {
+                    if (appState.models.setupArguments.geometry == '-none-' || ! appState.models.Grid_GridMain) {
+                        return;
+                    }
+                    appState.models.Grid_GridMain.geometry = appState.models.setupArguments.geometry;
+                    appState.saveChanges('Grid_GridMain');
+                }
+            );
+            appState.whenModelsLoaded($scope, function() {
+                flashService.updateGridEnum();
+            });
         },
     };
 });
