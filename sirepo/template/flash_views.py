@@ -8,6 +8,8 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 import inspect
+import re
+
 
 def _fields(templates, values):
     # template: [field template, label template]
@@ -15,6 +17,7 @@ def _fields(templates, values):
     return {
         t[0].format(v): t[1].format(v.upper()) for v in values for t in templates
     }
+
 
 class SpecializedViews:
     # POSIT: FLASH field names are unique so flat list is ok
@@ -189,10 +192,21 @@ class SpecializedViews:
             assert p[1] in schema.model[p[0]], \
                 f'field={p[1]} does not exist in model={schema.model[p[0]]} name={p[0]}'
 
+    def _get_species_list(self, schema):
+        res = []
+        for f in schema.model.Multispecies_MultispeciesMain:
+            m = re.search(r'eos_(.*)EosType', f)
+            if m:
+                res.append(m.group(1))
+        return res
+
     def _update_labels(self, schema):
+        labels = self._LABELS.copy()
+        self._update_sim_labels(schema, labels)
+        self._update_multispecies_labels(schema, labels)
         for m in schema.model.values():
             for f in m:
-                if f not in self._LABELS:
+                if f not in labels:
                     continue
                 info = m[f]
                 if len(info) == 3:
@@ -201,15 +215,42 @@ class SpecializedViews:
                     info[3] = '{} {}'.format(f, info[3])
                 else:
                     info[3] = f
-                info[0] = self._LABELS[f]
+                info[0] = labels[f]
+
+    def _update_multispecies_labels(self, schema, labels):
+        if 'Multispecies_MultispeciesMain' not in schema.model:
+            return
+        for s in self._get_species_list(schema):
+            for f, label in {
+                'ms_{}A': 'Number of protons and neutrons in nucleus',
+                'ms_{}Z': 'Atomic number',
+                'ms_{}ZMin': 'Minimum allowed average ionization',
+                'eos_{}EosType': 'EOS type to use for MTMMMT EOS',
+                'eos_{}SubType': 'EOS subtype to use for MTMMMT EOS',
+                'ms_{}Gamma': 'Ratio of heat capacities',
+                'eos_{}TableFile': 'Tabulated EOS file name',
+                'op_{}Absorb': 'Absorption',
+                'op_{}Emiss': 'Emission',
+                'op_{}Trans': 'Transport',
+            }.items():
+                labels[f.format(s)] = f'{s.title()} {label}'
+
+    def _update_sim_labels(self, schema, labels):
+        #TODO(pjm): use constant for flashApp model
+        # special case for main simulation labels - use full description as label
+        for f, info in schema.model.Simulation_SimulationMain_flashApp.items():
+            if len(info) > 3:
+                labels[f] = info[3]
+                info[3] = ''
 
     def _update_views(self, schema):
         for n, f in self._view_fns.items():
             if n not in schema.view:
                 continue
             v = f(schema)
-            self._assert_model_view_fields_exist(n, v, schema)
-            schema.view[n].update(v)
+            if v:
+                self._assert_model_view_fields_exist(n, v, schema)
+                schema.view[n].update(v)
 
     def _view_Driver_DriverMain(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Driver.txt
@@ -277,10 +318,39 @@ class SpecializedViews:
             v.basic.append('IO_IOMain.plotFileIntervalTime')
         return v
 
+    def _view_physics_Diffuse_DiffuseMain(self, schema):
+        # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Diffuse.txt
+        v = PKDict(
+            title='Diffusive Effects',
+            basic=[
+                'diff_eleFlMode',
+                'diff_eleFlCoef',
+                'dt_diff_factor',
+                [
+                    ['X', [
+                        'diff_eleXlBoundaryType',
+                        'diff_eleXrBoundaryType',
+                    ]],
+                    ['Y', [
+                        'diff_eleYlBoundaryType',
+                        'diff_eleYrBoundaryType',
+                    ]],
+                    ['Z', [
+                        'diff_eleZlBoundaryType',
+                        'diff_eleZrBoundaryType',
+                    ]]
+                ]
+            ],
+        )
+        if 'physics_Diffuse' in schema.model :
+            v.basic.append('physics_Diffuse.useDiffuse')
+        if 'physics_Diffuse_Unsplit' in schema.model:
+            v.basic.insert(1, 'physics_Diffuse_Unsplit.diff_thetaImplct')
+        return v
+
     def _view_physics_Gravity_GravityMain(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Gravity.txt
         v = PKDict(
-            advanced=[],
             basic=[
                 'useGravity',
             ],
@@ -300,7 +370,7 @@ class SpecializedViews:
     def _view_Grid_GridMain(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Grid.txt
         v =  PKDict(
-            advanced=[],
+            title='Grid',
             basic=[
                 ['Main', [
                     'geometry',
@@ -362,57 +432,75 @@ class SpecializedViews:
             )
         return v
 
-    def _view_physics_Diffuse_DiffuseMain(self, schema):
-        # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Diffuse.txt
-        v = PKDict(
-            advanced=[],
-            basic= [
-                'diff_eleFlMode',
-                'diff_eleFlCoef',
-                'dt_diff_factor',
-                [
-                    ['X', [
-                        'diff_eleXlBoundaryType',
-                        'diff_eleXrBoundaryType',
-                    ]],
-                    ['Y', [
-                        'diff_eleYlBoundaryType',
-                        'diff_eleYrBoundaryType',
-                    ]],
-                    ['Z', [
-                        'diff_eleZlBoundaryType',
-                        'diff_eleZrBoundaryType',
-                    ]]
-                ]
-            ],
-        )
-        if 'physics_Diffuse' in schema.model :
-            v.basic.append('physics_Diffuse.useDiffuse')
-        if 'physics_Diffuse_Unsplit' in schema.model:
-            v.basic.insert(1, 'physics_Diffuse_Unsplit.diff_thetaImplct')
-        return v
-
     def _view_physics_Hydro_HydroMain(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Hydro.txt
-        return PKDict(
-            advanced=[
-                'threadHydroBlockList',
-                'threadHydroWithinBlock',
-                'updateHydroFluxes',
-                'use_cma_advection',
-                'use_cma_flattening',
-            ],
+        v = PKDict(
+            title='Hydrodynamics',
             basic=[
                 'useHydro',
                 'cfl',
-                'UnitSystem'
+            ],
+            fieldsPerTab=10,
+        )
+        if 'physics_Hydro_HydroMain_unsplit' in schema.model:
+            v.basic.extend([
+                'physics_Hydro_HydroMain_unsplit.order',
+                'physics_Hydro_HydroMain_unsplit.slopeLimiter',
+                'physics_Hydro_HydroMain_unsplit.LimitedSlopeBeta',
+                'physics_Hydro_HydroMain_unsplit.charLimiting',
+                'physics_Hydro_HydroMain_unsplit.cvisc',
+                'physics_Hydro_HydroMain_unsplit.RiemannSolver',
+                'physics_Hydro_HydroMain_unsplit.entropy',
+                'physics_Hydro_HydroMain_unsplit.shockDetect'
+            ])
+        return v
+
+    def _view_physics_materialProperties_Opacity_OpacityMain_Multispecies(self, schema):
+        v = PKDict(
+            title='Material Properties',
+            basic=[]
+        )
+        if 'physics_materialProperties_Opacity_OpacityMain' in schema.model:
+            v.basic.append('physics_materialProperties_Opacity_OpacityMain.useOpacity')
+        if 'physics_materialProperties_Conductivity_ConductivityMain' in schema.model:
+            v.basic.append('physics_materialProperties_Conductivity_ConductivityMain.useConductivity')
+        if 'physics_materialProperties_MagneticResistivity_MagneticResistivityMain' in schema.model:
+            v.basic.append('physics_materialProperties_MagneticResistivity_MagneticResistivityMain.useMagneticResistivity')
+        v.basic.append([])
+        for s in self._get_species_list(schema):
+            v.basic[-1].append(
+                [s.title(), [
+                    f'physics_materialProperties_Opacity_OpacityMain_Multispecies.op_{s}Absorb',
+                    f'physics_materialProperties_Opacity_OpacityMain_Multispecies.op_{s}Emiss',
+                    f'physics_materialProperties_Opacity_OpacityMain_Multispecies.op_{s}Trans',
+                ]],
+            )
+        return v
+
+    def _view_Multispecies_MultispeciesMain(self, schema):
+        v = PKDict(
+            title='Multispecies',
+            basic=[
+                [],
             ],
         )
+        for s in self._get_species_list(schema):
+            v.basic[-1].append(
+                [s.title(), [
+                    f'ms_{s}A',
+                    f'ms_{s}Z',
+                    f'ms_{s}ZMin',
+                    f'eos_{s}EosType',
+                    f'eos_{s}SubType',
+                    f'eos_{s}TableFile',
+                ]],
+            )
+        return v
 
     def _view_physics_RadTrans_RadTransMain_MGD(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4.py?submit=rp_RadTrans.txt
         v = PKDict(
-            advanced=[],
+            title='Radiative Transfer',
             basic=[
                 ['Main', [
                     'rt_useMGD',
@@ -454,6 +542,7 @@ class SpecializedViews:
     def _view_physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p22.py?submit=rp_EnergyDeposition.txt
         v = PKDict(
+            title='Energy Deposition - Laser',
             basic=[
                 ['Bulk', [
                     'ed_maxRayCount',
@@ -522,7 +611,6 @@ class SpecializedViews:
                     ],
                 ]],
             ],
-            advanced=[],
         )
         if 'physics_sourceTerms_EnergyDeposition' in schema.model:
             v.basic[0][1].insert(0, 'physics_sourceTerms_EnergyDeposition.useEnergyDeposition')
@@ -532,7 +620,6 @@ class SpecializedViews:
         # TODO(e-carlin): add _LABELS for things
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Flame.txt
         v = PKDict(
-            advanced=[],
             basic=[
                 'useFlame',
                 'fl_epsilon_0',
@@ -558,3 +645,33 @@ class SpecializedViews:
         if 'physics_sourceTerms_Flame_FlameSpeed_Constant' in schema.model:
             v.basic.append('physics_sourceTerms_Flame_FlameSpeed_Constant.fl_fsConstFlameSpeed')
         return v
+
+    def _view_Simulation_SimulationMain_flashApp(self, schema):
+        if 'sim_condWall' in schema.model.Simulation_SimulationMain_flashApp:
+            #TODO(pjm): special views for cap laser, instead look for common species fields
+            return PKDict(
+                title='FLASH Simulation',
+                basic=[
+                    'sim_condWall',
+                    'sim_peakField',
+                    'sim_period',
+                    'sim_zminWall',
+                    [
+                        ['Fill', [
+                            'sim_eosFill',
+                            'sim_rhoFill',
+                            'sim_teleFill',
+                            'sim_tionFill',
+                            'sim_tradFill',
+                        ]],
+                        ['Wall', [
+                            'sim_eosWall',
+                            'sim_rhoWall',
+                            'sim_teleWall',
+                            'sim_tionWall',
+                            'sim_tradWall',
+                        ]],
+                    ],
+                ],
+            )
+        return None

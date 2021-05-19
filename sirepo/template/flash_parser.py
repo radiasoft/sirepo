@@ -280,20 +280,20 @@ class SetupParameterParser():
     )
     _MAX_VAR_COUNT = 20
     _SPECIAL_TYPES = PKDict(
-        Grid=PKDict({
+        Grid_GridMain=PKDict({
             k: 'GridBoundaryType' for k in (
                 'xl_boundary_type', 'xr_boundary_type',
                 'yl_boundary_type', 'yr_boundary_type',
                 'zl_boundary_type', 'zr_boundary_type',
             )
         }),
-        Grid_paramesh=PKDict({
+        Grid_GridMain_paramesh=PKDict({
             f'refine_var_{v}': 'VariableNameOptional' for v in range(1, _MAX_VAR_COUNT)
         }),
-        IO=PKDict({
+        IO_IOMain=PKDict({
             f'plot_var_{v}': 'VariableNameOptional' for v in range(1, _MAX_VAR_COUNT)
         }),
-        physics_Diffuse=PKDict({
+        physics_Diffuse_DiffuseMain=PKDict({
             k: 'DiffuseBoundaryType' for k in (
                 'diff_eleXlBoundaryType', 'diff_eleXrBoundaryType',
                 'diff_eleYlBoundaryType', 'diff_eleYrBoundaryType',
@@ -306,14 +306,17 @@ class SetupParameterParser():
         physics_Gravity_Constant=PKDict(
             gdirec='GravityDirection',
         ),
-        physics_RadTrans_MGD=PKDict({
+        physics_Hydro_HydroMain_unsplit=PKDict(
+            RiemannSolver='RiemannSolver'
+        ),
+        physics_RadTrans_RadTransMain_MGD=PKDict({
             k: 'RadTransMGDBoundaryType' for k in (
                 'rt_mgdXlBoundaryType', 'rt_mgdXrBoundaryType',
                 'rt_mgdYlBoundaryType', 'rt_mgdYrBoundaryType',
                 'rt_mgdZlBoundaryType', 'rt_mgdZrBoundaryType',
             )
         }),
-        physics_sourceTerms_EnergyDeposition_Laser=PKDict({
+        physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser=PKDict({
             f'ed_crossSectionFunctionType_{v}': 'LaserCrossSectionOptional' for v in range(1, _MAX_VAR_COUNT)
         }),
     )
@@ -451,6 +454,7 @@ class SetupParameterParser():
             GravityDirection=['x', 'y', 'z'],
             LaserCrossSectionOptional=['none', 'gaussian1D', 'gaussian2D', 'uniform'],
             RadTransMGDBoundaryType=['dirichlet', 'neumann', 'reflecting', 'vacuum'],
+            RiemannSolver=['Roe', 'HLL', 'HLLC', 'Marquina', 'MarquinaModified', 'Hybrid', 'HLLD'],
             SetupDatafiles=self.datafiles,
             SetupDatafilesOptional=['none', *sorted(self.datafiles)],
             VariableName=sorted(self.var_names),

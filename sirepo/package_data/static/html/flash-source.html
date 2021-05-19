@@ -1,10 +1,13 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-6">
-      <div data-basic-editor-panel="" data-view-name="Simulation_flashApp"></div>
+      <div data-basic-editor-panel="" data-view-name="Simulation_SimulationMain_flashApp"></div>
     </div>
     <div class="col-md-6">
       <div data-basic-editor-panel="" data-view-name="Grid_GridMain"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="appState.models.Multispecies_MultispeciesMain">
+      <div data-basic-editor-panel="" data-view-name="Multispecies_MultispeciesMain"></div>
     </div>
   </div>
 </div>

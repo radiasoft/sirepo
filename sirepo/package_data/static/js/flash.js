@@ -85,11 +85,12 @@ SIREPO.app.controller('PhysicsController', function(appState, flashService) {
     self.flashService = flashService;
     self.panels = [];
     [
-        'physics_Diffuse_DiffuseMain',
-        'physics_Gravity_GravityMain',
-        'physics_Hydro_HydroMain',
-        'physics_RadTrans_RadTransMain_MGD',
         'physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser',
+        'physics_RadTrans_RadTransMain_MGD',
+        'physics_Hydro_HydroMain',
+        'physics_Diffuse_DiffuseMain',
+        'physics_materialProperties_Opacity_OpacityMain_Multispecies',
+        'physics_Gravity_GravityMain',
         'physics_sourceTerms_Flame_FlameMain',
     ].forEach((m) => {
         if (m in appState.models) {
@@ -125,6 +126,7 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
 
     self.startSimulation = () => {
         self.successMessage = '';
+        delete appState.models.flashSchema;
         self.simState.runSimulation();
     };
 
@@ -146,6 +148,7 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
 
 SIREPO.app.controller('SourceController', function(appState, flashService, panelState, $scope) {
     var self = this;
+    self.appState = appState;
     self.flashService = flashService;
 
     // function setReadOnly(modelName) {
@@ -354,6 +357,7 @@ SIREPO.app.directive('appFooter', function(flashService) {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
         ].join(''),
     };
 });
@@ -382,6 +386,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<app-settings>',
               '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
@@ -395,18 +402,18 @@ SIREPO.app.directive('configTable', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<table class="table table-hover" style="width: 100%">',
-              '<tr data-ng-repeat="item in configList track by item._id">',
-                '<td>',
-                  '<span style="white-space: pre">{{ item.pad }}</span>',
-                  '<span style="font-size: 14px" class="badge sr-badge-icon">{{ item._type }}</span>',
-                  ' <strong>{{ item.first }}</strong> <span> {{ item.description }}</span>',
-                  '<div style="margin-left: 4em" data-ng-if="item.comment">{{ item.comment }}</div>',
-                '</td>',
-              '</tr>',
-            '</table>',
-        ].join(''),
+        template: `
+            <table class="table table-hover" style="width: 100%">
+              <tr data-ng-repeat="item in configList track by item._id">
+                <td>
+                  <span style="white-space: pre">{{ item.pad }}</span>
+                  <span style="font-size: 14px" class="badge sr-badge-icon">{{ item._type }}</span>
+                  <strong>{{ item.first }}</strong> <span> {{ item.description }}</span>
+                  <div style="margin-left: 4em" data-ng-if="item.comment">{{ item.comment }}</div>
+                </td>
+              </tr>
+            </table>
+        `,
         controller: function($scope) {
             const fieldOrder = SIREPO.APP_SCHEMA.constants.flashDirectives.fieldOrder;
             const labels = SIREPO.APP_SCHEMA.constants.flashDirectives.labels;

@@ -167,6 +167,11 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
             e = m.group(1)
     return e
 
+
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
 def setup_command(data):
     c = []
     for k, v in data.models.setupArguments.items():
