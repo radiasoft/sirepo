@@ -171,7 +171,7 @@ class UIElement {  //extends UIOutput {
     }
 
     setAttribute(name, val) {
-        this.getAttr(name)
+        this.getAttr(name).setValue(val);
     }
 
     setClass(cl) {
@@ -411,6 +411,7 @@ class SVGPath extends UIElement {
         this.fillColor = fillColor;
         this.offsets = offsets;
         this.points = points;
+        this.scales = [1.0, 1.0];
         this.strokeColor = strokeColor;
 
         this.addAttribute('d', '');
@@ -446,13 +447,35 @@ class SVGPath extends UIElement {
         return lines;
     }
 
+    pathPoint(i) {
+        let p = [];
+        for(let j of [0, 1]) {
+            p.push(this.offsets[j] + this.scales[j] * this.points[i][j]);
+        }
+        return p;
+    }
+
+    setFill(color) {
+        this.fillColor = color;
+        this.setAttribute('fill', this.fillColor);
+    }
+
+    setScales(scales) {
+        this.scales = scales;
+    }
+
+    setStroke(color) {
+        this.strokeColor = color;
+        this.setAttribute('stroke', this.strokeColor);
+    }
+
     update() {
-        let c = [this.offsets[0] + this.points[0][0], this.offsets[1] + this.points[0][1]];
+        let c = this.pathPoint(0);
         this.corners = [c];
         this.lines = [];
         let p = `M${c[0]},${c[1]} `;
         for (let i = 1; i < this.points.length; ++i) {
-            c = [this.offsets[0] + this.points[i][0], this.offsets[1] + this.points[i][1]];
+            c = this.pathPoint(i);
             this.lines.push([c, this.corners[this.corners.length - 1]]);
             this.corners.push(c);
             p += `L${c[0]},${c[1]} `;
