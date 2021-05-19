@@ -73,7 +73,8 @@ SIREPO.app.factory('flashService', function(appState, panelState, $rootScope) {
                     m,
                     'geometry',
                     f,
-                    ! appState.models.simulation.name.indexOf('Cap Laser') >= 0
+                    //TODO(pjm): need a flashService for this - look for unique cap laser field
+                    appState.models.simulation.name.indexOf('Cap Laser') < 0
                 );
             });
         });
