@@ -343,10 +343,11 @@ class SpecializedViews:
                 ]
             ],
         )
-        if 'physics_Diffuse' in schema.model :
-            v.basic.append('physics_Diffuse.useDiffuse')
-        if 'physics_Diffuse_Unsplit' in schema.model:
-            v.basic.insert(1, 'physics_Diffuse_Unsplit.diff_thetaImplct')
+        if 'physics_Diffuse_DiffuseMain_Unsplit' in schema.model:
+            v.basic.insert(3, 'physics_Diffuse_DiffuseMain_Unsplit.diff_thetaImplct')
+        if 'physics_Diffuse_DiffuseMain' in schema.model :
+            v.basic.insert(0, 'physics_Diffuse_DiffuseMain.diff_useEleCond')
+            v.basic.insert(0, 'physics_Diffuse_DiffuseMain.useDiffuse')
         return v
 
     def _view_physics_Gravity_GravityMain(self, schema):
@@ -536,8 +537,7 @@ class SpecializedViews:
         )
         if 'physics_RadTrans_RadTransMain' in schema.model:
             v.basic[0][1].insert(0, 'physics_RadTrans_RadTransMain.rt_dtFactor')
-        if 'physics_radTrans' in schema.model:
-            v.basic[0][1].insert(0, 'physics_radTrans.useRadTrans')
+            v.basic[0][1].insert(0, 'physics_RadTrans_RadTransMain.useRadTrans')
         return v
 
     def _view_physics_sourceTerms_EnergyDeposition_EnergyDepositionMain_Laser(self, schema):
@@ -546,6 +546,7 @@ class SpecializedViews:
             title='Energy Deposition - Laser',
             basic=[
                 ['Bulk', [
+                    'useEnergyDeposition',
                     'ed_maxRayCount',
                     'ed_gradOrder',
                     'ed_laser3Din2D',
@@ -613,8 +614,6 @@ class SpecializedViews:
                 ]],
             ],
         )
-        if 'physics_sourceTerms_EnergyDeposition' in schema.model:
-            v.basic[0][1].insert(0, 'physics_sourceTerms_EnergyDeposition.useEnergyDeposition')
         return v
 
     def _view_physics_sourceTerms_Flame_FlameMain(self, schema):

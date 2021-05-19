@@ -185,9 +185,13 @@ def setup_command(data):
             for e in v:
                 c.append(f'--with-unit={e}')
             continue
+        t = _SCHEMA.model.setupArguments[k][1]
+        if t == 'SetupArgumentDimension':
+            # always include the setup dimension
+            c.append(f'-{v}d')
+            continue
         if v == _SCHEMA.model.setupArguments[k][2]:
             continue
-        t = _SCHEMA.model.setupArguments[k][1]
         if t == 'Boolean':
             v == '1' and c.append(f'-{k}')
         elif t == 'Integer':
@@ -199,8 +203,6 @@ def setup_command(data):
             # We need to handle OptionalInteger even if v is falsey (no-op)
             if v:
                 c.append(_integer(k, v))
-        elif t == 'SetupArgumentDimension':
-            c.append(f'-{v}d')
         elif t == 'SetupArgumentGridGeometry':
             c.append(_shortcut(v))
         elif t == 'SetupArgumentShortcut':
