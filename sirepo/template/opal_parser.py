@@ -278,7 +278,7 @@ class OpalParser(lattice.LatticeParser):
                     if el_schema[f][1] == 'OutputFile' and el[f]:
                         el[f] = '1'
                     elif el_schema[f][1] == 'InputFile' and el[f]:
-                        el[f] = os.path.basename(el[f])
+                        el[f] = self.sim_data.lib_file_name_without_type(os.path.basename(el[f]))
                         filename = self.sim_data.lib_file_name_with_model_field(
                             model_name, f, el[f])
                         if filename not in visited:

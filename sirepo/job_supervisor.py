@@ -290,11 +290,12 @@ class _ComputeJob(PKDict):
                 sirepo.srtime.utc_now_as_int()
                 - cfg.purge_non_premium_after_secs
             )
-            for u, v in _get_uids_and_files():
-                with sirepo.auth.set_user_outside_of_http_request(u):
-                    for f in v:
-                        _purge_sim(jid=f.purebasename)
-                await tornado.gen.sleep(0)
+            with sirepo.auth_db.session():
+                for u, v in _get_uids_and_files():
+                    with sirepo.auth.set_user_outside_of_http_request(u):
+                        for f in v:
+                            _purge_sim(jid=f.purebasename)
+                    await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
         finally:
@@ -740,7 +741,7 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
-            sirepo.util.raise_not_found('invalid {}', req)
+            sirepo.util.raise_not_found('invalid req={}', req)
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,

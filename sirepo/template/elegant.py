@@ -376,7 +376,8 @@ class ElegantMadxConverter(MadxConverter):
             mb[f'e{dim}'] = eb[f'emit_{dim}']
             self._replace_var(
                 madx, f'gamma_{dim}',
-                '(1 + pow({}, 2)) / {}'.format(
+                '(1 + {} * {}) / {}'.format(
+                    self._var_name(f'alpha_{dim}'),
                     self._var_name(f'alpha_{dim}'),
                     self._var_name(f'beta_{dim}'),
                 ),
@@ -420,7 +421,7 @@ class ElegantMadxConverter(MadxConverter):
             beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
         elif str(data.models.bunch.longitudinalMethod) == '3':
             # convert emit_z, beta_z, alpha_z --> sigma_s, sigma_dp, dp_s_coupling
-            beam.sigma_s = math.sqrt(_var(beam.emit_z * _var(beam.beta_z)))
+            beam.sigma_s = math.sqrt(_var(beam.emit_z) * _var(beam.beta_z))
             gamma_z = (1 + _var(beam.alpha_z) ** 2) / _var(beam.beta_z)
             beam.sigma_dp = math.sqrt(_var(beam.emit_z) * gamma_z)
             beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))

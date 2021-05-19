@@ -57,7 +57,7 @@ def api_authGithubAuthorized():
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user').json()
     sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
             # always update user_name

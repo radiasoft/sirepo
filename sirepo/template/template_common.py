@@ -267,23 +267,36 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     return y_range
 
 
-def dict_to_h5(d, hf, path=None):
-    if path is None:
-        path = ''
+def write_dict_to_h5(d, file_path, h5_path=None):
+    """ Store the contents of a dict in an h5 file starting at the provided path.
+    Stores the data recursively so that
+        {a: A, b: {c: C, d: D}}
+    maps the data to paths
+        <h5_path>/a   -> A
+        <h5_path>/b/c -> C
+        <h5_path>/b/d -> D
+
+    h5_to_dict() performs the reverse process
+    """
+    import h5py
+    if h5_path is None:
+        h5_path = ''
     try:
         for i in range(len(d)):
+            p = f'{h5_path}/{i}'
             try:
-                p = f'{path}/{i}'
-                hf.create_dataset(p, data=d[i])
+                with h5py.File(file_path, 'a') as f:
+                    f.create_dataset(p, data=d[i])
             except TypeError:
-                dict_to_h5(d[i], hf, path=p)
+                write_dict_to_h5(d[i], file_path, h5_path=p)
     except KeyError:
         for k in d:
-            p = f'{path}/{k}'
+            p = f'{h5_path}/{k}'
             try:
-                hf.create_dataset(p, data=d[k])
+                with h5py.File(file_path, 'a') as f:
+                    f.create_dataset(p, data=d[k])
             except TypeError:
-                dict_to_h5(d[k], hf, path=p)
+                write_dict_to_h5(d[k], file_path, h5_path=p)
 
 
 def enum_text(schema, name, value):
@@ -675,7 +688,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub(r'([^\\])[\"\'()]', r'\1', str(v))
+    return re.sub(r'([^\\])[\"\']', r'\1', str(v))
 
 
 def _get_notes(data):

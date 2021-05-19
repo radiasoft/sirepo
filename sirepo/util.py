@@ -34,11 +34,8 @@ AUTH_HEADER = 'Authorization'
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
-#: Context where we can do sim_db_file operations (supervisor)
-SIM_DB_FILE_LOCK = None
-
-#: Locking for global simulation_db operations (server)
-SIMULATION_DB_LOCK = None
+#: Lock for operations across Sirepo (flask)
+THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
@@ -187,24 +184,9 @@ def flask_app():
     return flask.current_app or None
 
 def in_flask_request():
-    import flask
-
-    return flask.request or None
-
-
-def init(server_context=False):
-    global cfg, SIMULATION_DB_LOCK, SIM_DB_FILE_LOCK
-
-    assert not cfg
-    cfg = pkconfig.init(
-        create_token_secret=('oh so secret!', str, 'used for internal test only'),
-    )
-    if server_context:
-        SIMULATION_DB_LOCK = threading.RLock()
-        return
-    # Use nullcontext instead of an actual lock because supervisor is in tornado
-    # which is single threaded
-    SIM_DB_FILE_LOCK = contextlib.nullcontext()
+    import sys
+    f = sys.modules.get('flask')
+    return f and f.request or None
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):
@@ -284,3 +266,8 @@ def _raise(exc, fmt, *args, **kwargs):
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
+
+
+cfg = pkconfig.init(
+    create_token_secret=('oh so secret!', str, 'used for internal test only'),
+)

@@ -15,6 +15,7 @@ _DEPENDENT_CODES = [
 
 #: Codes on prod
 _PROD_FOSS_CODES = frozenset((
+    'controls',
     'elegant',
     'jspec',
     'madx',
@@ -32,7 +33,6 @@ _PROD_FOSS_CODES = frozenset((
 
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
-    'controls',
     'irad',
     'myapp',
     'rcscon',
@@ -55,6 +55,17 @@ VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _DEFAULT_PROPRIETARY_CODES)
 
 #: Configuration
 _cfg = None
+
+
+def auth_controlled_sim_types():
+    """All sim types that require granted authentication to access
+
+    Returns:
+      frozenset:  enabled sim types that require role
+    """
+    return frozenset(
+        cfg().proprietary_sim_types.union(cfg().default_proprietary_sim_types),
+    )
 
 
 def cfg():

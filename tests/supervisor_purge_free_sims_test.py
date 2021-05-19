@@ -33,12 +33,14 @@ def test_myapp_free_user_sim_purged(auth_fc):
         pkunit.pkeq(should_exist, len(f), 'incorrect file count')
 
     def _make_user_premium(uid):
+        from sirepo import srunit
         import sirepo.pkcli.roles
         sirepo.pkcli.roles.add_roles(
             uid,
             sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
-        r = sirepo.auth_db.UserRole.search_all_for_column('uid')
+        with srunit.auth_db_session():
+            r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(r, [uid], 'expecting one premium user with same id')
 
     def _run_sim(data):

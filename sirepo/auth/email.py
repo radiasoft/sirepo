@@ -57,7 +57,7 @@ def api_authEmailAuthorized(simulation_type, token):
     if http_request.is_spider():
         sirepo.util.raise_forbidden('robots not allowed')
     req = http_request.parse_params(type=simulation_type)
-    with auth_db.thread_lock:
+    with sirepo.util.THREAD_LOCK:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
             n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
@@ -95,7 +95,7 @@ def api_authEmailLogin():
     """
     req = http_request.parse_post()
     email = _parse_email(req.req_data)
-    with auth_db.thread_lock:
+    with sirepo.util.THREAD_LOCK:
         u = AuthEmailUser.search_by(unverified_email=email)
         if not u:
             u = AuthEmailUser(unverified_email=email)
@@ -118,7 +118,7 @@ def avatar_uri(model, size):
 
 
 def unchecked_user_by_user_name(user_name):
-    with auth_db.thread_lock:
+    with sirepo.util.THREAD_LOCK:
        u = AuthEmailUser.search_by(user_name=user_name)
        if u:
            return u.uid
@@ -149,12 +149,12 @@ def _init_model(base):
 
         @classmethod
         def delete_changed_email(cls, user):
-            with auth_db.thread_lock:
-                cls._session.query(cls).filter(
+            with sirepo.util.THREAD_LOCK:
+                cls._session().query(cls).filter(
                     (cls.user_name == user.unverified_email),
                     cls.unverified_email != user.unverified_email
                 ).delete()
-                cls._session.commit()
+                cls._session().commit()
 
     UserModel = AuthEmailUser
 

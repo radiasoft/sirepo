@@ -22,8 +22,14 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
+        '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
+          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
+        '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
+            '<div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>',
         '</div>',
         '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
@@ -221,13 +227,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return (appState.models.fieldPaths.paths || []).filter(function (p) {
             return p.type === type;
         }).length;
-    }
-
-    function toFloat(v) {
-        return parseFloat('' + v);
-    }
-    function toInt(v) {
-        return parseInt('' + v);
     }
 
     function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.pathPtsFileType) {
@@ -991,8 +990,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
             ) {
                 appState.models.geometry.lastModified = Date.now();
-                appState.models.kickMap.periodLength = appState.models.hybridUndulator.periodLength;
-                appState.saveQuietly('kickMap');
+                appState.models.kickMapReport.periodLength = appState.models.hybridUndulator.periodLength;
+                appState.saveQuietly('kickMapReport');
             }
             let o = self.selectedObject;
             if (o) {
@@ -1014,7 +1013,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 panelState.clear('geometry');
                 // need to rebuild the geometry after changes were made
                 panelState.requestData('geometry', function(data) {
-
                     if (self.selectedObject) {
                         loadShapes();
                     }
@@ -1048,14 +1046,26 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-    var SINGLE_PLOTS = ['magnetViewer'];
-    var self = this;
+
+    let SINGLE_PLOTS = ['magnetViewer',];
+    let POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport',];
+
+    let solving = false;
+
+    let self = this;
     self.simScope = $scope;
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
     self.solution = null;
+
+    function updateReports() {
+        POST_SIM_REPORTS.forEach((name) => {
+            appState.models[name].lastModified = Date.now();
+            appState.saveChanges(name);
+        });
+    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -1065,8 +1075,19 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         return appState.isLoaded() && appState.models.geometry.isSolvable == '1';
     };
 
+    self.resetSimulation = function() {
+        self.solution = null;
+        solving = false;
+        panelState.clear('geometry');
+        panelState.requestData('reset', () => {
+            frameCache.setFrameCount(0);
+            }, true);
+        updateReports();
+    };
+
     self.simHandleStatus = function(data) {
         if (data.error) {
+            solving = false;
             throw new Error('Solver failed: ' + data.error);
         }
         SINGLE_PLOTS.forEach(function(name) {
@@ -1078,6 +1099,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(1, name);
                 });
+                if (solving) {
+                    updateReports();
+                }
+                solving = false;
             }
         }
         frameCache.setFrameCount(data.frameCount);
@@ -1085,7 +1110,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.startSimulation = function() {
         self.solution = null;
-        $scope.$broadcast('solveStarted', self.simState);
+        solving = true;
         self.simState.saveAndRunSimulation('simulation');
     };
 
@@ -1093,6 +1118,23 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     $scope.$on('simulation.editor.show', function(e, o) {
         panelState.enableField('simulation', 'magnetType', false);
+    });
+
+    appState.whenModelsLoaded($scope, () => {
+        $scope.$on('modelChanged', (e, modelName) => {
+            let m = appState.models[modelName];
+            if (modelName === 'fieldPaths') {
+                const rpt= 'fieldLineoutReport';
+                for (let r of appState.models.fieldPaths.paths) {
+                    if (r.name !== appState.models[rpt].fieldPath.name) {
+                        continue;
+                    }
+                    appState.models[rpt].fieldPath = r;
+                    appState.saveQuietly(rpt);
+                    break;
+                }
+            }
+        });
     });
 
 });
@@ -1106,7 +1148,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-dmp-import-dialog="" data-title="Dump File" data-description="Import Radia dump file"></div>',
+            `<div data-dmp-import-dialog="" data-title="Import File" data-description="Select Radia dump (.dat) or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)"></div>`,
         ].join(''),
     };
 });
@@ -1162,6 +1204,11 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
 });
 
 SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
+
+    //const RADIA_IMPORT_FORMATS = ['.dat', '.stl'];
+    const RADIA_IMPORT_FORMATS = ['.dat',];
+    const IMPORT_FORMATS = RADIA_IMPORT_FORMATS.concat(['.zip',]);
+
     return {
         restrict: 'A',
         scope: {
@@ -1180,7 +1227,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                         '<form>',
-                        '<div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
+                        `<div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>`,
                           '<div class="col-sm-6 pull-right">',
                             '<button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
                             ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
@@ -1200,25 +1247,83 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
             };
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.title = $scope.title || 'Import Dump File';
-            $scope.description = $scope.description || 'Select File';
-
             $scope.importDmpFile = function(inputFile) {
                 if (! inputFile) {
                     return;
                 }
-                newSimFromDmp(inputFile);
+                let data = null;
+                let a = inputFile.name.split('.');
+                let t = `${a[a.length - 1]}`;
+                if (isRadiaImport(t)) {
+                    data = newSimFromImport(inputFile);
+                }
+                importFile(inputFile, t, data);
             };
 
-            function upload(inputFile, data) {
-                var simId = data.models.simulation.simulationId;
+            function cleanup(simId) {
+                $('#simulation-import').modal('hide');
+                $scope.inputFile = null;
+                URL.revokeObjectURL($scope.fileURL);
+                $scope.fileURL = null;
+                requestSender.localRedirectHome(simId);
+            }
+
+            function newSimFromImport(inputFile) {
+                let model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.dmpImportFile = inputFile.name;
+                model.notes = `Imported from ${inputFile.name}`;
+                return model;
+            }
+
+            function importFile(inputFile, fileType, data={}) {
+                let f = fileManager.getActiveFolderPath();
+                if (fileManager.isFolderExample(f)) {
+                    f = fileManager.rootFolder();
+                }
                 fileUpload.uploadFileToUrl(
                     inputFile,
-                    $scope.isConfirming
-                        ? {
-                            confirm: $scope.isConfirming,
+                    {
+                        folder: f,
+                        arguments: importFileArguments(data)
+                    },
+                    requestSender.formatUrl(
+                        'importFile',
+                        {
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        }),
+                    function(d) {
+                        let simId = d.models.simulation.simulationId;
+                        if (! isRadiaImport(fileType)) {
+                            cleanup(simId);
+                            return;
                         }
-                        : null,
+                        upload(inputFile, fileType, simId);
+                    }, function (err) {
+                        throw new Error(inputFile + ': Error during import ' + err);
+                    });
+            }
+
+            // turn a dict into a delimited string so it can be added to the FormData.
+            // works for simple values, not arrays or other dicts
+            function importFileArguments(o) {
+                let d = SIREPO.APP_SCHEMA.constants.inputFileArgDelims;
+                let s = '';
+                for (let k in o) {
+                    s += `${k}${d.item}${o[k]}${d.list}`;
+                }
+                return s;
+            }
+
+            function isRadiaImport(fileType) {
+                return RADIA_IMPORT_FORMATS.indexOf(`.${fileType}`) >= 0;
+            }
+
+            function upload(inputFile, fileType, simId) {
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    null,
                     requestSender.formatUrl(
                         'uploadFile',
                         {
@@ -1227,34 +1332,11 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                             '<file_type>': SIREPO.APP_SCHEMA.constants.radiaDmpFileType,
                         }),
                     function(d) {
-                        $('#simulation-import').modal('hide');
-                        $scope.inputFile = null;
-                        URL.revokeObjectURL($scope.fileURL);
-                        $scope.fileURL = null;
-                        requestSender.localRedirectHome(simId);
+                        cleanup(simId);
                     }, function (err) {
                         throw new Error(inputFile + ': Error during upload ' + err);
                     });
             }
-
-            function newSimFromDmp(inputFile) {
-                var url = $scope.fileURL;
-                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
-                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
-                model.folder = fileManager.getActiveFolderPath();
-                model.dmpImportFile = inputFile.name;
-                appState.newSimulation(
-                    model,
-                    function (data) {
-                        $scope.isUploading = false;
-                        upload(inputFile, data);
-                    },
-                    function (err) {
-                        throw new Error(inputFile + ': Error creating simulation ' + err);
-                    }
-                );
-            }
-
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
@@ -1383,6 +1465,39 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('fieldLineoutReport', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@'
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.dataCleared = true;
+
+            $scope.hasPaths = () => {
+                return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
+            };
+
+            appState.whenModelsLoaded($scope, () => {
+                $scope.model = appState.models[$scope.modelName];
+                if ($.isEmptyObject($scope.model.fieldPath) && $scope.hasPaths() ) {
+                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
+                    appState.saveQuietly($scope.modelName);
+                }
+               // wait until we have some data
+               $scope.$on('radiaViewer.loaded', () => {
+                   $scope.dataCleared = false;
+               });
             });
         },
     };
@@ -1788,7 +1903,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
-SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1797,7 +1912,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMap"></div>',
+                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1815,7 +1930,7 @@ SIREPO.app.directive('kickMap', function(appState, panelState, plotting, radiaSe
                 });
             }
             appState.whenModelsLoaded($scope, function() {
-               $scope.model = appState.models.kickMap;
+               $scope.model = appState.models.kickMapReport;
                // wait until we have some data to update
                $scope.$on('radiaViewer.loaded', function () {
                    $scope.dataCleared = false;
@@ -2189,7 +2304,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
-                        '<div data-sim-status-panel="viz.simState"></div>',
+                        '<div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation()"></div>',
                         '<div data-ng-show="viz.solution">',
                                 '<div><strong>Time:</strong> {{ solution().time }}ms</div>',
                                 '<div><strong>Step Count:</strong> {{ solution().steps }}</div>',
@@ -2198,7 +2313,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                         '</div>',
                         '<div data-ng-hide="viz.solution">No solution found</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
-                            '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
+                            '<button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>',
                         '</div>',
                     '</div>',
                 '</div>',
@@ -2220,11 +2335,15 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             };
 
             $scope.reset = function() {
+                $scope.viz.resetSimulation();
+                /*
                 $scope.viz.solution = null;
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
                     frameCache.setFrameCount(0);
                 }, true);
+
+                 */
             };
 
             appState.whenModelsLoaded($scope, function () {
@@ -2386,18 +2505,18 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function buildScene() {
                 //srdbg('buildScene', sceneData);
                 // scene -> multiple data -> multiple actors
-                var name = sceneData.name;
-                var data = sceneData.data;
+                let name = sceneData.name;
+                let data = sceneData.data;
 
                 vtkPlotting.removeActors(renderer);
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
-                    // ***NEED BETTER ID, KNOWN ON BOTH SIDES***
-                    var gname = name + '.' + i;
-                    var sceneDatum = data[i];
-                    var radiaId = sceneDatum.id;
-                    var objId = (sceneData.idMap || {})[radiaId] || radiaId;
+                    // gName is for selection display purposes
+                    var gName = `${name}.${i}`;
+                    let sceneDatum = data[i];
+                    let radiaId = sceneDatum.id;
+                    let objId = (sceneData.idMap || {})[radiaId] || radiaId;
                     //srdbg(`radia id ${radiaId} maps to obj id ${objId}`);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
@@ -2407,8 +2526,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
-                        //var gObj = radiaService.getObject(radiaId) || {};
-                        //var gObj = radiaService.getObject(i) || {};
                         let gObj = radiaService.getObject(objId) || {};
                         //srdbg('gobj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
@@ -2444,7 +2561,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        let info = addActor(objId, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        let info = addActor(objId, gName, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
                         if (! gObj.center || ! gObj.size) {
                             var b = bundle.actor.getBounds();
@@ -3076,8 +3193,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     function(d) {
                         //srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
-                            $scope.viz.simState.state ='completed';
-                            $scope.viz.solution = d.solution;
                             setupSceneData(d);
                             return;
                         }
@@ -3177,9 +3292,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.$on('$destroy', function () {
                 $element.off();
-            });
-
-            $scope.$on('solveStarted', function (e, d) {
             });
 
         },

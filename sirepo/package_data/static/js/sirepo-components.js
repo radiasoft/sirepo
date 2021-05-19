@@ -52,13 +52,12 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             fieldDef: '@',
         },
         template: [
-            '<h5 data-ng-if="description"><span data-text-with-math="description"></span></h5>',
+            '<h5 data-ng-if="::description && fieldDef == \'advanced\'"><span data-text-with-math="description"></span></h5>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
               '<ul data-ng-if="pages" class="nav nav-tabs">',
                 '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
               '<br data-ng-if="pages" />',
-              '<div class="lead text-center" style="white-space: pre-wrap;" data-ng-if="::activePage.pageDescription"><span data-text-with-math="::activePage.pageDescription"</span></div>',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
                 '<div class="lead text-center" data-ng-if="::isLabel(f)" style="white-space: pre-wrap;"><span data-text-with-math="::labelText(f)"</span></div>',
                 '<div class="form-group form-group-sm" data-ng-if="::isField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
@@ -504,6 +503,33 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
     };
 });
 
+SIREPO.app.directive('disableAfterClick', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        template: [
+            '<fieldset ng-disabled="isDisabled" data-ng-click="click()"><ng-transclude></ng-transclude>'
+        ].join(''),
+        controller: function($scope, $timeout) {
+            $scope.isDisabled = false;
+
+
+            $scope.click = function() {
+                $scope.isDisabled = true;
+            };
+
+
+            $scope.$on('sr-clearDisableAfterClick', () => {
+                // allow disable to be set before clearing it
+                $timeout(function(){
+                    $scope.isDisabled = false;
+                });
+            });
+        },
+    };
+
+});
+
 SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -671,6 +697,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
+            $scope.appState = appState;
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -1580,19 +1607,6 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
         ].join(''),
         controller: function(appState, stringsService, $sce, $scope) {
 
-            //TODO(pjm): move into stringsService
-            function format(template, args) {
-                return template.replace(
-                    /{(\w*)}/g,
-                    function(m, k) {
-                        if (! (k in args)) {
-                            throw new Error('k=' + k + ' not found in args=' + args);
-                        }
-                        return args[k];
-                    }
-                );
-            }
-
             $scope.message = function() {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
@@ -1614,7 +1628,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 };
                 return  $sce.trustAsHtml(
                     '<div>' +
-                    format(s.simulationState + c, a) +
+                    stringsService.formatTemplate(s.simulationState + c, a) +
                     '</div>'
                 );
             };
@@ -1866,7 +1880,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>',
                 '</ul>',
               '</div>',
-              '<a href data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
+              '<a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -1883,6 +1897,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             var view = appState.viewInfo(viewKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
             $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
+            $scope.canFullScreen = view && view.hasOwnProperty('canFullScreen') ? view.canFullScreen : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
@@ -2675,7 +2690,9 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
               '</div>',
               '<div class="form-group">',
                 '<div class="col-sm-offset-2 col-sm-10">',
-                  '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
+                  ' <div data-disable-after-click="">',
+                    '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
+                  '</div>',
                   '<p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>',
                 '</div>',
               '</div>',
@@ -2706,11 +2723,11 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 if (! ( e && e.match(/^.+@.+\..+$/) )) {
                     $scope.showWarning = true;
                     $scope.warningText = 'Email address is invalid. Please update and resubmit.';
+                    $scope.$broadcast('sr-clearDisableAfterClick');
                     return;
                 }
                 $scope.showWarning = false;
                 $scope.data.sentEmail = $scope.data.email;
-                //TODO(robnagler): change button to sending
                 requestSender.sendRequest(
                     'authEmailLogin',
                     handleResponse,
@@ -3601,7 +3618,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
               '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>',
               '<div data-ng-show="simState.isStateError()">',
-                '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
+                '<div class="col-sm-12">{{ stateAsText() }}</div>',
               '</div>',
               '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">',
                 '<div class="col-sm-12" data-simulation-status-timer="simState"></div>',
@@ -3666,6 +3683,15 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.startButtonLabel = function() {
                 return stringsService.startButtonLabel();
+            };
+
+            $scope.stateAsText = function() {
+                if ($scope.errorMessage()) {
+                    return stringsService.formatTemplate(
+                        SIREPO.APP_SCHEMA.strings.genericSimulationError
+                    );
+                }
+                return callSimState('stateAsText');
             };
 
             $scope.stopButtonLabel = function() {

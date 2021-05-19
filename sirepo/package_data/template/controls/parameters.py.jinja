@@ -3,6 +3,7 @@ from pykern.pkcollections import PKDict
 from sirepo.template import madx_parser
 import numpy as np
 import os
+import re
 import scipy.optimize
 
 lattice_file = """
@@ -75,11 +76,14 @@ def _optimize_polyfit(variable_count):
 
 
 def run_simulation(correctors):
+    lattice = lattice_file
     values = {}
     for idx in range(len(correctors)):
         values[f'sr_opt{idx}'] = correctors[idx]
     with open('in.madx', 'w') as f:
-        f.write(lattice_file.format(**values))
+        for k in values:
+            lattice = re.sub('{' + k + '}', str(values[k]), lattice)
+        f.write(lattice)
     assert os.system('madx in.madx > madx.log 2> madx.err') == 0, \
         'MAD-X simulation failed'
 

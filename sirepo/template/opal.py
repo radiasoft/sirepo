@@ -121,10 +121,10 @@ class OpalMadxConverter(MadxConverter):
             ['DRIFT', 'l'],
         ],
         ['SBEND',
-            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+            ['SBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
         ],
         ['RBEND',
-            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
+            ['RBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
         ],
         ['QUADRUPOLE',
             ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
@@ -198,8 +198,10 @@ class OpalMadxConverter(MadxConverter):
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
         for f in ob:
-            if f in mb:
+            if f in mb and f in _SCHEMA.model.command_beam:
                 mb[f] = ob[f]
+                if f in ('gamma', 'energy', 'pc') and mb[f]:
+                    madx.models.bunch.beamDefinition = f
         od = LatticeUtil.find_first_command(data, 'distribution')
         #TODO(pjm): save dist in vars
         return madx
@@ -247,7 +249,10 @@ class OpalMadxConverter(MadxConverter):
         beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
         self._replace_var(data, 'brho', self.particle_energy.brho)
         self._replace_var(data, 'gamma', self.particle_energy.gamma)
-        self._replace_var(data, 'beta', 'sqrt(1 - (1 / pow({}, 2)))'.format(self._var_name('gamma')))
+        self._replace_var(data, 'beta', 'sqrt(1 - (1 / ({} * {})))'.format(
+            self._var_name('gamma'),
+            self._var_name('gamma'),
+        ))
         for dim in ('x', 'y'):
             self._replace_var(data, f'emit_{dim}', mb[f'e{dim}'])
             beta = self._find_var(madx, f'beta_{dim}')
@@ -257,8 +262,11 @@ class OpalMadxConverter(MadxConverter):
                 dist[f'sigmap{dim}'] = 'sqrt({} * {}) * {} * {}'.format(
                     self._var_name(f'emit_{dim}'), self._var_name(f'gamma_{dim}'),
                     self._var_name('beta'), self._var_name('gamma'))
-                dist[f'corr{dim}'] = '-{}/sqrt(1 + pow({}, 2))'.format(
-                    self._var_name(f'alpha_{dim}'), self._var_name(f'alpha_{dim}'))
+                dist[f'corr{dim}'] = '-{}/sqrt(1 + {} * {})'.format(
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'alpha_{dim}'),
+                )
         if self._find_var(madx, 'dp_s_coupling'):
             dist.corrz = self._var_name('dp_s_coupling')
         ob = LatticeUtil.find_first_command(data, 'beam')
@@ -658,6 +666,7 @@ class _Generate(sirepo.lib.GenerateBase):
                 OpalElementIterator(self._format_field_value),
                 key,
             ).result,
+            quote_name=True,
             want_semicolon=True)
         # separate run from track, add endtrack
         #TODO(pjm): better to have a custom element generator for this case
@@ -693,6 +702,7 @@ class _Generate(sirepo.lib.GenerateBase):
                 OpalElementIterator(self._format_field_value, visited),
                 'elements',
             ).result,
+            quote_name=True,
             want_semicolon=True,
         ) + '\n'
         res += beamline
@@ -820,22 +830,22 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
     for idx in range(len(items)):
         item_id = items[idx]
         item = util.id_map[abs(item_id)]
-        name = item.name
+        name = item.name.upper()
         if name not in count_by_name:
             count_by_name[name] = 0
         if 'type' in item:
             # element
             name = '"{}#{}"'.format(name, count_by_name[name])
-            count_by_name[item.name] += 1
+            count_by_name[item.name.upper()] += 1
             pos = beamline.positions[idx]
-            res += '{}: {},elemedge={};\n'.format(name, item.name, pos.elemedge)
+            res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), pos.elemedge)
             names.append(name)
             visited.add(item_id)
         else :
             if item_id not in visited:
                 text, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
                 res += text
-            names.append(name)
+            names.append('{}'.format(name))
 
     has_orientation = False
     for f in ('x', 'y', 'z', 'theta', 'phi', 'psi'):
@@ -853,7 +863,6 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
         ','.join(names),
         orientation,
     )
-    names.append(name)
     return res, visited
 
 
@@ -869,19 +878,19 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
     beamline = util.id_map[abs(beamline_id)]
     items = beamline['items']
     if beamline_id < 0:
-        items = reversed(items)
+        items = list(reversed(items))
     for idx in range(len(items)):
         item_id = items[idx]
         item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
-            name = item.name
+            name = item.name.upper()
             if name not in count_by_name:
                 count_by_name[name] = 0
             name = '"{}#{}"'.format(name, count_by_name[name])
-            count_by_name[item.name] += 1
+            count_by_name[item.name.upper()] += 1
             if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
-                res += '{}: {};\n'.format(name, item.name)
+                res += '"{}": {};\n'.format(name, item.name.upper())
                 names.append(name)
                 visited.add(item_id)
                 continue
@@ -890,7 +899,7 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
                 # don't include reverse drifts, for positioning only
                 pass
             else:
-                res += '{}: {},elemedge={};\n'.format(name, item.name, edge)
+                res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), edge)
                 names.append(name)
                 if item.type == 'SBEND' and run_method == 'THICK':
                     # use arclength for SBEND with THICK tracker (only?)

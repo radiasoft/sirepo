@@ -453,6 +453,7 @@
         },
         "strings": {
             "completionState": ": {frameCount} animation frames",
+            "genericSimulationError": "Error encountered during {typeOfSimulation}",
             "importText": null,
             "simulationDataType": "simulation",
             "simulationDataTypePlural": "simulations",

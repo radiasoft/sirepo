@@ -118,11 +118,16 @@ def create_user(github_handle=None, check_dir=False):
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
         return n
 
-    if check_dir:
-        n = __handle_or_name_sanitized()
-        assert not _user_dir(n).exists(), \
-            f'existing user dir with same name={n}'
-    with sirepo.auth_db.thread_lock:
+    with sirepo.util.THREAD_LOCK:
+        n = unchecked_jupyterhub_user_name()
+        if n:
+            return n
+        if check_dir:
+            h = __handle_or_name_sanitized()
+            assert not _user_dir(h).exists(), \
+                f'existing user dir with same name={h}'
+            if h:
+                return h
         u = __user_name()
         JupyterhubUser(
             uid=sirepo.auth.logged_in_user(),
@@ -201,11 +206,10 @@ def _init_model(base):
 
 
 def _unchecked_hub_user(uid):
-    with sirepo.auth_db.thread_lock:
-        u = JupyterhubUser.search_by(uid=uid)
-        if u:
-            return u.user_name
-        return None
+    u = JupyterhubUser.search_by(uid=uid)
+    if u:
+        return u.user_name
+    return None
 
 
 def _user_dir(user_name=None):

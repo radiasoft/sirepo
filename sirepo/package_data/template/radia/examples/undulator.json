@@ -217,7 +217,7 @@
             "transforms": [],
             "transverseAxis": "x"
         },
-        "kickMap": {
+        "kickMapReport": {
             "begin": "0, -52.5, 0",
             "component": "h",
             "direction": "0, 1, 0",

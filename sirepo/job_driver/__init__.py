@@ -16,6 +16,7 @@ import sirepo.auth
 import sirepo.events
 import sirepo.sim_db_file
 import sirepo.simulation_db
+import sirepo.srcontext
 import sirepo.srdb
 import sirepo.tornado
 import time
@@ -126,8 +127,10 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
+        import sirepo.auth_db
         m = op.msg
-        with sirepo.auth.set_user_outside_of_http_request(m.uid):
+        with sirepo.auth_db.session(), \
+             sirepo.auth.set_user_outside_of_http_request(m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
                 job.unique_key()
