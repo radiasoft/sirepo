@@ -173,6 +173,12 @@ def python_source_for_model(data, model):
 
 
 def setup_command(data):
+    def _integer(key, value):
+        return f'-{key}={value}'
+
+    def _shortcut(value):
+        return f'+{value}'
+
     c = []
     for k, v in data.models.setupArguments.items():
         if k == 'units':
@@ -184,14 +190,21 @@ def setup_command(data):
         t = _SCHEMA.model.setupArguments[k][1]
         if t == 'Boolean':
             v == '1' and c.append(f'-{k}')
-        elif t == 'SetupArgumentDimension':
-            c.append(f'-{v}d')
         elif t == 'Integer':
-            c.append(f'-{k}={v}')
+            c.append(_integer(k, v))
         elif t == 'NoDashInteger':
             c.append(f'{k}={v}')
+        elif t == 'OptionalInteger':
+            # Do not move up to enclosing if.
+            # We need to handle OptionalInteger even if v is falsey (no-op)
+            if v:
+                c.append(_integer(k, v))
+        elif t == 'SetupArgumentDimension':
+            c.append(f'-{v}d')
+        elif t == 'SetupArgumentGridGeometry':
+            c.append(_shortcut(v))
         elif t == 'SetupArgumentShortcut':
-            v == '1' and c.append(f'+{k}')
+            v == '1' and c.append(_shortcut(k))
         elif t  == 'String' or t == 'OptionalString':
            c.append(f'{k}={v}')
         else:
