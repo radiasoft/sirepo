@@ -303,7 +303,7 @@ class SetupParameterParser():
         physics_Gravity=PKDict(
             grav_boundary_type='GravityBoundaryType',
         ),
-        physics_Gravity_Constant=PKDict(
+        physics_Gravity_GravityMain_Constant=PKDict(
             gdirec='GravityDirection',
         ),
         physics_Hydro_HydroMain_unsplit=PKDict(

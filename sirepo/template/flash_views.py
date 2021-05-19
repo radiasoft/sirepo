@@ -255,6 +255,7 @@ class SpecializedViews:
     def _view_Driver_DriverMain(self, schema):
         # http://flash.uchicago.edu/site/flashcode/user_support/rpDoc_4p2.py?submit=rp_Driver.txt
         v = PKDict(
+            title='Simulation Driver',
             advanced=[
                 ['Driver', [
                     'dr_abortPause',
@@ -674,4 +675,8 @@ class SpecializedViews:
                     ],
                 ],
             )
-        return None
+        return PKDict(
+            title='FLASH Simulation',
+            basic=schema.view.Simulation_SimulationMain_flashApp.advanced,
+            advanced=[]
+        )
