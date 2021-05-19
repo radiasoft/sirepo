@@ -701,11 +701,10 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
             }
 
             function rectanglesOverlap(pos1, pos2) {
-                if (pos1.rect.left > pos2.rect.right || pos2.rect.left > pos1.rect.right) {
+                if (pos1.left > pos2.right || pos2.left > pos1.right) {
                     return false;
                 }
-                if (pos1.rect.top + pos1.yOffset > pos2.rect.bottom + pos2.yOffset
-                    || pos2.rect.top + pos2.yOffset > pos1.rect.bottom + pos1.yOffset) {
+                if (pos1.top > pos2.bottom || pos2.top > pos1.bottom) {
                     return false;
                 }
                 return true;
@@ -715,6 +714,9 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 $('.sr-lattice-label').remove();
                 const parentRect = $('#sr-lattice')[0].getBoundingClientRect();
                 const positions = [];
+                $("[class^='sr-beamline']").each( (_ , element) => {
+                    positions.push(element.getBoundingClientRect());
+                });
                 $('#sr-lattice').find('title').each((v, el) => {
                     const values = $(el).text().split(': ');
                     if (! SIREPO.APP_SCHEMA.model[values[1]]) {
@@ -745,34 +747,35 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                         })
                         .on('dblclick', () => elementClicked(values[0]))
                         .appendTo($('.sr-lattice-holder'));
-                    let divPos = {
-                        rect: div[0].getBoundingClientRect(),
-                        // need to track offset manually
-                        // subsequent calls to getBoundingClientRect() return old rect
-                        yOffset: 0,
-                    };
-
-                    const maxChecks = 3;
+                    const maxChecks = 8;
                     let checkCount = 1;
-                    let p = detectOverlap(positions, divPos);
+                    let p = detectOverlap(positions, div[0].getBoundingClientRect());
+                    let yOffset = 0;
+                    const c = 3;
                     while (p) {
-                        let yOffset = 0;
                         if (isMonitor) {
-                            yOffset -= divPos.rect.height - p.rect.top - p.yOffset + divPos.rect.top + 5;
+                            const d = div[0].getBoundingClientRect().bottom - p.top - 1;
+                            if (d > c) {
+                                yOffset -= d;
+                            }
+                            yOffset -= c;
                         }
                         else {
-                            yOffset += divPos.rect.height + p.rect.top + p.yOffset - divPos.rect.top + 5;
+                            const d = p.bottom - div[0].getBoundingClientRect().top + 1;
+                            if (d > c) {
+                                yOffset += d;
+                            }
+                            yOffset += c;
                         }
-                        divPos.yOffset = yOffset;
                         div.css({
                             top: pos[1] + yOffset,
                         });
-                        p = detectOverlap(positions, divPos);
+                        p = detectOverlap(positions, div[0].getBoundingClientRect());
                         if (checkCount++ > maxChecks) {
                             break;
                         }
                     }
-                    positions.push(divPos);
+                    positions.push(div[0].getBoundingClientRect());
                 });
             }
 
