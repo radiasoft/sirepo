@@ -1,0 +1,252 @@
+[
+    {
+        "_id": 1,
+        "_type": "REQUIRES",
+        "unit": "Driver"
+    },
+    {
+        "_id": 2,
+        "_type": "REQUIRES",
+        "unit": "physics/Hydro/HydroMain/unsplit/MHD_StaggeredMesh"
+    },
+    {
+        "_id": 3,
+        "_type": "REQUESTS",
+        "unit": "physics/Eos/EosMain/multiTemp/Multitype"
+    },
+    {
+        "_id": 4,
+        "_type": "REQUESTS",
+        "unit": "physics/Eos/EosMain/Tabulated"
+    },
+    {
+        "_id": 5,
+        "_type": "REQUESTS",
+        "unit": "physics/Diffuse/DiffuseMain/Unsplit"
+    },
+    {
+        "_id": 6,
+        "_type": "REQUESTS",
+        "unit": "physics/sourceTerms/EnergyDeposition"
+    },
+    {
+        "_id": 7,
+        "_type": "REQUESTS",
+        "unit": "physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer"
+    },
+    {
+        "_id": 8,
+        "_type": "REQUESTS",
+        "unit": "physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ"
+    },
+    {
+        "_id": 9,
+        "_type": "REQUESTS",
+        "unit": "physics/materialProperties/MagneticResistivity/MagneticResistivityMain/SpitzerHighZ"
+    },
+    {
+        "_id": 10,
+        "_type": "DATAFILES",
+        "wildcard": "al-imx-004.cn4"
+    },
+    {
+        "_id": 11,
+        "_type": "DATAFILES",
+        "wildcard": "h-imx-004.cn4"
+    },
+    {
+        "_id": 13,
+        "_type": "PARAMETER",
+        "comment": "peak field in gauss at capillary wall",
+        "default": "2.4e3",
+        "isConstant": "0",
+        "name": "sim_peakField",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 15,
+        "_type": "PARAMETER",
+        "comment": "circuit period in seconds",
+        "default": "300.e-9",
+        "isConstant": "0",
+        "name": "sim_period",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 17,
+        "_type": "PARAMETER",
+        "default": "2.7",
+        "isConstant": "0",
+        "name": "sim_rhoWall",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 19,
+        "_type": "PARAMETER",
+        "default": "290.11375",
+        "isConstant": "0",
+        "name": "sim_teleWall",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 21,
+        "_type": "PARAMETER",
+        "default": "290.11375",
+        "isConstant": "0",
+        "name": "sim_tionWall",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 23,
+        "_type": "PARAMETER",
+        "default": "290.11375",
+        "isConstant": "0",
+        "name": "sim_tradWall",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 25,
+        "_type": "PARAMETER",
+        "default": "0.0",
+        "isConstant": "0",
+        "name": "sim_zminWall",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 27,
+        "_type": "PARAMETER",
+        "default": "eos_tab",
+        "isConstant": "0",
+        "name": "sim_eosWall",
+        "range": "\"eos_tab\",\"eos_gam\"",
+        "type": "STRING"
+    },
+    {
+        "_id": 29,
+        "_type": "PARAMETER",
+        "comment": "Wall conductivity at the gas/wall interface",
+        "default": "1.95e5",
+        "isConstant": "0",
+        "name": "sim_condWall",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 31,
+        "_type": "PARAMETER",
+        "default": "2.655e-07",
+        "isConstant": "0",
+        "name": "sim_rhoFill",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 33,
+        "_type": "PARAMETER",
+        "default": "290.11375",
+        "isConstant": "0",
+        "name": "sim_teleFill",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 35,
+        "_type": "PARAMETER",
+        "default": "290.11375",
+        "isConstant": "0",
+        "name": "sim_tionFill",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 37,
+        "_type": "PARAMETER",
+        "default": "290.11375",
+        "isConstant": "0",
+        "name": "sim_tradFill",
+        "range": "",
+        "type": "REAL"
+    },
+    {
+        "_id": 39,
+        "_type": "PARAMETER",
+        "default": "eos_tab",
+        "isConstant": "0",
+        "name": "sim_eosFill",
+        "range": "\"eos_tab\",\"eos_gam\"",
+        "type": "STRING"
+    },
+    {
+        "_id": 41,
+        "_type": "VARIABLE",
+        "name": "CVIO",
+        "vartype": ""
+    },
+    {
+        "_id": 43,
+        "_type": "VARIABLE",
+        "name": "CVEL",
+        "vartype": ""
+    },
+    {
+        "_id": 44,
+        "_type": "VARIABLE",
+        "name": "KAPA",
+        "vartype": ""
+    },
+    {
+        "_id": 45,
+        "_type": "VARIABLE",
+        "name": "BDRY",
+        "vartype": ""
+    },
+    {
+        "_id": 46,
+        "_type": "VARIABLE",
+        "name": "EX",
+        "vartype": ""
+    },
+    {
+        "_id": 47,
+        "_type": "VARIABLE",
+        "name": "EY",
+        "vartype": ""
+    },
+    {
+        "_id": 48,
+        "_type": "VARIABLE",
+        "name": "NELE",
+        "vartype": ""
+    },
+    {
+        "_id": 49,
+        "_type": "VARIABLE",
+        "name": "BRSC",
+        "vartype": ""
+    },
+    {
+        "_id": 50,
+        "_type": "VARIABLE",
+        "name": "BRMX",
+        "vartype": ""
+    },
+    {
+        "_id": 51,
+        "_type": "VARIABLE",
+        "name": "ANGL",
+        "vartype": ""
+    },
+    {
+        "_id": 52,
+        "_type": "VARIABLE",
+        "name": "RESI",
+        "vartype": ""
+    }
+]
