@@ -1,31 +1,23 @@
 <div class="container-fluid">
   <div class="row">
-    <div class="col-sm-6">
-      <div data-setup-arguments-panel=""></div>
-    </div>
     <div class="col-md-6">
-      <div data-basic-editor-panel="" data-view-name="problemFiles"></div>
-    </div>
-    <div class="col-md-6">
-      <div data-basic-editor-panel="" data-view-name="Driver"></div>
+      <div data-basic-editor-panel="" data-view-name="Driver_DriverMain"></div>
     </div>
     <div class="col-md-6" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
       </div>
     </div>
+    <div class="clearfix"></div>
     <div data-ng-if="visualization.simState.hasFrames()">
-      <div class="col-md-6" data-ng-if="visualization.flashService.isCapLaser()">
-        <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
-      </div>
-      <div class="col-md-6 col-xl-4" data-ng-if="visualization.flashService.isFlashType('RTFlame')">
-        <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
-      </div>
       <div class="col-md-6">
+        <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
+      </div>
+      <div class="col-md-6" data-ng-if="visualization.hasPlotVars">
         <div data-report-panel="parameter" data-model-name="oneDimensionProfileAnimation"></div>
       </div>
-      <div ng-attr-class="{{ visualization.plotClass }}">
-        <div data-report-panel="heatmap" data-model-name="varAnimation"></div>
+      <div ng-attr-class="{{ visualization.plotClass }}" data-ng-if="visualization.hasPlotVars">
+        <div data-report-panel="{{ visualization.reportType() }}" data-model-name="varAnimation"></div>
       </div>
     </div>
   </div>

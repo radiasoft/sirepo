@@ -1437,6 +1437,7 @@ SIREPO.app.directive('modelField', function(appState) {
     };
 });
 
+//TODO(pjm): remove this, old browsers won't support new javascript
 SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interval) {
     return {
         restrict: 'A',
