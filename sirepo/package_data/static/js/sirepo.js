@@ -1635,6 +1635,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
+    self.isSubclass = function(model1, model2) {
+        const m1 = SIREPO.APP_SCHEMA.model[model1];
+        if (! m1._super) {
+            return false;
+        }
+        return m1._super.indexOf(model2) >= 0;
+    };
+
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
         var args = {
             '<simulation_id>': simulationId,
