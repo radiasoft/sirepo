@@ -2260,9 +2260,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     self.sendStatelessCompute = function(appState, data, callback) {
         data.simulationId = appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-        if (!m.includes(data.method)) {
-            throw new Error(`method=${data.method} not one of valid methods=${m}`)
-        }
         self.sendRequest('statelessCompute', callback, data);
     };
 
