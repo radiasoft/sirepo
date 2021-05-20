@@ -5,8 +5,6 @@ SIREPO.srdbg = console.log.bind(console);
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
 
-SIREPO.SNIPPETS = {};
-
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
@@ -119,48 +117,6 @@ angular.element(document).ready(function() {
         return $.map(mods, loadDynamicModule);
     }
 
-    function loadFromPath(path, type, callback, errCallback, finallyCallback) {
-        let d = $.Deferred();
-        $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (res) {
-            callback(res);
-        }, type)
-            .fail(function (res) {
-                if (errCallback) {
-                    errCallback(res);
-                }
-            })
-            .always(function (res) {
-                if (finallyCallback) {
-                    finallyCallback(res);
-                }
-                d.resolve();
-            });
-        return d.promise();
-    }
-
-    function loadSnippet(b) {
-        let val = null;
-        let ok = false;
-        return loadFromPath(b.path, b.fileType, function (res) {
-            val = res;
-            ok = true;
-        }, function(res) {
-            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
-            // However we can get a successful read anyway; if so assign the response text
-            ok = res.status == 200;
-            val = res.responseText;
-        }, function (res) {
-            if (! ok) {
-                throw new Error(`${status}: Failed to load snippet ${b.name}`);
-            }
-            SIREPO.SNIPPETS[b.name] = new SIREPO.DOM.UIRawHTML(val);
-        });
-    }
-
-    function loadSnippets() {
-        return $.map(SIREPO.APP_SCHEMA.snippets || [], loadSnippet);
-    }
-
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -168,7 +124,7 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            $.when.apply($, loadDynamicModules(), loadSnippets()).then(
+            $.when.apply($, loadDynamicModules()).then(
                 function() {
                     angular.bootstrap(document, ['SirepoApp']);
                 }
