@@ -122,8 +122,6 @@ def format_float(v):
 
 
 def get_application_data(data, **kwargs):
-    if data.method == 'calculate_bunch_parameters':
-        return _calc_bunch_parameters(data.bunch)
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data.method)
@@ -346,6 +344,10 @@ def sim_frame_turnComparisonAnimation(frame_args):
             'plots': plots,
             'y_range': template_common.compute_plot_color_and_range(plots),
         }
+
+
+def stateless_compute_calculate_bunch_parameters(data):
+    return _calc_bunch_parameters(data.bunch)
 
 
 def validate_file(file_type, path):

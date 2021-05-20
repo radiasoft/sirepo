@@ -61,9 +61,8 @@ _LOWERCASE_FIELDS = set(['focal_x', 'focal_z'])
 _WIGGLER_TRAJECTORY_FILENAME = 'xshwig.sha'
 
 
-def get_application_data(data, **kwargs):
-    if data['method'] == 'compute_harmonic_photon_energy':
-        return _compute_harmonic_photon_energy(data)
+def stateless_compute_compute_harmonic_photon_energy(data):
+    return _compute_harmonic_photon_energy(data)
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'beamStatisticsReport':

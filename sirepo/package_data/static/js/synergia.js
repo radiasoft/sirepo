@@ -62,7 +62,8 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     var self = this;
 
     function calculateBunchParameters() {
-        requestSender.getApplicationData(
+        requestSender.statelessCompute(
+            appState,
             {
                 method: 'calculate_bunch_parameters',
                 bunch: appState.clone(appState.models.bunch),
@@ -71,7 +72,8 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
                 if (data.bunch && appState.isLoaded()) {
                     appState.models.bunch = data.bunch;
                 }
-            });
+            }
+        );
     }
 
     function processBeamDefinition() {

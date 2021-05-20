@@ -174,6 +174,20 @@ def api_sbatchLogin():
     return _request(_request_content=r)
 
 
+@api_perm.require_user
+def api_statelessCompute():
+    return _request(
+        jobRunMode=sirepo.job.SEQUENTIAL,
+        req_data=PKDict(
+            **sirepo.http_request.parse_post().req_data,
+        ).pkupdate(
+            computeJobHash='unused',
+            report='statelessCompute',
+        ),
+        runDir=None,
+    )
+
+
 def init_apis(*args, **kwargs):
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
@@ -235,12 +249,12 @@ def _request_content(kwargs):
         computeJobSerial=lambda: d.get('computeJobSerial', 0),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
+        runDir=lambda: str(simulation_db.simulation_run_dir(d)),
 #TODO(robnagler) relative to srdb root
         simulationId=lambda: s.parse_sid(d),
         simulationType=lambda: d.simulationType,
     ).pkupdate(
         reqId=sirepo.job.unique_key(),
-        runDir=str(simulation_db.simulation_run_dir(d)),
         uid=sirepo.auth.logged_in_user(),
     ).pkupdate(
         computeJid=s.parse_jid(d, uid=b.uid),
@@ -250,7 +264,7 @@ def _request_content(kwargs):
 
 
 def _run_mode(request_content):
-    if 'models' not in request_content.data:
+    if 'models' not in request_content.data or 'jobRunMode' in request_content:
         return request_content
 #TODO(robnagler) make sure this is set for animation sim frames
     m = request_content.data.models.get(request_content.computeModel)

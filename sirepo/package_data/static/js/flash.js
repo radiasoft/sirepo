@@ -633,14 +633,16 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
                 var el = $('#sr-setup-command');
                 el.modal('show');
                 el.on('shown.bs.modal', function() {
-                requestSender.getApplicationData(
-                    {
-                        method: 'setup_command',
-                        models: appState.models,
-                    },
-                    function(data) {
-                        $scope.setupCommand = data.setupCommand;
-                    });
+                    requestSender.statelessCompute(
+                        appState,
+                        {
+                            method: 'setup_command',
+                            models: appState.models,
+                        },
+                        function(data) {
+                            $scope.setupCommand = data.setupCommand;
+                        }
+                    );
                 });
                 el.on('hidden.bs.modal', function() {
                     $scope.setupCommand = '';

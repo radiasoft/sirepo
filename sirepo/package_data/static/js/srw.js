@@ -90,9 +90,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         if (! (self.isIdealizedUndulator() || self.isTabulatedUndulator())) {
             return;
         }
-        self.computeOnServer(
-            'process_undulator_definition',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'process_undulator_definition',
                 undulator_definition: undulatorDefinition,
                 undulator_parameter: appState.models.undulator[deflectingParameter],
                 amplitude: appState.models.undulator[amplitude],
@@ -185,9 +186,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.computeBeamParameters = function() {
-        self.computeOnServer(
-            'process_beam_parameters',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'process_beam_parameters',
                 source_type: appState.models.simulation.sourceType,
                 undulator_type: appState.models.tabulatedUndulator.undulatorType,
                 undulator_period: appState.models.undulator.period / 1000,
@@ -210,9 +212,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.computeDeltaAttenCharacteristics = function(item) {
         self.updateMaterialFields(item);
-        self.computeOnServer(
-            'compute_delta_atten_characteristics',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'compute_delta_atten_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             },
@@ -220,16 +223,18 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 ['refractiveIndex', 'attenuationLength'].forEach(function(f) {
                     item[f] = self.formatMaterial(data[f]);
                 });
-            });
+            }
+        );
     };
 
     self.computeDualAttenCharacteristics = function(item) {
         // fiber or zonePlate items
         var prefixes = attenuationPrefixes(item);
         self.updateDualFields(item);
-        self.computeOnServer(
-            'compute_dual_characteristics',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'compute_dual_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
                 prefix1: prefixes[0],
@@ -248,9 +253,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.computeFields = function(method, item, fields) {
-        self.computeOnServer(
-            method,
+        requestSender.statelessCompute(
+            appState,
             {
+                method: method,
                 optical_element: item,
             },
             function(data) {
@@ -942,13 +948,14 @@ SIREPO.viewLogic('brillianceReportView', function(appState, panelState, $scope) 
     ];
 });
 
-SIREPO.beamlineItemLogic('crlView', function(appState, panelState, srwService, $scope) {
+SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender, srwService, $scope) {
 
     function computeCRLCharacteristics(item) {
         updateCRLFields(item);
-        srwService.computeOnServer(
-            'compute_crl_characteristics',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'compute_crl_characteristics',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             },
@@ -976,7 +983,7 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, srwService, $
     ];
 });
 
-SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, srwService, $scope) {
+SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSender, srwService, $scope) {
 
     function computeCrystalInit(item) {
         panelState.enableFields(item.type, [
@@ -995,9 +1002,10 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, srwServic
 
     function computeCrystalOrientation(item) {
         updateCrystalOrientationFields(item);
-        srwService.computeOnServer(
-            'compute_crystal_orientation',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'compute_crystal_orientation',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             },
@@ -1225,13 +1233,14 @@ SIREPO.viewLogic('gaussianBeamView', function(appState, panelState, srwService, 
     ];
 });
 
-SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, srwService, $scope) {
+SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSender, srwService, $scope) {
 
     function computePGMValue(item) {
         updateGratingFields(item);
-        srwService.computeOnServer(
-            'compute_PGM_value',
+        requestSender.statelessCompute(
+            appState,
             {
+                method: 'compute_PGM_value',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             },

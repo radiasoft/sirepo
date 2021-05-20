@@ -222,8 +222,6 @@ def generate_parameters_file(data):
 
 
 def get_application_data(data, **kwargs):
-    if data.method == 'calculate_bunch_parameters':
-        return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
     if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
@@ -294,6 +292,10 @@ def save_sequential_report_data(data, run_dir):
         _extract_report_data(data, run_dir),
         run_dir=run_dir,
     )
+
+
+def stateless_compute_calculate_bunch_parameters(data):
+    return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
 
 
 def to_float(value):

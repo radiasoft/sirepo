@@ -263,20 +263,24 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
 
     function computeRMSSize(field, saveChanges) {
         var beamline = appState.applicationState().beamline;
-        requestSender.getApplicationData({
+        requestSender.statelessCompute(
+            appState,
+            {
             method: 'compute_rms_size',
             gaussianBeam: appState.models.gaussianBeam,
             simulationSettings: appState.models.simulationSettings,
             mirror: silasService.getFirstMirror(),
             crystal: silasService.getCrystal(),
-        }, (data) => {
-            if (data.rmsSize) {
-                appState.models.gaussianBeam.rmsSize = appState.formatFloat(data.rmsSize * 1e6, 4);
-                if (saveChanges) {
-                    appState.saveQuietly('gaussianBeam');
+            },
+            (data) => {
+                if (data.rmsSize) {
+                    appState.models.gaussianBeam.rmsSize = appState.formatFloat(data.rmsSize * 1e6, 4);
+                    if (saveChanges) {
+                        appState.saveQuietly('gaussianBeam');
+                    }
                 }
             }
-        });
+        );
     }
 
     $scope.whenSelected = () => panelState.enableField('gaussianBeam', 'rmsSize', false);

@@ -1,5 +1,6 @@
 {
     "constants": {
+        "clight": 299792458.0e-9,
         "hasMadxExport": true,
         "helpUserManualURL": "https://gitlab.psi.ch/OPAL/src/wikis",
         "latticeKeywords": [
@@ -8,7 +9,6 @@
             "rank", "real", "const", "vector", "constraint", "objective", "true", "false",
             "string", "bool", "constant"
         ],
-        "clight": 299792458.0e-9,
         "particleMassAndCharge": {
             "ELECTRON": [0.51099895000e-03, -1.0],
             "PROTON": [0.93827208816, 1.0],

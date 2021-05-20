@@ -2242,6 +2242,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         );
     };
 
+    self.statelessCompute = function(appState, data, callback) {
+        data.simulationId = appState.models.simulation.simulationId;
+        data.simulationType = SIREPO.APP_SCHEMA.simulationType;
+        self.sendRequest('statelessCompute', callback, data);
+    };
+
     $rootScope.$on('$routeChangeStart', checkCookieRedirect);
 
     LOGIN_URI = self.formatUrlLocal(LOGIN_ROUTE_NAME).slice(1);

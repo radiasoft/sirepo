@@ -571,6 +571,16 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
+def stateless_compute_dispatch(data):
+    m = data.method
+    assert re.search(r'^\w{1,30}$', m), \
+        f'method={m} not a valid python function name or too long'
+    return getattr(
+        sirepo.template.import_module(data.simulationType),
+        f'stateless_compute_{m}',
+    )(data)
+
+
 def subprocess_output(cmd, env=None):
     """Run cmd and return output or None, logging errors.
 
