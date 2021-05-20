@@ -465,9 +465,11 @@ def _build_undulator_objects(geom, und, beam_axis):
     geom.objects.append(half_pole)
     magnet_block = _build_cuboid(name='Magnet Block')
     geom.objects.append(magnet_block)
+    und.magnet = magnet_block
     und.magnetBaseObjectId = magnet_block.id
     pole = _build_cuboid(name='Pole')
     geom.objects.append(pole)
+    und.pole = pole
     und.poleBaseObjectId = pole.id
     mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
     geom.objects.append(mag_pole_grp)
@@ -1028,16 +1030,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
-    #beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
-    # assign a valid gap direction if the user provided an invalid one
-    #if und.gapAxis == beam_axis:
-    #    und.gapAxis = _GAP_AXIS_MAP[beam_axis]
-    #gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
-
-    # we don't care about the direction of the cross product
-    #width_dir = abs(numpy.cross(beam_dir, gap_dir))
     width_dir, gap_dir, beam_dir = _geom_directions(beam_axis, und.gapAxis)
-
     dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
 
     pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)

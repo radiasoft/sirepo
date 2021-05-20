@@ -65,14 +65,12 @@ class MPI:
 
 def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
 
-    # 0, 1, 2, 3
-    pkdp('APPLY {}', bevel)
     b = numpy.array(beam_dir)
     g = numpy.array(gap_dir)
     x = numpy.array(trans_dir)
     sz = numpy.array(obj_size)
     ctr = numpy.array(obj_ctr)
-    e = bevel.edge
+    e = int(bevel.edge)
     half_size = sz / 2
     corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
     trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]

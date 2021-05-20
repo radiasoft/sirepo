@@ -39,19 +39,25 @@
             }
         },
         "geomObjShapes": {
-            "cuboid": {
+            "box": {
                 "doClose": true,
                 "fill": "#97B6D5",
-                "offsets": [10, 10],
                 "points": [
                     [0, 0], [24, 0], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
+            "gamma": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [24, 0], [24, 12], [12, 12], [12, 24], [0, 24]
                 ],
                 "stroke": "black"
             },
             "tee": {
                 "doClose": true,
                 "fill": "#97B6D5",
-                "offsets": [10, 10],
                 "points": [
                     [0, 0], [24, 0], [24, 12], [18, 12], [18, 24], [6, 24], [6, 16], [6, 12], [0, 12]
                 ],
@@ -203,6 +209,12 @@
             ["y", "y"],
             ["z", "z"]
         ],
+        "BevelEdge": [
+            ["0", "Top Left"],
+            ["1", "Top Right"],
+            ["2", "Bottom Right"],
+            ["3", "Bottom Left"]
+        ],
         "DivisionType": [
             ["cyl", "Cylindrical"],
             ["", "None"],
@@ -240,19 +252,11 @@
             ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
             ["custom", "Custom"]
         ],
-        "BevelEdge": [
-            ["0", "Top Left"],
-            ["1", "Top Right"],
-            ["2", "Bottom Right"],
-            ["3", "Bottom Left"]
-        ],
-        "ObjectShape": [
-            ["cuboid", "Cuboid"],
-            ["tee", "Tee"]
-        ],
         "ObjectType": [
             ["box", "Cuboid"],
-            ["racetrack", "RaceTrack"]
+            ["gamma", "Gamma"],
+            ["racetrack", "RaceTrack"],
+            ["tee", "Tee"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -360,6 +364,10 @@
             "fileName": ["File Name", "String", ""],
             "type": ["_", "PathType", "file"]
         },
+        "gamma": {
+            "_super": ["_", "model", "stemmed"],
+            "type": ["_", "ObjectType", "gamma"]
+        },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "id": ["_", "UUID", ""],
@@ -384,7 +392,6 @@
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "type": ["Type", "ObjectType", "box"],
-            "shape": ["Shape", "ObjectShape", "cuboid"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
         "geomUndulatorGroup": {
@@ -404,7 +411,7 @@
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
             "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
-            "magnetShape": ["Shape", "ObjectShape", "cuboid"],
+            "magnetObjType": ["Shape", "ObjectType", "box"],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleBaseObjectId": ["_", "UUID", ""],
             "poleColor": ["Color", "Color", "#ff00ff"],
@@ -415,7 +422,7 @@
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleShape": ["Shape", "ObjectShape", "cuboid"],
+            "poleObjType": ["Shape", "ObjectType", "box"],
             "autoTerminate": ["Auto Terminate", "Boolean", "1", "When true, the undulator is terminated with a magnet block of half thickness immediately following the final period. Otherwise the termination must be specified."]
         },
         "invertField": {
@@ -462,9 +469,9 @@
         },
         "manualPath": {
             "_super": ["_", "model", "fieldPath"],
-            "ptX": ["x (mm)", "Float", 0.0],
-            "ptY": ["y (mm)", "Float", 0.0],
-            "ptZ": ["z (mm)", "Float", 0.0],
+            "ptX": ["x [mm]", "Float", 0.0],
+            "ptY": ["y [mm]", "Float", 0.0],
+            "ptZ": ["z [mm]", "Float", 0.0],
             "type": ["_", "PathType", "manual"]
         },
         "material": {
@@ -512,7 +519,9 @@
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
-            "magnetType": ["Magnet Type", "MagnetType", "freehand"]
+            "heightAxis": ["Height Axis", "BeamAxis", "y", "Height is measured along this axis. For undulators the gap is usually defined in this direction"],
+            "magnetType": ["Magnet Type", "MagnetType", "freehand"],
+            "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
         "solver":  {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
@@ -528,12 +537,21 @@
         },
         "spatialTransform": {
         },
+        "stemmed": {
+            "_super": ["_", "model", "geomObject"],
+            "armHeight": ["Arm Height [mm]", "Float", 1.0, "Height of the stem in gap direction"],
+            "stemWidth": ["Stem Width [mm]", "Float", 1.0, "Transverse width of the stem"]
+        },
         "symmetryTransform": {
             "_super": ["_", "model", "transform"],
             "name": ["Name", "String", "Symmetry"],
             "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
             "symmetryPoint": ["Symmetry Point", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
+        },
+        "tee": {
+            "_super": ["_", "model", "stemmed"],
+            "type": ["_", "ObjectType", "tee"]
         },
         "transform": {
             "id": ["_", "UUID", ""],
@@ -696,7 +714,7 @@
                     "periodLength"
                 ]],
                 ["Poles", [
-                    "poleShape",
+                    "poleObjType",
                     "poleCrossSection",
                     "poleLength",
                     "poleDivision",
@@ -707,7 +725,7 @@
                     "poleColor"
                 ]],
                 ["Permanent Magnets", [
-                    "magnetShape",
+                    "magnetObjType",
                     "magnetCrossSection",
                     "magnetLength",
                     "gapOffset",
@@ -786,13 +804,12 @@
         },
         "objectShape": {
             "title": "Object Shape Editor",
+            "model": "geomObject",
             "basic": [
-                "viewAxis",
-                "geomObject.bevels"
+                "bevels"
             ],
             "advanced": [
-                "viewAxis",
-                "geomObject.bevels"
+                "bevels"
             ]
         },
         "racetrack": {
@@ -870,7 +887,8 @@
                 "name",
                 "folder",
                 "magnetType",
-                "beamAxis"
+                "beamAxis",
+                "heightAxis"
             ]
         },
         "solver": {
