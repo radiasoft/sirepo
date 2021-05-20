@@ -1221,18 +1221,6 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
 });
 
 SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) {
-
-    let table = new SIREPO.DOM.UIElement('table', 'sr-bevel-table');
-    table.addClasses('table table-hover');
-    let newButton = new SIREPO.DOM.UIElement('button', 'sr-new-bevel', [
-        new SIREPO.DOM.UIAttribute('data-ng-click', 'addItem()')
-    ]);
-    newButton.addClasses('btn btn-info btn-xs pull-right');
-    newButton.setText('New Bevel ');
-    let p = new SIREPO.DOM.UIElement('span');
-    p.addClasses('glyphicon glyphicon-plus');
-    newButton.addChild(p);
-
     return {
         restrict: 'A',
         scope: {
@@ -1278,7 +1266,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 '</tr>',
             '</tbody>',
             '</table>',
-            newButton.toTemplate(),
+            '<button data-ng-click="addItem()" id="sr-new-bevel" class="btn btn-info btn-xs pull-right">New Bevel <span class="glyphicon glyphicon-plus"></span></button>',
         ].join(''),
         controller: function($scope, $element) {
             let isEditing = false;
