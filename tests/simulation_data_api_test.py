@@ -12,7 +12,7 @@ import pytest
 def test_get_beam_input_type(fc):
     from pykern import pkunit
     f = None
-    r = _do_simulation_db(fc, 'get_beam_input_type', PKDict(input_file=f))
+    r = _do_stateful_compute(fc, 'get_beam_input_type', PKDict(input_file=f))
     pkunit.pkeq(None, f)
 
 
@@ -34,12 +34,12 @@ def _do(fc, api, method, data):
     return fc.sr_post(api, data)
 
 
-def _do_simulation_db(fc, method, data):
+def _do_stateful_compute(fc, method, data):
     t = 'elegant'
     d = fc.sr_sim_data(sim_name='Backtracking', sim_type=t)
     return _do(
         fc,
-        'simulationDb',
+        'statefulCompute',
         method,
         PKDict(
             simulationId=d.models.simulation.simulationId,

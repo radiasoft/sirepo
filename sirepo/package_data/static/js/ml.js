@@ -334,7 +334,7 @@ SIREPO.app.controller('DataController', function (appState, panelState, requestS
         }
         dataFile.oldFile = dataFile.file;
         appState.saveQuietly('dataFile');
-        requestSender.sendSimulationDb(
+        requestSender.sendStatefulCompute(
             appState,
             {
                 method: 'compute_column_info',

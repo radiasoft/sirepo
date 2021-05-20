@@ -721,7 +721,7 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                 var tosca = getTosca();
                 if (tosca) {
                     //TODO(pjm): error message if zip file required and regular file supplied
-                    requestSender.sendSimulationDb(
+                    requestSender.sendStatefulCompute(
                         appState,
                         {
                             method: 'tosca_info',

@@ -38,7 +38,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def simulation_db_get_madx_sim_list(data):
+def stateful_compute_get_madx_sim_list(data):
     res = []
     for f in pkio.sorted_glob(
         _SIM_DATA.controls_madx_dir().join(
@@ -54,7 +54,7 @@ def simulation_db_get_madx_sim_list(data):
     return PKDict(simList=res)
 
 
-def simulation_db_get_external_lattice(data):
+def stateful_compute_get_external_lattice(data):
     return _get_external_lattice(data.simulationId)
 
 

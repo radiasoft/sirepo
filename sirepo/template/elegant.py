@@ -666,14 +666,6 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
-def simulation_db_get_beam_input_type(data):
-    if data.input_file:
-        data.input_type = _sdds_beam_type_from_file(
-            _SIM_DATA.lib_file_abspath(data.input_file),
-        )
-    return data
-
-
 def sim_frame(frame_args):
 
     def _id(file_id, model_data, run_dir):
@@ -696,6 +688,14 @@ def sim_frame(frame_args):
         frame_args,
         page_count=page_count,
     )
+
+
+def stateful_compute_get_beam_input_type(data):
+    if data.input_file:
+        data.input_type = _sdds_beam_type_from_file(
+            _SIM_DATA.lib_file_abspath(data.input_file),
+        )
+    return data
 
 
 def validate_file(file_type, path):

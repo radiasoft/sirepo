@@ -183,7 +183,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function dataFileChanged() {
-        requestSender.sendSimulationDb(
+        requestSender.sendStatefulCompute(
             appState,
             {
                 method: 'get_external_lattice',

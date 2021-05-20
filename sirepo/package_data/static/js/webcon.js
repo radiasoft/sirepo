@@ -176,7 +176,7 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
     }
 
     function updateAnalysisParameters() {
-        requestSender.sendSimulationDb(
+        requestSender.sendStatefulCompute(
             appState,
             {
                 method: 'column_info',

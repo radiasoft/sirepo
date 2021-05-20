@@ -135,7 +135,7 @@ def sim_frame(frame_args):
     return _fit_animation(frame_args)
 
 
-def simulation_db_compute_column_count(data):
+def stateful_compute_compute_column_count(data):
     return _compute_file_column_count(data.files)
 
 

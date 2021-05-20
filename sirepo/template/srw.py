@@ -389,33 +389,6 @@ def sim_frame(frame_args):
     )
 
 
-def simulation_db_compute_undulator_length(data):
-    return compute_undulator_length(data['tabulated_undulator'])
-
-
-def simulation_db_create_shadow_simulation(data):
-    from sirepo.template.srw_shadow_converter import SRWShadowConverter
-    return SRWShadowConverter().srw_to_shadow(data)
-
-
-def simulation_db_delete_user_models(data):
-    return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
-
-
-# TODO(e-carlin): Discuss with rn. This reads/writes lib files to user's lib dir.
-# Does that qualify as simulationDb?
-def simulation_db_model_list(data):
-    res = []
-    model_name = data['model_name']
-    if model_name == 'electronBeam':
-        res.extend(get_predefined_beams())
-    res.extend(_load_user_model_list(model_name))
-    if model_name == 'electronBeam':
-        for beam in res:
-            srw_common.process_beam_parameters(beam)
-    return PKDict(modelList=res)
-
-
 def import_file(req, tmp_dir, **kwargs):
     import sirepo.server
 
@@ -603,6 +576,33 @@ def python_source_for_model(data, model):
 
 def remove_last_frame(run_dir):
     pass
+
+
+def stateful_compute_compute_undulator_length(data):
+    return compute_undulator_length(data['tabulated_undulator'])
+
+
+def stateful_compute_create_shadow_simulation(data):
+    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    return SRWShadowConverter().srw_to_shadow(data)
+
+
+def stateful_compute_delete_user_models(data):
+    return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
+
+
+# TODO(e-carlin): Discuss with rn. This reads/writes lib files to user's lib dir.
+# Does that qualify as statefulCompute?
+def stateful_compute_model_list(data):
+    res = []
+    model_name = data['model_name']
+    if model_name == 'electronBeam':
+        res.extend(get_predefined_beams())
+    res.extend(_load_user_model_list(model_name))
+    if model_name == 'electronBeam':
+        for beam in res:
+            srw_common.process_beam_parameters(beam)
+    return PKDict(modelList=res)
 
 
 def stateless_compute_compute_PGM_value(data):

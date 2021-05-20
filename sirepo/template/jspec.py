@@ -246,7 +246,7 @@ def sim_frame_particleAnimation(frame_args):
     })
 
 
-def simulation_db_get_elegant_sim_list(data):
+def stateful_compute_get_elegant_sim_list(data):
     tp = _SIM_DATA.jspec_elegant_twiss_path()
     res = []
     for f in pkio.sorted_glob(

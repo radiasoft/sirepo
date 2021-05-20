@@ -371,7 +371,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.loadModelList = function(modelName, callback, sig) {
-        return requestSender.sendSimulationDb(
+        return requestSender.sendStatefulCompute(
             appState,
             {
                 method: 'model_list',
@@ -824,7 +824,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
-                requestSender.sendSimulationDb(appState, d, createNewSim);
+                requestSender.sendStatefulCompute(appState, d, createNewSim);
             };
         },
     };
@@ -1335,7 +1335,7 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     }
 
     function computeUndulatorLength() {
-        requestSender.sendSimulationDb(
+        requestSender.sendStatefulCompute(
             appState,
             {
                 method: 'compute_undulator_length',
@@ -1819,7 +1819,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
             $scope.deleteItem = function(item, $event) {
                 $event.stopPropagation();
                 $event.preventDefault();
-                requestSender.sendSimulationDb(
+                requestSender.sendStatefulCompute(
                     appState,
                     {
                         electron_beam: $scope.isElectronBeam() ? item : null,

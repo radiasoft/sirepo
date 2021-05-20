@@ -61,4 +61,4 @@ def _rpn_value(v):
     v.method = 'rpn_value'
     if 'variables' not in v:
         v.variables = []
-    return template_common.simulation_db_dispatch(v)
+    return template_common.stateful_compute_dispatch(v)

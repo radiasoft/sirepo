@@ -593,7 +593,7 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
             return;
         }
         if (appState.applicationState().dataSource.source == 'files') {
-            requestSender.sendSimulationDb(
+            requestSender.sendStatefulCompute(
                 appState,
                 {
                     method: 'compute_column_count',

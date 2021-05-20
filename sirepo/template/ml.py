@@ -140,10 +140,6 @@ def get_fft_report(run_dir, data):
     return w, plots, f'FFT', summaryData
 
 
-def simulation_db_compute_column_info(data):
-    return _compute_column_info(data.dataFile)
-
-
 def prepare_sequential_output_file(run_dir, data):
     report = data['report']
     if 'fileColumnReport' in report or 'partitionColumnReport':
@@ -276,6 +272,10 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
         _OUTPUT_FILE.logisticRegressionErrorFile,
         'C',
     )
+
+
+def stateful_compute_compute_column_info(data):
+    return _compute_column_info(data.dataFile)
 
 
 def write_parameters(data, run_dir, is_parallel):

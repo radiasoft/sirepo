@@ -2250,11 +2250,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 
     self.sendRpn = function(appState, data, callback) {
         data.variables = appState.models.rpnVariables;
-        self.sendSimulationDb(appState, data, callback);
+        self.sendStatefulCompute(appState, data, callback);
     };
 
-    self.sendSimulationDb = function(appState, data, callback) {
-        sendWithSimulationFields('simulationDb', appState, data, callback);
+    self.sendStatefulCompute = function(appState, data, callback) {
+        sendWithSimulationFields('statefulCompute', appState, data, callback);
     };
 
     self.sendStatelessCompute = function(appState, data, callback) {

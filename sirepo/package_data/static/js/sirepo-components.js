@@ -4184,7 +4184,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                 }
             };
             appState.whenModelsLoaded($scope, function() {
-                requestSender.sendSimulationDb(
+                requestSender.sendStatefulCompute(
                     appState,
                     {
                         method: 'get_' + $scope.code + '_sim_list'

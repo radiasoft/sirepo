@@ -571,7 +571,7 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
-def simulation_db_dispatch(data):
+def stateful_compute_dispatch(data):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
     if re.search(r'(?:^rpn|_rpn)_', m):
@@ -581,7 +581,7 @@ def simulation_db_dispatch(data):
         return data
     return getattr(
         t,
-        f'simulation_db_{m}',
+        f'stateful_compute_{m}',
     )(data)
 
 

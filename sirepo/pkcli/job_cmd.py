@@ -238,9 +238,9 @@ def _do_sequential_result(msg, template):
     return r
 
 
-def _do_simulation_db(msg, template):
+def _do_stateful_compute(msg, template):
     try:
-        return template_common.simulation_db_dispatch(msg.data)
+        return template_common.stateful_compute_dispatch(msg.data)
     except Exception as e:
         return _maybe_parse_user_alert(e)
 

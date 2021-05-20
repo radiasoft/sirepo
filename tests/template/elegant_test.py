@@ -43,7 +43,7 @@ def _elegant():
 def _expr(expr, expect, variables=None):
     from pykern.pkunit import pkok, pkfail
     from sirepo.template import template_common
-    res = template_common.simulation_db_dispatch(PKDict(
+    res = template_common.stateful_compute_dispatch(PKDict(
         method='rpn_value',
         simulationType='elegant',
         value=expr,

@@ -740,13 +740,6 @@ class _ComputeJob(PKDict):
     async def _receive_api_sbatchLogin(self, req):
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
-    async def _receive_api_simulationDb(self, req):
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd='simulation_db'
-        )
-
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
             sirepo.util.raise_not_found('invalid req={}', req)
@@ -755,6 +748,13 @@ class _ComputeJob(PKDict):
             job.OP_ANALYSIS,
             req,
             jobCmd='get_simulation_frame'
+        )
+
+    async def _receive_api_statefulCompute(self, req):
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='stateful_compute'
         )
 
     async def _receive_api_statelessCompute(self, req):
