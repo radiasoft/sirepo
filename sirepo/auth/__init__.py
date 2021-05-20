@@ -141,6 +141,14 @@ def complete_registration(name=None):
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
+def create_new_user(uid_generated_callback, module):
+    import sirepo.simulation_db
+    u = sirepo.simulation_db.user_create()
+    uid_generated_callback(u)
+    _create_roles_for_new_user(u, module.AUTH_METHOD)
+    return u
+
+
 def guest_uids():
     """All of the uids corresponding to guest users."""
     return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
@@ -241,9 +249,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             # This handles the case where logging in as guest, creates a user every time
             _login_user(module, uid)
         else:
-            import sirepo.simulation_db
-            uid = sirepo.simulation_db.user_create(lambda u: _login_user(module, u))
-            _create_roles_for_new_user(module.AUTH_METHOD)
+            uid = create_new_user(lambda u: _login_user(module, u), module)
         if model:
             model.uid = uid
             model.save()
@@ -495,19 +501,21 @@ def user_name():
     )
 
 
-def user_registration(uid):
+def user_registration(uid, display_name=None):
     """Get UserRegistration record or create one
 
     Args:
         uid (str): registrant
+        display_name (str): display_name of user
     Returns:
         auth.UserRegistration: record (potentially blank)
     """
     res = auth_db.UserRegistration.search_by(uid=uid)
     if not res:
         res = auth_db.UserRegistration(
-            uid=uid,
             created=datetime.datetime.utcnow(),
+            display_name=display_name,
+            uid=uid,
         )
         res.save()
     return res
@@ -605,9 +613,6 @@ def _auth_state():
         v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
-    # TODO(e-carlin): discuss with rn. Ok to leak uid on alpha? Could parse cookie...
-    # Not strictly necessary but I think makes debuggin easier by having the uid
-    # in the test_http logs
     if pkconfig.channel_in_internal_test():
         # useful for testing/debugging
         v.uid = u
@@ -615,10 +620,10 @@ def _auth_state():
     return v
 
 
-def _create_roles_for_new_user(method):
+def _create_roles_for_new_user(uid, method):
     r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
     if r:
-        auth_db.UserRole.add_roles(logged_in_user(), r)
+        auth_db.UserRole.add_roles(uid, r)
 
 
 def _get_user():
