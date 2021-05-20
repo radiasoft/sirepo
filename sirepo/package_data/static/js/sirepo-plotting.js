@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
+SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
@@ -809,7 +810,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 if (scaleFunction) {
                     yDomain = yDomain.map(scaleFunction);
                 }
-                else if (isZeroMin) {
+                else if (isZeroMin && SIREPO.PLOTTING_YMIN_ZERO) {
                     yDomain[0] = 0;
                 }
                 yScale.domain(yDomain).nice();
@@ -2802,7 +2803,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 var zmax = plotting.max2d(heatmap);
                 if ('z_range' in json) { zmin = json.z_range[0]; zmax = json.z_range[1]; }
                 scaleFunction = plotting.scaleFunction($scope.modelName);
-                if (zmin > 0 && ! scaleFunction) {
+                if (zmin > 0 && SIREPO.PLOTTING_YMIN_ZERO && ! scaleFunction) {
                     zmin = 0;
                 }
                 var domain = plotting.ensureDomain([zmin, zmax], scaleFunction);

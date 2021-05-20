@@ -6,109 +6,32 @@ u"""simulation data operations
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
+from sirepo.template import flash_parser
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.util
+import subprocess
 import zipfile
-
-
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+
+    SETUP_PARAMS_SCHEMA_FILE = 'setup_params.json'
+    _COMPILE_LOG = 'compile.log'
+    _SETUP_LOG = 'setup.log'
     _FLASH_EXE_PREFIX = 'flash_exe'
     _FLASH_FILE_NAME_SEP = '-'
-    _FLASH_SETUP_UNITS_PREFIX = 'setup_units'
 
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        for m in list(dm.keys()):
-            n = m
-            for x in (':', ''), ('magnetoHD', ''), ('CapLaser$', 'CapLaserBELLA'):
-                n = re.sub(x[0], x[1], n)
-            if m != n:
-                dm[n] = dm[m]
-                del dm[m]
-        cls.__fixup_old_data_problem_files(data)
-        cls.__fixup_old_data_setup_arguments(data)
-        cls.__fixup_old_data_one_dimension_profile_animation(data)
-        cls.__fixup_old_data_var_animation_axis(data)
-        cls._init_models(dm)
-        cls.__fixup_old_data_setup_config_directives(data)
-        cls.__fixup_old_data_setup_arguments_units(data)
-        if dm.simulation.flashType == 'CapLaser':
-            dm.simulation.flashType = 'CapLaserBELLA'
-        if dm.simulation.flashType == 'CapLaserBELLA':
-            dm.IO.update(
-                plot_var_5='magz',
-                plot_var_6='depo',
-            )
-            if not dm.Multispecies.ms_fillSpecies:
-                m = dm.Multispecies
-                m.ms_fillSpecies = 'hydrogen'
-                m.ms_wallSpecies = 'alumina'
-                m.eos_fillTableFile = 'helium-fill-imx.cn4'
-                m.eos_wallTableFile = 'alumina-wall-imx.cn4'
-                m.eos_fillSubType = 'ionmix4'
-                m.eos_wallSubType = 'ionmix4'
-                m = dm['physicsmaterialPropertiesOpacityMultispecies']
-                m.op_fillFileName = 'helium-fill-imx.cn4'
-                m.op_wallFileName  = 'alumina-wall-imx.cn4'
-                m.op_fillFileType = 'ionmix4'
-                m.op_wallFileType = 'ionmix4'
-        dm['physicssourceTermsEnergyDepositionLaser'].pkdel('ed_gridnAngularTics_1')
-        for n in 'currType', 'eosFill', 'eosWall':
-            dm.pkdel(f'SimulationCapLaserBELLA{n}')
-        m = dm.physicssourceTermsHeatexchange
-        if 'useHeatExchange' in m:
-            m.useHeatexchange = m.useHeatExchange
-            m.pkdel('useHeatExchange')
-        m = dm.gridEvolutionAnimation
-        if 'valueList' not in m:
-            m.valueList = PKDict()
-            for x in 'y1', 'y2', 'y3':
-                if dm.simulation.flashType in ('CapLaserBELLA', 'CapLaser3D'):
-                    m.valueList[x] = [
-                        'mass',
-                        'x-momentum',
-                        'y-momentum',
-                        'z-momentum',
-                        'E_total',
-                        'E_kinetic',
-                        'E_internal',
-                        'MagEnergy',
-                        'r001',
-                        'r002',
-                        'r003',
-                        'r004',
-                        'r005',
-                        'r006',
-                        'sumy',
-                        'ye',
-                    ]
-                elif dm.simulation.flashType == 'RTFlame':
-                    m.valueList[x] = [
-                        'mass',
-                        'x-momentum',
-                        'y-momentum',
-                        'z-momentum',
-                        'E_total',
-                        'E_kinetic',
-                        'E_turbulent',
-                        'E_internal',
-                        'Burned Mass',
-                        'dens_burning_ave',
-                        'db_ave samplevol',
-                        'Burning rate',
-                        'fspd to input_fspd ratio',
-                        'surface area flam=0.1',
-                        'surface area flam=0.5',
-                        'surface area flam=0.9',
-                    ]
+        for m in ('setupArguments', 'varAnimation'):
+            cls.update_model_defaults(dm[m], m)
 
     @classmethod
     def flash_exe_basename(cls, data):
@@ -123,13 +46,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             'source',
             'Simulation',
             'SimulationMain',
-            data.models.simulation.flashType,
+            cls.schema().constants.flashAppName,
             basename,
         )
-
-    @classmethod
-    def flash_setup_units_basename(cls, data):
-        return cls._flash_file_basename(cls._FLASH_SETUP_UNITS_PREFIX, data)
 
     @classmethod
     def proprietary_code_tarball(cls):
@@ -138,27 +57,47 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def proprietary_code_lib_file_basenames(cls):
         return [
-            'problemFiles-archive.CapLaser3D.zip',
-            'problemFiles-archive.CapLaserBELLA.zip',
+            # 'problemFiles-archive.CapLaser3D.zip',
+            # 'problemFiles-archive.CapLaserBELLA.zip',
             cls._flash_src_tarball_basename(),
         ]
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
+        if data.report == 'setupAnimation':
+            cls._flash_create_sim_files(data, run_dir)
+            return
         try:
             super().sim_files_to_run_dir(data, run_dir)
         except sirepo.sim_data.SimDbFileNotFound:
             cls._flash_create_sim_files(data, run_dir)
 
     @classmethod
+    def _add_default_views(cls, flashSchema):
+        flashSchema.view.Driver_DriverMain.basic = [
+            'tmax',
+            'dtinit',
+            # TODO(e-carlin):  IO may not be available
+            'IO_IOMain.plotFileIntervalTime',
+            'allowDtSTSDominate',
+        ]
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model == 'setupAnimation':
+            return analysis_model
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
+        if r == 'setupAnimation' or r == 'animation':
+            return ['setupConfigDirectives', 'setupArguments']
         return [r]
 
     @classmethod
     def _flash_create_sim_files(cls, data, run_dir):
         import sirepo.mpi
         import sirepo.template.flash
-        import subprocess
 
         subprocess.check_output(
             [
@@ -171,37 +110,60 @@ class SimData(sirepo.sim_data.SimDataBase):
             stderr=subprocess.STDOUT,
         )
         s = run_dir.join(cls.sim_type())
+        d = []
         if data.models.problemFiles.archive:
             for i, r in cls._flash_extract_problem_files_archive(
                     run_dir.join(cls._flash_problem_files_archive_basename(data)),
             ):
                 b = pkio.py_path(i.filename).basename
-                if not re.match(r'(\w+\.F90)|(Makefile)', b):
-                    continue
+                #TODO(pjm): zip file also includes required datafiles
+                # if not re.match(r'(\w+\.F90)|(Makefile)', b):
+                #     continue
                 p = cls.flash_simulation_unit_file_path(run_dir, data, b)
                 pkio.mkdir_parent_only(p)
                 pkio.write_text(p, r())
+                d.append(p.basename)
+        cls._flash_check_datafiles(data, d)
         sirepo.template.flash.generate_config_file(run_dir, data)
-        t = s.join(data.models.simulation.flashType)
-        with run_dir.join(template_common.COMPILE_LOG).open('w') as log:
-            k = PKDict(
-                check=True,
-                stdout=log,
-                stderr=log
-            )
-            c = sirepo.template.flash.setup_command(data)
-            pkdc('setup_command={}', ' '.join(c))
-            subprocess.run(c, cwd=s, **k)
-            subprocess.run(['make', f'-j{sirepo.mpi.cfg.cores}'], cwd=t, **k)
-        for c, b in PKDict(
-                # POSIT: values match cls._sim_file_basenames
-                flash4=cls.flash_exe_basename(data),
-                setup_units=cls.flash_setup_units_basename(data),
+        t = s.join(cls.schema().constants.flashAppName)
+        c = sirepo.template.flash.setup_command(data)
+        pkdc('setup_command={}', ' '.join(c))
+        cls._flash_run_command_and_parse_log_on_error(
+            c,
+            s,
+            cls._SETUP_LOG,
+            r'(.*PPDEFINE.*$)|(^\s+\*.*$(\n\w+.*)?)',
+        )
+        flash_schema = flash_parser.SetupParameterParser(
+            run_dir.join(cls.sim_type(), cls.schema().constants.flashAppName)
+        ).generate_schema()
+        cls._add_default_views(flash_schema)
+        pkio.write_text(
+            run_dir.join(cls.SETUP_PARAMS_SCHEMA_FILE),
+            pkjson.dump_pretty(PKDict(
+                flashSchema=flash_schema,
+            ))
+        )
+        datafiles = flash_schema.enum.SetupDatafiles
+        cls._flash_run_command_and_parse_log_on_error(
+            ['make', f'-j{sirepo.mpi.cfg.cores}'],
+            t,
+            cls._COMPILE_LOG,
+            r'^(?:Error): (.*)',
+        )
+        for c, b in PKDict({
+            v: v for v in [f[0] for f in datafiles]
+        }).pkupdate(
+            # POSIT: values match cls._sim_file_basenames
+            flash4=cls.flash_exe_basename(data),
         ).items():
             p = t.join(c)
             cls.delete_sim_file(cls._flash_file_prefix(b), data)
             cls.put_sim_file(p, b, data)
-            p.move(run_dir.join(b))
+            if p.check(link=1):
+                p.copy(run_dir.join(b))
+            else:
+                p.move(run_dir.join(b))
 
     @classmethod
     def _flash_extract_problem_files_archive(cls, path):
@@ -229,7 +191,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ),
             )]
         return sirepo.util.url_safe_hash(str((
-            data.models.simulation.flashType,
+            data.models.simulation.name,
             data.models.setupArguments,
             f,
             list(map(_remove_value_key, data.models.setupConfigDirectives)),
@@ -248,99 +210,83 @@ class SimData(sirepo.sim_data.SimDataBase):
        )
 
     @classmethod
+    def _flash_run_command_and_parse_log_on_error(
+            cls,
+            command,
+            work_dir,
+            log_file,
+            regex,
+    ):
+        p = pkio.py_path(log_file)
+        with pkio.open_text(p.ensure(), mode='r+') as l:
+            try:
+                subprocess.run(
+                    command,
+                    check=True,
+                    cwd=work_dir,
+                    stderr=l,
+                    stdout=l,
+                )
+            except subprocess.CalledProcessError as e:
+                l.seek(0)
+                c = l.read()
+                m = [x.group().strip() for x in re.finditer(
+                    regex,
+                    c,
+                    re.MULTILINE,
+                )]
+                if m:
+                    r = '\n'.join(m)
+                else:
+                    r = c.splitlines()[-1]
+                raise sirepo.util.UserAlert(
+                    r,
+                    '{}',
+                    e
+                )
+
+    @classmethod
     def _flash_src_tarball_basename(cls):
         return 'flash.tar.gz'
 
     @classmethod
-    def _get_example_for_flash_type(cls, flash_type):
-        for e in sirepo.simulation_db.examples(cls.sim_type()):
-            if e.models.simulation.flashType == flash_type:
-                return e
-        raise AssertionError(f'no example with flash_type={flash_type}')
+    def _flash_check_datafiles(cls, data, filenames):
+        e = []
+        for d in data.models.setupConfigDirectives:
+            if d._type != 'DATAFILES':
+                continue
+            if '*' in d.wildcard:
+                search = re.sub(r'\*', '.*', d.wildcard)
+                found = False
+                for fn in filenames:
+                    if re.search(rf'{search}', fn):
+                        found = True
+                        break
+                if not found:
+                    e.append(d.wildcard)
+            elif d.wildcard not in filenames:
+                e.append(d.wildcard)
+        if e:
+            zipname = data.models.problemFiles.archive
+            names = ', '.join(e)
+            raise sirepo.util.UserAlert(
+                f'Zip Archive {zipname} is missing required DATAFILES {names}'
+            )
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        t = data.models.simulation.flashType
         r = [cls._flash_src_tarball_basename()]
         if data.models.problemFiles.archive:
             r.append(cls._flash_problem_files_archive_basename(data))
-        if t == 'RTFlame':
-            return r + ['helm_table.dat']
-        if 'CapLaser' in t:
-            r.extend([
-                'alumina-wall-imx.cn4',
-                'argon-fill-imx.cn4',
-                'helium-fill-imx.cn4',
-                'hydrogen-fill-imx.cn4',
-            ])
-            if t == 'CapLaserBELLA'  and data.models['SimulationCapLaserBELLA'].sim_currType == '2':
-                r.append(cls.lib_file_name_with_model_field(
-                    'SimulationCapLaserBELLA',
-                    'sim_currFile',
-                    data.models['SimulationCapLaserBELLA'].sim_currFile,
-                ))
-            return r
-        raise AssertionError('invalid flashType: {}'.format(t))
+        return r
 
     @classmethod
     def _sim_file_basenames(cls, data):
+        datafiles = data.models.flashSchema.enum.SetupDatafiles
         return [
             PKDict(basename=cls.flash_exe_basename(data), is_exe=True),
-            PKDict(basename=cls.flash_setup_units_basename(data)),
+        ] + [
+            PKDict({
+                'basename': v,
+            })  for v in [f[0] for f in datafiles]
         ]
-
-    @classmethod
-    def __fixup_old_data_one_dimension_profile_animation(cls, data):
-        dm = data.models
-        if 'oneDimensionProfileAnimation' in dm:
-            return
-        dm.oneDimensionProfileAnimation = cls._get_example_for_flash_type(
-            dm.simulation.flashType,
-        ).models.oneDimensionProfileAnimation
-
-    @classmethod
-    def __fixup_old_data_problem_files(cls, data):
-        dm = data.models
-        if 'problemFiles' in dm:
-            return
-        f = None
-        t = dm.simulation.flashType
-        if 'CapLaser' in t:
-            f = f'{t}.zip'
-        dm.problemFiles = PKDict(archive=f)
-
-    @classmethod
-    def __fixup_old_data_setup_arguments(cls, data):
-        dm = data.models
-        if 'setupArguments' in dm:
-            return
-        dm.setupArguments = cls._get_example_for_flash_type(
-            dm.simulation.flashType,
-        ).models.setupArguments
-
-    @classmethod
-    def __fixup_old_data_setup_arguments_units(cls, data):
-        if 'units' not in data.models.setupArguments:
-            return
-        i = max([d._id for d in data.models.setupConfigDirectives]) + 1
-        for u in data.models.setupArguments.pkdel('units', []):
-            data.models.setupConfigDirectives.append(PKDict(
-                _id=i,
-                _type="REQUIRES",
-                unit=u
-            ))
-            i += 1
-
-    @classmethod
-    def __fixup_old_data_setup_config_directives(cls, data):
-        if 'setupConfigDirectives'  in data.models:
-            return
-        e = cls._get_example_for_flash_type(data.models.simulation.flashType)
-        data.models.setupConfigDirectives = e.models.setupConfigDirectives
-
-    @classmethod
-    def __fixup_old_data_var_animation_axis(cls, data):
-        if 'axis' in data.models.varAnimation:
-            return
-        e = cls._get_example_for_flash_type(data.models.simulation.flashType)
-        data.models.varAnimation.axis = e.models.varAnimation.axis

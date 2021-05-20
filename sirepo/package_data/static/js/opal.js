@@ -673,39 +673,77 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, plotting, utilities) {
+SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, vtkPlotting, vtkToPNG) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
             reportId: '<',
         },
-        template: [
-            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
-              '<div class="sr-plot vtk-canvas-holder"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="row">
+              <div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj"></div>
+              </div>
+            </div>`,
         controller: function($scope, $element) {
-            let data, fsRenderer, orientationMarker;
+            let data, pngCanvas, renderer, renderWindow, vtkAPI;
 
-            // use function in vtk ScalarsToColors if it become public
-            function floatColorToUChar(c) {
-                return Math.floor(c * 255.0 + 0.5);
+            function createAxes(ranges) {
+                const pb = renderer.computeVisiblePropBounds();
+                const padPct = 0.1;
+                const bndBox = vtkPlotting.coordMapper().buildBox(
+                    [
+                        Math.abs(pb[1] - pb[0]),
+                        Math.abs(pb[3] - pb[2]),
+                        Math.abs(pb[5] - pb[4])
+                    ].map(function (c) {
+                        return (1 + padPct) * c;
+                    }),
+                    [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
+                bndBox.actor.getProperty().setRepresentationToWireframe();
+                renderer.addActor(bndBox.actor);
+
+                $scope.axisObj = vtkPlotting.vpBox(bndBox.source, renderer);
+                $scope.axisObj.initializeWorld({});
+
+                $scope.axisCfg = {};
+                geometry.basis.forEach((dim, idx) => {
+                    $scope.axisCfg[dim] = {
+                        label: dim + ' [m]',
+                        max: ranges[idx][dim == 'z' ? 0 : 1],
+                        min: ranges[idx][dim == 'z' ? 1 : 0],
+                        numPoints: 2,
+                        screenDim: dim == 'x' ? 'y' : 'x',
+                        showCentral: dim === appState.models.simulation.beamAxis,
+                    };
+                });
+            }
+
+            function getRanges(points) {
+                const ranges = [
+                    [points[0], points[0]],
+                    [points[1], points[1]],
+                    [points[2], points[2]],
+                ];
+                for (let i = 3; i < points.length; i += 1) {
+                    const r = ranges[i % 3];
+                    const v = points[i];
+                    if (v < r[0]) {
+                        r[0] = v;
+                    }
+                    else if (v > r[1]) {
+                        r[1] = v;
+                    }
+                }
+                return ranges;
             }
 
             function getVtkElement() {
                 return $($element).find('.vtk-canvas-holder');
             }
 
-            function polyActor(polyData) {
-                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                let actor = vtk.Rendering.Core.vtkActor.newInstance();
-                mapper.setInputData(polyData);
-                actor.setMapper(mapper);
-                return actor;
-            }
-
-            function refresh(resetCamera) {
+            function buildScene() {
                 removeActors();
                 let pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(new window.Float32Array(data.points), 3);
@@ -723,55 +761,66 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, utilities) {
                 let actor = vtk.Rendering.Core.vtkActor.newInstance();
                 mapper.setInputData(pd);
                 actor.setMapper(mapper);
-                fsRenderer.getRenderer().addActor(actor);
-                let renderer = fsRenderer.getRenderer();
-                if (resetCamera) {
-                    let camera = renderer.get().activeCamera;
-                    camera.setPosition(0, 1, 0);
-                    camera.setFocalPoint(0, 0, 0);
-                    camera.setViewUp(1, 0, 0);
-                    renderer.resetCamera();
-                    orientationMarker.updateMarkerOrientation();
+                renderer.addActor(actor);
+                createAxes(getRanges(data.points));
+                vtkAPI.showSide('y');
+                pngCanvas.copyCanvas();
+
+                if ($scope.axisObj) {
+                    panelState.waitForUI(() => {
+                        $scope.$broadcast('axes.refresh');
+                    });
                 }
-                fsRenderer.getRenderWindow().render();
             }
 
             function removeActors() {
-                let renderer = fsRenderer.getRenderer();
-                renderer.getActors().forEach((actor) => renderer.removeActor(actor));
+                renderer.getActors().forEach(actor => renderer.removeActor(actor));
             }
 
-            $scope.destroy = function() {
+            $scope.destroy = () => {
                 getVtkElement().off();
-                fsRenderer.getInteractor().unbindEvents();
-                fsRenderer.delete();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+                pngCanvas.destroy();
             };
 
-            $scope.init = function() {
-                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-                let rw = getVtkElement();
-                rw.on('dblclick', () => refresh(true));
-                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-                    background: [1, 1, 1],
-                    container: rw[0],
-                });
-                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+            $scope.init = $scope.resize = () => {};
+
+            $scope.$on('vtk-init', (e, d) => {
+                renderer = d.objects.renderer;
+                renderWindow = d.objects.window;
+                vtkAPI = d.api;
+                vtkAPI.axisDirs.y.camViewUp = [1, 0, 0];
+                vtkAPI.resetSide = 'y';
+                const orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
                     actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
-                    interactor: fsRenderer.getInteractor()
+                    interactor: renderWindow.getInteractor()
                 });
-                orientationMarker.setEnabled(true);
                 orientationMarker.setViewportCorner(
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
-            };
+                vtkAPI.setMarker(orientationMarker);
+                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, d.objects.fsRenderer, $element);
+                if (data) {
+                    buildScene();
+                }
+            });
 
-            $scope.load = function(json) {
+            $scope.load = (json) => {
                 data = json;
-                refresh(true);
+                if (renderer) {
+                    buildScene();
+                }
             };
 
-            $scope.resize = refresh;
+            $scope.vtkCanvasGeometry = () => {
+                const vtkCanvasHolder = getVtkElement();
+                return {
+                    pos: vtkCanvasHolder.position(),
+                    size: {
+                        width: vtkCanvasHolder.width(),
+                        height: vtkCanvasHolder.height()
+                    }
+                };
+            };
         },
         link: function link(scope, element) {
             plotting.vtkPlot(scope, element);

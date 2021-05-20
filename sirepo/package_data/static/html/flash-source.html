@@ -1,16 +1,13 @@
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-6" data-ng-if="source.flashService.isFlashType('RTFlame')">
-      <div data-basic-editor-panel="" data-view-name="SimulationRTFlame"></div>
-    </div>
-    <div class="col-md-6" data-ng-if="source.flashService.isFlashType('CapLaserBELLA')">
-      <div data-basic-editor-panel="" data-view-name="SimulationCapLaserBELLA"></div>
-    </div>
-    <div class="col-md-6" data-ng-if="source.flashService.isFlashType('CapLaser3D')">
-      <div data-basic-editor-panel="" data-view-name="SimulationCapLaser3D"></div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="Simulation_SimulationMain_flashApp"></div>
     </div>
     <div class="col-md-6">
-      <div data-basic-editor-panel="" data-view-name="Grid"></div>
+      <div data-basic-editor-panel="" data-view-name="Grid_GridMain"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="appState.models.Multispecies_MultispeciesMain">
+      <div data-basic-editor-panel="" data-view-name="Multispecies_MultispeciesMain"></div>
     </div>
   </div>
 </div>

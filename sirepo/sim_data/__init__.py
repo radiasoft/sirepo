@@ -336,7 +336,7 @@ class SimDataBase(object):
         Returns:
             str: basename without type prefix
         """
-        return re.sub(r'^.*?-.*?\.', '', basename)
+        return re.sub(r'^.*?-.*?\.(.+\..+)$', r'\1', basename)
 
     @classmethod
     def lib_file_resource_dir(cls):
