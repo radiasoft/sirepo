@@ -269,32 +269,6 @@ class UIInput extends UIElement {
     }
 }
 
-
-class UIIntegerInput extends UIInput {
-    constructor(id, min, max, initVal, attrs) {
-        super(id, 'number', initVal, attrs);
-        this.addAttribute('min', min);
-        this.addAttribute('max', max);
-        this.addAttribute('step', 1);
-        this.addAttribute('value', Math.max(Math.min(initVal, max), min));
-    }
-
-    getValue() {
-        return parseInt(super.getValue());
-    }
-}
-
-class UIFloatInput extends UIInput {
-    constructor(id, initVal, attrs) {
-        super(id, 'text', initVal, attrs);
-    }
-
-    getValue() {
-        return parseFloat(super.getValue());
-    }
-}
-
-
 class UIEnum extends UIInput {
     static ENUM_LAYOUT_PROPS() {
         return {
@@ -642,9 +616,7 @@ SIREPO.DOM = {
     UIElement: UIElement,
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
-    UIFloatInput: UIFloatInput,
     UIInput: UIInput,
-    UIIntegerInput: UIIntegerInput,
     UIRawHTML: UIRawHTML,
     UISelect: UISelect,
     UISelectOption: UISelectOption,
