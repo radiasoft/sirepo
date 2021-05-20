@@ -245,6 +245,7 @@
             "documentationUrl": "",
             "enableKickMaps": "1",
             "folder": "/Examples",
+            "heightAxis": "z",
             "isExample": true,
             "magnetType": "undulator",
             "name": "Undulator",
