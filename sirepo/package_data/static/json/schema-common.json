@@ -451,7 +451,6 @@
                 "css": ["sirepo.css"]
             }
         },
-        "snippets": [],
         "strings": {
             "completionState": ": {frameCount} animation frames",
             "genericSimulationError": "Error encountered during {typeOfSimulation}",

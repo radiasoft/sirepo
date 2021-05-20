@@ -254,8 +254,6 @@ def get_schema(sim_type):
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    _set_snippet_paths(schema)
-
     for item in [
             'appDefaults',
             'appModes',
@@ -957,14 +955,6 @@ def _merge_subclasses(schema, item):
         _unnest_subclasses(schema, item, m, subclasses)
         for s in subclasses:
             _merge_dicts(item_schema[s], model)
-
-
-def _set_snippet_paths(schema):
-    if 'snippets' not in schema:
-        schema.snippets = []
-    schema.snippets.extend(schema.common.snippets)
-    for s in schema.snippets:
-        s.path = _pkg_relative_path_static(s.fileType, s.src)
 
 
 def _unnest_subclasses(schema, item, key, subclass_keys):
