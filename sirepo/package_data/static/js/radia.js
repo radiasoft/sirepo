@@ -1306,24 +1306,10 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 return $scope.selectedItem;
             };
 
-            $scope.itemDetails = function(item) {
-                let res = '';
-                var info = appState.modelInfo(item.model);
-                var d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
-                d.forEach(function (f, i) {
-                    var fi = info[f];
-                    var val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
-                    res += (fi[0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
-                });
-                return res;
-            };
-
-
             $scope.loadItems = function() {
                 $scope.items = $scope.field;
                 return $scope.items;
             };
-
 
             appState.whenModelsLoaded($scope, function() {
 
@@ -1346,17 +1332,6 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                         return;
                     }
                     appState.removeModel(name);
-                });
-
-                $scope.$on('$destroy', function () {
-                });
-
-                $scope.$watch($scope.modelName, function () {
-                    //srdbg('watch saw', $scope.modelName);
-                });
-
-                $scope.$watch('items', function () {
-                    //srdbg('watch saw', $scope.items);
                 });
 
                 $scope.loadItems();

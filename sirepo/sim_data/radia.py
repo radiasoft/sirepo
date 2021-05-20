@@ -57,6 +57,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Pole').id
             if not dm.simulation.get('heightAxis'):
                 dm.simulation.heightAxis = 'z'
+        for o in dm.geometry.objects:
+            if not o.get('bevels'):
+                o.bevels = []
         sch = cls.schema()
         for m in [m for m in dm if m in sch.model]:
             s_m = sch.model[m]
