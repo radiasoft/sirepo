@@ -176,30 +176,12 @@ def api_simulationFrame(frame_id):
 
 @api_perm.require_user
 def api_statefulCompute():
-    return _request(
-        jobRunMode=sirepo.job.SEQUENTIAL,
-        req_data=PKDict(
-            **sirepo.http_request.parse_post().req_data,
-        ).pkupdate(
-            computeJobHash='unused',
-            report='statefulCompute',
-        ),
-        runDir=None,
-    )
+    return _request_compute()
 
 
 @api_perm.require_user
 def api_statelessCompute():
-    return _request(
-        jobRunMode=sirepo.job.SEQUENTIAL,
-        req_data=PKDict(
-            **sirepo.http_request.parse_post().req_data,
-        ).pkupdate(
-            computeJobHash='unused',
-            report='statelessCompute',
-        ),
-        runDir=None,
-    )
+    return _request_compute()
 
 
 def init_apis(*args, **kwargs):
@@ -239,6 +221,19 @@ def _request(**kwargs):
     )
     r.raise_for_status()
     return pkjson.load_any(r.content)
+
+
+def _request_compute():
+    return _request(
+        jobRunMode=sirepo.job.SEQUENTIAL,
+        req_data=PKDict(
+            **sirepo.http_request.parse_post().req_data,
+        ).pkupdate(
+            computeJobHash='unused',
+            report='statefulOrStatelessCompute',
+        ),
+        runDir=None,
+    )
 
 
 def _request_content(kwargs):
