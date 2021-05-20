@@ -6,8 +6,6 @@ u"""simulation data operations
 """
 from __future__ import absolute_import, division, print_function
 
-import uuid
-
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data

@@ -89,7 +89,7 @@
         },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
-        "rawExamples": ["Dipole", "SAGU", "Wiggler"],
+        "rawExamples": ["Dipole", "Wiggler"],
         "toolbarItems": [
             {
                 "canDrag": true,
