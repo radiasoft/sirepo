@@ -3713,6 +3713,18 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
 });
 
+SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
+
+    $scope.modelData = appState.models[$scope.modelName];
+    
+    return {
+        getBaseObject: function() {
+            return $scope.modelData;
+        },
+    };
+});
+
+
 SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
 
     $scope.watchFields = [

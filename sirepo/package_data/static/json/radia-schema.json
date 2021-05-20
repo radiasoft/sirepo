@@ -675,6 +675,7 @@
             "advanced": [
                 ["Main", [
                     "name",
+                    "type",
                     "magnetization",
                     "remanentMag",
                     "material",
