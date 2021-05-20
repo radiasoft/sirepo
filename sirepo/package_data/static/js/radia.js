@@ -3744,11 +3744,8 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     };
 
     function modelField(f) {
-        let mf = f.split('.');
-        return [
-            mf.length > 1 ? mf[0] : $scope.$parent.modelName,
-            mf.length > 1 ? mf[1] : f
-        ];
+        let mf = appState.parseModelField(f);
+        return mf ? mf : [$scope.$parent.modelName, f];
     }
 
 });
