@@ -112,6 +112,12 @@ with open('{{ summaryCSV }}', 'w') as f:
 res = _optimize_nelder_mead({{ correctorCount }})
 {% elif optimizerSettings_method == 'polyfit' %}
 res = _optimize_polyfit({{ correctorCount }})
+{% elif optimizerSettings_method == 'runOnce' %}
+res = {
+    'message': '',
+    'success': True,
+    'result': update_and_run_simulation(np.zeros({{correctorCount}})),
+}
 {% else %}
 raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))
 {% endif %}

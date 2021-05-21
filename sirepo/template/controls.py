@@ -130,6 +130,8 @@ def _generate_parameters_file(data):
     _generate_madx(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
+    if data.get('report') == 'initialMonitorPositionsReport':
+        v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 

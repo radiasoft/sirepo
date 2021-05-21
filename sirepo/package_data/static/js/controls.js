@@ -143,6 +143,22 @@ SIREPO.app.factory('controlsService', function(appState) {
 
     self.latticeModels = () => appState.models.externalLattice.models;
 
+    self.noOptimizationRunning = () => {
+        return appState.models.simulationStatus
+            && appState.models.simulationStatus.animation
+            && ['pending', 'running'].indexOf(
+                appState.models.simulationStatus.animation.state
+            ) < 0;
+    }
+
+    self.setReadoutTableActive = (setActive) => {
+        const p = 'sr-readout-table';
+        const t = $('#' + p);
+        const c = setActive ? ['active', 'idle'] : ['idle', 'active']
+        t.addClass(`${p}-${c[0]}`);
+        t.removeClass(`${p}-${c[1]}`);
+    };
+
     appState.setAppService(self);
     return self;
 });
@@ -151,6 +167,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     const self = this;
     self.appState = appState;
     self.simScope = $scope;
+    self.srReadoutTableOvservers = [];
 
     function buildWatchColumns() {
         self.watches = [];
@@ -193,7 +210,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             $.extend(appState.models.command_beam, findExternalCommand('beam'));
             appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice', 'optimizerSettings']);
             computeCurrent();
-            appState.saveChanges('externalLattice');
+            appState.saveChanges('externalLattice', getInitialMonitorPositions);
         });
     }
 
@@ -217,6 +234,33 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             throw new Error(`model not found for ${key}: ${value}`);
         }
         return res;
+    }
+
+    function getInitialMonitorPositions() {
+        const o = new MutationObserver(function (mutations) {
+            $('#sr-readout-table').length && controlsService.setReadoutTableActive(true);
+        });
+        self.srReadoutTableOvservers.push(o)
+        o.observe(document, {
+        childList: true,
+        subtree: true
+        })
+
+        panelState.clear('initialMonitorPositionsReport');
+        panelState.requestData('initialMonitorPositionsReport', (data) => {
+            self.srReadoutTableOvservers.forEach((o) => o.disconnect());
+            controlsService.setReadoutTableActive(false);
+            handleElementValues(data);
+        });
+    }
+
+    function handleElementValues(data) {
+        if (! data.elementValues) {
+            return;
+        }
+        frameCache.setFrameCount(1);
+        updateKickers(data.elementValues);
+        $scope.$broadcast('sr-elementValues', data.elementValues);
     }
 
     function modelDataForElement(element) {
@@ -276,14 +320,13 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.init = () => {
         if (! self.simState) {
             self.simState = persistentSimulation.initSimulationState(self);
+            getInitialMonitorPositions();
         }
     };
 
     self.simHandleStatus = data => {
         if (data.elementValues) {
-            frameCache.setFrameCount(1);
-            updateKickers(data.elementValues);
-            $scope.$broadcast('sr-elementValues', data.elementValues);
+            handleElementValues(data);
         }
         if (! self.simState.isProcessing()) {
             $scope.$broadcast('sr-latticeUpdateComplete');
@@ -308,7 +351,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     windowResize();
     $scope.$on('sr-window-resize', windowResize);
     $scope.$on('modelChanged', saveLattice);
-
     $scope.$on('cancelChanges', function(e, name) {
         if (name == name.toUpperCase()) {
             appState.removeModel(name);
@@ -862,8 +904,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
             });
 
             $scope.$on('sr-clearElementValues', () => {
-                readoutTable.removeClasses('sr-readout-table-idle');
-                readoutTable.addClasses('sr-readout-table-active');
+                controlsService.setReadoutTableActive(true);
             });
             $scope.$on('sr-elementValues', updateReadoutElements);
             $scope.$on('sr-latticeUpdateComplete', () => {

@@ -108,6 +108,7 @@
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
         },
+        "initialMonitorPositionsReport": {},
         "optimizerSettings": {
             "method": ["Optimization Method", "OptimizationMethod", "nmead"]
         },
@@ -209,6 +210,10 @@
             "basic": [
                 "madxSirepo"
             ],
+            "advanced": []
+        },
+        "initialMonitorPositionsReport": {
+            "title": "",
             "advanced": []
         },
         "simulationStatus": {
