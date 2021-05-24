@@ -551,7 +551,7 @@ def api_staticFile(path_info=None):
             ),
             path=p,
         )
-    if re.match(r'^html/[^/]+html$', path_info):
+    if re.match(r'^(html|en)/[^/]+html$', path_info):
         return http_reply.render_html(p)
     return flask.send_file(p, conditional=True)
 
