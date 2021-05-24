@@ -30,6 +30,9 @@ def _add_object(o, radia_objs, id_map):
         m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
         div = sirepo.util.split_comma_delimited_string(o.division, int)
         g_id = radia_util.build_cuboid(ctr, sz, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
+        if o.get('bevels'):
+            for b in o.bevels:
+                g_id = radia_util.apply_bevel(g_id, {{ beam_dir }}, {{ height_dir }}, {{ width_dir }}, ctr, sz, PKDict(b))
         if o.color:
             radia_util.apply_color(
                 g_id,

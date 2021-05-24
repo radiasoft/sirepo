@@ -177,7 +177,8 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
     $sanitizeProvider.enableSvg(true);
-    $sanitizeProvider.addValidAttrs(['id', 'style']);
+    $sanitizeProvider.addValidAttrs(['id', 'label', 'style']);
+    $sanitizeProvider.addValidElements(['select', 'option']);
     SIREPO.appFieldEditors = '';
 
     function addRoute(routeName) {
@@ -1587,6 +1588,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.isRunning = function(name) {
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
+    };
+
+    self.isSubclass = function(model1, model2) {
+        const m1 = SIREPO.APP_SCHEMA.model[model1];
+        if (! m1._super) {
+            return false;
+        }
+        return m1._super.indexOf(model2) >= 0;
     };
 
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {

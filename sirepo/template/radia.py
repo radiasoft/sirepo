@@ -263,7 +263,7 @@ def new_simulation(data, new_simulation_data):
     beam_axis = new_simulation_data.beamAxis
     #TODO(mvk): dict of magnet types to builder methods
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        _build_undulator(data.models.geometry, beam_axis)
+        _build_undulator_objects(data.models.geometry, data.models.hybridUndulator, beam_axis)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
             beam_axis
@@ -427,14 +427,14 @@ def _build_field_circle_pts(f_path):
 
 
 def _build_geom_obj(model_name, obj_name=None, obj_color=None):
-    o_id = str(uuid.uuid4())
     o = PKDict(
-        name=obj_name if obj_name else f'{model_name}.{o_id}',
+        name=obj_name,
         model=model_name,
-        id=o_id,
         color=obj_color,
     )
     _SIM_DATA.update_model_defaults(o, model_name)
+    if not o.name:
+        o.name = f'{model_name}.{o.id}'
     return o
 
 
@@ -457,7 +457,7 @@ def _build_translate_clone(dist):
     return tx
 
 
-def _build_undulator(geom, beam_axis):
+def _build_undulator_objects(geom, und, beam_axis):
 
     # arrange objects
     geom.objects = []
@@ -465,8 +465,12 @@ def _build_undulator(geom, beam_axis):
     geom.objects.append(half_pole)
     magnet_block = _build_cuboid(name='Magnet Block')
     geom.objects.append(magnet_block)
+    und.magnet = magnet_block
+    und.magnetBaseObjectId = magnet_block.id
     pole = _build_cuboid(name='Pole')
     geom.objects.append(pole)
+    und.pole = pole
+    und.poleBaseObjectId = pole.id
     mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
     geom.objects.append(mag_pole_grp)
     magnet_cap = _build_cuboid(name='End Block')
@@ -486,7 +490,6 @@ def _build_field_axis(length, beam_axis):
     f = PKDict(
         begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
         end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
-        id=str(uuid.uuid4()),
         name=f'{beam_axis} axis',
         numPoints=round(length / 2) + 1
     )
@@ -623,6 +626,13 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.exampleName = data.models.simulation.get('exampleName', None)
     v.is_raw = v.exampleName in _SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
+    wd, hd, bd = _geom_directions(
+        data.models.simulation.beamAxis,
+        data.models.hybridUndulator.gapAxis if v.magnetType == 'undulator' else 'y'
+    )
+    v.width_dir = wd.tolist()
+    v.height_dir = hd.tolist()
+    v.beam_dir = bd.tolist()
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
     v.objects = g.get('objects', [])
@@ -680,6 +690,17 @@ def _generate_parameters_file(data, is_parallel, for_export):
         j_file,
         jinja_env=PKDict(loader=jinja2.PackageLoader('sirepo', 'template'))
     )
+
+
+def _geom_directions(beam_axis, vert_axis):
+    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    if not vert_axis or vert_axis == beam_axis:
+        vert_axis = _GAP_AXIS_MAP[beam_axis]
+    vert_dir = numpy.array(_BEAM_AXIS_VECTORS[vert_axis])
+
+    # we don't care about the direction of the cross product
+    width_dir = abs(numpy.cross(beam_dir, vert_dir))
+    return width_dir, vert_dir, beam_dir
 
 
 def _geom_file(sim_id):
@@ -779,7 +800,6 @@ def _parse_input_file_arg_str(s):
 
 def _prep_new_sim(data):
     data.models.geometry.name = data.models.simulation.name
-    data.models.geometry.id = str(uuid.uuid4())
 
 
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
@@ -1010,15 +1030,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
-    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
-    # assign a valid gap direction if the user provided an invalid one
-    if und.gapAxis == beam_axis:
-        und.gapAxis = _GAP_AXIS_MAP[beam_axis]
-    gap_dir = numpy.array(_BEAM_AXIS_VECTORS[und.gapAxis])
-
-    # we don't care about the direction of the cross product
-    width_dir = abs(numpy.cross(beam_dir, gap_dir))
-
+    width_dir, gap_dir, beam_dir = _geom_directions(beam_axis, und.gapAxis)
     dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
 
     pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
@@ -1086,6 +1098,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetRemanentMag,
         und.magnetColor
     )
+    und.magnetBaseObjectId = magnet_block.id
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
@@ -1099,6 +1112,9 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleRemanentMag,
         und.poleColor
     )
+    und.poleBaseObjectId = pole.id
+    if pole.bevels:
+        half_pole.bevels = pole.bevels.copy()
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
     mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
@@ -1122,6 +1138,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetRemanentMag,
         und.magnetColor
     )
+    if magnet_block.bevels:
+        magnet_cap.bevels = magnet_block.bevels.copy()
 
     oct_grp = _find_obj_by_name(geom.objects, 'Octant')
     oct_grp.transforms = [
