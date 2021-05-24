@@ -1248,6 +1248,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
     return {
         restrict: 'A',
         scope: {
+            margin: '<',
             modelName: '@',
             flatten: '@',
             pathToModels: '@',
@@ -1263,7 +1264,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             const ABSOLUTE_POSITION_TYPE = 'absolutePosition';
             $scope.plotStyle = $scope.flatten ? '' : 'cursor: zoom-in;';
             $scope.isClientOnly = true;
-            $scope.margin = $scope.flatten ? 0 : 3;
+            $scope.margin = $scope.margin || ($scope.flatten ? 0 : 3);
             $scope.width = 1;
             $scope.height = 1;
             $scope.xScale = 1;
