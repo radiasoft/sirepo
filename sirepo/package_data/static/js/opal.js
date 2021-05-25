@@ -656,6 +656,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
             $scope.hasMissingFiles = function() {
                 if (parentScope.fileUploadError) {
                     if (parentScope.errorData && parentScope.errorData.missingFiles) {
+                        parentScope.hideMainImportSelector = true;
                         $scope.missingFiles = [];
                         parentScope.errorData.missingFiles.forEach(function(f) {
                             f.file = {};
