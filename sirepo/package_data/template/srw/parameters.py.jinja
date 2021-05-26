@@ -26,16 +26,20 @@ import numpy
 # This function is required by rsopt to generate data but is a noop otherwise
 def set_rsopt_params_dummy(
     {% for e in rsOptElements %}
+    {% if 'position' in e %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
     {{ e.title }}_pos_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
+    {% endif %}
+    {% if 'rotations' in e %}
     {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
     {{ e.title }}_angle_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
+    {% endif %}
     {% endfor %}
 ):
     return 0
@@ -413,16 +417,20 @@ def _rsopt_run(filename):
 
     save_str = ''.join([
     {% for e in rsOptElements %}
+    {% if 'position' in e %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
         '{{ e.title }}_{{ e.props.positionFields[loop.index0] }}_',
     {% endif %}
     {% endfor %}
+    {% endif %}
+    {% if 'rotations' in e %}
     {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
         '{{ e.title }}_angle_{{ e.props.vectorFields[loop.index0] }}_',
     {% endif %}
     {% endfor %}
+    {% endif %}
     {% endfor %}
     ])
 
@@ -461,20 +469,25 @@ def _rsopt_run_single(param_vals, proc_num, task_num):
 # This functions actually sets the data
 def _rsopt_set_params(
     {% for e in rsOptElements %}
+    {% if 'position' in e %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
     {{ e.title }}_pos_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
+    {% endif %}
+    {% if 'rotations' in e %}
     {% for t in e.rotations %}
     {% if e.rotations[loop.index0] != 0 %}
     {{ e.title }}_angle_{{ loop.index0 }},
     {% endif %}
     {% endfor %}
+    {% endif %}
     {% endfor %}
 ):
     vp = varParam.copy()
     {% for e in rsOptElements %}
+    {% if 'position' in e %}
     {% for x in e.position %}
     {% if e.offsets[loop.index0] != 0 %}
     p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.props.positionFields[loop.index0] }}')
@@ -482,6 +495,8 @@ def _rsopt_set_params(
         p[2] = {{ e.title }}_pos_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
+    {% endif %}
+    {% if 'rotations' in e %}
     {% if e.rotations[0] != 0 and e.rotations[1] != 0 and e.rotations[2] != 0  %}
     a = [0.0, 0.0, 0.0]
     {% for t in e.rotations %}
@@ -495,6 +510,7 @@ def _rsopt_set_params(
     if t:
         t[2] = n[{{ loop.index0 }}]
     {% endfor %}
+    {% endif %}
     {% endif %}
     {% endfor %}
     return vp

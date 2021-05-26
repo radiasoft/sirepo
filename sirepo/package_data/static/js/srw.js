@@ -1637,7 +1637,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             };
 
             $scope.showRsOptML = function() {
-                return SIREPO.APP_SCHEMA.feature_config.show_rsopt_ml;
+                return SIREPO.APP_SCHEMA.feature_config.show_rsopt_ml &&
+                    appState.models.beamline && appState.models.beamline.length > 0;
             };
         },
     };

@@ -3,6 +3,7 @@ codes:
       settings:
       parameters:
         {% for e in rsOptElements %}
+        {% if 'position' in e %}
         {% for x in e.position %}
         {% if e.offsets[loop.index0] != 0 %}
         {{ e.title }}_pos_{{ loop.index0 }}:
@@ -12,7 +13,9 @@ codes:
           start: {{ x }}
         {% endif %}
         {% endfor %}
-        {% for t in e.angle %}
+        {% endif %}
+        {% if 'rotations' in e %}
+        {% for t in e.rotations %}
         {% if e.rotations[loop.index0] != 0 %}
         {{ e.title }}_angle_{{ loop.index0 }}:
           min: {{ t - e.rotations[loop.index0] / 2.0 }}
@@ -21,6 +24,7 @@ codes:
           start: {{ t }}
         {% endif %}
         {% endfor %}
+        {% endif %}
         {% endfor %}
       setup:
         input_file: {{ pyFileName }}
