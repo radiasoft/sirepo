@@ -9,15 +9,16 @@ Radia "instance" goes away and references no longer have any meaning.
 """
 from __future__ import division
 from pykern import pkcollections
-from pykern.pkcollections import PKDict
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
-from sirepo.template import template_common
-from sirepo.template import radia_util
 from sirepo.template import radia_examples
+from sirepo.template import radia_util
+from sirepo.template import template_common
 import h5py
 import math
 import numpy
@@ -841,7 +842,7 @@ def _read_data(sim_id, view_type, field_type):
 def _read_id_map(sim_id):
     m = _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
     return PKDict() if not m else PKDict(
-        {k:(v if isinstance(v, int) else v.decode('ascii')) for k, v in m.items()}
+        {k:(v if isinstance(v, int) else pkcompat.from_bytes(v)) for k, v in m.items()}
     )
 
 def _read_kick_map(sim_id):
