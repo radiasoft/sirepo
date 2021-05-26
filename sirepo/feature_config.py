@@ -15,6 +15,7 @@ _DEPENDENT_CODES = [
 
 #: Codes on prod
 _PROD_FOSS_CODES = frozenset((
+    'controls',
     'elegant',
     'jspec',
     'madx',
@@ -32,7 +33,6 @@ _PROD_FOSS_CODES = frozenset((
 
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
-    'controls',
     'irad',
     'myapp',
     'rcscon',
@@ -43,16 +43,29 @@ _NON_PROD_FOSS_CODES = frozenset((
 #: All possible open source codes
 _FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
+#: codes for which we default to giving the user authorization but it can be revoked
+_DEFAULT_PROPRIETARY_CODES = frozenset(('jupyterhublogin',))
 
 #: codes for which we require dynamically loaded binaries
-_PROPRIETARY_CODES = frozenset(('flash', 'jupyterhublogin'))
+_PROPRIETARY_CODES = frozenset(('flash',))
 
 #: all executable codes
-VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES)
+VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _DEFAULT_PROPRIETARY_CODES)
 
 
 #: Configuration
 _cfg = None
+
+
+def auth_controlled_sim_types():
+    """All sim types that require granted authentication to access
+
+    Returns:
+      frozenset:  enabled sim types that require role
+    """
+    return frozenset(
+        cfg().proprietary_sim_types.union(cfg().default_proprietary_sim_types),
+    )
 
 
 def cfg():
@@ -96,6 +109,7 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
+        default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
@@ -115,12 +129,15 @@ def _init():
             display_test_boxes=b('Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
+    i = _cfg.proprietary_sim_types.intersection(_cfg.default_proprietary_sim_types)
+    assert not i, \
+        f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
             _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
         )
     )
-    s.update(_cfg.proprietary_sim_types)
+    s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)
     for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])

@@ -22,6 +22,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         'aspectRatio',
         'colorMap',
         'copyCharacteristic',
+        'horizontalOffset',
+        'horizontalSize',
         'intensityPlotsWidth',
         'maxIntensityLimit',
         'minIntensityLimit',
@@ -33,6 +35,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         'rotateAngle',
         'rotateReshape',
         'useIntensityLimits',
+        'usePlotRange',
+        'verticalOffset',
+        'verticalSize',
     ))
 
     SRW_RUN_ALL_MODEL = 'simulation'

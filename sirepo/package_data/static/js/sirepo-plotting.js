@@ -3,11 +3,12 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
+SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
-SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
+SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -36,6 +37,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         log10: safeLog(Math.log10, '10'),
     };
 
+    function broadcastSummaryData(name, summaryData) {
+        // send info in two formats, similar to modelChanged
+        $rootScope.$broadcast(name + '.summaryData', summaryData);
+        $rootScope.$broadcast('summaryData', name, summaryData);
+    }
+
     function colorsFromString(s) {
         return s.match(/.{6}/g).map(function(x) {
             return "#" + x;
@@ -63,7 +70,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     panelState.setError(scope.modelName, null);
                     scope.load(data);
                     if (data.summaryData) {
-                        $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
+                        broadcastSummaryData(scope.modelName, data.summaryData);
                     }
                 }
                 if (scope.isPlaying) {
@@ -190,7 +197,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         scope.clearData();
                         scope.load(data);
                         if (data.summaryData) {
-                            $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
+                            broadcastSummaryData(scope.modelName, data.summaryData);
                         }
                     }
                     else if (forceRunCount++ <= 2) {
@@ -488,6 +495,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
             var scaleFunction = this.scaleFunction(modelName);
             if (scaleFunction) {
+                if (["e", "10", "2"].indexOf(scaleFunction.powerName) >= 0) {
+                    plotRange.min = d3.min(heatmap, function(row) {
+                        return d3.min(row, function(x) {
+                            return x <= 0 ? Infinity : x;});
+                    });
+                }
                 plotRange = {
                     min: scaleFunction(plotRange.min),
                     max: scaleFunction(plotRange.max),
@@ -511,7 +524,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = 255;
                 }
             }
-            cacheCanvas.getContext('2d').putImageData(img, 0, 0);
+            try {
+                cacheCanvas.getContext('2d').putImageData(img, 0, 0);
+            }
+            catch (e) {
+                throw new Error('Plot data size is not supported by the browser');
+            }
             return colorScale;
         },
 
@@ -694,6 +712,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
             var ydom;
+            var min_nonzero = Number.MAX_VALUE;
             var scaleFunction = this.scaleFunction(modelName);
 
             for (var i = 0; i < points.length; i++) {
@@ -712,8 +731,20 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 else {
                     ydom = [d[1], d[1]];
                 }
+                if (d[1] > 0 && d[1] < min_nonzero) { min_nonzero = d[1]; }
+            }
+            if (appState.models[modelName].useIntensityLimits == '1') {
+                var m = appState.models[modelName];
+                ydom = [
+                    m.minIntensityLimit,
+                    m.maxIntensityLimit,
+                ];
             }
             if (ydom) {
+                if (scaleFunction && ydom[0] <= 0 && ['e', '2', '10'].indexOf(scaleFunction.powerName) >= 0) {
+                    ydom[0] = min_nonzero;
+                }
+
                 ydom = this.scaleYDomain(yScale, ydom, scaleFunction, ydom[0] > 0);
                 if (invertAxis) {
                     var x = ydom[0];
@@ -743,6 +774,28 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return [r, g, b];
         },
 
+        safeHeatmap: function(heatmap) {
+            const FIREFOX_MAX_SIZE = 16384;
+            // special case for Firefox which limits canvas dimensions
+            // no sampling: just cut array size in half until proper size is reached
+            if ($window.navigator.userAgent.indexOf('Firefox') >= 0) {
+                while (heatmap[0].length > FIREFOX_MAX_SIZE) {
+                    const rows = heatmap.length;
+                    for (let i = 0; i < rows; i++) {
+                        heatmap[i] = heatmap[i].filter((d, idx) => idx % 2 == 0);
+                    }
+                }
+                while (heatmap.length > FIREFOX_MAX_SIZE) {
+                    const rows = parseInt(heatmap.length / 2);
+                    for (let i = 0; i < rows; i++) {
+                        heatmap[i] = heatmap[i * 2];
+                    }
+                    heatmap.length = rows;
+                }
+            }
+            return heatmap;
+        },
+
         scaleFunction: function(modelName) {
             // returns the scaling function (ex. Math.log) or null
             var scale = null;
@@ -757,7 +810,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 if (scaleFunction) {
                     yDomain = yDomain.map(scaleFunction);
                 }
-                else if (isZeroMin) {
+                else if (isZeroMin && SIREPO.PLOTTING_YMIN_ZERO) {
                     yDomain[0] = 0;
                 }
                 yScale.domain(yDomain).nice();
@@ -2714,17 +2767,17 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 prevDomain = null;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
-                heatmap = appState.clone(json.z_matrix).reverse();
+                heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],
                     [json.y_range[0], json.y_range[1]],
                 ];
-                if ((axes.y.values && axes.y.values.length != json.z_matrix.length)
+                if ((axes.y.values && axes.y.values.length != heatmap.length)
                     || ! appState.deepEquals(fullDomain, newFullDomain)) {
                     fullDomain = newFullDomain;
                     lineOuts = {};
-                    axes.x.values = plotting.linearlySpacedArray(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
-                    axes.y.values = plotting.linearlySpacedArray(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
+                    axes.x.values = plotting.linearlySpacedArray(fullDomain[0][0], fullDomain[0][1], heatmap[0].length);
+                    axes.y.values = plotting.linearlySpacedArray(fullDomain[1][0], fullDomain[1][1], heatmap.length);
                     axes.x.scale.domain(fullDomain[0]);
                     axes.x.indexScale.domain(fullDomain[0]);
                     axes.y.scale.domain(fullDomain[1]);
@@ -2748,8 +2801,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 select('.z-axis-label').text(json.z_label);
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
+                if ('z_range' in json) { zmin = json.z_range[0]; zmax = json.z_range[1]; }
                 scaleFunction = plotting.scaleFunction($scope.modelName);
-                if (zmin > 0 && ! scaleFunction) {
+                if (zmin > 0 && SIREPO.PLOTTING_YMIN_ZERO && ! scaleFunction) {
                     zmin = 0;
                 }
                 var domain = plotting.ensureDomain([zmin, zmax], scaleFunction);
@@ -3021,7 +3075,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
-                heatmap = appState.clone(json.z_matrix).reverse();
+                heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 globalMin = json.global_min;
                 globalMax = json.global_max;
                 select('.main-title').text(json.title);
@@ -3397,6 +3451,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 $scope.axes.x.points = json.x_points
                     || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
+                if (angular.isArray($scope.axes.x.points[0])) {
+                    throw new Error('expecting a single array for x values: ' + $scope.modelName);
+                }
                 var xdom = [json.x_range[0], json.x_range[1]];
                 //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
                 if ($scope.onRefresh && xdom[1] > 0) {

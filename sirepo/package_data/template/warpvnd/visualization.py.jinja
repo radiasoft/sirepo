@@ -11,7 +11,6 @@ wp.generate()
 solverE.mgmaxiters = 100
 
 #------
-import time
 
 #%%time
 num_steps = {{ simulationGrid_num_steps }}
@@ -23,7 +22,6 @@ time1 = time.time()
 time_per_step = (time1-time0)/num_steps
 
 #------
-from warp.particles.singleparticle import TraceParticle
 
 electrons_tracked_t0 = wp.Species(type=wp.Electron)
 v_coords = sources.get_MB_velocities(PTCL_PER_STEP,CATHODE_TEMP)

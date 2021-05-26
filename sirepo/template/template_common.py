@@ -25,9 +25,6 @@ import subprocess
 import types
 
 
-#: Code compilation stderr and stdout
-COMPILE_LOG = 'compile.log'
-
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
@@ -47,7 +44,7 @@ RUN_LOG = 'run.log'
 
 _HISTOGRAM_BINS_MAX = 500
 
-_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
+_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
 class ModelUnits():
@@ -270,23 +267,36 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     return y_range
 
 
-def dict_to_h5(d, hf, path=None):
-    if path is None:
-        path = ''
+def write_dict_to_h5(d, file_path, h5_path=None):
+    """ Store the contents of a dict in an h5 file starting at the provided path.
+    Stores the data recursively so that
+        {a: A, b: {c: C, d: D}}
+    maps the data to paths
+        <h5_path>/a   -> A
+        <h5_path>/b/c -> C
+        <h5_path>/b/d -> D
+
+    h5_to_dict() performs the reverse process
+    """
+    import h5py
+    if h5_path is None:
+        h5_path = ''
     try:
         for i in range(len(d)):
+            p = f'{h5_path}/{i}'
             try:
-                p = f'{path}/{i}'
-                hf.create_dataset(p, data=d[i])
+                with h5py.File(file_path, 'a') as f:
+                    f.create_dataset(p, data=d[i])
             except TypeError:
-                dict_to_h5(d[i], hf, path=p)
+                write_dict_to_h5(d[i], file_path, h5_path=p)
     except KeyError:
         for k in d:
-            p = f'{path}/{k}'
+            p = f'{h5_path}/{k}'
             try:
-                hf.create_dataset(p, data=d[k])
+                with h5py.File(file_path, 'a') as f:
+                    f.create_dataset(p, data=d[k])
             except TypeError:
-                dict_to_h5(d[k], hf, path=p)
+                write_dict_to_h5(d[k], file_path, h5_path=p)
 
 
 def enum_text(schema, name, value):
@@ -373,13 +383,15 @@ def h5_to_dict(hf, path=None):
         # assume this is a single-valued entry
         return hf[path][()]
     # replace dicts with arrays on a 2nd pass
-    d_keys = d.keys()
     try:
-        indices = [int(k) for k in d_keys]
+        indices = [int(k) for k in d.keys()]
         d_arr = [None] * len(indices)
         for i in indices:
             d_arr[i] = d[str(i)]
         d = d_arr
+    except IndexError:
+        # integer keys but not an array
+        pass
     except ValueError:
         # keys not all integers, we're done
         pass
@@ -457,6 +469,20 @@ def parse_enums(enum_schema):
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
+
+
+def parse_mpi_log(run_dir):
+    e = None
+    f = run_dir.join('mpi_run.out')
+    if f.exists():
+        m = re.search(
+            r'^Traceback .*?^\w*Error: (.*?)\n',
+            pkio.read_text(f),
+            re.MULTILINE | re.DOTALL,
+        )
+        if m:
+            e = m.group(1)
+    return e
 
 
 def read_last_csv_line(path):
@@ -543,6 +569,16 @@ def sim_frame_dispatch(frame_args):
     if res is None:
         raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
     return res
+
+
+def stateless_compute_dispatch(data):
+    m = data.method
+    assert re.search(r'^\w{1,30}$', m), \
+        f'method={m} not a valid python function name or too long'
+    return getattr(
+        sirepo.template.import_module(data.simulationType),
+        f'stateless_compute_{m}',
+    )(data)
 
 
 def subprocess_output(cmd, env=None):
@@ -662,7 +698,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub(r'[\"\'()]', '', str(v))
+    return re.sub(r'([^\\])[\"\']', r'\1', str(v))
 
 
 def _get_notes(data):

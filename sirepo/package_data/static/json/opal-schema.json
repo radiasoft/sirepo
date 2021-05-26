@@ -1,5 +1,6 @@
 {
     "constants": {
+        "clight": 299792458.0e-9,
         "hasMadxExport": true,
         "helpUserManualURL": "https://gitlab.psi.ch/OPAL/src/wikis",
         "latticeKeywords": [
@@ -8,7 +9,6 @@
             "rank", "real", "const", "vector", "constraint", "objective", "true", "false",
             "string", "bool", "constant"
         ],
-        "clight": 299792458.0e-9,
         "particleMassAndCharge": {
             "ELECTRON": [0.51099895000e-03, -1.0],
             "PROTON": [0.93827208816, 1.0],
@@ -30,6 +30,10 @@
         }
     },
     "enum": {
+        "ElementPosition": [
+            ["relative", "Relative to each other (using DRIFT)"],
+            ["absolute", "Absolute (using ELEMEDGE)"]
+        ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
             ["px", "Px"],
@@ -355,6 +359,7 @@
         }
     },
     "frameIdFields": {
+        "beamline3dAnimation": [],
         "bunchAnimation": [
             "x",
             "y",
@@ -411,8 +416,15 @@
     },
     "model": {
         "beamline": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "x": ["X [m]", "RPNValue", 0, "The x-coordinate of the location of the particle source"],
+            "y": ["Y [m]", "RPNValue", 0, "The y-coordinate of the location of the particle source"],
+            "z": ["Z [m]", "RPNValue", 0, "The z-coordinate of the location of the particle source"],
+            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the particle source"],
+            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the particle source"],
+            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the particle source"]
         },
+        "beamline3dAnimation": {},
         "beamlineReport": {
         },
         "bunchReport": {
@@ -471,6 +483,7 @@
             "value": ["Value", "RPNValue"]
         },
         "simulation": {
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "_ELEMENT": {
@@ -570,6 +583,14 @@
             "hkick": ["HKICK [rad]", "RPNValue", 0, "Horizontal deflection"],
             "vkick": ["VKICK [rad]", "RPNValue", 0, "Vertical deflection"],
             "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
+        },
+        "LOCAL_CARTESIAN_OFFSET": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "end_position_x": ["END POSITION X [m]", "RPNValue", 0, "x component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_position_y": ["END POSITION Y [m]", "RPNValue", 0, "y component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_normal_x": ["END NORMAL X [m]", "RPNValue", 0, "x component of normal of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_normal_y": ["END NORMAL Y [m]", "RPNValue", 0, "y component of normal of end of the offset in coordinate system of the end of the upstream element [m]."]
         },
         "MARKER": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -851,8 +872,7 @@
             "gamma": ["GAMMA", "RPNValue", 0, "ENERGY / MASS"],
             "bcurrent": ["BCURRENT [A]", "RPNValue", 0, "Beam current in A (all bunches)"],
             "bfreq": ["BFREQ [MHz]", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
-            "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"],
-            "nslice": ["NSLICE [bunch]", "RPNValue", 0, "Number of slices"]
+            "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"]
         },
         "command_distribution": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1156,8 +1176,19 @@
         "beamline": {
             "title": "Beamline",
             "advanced": [
-                "name"
+                "name",
+                "x",
+                "y",
+                "z",
+                "theta",
+                "phi",
+                "psi"
             ]
+        },
+        "beamline3dAnimation": {
+            "title": "3D Beamline",
+            "advanced": [],
+            "canFullScreen": false
         },
         "beamlineReport": {
             "title": "Lattice",
@@ -1278,6 +1309,13 @@
                 ],
                 "includeLattice",
                 "notes"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "elementPosition"
             ]
         },
         "simulationSettings": {
@@ -1500,6 +1538,18 @@
                 "dtheta",
                 "dphi",
                 "dpsi"
+            ]
+        },
+        "LOCAL_CARTESIAN_OFFSET": {
+            "title": "LOCAL_CARTESIAN_OFFSET",
+            "description": "The LOCAL_CARTESIAN_OFFSET element defines an offset in cartesian coordinates, relative to the last placed element.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "end_position_x",
+                "end_position_y",
+                "end_normal_x",
+                "end_normal_y"
             ]
         },
         "MARKER": {
@@ -2186,8 +2236,7 @@
                 ["Other", [
                     "bfreq",
                     "bcurrent",
-                    "npart",
-                    "nslice"
+                    "npart"
                 ]]
             ]
         },

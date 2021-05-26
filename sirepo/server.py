@@ -17,13 +17,14 @@ from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
+import contextlib
 import flask
 import importlib
 import os
 import re
+import sirepo.db_upgrade
 import sirepo.events
 import sirepo.sim_data
-import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -52,6 +53,7 @@ _ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
 _app = None
+
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -144,12 +146,12 @@ def api_errorLogging():
             ip,
             simulation_db.generate_json(http_request.parse_json(), pretty=True),
         )
-    except ValueError as e:
+    except Exception as e:
         pkdlog(
-            '{}: error parsing javascript app_error: {} input={}',
+            'ip={}: error parsing javascript exception={} input={}',
             ip,
             e,
-            flask.request.data.decode('unicode-escape'),
+            flask.request.data and flask.request.data.decode('unicode-escape'),
         )
     return http_reply.gen_json_ok()
 
@@ -303,7 +305,11 @@ def api_importFile(simulation_type):
     try:
         f = flask.request.files.get('file')
         if not f:
-            raise sirepo.util.Error('must supply a file')
+            raise sirepo.util.Error(
+                'must supply a file',
+                'no file in request={}',
+                flask.request.data,
+            )
         req = http_request.parse_params(
             filename=f.filename,
             folder=flask.request.form.get('folder'),
@@ -327,7 +333,11 @@ def api_importFile(simulation_type):
             data = sirepo.importer.read_zip(req.file_stream.read(), sim_type=req.type)
         else:
             if not hasattr(req.template, 'import_file'):
-                raise sirepo.util.Error('Only zip files are supported')
+                raise sirepo.util.Error(
+                    'Only zip files are supported',
+                    'no import_file in template req={}',
+                    req,
+                )
             with simulation_db.tmp_dir() as d:
                 data = req.template.import_file(req, tmp_dir=d, reply_op=s)
             if 'error' in data:
@@ -385,11 +395,12 @@ def api_exportRSOptConfig(simulation_type, simulation_id, filename):
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
     d = simulation_db.default_data(req.type)
-#TODO(pjm): update fields from schema values across new_simulation_data values
+    d.models.simulation.pkupdate(
+        {k: v for k, v in req.req_data.items() if k in d.models.simulation}
+    )
     d.models.simulation.pkupdate(
         name=req.name,
         folder=req.folder,
-        notes=req.req_data.get('notes', ''),
     )
     if hasattr(req.template, 'new_simulation'):
         req.template.new_simulation(d, req.req_data)
@@ -419,7 +430,7 @@ def api_robotsTxt():
         # We include dev so we can test
         if pkconfig.channel_in('prod', 'dev'):
             u = [
-                sirepo.uri.api('root', params={'path_info': x})
+                sirepo.uri_router.uri_for_api('root', params={'path_info': x})
                 for x in sorted(feature_config.cfg().sim_types)
             ]
         else:
@@ -513,12 +524,14 @@ def api_srwLight():
 
 @api_perm.allow_visitor
 def api_srUnit():
-    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    import sirepo.auth
+    import sirepo.cookie
+    v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
+    u =  contextlib.nullcontext
     if v.want_user:
-        import sirepo.auth
-        sirepo.auth.set_user_for_utils()
+        sirepo.cookie.set_sentinel()
+        sirepo.auth.login(sirepo.auth.guest, is_mock=True)
     if v.want_cookie:
-        import sirepo.cookie
         sirepo.cookie.set_sentinel()
     v.op()
     return http_reply.gen_json_ok()
@@ -537,7 +550,7 @@ def api_staticFile(path_info=None):
         flask.Response: flask.send_from_directory response
     """
     if not path_info:
-        raise util.raise_not_found('empty path info')
+        raise sirepo.util.raise_not_found('empty path info')
     p = pkio.py_path(flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info))
     r = None
     if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):
@@ -550,7 +563,7 @@ def api_staticFile(path_info=None):
             ),
             path=p,
         )
-    if re.match(r'^html/[^/]+html$', path_info):
+    if re.match(r'^(html|en)/[^/]+html$', path_info):
         return http_reply.render_html(p)
     return flask.send_file(p, conditional=True)
 
@@ -561,10 +574,18 @@ def api_updateFolder():
     req = http_request.parse_post()
     o = srschema.parse_folder(req.req_data['oldName'])
     if o == '/':
-        raise util.Error('cannot rename root ("/") folder')
+        raise sirepo.util.Error(
+            'cannot rename root ("/") folder',
+            'old folder is root req={}',
+            req,
+        )
     n = srschema.parse_folder(req.req_data['newName'])
     if n == '/':
-        raise util.Error('cannot folder to root ("/")')
+        raise sirepo.util.Error(
+            'cannot rename folder to root ("/")',
+            'new folder is root req={}',
+            req,
+        )
     for r in simulation_db.iterate_simulation_datafiles(req.type, _simulation_data_iterator):
         f = r.models.simulation.folder
         l = o.lower()
@@ -619,7 +640,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(uwsgi=None, use_reloader=False):
+def init(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     global _app
 
@@ -639,8 +660,9 @@ def init(uwsgi=None, use_reloader=False):
     _app.config['PROPAGATE_EXCEPTIONS'] = True
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    sirepo.util.init(server_context=True)
     uri_router.init(_app, simulation_db)
+    if is_server:
+        sirepo.db_upgrade.do_all()
     return _app
 
 

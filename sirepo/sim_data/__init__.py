@@ -5,6 +5,9 @@ u"""Type-based simulation operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+
+import uuid
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -333,7 +336,7 @@ class SimDataBase(object):
         Returns:
             str: basename without type prefix
         """
-        return re.sub(r'^.*?-.*?\.', '', basename)
+        return re.sub(r'^.*?-.*?\.(.+\..+)$', r'\1', basename)
 
     @classmethod
     def lib_file_resource_dir(cls):
@@ -396,6 +399,8 @@ class SimDataBase(object):
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
+                if d[1] == 'UUID' and not res[f]:
+                    res[f] = str(uuid.uuid4())
         return res
 
     # TODO(e-carlin): Supplying uid is a temprorary workaround until
@@ -474,8 +479,12 @@ class SimDataBase(object):
         return 2 if cls.is_parallel(data) else 1
 
     @classmethod
-    def proprietary_code_rpm(cls):
+    def proprietary_code_tarball(cls):
         return None
+
+    @classmethod
+    def proprietary_code_lib_file_basenames(cls):
+        return []
 
     @classmethod
     def put_sim_file(cls, file_path, basename, data):
@@ -689,8 +698,8 @@ class SimDataBase(object):
             dm.simulation.folder = '/Examples'
 
     @classmethod
-    def _proprietary_code_rpm(cls):
-        return f'{cls.sim_type()}.rpm'
+    def _proprietary_code_tarball(cls):
+        return f'{cls.sim_type()}.tar.gz'
 
     @classmethod
     def _put_sim_db_file(cls, file_path, uri):
@@ -731,10 +740,6 @@ class SimDataBase(object):
             data.models.simulation.simulationId,
             basename,
         )
-
-    @classmethod
-    def _sim_src_tarball_path(cls):
-        return cfg.local_share_dir.join(cls.sim_type(), f'{cls.sim_type()}.tar.gz')
 
 
 class SimDbFileNotFound(Exception):

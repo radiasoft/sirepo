@@ -17,6 +17,7 @@ import asyncio
 import asyncssh
 import datetime
 import errno
+import sirepo.job_supervisor
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.util
@@ -33,14 +34,27 @@ class SbatchDriver(job_driver.DriverBase):
     __instances = PKDict()
 
     def __init__(self, op):
+        def _op_queue_size(op_kind):
+            return self.cfg.run_slots if op_kind == job.OP_RUN else 1
+
         super().__init__(op)
         self.pkupdate(
             # before it is overwritten by prepare_send
             _local_user_dir=pkio.py_path(op.msg.userDir),
             _srdb_root=None,
-            # we allow one of each op type in. This is essentially a no-op (ha ha)
-            # but makes it easier to code the other cases.
-            cpu_slot_q=job_supervisor.SlotQueue(len(job_driver.OPS_THAT_NEED_SLOTS)),
+            # Allow self.cfg.run_slots and every other op type to
+            # run (assume OP_RUN is one of OPS_THAT_NEED_SLOTS). This
+            # is essentially a no-op (sbatch constrains its own cpu
+            # resources) but makes it easier to code the other cases.
+            cpu_slot_q=sirepo.job_supervisor.SlotQueue(
+                len(job_driver.OPS_THAT_NEED_SLOTS)
+                + self.cfg.run_slots
+                - 1,
+            ),
+            op_slot_q={
+                k: sirepo.job_supervisor.SlotQueue(maxsize=_op_queue_size(k))
+                for k in job_driver.OPS_THAT_NEED_SLOTS
+            },
         )
         self.__instances[self.uid] = self
 
@@ -75,6 +89,7 @@ class SbatchDriver(job_driver.DriverBase):
             cores=(None, int, 'dev cores config'),
             host=pkconfig.Required(str, 'host name for slum controller'),
             host_key=pkconfig.Required(str, 'host key'),
+            run_slots=(1, int, 'number of concurrent OP_RUN for each user'),
             shifter_image=(None, str, 'needed if using Shifter'),
             sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
             srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),

@@ -21,6 +21,7 @@ from sirepo import util
 import contextlib
 import datetime
 import importlib
+import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.template
 import sirepo.uri
@@ -32,12 +33,6 @@ LOGIN_ROUTE_NAME = 'login'
 
 #: Guest is a special method
 METHOD_GUEST = 'guest'
-
-ROLE_ADM = 'adm'
-ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
-ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
-
-PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -51,8 +46,8 @@ _COOKIE_USER = 'srau'
 _GUEST_USER_DISPLAY_NAME = 'Guest User'
 
 _PAYMENT_PLAN_BASIC = 'basic'
-_PAYMENT_PLAN_ENTERPRISE = ROLE_PAYMENT_PLAN_ENTERPRISE
-_PAYMENT_PLAN_PREMIUM = ROLE_PAYMENT_PLAN_PREMIUM
+_PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE
+_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
 
 _STATE_LOGGED_IN = 'li'
@@ -77,6 +72,11 @@ visible_methods = None
 
 #: visible_methods excluding guest
 non_guest_methods = None
+
+#: avoid circular import issues by importing in init_apis
+uri_router = None
+
+cfg = None
 
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
@@ -118,12 +118,11 @@ def api_authLogout(simulation_type=None):
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
-def check_user_has_role(role, raise_forbidden=True):
-    u = logged_in_user()
-    if auth_db.UserRole.has_role(u, role):
+def check_user_has_role(uid, role, raise_forbidden=True):
+    if auth_db.UserRole.has_role(uid, role):
         return True
     if raise_forbidden:
-        util.raise_forbidden('uid={} role={} not found'.format(u, role))
+        sirepo.util.raise_forbidden('uid={} role={} not found'.format(uid, role))
     return False
 
 
@@ -132,7 +131,7 @@ def complete_registration(name=None):
     Guests will have no name.
     """
     u = _get_user()
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         r = user_registration(u)
         if cookie.unchecked_get_value(_COOKIE_METHOD) is METHOD_GUEST:
             assert name is None, \
@@ -142,14 +141,12 @@ def complete_registration(name=None):
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
-def get_all_roles():
-    return [
-        role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
-    ] + [
-        ROLE_ADM,
-        ROLE_PAYMENT_PLAN_ENTERPRISE,
-        ROLE_PAYMENT_PLAN_PREMIUM,
-    ]
+def create_new_user(uid_generated_callback, module):
+    import sirepo.simulation_db
+    u = sirepo.simulation_db.user_create()
+    uid_generated_callback(u)
+    _create_roles_for_new_user(u, module.AUTH_METHOD)
+    return u
 
 
 def guest_uids():
@@ -162,34 +159,24 @@ def get_module(name):
 
 
 def init_apis(*args, **kwargs):
-    global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
-    assert not _METHOD_MODULES
-
+    global uri_router
     assert not cfg.logged_in_user, \
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
-    simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init()
-    p = pkinspect.this_module().__name__
-    visible_methods = []
-    valid_methods = cfg.methods.union(cfg.deprecated_methods)
-    for n in valid_methods:
-        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+    for m in _METHOD_MODULES.values():
         uri_router.register_api_module(m)
-        _METHOD_MODULES[n] = m
-        if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
-            visible_methods.append(n)
-    visible_methods = tuple(sorted(visible_methods))
-    non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
-    cookie.auth_hook_from_header = _auth_hook_from_header
-    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+    import sirepo.simulation_db
+    s = list(sirepo.simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
     assert sorted(s) == sorted(_ALL_PAYMENT_PLANS), \
         f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
 
 
-
 def is_premium_user():
-    return check_user_has_role(ROLE_PAYMENT_PLAN_PREMIUM, raise_forbidden=False)
+    return check_user_has_role(
+        logged_in_user(),
+        sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+        raise_forbidden=False,
+    )
 
 
 def logged_in_user(check_path=True):
@@ -214,7 +201,8 @@ def logged_in_user(check_path=True):
             cookie.unchecked_get_value(_COOKIE_METHOD),
         )
     if check_path:
-        simulation_db.user_path(u, check=True)
+        import sirepo.simulation_db
+        sirepo.simulation_db.user_path(u, check=True)
     return u
 
 
@@ -261,8 +249,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             # This handles the case where logging in as guest, creates a user every time
             _login_user(module, uid)
         else:
-            uid = simulation_db.user_create(lambda u: _login_user(module, u))
-            _create_roles_for_user(uid, module.AUTH_METHOD)
+            uid = create_new_user(lambda u: _login_user(module, u), module)
         if model:
             model.uid = uid
             model.save()
@@ -272,7 +259,8 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         return
     if sim_type:
         if guest_uid and guest_uid != uid:
-            simulation_db.move_user_simulations(guest_uid, uid)
+            import sirepo.simulation_db
+            sirepo.simulation_db.move_user_simulations(guest_uid, uid)
         login_success_response(sim_type, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
@@ -327,9 +315,13 @@ def need_complete_registration(model):
     return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
 
+@contextlib.contextmanager
 def process_request(unit_test=None):
-    cookie.process_header(unit_test)
-    _set_log_user()
+    with auth_db.session(), cookie.process_header(unit_test):
+        # Logging happens after the return to Flask so the log user must persist
+        # beyond the life of process_request
+        _set_log_user()
+        yield
 
 
 def require_auth_basic():
@@ -338,7 +330,7 @@ def require_auth_basic():
     uid = m.require_user()
     if not uid:
         raise sirepo.util.Response(
-            sirepo.util.flask_app().response_class(
+            http_reply.gen_response(
                 status=401,
                 headers={'WWW-Authenticate': 'Basic realm="*"'},
             ),
@@ -348,15 +340,17 @@ def require_auth_basic():
 
 
 def require_sim_type(sim_type):
-    if sim_type not in sirepo.feature_config.cfg().proprietary_sim_types:
-        # only check role for proprietary_sim_types
+    if sim_type not in sirepo.feature_config.auth_controlled_sim_types():
         return
     if not _is_logged_in():
         # If a user is not logged in, we allow any sim_type, because
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    check_user_has_role(role_for_sim_type(sim_type))
+    check_user_has_role(
+        logged_in_user(),
+        sirepo.auth_role.for_sim_type(sim_type),
+    )
 
 
 def require_user():
@@ -367,7 +361,7 @@ def require_user():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     u = _get_user()
     if s is None:
-        e = 'no user in cookie'
+        pass
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
             f = getattr(_METHOD_MODULES[m], 'validate_login', None)
@@ -401,7 +395,7 @@ def require_user():
         p = PKDict(reload_js=True)
         e = 'invalid cookie state={} uid={}'.format(s, u)
     pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
-    raise util.SRException(r, p, 'user not logged in: {}', e)
+    raise util.SRException(r, p, *(('user not logged in: {}', e) if e else ()))
 
 
 def reset_state():
@@ -411,34 +405,43 @@ def reset_state():
     _set_log_user()
 
 
-def role_for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
-
-
-def set_user_for_utils(uid=None):
-    """A mock user for utilities"""
-    cookie.set_cookie_for_utils()
-    import sirepo.auth.guest
-    if uid:
-        _login_user(sirepo.auth.guest, uid)
-    else:
-        login(sirepo.auth.guest, is_mock=True)
-
 
 @contextlib.contextmanager
-def set_user(uid):
-    """Set the user (uid) for the context"""
-    assert not util.flask_app(), \
-        'Flask sets the user on the request'
-    try:
-        set_user_for_utils(uid=uid)
+def set_user_outside_of_http_request(uid):
+    """A user set explicitly outside of flask request cycle
+
+    This will try to guess the auth method the user used to authenticate.
+    """
+    def _auth_module():
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if _method_user_model(a, uid):
+                return a
+        # Only try methods without UserModel after methods with have been
+        # exhausted. This ensures that if there is a method with a UserModel
+        # we use it so calls like `user_name` work.
+        for m in cfg.methods:
+            a = _METHOD_MODULES[m]
+            if not hasattr(a, 'UserModel'):
+                return a
+        raise AssertionError(
+            f'no module found for uid={uid} in cfg.methods={cfg.methods}',
+        )
+
+    assert not util.in_flask_request(), \
+        'Only call from outside a flask request context'
+    assert auth_db.UserRegistration.search_by(uid=uid), \
+        f'no registered user with uid={uid}'
+    with cookie.set_cookie_outside_of_flask_request():
+        _login_user(
+            _auth_module(),
+            uid,
+        )
         yield
-    finally:
-        reset_state()
 
 
 def unchecked_get_user(uid):
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         u = auth_db.UserRegistration.search_by(uid=uid)
         if u:
             return u.uid
@@ -453,7 +456,7 @@ def user_dir_not_found(user_dir, uid):
     Args:
         uid (str): user that does not exist
     """
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         for m in _METHOD_MODULES.values():
             u = _method_user_model(m, uid)
             if u:
@@ -485,30 +488,34 @@ def user_if_logged_in(method):
 
 
 def user_name():
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
     u = getattr(
-        _METHOD_MODULES[cookie.unchecked_get_value(
-            _COOKIE_METHOD,
-        )],
+        _METHOD_MODULES[m],
         'UserModel',
     )
     if u:
-        with auth_db.thread_lock:
+        with util.THREAD_LOCK:
             return  u.search_by(uid=logged_in_user()).user_name
+    raise AssertionError(
+        f'user_name not found for uid={logged_in_user()} with method={m}',
+    )
 
 
-def user_registration(uid):
+def user_registration(uid, display_name=None):
     """Get UserRegistration record or create one
 
     Args:
         uid (str): registrant
+        display_name (str): display_name of user
     Returns:
         auth.UserRegistration: record (potentially blank)
     """
     res = auth_db.UserRegistration.search_by(uid=uid)
     if not res:
         res = auth_db.UserRegistration(
-            uid=uid,
             created=datetime.datetime.utcnow(),
+            display_name=display_name,
+            uid=uid,
         )
         res.save()
     return res
@@ -572,6 +579,7 @@ def _auth_hook_from_header(values):
 
 
 def _auth_state():
+    import sirepo.simulation_db
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
         avatarUrl=None,
@@ -580,7 +588,7 @@ def _auth_state():
         isGuestUser=False,
         isLoggedIn=_is_logged_in(s),
         isLoginExpired=False,
-        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+        jobRunModeMap=sirepo.simulation_db.JOB_RUN_MODE_MAP,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         roles=[],
@@ -605,18 +613,17 @@ def _auth_state():
         v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
-    if pkconfig.channel_in('dev'):
+    if pkconfig.channel_in_internal_test():
         # useful for testing/debugging
         v.uid = u
     pkdc('state={}', v)
     return v
 
-def _create_roles_for_user(uid, method):
-    r = []
-    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
-        auth_db.UserRole.add_roles(uid, get_all_roles())
-    elif sirepo.template.is_sim_type('jupyterhublogin'):
-        auth_db.UserRole.add_roles(uid, [role_for_sim_type('jupyterhublogin')])
+
+def _create_roles_for_new_user(uid, method):
+    r = sirepo.auth_role.for_new_user(method == METHOD_GUEST)
+    if r:
+        auth_db.UserRole.add_roles(uid, r)
 
 
 def _get_user():
@@ -626,13 +633,36 @@ def _get_user():
 def _init():
     global cfg
 
+    if cfg:
+        return
     cfg = pkconfig.init(
         methods=((METHOD_GUEST,), set, 'for logging in'),
         deprecated_methods=(set(), set, 'for migrating to methods'),
         logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
     )
-    if not cfg.logged_in_user:
-        return
+    if cfg.logged_in_user:
+        _init_logged_in_user()
+    else:
+        _init_full()
+
+def _init_full():
+    global visible_methods, valid_methods, non_guest_methods
+
+    auth_db.init()
+    p = pkinspect.this_module().__name__
+    visible_methods = []
+    valid_methods = cfg.methods.union(cfg.deprecated_methods)
+    for n in valid_methods:
+        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+        _METHOD_MODULES[n] = m
+        if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
+            visible_methods.append(n)
+    visible_methods = tuple(sorted(visible_methods))
+    non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
+    cookie.auth_hook_from_header = _auth_hook_from_header
+
+
+def _init_logged_in_user():
     global logged_in_user, user_dir_not_found
 
     def logged_in_user(*args, **kwargs):
@@ -708,10 +738,10 @@ def _parse_display_name(value):
 
 def _plan(data):
     r = data.roles
-    if ROLE_PAYMENT_PLAN_ENTERPRISE in r:
+    if sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE in r:
         data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
         data.upgradeToPlan = None
-    elif ROLE_PAYMENT_PLAN_PREMIUM in r:
+    elif sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
         data.paymentPlan = _PAYMENT_PLAN_PREMIUM
         data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
     else:

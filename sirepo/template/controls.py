@@ -9,11 +9,12 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 import copy
 import csv
+import re
 import sirepo.sim_data
 import sirepo.simulation_db
-import sirepo.template.lattice
 import sirepo.template.madx
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -67,55 +68,18 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _dedup_madx_elements(data):
-    def _reduce_to_elements(beamline_id):
-        def _do(beamline_id):
-            for i, item_id in enumerate(beamline_map[beamline_id]['items']):
-                item_id = abs(item_id)
-                if item_id in beamline_map:
-                    _do(item_id)
-                    continue
-                res.append(item_id)
-
-        res = []
-        _do(beamline_id)
-        return res
-
-    def _do_dedup(elem_ids):
-        nonlocal max_id
-
-        res = []
-        for i, e in enumerate(elem_ids):
-            l = data.models.elements[element_map[e]]
-            if e not in res:
-                res.append(e)
-                _set_element_name(l, i)
-                continue
-            n = copy.deepcopy(l)
-            _set_element_name(l, i)
-            max_id += 1
-            n._id = max_id
-            data.models.elements.append(n)
-            res.append(n._id)
-        return res
-
-    def _set_element_name(elem, index):
-        elem['name'] = f'{elem.name[0]}_{index}'
-
-    max_id = sirepo.template.lattice.LatticeUtil.max_id(data)
-    beamline_map = PKDict(
-        {
-            e.id: PKDict(
-                items=e['items'],
-                index=i,
-            ) for i, e in enumerate(data.models.beamlines)
-        },
+def _add_monitor(data):
+    if list(filter(lambda el: el.type == 'MONITOR', data.models.elements)):
+        return
+    m = PKDict(
+        _id=LatticeUtil.max_id(data) + 1,
+        name='M_1',
+        type='MONITOR',
     )
-    element_map = PKDict({e._id: i for i, e in enumerate(data.models.elements)})
-    a = data.models.simulation.visualizationBeamlineId
-    b = data.models.beamlines[beamline_map[a].index]
-    b['items'] = _do_dedup(_reduce_to_elements(a))
-    data.models.beamlines = [b]
+    data.models.elements.append(m)
+    assert len(data.models.beamlines) == 1, \
+        f'expecting 1 beamline={data.models.beamlines}'
+    data.models.beamlines[0]['items'].append(m._id)
 
 
 def _delete_unused_madx_commands(data):
@@ -134,13 +98,13 @@ def _delete_unused_madx_commands(data):
     data.models.commands = [
         by_name.beam,
         PKDict(
-            _id=sirepo.template.lattice.LatticeUtil.max_id(data) + 1,
+            _id=LatticeUtil.max_id(data) + 1,
             _type='select',
             flag='twiss',
             column='name,keyword,s,x,y',
         ),
         by_name.twiss or PKDict(
-            _id=sirepo.template.lattice.LatticeUtil.max_id(data) + 2,
+            _id=LatticeUtil.max_id(data) + 2,
             _type='twiss',
             file='1',
         )
@@ -217,7 +181,8 @@ def _get_external_lattice(simulation_id):
     d.models.bunch.beamDefinition = 'pc';
     _delete_unused_madx_models(d)
     _delete_unused_madx_commands(d)
-    _dedup_madx_elements(d)
+    _unique_madx_elements(d)
+    _add_monitor(d)
     sirepo.template.madx.eval_code_var(d)
     return PKDict(
         externalLattice=d,
@@ -253,3 +218,64 @@ def _read_summary_line(run_dir, line_count=None):
         if len(header) == len(line):
             return [PKDict(zip(header, line))]
     return None
+
+
+def _unique_madx_elements(data):
+    def _do_unique(elem_ids):
+        element_map = PKDict({e._id: e for e in data.models.elements})
+        names = set([e.name for e in data.models.elements])
+        max_id = LatticeUtil.max_id(data)
+        res = []
+        for el_id in elem_ids:
+            if el_id not in res:
+                res.append(el_id)
+                continue
+            el = copy.deepcopy(element_map[el_id])
+            el.name = _unique_name(el.name, names)
+            max_id += 1
+            el._id = max_id
+            data.models.elements.append(el)
+            res.append(el._id)
+        return res
+
+    def _reduce_to_elements(beamline_id):
+        def _do(beamline_id, res=None):
+            if res is None:
+                res = []
+            for item_id in beamline_map[beamline_id]['items']:
+                item_id = abs(item_id)
+                if item_id in beamline_map:
+                    _do(item_id, res)
+                else:
+                    res.append(item_id)
+            return res
+
+        return _do(beamline_id)
+
+    def _remove_unused_elements(items):
+        res = []
+        for el in data.models.elements:
+            if el._id in items:
+                res.append(el)
+        data.models.elements = res
+
+    def _unique_name(name, names):
+        assert name in names
+        count = 2
+        m = re.search(r'(\d+)$', name)
+        if m:
+            count = int(m.group(1))
+            name = re.sub(r'\d+$', '', name)
+        while f'{name}{count}' in names:
+            count += 1
+        names.add(f'{name}{count}')
+        return f'{name}{count}'
+
+    beamline_map = PKDict({
+        b.id: b for b in data.models.beamlines
+    })
+    b = beamline_map[data.models.simulation.visualizationBeamlineId]
+    b['items'] = _reduce_to_elements(b.id)
+    _remove_unused_elements(b['items'])
+    b['items'] = _do_unique(b['items'])
+    data.models.beamlines = [b]

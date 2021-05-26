@@ -34,9 +34,6 @@ import tornado.locks
 #: where supervisor state is persisted to disk
 _DB_DIR = None
 
-#: where job db is stored under srdb.root
-_DB_SUBDIR = 'supervisor-job'
-
 _NEXT_REQUEST_SECONDS = None
 
 _HISTORY_FIELDS = frozenset((
@@ -135,14 +132,14 @@ class SlotQueue(sirepo.tornado.Queue):
 
 
 def init():
-    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
-    if _DB_DIR:
+    global cfg, _DB_DIR, _NEXT_REQUEST_SECONDS, job_driver
+
+    if cfg:
         return
     job.init()
     from sirepo import job_driver
 
     job_driver.init(pkinspect.this_module())
-    _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_secs=dict(
@@ -155,31 +152,13 @@ def init():
         purge_non_premium_task_secs=(None, pkconfig.parse_seconds, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
+    _DB_DIR = sirepo.srdb.supervisor_dir()
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
     sirepo.auth_db.init()
-    if sirepo.simulation_db.user_path().exists():
-        if not _DB_DIR.exists():
-            pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
-            import subprocess
-            subprocess.check_call(
-                (
-                    'pyenv',
-                    'exec',
-                    'sirepo',
-                    'db',
-                    'upgrade_runner_to_job_db',
-                    _DB_DIR,
-                ),
-                env=PKDict(os.environ).pkupdate(
-                    SIREPO_AUTH_LOGGED_IN_USER='unused',
-                ),
-            )
-    else:
-        pykern.pkio.mkdir_parent(_DB_DIR)
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
     )
@@ -311,11 +290,12 @@ class _ComputeJob(PKDict):
                 sirepo.srtime.utc_now_as_int()
                 - cfg.purge_non_premium_after_secs
             )
-            for u, v in _get_uids_and_files():
-                with sirepo.auth.set_user(u):
-                    for f in v:
-                        _purge_sim(jid=f.purebasename)
-                await tornado.gen.sleep(0)
+            with sirepo.auth_db.session():
+                for u, v in _get_uids_and_files():
+                    with sirepo.auth.set_user_outside_of_http_request(u):
+                        for f in v:
+                            _purge_sim(jid=f.purebasename)
+                    await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
         finally:
@@ -323,6 +303,7 @@ class _ComputeJob(PKDict):
                 cfg.purge_non_premium_task_secs,
                 cls.purge_free_simulations,
             )
+
     @classmethod
     async def receive(cls, req):
         if req.content.get('api') != 'api_runStatus':
@@ -371,7 +352,9 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return _DB_DIR.join(computeJid + sirepo.simulation_db.JSON_SUFFIX)
+        return _DB_DIR.join(
+            computeJid + sirepo.simulation_db.JSON_SUFFIX,
+        )
 
     def __db_init(self, req, prev_db=None):
         self.db = self.__db_init_new(req.content, prev_db)
@@ -759,12 +742,19 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
-            sirepo.util.raise_not_found('invalid {}', req)
+            sirepo.util.raise_not_found('invalid req={}', req)
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
             jobCmd='get_simulation_frame'
+        )
+
+    async def _receive_api_statelessCompute(self, req):
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='stateless_compute'
         )
 
     def _create_op(self, opName, req, **kwargs):

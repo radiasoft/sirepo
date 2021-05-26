@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.template_common import ParticleEnergy
 import sirepo.sim_data
 import sirepo.simulation_db
 
@@ -50,6 +51,13 @@ class SimData(sirepo.sim_data.SimDataBase):
             sirepo.sim_data.get_class('madx').fixup_old_data(dm.externalLattice)
             if 'optimizerSettings' not in dm:
                 dm.optimizerSettings = cls.default_optimizer_settings(dm.externalLattice.models)
+        if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam:
+            dm.command_beam.gamma = ParticleEnergy.compute_energy(
+                'madx',
+                dm.command_beam.particle,
+                PKDict(pc=dm.command_beam.pc),
+            ).gamma
+            del dm.command_beam.pc
 
     @classmethod
     def _lib_file_basenames(cls, data):

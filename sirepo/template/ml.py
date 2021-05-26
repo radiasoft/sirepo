@@ -16,7 +16,9 @@ import csv
 import numpy as np
 import re
 import sirepo.analysis
+import sirepo.numpy
 import sirepo.sim_data
+import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -198,7 +200,8 @@ def sim_frame_epochAnimation(frame_args):
     #TODO(pjm): improve heading text
     header = ['epoch', 'loss', 'val_loss']
     path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+
+    v = sirepo.numpy.ndarray_from_csv(path, True)
     if len(v.shape) == 1:
         v.shape = (v.shape[0], 1)
     return _report_info(
@@ -357,11 +360,7 @@ def _cols_with_non_unique_values(filename, has_header_row, header):
     # TODO(e-carlin): support npy
     assert not re.search(r'\.npy$', str(filename)), \
         f'numpy files are not supported path={filename}'
-    v = np.genfromtxt(
-        str(_filepath(filename)),
-        delimiter=',',
-        skip_header=True,
-    )
+    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
     res = PKDict()
     for i, c in enumerate(np.all(v == v[0,:], axis = 0)):
         if not c:

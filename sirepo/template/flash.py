@@ -7,566 +7,214 @@ u"""FLASH execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
-from pykern import pkjinja
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import glob
-import h5py
 import numpy as np
 import re
+import rsflash.plotting.extracts
 import sirepo.sim_data
+
+yt = None
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+_FLASH_PAR_FILE = 'flash.par'
+
 _GRID_EVOLUTION_FILE = 'flash.dat'
+
+_LINEOUTS_SAMPLING_SIZE = 256
+
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
-_SETUP_COMMANDS = PKDict(
-    CapLaser3D=[
-        '+cartesian',
-        '+hdf5typeio',
-        '+laser',
-        '+mgd',
-        '+mtmmmt',
-        '+usm3t',
-        '-3d',
-        '-auto',
-        '-parfile=bella_3dSetup.par',
-        'ed_maxBeams=1',
-        'ed_maxPulseSections=4',
-        'ed_maxPulses=1',
-        'mgd_meshgroups=6',
-        'species=fill,wall',
-    ],
-    CapLaserBELLA=[
-        '+hdf5typeio',
-        '+laser',
-        '+mgd',
-        '+mtmmmt',
-        '+usm3t',
-        '-2d',
-        '-auto',
-        '-nxb=8',
-        '-nyb=8',
-        '-parfile=bella.par',
-        '-with-unit=physics/sourceTerms/Heatexchange/HeatexchangeMain/LeeMore',
-        'ed_maxBeams=1', \
-        'ed_maxPulseSections=4',
-        'ed_maxPulses=1',
-        'mgd_meshgroups=6',
-        'species=fill,wall',
-    ],
-    RTFlame= [
-        '-2d',
-        '-auto',
-        '-nxb=16',
-        '-nyb=16',
-    ],
+# TODO(e-carlin): When katex for labels is implemented
+# https://git.radiasoft.org/sirepo/issues/3384
+# dens='$\frac{\mathrm{g}}{\mathrm{cm}^3}$'
+# magz='B$_{\phi}$ [T]'
+_PLOT_VARIABLE_LABELS = PKDict(
+    dens='g/cm^3',
+    depo='cm/s',
+    fill='',
+    flam='cms/s',
+    kapa='',
+    length='cm',
+    magz='Bphi T',
+    sumy='',
+    tele='K',
+    time='s',
+    tion='K',
+    trad='K',
+    velx='cm/s',
+    wall='',
+    ye='',
 )
 
 
 def background_percent_complete(report, run_dir, is_running):
-    files = _h5_file_list(run_dir)
-    count = len(files)
-    if is_running and count:
-        count -= 1
+    def _grid_columns():
+        c = _grid_evolution_columns(run_dir)
+        return [x for x in c if x[0] != '#'] if c \
+            else None
+
+    def _plot_filenames():
+        return [
+            PKDict(
+                time=_time_and_units(yt.load(str(f)).parameters['time']),
+                filename=f.basename,
+            )
+            for f in files
+        ]
+
+    def _plot_vars():
+        names = []
+        if len(files):
+            io = simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME),
+            ).models.IO_IOMain
+            idx = 1
+            while io.get(f'plot_var_{idx}', ''):
+                n = io[f'plot_var_{idx}']
+                if n != 'none':
+                    names.append(n)
+                idx += 1
+        return names
+
     res = PKDict(
         percentComplete=0 if is_running else 100,
-        frameCount=count,
     )
-    c = _grid_evolution_columns(run_dir)
-    if c:
-        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
+    if report == 'setupAnimation':
+        f = run_dir.join(_SIM_DATA.SETUP_PARAMS_SCHEMA_FILE)
+        if f.exists():
+            res.pkupdate(
+                frameCount=1,
+                flashSchema=pkjson.load_any(pkio.read_text(f))
+            )
+    else:
+        _init_yt()
+        files = _h5_file_list(run_dir)
+        if is_running and len(files):
+            # the last file may be unfinished if the simulation is running
+            files.pop()
+        res.pkupdate(
+            frameCount=len(files),
+            plotVars=_plot_vars(),
+            plotFiles=_plot_filenames(),
+            gridEvolutionColumns=_grid_columns(),
+        )
     return res
 
 
-_DEFAULT_VALUES = {
-    'RTFlame': {
-        'Driver': {
-            'dtinit': 1e-09,
-            'dtmin': 1e-09,
-            'nend': 99999,
-            'tmax': 0.5,
-        },
-        'Grid': {
-            'xl_boundary_type': 'reflect',
-            'xmax': 6000000,
-            'xr_boundary_type': 'outflow',
-            'ymax': 750000,
-            'ymin': -750000,
-            'zmax': 750000,
-            'zmin': -750000,
-        },
-        'Gridparamesh': {
-            'lrefine_max': 3,
-            'nblockx': 4,
-            'refine_var_1': 'dens',
-            'refine_var_2': 'flam',
-        },
-        'IO': {
-            'plot_var_1': 'dens',
-            'plotFileIntervalTime': 0.01,
-        },
-        'SimulationRTFlame': {
-            'flame_initial_position': 2000000,
-            'spert_ampl1': 200000,
-            'spert_ampl2': 200000,
-            'spert_phase2': 0.235243,
-            'spert_wl1': 1500000,
-            'spert_wl2': 125000,
-        },
-        'physicsGravityConstant': {
-            'gconst': -1900000000,
-        },
-        'physicssourceTermsFlameFlameEffectsEIP': {
-            'flame_deltae': 280000000000000000,
-            'sumyi_burned': 0.072917,
-            'sumyi_unburned': 0.041667,
-        },
-        'physicssourceTermsFlameFlameSpeedConstant': {
-            'fl_fsConstFlameSpeed': 2000000,
-        },
-        'gridEvolutionAnimation': {
-            'y1': 'mass',
-            'y2': 'Burned Mass',
-            'y3': 'Burning rate',
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": [],
+def generate_config_file(run_dir, data):
 
-            }
-        },
-    },
-    'CapLaserBELLA': {
-        'varAnimation': {
-            'var': 'tele',
-        },
-        'Grid': {
-            'eosModeInit': 'dens_temp_gather',
-            'xl_boundary_type': 'axisymmetric',
-            'xr_boundary_type': 'user',
-            'yl_boundary_type': 'outflow',
-            'yr_boundary_type': 'outflow',
-            'zl_boundary_type': 'reflect',
-            'zr_boundary_type': 'reflect',
-            'geometry': 'cylindrical',
-            'xmin': 0.0,
-            'xmax': 250.0e-04,
-            'ymin': -500.0e-04,
-            'ymax': 500.0e-04,
-        },
-        'gridEvolutionAnimation': {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic",
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": [],
+    field_order = _SCHEMA.constants.flashDirectives.fieldOrder
+    labels = _SCHEMA.constants.flashDirectives.labels
 
-            }
-        },
-        'Gridparamesh': {
-            'flux_correct': '0',
-            'lrefine_max': 2,
-            'lrefine_min': 1,
-            'nblockx': 1,
-            'nblocky': 4,
-        },
-        'Gridparameshparamesh4Paramesh4dev': {
-            'gr_pmrpCurvilinear': '1',
-            'gr_pmrpCurvilinearConserve': '1',
-            'gr_pmrpForceConsistency': '0',
-            'gr_pmrpCylindricalPm': '1',
-        },
-        'Driver': {
-            'tstep_change_factor': 1.10,
-            'tmax': 300.0e-09,
-            'dtmin': 1.0e-16,
-            'dtinit': 1.0e-15,
-            'dtmax': 3.0e-09,
-            'nend': 10000000,
-        },
-        'Multispecies': {
-            'ms_fillSpecies': 'hydrogen',
-            'ms_wallSpecies': 'alumina',
-            'eos_fillEosType': 'eos_tab',
-            'eos_fillSubType': 'ionmix4',
-            'eos_wallEosType': 'eos_tab',
-            'eos_wallSubType': 'ionmix4',
-            'ms_fillA': 1.00794,
-            'ms_fillZ': 1.0,
-            'ms_fillZMin': 0.001,
-            'ms_wallA': 26.9815386,
-            'ms_wallZ': 13.0,
-            'ms_wallZMin': 0.001,
-        },
-        'physicsHydro': {
-            'cfl': 0.3,
-        },
-        'physicsEosTabulatedHdf5TableRead': {
-            'eos_useLogTables': '0',
-        },
-        'physicsHydrounsplit': {
-            'hy_fPresInMomFlux': 0.0,
-            'hy_fullSpecMsFluxHandling': '0',
-            'order': 3,
-            'shockDetect': '1',
-            'slopeLimiter': 'minmod',
-            'smallt': 1.0,
-            'smallx': 1.0e-99,
-            'use_avisc': '1',
-        },
-        'physicsHydrounsplitMHD_StaggeredMesh': {
-            'E_modification': '0',
-            'energyFix': '1',
-            'prolMethod': 'balsara_prol',
-        },
-        'IO': {
-            'plot_var_1': 'dens',
-            'plot_var_2': 'pres',
-            'plot_var_3': 'tele',
-            'plot_var_4': 'tion',
-            'plot_var_5': 'magz',
-            'plot_var_6': 'depo',
-            'plotFileIntervalTime': 1e-10,
-            'io_writeMscalarIntegrals': '1',
-        },
-        'physicsRadTrans': {
-            'rt_dtFactor': 1.0e+100,
-        },
-        'physicssourceTermsHeatexchangeSpitzer': {
-            'hx_dtFactor': 1.0e+100,
-        },
-        'physicsRadTransMGD': {
-            'rt_useMGD': '1',
-            'rt_mgdNumGroups': 6,
-            'rt_mgdBounds_1': 1e-1,
-            'rt_mgdBounds_2': 1,
-            'rt_mgdBounds_3': 10,
-            'rt_mgdBounds_4': 100,
-            'rt_mgdBounds_5': 1000,
-            'rt_mgdBounds_6': 10000,
-            'rt_mgdBounds_7': 100000,
-            'rt_mgdFlMode': 'fl_harmonic',
-            'rt_mgdXlBoundaryType': 'reflecting',
-            'rt_mgdXrBoundaryType': 'reflecting',
-            'rt_mgdYlBoundaryType': 'vacuum',
-            'rt_mgdYrBoundaryType': 'vacuum',
-            'rt_mgdZlBoundaryType': 'reflecting',
-            'rt_mgdZrBoundaryType': 'reflecting',
-        },
-        'physicsmaterialPropertiesOpacityMultispecies': {
-            'op_fillAbsorb': 'op_tabpa',
-            'op_fillEmiss': 'op_tabpe',
-            'op_fillTrans': 'op_tabro',
-            'op_fillFileType': 'ionmix4',
-            'op_fillFileName': 'h-imx-004.cn4',
-            'op_wallAbsorb': 'op_tabpa',
-            'op_wallEmiss': 'op_tabpe',
-            'op_wallTrans': 'op_tabro',
-            'op_wallFileType': 'ionmix4',
-            'op_wallFileName': 'al-imx-004.cn4',
-        },
-        'physicssourceTermsEnergyDepositionLaser': {
-            'ed_maxRayCount': 10000,
-            'ed_numberOfPulses': 1,
-            'ed_numberOfSections_1': 4,
-            'ed_time_1_1': 250.0e-09,
-            'ed_time_1_2': 250.1e-09,
-            'ed_time_1_3': 251.0e-09,
-            'ed_time_1_4': 251.1e-09,
-            'ed_power_1_1': 0.0,
-            'ed_power_1_2': 1.0e+09,
-            'ed_power_1_3': 1.0e+09,
-            'ed_power_1_4': 0.0,
-            'ed_numberOfBeams': 1,
-            'ed_lensX_1': 0.0,
-            'ed_lensY_1': -1000.0e-04,
-            'ed_lensZ_1': 0.0,
-            'ed_lensSemiAxisMajor_1': 10.0e-04,
-            'ed_targetX_1': 0.0,
-            'ed_targetY_1': 0.0,
-            'ed_targetZ_1': 0.0,
-            'ed_targetSemiAxisMajor_1': 10.0e-04,
-            'ed_targetSemiAxisMinor_1': 10.0e-04,
-            'ed_pulseNumber_1': 1,
-            'ed_wavelength_1': 1.053,
-            'ed_crossSectionFunctionType_1': 'gaussian1D',
-            'ed_gaussianExponent_1': 2.0,
-            'ed_gaussianRadiusMajor_1': 8.0e-04,
-            'ed_gaussianRadiusMinor_1': 8.0e-04,
-            'ed_numberOfRays_1': 1024,
-            'ed_gridType_1': 'statistical1D',
-            'ed_gridnRadialTics_1': 1024,
-        },
-        'physicssourceTermsEnergyDepositionLaserLaserIO': {
-            'ed_useLaserIO': '1',
-            'ed_laserIOMaxNumberOfPositions': 10000,
-            'ed_laserIOMaxNumberOfRays':  128,
-        },
-        'physicsDiffuse': {
-            'diff_useEleCond': '1',
-            'diff_eleFlMode': 'fl_larsen',
-            'diff_eleFlCoef': 0.06,
-            'diff_eleXlBoundaryType': 'neumann',
-            'diff_eleXrBoundaryType': 'dirichlet',
-            'diff_eleYlBoundaryType': 'neumann',
-            'diff_eleYrBoundaryType': 'neumann',
-            'diff_eleZlBoundaryType': 'neumann',
-            'diff_eleZrBoundaryType': 'neumann',
-            'useDiffuseComputeDtSpecies': '0',
-            'useDiffuseComputeDtTherm': '0',
-            'useDiffuseComputeDtVisc': '0',
-            'dt_diff_factor': 0.3,
-        },
-        'physicsDiffuseUnsplit': {
-            'diff_thetaImplct': 1.0,
-        },
-        'SimulationCapLaserBELLA': {
-            'sim_peakField': 3.2e3,
-            'sim_period': 400e-9,
-            'sim_rhoWall': 2.7,
-            'sim_teleWall': 11598,
-            'sim_tionWall': 11598,
-            'sim_tradWall': 11598,
-            'sim_rhoFill': 1.e-6,
-            'sim_teleFill': 11598,
-            'sim_tionFill': 11598,
-            'sim_tradFill': 11598,
-            'sim_condWall': 1.5e5,
-        },
-    },
-    'CapLaser3D': {
-        'Driver': {
-            'dtinit': 1e-15,
-            'dtmax': 1e-09,
-            'dtmin': 1e-16,
-            'nend': 10000000,
-            'tmax': 1.2e-07,
-            'tstep_change_factor': 1.1,
-        },
-        'Grid': {
-            'eosModeInit': 'dens_temp_gather',
-            'geometry': 'cartesian',
-            'xl_boundary_type': 'outflow',
-            'xmax': 0.04,
-            'xmin': -0.04,
-            'xr_boundary_type': 'outflow',
-            'yl_boundary_type': 'outflow',
-            'ymax': 0.04,
-            'ymin': -0.04,
-            'yr_boundary_type': 'outflow',
-            'zl_boundary_type': 'outflow',
-            'zr_boundary_type': 'outflow'
-        },
-        'gridEvolutionAnimation': {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic",
-            "valueList": {
-                "y1": [],
-                "y2": [],
-                "y3": [],
+    def _config_element_text(e, indent=0):
+        l = ''
+        if 'comment' in e:
+            l += f'\n{"   " * indent}D {e.name} {e.comment}'
+        l += f'\n{"   " * indent}{e._type}'
+        for f in field_order[e._type]:
+            v = e[f]
+            if f == 'isConstant':
+                if v == '1':
+                    l += ' CONSTANT'
+                continue
+            if f == 'default' and e.type == 'STRING':
+                v = f'"{v}"'
+            if not len(v):
+                continue
+            if f == 'range':
+                v = f'[{v}]'
+            if f in labels:
+                v = f'{labels[f]} {v}'
+            l += f' {v}'
+        if 'statements' in e:
+            for stmt in e.statements:
+                l += _config_element_text(stmt, indent + 1)
+        return l
 
-            }
-        },
-        'Gridparamesh': {
-            'flux_correct': '0',
-            'lrefine_max': 3,
-            'lrefine_min': 1,
-            'nblockx': 1,
-            'nblocky': 1
-        },
-        'Gridparameshparamesh4Paramesh4dev': {
-            'gr_pmrpCurvilinear': '0',
-            'gr_pmrpCurvilinearConserve': '0',
-            'gr_pmrpCylindricalPm': '0',
-            'gr_pmrpForceConsistency': '0'
-        },
-        'IO': {
-            'io_writeMscalarIntegrals': '1',
-            'plotFileIntervalTime': 1e-10,
-            'plot_var_1': 'dens',
-            'plot_var_2': 'pres',
-            'plot_var_3': 'tele',
-            'plot_var_4': 'tion',
-            'plot_var_5': 'trad',
-            'plot_var_6': 'ye'
-        },
-        'Multispecies': {
-            'eos_fillEosType': 'eos_tab',
-            'eos_fillSubType': 'ionmix4',
-            'eos_wallEosType': 'eos_tab',
-            'eos_wallSubType': 'ionmix4',
-            'ms_fillA': 1.00784,
-            'ms_fillSpecies': 'hydrogen',
-            'ms_fillZ': 1,
-            'ms_fillZMin': 0.001,
-            'ms_wallA': 20.3922,
-            'ms_wallSpecies': 'alumina',
-            'ms_wallZ': 10,
-            'ms_wallZMin': 0.001
-        },
-        'SimulationCapLaser3D': {
-            'sim_condWall': 195000,
-            'sim_peakField': 4500,
-            'sim_period': 2e-07,
-            'sim_rhoFill': 1.467e-05,
-            'sim_rhoWall': 2.7,
-            'sim_teleFill': 11598,
-            'sim_teleWall': 11598,
-            'sim_tionFill': 11598,
-            'sim_tionWall': 11598,
-            'sim_tradFill': 11598,
-            'sim_tradWall': 11598
-        },
-        'physicsDiffuse': {
-            'diff_eleFlCoef': 0.06,
-            'diff_eleFlMode': 'fl_larsen',
-            'diff_eleXlBoundaryType': 'neumann',
-            'diff_eleXrBoundaryType': 'neumann',
-            'diff_eleYlBoundaryType': 'neumann',
-            'diff_eleYrBoundaryType': 'neumann',
-            'diff_eleZlBoundaryType': 'neumann',
-            'diff_eleZrBoundaryType': 'neumann',
-            'diff_useEleCond': '1',
-            'dt_diff_factor': 0.3,
-            'useDiffuseComputeDtSpecies': '0',
-            'useDiffuseComputeDtTherm': '0',
-            'useDiffuseComputeDtVisc': '0'
-        },
-        'physicsDiffuseUnsplit': {
-            'diff_thetaImplct': 1.0,
-        },
-        'physicsEosTabulatedHdf5TableRead': {
-            'eos_useLogTables': '0',
-        },
-        'physicsHydro': {
-            'cfl': 0.3,
-        },
-        'physicsHydrounsplit': {
-            'hy_fPresInMomFlux': 0.0,
-            'hy_fullSpecMsFluxHandling': '0',
-            'order': 3,
-            'shockDetect': '1',
-            'slopeLimiter': 'minmod',
-            'smallt': 1.0,
-            'smallx': 1.0e-99,
-            'use_avisc': '1',
-        },
-        'physicsHydrounsplitMHD_StaggeredMesh': {
-            'E_modification': '0',
-            'energyFix': '1',
-            'prolMethod': 'balsara_prol',
-        },
-        'physicsRadTrans': {
-            'rt_dtFactor': 1.0e+100,
-        },
-        'physicssourceTermsHeatexchangeSpitzer': {
-            'hx_dtFactor': 1.0e+100,
-        },
-        'physicsRadTransMGD': {
-            'rt_mgdBounds_1': 0.1,
-            'rt_mgdBounds_2': 1,
-            'rt_mgdBounds_3': 10,
-            'rt_mgdBounds_4': 100,
-            'rt_mgdBounds_5': 1000,
-            'rt_mgdBounds_6': 10000,
-            'rt_mgdBounds_7': 100000,
-            'rt_mgdFlMode': 'fl_harmonic',
-            'rt_mgdNumGroups': 6,
-            'rt_mgdXlBoundaryType': 'reflecting',
-            'rt_mgdXrBoundaryType': 'reflecting',
-            'rt_mgdYlBoundaryType': 'reflecting',
-            'rt_mgdYrBoundaryType': 'reflecting',
-            'rt_mgdZlBoundaryType': 'vacuum',
-            'rt_mgdZrBoundaryType': 'vacuum',
-            'rt_useMGD': '1'
-        },
-        'physicsmaterialPropertiesOpacityMultispecies': {
-            'op_fillAbsorb': 'op_tabpa',
-            'op_fillEmiss': 'op_tabpe',
-            'op_fillFileName': 'helium-fill-imx.cn4',
-            'op_fillFileType': 'ionmix4',
-            'op_fillTrans': 'op_tabro',
-            'op_wallAbsorb': 'op_tabpa',
-            'op_wallEmiss': 'op_tabpe',
-            'op_wallFileName': 'alumina-wall-imx.cn4',
-            'op_wallFileType': 'ionmix4',
-            'op_wallTrans': 'op_tabro'
-        },
-        'physicssourceTermsEnergyDepositionLaser': {
-            'ed_crossSectionFunctionType_1': 'gaussian2D',
-            'ed_gaussianExponent_1': 1,
-            'ed_gaussianRadiusMajor_1': 0.008495,
-            'ed_gaussianRadiusMinor_1': 0.008495,
-            'ed_gridType_1': 'radial2D',
-            'ed_gridnRadialTics_1': 1024,
-            'ed_lensSemiAxisMajor_1': 0.02,
-            'ed_lensX_1': 0,
-            'ed_lensY_1': 0,
-            'ed_lensZ_1': -0.745867,
-            'ed_maxRayCount': 10000,
-            'ed_numberOfBeams': 1,
-            'ed_numberOfPulses': 1,
-            'ed_numberOfRays_1': 1024,
-            'ed_numberOfSections_1': 4,
-            'ed_power_1_1': 0,
-            'ed_power_1_2': 375000000.0,
-            'ed_power_1_3': 375000000.0,
-            'ed_power_1_4': 0,
-            'ed_pulseNumber_1': 1,
-            'ed_semiAxisMajorTorsionAngle_1': 0,
-            'ed_semiAxisMajorTorsionAxis_1': 'x',
-            'ed_targetSemiAxisMajor_1': 0.02,
-            'ed_targetSemiAxisMinor_1': 0.02,
-            'ed_targetX_1': 0,
-            'ed_targetY_1': 0,
-            'ed_targetZ_1': 0,
-            'ed_time_1_1': 1e-07,
-            'ed_time_1_2': 1.001e-07,
-            'ed_time_1_3': 1.08e-07,
-            'ed_time_1_4': 1.081e-07,
-            'ed_wavelength_1': 0.523
-        },
-        'physicssourceTermsEnergyDepositionLaserLaserIO': {
-            'ed_laserIOMaxNumberOfPositions': 10000,
-            'ed_laserIOMaxNumberOfRays':  128,
-            'ed_useLaserIO': '1',
-        },
-        'varAnimation': {
-            'var': 'tele',
-        },
-    },
-}
+    res = ''
+    for e in data.models.setupConfigDirectives:
+        res += _config_element_text(e)
+    pkio.write_text(
+        _SIM_DATA.flash_simulation_unit_file_path(run_dir, data, 'Config'),
+        res + '\n',
+    )
 
 
-def new_simulation(data, new_simulation_data):
-    flash_type = new_simulation_data['flashType']
-    data.models.simulation.flashType = flash_type
-    for name in _DEFAULT_VALUES[flash_type]:
-        data.models[name].update(_DEFAULT_VALUES[flash_type][name])
+def stateless_compute_setup_command(data):
+    return PKDict(setupCommand=' '.join(setup_command(data)))
 
 
-def remove_last_frame(run_dir):
-    files = _h5_file_list(run_dir)
-    if len(files) > 0:
-        pkio.unchecked_remove(files[-1])
+def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
+    # TODO(e-carlin): share with synergia (and possibly radia)
+    if success_exit:
+        return None
+    e = None
+    f = run_dir.join('mpi_run.out')
+    if f.exists():
+        m = re.search(
+            r'^ Error message is (.*?)\n',
+            pkio.read_text(f),
+            re.MULTILINE | re.DOTALL,
+        )
+        if m:
+            e = m.group(1)
+    return e
+
+
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
 
 
 def setup_command(data):
-    t = data.models.simulation.flashType
+    def _integer(key, value):
+        return f'-{key}={value}'
+
+    def _shortcut(value):
+        return f'+{value}'
+
+    c = []
+    for k, v in data.models.setupArguments.items():
+        if k == 'units':
+            for e in v:
+                c.append(f'--with-unit={e}')
+            continue
+        t = _SCHEMA.model.setupArguments[k][1]
+        if t == 'SetupArgumentDimension':
+            # always include the setup dimension
+            c.append(f'-{v}d')
+            continue
+        if v == _SCHEMA.model.setupArguments[k][2]:
+            continue
+        if t == 'Boolean':
+            v == '1' and c.append(f'-{k}')
+        elif t == 'Integer':
+            c.append(_integer(k, v))
+        elif t == 'NoDashInteger':
+            c.append(f'{k}={v}')
+        elif t == 'OptionalInteger':
+            # Do not move up to enclosing if.
+            # We need to handle OptionalInteger even if v is falsey (no-op)
+            if v:
+                c.append(_integer(k, v))
+        elif t == 'SetupArgumentGridGeometry':
+            c.append(_shortcut(v))
+        elif t == 'SetupArgumentShortcut':
+            v == '1' and c.append(_shortcut(k))
+        elif t  == 'String' or t == 'OptionalString':
+           c.append(f'{k}={v}')
+        else:
+            raise AssertionError(f'type={t} not supported')
+    t = _SCHEMA.constants.flashAppName
     return [
         './setup',
         t,
         f'-objdir={t}',
-    ] + _SETUP_COMMANDS[t]
+    ] + c
 
 
 def sim_frame_gridEvolutionAnimation(frame_args):
@@ -577,6 +225,8 @@ def sim_frame_gridEvolutionAnimation(frame_args):
     plots = []
     for v in 'y1', 'y2', 'y3':
         n = frame_args[v]
+        if n == 'None':
+            continue
         plots.append({
             'name': n,
             'label': n,
@@ -593,124 +243,187 @@ def sim_frame_gridEvolutionAnimation(frame_args):
     }
 
 
-def sim_frame_varAnimation(frame_args):
-    field = frame_args['var']
-    filename = _h5_file_list(frame_args.run_dir)[frame_args.frameIndex]
-    with h5py.File(filename) as f:
-        params = _parameters(f)
-        node_type = f['node type']
-        bounding_box = f['bounding box']
-        xdomain = [params['xmin'], params['xmax']]
-        ydomain = [params['ymin'], params['ymax']]
-        size = _cell_size(f, params['lrefine_max'])
-        dim = (
-            _rounded_int((ydomain[1] - ydomain[0]) / size[1]) * params['nyb'],
-            _rounded_int((xdomain[1] - xdomain[0]) / size[0]) * params['nxb'],
-        )
-        grid = np.zeros(dim)
-        values = f[field]
-        amr_grid = []
-        for i in range(len(node_type)):
-            if node_type[i] == 1:
-                bounds = bounding_box[i]
-                _apply_to_grid(grid, values[i, 0], bounds, size, xdomain, ydomain)
-                amr_grid.append([
-                    (bounds[0] / 100).tolist(),
-                    (bounds[1] / 100).tolist(),
-                ])
+def sim_frame_oneDimensionProfileAnimation(frame_args):
+    # def _interpolate_max(files):
+    #     m = -1
+    #     for f in files:
+    #         d = yt.load(f)
+    #         m = max(d.domain_width[0] + d.index.grid_left_edge[0][0], m)
+    #     return m
 
-    # imgplot = plt.imshow(grid, extent=[xdomain[0], xdomain[1], ydomain[1], ydomain[0]], cmap='PiYG')
-    aspect_ratio = float(params['nblocky']) / params['nblockx']
-    time_units = 's'
-    if params['time'] != 0:
-        if params['time'] < 1e-6:
-            params['time'] *= 1e9
-            time_units = 'ns'
-        elif params['time'] < 1e-3:
-            params['time'] *= 1e6
-            time_units = 'µs'
-        elif params['time'] < 1:
-            params['time'] *= 1e3
-            time_units = 'ms'
-    return {
-        'x_range': [xdomain[0] / 100, xdomain[1] / 100, len(grid[0])],
-        'y_range': [ydomain[0] / 100, ydomain[1] / 100, len(grid)],
-        'x_label': 'x [m]',
-        'y_label': 'y [m]',
-        'title': '{}'.format(field),
-        'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_args.frameIndex + 1),
-        'aspectRatio': aspect_ratio,
-        'z_matrix': grid.tolist(),
-        'amr_grid': amr_grid,
-        'summaryData': {
-            'aspectRatio': aspect_ratio,
-        },
-    }
+    def _files():
+        if frame_args.selectedPlotFiles:
+            return sorted([str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')])
+        return [str(_h5_file_list(frame_args.run_dir)[-1])]
+
+    #_init_yt()
+    plots = []
+    x_points = []
+    f = _files()
+    xs, ys, times = rsflash.plotting.extracts.get_lineouts(
+        f,
+        frame_args.var,
+        frame_args.axis,
+        _LINEOUTS_SAMPLING_SIZE,
+        # interpolate_max=_interpolate_max(f),
+    )
+    x = xs[0]
+    for i, _ in enumerate(ys):
+        assert x.all() == xs[i].all(), 'Plots must use the same x values'
+        y = ys[i]
+        plots.append(PKDict(
+            name=i,
+            label=_time_and_units(times[i]),
+            points=y.tolist(),
+        ))
+    return PKDict(
+        plots=plots,
+        title=frame_args.var,
+        x_label=_PLOT_VARIABLE_LABELS.length,
+        x_points = x.tolist(),
+        x_range=[np.min(x), np.max(x)],
+        y_label=_PLOT_VARIABLE_LABELS.get(frame_args.var, ''),
+        y_range=template_common.compute_plot_color_and_range(plots),
+    )
+
+
+def sim_frame_varAnimation(frame_args):
+    def _amr_grid(all):
+        if not int(frame_args.amrGrid):
+            return None
+        g = []
+        for b, _ in all.blocks:
+            g.append([
+                [float(b.LeftEdge[0] / 100), float(b.RightEdge[0] / 100)],
+                [float(b.LeftEdge[1] / 100), float(b.RightEdge[1] / 100)],
+            ])
+        return g
+    _init_yt()
+    from yt.visualization import plot_window
+    from yt.visualization.fixed_resolution import FixedResolutionBuffer
+    f = frame_args.var
+    ds = yt.load(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex]))
+    axis = ['x', 'y', 'z'].index(frame_args.axis)
+    (bounds, center, display_center) =  plot_window.get_window_parameters(axis, 'c', None, ds)
+    slc = ds.slice(axis, center[axis], center=center)
+    all = ds.all_data()
+    dim = ds.domain_dimensions
+    scale = 2 ** all.max_level
+    if axis == 0:
+        buff_size = (dim[1] * scale, dim[2] * scale)
+    elif axis == 1:
+        buff_size = (dim[0] * scale, dim[2] * scale)
+    else:
+        buff_size = (dim[0] * scale, dim[1] * scale)
+
+    #TODO(pjm): antialis=True is important to get grid aligned?
+    d = FixedResolutionBuffer(slc, bounds, buff_size, True)[f]
+
+    l = PKDict(
+        cartesian=PKDict(
+            x=PKDict(x='y', y='z'),
+            y=PKDict(x='z', y='x'),
+            z=PKDict(x='x', y='y'),
+        ),
+        cylindrical=PKDict(
+            r=PKDict(x='theta', y='z'),
+            z=PKDict(x='r', y='theta'),
+            theta=PKDict(x='r', y='z'),
+        ),
+        polar=PKDict(
+            r=PKDict(x='phi', y='z'),
+            phi=PKDict(x='r', y='z'),
+            z=PKDict(x='r', y='phi'),
+        ),
+        spherical=PKDict(
+            r=PKDict(x='theta', y='phi'),
+            theta=PKDict(x='r', y='phi'),
+            phi=PKDict(x='r', y='theta'),
+        ),
+    )
+
+    g = frame_args.sim_in.models.Grid_GridMain.geometry
+    aspect_ratio = buff_size[1] / buff_size[0]
+    return PKDict(
+        global_max=float(frame_args.vmax) if frame_args.vmax else None,
+        global_min=float(frame_args.vmin) if frame_args.vmin else None,
+        subtitle='Time: {}, Plot {}'.format(
+            _time_and_units(ds.parameters['time']),
+            frame_args.frameIndex + 1,
+        ),
+        title='{}'.format(f),
+        x_label=f'{l[g][frame_args.axis].x} [m]',
+        x_range=[ds.parameters['xmin'] / 100, ds.parameters['xmax'] / 100, d.shape[1]],
+        y_label=f'{l[g][frame_args.axis].y} [m]',
+        y_range=[ds.parameters['ymin'] / 100, ds.parameters['ymax'] / 100, d.shape[0]],
+        z_matrix=d.tolist(),
+        amr_grid=_amr_grid(all),
+        aspectRatio=aspect_ratio,
+        summaryData=PKDict(
+            aspectRatio=aspect_ratio,
+        ),
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
+    if data.report == 'setupAnimation':
+        return
     pkio.write_text(
-        #TODO: generate python instead
-        run_dir.join('flash.par'),
+        run_dir.join(_FLASH_PAR_FILE),
         _generate_parameters_file(data, run_dir=run_dir),
     )
 
 
-def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
-    xsize = len(values)
-    ysize = len(values[0])
-    xi = _rounded_int((bounds[0][0] - xdomain[0]) / cell_size[0]) * xsize
-    yi = _rounded_int((bounds[1][0] - ydomain[0]) / cell_size[1]) * ysize
-    xscale = _rounded_int((bounds[0][1] - bounds[0][0]) / cell_size[0])
-    yscale = _rounded_int((bounds[1][1] - bounds[1][0]) / cell_size[1])
-    for x in range(xsize):
-        for y in range(ysize):
-            for x1 in range(xscale):
-                for y1 in range(yscale):
-                    grid[yi + (y * yscale) + y1][xi + (x * xscale) + x1] = values[y][x]
+def _find_setup_config_directive(data, name):
+    for d in data.models.setupConfigDirectives:
+        if d.name == name:
+            return d
+    return PKDict()
 
 
-def _cell_size(f, refine_max):
-    refine_level = f['refine level']
-    while refine_max > 0:
-        for i in range(len(refine_level)):
-            if refine_level[i] == refine_max:
-                return f['block size'][i]
-        refine_max -= 1
-    assert False, 'no blocks with appropriate refine level'
+def _format_boolean(value, config=False):
+    r = 'TRUE' if value == '1' else 'FALSE'
+    if not config:
+        # runtime parameters (par file) have dots before and after bool
+        r = f'.{r}.'
+    return r
 
 
 def _generate_parameters_file(data, run_dir=None):
-    if not run_dir:
-        run_dir = pkio.py_path()
     res = ''
-    names = {}
+    # names = {}
 
-    if _has_species_selection(data.models.simulation.flashType):
-        for k in ('fill', 'wall'):
-            f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
-            data.models.Multispecies[f'eos_{k}TableFile'] = f
-            data.models[
-                'physicsmaterialPropertiesOpacityMultispecies'
-            ][f'op_{k}FileName'] = f
+    # if _has_species_selection(data.models.simulation.flashType):
+    #     for k in ('fill', 'wall'):
+    #         f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
+    #         data.models.Multispecies[f'eos_{k}TableFile'] = f
+    #         data.models[
+    #             'physicsmaterialPropertiesOpacityMultispecies'
+    #         ][f'op_{k}FileName'] = f
 
-    for line in pkio.read_text(
-            run_dir.join(_SIM_DATA.flash_setup_units_basename(data)),
-    ).split('\n'):
-        names[
-            ''.join([x for x in line.split('/') if not x.endswith('Main')])
-        ] = line
+    # for line in pkio.read_text(
+    #     run_dir.join(_SIM_DATA.flash_setup_units_basename(data)),
+    # ).split('\n'):
+    #     names[
+    #         #''.join([x for x in line.split('/') if not x.endswith('Main')])
+    #         #re.sub(r'/', '_', line)
+    #         flash_parser.SetupParameterParser.model_name_from_flash_unit_name(line)
+    #     ] = line
+
+    flash_schema = data.models.flashSchema
+
     for m in sorted(data.models):
-        if m not in names:
+        if m not in flash_schema.model:
             continue
-        if m not in _SCHEMA.model:
-            # old model which was removed from schema
-            continue
-        schema = _SCHEMA.model[m]
-        heading = '# {}\n'.format(names[m])
+        schema = flash_schema.model[m]
+        heading = '# {}\n'.format(flash_schema.view[m].title)
         has_heading = False
         for f in sorted(data.models[m]):
             if f not in schema:
+                continue
+            if f in ('basenm', 'checkpointFileIntervalTime', 'checkpointFileIntervalStep'):
+                # Simulation.basenm must remain the default
+                # plotting routines depend on the constant name
                 continue
             v = data.models[m][f]
             if v != schema[f][2]:
@@ -718,14 +431,7 @@ def _generate_parameters_file(data, run_dir=None):
                     has_heading = True
                     res += heading
                 if schema[f][1] == 'Boolean':
-                    v = '.TRUE.' if v == '1' else '.FALSE.'
-                if m == 'SimulationCapLaserBELLA' and \
-                   f == 'sim_currFile' and data.models[m]['sim_currType'] == '2':
-                    v = _SIM_DATA.lib_file_name_with_model_field(
-                        'SimulationCapLaserBELLA',
-                        'sim_currFile',
-                        v,
-                    )
+                    v = _format_boolean(v)
                 res += '{} = "{}"\n'.format(f, v)
         if has_heading:
             res += '\n'
@@ -745,16 +451,34 @@ def _has_species_selection(flash_type):
 
 
 def _h5_file_list(run_dir):
-    return sorted(glob.glob(str(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))))
+    return pkio.sorted_glob(run_dir.join('{}*'.format(_PLOT_FILE_PREFIX)))
 
 
-def _parameters(f):
-    res = {}
-    for name in ('integer scalars', 'integer runtime parameters', 'real scalars', 'real runtime parameters'):
-        for v in f[name]:
-            res[pkcompat.from_bytes(v[0].strip())] = v[1]
-    return res
+def _init_yt():
+    global yt
+    if yt:
+        return
+    import yt
+    # 50 disables logging
+    # https://yt-project.org/doc/reference/configuration.html#configuration-options-at-runtime
+    yt.funcs.mylog.setLevel(50)
 
 
-def _rounded_int(v):
-    return int(round(v))
+def _time_and_units(time):
+    u = 's'
+    if time < 1e-12:
+        time *= 1e15
+        u  = 'fs'
+    elif time < 1e-9:
+        time *= 1e12
+        u  = 'ps'
+    elif time < 1e-6:
+        time *= 1e9
+        u  = 'ns'
+    elif time < 1e-3:
+        time *= 1e6
+        u  = 'µs'
+    elif time < 1:
+        time *= 1e3
+        u = 'ms'
+    return f'{time:.2f} {u}'

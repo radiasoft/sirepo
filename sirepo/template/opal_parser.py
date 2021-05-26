@@ -24,7 +24,6 @@ _MATERIAL_CODE_TO_NAME = PKDict(
 )
 
 class OpalParser(lattice.LatticeParser):
-    _MIN_DRIFT = 1e-9
 
     def __init__(self):
         self.ignore_commands = set([
@@ -46,43 +45,14 @@ class OpalParser(lattice.LatticeParser):
         self.__combine_track_and_run()
         self.util = lattice.LatticeUtil(self.data, self.schema)
         input_files = self.__update_filenames()
-        self.__add_drifts_to_beamlines(cv)
+        self.__set_element_positions(cv)
+        self.__sort_element_positions(cv)
         self._set_default_beamline('select', 'line')
         self.__legacy_fixups()
         self.__convert_references_to_ids()
         self.__combine_options()
         self.__dedup_elements()
         return res, input_files
-
-    def __add_drifts_to_beamlines(self, code_var):
-        drifts = self._compute_drifts(code_var)
-        for beamline in self.data.models.beamlines:
-            current = 0
-            res = []
-            for item in beamline['items']:
-                el = self.util.id_map[item]
-                if 'elemedge' in el:
-                    pos = self._eval_var(code_var, el.elemedge)
-                else:
-                    pos = 0
-                if 'type' in el and pos != current:
-                    if abs(pos - current) > self._MIN_DRIFT:
-                        d = self._get_drift(drifts, pos - current, allow_negative_drift=True)
-                        if d:
-                            res.append(d)
-                            current = pos
-                res.append(item)
-                if 'l' in el and not code_var.is_var_value(el.l):
-                    el.l = float(el.l)
-                if el.get('type', '') == 'SBEND':
-                    current += self.__compute_sbend_arclength(el, code_var)
-                else:
-                    current += self._eval_var(code_var, el.get('l', 0))
-            beamline['items'] = res
-        for el in self.data.models.elements:
-            if 'elemedge' in el:
-                del el['elemedge']
-        self.util.sort_elements_and_beamlines()
 
     def __combine_options(self):
         option = None
@@ -118,25 +88,6 @@ class OpalParser(lattice.LatticeParser):
                 track = cmd
             res.append(cmd)
         self.data.models.commands = res
-
-    def __compute_sbend_arclength(self, sbend, code_var):
-        # compute angle if not set
-        if code_var.eval_var_with_assert(sbend.angle) == 0 and code_var.eval_var_with_assert(sbend.k0) != 0:
-            #TODO(pjm): same calculation as opal.js bendAngle()
-            particle = self.util.find_first_command(self.data, 'beam').particle
-            mass, charge = self.schema.constants.particleMassAndCharge[particle]
-            gamma = code_var.eval_var_with_assert(sbend.designenergy) * 1e-3 / mass + 1;
-            beta_gamma = math.sqrt(math.pow(gamma, 2) - 1);
-            field_amp = charge * abs(
-                math.sqrt(
-                    math.pow(code_var.eval_var_with_assert(sbend.k0), 2)
-                    + math.pow(code_var.eval_var_with_assert(sbend.k0s), 2))
-                / charge);
-            radius = abs((beta_gamma * mass) / (self.schema.constants.clight * field_amp));
-            sbend.angle = 2 * math.asin(code_var.eval_var_with_assert(sbend.l) / (2 * radius));
-        # compute arc length from chord length
-        angle = code_var.eval_var_with_assert(sbend.angle)
-        return angle * code_var.eval_var_with_assert(sbend.l) / (2 * math.sin(angle / 2))
 
     def __convert_references_to_ids(self):
         ref_model = PKDict(
@@ -231,12 +182,16 @@ class OpalParser(lattice.LatticeParser):
             v.value = re.sub(r'(\w+)\s*\^\s*([\d.]+)', r'pow(\1,\2)', v.value)
 
     def __legacy_fixups(self):
+        res = []
         for cmd in self.data.models.commands:
             if cmd._type == 'distribution' \
                and not cmd.type \
                and 'distribution' in cmd:
                 cmd.type = cmd.distribution
                 del cmd['distribution']
+            if cmd._type != 'select':
+                res.append(cmd)
+        self.data.models.commands = res
 
     def __remove_bend_default_fmap(self):
         for el in self.data.models.elements:
@@ -257,6 +212,49 @@ class OpalParser(lattice.LatticeParser):
                 res.append(cmd)
                 names.add(cmd.name)
         self.data.models.commands = res
+
+    def __set_element_positions(self, code_var):
+        beamline_ids = []
+        for beamline in self.data.models.beamlines:
+            beamline_ids.append(beamline.id)
+        for beamline in self.data.models.beamlines:
+            positions = []
+            for idx in range(len(beamline['items'])):
+                item_id = beamline['items'][idx]
+                el = self.util.id_map[item_id]
+                if item_id in beamline_ids:
+                    positions.append(PKDict(
+                        elemedge=positions[-1].elemedge if len(positions) else 0,
+                    ))
+                else:
+                    positions.append(PKDict(
+                        elemedge=el.get('elemedge', el.get('z', 0)),
+                    ))
+            beamline.positions = positions
+        for beamline in self.data.models.beamlines:
+            if 'origin' in beamline:
+                (beamline.x, beamline.y, beamline.z) = self.__split_values(beamline.origin)
+                del beamline['origin']
+            if 'orientation' in beamline:
+                (beamline.theta, beamline.phi, beamline.psi) = self.__split_values(beamline.orientation)
+                del beamline['orientation']
+        for el in self.data.models.elements:
+            if 'elemedge' in el:
+                del el['elemedge']
+            if 'l' in el and not code_var.is_var_value(el.l):
+                el.l = float(el.l)
+        self.util.sort_elements_and_beamlines()
+
+    def __sort_element_positions(self, code_var):
+        for beamline in self.data.models.beamlines:
+            ip = sorted(
+                zip(beamline['items'], beamline.positions),
+                key=lambda v: float(code_var.eval_var_with_assert(v[1].elemedge)))
+            beamline['items'] = [item for item,_ in ip]
+            beamline.positions = [pos for _,pos in ip]
+
+    def __split_values(self, values):
+        return re.split(r'\s*,\s*', re.sub(r'^{|}$', '', values))
 
     def __unique_name(self, cmd, names):
         prefix = cmd._type.upper()[:2]
@@ -280,7 +278,7 @@ class OpalParser(lattice.LatticeParser):
                     if el_schema[f][1] == 'OutputFile' and el[f]:
                         el[f] = '1'
                     elif el_schema[f][1] == 'InputFile' and el[f]:
-                        el[f] = os.path.basename(el[f])
+                        el[f] = self.sim_data.lib_file_name_without_type(os.path.basename(el[f]))
                         filename = self.sim_data.lib_file_name_with_model_field(
                             model_name, f, el[f])
                         if filename not in visited:

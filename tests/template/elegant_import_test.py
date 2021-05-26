@@ -13,11 +13,8 @@ import pytest
 
 def test_importer(import_req):
     from pykern.pkcollections import PKDict
-    from sirepo.template import lattice
     from sirepo.template import elegant
     import sirepo.lib
-    import sirepo.util
-    import flask
 
     for fn in pkio.sorted_glob(pkunit.data_dir().join('*')):
         if not pkio.has_file_extension(fn, ('ele', 'lte')) \

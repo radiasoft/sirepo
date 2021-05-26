@@ -82,9 +82,9 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
         return 'animation';
     };
 
-    self.computeOnServer = function(method, args, callback) {
+    self.statelessCompute = function(method, appState, args, callback) {
         args.method = method;
-        requestSender.getApplicationData(args, callback);
+        requestSender.statelessCompute(appState, args, callback);
     };
 
     self.initAutoTuneView = function(scope, watchFields, callback) {
@@ -129,7 +129,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService)
     self.beamlineService = beamlineService;
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
-    self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch', 'zonePlate'];
     self.prepareToSave = function() {};
     self.showBeamStatisticsReport = function() {
         return ['geometricSource', 'undulator'].indexOf(appState.models.simulation.sourceType) >= 0;
@@ -273,8 +273,9 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, 
         if (appState.models.undulator.select_energy != 'harmonic') {
             return;
         }
-        shadowService.computeOnServer(
+        shadowService.statelessCompute(
             'compute_harmonic_photon_energy',
+            appState,
             {
                 undulator: appState.models.undulator,
                 undulatorBeam: appState.models.undulatorBeam,

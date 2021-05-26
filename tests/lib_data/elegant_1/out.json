@@ -2969,7 +2969,7 @@
                 "bunch_frequency": 0.0,
                 "first_is_fiducial": "0",
                 "n_indices": 1,
-                "n_passes": 1,
+                "n_passes": 1.0,
                 "n_passes_fiducial": 0,
                 "n_steps": 1.0,
                 "reset_rf_for_each_step": "1",

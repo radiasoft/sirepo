@@ -9,8 +9,8 @@ lattice_file = """
 % 10.0 sto sr_beta_x
 % 10.0 sto sr_beta_y
 % 0.0 sto sr_dp_s_coupling
-% 1 sr_alpha_x 2 pow + sr_beta_x / sto sr_gamma_x
-% 1 sr_alpha_y 2 pow + sr_beta_y / sto sr_gamma_y
+% 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
+% 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
 % 5000.0 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
@@ -30,8 +30,8 @@ lattice_file = """
 "Q4": QUAD,k1=5.508911786298143,l=0.25
 "SD": SEXT
 "SF": SEXT
-"QUARTER": LINE=(M0,L0,Q1,M1,L2,Q2,M2,L2,Q3,M3,L2,BM,L2,SD,L1,Q4,M4,L1,SF,L2,BM,L2,M3,Q3,L2,M2,Q2,L2,M1,Q1,L0)
-"CSR": LINE=(QUARTER,QUARTER,QUARTER,QUARTER)
+"QUARTER": LINE=("M0","L0","Q1","M1","L2","Q2","M2","L2","Q3","M3","L2","BM","L2","SD","L1","Q4","M4","L1","SF","L2","BM","L2","M3","Q3","L2","M2","Q2","L2","M1","Q1","L0")
+"CSR": LINE=("QUARTER","QUARTER","QUARTER","QUARTER")
 
 """
 

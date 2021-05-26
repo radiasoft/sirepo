@@ -5,7 +5,6 @@ u"""?
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkio, pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
@@ -27,7 +26,7 @@ import shutil
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash rpm if user has the flash role.
+    For example, add the FLASH proprietary files if user has the sim_type_flash role.
 
     Args:
         *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
@@ -38,14 +37,14 @@ def audit_proprietary_lib_files(*uid):
     import sirepo.auth_db
     import sirepo.auth
 
-    #TODO(robnagler) locking
-    for u in uid or sirepo.auth_db.all_uids():
-        sirepo.auth_db.audit_proprietary_lib_files(u)
+    with sirepo.auth_db.session_and_lock():
+        for u in uid or sirepo.auth_db.all_uids():
+            sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
 def create_examples():
-    """Adds missing app examples to all users.
-    """
+    """Adds missing app examples to all users"""
+    import sirepo.auth_db
     import sirepo.server
 
     sirepo.server.init()
@@ -53,16 +52,17 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        auth.set_user_for_utils(uid)
-        for sim_type in feature_config.cfg().sim_types:
-            simulation_db.verify_app_directory(sim_type)
-            names = [x.name for x in simulation_db.iterate_simulation_datafiles(
-                sim_type, simulation_db.process_simulation_list, {
-                    'simulation.isExample': True,
-                })]
-            for example in simulation_db.examples(sim_type):
-                if example.models.simulation.name not in names:
-                    _create_example(example)
+        with sirepo.auth_db.session_and_lock(), \
+             auth.set_user_outside_of_http_request(uid):
+            for sim_type in feature_config.cfg().sim_types:
+                simulation_db.verify_app_directory(sim_type)
+                names = [x.name for x in simulation_db.iterate_simulation_datafiles(
+                    sim_type, simulation_db.process_simulation_list, {
+                        'simulation.isExample': True,
+                    })]
+                for example in simulation_db.examples(sim_type):
+                    if example.models.simulation.name not in names:
+                        _create_example(example)
 
 
 def move_user_sims(target_uid=''):

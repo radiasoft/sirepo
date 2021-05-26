@@ -128,6 +128,8 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             PKDict: structure of files written (debugging only)
         """
 
+        def _unescape(value):
+            return re.sub(r'\\\\', r'\\', value)
 
         class _G(_Generate):
 
@@ -147,7 +149,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             commands=dest_dir.join(source_path.basename),
             lattice=self._lattice_path(dest_dir, data),
         )
-        pkio.write_text(r.commands, v.commands)
+        pkio.write_text(r.commands, _unescape(v.commands))
         if not r.lattice.exists():
             pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
         self._write_input_files(data, source_path, dest_dir)
@@ -374,7 +376,8 @@ class ElegantMadxConverter(MadxConverter):
             mb[f'e{dim}'] = eb[f'emit_{dim}']
             self._replace_var(
                 madx, f'gamma_{dim}',
-                '(1 + pow({}, 2)) / {}'.format(
+                '(1 + {} * {}) / {}'.format(
+                    self._var_name(f'alpha_{dim}'),
                     self._var_name(f'alpha_{dim}'),
                     self._var_name(f'beta_{dim}'),
                 ),
@@ -392,7 +395,8 @@ class ElegantMadxConverter(MadxConverter):
         scale = self._FIELD_SCALE.get(el.type)
         if scale:
             for f in scale:
-                element_out[f] = f'{element_out[f]} {op} {scale[f]}'
+                if f in element_out:
+                    element_out[f] = f'{element_out[f]} {op} {scale[f]}'
 
     def __normalize_elegant_beam(self, data, beam):
         # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set
@@ -417,7 +421,7 @@ class ElegantMadxConverter(MadxConverter):
             beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
         elif str(data.models.bunch.longitudinalMethod) == '3':
             # convert emit_z, beta_z, alpha_z --> sigma_s, sigma_dp, dp_s_coupling
-            beam.sigma_s = math.sqrt(_var(beam.emit_z * _var(beam.beta_z)))
+            beam.sigma_s = math.sqrt(_var(beam.emit_z) * _var(beam.beta_z))
             gamma_z = (1 + _var(beam.alpha_z) ** 2) / _var(beam.beta_z)
             beam.sigma_dp = math.sqrt(_var(beam.emit_z) * gamma_z)
             beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
@@ -878,6 +882,9 @@ class _Generate(sirepo.lib.GenerateBase):
         return [field, value]
 
     def _full_simulation(self):
+        def _escape(v):
+            return re.sub(r'\\', r'\\\\', v)
+
         d = self.data
         if not LatticeUtil.find_first_command(d, 'global_settings'):
             d.models.commands.insert(
@@ -888,8 +895,8 @@ class _Generate(sirepo.lib.GenerateBase):
                 ),
             )
         self.jinja_env.update(
-            commands=self._commands(),
-            lattice=self._lattice(),
+            commands=_escape(self._commands()),
+            lattice=_escape(self._lattice()),
             simulationMode=d.models.simulation.simulationMode,
         )
         return template_common.render_jinja(SIM_TYPE, self.jinja_env)

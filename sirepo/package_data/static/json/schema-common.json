@@ -131,7 +131,6 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
-        "redirectJupyterHub": "/redirect-jupyterhub",
         "jupyterHub": "/jupyter",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
@@ -140,6 +139,7 @@
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
+        "redirectJupyterHub": "/redirect-jupyterhub",
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
         "runCancel": "/run-cancel",
@@ -153,6 +153,7 @@
         "simulationSchema": "/simulation-schema",
         "srUnit": "/ srunit",
         "srwLight": "/light",
+        "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
@@ -448,12 +449,13 @@
                 ]
             },
             "sirepoLibs": {
-                "js": ["sirepo.js"],
+                "js": ["sirepo.js", "sirepo-dom.js"],
                 "css": ["sirepo.css"]
             }
         },
         "strings": {
             "completionState": ": {frameCount} animation frames",
+            "genericSimulationError": "Error encountered during {typeOfSimulation}",
             "importText": null,
             "simulationDataType": "simulation",
             "simulationDataTypePlural": "simulations",

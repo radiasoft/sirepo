@@ -12,7 +12,7 @@ import re
 import sys
 
 
-_CALL_RE = re.compile(r'(\w+)\(([^\)]*)\);', flags=re.MULTILINE)
+_CALL_RE = re.compile(r'^\s+(\w+)\(([^\)]*)\);', flags=re.MULTILINE)
 
 _ARGS_RE = re.compile(r'\s*,\s*')
 
@@ -29,6 +29,8 @@ def render(path):
             f'function={f} not in map path={path}'
         k = PKDict(ctx=PKDict(path=path))
         for a in  _ARGS_RE.split(match.group(2).strip()):
+            if not a:
+                continue
             m = _ARG_RE.search(a)
             assert m, \
                 f'invalid keyword argument={a} function={f} path={path}'
@@ -58,5 +60,21 @@ def _widget_sim_settings_and_status(ctx, scope):
     </div>
     <div class="clearfix"></div>'''
 
+
+def _widget_supported_codes(ctx):
+    import sirepo.feature_config
+    res = '''<li class="supported-codes">
+              <button class="dropdown-toggle" type="button" id="sr-landing-supported-codes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                <span>Supported Codes</span>
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
+    '''
+    for s in sorted([
+            PKDict(ml='activait', jupyterhublogin='jupyter').get(s, s)
+            for s in sirepo.feature_config.cfg().sim_types
+    ]):
+        res += f'<li><a href="/ml">{s}</a></li>'
+    return res + '</ul></li>'
 
 _init()

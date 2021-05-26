@@ -13,7 +13,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import lattice
-from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
@@ -29,6 +28,7 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OPAL_INPUT_FILE = 'opal.in'
 OPAL_OUTPUT_FILE = 'opal.out'
+OPAL_POSITION_FILE = 'opal-vtk.py'
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -37,28 +37,9 @@ _DIM_INDEX = PKDict(
 )
 _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
+_OPAL_VTK_FILE = 'opal_ElementPositions.vtk'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
-#TODO(pjm): parse from opal files into schema
-_OPAL_PI = 3.14159265358979323846
-_OPAL_CONSTANTS = PKDict(
-    pi=_OPAL_PI,
-    twopi=_OPAL_PI * 2.0,
-    raddeg=180.0 / _OPAL_PI,
-    degrad=_OPAL_PI / 180.0,
-    e=2.7182818284590452354,
-    emass=0.51099892e-03,
-    pmass=0.93827204e+00,
-    hmmass=0.939277e+00,
-    umass=238 * 0.931494027e+00,
-    cmass=12 * 0.931494027e+00,
-    mmass=0.10565837,
-    dmass=2*0.931494027e+00,
-    xemass=124*0.931494027e+00,
-    clight=299792458.0,
-    p0=1,
-    seed=123456789,
-)
 
 
 class LibAdapter(sirepo.lib.LibAdapterBase):
@@ -140,10 +121,10 @@ class OpalMadxConverter(MadxConverter):
             ['DRIFT', 'l'],
         ],
         ['SBEND',
-            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+            ['SBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
         ],
         ['RBEND',
-            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
+            ['RBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
         ],
         ['QUADRUPOLE',
             ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
@@ -217,14 +198,17 @@ class OpalMadxConverter(MadxConverter):
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
         for f in ob:
-            if f in mb:
+            if f in mb and f in _SCHEMA.model.command_beam:
                 mb[f] = ob[f]
+                if f in ('gamma', 'energy', 'pc') and mb[f]:
+                    madx.models.bunch.beamDefinition = f
         od = LatticeUtil.find_first_command(data, 'distribution')
         #TODO(pjm): save dist in vars
         return madx
 
     def from_madx(self, madx):
         data = super().from_madx(madx)
+        data.models.simulation.elementPosition = 'relative'
         mb = LatticeUtil.find_first_command(madx, 'beam')
         LatticeUtil.find_first_command(data, 'option').version = 20000
         LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
@@ -248,7 +232,7 @@ class OpalMadxConverter(MadxConverter):
             if element_in.type in ('SBEND', 'RBEND'):
                 # kenetic energy in MeV
                 element_out.designenergy = round(
-                    (self.particle_energy.energy - self.beam.mass) * 1e3,
+                    (math.sqrt(self.particle_energy.energy ** 2 + self.beam.mass ** 2) - self.beam.mass) * 1e3,
                     6,
                 )
                 element_out.gap = 2 * self.__val(element_in.hgap)
@@ -265,7 +249,10 @@ class OpalMadxConverter(MadxConverter):
         beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
         self._replace_var(data, 'brho', self.particle_energy.brho)
         self._replace_var(data, 'gamma', self.particle_energy.gamma)
-        self._replace_var(data, 'beta', 'sqrt(1 - (1 / pow({}, 2)))'.format(self._var_name('gamma')))
+        self._replace_var(data, 'beta', 'sqrt(1 - (1 / ({} * {})))'.format(
+            self._var_name('gamma'),
+            self._var_name('gamma'),
+        ))
         for dim in ('x', 'y'):
             self._replace_var(data, f'emit_{dim}', mb[f'e{dim}'])
             beta = self._find_var(madx, f'beta_{dim}')
@@ -275,8 +262,11 @@ class OpalMadxConverter(MadxConverter):
                 dist[f'sigmap{dim}'] = 'sqrt({} * {}) * {} * {}'.format(
                     self._var_name(f'emit_{dim}'), self._var_name(f'gamma_{dim}'),
                     self._var_name('beta'), self._var_name('gamma'))
-                dist[f'corr{dim}'] = '-{}/sqrt(1 + pow({}, 2))'.format(
-                    self._var_name(f'alpha_{dim}'), self._var_name(f'alpha_{dim}'))
+                dist[f'corr{dim}'] = '-{}/sqrt(1 + {} * {})'.format(
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'alpha_{dim}'),
+                )
         if self._find_var(madx, 'dp_s_coupling'):
             dist.corrz = self._var_name('dp_s_coupling')
         ob = LatticeUtil.find_first_command(data, 'beam')
@@ -310,8 +300,29 @@ def background_percent_complete(report, run_dir, is_running):
 
 def code_var(variables):
     class _P(code_variable.PurePythonEval):
+        #TODO(pjm): parse from opal files into schema
+        _OPAL_PI = 3.14159265358979323846
+        _OPAL_CONSTANTS = PKDict(
+            pi=_OPAL_PI,
+            twopi=_OPAL_PI * 2.0,
+            raddeg=180.0 / _OPAL_PI,
+            degrad=_OPAL_PI / 180.0,
+            e=2.7182818284590452354,
+            emass=0.51099892e-03,
+            pmass=0.93827204e+00,
+            hmmass=0.939277e+00,
+            umass=238 * 0.931494027e+00,
+            cmass=12 * 0.931494027e+00,
+            mmass=0.10565837,
+            dmass=2*0.931494027e+00,
+            xemass=124*0.931494027e+00,
+            clight=299792458.0,
+            p0=1,
+            seed=123456789,
+        )
+
         def __init__(self):
-            super().__init__(_OPAL_CONSTANTS)
+            super().__init__(self._OPAL_CONSTANTS)
 
         def eval_var(self, expr, depends, variables):
             if re.match(r'^\{.+\}$', expr):
@@ -335,9 +346,11 @@ def get_application_data(data, **kwargs):
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:
         return _OPAL_H5_FILE
-    elif model == 'plot2Animation':
+    if model == 'plot2Animation':
         return _OPAL_SDDS_FILE
-    elif 'elementAnimation' in model:
+    if model == 'beamline3dAnimation':
+        return _OPAL_VTK_FILE
+    if 'elementAnimation' in model:
         return _file_name_for_element_animation(run_dir, model)
     raise AssertionError('unknown model={}'.format(model))
 
@@ -365,6 +378,10 @@ def import_file(req, unit_test_mode=False, **kwargs):
     else:
         raise IOError('invalid file extension, expecting .in or .madx')
     return data
+
+
+def new_simulation(data, new_simulation_data):
+    data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
 def post_execution_processing(
@@ -428,6 +445,39 @@ def sim_frame(frame_args):
     )
 
 
+def sim_frame_beamline3dAnimation(frame_args):
+    res = PKDict(
+        title=' ',
+        points=[],
+        polys=[],
+        colors=[],
+    )
+    state = None
+    with pkio.open_text(_OPAL_VTK_FILE) as f:
+        for line in f:
+            if line == '\n':
+                continue
+            if line.startswith('POINTS '):
+                state = 'points'
+                continue
+            if line.startswith('CELLS '):
+                state = 'polys'
+                continue
+            if line.startswith('CELL_TYPES'):
+                state = None
+                continue
+            if line.startswith('COLOR_SCALARS'):
+                state = 'colors'
+                continue
+            if state == 'points' or state == 'colors':
+                for v in line.split(' '):
+                    res[state].append(float(v))
+            elif state == 'polys':
+                for v in line.split(' '):
+                    res[state].append(int(v))
+    return res
+
+
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
     a.update(frame_args)
@@ -475,6 +525,7 @@ def sim_frame_plotAnimation(frame_args):
 
 
 def sim_frame_plot2Animation(frame_args):
+    from sirepo.template import sdds_util
 
     x = None
     plots = []
@@ -510,6 +561,12 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(OPAL_INPUT_FILE),
         _generate_parameters_file(data),
     )
+    if is_parallel:
+        pkio.write_text(
+            run_dir.join(OPAL_POSITION_FILE),
+            'import os\n' \
+            + 'os.system("python data/opal_ElementPositions.py --export-vtk")\n',
+        )
 
 
 class _Generate(sirepo.lib.GenerateBase):
@@ -520,12 +577,11 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def sim(self):
         d = self.data
-        r, v = template_common.generate_parameters_file(d)
-        self.jinja_env = v
+        self.jinja_env = template_common.flatten_data(d.models, PKDict())
         self._code_var = code_var(d.models.rpnVariables)
         if 'bunchReport' in d.get('report', ''):
-            return r + self._bunch_simulation()
-        return r + self._full_simulation()
+            return self._bunch_simulation()
+        return self._full_simulation()
 
     def _bunch_simulation(self):
         v = self.jinja_env
@@ -610,6 +666,7 @@ class _Generate(sirepo.lib.GenerateBase):
                 OpalElementIterator(self._format_field_value),
                 key,
             ).result,
+            quote_name=True,
             want_semicolon=True)
         # separate run from track, add endtrack
         #TODO(pjm): better to have a custom element generator for this case
@@ -632,18 +689,23 @@ class _Generate(sirepo.lib.GenerateBase):
         ))
 
     def _generate_lattice(self, util, code_var, beamline_id):
-        beamline, edge, names, visited = _generate_beamline(util, code_var, beamline_id)
+        if util.data.models.simulation.elementPosition == 'absolute':
+            beamline, visited = _generate_absolute_beamline(util, beamline_id)
+        else:
+            beamline, _, names, visited = _generate_beamline(util, code_var, beamline_id)
+            beamline += '{}: LINE=({});\n'.format(
+                util.id_map[beamline_id].name,
+                ','.join(names),
+            )
         res = util.render_lattice(
             util.iterate_models(
                 OpalElementIterator(self._format_field_value, visited),
                 'elements',
             ).result,
-            want_semicolon=True) + '\n'
+            quote_name=True,
+            want_semicolon=True,
+        ) + '\n'
         res += beamline
-        res += '{}: LINE=({});\n'.format(
-            util.id_map[beamline_id].name,
-            ','.join(names),
-        )
         return res
 
     def _generate_variable(self, name, variables, visited):
@@ -756,6 +818,54 @@ def _fix_opal_float(value):
     return value
 
 
+def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=None):
+    if count_by_name is None:
+        count_by_name = PKDict()
+    if visited is None:
+        visited = set()
+    names = []
+    res = ''
+    beamline = util.id_map[abs(beamline_id)]
+    items = beamline['items']
+    for idx in range(len(items)):
+        item_id = items[idx]
+        item = util.id_map[abs(item_id)]
+        name = item.name.upper()
+        if name not in count_by_name:
+            count_by_name[name] = 0
+        if 'type' in item:
+            # element
+            name = '"{}#{}"'.format(name, count_by_name[name])
+            count_by_name[item.name.upper()] += 1
+            pos = beamline.positions[idx]
+            res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), pos.elemedge)
+            names.append(name)
+            visited.add(item_id)
+        else :
+            if item_id not in visited:
+                text, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
+                res += text
+            names.append('{}'.format(name))
+
+    has_orientation = False
+    for f in ('x', 'y', 'z', 'theta', 'phi', 'psi'):
+        if f in beamline and beamline[f]:
+            has_orientation = True
+            break
+    orientation = ''
+    if has_orientation:
+        orientation = ', ORIGIN={}, ORIENTATION={}'.format(
+            '{}{}, {}, {}{}'.format('{', beamline.x, beamline.y, beamline.z, '}'),
+            '{}{}, {}, {}{}'.format('{', beamline.theta, beamline.phi, beamline.psi, '}'),
+        )
+    res += '{}: LINE=({}){};\n'.format(
+        beamline.name,
+        ','.join(names),
+        orientation,
+    )
+    return res, visited
+
+
 def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None):
     if count_by_name is None:
         count_by_name = PKDict()
@@ -765,20 +875,22 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
         visited = set()
     res = ''
     run_method = _find_run_method(util.data.models.commands)
-    items = util.id_map[abs(beamline_id)]['items']
+    beamline = util.id_map[abs(beamline_id)]
+    items = beamline['items']
     if beamline_id < 0:
-        items = reversed(items)
-    for item_id in items:
+        items = list(reversed(items))
+    for idx in range(len(items)):
+        item_id = items[idx]
         item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
-            name = item.name
+            name = item.name.upper()
             if name not in count_by_name:
                 count_by_name[name] = 0
             name = '"{}#{}"'.format(name, count_by_name[name])
-            count_by_name[item.name] += 1
+            count_by_name[item.name.upper()] += 1
             if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
-                res += '{}: {};\n'.format(name, item.name)
+                res += '"{}": {};\n'.format(name, item.name.upper())
                 names.append(name)
                 visited.add(item_id)
                 continue
@@ -787,7 +899,7 @@ def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, 
                 # don't include reverse drifts, for positioning only
                 pass
             else:
-                res += '{}: {},elemedge={};\n'.format(name, item.name, edge)
+                res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), edge)
                 names.append(name)
                 if item.type == 'SBEND' and run_method == 'THICK':
                     # use arclength for SBEND with THICK tracker (only?)

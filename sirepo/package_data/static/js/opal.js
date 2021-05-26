@@ -4,7 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
+    SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'plotAnimation', 'plot2Animation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
           '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
@@ -25,6 +26,9 @@ SIREPO.app.config(function() {
           '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
         '</div>',
     ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+    ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
@@ -34,22 +38,21 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             alpha: [],
-            aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'PEPPERPOT', 'RCOLLIMATOR', 'SLIT'],
+            aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'RCOLLIMATOR'],
             bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
             drift: ['DRIFT'],
             lens: [],
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
-                     'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'MULTIPOLETCURVEDCONSTRADIUS',
-                     'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT', 'OCTUPOLE',
+                     'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'STRIPPER', 'TRIMCOIL', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
-            rf: ['PARALLELPLATE', 'RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
+            rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
             solenoid: ['SOLENOID'],
             undulator: [],
-            watch: ['HMONITOR', 'INSTRUMENT', 'MARKER', 'MONITOR', 'PROBE', 'VMONITOR'],
-            zeroLength: ['PATCH', 'SEPARATOR', 'SOURCE', 'SROT', 'TRAVELINGWAVE', 'YROT'],
+            watch: ['MARKER', 'MONITOR', 'PROBE'],
+            zeroLength: ['LOCAL_CARTESIAN_OFFSET', 'SOURCE', 'TRAVELINGWAVE'],
         },
     };
 });
@@ -145,15 +148,15 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
 // RBEND, SBEND, RBEND3D, MULTIPOLE
 
 // OPAL-cycle
-// SBEND3D, CCOLLIMATOR, SEPTUM, PROBE, STRIPPER,
+// SBEND3D, CCOLLIMATOR, SEPTUM, PROBE
 
 SIREPO.app.controller('LatticeController', function(appState, commandService, latticeService, rpnService, $scope) {
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [
         'CCOLLIMATOR', 'CYCLOTRON', 'DEGRADER', 'FLEXIBLECOLLIMATOR',
-        'HKICKER', 'KICKER', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE', 'PROBE', 'RBEND',
-        'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
+        'HKICKER', 'KICKER', 'LOCAL_CARTESIAN_OFFSET', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
+        'OCTUPOLE', 'PROBE', 'RBEND', 'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
         'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
         'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
     ];
@@ -300,8 +303,6 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             $scope.$on(name + '.changed', function() {
                 saveCommandList(type);
             });
-            $('#sr-command_beam-basicEditor h5').hide();
-            $('#sr-command_distribution-basicEditor h5').hide();
         });
     });
     latticeService.initSourceController(self);
@@ -317,6 +318,10 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
     function cleanFilename(fn) {
         return fn.replace(/\.(?:h5|outfn)/g, '');
     }
+
+    self.hasBeamline3d = function() {
+        return frameCache.hasFrames() && self.simState.getPercentComplete() == 100;
+    };
 
     self.simHandleStatus = function (data) {
         self.errorMessage = data.error;
@@ -666,4 +671,187 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
             };
         },
     };
+});
+
+SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, vtkPlotting, vtkToPNG) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: `
+            <div class="row">
+              <div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj"></div>
+              </div>
+            </div>`,
+        controller: function($scope, $element) {
+            let data, pngCanvas, renderer, renderWindow, vtkAPI;
+
+            function createAxes(ranges) {
+                const pb = renderer.computeVisiblePropBounds();
+                const padPct = 0.1;
+                const bndBox = vtkPlotting.coordMapper().buildBox(
+                    [
+                        Math.abs(pb[1] - pb[0]),
+                        Math.abs(pb[3] - pb[2]),
+                        Math.abs(pb[5] - pb[4])
+                    ].map(function (c) {
+                        return (1 + padPct) * c;
+                    }),
+                    [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
+                bndBox.actor.getProperty().setRepresentationToWireframe();
+                renderer.addActor(bndBox.actor);
+
+                $scope.axisObj = vtkPlotting.vpBox(bndBox.source, renderer);
+                $scope.axisObj.initializeWorld({});
+
+                $scope.axisCfg = {};
+                geometry.basis.forEach((dim, idx) => {
+                    $scope.axisCfg[dim] = {
+                        label: dim + ' [m]',
+                        max: ranges[idx][dim == 'z' ? 0 : 1],
+                        min: ranges[idx][dim == 'z' ? 1 : 0],
+                        numPoints: 2,
+                        screenDim: dim == 'x' ? 'y' : 'x',
+                        showCentral: dim === appState.models.simulation.beamAxis,
+                    };
+                });
+            }
+
+            function getRanges(points) {
+                const ranges = [
+                    [points[0], points[0]],
+                    [points[1], points[1]],
+                    [points[2], points[2]],
+                ];
+                for (let i = 3; i < points.length; i += 1) {
+                    const r = ranges[i % 3];
+                    const v = points[i];
+                    if (v < r[0]) {
+                        r[0] = v;
+                    }
+                    else if (v > r[1]) {
+                        r[1] = v;
+                    }
+                }
+                return ranges;
+            }
+
+            function getVtkElement() {
+                return $($element).find('.vtk-canvas-holder');
+            }
+
+            function buildScene() {
+                removeActors();
+                let pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(new window.Float32Array(data.points), 3);
+                pd.getPolys().setData(new window.Uint32Array(data.polys));
+                let colors = [];
+                for (let i = 0; i < data.colors.length; i++) {
+                    colors.push(data.colors[i] * 255.0 + 0.5);
+                }
+                pd.getCellData().setScalars(vtk.Common.Core.vtkDataArray.newInstance({
+                    numberOfComponents: 4,
+                    values: colors,
+                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
+                }));
+                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                let actor = vtk.Rendering.Core.vtkActor.newInstance();
+                mapper.setInputData(pd);
+                actor.setMapper(mapper);
+                renderer.addActor(actor);
+                createAxes(getRanges(data.points));
+                vtkAPI.showSide('y');
+                pngCanvas.copyCanvas();
+
+                if ($scope.axisObj) {
+                    panelState.waitForUI(() => {
+                        $scope.$broadcast('axes.refresh');
+                    });
+                }
+            }
+
+            function removeActors() {
+                renderer.getActors().forEach(actor => renderer.removeActor(actor));
+            }
+
+            $scope.destroy = () => {
+                getVtkElement().off();
+                pngCanvas.destroy();
+            };
+
+            $scope.init = $scope.resize = () => {};
+
+            $scope.$on('vtk-init', (e, d) => {
+                renderer = d.objects.renderer;
+                renderWindow = d.objects.window;
+                vtkAPI = d.api;
+                vtkAPI.axisDirs.y.camViewUp = [1, 0, 0];
+                vtkAPI.resetSide = 'y';
+                const orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    interactor: renderWindow.getInteractor()
+                });
+                orientationMarker.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+                vtkAPI.setMarker(orientationMarker);
+                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, d.objects.fsRenderer, $element);
+                if (data) {
+                    buildScene();
+                }
+            });
+
+            $scope.load = (json) => {
+                data = json;
+                if (renderer) {
+                    buildScene();
+                }
+            };
+
+            $scope.vtkCanvasGeometry = () => {
+                const vtkCanvasHolder = getVtkElement();
+                return {
+                    pos: vtkCanvasHolder.position(),
+                    size: {
+                        width: vtkCanvasHolder.width(),
+                        height: vtkCanvasHolder.height()
+                    }
+                };
+            };
+        },
+        link: function link(scope, element) {
+            plotting.vtkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.viewLogic('beamlineView', function(latticeService, panelState, $scope) {
+
+    function updateAbsolutePositionFields() {
+        panelState.showFields('beamline', [
+            ['x', 'y', 'z', 'theta', 'phi', 'psi'], latticeService.isAbsolutePositioning(),
+        ]);
+    }
+
+    $scope.whenSelected = updateAbsolutePositionFields;
+});
+
+SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
+    $scope.watchFields = [
+        ['simulation.elementPosition'], () => {
+            // don't allow changing the elementPosition
+            appState.models.simulation.elementPosition = appState.applicationState().simulation.elementPosition;
+        },
+    ];
+});
+
+['plotAnimation', 'plot2Animation'].forEach((name) => {
+    SIREPO.viewLogic(name + 'View', function(latticeService, panelState, $scope) {
+        $scope.whenSelected = () => {
+            panelState.showField(name, 'includeLattice', ! latticeService.isAbsolutePositioning());
+        };
+    });
 });

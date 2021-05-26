@@ -16,6 +16,7 @@ import sirepo.auth
 import sirepo.events
 import sirepo.sim_db_file
 import sirepo.simulation_db
+import sirepo.srcontext
 import sirepo.srdb
 import sirepo.tornado
 import time
@@ -87,7 +88,6 @@ class DriverBase(PKDict):
             _idle_timer=None,
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
-#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
         self._sim_db_file_token = sirepo.sim_db_file.token_for_user(self.uid)
         # Drivers persist for the life of the program so they are never removed
@@ -127,8 +127,10 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
+        import sirepo.auth_db
         m = op.msg
-        with sirepo.auth.set_user(m.uid):
+        with sirepo.auth_db.session(), \
+             sirepo.auth.set_user_outside_of_http_request(m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
                 job.unique_key()

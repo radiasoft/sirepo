@@ -24,7 +24,7 @@
 &optimization_setup
   log_file = "/dev/tty",
   n_evaluations = 1500,
-  n_passes = 3,
+  n_passes = 3.0,
   n_restarts = 2,
   output_sparsing_factor = 100,
   tolerance = 1e-12,

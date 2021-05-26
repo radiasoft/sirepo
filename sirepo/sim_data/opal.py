@@ -18,9 +18,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         dm.setdefault('rpnVariables', [])
+        if 'elementPosition' not in dm.simulation:
+            # old simulations use 'relative', new ones use 'absolute'
+            dm.simulation.elementPosition = 'relative'
         cls._init_models(
             dm,
             (
+                'beamline3dAnimation',
                 'bunchAnimation',
                 'plotAnimation',
                 'plot2Animation',
@@ -43,6 +47,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 elif i == 4:
                     m.x = 'z'
                     m.y = 'pz'
+        for bl in dm.beamlines:
+            cls.update_model_defaults(bl, 'beamline')
         cls._remove_deprecated_items(dm)
 
     @classmethod
