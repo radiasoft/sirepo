@@ -17,7 +17,7 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="BeamList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
-        '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
+        '<div data-ng-switch-when="FloatStringArray" class="col-sm-12">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="UndulatorList">',
@@ -1388,7 +1388,6 @@ SIREPO.viewLogic('simulationGridView', function($scope, srwService) {
     ];
 });
 
-
 SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, srwService, $scope) {
     if ($scope.fieldDef == 'basic') {
         return;
@@ -1800,8 +1799,8 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
         },
         template: [
             '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
-              '<div style="overflow-y: scroll; overflow-x: hidden; height: 250px;">',
-              '<table class="table table-hover" style="border-width: 1px; border-color: #00a2c5;">',
+              '<div style="overflow-y: scroll; overflow-x: hidden; height: 360px;">',
+              '<table class="table table-hover table-condensed" style="border-width: 1px; border-color: #00a2c5;">',
                 '<thead>',
                     '<tr>',
                         '<td style="font-weight: bold">Element</td>',
@@ -1810,7 +1809,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 '</thead>',
                 '<tbody>',
                     '<tr data-ng-repeat="e in rsOptElements track by $index">',
-                      '<td>{{ e.title }} <input type="checkbox" data-ng-model="e.enabled" data-ng-change=""></td>',
+                      '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change=""> {{ e.title }}</label></div></td>',
                       '<td data-ng-if="hasFields(e, \'positionFields\')"><div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
                       '<td data-ng-if="! hasFields(e, \'positionFields\')"> </td>',
                       '<td data-ng-if="hasFields(e, \'vectorFields\')"><div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
@@ -1852,16 +1851,13 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             appState.whenModelsLoaded($scope, function() {
                 updateElements();
                 $scope.$on('beamline.changed', updateElements);
-                $scope.$on('exportRsOpt.changed', function(e, d) {
-                    updateElements();
-                });
-                $scope.$on('exportRsOpt.saved', function(e, d) {
-                    const args = {
+                $scope.$on('exportRsOpt.changed', updateElements);
+                $scope.$on('exportRsOpt.saved', function() {
+                    requestSender.newWindow('exportRSOptConfig', {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
-                    };
-                    requestSender.newWindow('exportRSOptConfig', args);
+                    });
                 });
             });
         },
@@ -3068,10 +3064,14 @@ SIREPO.app.directive('numberList', function(appState) {
             count: '@',
         },
         template: [
-            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-                '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+            '<div class="row" data-ng-repeat="defaultSelection in parseValues() track by $index">',
+            '<div class="col-sm-5 text-right control-label">',
+                '<label>{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+            '</div>',
+            '<div class="col-sm-7">',
                 '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
-            '</div>'
+            '</div>',
+            '</div>',
         ].join(''),
         controller: function($scope, $element) {
             let lastModel = null;
