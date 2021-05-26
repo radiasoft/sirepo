@@ -308,7 +308,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, requestSender, opalService, $scope) {
     var self = this;
     self.simScope = $scope;
     self.panelState = panelState;
@@ -369,6 +369,15 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 
     self.simState.errorMessage = function() {
         return self.errorMessage;
+    };
+
+    self.simState.logFileURL = function() {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': -1,
+        });
     };
 
     appState.whenModelsLoaded($scope, function() {

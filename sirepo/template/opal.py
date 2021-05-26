@@ -344,6 +344,8 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if frame < 0:
+        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:
         return _OPAL_H5_FILE
     if model == 'plot2Animation':
