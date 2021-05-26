@@ -611,6 +611,15 @@ def subprocess_output(cmd, env=None):
     return ''
 
 
+def text_data_file(filename, run_dir):
+    """Return a datafile with a .txt extension so the text/plain mimetype is used.
+    """
+    return PKDict(
+        filename=run_dir.join(filename, abs=1),
+        uri=filename + '.txt',
+    )
+
+
 def validate_model(model_data, model_schema, enum_info):
     """Ensure the value is valid for the field type. Scales values as needed."""
     for k in model_schema:
