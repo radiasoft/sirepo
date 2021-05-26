@@ -63,7 +63,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
         if r == 'initialMonitorPositionsReport':
-            return ['dataFile']
+            res = ['dataFile', 'externalLattice']
+        return res
 
     @classmethod
     def _lib_file_basenames(cls, data):

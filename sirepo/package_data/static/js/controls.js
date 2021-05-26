@@ -357,6 +357,11 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             appState.cancelChanges('externalLattice');
         }
     });
+    appState.watchModelFields(
+        $scope,
+        ['externalLattice.models.elements'],
+        getInitialMonitorPositions
+    );
 
     return self;
 });
