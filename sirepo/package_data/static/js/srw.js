@@ -1547,7 +1547,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
           '</app-header-right-sim-loaded>',
           '<app-settings>',
             '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
-            '<div><a href data-ng-click="openExportRsOpt()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
+            '<div data-ng-if="showRsOptML()"><a href data-ng-click="openExportRsOpt()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1634,6 +1634,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
                     && $scope.nav.isActive('beamline')
                     && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator());
+            };
+
+            $scope.showRsOptML = function() {
+                return SIREPO.APP_SCHEMA.feature_config.show_rsopt_ml;
             };
         },
     };
