@@ -451,6 +451,7 @@ def sim_frame_beamline3dAnimation(frame_args):
         points=[],
         polys=[],
         colors=[],
+        bounds=_compute_3d_bounds(frame_args.run_dir),
     )
     state = None
     with pkio.open_text(_OPAL_VTK_FILE) as f:
@@ -722,6 +723,21 @@ class _Generate(sirepo.lib.GenerateBase):
             filename,
         ))
 
+
+def _compute_3d_bounds(run_dir):
+    res = []
+    p = run_dir.join('data/opal_ElementPositions.txt')
+    with pkio.open_text(p) as f:
+        for line in f:
+            m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
+            if m:
+                res.append([float(v) for v in (m.group(1), m.group(2), m.group(3))])
+    res = np.array(res)
+    bounds = []
+    for n in range(3):
+        v = res[:, n]
+        bounds.append([min(v), max(v)])
+    return bounds
 
 
 def _generate_parameters_file(data):
