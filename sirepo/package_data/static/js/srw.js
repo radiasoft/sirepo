@@ -17,6 +17,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="BeamList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
+        '<div data-ng-switch-when="FloatStringArray" class="col-sm-12">',
+            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+        '</div>',
         '<div data-ng-switch-when="UndulatorList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
@@ -31,6 +34,9 @@ SIREPO.app.config(function() {
         '</div>',
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '</div>',
+        '<div data-ng-switch-when="RSOptElements" class="col-sm-12">',
+          '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
           '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
@@ -327,6 +333,54 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             return v;
         }
         return self.formatFloat(v, 12);
+    };
+
+    self.updateRSOptElements = function() {
+        let r = SIREPO.APP_SCHEMA.constants.rsoptElements;
+        let items = (appState.models.beamline || []).filter(function(i) {
+            return r[i.type];
+        });
+        let els = appState.models.exportRsOpt.elements;
+        for (let item of items) {
+            let e = self.findRSOptElement(item.id);
+            if (! e) {
+                e = appState.setModelDefaults({}, 'rsOptElement');
+                els.push(e);
+            }
+            e.title = item.title;
+            e.type = item.type;
+            e.id = item.id;
+            e.props =  r[item.type];
+            for (let p in e.props) {
+                e[p] = [];
+                for (let f of e.props[p] || []) {
+                    e[p].push(item[f] || 0.0);
+                }
+            }
+        }
+        // remove outdated elements
+        for (let i = els.length - 1; i >= 0; --i) {
+            if (! beamlineService.getItemById(els[i].id)) {
+                els.splice(i, 1);
+            }
+        }
+        // put in beamline order
+        let ids = items.map(function (i) {
+            return i.id;
+        });
+        els.sort(function (e1, e2) {
+            return ids.indexOf(e1.id) - ids.indexOf(e2.id);
+        });
+        return els;
+    };
+
+    self.findRSOptElement = function(id) {
+        for (let e of appState.models.exportRsOpt.elements) {
+            if (e.id === id) {
+                return e;
+            }
+        }
+        return null;
     };
 
     self.getReportTitle = function(modelName, itemId) {
@@ -1493,6 +1547,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
           '</app-header-right-sim-loaded>',
           '<app-settings>',
             '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
+            '<div data-ng-if="showRsOptML()"><a href data-ng-click="openExportRsOpt()"><span class="glyphicon glyphicon-download"></span> Export ML Script</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1567,6 +1622,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                 $('#sr-shadow-dialog').modal('show');
             };
 
+            $scope.openExportRsOpt = function() {
+                panelState.showModalEditor('exportRsOpt');
+            };
+
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
             };
@@ -1575,6 +1634,10 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
                     && $scope.nav.isActive('beamline')
                     && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator());
+            };
+
+            $scope.showRsOptML = function() {
+                return SIREPO.APP_SCHEMA.feature_config.show_rsopt_ml;
             };
         },
     };
@@ -1732,6 +1795,79 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
         },
     };
 });
+
+SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService) {
+    return {
+        restrict: 'A',
+        scope: {
+        },
+        template: [
+            '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
+              '<div style="overflow-y: scroll; overflow-x: hidden; height: 360px;">',
+              '<table class="table table-hover table-condensed" style="border-width: 1px; border-color: #00a2c5;">',
+                '<thead>',
+                    '<tr>',
+                        '<td style="font-weight: bold">Element</td>',
+                        '<td style="font-weight: bold" data-ng-repeat="f in rsElementFields">{{ f }}</td>',
+                    '</tr>',
+                '</thead>',
+                '<tbody>',
+                    '<tr data-ng-repeat="e in rsOptElements track by $index">',
+                      '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change=""> {{ e.title }}</label></div></td>',
+                      '<td data-ng-if="hasFields(e, \'positionFields\')"><div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'positionFields\')"> </td>',
+                      '<td data-ng-if="hasFields(e, \'vectorFields\')"><div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'vectorFields\')"> </td>',
+                    '</tr>',
+                '</tbody>',
+              '</table>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.elementData = [];
+            $scope.srwService = srwService;
+            $scope.modelName = 'rsOptElement';
+            $scope.offsetRanges = 'offsetRanges';
+            $scope.rotationRanges = 'rotationRanges';
+            $scope.rsOptElements = [];
+            $scope.rsElementFields = [
+                SIREPO.APP_SCHEMA.model.rsOptElement.offsetRanges[SIREPO.INFO_INDEX_LABEL],
+                SIREPO.APP_SCHEMA.model.rsOptElement.rotationRanges[SIREPO.INFO_INDEX_LABEL],
+            ];
+
+            $scope.hasFields = function(e, f) {
+                return SIREPO.APP_SCHEMA.constants.rsoptElements[e.type][f];
+            };
+
+            function updateElements() {
+                $scope.rsOptElements = srwService.updateRSOptElements();
+                $scope.elementData = $scope.rsOptElements.map(function(e) {
+                    return {
+                        getData: function() {
+                            return e;
+                        },
+                    };
+                });
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                updateElements();
+                $scope.$on('beamline.changed', updateElements);
+                $scope.$on('exportRsOpt.changed', updateElements);
+                $scope.$on('exportRsOpt.saved', function() {
+                    requestSender.newWindow('exportRSOptConfig', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
+                    });
+                });
+            });
+        },
+    };
+});
+
 
 SIREPO.app.directive('mobileAppTitle', function(srwService) {
     function mobileTitle(mode, modeTitle) {
@@ -2917,6 +3053,52 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('numberList', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            info: '<',
+            type: '@',
+            count: '@',
+        },
+        template: [
+            '<div class="row" data-ng-repeat="defaultSelection in parseValues() track by $index">',
+            '<div class="col-sm-5 text-right control-label">',
+                '<label>{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+            '</div>',
+            '<div class="col-sm-7">',
+                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let lastModel = null;
+            // NOTE: does not appear to like 'model.field' format
+            $scope.values = null;
+            $scope.numberType = $scope.type.toLowerCase();
+            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
+            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                // values were sticking around when the model changed
+                if (! lastModel || lastModel !== $scope.model) {
+                    lastModel = $scope.model;
+                    $scope.values = null;
+                }
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
+            };
         },
     };
 });

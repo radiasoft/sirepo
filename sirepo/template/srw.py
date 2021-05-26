@@ -334,6 +334,39 @@ def extract_report_data(filename, sim_in):
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], report_model)
     return info
 
+
+def export_rsopt_config(data, filename):
+    v = _rsopt_jinja_context(data.models.exportRsOpt)
+
+    fz = pkio.py_path(filename)
+    f = re.sub(r'[^\w\.]+', '-', fz.purebasename).strip('-')
+    v.runDir = f'{f}_scan'
+    v.fileBase = f
+    tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
+    for t in tf:
+        v[f'{t}FileName'] = tf[t].file
+    v['outFileName'] = f'{f}.out'
+
+    # do this in a second loop so v is fully updated
+    # note that the rsopt context is regenerated in python_source_for_model()
+    for t in tf:
+        tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
+            if t == 'py' else \
+            template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
+
+    with zipfile.ZipFile(
+        fz,
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for t in tf:
+            z.writestr(tf[t].file, tf[t].content)
+        for d in _SIM_DATA.lib_files_for_export(data):
+            z.write(d, d.basename)
+    return fz
+
+
 def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
@@ -588,9 +621,10 @@ def process_undulator_definition(model):
         return model
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, plot_reports=True):
     data['report'] = model or _SIM_DATA.SRW_RUN_ALL_MODEL
-    return _generate_parameters_file(data, plot_reports=True)
+    return _generate_parameters_file(data, plot_reports=plot_reports)
+
 
 
 def remove_last_frame(run_dir):
@@ -1395,6 +1429,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['finalPhotonEnergy'] = data['models']['simulation']['photonEnergy'] + half_width
         data['models']['simulation']['photonEnergy'] -= half_width
 
+    # do this before validation or arrays get turned into strings
+    rsopt_ctx = _rsopt_jinja_context(data.models.exportRsOpt)
     _validate_data(data, _SCHEMA)
     last_id = None
     if _SIM_DATA.is_watchpoint(report):
@@ -1404,7 +1440,11 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
+    if report == 'rsoptExport':
+        v.update(rsopt_ctx)
 
+    # rsopt uses this as a lookup param so want it in one place
+    v['ws_fni_desc'] = 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
     v['rs_type'] = source_type
     if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'
@@ -1463,10 +1503,12 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 
 def _generate_srw_main(data, plot_reports):
     report = data['report']
+    for_rsopt = report == 'rsoptExport'
     source_type = data['models']['simulation']['sourceType']
-    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL
+    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or report == 'rsoptExport'
+    vp_var = 'vp' if for_rsopt else 'varParam'
     content = [
-        'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
+        f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})',
     ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1516,7 +1558,8 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join(['    {}'.format(x) for x in content] + ['', 'main()\n'])
+    return '\n'.join([f'    {x}' for x in content] + [''] + ([] if for_rsopt \
+        else ['main()', '']))
 
 
 def _get_first_element_position(data):
@@ -1628,6 +1671,16 @@ def _process_intensity_reports(source_type, undulator_type):
     return PKDict({
         'magneticField': 2 if source_type == 'a' or _SIM_DATA.srw_is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
+
+
+def _process_rsopt_elements(els):
+    x = [e for e in els if e.enabled and e.enabled != '0']
+    for e in x:
+        e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
+        e.position = [float(p) for p in e.positionFields]
+        e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
+        e.vector = [float(p) for p in e.vectorFields]
+    return x
 
 
 def _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd):
@@ -1757,6 +1810,29 @@ def _remap_3d(info, allrange, z_label, z_units, report):
 def _rotated_axis_range(x, y, theta):
     x_new = x*np.cos(theta) + y*np.sin(theta)
     return x_new
+
+
+def _rsopt_jinja_context(model):
+    import multiprocessing
+    return PKDict(
+        forRSOpt=True,
+        numCores=int(model.numCores),
+        numWorkers=max(1, multiprocessing.cpu_count() - 1),
+        numSamples=int(model.numSamples),
+        scanType=model.scanType,
+        rsOptElements=_process_rsopt_elements(model.elements)
+    )
+
+
+def _rsopt_main():
+    return [
+        'import sys',
+        'if len(sys.argv[1:]) > 0:',
+        '   set_rsopt_params(*sys.argv[1:])',
+        '   del sys.argv[1:]',
+        'else:',
+        '   exit(0)'
+    ]
 
 
 def _safe_beamline_item_name(name, names):

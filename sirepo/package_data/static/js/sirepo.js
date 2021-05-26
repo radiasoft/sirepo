@@ -330,6 +330,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $rootScope.$broadcast('modelsLoaded');
     }
 
+    function broadcastSaved(name) {
+        $rootScope.$broadcast(name + '.saved');
+        $rootScope.$broadcast('modelSaved', name);
+    }
+
     function deepEqualsNoSimulationStatus(models1, models2) {
         var status = [models1.simulationStatus, models2.simulationStatus];
         delete models1.simulationStatus;
@@ -776,6 +781,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             }
             if (callback) {
                 callback();
+            }
+            // broadcast when save is done, for taking actions on now-persisted model
+            for (let m of updatedModels) {
+                broadcastSaved(m);
             }
         });
     };

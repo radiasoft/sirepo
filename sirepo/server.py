@@ -380,6 +380,18 @@ def api_exportJupyterNotebook(simulation_type, simulation_id, model=None, title=
 
 
 @api_perm.require_user
+def api_exportRSOptConfig(simulation_type, simulation_id, filename):
+    t = sirepo.template.import_module(simulation_type)
+    assert hasattr(t, 'export_rsopt_config'), 'Export rsopt unavailable'
+    d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+    return http_reply.gen_file_as_attachment(
+        t.export_rsopt_config(d, filename),
+        filename,
+        content_type='application/zip'
+    )
+
+
+@api_perm.require_user
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
     d = simulation_db.default_data(req.type)

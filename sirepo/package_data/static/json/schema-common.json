@@ -122,6 +122,7 @@
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
+        "exportRSOptConfig": "/export-rsopt-config/<simulation_type>/<simulation_id>/<filename>",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
