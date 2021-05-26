@@ -564,7 +564,10 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         i = LatticeUtil.file_id_from_output_model_name(model)
         return _sdds(_get_filename_for_element_id(i, data))
     if model == 'animation':
-        return ELEGANT_LOG_FILE
+        return PKDict(
+            filename=run_dir.join(ELEGANT_LOG_FILE, abs=1),
+            uri=ELEGANT_LOG_FILE + '.txt',
+        )
     return _sdds(_report_output_filename('bunchReport'))
 
 
