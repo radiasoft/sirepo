@@ -130,6 +130,14 @@ SIREPO.app.factory('controlsService', function(appState) {
 
     self.kickField = (currentField) => currentField.replace('current_', '');
 
+    self.noOptimizationRunning = () => {
+        return appState.models.simulationStatus
+            && appState.models.simulationStatus.animation
+            && ['pending', 'running'].indexOf(
+                appState.models.simulationStatus.animation.state
+            ) < 0;
+    }
+
     self.kickToCurrent = (model, kickField) => {
         const kick = model[kickField];
         if (! model.ampTable) {
@@ -539,26 +547,30 @@ SIREPO.viewLogic('commandBeamView', function(appState, panelState, $scope) {
     ];
 });
 
-const disableKickerLogic = function(panelState, $scope) {
-    $scope.whenSelected = () => {
-        panelState.enableFields('KICKER', [
-            ['current_hkick', 'current_vkick'], false,
-        ]);
-        panelState.enableField('HKICKER', 'current_kick', false);
-        panelState.enableField('VKICKER', 'current_kick', false);
-    };
-};
-
 ['kickerView', 'hkickerView', 'vkickerView'].forEach(view => {
-    SIREPO.viewLogic(view, disableKickerLogic);
+    SIREPO.viewLogic(
+        view,
+        function(controlsService, panelState, $scope) {
+            $scope.whenSelected = () => {
+                const r = controlsService.noOptimizationRunning();
+                panelState.enableFields('KICKER', [
+                    ['current_hkick', 'current_vkick'], r,
+                ]);
+                ['HKICKER', 'VKICKER'].forEach((m) => {
+                    panelState.enableField(m, 'current_kick', r);
+                })
+            }
+        }
+    );
 });
 
-SIREPO.viewLogic('quadrupoleView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('quadrupoleView', function(appState, controlsService, panelState, $scope) {
     $scope.whenSelected = () => {
-        const isEnabled = appState.models.simulationStatus
-              && appState.models.simulationStatus.animation
-              && ['pending', 'running'].indexOf(appState.models.simulationStatus.animation.state) < 0;
-        panelState.enableField('QUADRUPOLE', 'k1', isEnabled);
+        panelState.enableField(
+            'QUADRUPOLE',
+            'current_k1',
+            controlsService.noOptimizationRunning()
+        );
     };
 });
 
