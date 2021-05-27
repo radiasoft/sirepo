@@ -7,43 +7,21 @@ try:
 except:
     pass
 
-{%- macro rsOptElementLoop(posActions, rotActions) %}
-{% for e in rsOptElements %}
-{% if 'position' in e %}
-{% for x in e.position %}
-{% if e.offsets[loop.index0] != 0 %}
-{{ posActions }}
-{% endif %}
-{% endfor %}
-{% endif %}
-{% if 'rotations' in e %}
-{% for t in e.rotations %}
-{% if e.rotations[loop.index0] != 0 %}
-{{ rotActions }}
-{% endif %}
-{% endfor %}
-{% endif %}
-{% endfor -%}
-{% endmacro %}
+{% set rsOptParams = ('position', 'rotation') %}
 
 {%- macro rsOptFuctionSignature() %}
 {% for e in rsOptElements %}
-{% if 'position' in e %}
-{% for x in e.position %}
-{% if e.offsets[loop.index0] != 0 %}
-    {{ e.title }}_pos_{{ loop.index0 }},
+{% for p in rsOptParams %}
+{% if p in e %}
+{% for x in e[p].initial %}
+{% if e[p].offsets[loop.index0] != 0 %}
+    {{ e.title }}_{{ p }}_{{ loop.index0 }},
 {% endif %}
 {% endfor %}
 {% endif %}
-{% if 'rotations' in e %}
-{% for t in e.rotations %}
-{% if e.rotations[loop.index0] != 0 %}
-    {{ e.title }}_angle_{{ loop.index0 }},
-{% endif %}
 {% endfor %}
-{% endif %}
-{% endfor -%}
-{% endmacro %}
+{% endfor %}
+{% endmacro -%}
 
 import srwl_bl
 import srwlib
@@ -440,15 +418,15 @@ def _rsopt_run(filename):
     save_str = ''.join([
     {% for e in rsOptElements %}
     {% if 'position' in e %}
-    {% for x in e.position %}
-    {% if e.offsets[loop.index0] != 0 %}
-        '{{ e.title }}_{{ e.props.positionFields[loop.index0] }}_',
+    {% for x in e.position.initial %}
+    {% if e.position.offsets[loop.index0] != 0 %}
+        '{{ e.title }}_pos_{{ e.props.positionFields[loop.index0] }}_',
     {% endif %}
     {% endfor %}
     {% endif %}
-    {% if 'rotations' in e %}
-    {% for t in e.rotations %}
-    {% if e.rotations[loop.index0] != 0 %}
+    {% if 'rotation' in e %}
+    {% for t in e.rotation.initial %}
+    {% if e.rotation.offsets[loop.index0] != 0 %}
         '{{ e.title }}_angle_{{ e.props.vectorFields[loop.index0] }}_',
     {% endif %}
     {% endfor %}
@@ -495,23 +473,23 @@ def _rsopt_set_params(
     vp = varParam.copy()
     {% for e in rsOptElements %}
     {% if 'position' in e %}
-    {% for x in e.position %}
-    {% if e.offsets[loop.index0] != 0 %}
+    {% for x in e.position.initial %}
+    {% if e.position.offsets[loop.index0] != 0 %}
     p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.props.positionFields[loop.index0] }}')
     if p:
-        p[2] = {{ e.title }}_pos_{{ loop.index0 }}
+        p[2] = {{ e.title }}_position_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
     {% endif %}
-    {% if 'rotations' in e %}
-    {% if e.rotations[0] != 0 and e.rotations[1] != 0 and e.rotations[2] != 0  %}
+    {% if 'rotation' in e %}
+    {% if e.rotation.offsets[0] != 0 or e.rotation.offsets[1] != 0 or e.rotation.offsets[2] != 0 %}
     a = [0.0, 0.0, 0.0]
-    {% for t in e.rotations %}
-    {% if e.rotations[loop.index0] != 0 %}
-    a[{{ loop.index0 }}] = {{ e.title }}_angle_{{ loop.index0 }}
+    {% for t in e.rotation.initial %}
+    {% if e.rotation.offsets[loop.index0] != 0 %}
+    a[{{ loop.index0 }}] = {{ e.title }}_rotation_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
-    n = _apply_rotation(a, {{ e.vector }})
+    n = _apply_rotation(a, {{ e.rotation.initial }})
     {% for t in e.props.vectorFields %}
     t = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ t }}')
     if t:

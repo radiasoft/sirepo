@@ -1678,11 +1678,15 @@ def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
         if 'positionFields' in e:
-            e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
-            e.position = [float(p) for p in e.positionFields]
+            e.position = PKDict(
+                initial=[float(p) for p in e.positionFields],
+                offsets=sirepo.util.split_comma_delimited_string(e.offsetRanges, float),
+            )
         if 'vectorFields' in e:
-            e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
-            e.vector = [float(p) for p in e.vectorFields]
+            e.rotation = PKDict(
+                initial=[float(p) for p in e.vectorFields],
+                offsets=sirepo.util.split_comma_delimited_string(e.rotationRanges, float),
+            )
     return x
 
 
