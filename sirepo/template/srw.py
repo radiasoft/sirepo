@@ -1677,16 +1677,9 @@ def _process_intensity_reports(source_type, undulator_type):
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
-        if 'positionFields' in e:
-            e.position = PKDict(
-                initial=[float(p) for p in e.positionFields],
-                offsets=sirepo.util.split_comma_delimited_string(e.offsetRanges, float),
-            )
-        if 'vectorFields' in e:
-            e.rotation = PKDict(
-                initial=[float(p) for p in e.vectorFields],
-                offsets=sirepo.util.split_comma_delimited_string(e.rotationRanges, float),
-            )
+        for p in ('position', 'rotation'):
+            if f'{p}' in e:
+                e[f'{p}'].offsets = sirepo.util.split_comma_delimited_string(e[f'{p}OffsetRanges'], float)
     return x
 
 

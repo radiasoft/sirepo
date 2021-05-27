@@ -420,14 +420,14 @@ def _rsopt_run(filename):
     {% if 'position' in e %}
     {% for x in e.position.initial %}
     {% if e.position.offsets[loop.index0] != 0 %}
-        '{{ e.title }}_pos_{{ e.props.positionFields[loop.index0] }}_',
+        '{{ e.title }}_pos_{{ e.position.fieldNames[loop.index0] }}_',
     {% endif %}
     {% endfor %}
     {% endif %}
     {% if 'rotation' in e %}
     {% for t in e.rotation.initial %}
     {% if e.rotation.offsets[loop.index0] != 0 %}
-        '{{ e.title }}_angle_{{ e.props.vectorFields[loop.index0] }}_',
+        '{{ e.title }}_angle_{{ e.rotation.fieldNames[loop.index0] }}_',
     {% endif %}
     {% endfor %}
     {% endif %}
@@ -475,7 +475,7 @@ def _rsopt_set_params(
     {% if 'position' in e %}
     {% for x in e.position.initial %}
     {% if e.position.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.props.positionFields[loop.index0] }}')
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.position.fieldNames[loop.index0] }}')
     if p:
         p[2] = {{ e.title }}_position_{{ loop.index0 }}
     {% endif %}
@@ -490,7 +490,7 @@ def _rsopt_set_params(
     {% endif %}
     {% endfor %}
     n = _apply_rotation(a, {{ e.rotation.initial }})
-    {% for t in e.props.vectorFields %}
+    {% for t in e.rotation.fieldNames %}
     t = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ t }}')
     if t:
         t[2] = n[{{ loop.index0 }}]

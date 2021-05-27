@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
         '<div data-ng-switch-when="RSOptElements" class="col-sm-12">',
-          '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+          '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" data-form="form"></div>',
         '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
           '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
@@ -336,9 +336,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.updateRSOptElements = function() {
-        let r = SIREPO.APP_SCHEMA.constants.rsoptElements;
         let items = (appState.models.beamline || []).filter(function(i) {
-            return r[i.type];
+            return SIREPO.APP_SCHEMA.constants.rsoptElements[i.type];
         });
         let els = appState.models.exportRsOpt.elements;
         for (let item of items) {
@@ -350,11 +349,15 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
-            e.props =  r[item.type];
-            for (let p in e.props) {
-                e[p] = [];
-                for (let f of e.props[p] || []) {
-                    e[p].push(item[f] || 0.0);
+            let props =  SIREPO.APP_SCHEMA.constants.rsoptElements[item.type];
+            for (let p in props) {
+                e[p] = {
+                    fieldNames: props[p].fieldNames,
+                    initial: [],
+                    offsets: [],
+                };
+                for (let f of props[p].fieldNames || []) {
+                    e[p].initial.push(item[f] || 0.0);
                 }
             }
         }
@@ -1801,6 +1804,10 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
     return {
         restrict: 'A',
         scope: {
+            field: '=',
+            form: '=',
+            model: '=',
+            modelName: '=',
         },
         template: [
             '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
@@ -1815,10 +1822,10 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 '<tbody>',
                     '<tr data-ng-repeat="e in rsOptElements track by $index">',
                       '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change=""> {{ e.title }}</label></div></td>',
-                      '<td data-ng-if="hasFields(e, \'positionFields\')"><div data-model-field="offsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
-                      '<td data-ng-if="! hasFields(e, \'positionFields\')"> </td>',
-                      '<td data-ng-if="hasFields(e, \'vectorFields\')"><div data-model-field="rotationRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
-                      '<td data-ng-if="! hasFields(e, \'vectorFields\')"> </td>',
+                      '<td data-ng-if="hasFields(e, \'position\')"><div data-model-field="positionOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'position\')"> </td>',
+                      '<td data-ng-if="hasFields(e, \'rotation\')"><div data-model-field="rotationOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'rotation\')"> </td>',
                     '</tr>',
                 '</tbody>',
               '</table>',
@@ -1830,12 +1837,12 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             $scope.elementData = [];
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
-            $scope.offsetRanges = 'offsetRanges';
-            $scope.rotationRanges = 'rotationRanges';
+            $scope.positionOffsetRanges = 'positionOffsetRanges';
+            $scope.rotationOffsetRanges = 'rotationOffsetRanges';
             $scope.rsOptElements = [];
             $scope.rsElementFields = [
-                SIREPO.APP_SCHEMA.model.rsOptElement.offsetRanges[SIREPO.INFO_INDEX_LABEL],
-                SIREPO.APP_SCHEMA.model.rsOptElement.rotationRanges[SIREPO.INFO_INDEX_LABEL],
+                SIREPO.APP_SCHEMA.model.rsOptElement.positionOffsetRanges[SIREPO.INFO_INDEX_LABEL],
+                SIREPO.APP_SCHEMA.model.rsOptElement.rotationOffsetRanges[SIREPO.INFO_INDEX_LABEL],
             ];
 
             $scope.hasFields = function(e, f) {
@@ -1853,11 +1860,16 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 });
             }
 
+            $scope.$on('exportRsOpt.editor.show', () => {
+                // set form dirty so user does not have to change anything to export
+                $scope.form.$setDirty();
+            });
+
             appState.whenModelsLoaded($scope, function() {
                 updateElements();
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
-                $scope.$on('exportRsOpt.saved', function() {
+                $scope.$on('exportRsOpt.saved', () => {
                     requestSender.newWindow('exportRSOptConfig', {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

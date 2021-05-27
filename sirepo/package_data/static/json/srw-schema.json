@@ -17,22 +17,38 @@
         "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
         "rsoptElements": {
             "aperture": {
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                }
             },
             "ellipsoidMirror": {
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"],
-                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
             },
             "mirror": {
-                "positionFields": ["", "", "position"]
+                "position": {
+                    "fieldNames": ["", "", "position"]
+                }
             },
             "sphericalMirror": {
-                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
             },
             "toroidalMirror": {
-                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
             }
         }
     },
@@ -476,14 +492,6 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
-        "rsOptElement": {
-            "id": ["_", "Integer", -1],
-            "enabled": ["Enabled", "Boolean", "0"],
-            "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
-            "position": ["Position along Optical Path [m]", "Float"],
-            "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
-            "title": ["_", "String", ""]
-        },
         "exportRsOpt": {
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
@@ -835,6 +843,13 @@
             "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
             "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
             "17": ["Set Nominal Values", "Button", "1"]
+        },
+        "rsOptElement": {
+            "id": ["_", "Integer", -1],
+            "enabled": ["Enabled", "Boolean", "0"],
+            "positionOffsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "rotationOffsetRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
+            "title": ["_", "String", ""]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
@@ -1649,8 +1664,8 @@
         "rsOptElement": {
             "title": "rsopt Element",
             "basic": [
-                "offsetRanges",
-                "rotationRanges"
+                "positionOffsetRanges",
+                "rotationOffsetRanges"
             ],
             "advanced": []
         },
