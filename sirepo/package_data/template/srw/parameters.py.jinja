@@ -7,6 +7,43 @@ try:
 except:
     pass
 
+{%- macro rsOptElementLoop(posActions, rotActions) %}
+{% for e in rsOptElements %}
+{% if 'position' in e %}
+{% for x in e.position %}
+{% if e.offsets[loop.index0] != 0 %}
+{{ posActions }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if 'rotations' in e %}
+{% for t in e.rotations %}
+{% if e.rotations[loop.index0] != 0 %}
+{{ rotActions }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor -%}
+{% endmacro %}
+
+{%- macro rsOptFuctionSignature() %}
+{% for e in rsOptElements %}
+{% if 'position' in e %}
+{% for x in e.position %}
+{% if e.offsets[loop.index0] != 0 %}
+    {{ e.title }}_pos_{{ loop.index0 }},
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if 'rotations' in e %}
+{% for t in e.rotations %}
+{% if e.rotations[loop.index0] != 0 %}
+    {{ e.title }}_angle_{{ loop.index0 }},
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor -%}
+{% endmacro %}
 
 import srwl_bl
 import srwlib
@@ -25,22 +62,7 @@ import numpy
 
 # This function is required by rsopt to generate data but is a noop otherwise
 def set_rsopt_params_dummy(
-    {% for e in rsOptElements %}
-    {% if 'position' in e %}
-    {% for x in e.position %}
-    {% if e.offsets[loop.index0] != 0 %}
-    {{ e.title }}_pos_{{ loop.index0 }},
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% if 'rotations' in e %}
-    {% for t in e.rotations %}
-    {% if e.rotations[loop.index0] != 0 %}
-    {{ e.title }}_angle_{{ loop.index0 }},
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% endfor %}
+{{ rsOptFuctionSignature() }}
 ):
     return 0
 {% endif %}
@@ -466,24 +488,9 @@ def _rsopt_run_single(param_vals, proc_num, task_num):
     pkdlog(f'Process {proc_num} finished task {task_num}')
 
 
-# This functions actually sets the data
+# This function actually sets the data
 def _rsopt_set_params(
-    {% for e in rsOptElements %}
-    {% if 'position' in e %}
-    {% for x in e.position %}
-    {% if e.offsets[loop.index0] != 0 %}
-    {{ e.title }}_pos_{{ loop.index0 }},
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% if 'rotations' in e %}
-    {% for t in e.rotations %}
-    {% if e.rotations[loop.index0] != 0 %}
-    {{ e.title }}_angle_{{ loop.index0 }},
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% endfor %}
+{{ rsOptFuctionSignature() }}
 ):
     vp = varParam.copy()
     {% for e in rsOptElements %}
