@@ -14,7 +14,7 @@ _DEPENDENT_CODES = [
 ]
 
 #: Codes on prod
-_PROD_FOSS_CODES = frozenset((
+PROD_FOSS_CODES = frozenset((
     'controls',
     'elegant',
     'jspec',
@@ -41,7 +41,7 @@ _NON_PROD_FOSS_CODES = frozenset((
 ))
 
 #: All possible open source codes
-_FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
+_FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
 #: codes for which we default to giving the user authorization but it can be revoked
 _DEFAULT_PROPRIETARY_CODES = frozenset(('jupyterhublogin',))
@@ -135,7 +135,7 @@ def _init():
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
-            _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
+            PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
         )
     )
     s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)
