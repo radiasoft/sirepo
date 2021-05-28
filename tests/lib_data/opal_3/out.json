@@ -683,14 +683,14 @@
         ],
         "sequences": [],
         "simulation": {
-            "activeBeamlineId": 112,
+            "activeBeamlineId": 113,
             "documentationUrl": "",
             "elementPosition": "absolute",
             "folder": "/",
             "name": "Photoinjector Beamline",
             "notes": "",
             "simulationSerial": 0,
-            "visualizationBeamlineId": 112
+            "visualizationBeamlineId": 113
         }
     },
     "simulationType": "opal"
