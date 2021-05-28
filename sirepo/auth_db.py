@@ -141,6 +141,17 @@ def init():
                 self._session().commit()
 
         @classmethod
+        def delete_user(cls, uid):
+            """Delete user from all tables"""
+            for t in [x for x in cls.metadata.tables.values() if 'uid' in x.columns]:
+                cls._session().execute(
+                    sqlalchemy.delete(t).where(uid==uid).execution_options(
+                        synchronize_session='fetch',
+                    ),
+                )
+                cls._session().commit()
+
+        @classmethod
         def delete_all(cls):
             with sirepo.util.THREAD_LOCK:
                 cls._session().query(cls).delete()
