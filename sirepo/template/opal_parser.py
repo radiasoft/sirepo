@@ -47,7 +47,7 @@ class OpalParser(lattice.LatticeParser):
         input_files = self.__update_filenames()
         self.__set_element_positions(cv)
         self.__sort_element_positions(cv)
-        self._set_default_beamline('select', 'line')
+        self._set_default_beamline('track', 'line')
         self.__legacy_fixups()
         self.__convert_references_to_ids()
         self.__combine_options()

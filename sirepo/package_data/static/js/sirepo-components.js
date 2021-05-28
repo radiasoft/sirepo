@@ -2312,9 +2312,11 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                     '<form data-file-loader="" data-file-formats="fileFormats" data-description="description">',
                       '<form name="importForm">',
                         '<div class="form-group">',
-                          '<label>{{ description }}</label>',
-                          '<input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
-                          '<br />',
+                          '<div data-ng-show="! hideMainImportSelector">',
+                            '<label>{{ description }}</label>',
+                            '<input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
+                            '<br />',
+                          '</div>',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                           '<div data-ng-transclude=""></div>',
                         '</div>',
@@ -2333,6 +2335,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
         ].join(''),
         controller: function($element, $scope) {
             $scope.fileUploadError = '';
+            // used by sub componenets to possibly hide the "main" file import selector
+            $scope.hideMainImportSelector = false;
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
@@ -3633,6 +3637,9 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
+            '<div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="simState.isStopped() && simState.getFrameCount() > 0">',
+              '<a data-ng-href="{{ logFileURL() }}" target="_blank">View {{ ::appName }} log</a>',
+            '</div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
             '<div data-ng-if="alertMessage()"><div class="text-warning"><strong>{{ ::appName }} Alert:</strong></div><pre>{{ alertMessage() }}</pre></div>',
         ].join(''),
@@ -3658,6 +3665,10 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             $scope.initMessage = function() {
                 const s = SIREPO.APP_SCHEMA.strings;
                 return s.initMessage || `Running ${stringsService.ucfirst(s.typeOfSimulation)}`;
+            };
+
+            $scope.logFileURL = function() {
+                return callSimState('logFileURL');
             };
 
             $scope.runningMessage = function() {
