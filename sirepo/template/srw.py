@@ -74,7 +74,6 @@ _RSOPT_PARAMS = {
     i for sublist in [v for v in [list(_SCHEMA.constants.rsoptElements[k].keys()) for
         k in _SCHEMA.constants.rsoptElements]] for i in sublist
 }
-print(_RSOPT_PARAMS)
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 

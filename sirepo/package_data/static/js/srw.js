@@ -1822,12 +1822,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 '<tbody>',
                     '<tr data-ng-repeat="e in rsOptElements track by $index">',
                       '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change=""> {{ e.title }}</label></div></td>',
-                      '<td data-ng-if="hasFields(e, \'position\')"><div data-model-field="positionOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
-                      '<td data-ng-if="! hasFields(e, \'position\')"> </td>',
-                      '<td data-ng-if="hasFields(e, \'rotation\')"><div data-model-field="rotationOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
-                      '<td data-ng-if="! hasFields(e, \'rotation\')"> </td>',
-                      '<td data-ng-if="hasFields(e, \'radius\')"><div data-model-field="radiusOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
-                      '<td data-ng-if="! hasFields(e, \'radius\')"> </td>',
+                      '<td data-ng-repeat="p in rsOptParams"><div data-ng-if="hasFields(e, p)" data-ng-show="showFields(e)" data-model-field="elementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0"></div></td>',
                     '</tr>',
                 '</tbody>',
               '</table>',
@@ -1839,28 +1834,49 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             $scope.elementData = [];
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
-            $scope.positionOffsetRanges = 'positionOffsetRanges';
-            $scope.rotationOffsetRanges = 'rotationOffsetRanges';
-            $scope.radiusOffsetRanges = 'radiusOffsetRanges';
             $scope.rsOptElements = [];
-            $scope.rsElementFields = [
-                SIREPO.APP_SCHEMA.model.rsOptElement.positionOffsetRanges[SIREPO.INFO_INDEX_LABEL],
-                SIREPO.APP_SCHEMA.model.rsOptElement.rotationOffsetRanges[SIREPO.INFO_INDEX_LABEL],
-                SIREPO.APP_SCHEMA.model.rsOptElement.radiusOffsetRanges[SIREPO.INFO_INDEX_LABEL],
-            ];
+            $scope.rsOptParams = [];
+            $scope.rsElementFields = [];
 
-            $scope.hasFields = function(e, f) {
-                return SIREPO.APP_SCHEMA.constants.rsoptElements[e.type][f];
+            $scope.hasFields = function(e, p) {
+                return SIREPO.APP_SCHEMA.constants.rsoptElements[e.type][p];
+            };
+
+            $scope.elementModelData = function(e) {
+                return $scope.elementData[e.id];
+            };
+
+            $scope.elementOffsetField = function(p) {
+                return `${p}OffsetRanges`;
+            };
+
+            $scope.showFields = function(e) {
+                return e.enabled !== '0' && e.enabled;
             };
 
             function updateElements() {
                 $scope.rsOptElements = srwService.updateRSOptElements();
-                $scope.elementData = $scope.rsOptElements.map(function(e) {
-                    return {
-                        getData: function() {
-                            return e;
-                        },
+                $scope.elementData = {};
+                for (let e of $scope.rsOptElements) {
+                    const el = e;
+                    $scope.elementData[el.id] = {
+                        getData: function () {
+                            return el;
+                        }
                     };
+                }
+            }
+
+            function updateParams() {
+                let s = new Set();
+                for (let e in SIREPO.APP_SCHEMA.constants.rsoptElements) {
+                    for (let k of Object.keys(SIREPO.APP_SCHEMA.constants.rsoptElements[e])) {
+                        s.add(k);
+                    }
+                }
+                $scope.rsOptParams = [...s];
+                $scope.rsElementFields = $scope.rsOptParams.map((p) => {
+                    return SIREPO.APP_SCHEMA.model.rsOptElement[$scope.elementOffsetField(p)][SIREPO.INFO_INDEX_LABEL];
                 });
             }
 
@@ -1871,6 +1887,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
             appState.whenModelsLoaded($scope, function() {
                 updateElements();
+                updateParams();
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {
