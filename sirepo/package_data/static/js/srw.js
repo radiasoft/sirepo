@@ -346,6 +346,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 e = appState.setModelDefaults({}, 'rsOptElement');
                 els.push(e);
             }
+            else {
+                e = appState.setModelDefaults(e, 'rsOptElement');
+            }
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
@@ -1831,7 +1834,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
-            $scope.elementData = [];
+            $scope.elementData = {};
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
             $scope.rsOptElements = [];
@@ -1843,6 +1846,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             };
 
             $scope.elementModelData = function(e) {
+                srdbg('smd for', e);
                 return $scope.elementData[e.id];
             };
 
@@ -1860,7 +1864,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 for (let e of $scope.rsOptElements) {
                     const el = e;
                     $scope.elementData[el.id] = {
-                        getData: function () {
+                        getData: function() {
                             return el;
                         }
                     };

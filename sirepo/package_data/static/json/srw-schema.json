@@ -49,6 +49,9 @@
                 "position": {
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
                 },
+                "radius": {
+                    "fieldNames": ["tangentialRadius", "sagittalRadius"]
+                },
                 "rotation": {
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
                 }
