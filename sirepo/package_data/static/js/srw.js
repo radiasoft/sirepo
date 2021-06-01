@@ -1826,6 +1826,8 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                       '<td data-ng-if="! hasFields(e, \'position\')"> </td>',
                       '<td data-ng-if="hasFields(e, \'rotation\')"><div data-model-field="rotationOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
                       '<td data-ng-if="! hasFields(e, \'rotation\')"> </td>',
+                      '<td data-ng-if="hasFields(e, \'radius\')"><div data-model-field="radiusOffsetRanges" data-model-name="modelName" data-model-data="elementData[$index]" data-label-size="0"></div></td>',
+                      '<td data-ng-if="! hasFields(e, \'radius\')"> </td>',
                     '</tr>',
                 '</tbody>',
               '</table>',
@@ -1839,10 +1841,12 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             $scope.modelName = 'rsOptElement';
             $scope.positionOffsetRanges = 'positionOffsetRanges';
             $scope.rotationOffsetRanges = 'rotationOffsetRanges';
+            $scope.radiusOffsetRanges = 'radiusOffsetRanges';
             $scope.rsOptElements = [];
             $scope.rsElementFields = [
                 SIREPO.APP_SCHEMA.model.rsOptElement.positionOffsetRanges[SIREPO.INFO_INDEX_LABEL],
                 SIREPO.APP_SCHEMA.model.rsOptElement.rotationOffsetRanges[SIREPO.INFO_INDEX_LABEL],
+                SIREPO.APP_SCHEMA.model.rsOptElement.radiusOffsetRanges[SIREPO.INFO_INDEX_LABEL],
             ];
 
             $scope.hasFields = function(e, f) {

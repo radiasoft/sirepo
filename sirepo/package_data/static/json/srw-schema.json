@@ -38,6 +38,9 @@
                 "position": {
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
                 },
+                "radius": {
+                    "fieldNames": ["radius"]
+                },
                 "rotation": {
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
                 }
@@ -492,13 +495,6 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
-        "exportRsOpt": {
-            "elements": ["Beamline Elements", "RSOptElements", []],
-            "numCores": ["Number of Cores", "Integer", 4],
-            "numSamples": ["Number of Samples", "Integer", 100],
-            "numWorkers": ["Number of Workers", "Integer", 1],
-            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly for a total of <number of samples>^<number of params> samples. Random takes a random sample for each param for a total of <number of samples>"]
-        },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -606,6 +602,13 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+        },
+        "exportRsOpt": {
+            "elements": ["Beamline Elements", "RSOptElements", []],
+            "numCores": ["Number of Cores", "Integer", 4],
+            "numSamples": ["Number of Samples per Parameter", "Integer", 100, "", 1],
+            "numWorkers": ["Number of Workers", "Integer", 1],
+            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly for a total of &lt;number of samples&gt;^&lt;number of params&gt; samples. Random takes a random sample for each param for a total of &lt;number of samples&gt;"]
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
@@ -848,6 +851,7 @@
             "id": ["_", "Integer", -1],
             "enabled": ["Enabled", "Boolean", "0"],
             "positionOffsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "radiusOffsetRanges": ["Radius Variation Range [m]", "FloatStringArray", "0.0", "", "Radius"],
             "rotationOffsetRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
             "title": ["_", "String", ""]
         },
@@ -1665,7 +1669,8 @@
             "title": "rsopt Element",
             "basic": [
                 "positionOffsetRanges",
-                "rotationOffsetRanges"
+                "rotationOffsetRanges",
+                "radiusOffsetRanges"
             ],
             "advanced": []
         },

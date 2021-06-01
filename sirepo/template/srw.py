@@ -70,6 +70,12 @@ _LOG_DIR = '__srwl_logs__'
 
 _JSON_MESSAGE_EXPANSION = 20
 
+_RSOPT_PARAMS = {
+    i for sublist in [v for v in [list(_SCHEMA.constants.rsoptElements[k].keys()) for
+        k in _SCHEMA.constants.rsoptElements]] for i in sublist
+}
+print(_RSOPT_PARAMS)
+
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
 _USER_MODEL_LIST_FILENAME = PKDict({
@@ -1677,7 +1683,7 @@ def _process_intensity_reports(source_type, undulator_type):
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
-        for p in ('position', 'rotation'):
+        for p in _RSOPT_PARAMS:
             if f'{p}' in e:
                 e[f'{p}'].offsets = sirepo.util.split_comma_delimited_string(e[f'{p}OffsetRanges'], float)
     return x
@@ -1819,8 +1825,9 @@ def _rsopt_jinja_context(model):
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
+        rsOptElements=_process_rsopt_elements(model.elements),
+        rsOptParams=_RSOPT_PARAMS,
         scanType=model.scanType,
-        rsOptElements=_process_rsopt_elements(model.elements)
     )
 
 

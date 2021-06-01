@@ -1,14 +1,3 @@
-#!/usr/bin/env python
-import os
-try:
-    __IPYTHON__
-    import sys
-    del sys.argv[1:]
-except:
-    pass
-
-{% set rsOptParams = ('position', 'rotation') %}
-
 {%- macro rsOptFuctionSignature() %}
 {% for e in rsOptElements %}
 {% for p in rsOptParams %}
@@ -22,6 +11,15 @@ except:
 {% endfor %}
 {% endfor %}
 {% endmacro -%}
+
+#!/usr/bin/env python
+import os
+try:
+    __IPYTHON__
+    import sys
+    del sys.argv[1:]
+except:
+    pass
 
 import srwl_bl
 import srwlib
@@ -417,20 +415,15 @@ def _rsopt_run(filename):
 
     save_str = ''.join([
     {% for e in rsOptElements %}
-    {% if 'position' in e %}
-    {% for x in e.position.initial %}
-    {% if e.position.offsets[loop.index0] != 0 %}
-        '{{ e.title }}_pos_{{ e.position.fieldNames[loop.index0] }}_',
+    {% for p in rsOptParams %}
+    {% if p in e %}
+    {% for x in e[p].initial %}
+    {% if e[p].offsets[loop.index0] != 0 %}
+        '{{ e.title }}_{{ p }}_{{ e[p].fieldNames[loop.index0] }}_',
     {% endif %}
     {% endfor %}
     {% endif %}
-    {% if 'rotation' in e %}
-    {% for t in e.rotation.initial %}
-    {% if e.rotation.offsets[loop.index0] != 0 %}
-        '{{ e.title }}_angle_{{ e.rotation.fieldNames[loop.index0] }}_',
-    {% endif %}
     {% endfor %}
-    {% endif %}
     {% endfor %}
     ])
 
@@ -496,6 +489,15 @@ def _rsopt_set_params(
         t[2] = n[{{ loop.index0 }}]
     {% endfor %}
     {% endif %}
+    {% endif %}
+    {% if 'radius' in e %}
+    {% for x in e.radius.initial %}
+    {% if e.radius.offsets[loop.index0] != 0 %}
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.radius.fieldNames[loop.index0] }}')
+    if p:
+        p[2] = {{ e.title }}_radius_{{ loop.index0 }}
+    {% endif %}
+    {% endfor %}
     {% endif %}
     {% endfor %}
     return vp
