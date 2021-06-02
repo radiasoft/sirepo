@@ -39,7 +39,8 @@
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
                 },
                 "radius": {
-                    "fieldNames": ["radius"]
+                    "fieldNames": ["radius"],
+                    "fieldProperties": ["_", "FloatStringArray", "0.0", "", "Radius"]
                 },
                 "rotation": {
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
@@ -50,7 +51,8 @@
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
                 },
                 "radius": {
-                    "fieldNames": ["tangentialRadius", "sagittalRadius"]
+                    "fieldNames": ["tangentialRadius", "sagittalRadius"],
+                    "fieldProperties": ["_", "FloatStringArray", "0.0, 0.0", "", "Tangential, Saggital"]
                 },
                 "rotation": {
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]

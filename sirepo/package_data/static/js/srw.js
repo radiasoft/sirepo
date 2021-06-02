@@ -1846,7 +1846,6 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             };
 
             $scope.elementModelData = function(e) {
-                srdbg('smd for', e);
                 return $scope.elementData[e.id];
             };
 
