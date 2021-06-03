@@ -149,7 +149,7 @@ def init():
                         synchronize_session='fetch',
                     ),
                 )
-                cls._session().commit()
+            cls._session().commit()
 
         @classmethod
         def delete_all(cls):
