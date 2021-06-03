@@ -20,8 +20,9 @@ def setup_module(module):
 def test_no_user():
     import sirepo.pkcli.admin
     from pykern import pkunit
-    with pkunit.pkexcept(AssertionError):
-        sirepo.pkcli.admin.delete_user('xxx')
+    u = 'xxx'
+    with pkunit.pkexcept('.*no registered user with uid=' + u):
+        sirepo.pkcli.admin.delete_user(u)
 
 
 def test_delete_user():
