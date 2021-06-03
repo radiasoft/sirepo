@@ -144,12 +144,14 @@ def init():
         def delete_user(cls, uid):
             """Delete user from all tables"""
             for t in [x for x in cls.metadata.tables.values() if 'uid' in x.columns]:
-                cls._session().execute(
-                    sqlalchemy.delete(t).where(t.c.uid==uid).execution_options(
-                        synchronize_session='fetch',
-                    ),
-                )
+                cls.execute(sqlalchemy.delete(t).where(t.c.uid==uid))
             cls._session().commit()
+
+        @classmethod
+        def execute(cls, statement):
+            cls._session().execute(
+                statement.execution_options(synchronize_session='fetch')
+            )
 
         @classmethod
         def delete_all(cls):
@@ -183,9 +185,9 @@ def init():
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with sirepo.util.THREAD_LOCK:
-                cls._session().query(cls).filter(
+                cls.execute(sqlalchemy.delete(cls).where(
                     getattr(cls, column).in_(values),
-                ).delete(synchronize_session='fetch')
+                ))
                 cls._session().commit()
 
         @classmethod
@@ -227,11 +229,11 @@ def init():
         @classmethod
         def delete_roles(cls, uid, roles):
             with sirepo.util.THREAD_LOCK:
-                cls._session().query(cls).filter(
+                cls.execute(sqlalchemy.delete(cls).where(
                     cls.uid == uid,
-                ).filter(
+                ).where(
                     cls.role.in_(roles),
-                ).delete(synchronize_session='fetch')
+                ))
                 cls._session().commit()
                 audit_proprietary_lib_files(uid)
 
