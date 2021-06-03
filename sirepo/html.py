@@ -70,11 +70,15 @@ def _widget_supported_codes(ctx):
               </button>
               <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
     '''
-    for s in sorted([
-            PKDict(ml='activait', jupyterhublogin='jupyter').get(s, s)
-            for s in sirepo.feature_config.cfg().sim_types
-    ]):
-        res += f'<li><a href="/ml">{s}</a></li>'
+    x = PKDict([(s, s) for s in sirepo.feature_config.PROD_FOSS_CODES])
+    #TODO(pjm): make list dynamic based on user auth
+    x.pkupdate(
+        activait='ml',
+        jupyter='jupyterhublogin',
+    )
+    del x['ml']
+    for k in sorted(x.keys()):
+        res += f'<li><a href="/{x[k]}">{k}</a></li>'
     return res + '</ul></li>'
 
 _init()

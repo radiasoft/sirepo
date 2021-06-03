@@ -14,7 +14,6 @@ import srwlpy
 import math
 import srwl_uti_smp
 
-
 def set_optics(v=None):
     el = []
     pp = []
@@ -231,7 +230,8 @@ def set_optics(v=None):
     return srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+
+varParam = [
     ['name', 's', 'NSLS-II SRX beamline', 'simulation name'],
 
 #---Data Folder
@@ -588,7 +588,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
     #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
-])
+]
 
 def setup_magnetic_measurement_files(filename, v):
     import os
@@ -625,8 +625,9 @@ def setup_magnetic_measurement_files(filename, v):
     v.und_mfs = os.path.basename(f)
     v.und_mdir = os.path.dirname(f) or './'
 
+
 def main():
-    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
+    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files("magn_meas_srx.zip", v)
     op = set_optics(v)
     v.ss = True
