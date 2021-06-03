@@ -72,6 +72,9 @@ def delete_user(uid):
     all service (jupyterhublogin, email, etc.) that may be relevant. Once
     this script runs all records are blown away from the db's so if you
     forget to configure something you will have to delete manually.
+
+    Args:
+        uid: UID of the user to delete
     """
     import sirepo.server
     import sirepo.template
