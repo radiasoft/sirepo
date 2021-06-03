@@ -145,7 +145,7 @@ def init():
             """Delete user from all tables"""
             for t in [x for x in cls.metadata.tables.values() if 'uid' in x.columns]:
                 cls._session().execute(
-                    sqlalchemy.delete(t).where(uid==uid).execution_options(
+                    sqlalchemy.delete(t).where(t.c.uid==uid).execution_options(
                         synchronize_session='fetch',
                     ),
                 )
