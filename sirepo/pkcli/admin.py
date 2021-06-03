@@ -84,7 +84,7 @@ def delete_user(uid):
         if sirepo.template.is_sim_type('jupyterhublogin'):
             from sirepo.sim_api import jupyterhublogin
             jupyterhublogin.delete_user_dir(uid)
-        pkio.unchecked_remove(simulation_db.user_path(uid=uid))
+        simulation_db.delete_user(uid)
         # This needs to be done last so we have access to the records in
         # previous steps.
         auth_db.UserDbBase.delete_user(uid)

@@ -145,6 +145,11 @@ def delete_simulation(simulation_type, sid):
     pkio.unchecked_remove(simulation_dir(simulation_type, sid))
 
 
+def delete_user(uid):
+    """Deletes a user's directory."""
+    assert uid is not None
+    pkio.unchecked_remove(user_path(uid=uid))
+
 def examples(app):
     files = pkio.walk_tree(
         sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR),
