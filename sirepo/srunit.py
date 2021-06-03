@@ -30,6 +30,9 @@ CONFTEST_DEFAULT_CODES = None
 
 SR_SIM_TYPE_DEFAULT = MYAPP
 
+#: Sirepo db dir
+_DB_DIR = 'db'
+
 @contextlib.contextmanager
 def auth_db_session():
     import sirepo.auth_db
@@ -97,7 +100,7 @@ def setup_srdb_root(cfg=None):
     if not e:
         e = os.environ
     e.update(
-        SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join('db'))),
+        SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join(_DB_DIR))),
     )
 
 
@@ -579,7 +582,7 @@ class _TestClient(flask.testing.FlaskClient):
 
         if not uid:
             uid = self.sr_auth_state().uid
-        return pkunit.work_dir().join('db', 'user', uid)
+        return pkunit.work_dir().join(_DB_DIR, 'user', uid)
 
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
