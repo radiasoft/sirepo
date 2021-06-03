@@ -71,8 +71,8 @@ _LOG_DIR = '__srwl_logs__'
 _JSON_MESSAGE_EXPANSION = 20
 
 _RSOPT_PARAMS = {
-    i for sublist in [v for v in [list(_SCHEMA.constants.rsoptElements[k].keys()) for
-        k in _SCHEMA.constants.rsoptElements]] for i in sublist
+    i for sublist in [v for v in [list(_SCHEMA.constants.rsOptElements[k].keys()) for
+        k in _SCHEMA.constants.rsOptElements]] for i in sublist
 }
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
@@ -1683,8 +1683,8 @@ def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
         for p in _RSOPT_PARAMS:
-            if f'{p}' in e:
-                e[f'{p}'].offsets = sirepo.util.split_comma_delimited_string(e[f'{p}OffsetRanges'], float)
+            if p in e:
+                e[p].offsets = sirepo.util.split_comma_delimited_string(e[f'{p}Offsets'], float)
     return x
 
 

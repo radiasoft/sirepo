@@ -15,7 +15,12 @@
     },
     "constants": {
         "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
-        "rsoptElements": {
+        "rsOptDefaultOffsetInfo": {
+            "position": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "radius": ["Radius Variation Range [m]", "FloatStringArray", "0.0", "", "Radius"],
+            "rotation": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"]
+        },
+        "rsOptElements": {
             "aperture": {
                 "position": {
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
@@ -39,8 +44,7 @@
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
                 },
                 "radius": {
-                    "fieldNames": ["radius"],
-                    "fieldProperties": ["_", "FloatStringArray", "0.0", "", "Radius"]
+                    "fieldNames": ["radius"]
                 },
                 "rotation": {
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
@@ -52,7 +56,7 @@
                 },
                 "radius": {
                     "fieldNames": ["tangentialRadius", "sagittalRadius"],
-                    "fieldProperties": ["_", "FloatStringArray", "0.0, 0.0", "", "Tangential, Saggital"]
+                    "offsetInfo": ["_", "FloatStringArray", "0.0, 0.0", "", "Tangential, Saggital"]
                 },
                 "rotation": {
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
@@ -855,9 +859,6 @@
         "rsOptElement": {
             "id": ["_", "Integer", -1],
             "enabled": ["Enabled", "Boolean", "0"],
-            "positionOffsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
-            "radiusOffsetRanges": ["Radius Variation Range [m]", "FloatStringArray", "0.0", "", "Radius"],
-            "rotationOffsetRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
             "title": ["_", "String", ""]
         },
         "sample": {
@@ -1670,15 +1671,6 @@
             "basic": [],
             "advanced": ["notes"]
         },
-        "rsOptElement": {
-            "title": "rsopt Element",
-            "basic": [
-                "positionOffsetRanges",
-                "rotationOffsetRanges",
-                "radiusOffsetRanges"
-            ],
-            "advanced": []
-        },
         "exportRsOpt": {
             "title": "Generate Machine Learning Data Script",
             "basic": [
@@ -1768,6 +1760,11 @@
                     "precision"
                 ]]
             ]
+        },
+        "rsOptElement": {
+            "title": "rsopt Element",
+            "basic": [],
+            "advanced": []
         },
         "sample": {
             "title": "Sample",

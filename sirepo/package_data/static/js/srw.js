@@ -335,25 +335,36 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return self.formatFloat(v, 12);
     };
 
+    self.rsOptElementOffsetField = function(p) {
+        return `${p}Offsets`;
+    };
+
     self.updateRSOptElements = function() {
+        const optElModel = 'rsOptElement';
+        const optEls = SIREPO.APP_SCHEMA.constants.rsOptElements;
         let items = (appState.models.beamline || []).filter(function(i) {
-            return SIREPO.APP_SCHEMA.constants.rsoptElements[i.type];
+            return optEls[i.type];
         });
         let els = appState.models.exportRsOpt.elements;
         for (let item of items) {
             let e = self.findRSOptElement(item.id);
             if (! e) {
-                e = appState.setModelDefaults({}, 'rsOptElement');
+                e = appState.setModelDefaults({}, optElModel);
                 els.push(e);
             }
             else {
-                e = appState.setModelDefaults(e, 'rsOptElement');
+                e = appState.setModelDefaults(e, optElModel);
             }
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
-            let props =  SIREPO.APP_SCHEMA.constants.rsoptElements[item.type];
+            let props = optEls[item.type];
             for (let p in props) {
+                appState.setFieldDefaults(
+                    e,
+                    self.rsOptElementOffsetField(p),
+                    props[p].offsetInfo || SIREPO.APP_SCHEMA.constants.rsOptDefaultOffsetInfo[p]
+                );
                 e[p] = {
                     fieldNames: props[p].fieldNames,
                     initial: [],
@@ -377,6 +388,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         els.sort(function (e1, e2) {
             return ids.indexOf(e1.id) - ids.indexOf(e2.id);
         });
+        appState.saveQuietly('exportRsOpt');
         return els;
     };
 
@@ -1819,13 +1831,13 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 '<thead>',
                     '<tr>',
                         '<td style="font-weight: bold">Element</td>',
-                        '<td style="font-weight: bold" data-ng-repeat="f in rsElementFields">{{ f }}</td>',
+                        '<td style="font-weight: bold" data-ng-repeat="f in rsOptElementFields">{{ f }}</td>',
                     '</tr>',
                 '</thead>',
                 '<tbody>',
                     '<tr data-ng-repeat="e in rsOptElements track by $index">',
                       '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change=""> {{ e.title }}</label></div></td>',
-                      '<td data-ng-repeat="p in rsOptParams"><div data-ng-if="hasFields(e, p)" data-ng-show="showFields(e)" data-model-field="elementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0"></div></td>',
+                      '<td data-ng-repeat="p in rsOptParams"><div data-ng-if="hasFields(e, p)" data-ng-show="showFields(e)" data-model-field="srwService.rsOptElementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0" data-custom-info="elementInfo(e, p)"></div></td>',
                     '</tr>',
                 '</tbody>',
               '</table>',
@@ -1833,24 +1845,26 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             '</div>',
         ].join(''),
         controller: function($scope) {
+            const els = SIREPO.APP_SCHEMA.constants.rsOptElements;
+
             $scope.appState = appState;
             $scope.elementData = {};
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
             $scope.rsOptElements = [];
             $scope.rsOptParams = [];
-            $scope.rsElementFields = [];
+            $scope.rsOptElementFields = [];
 
             $scope.hasFields = function(e, p) {
-                return SIREPO.APP_SCHEMA.constants.rsoptElements[e.type][p];
+                return els[e.type][p];
+            };
+
+            $scope.elementInfo = function(e, p) {
+                return els[e.type][p].offsetInfo;
             };
 
             $scope.elementModelData = function(e) {
                 return $scope.elementData[e.id];
-            };
-
-            $scope.elementOffsetField = function(p) {
-                return `${p}OffsetRanges`;
             };
 
             $scope.showFields = function(e) {
@@ -1872,15 +1886,23 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
             function updateParams() {
                 let s = new Set();
-                for (let e in SIREPO.APP_SCHEMA.constants.rsoptElements) {
-                    for (let k of Object.keys(SIREPO.APP_SCHEMA.constants.rsoptElements[e])) {
+                for (let e in els) {
+                    for (let k of Object.keys(els[e])) {
                         s.add(k);
                     }
                 }
                 $scope.rsOptParams = [...s];
-                $scope.rsElementFields = $scope.rsOptParams.map((p) => {
-                    return SIREPO.APP_SCHEMA.model.rsOptElement[$scope.elementOffsetField(p)][SIREPO.INFO_INDEX_LABEL];
-                });
+                $scope.rsOptElementFields = [];
+                SIREPO.APP_SCHEMA.view.rsOptElement.basic = [];
+                const m = SIREPO.APP_SCHEMA.model[$scope.modelName];
+
+                // dynamically change the schema
+                for (let p of $scope.rsOptParams) {
+                    let fp = srwService.rsOptElementOffsetField(p);
+                    m[fp] = SIREPO.APP_SCHEMA.constants.rsOptDefaultOffsetInfo[p];
+                    $scope.rsOptElementFields.push(m[fp][SIREPO.INFO_INDEX_LABEL]);
+                    SIREPO.APP_SCHEMA.view.rsOptElement.basic.push(fp);
+                }
             }
 
             $scope.$on('exportRsOpt.editor.show', () => {
