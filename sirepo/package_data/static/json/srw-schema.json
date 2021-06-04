@@ -16,14 +16,18 @@
     "constants": {
         "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
         "rsOptDefaultOffsetInfo": {
-            "position": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
-            "radius": ["Radius Variation Range [m]", "FloatStringArray", "0.0", "", "Radius"],
-            "rotation": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"]
-        },
+            "position": ["Position [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "radius": ["Radius [m]", "FloatStringArray", "0.0", "", "Radius"],
+            "rotation": ["Rotation [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
+            "size": ["Size [m]", "FloatStringArray", "0.0, 0.0", "", "Horizontal, Vertical"]
+       },
         "rsOptElements": {
             "aperture": {
                 "position": {
                     "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "size": {
+                    "fieldNames": ["horizontalSize", "verticalSize"]
                 }
             },
             "ellipsoidMirror": {
@@ -615,9 +619,10 @@
         "exportRsOpt": {
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
-            "numSamples": ["Number of Samples per Parameter", "Integer", 100, "", 1],
+            "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
             "numWorkers": ["Number of Workers", "Integer", 1],
-            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly for a total of &lt;number of samples&gt;^&lt;number of params&gt; samples. Random takes a random sample for each param for a total of &lt;number of samples&gt;"]
+            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly. Random takes a random sample for each parameter."],
+            "totalSamples": ["Total Samples", "Integer", 100, "Grid: &lt;number of samples&gt;^&lt;number of params&gt;. Random: &lt;number of samples&gt;", 1]
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
@@ -1678,7 +1683,8 @@
             "advanced": [
                 "elements",
                 "scanType",
-                "numSamples"
+                "numSamples",
+                "totalSamples"
             ]
         },
         "multipole": {
