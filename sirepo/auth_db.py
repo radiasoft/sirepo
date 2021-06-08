@@ -113,6 +113,13 @@ def db_filename():
 
 
 def init():
+    def _create_tables(engine):
+        b = UserDbBase
+        k = set(b.metadata.tables.keys())
+        assert k.issubset(set(b.TABLES)), \
+            f'sqlalchemy tables={k} not a subset of known tables={b.TABLES}'
+        b.metadata.create_all(engine)
+
     global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
 
     if _engine:
@@ -130,6 +137,18 @@ def init():
     class UserDbBase(object):
         STRING_ID = sqlalchemy.String(8)
         STRING_NAME =  sqlalchemy.String(100)
+        TABLES = [
+            # Order is important. SQLite doesn't allow for foreign key constraints to
+            # be added after creation. So, the tables are ordered in the way
+            # constraints should be carried out. For example, a user is deleted
+            # from auth_email_user_t before user_registration_t.
+            'auth_github_user_t',
+            'auth_email_user_t',
+            'jupyterhub_user_t',
+            'user_role_t',
+            'user_registration_t',
+            'db_upgrade_t',
+        ]
 
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
@@ -143,8 +162,13 @@ def init():
         @classmethod
         def delete_user(cls, uid):
             """Delete user from all tables"""
-            for t in [x for x in cls.metadata.tables.values() if 'uid' in x.columns]:
-                cls.execute(sqlalchemy.delete(t).where(t.c.uid==uid))
+            for t in cls.TABLES:
+                m = cls._unchecked_model_from_tablename(t)
+                # Exlicit None check because sqlalchemy overrides __bool__ to
+                # raise TypeError
+                if m is None or 'uid' not in m.columns:
+                    continue
+                cls.execute(sqlalchemy.delete(m).where(m.c.uid==uid))
             cls._session().commit()
 
         @classmethod
@@ -193,6 +217,12 @@ def init():
         @classmethod
         def _session(cls):
             return sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+
+        @classmethod
+        def _unchecked_model_from_tablename(cls, tablename):
+            for k, v in cls.metadata.tables.items():
+                if k == tablename:
+                    return v
 
 
     class DbUpgrade(UserDbBase):
@@ -258,7 +288,7 @@ def init():
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
-    UserDbBase.metadata.create_all(_engine)
+    _create_tables(_engine)
 
 
 def init_model(callback):
