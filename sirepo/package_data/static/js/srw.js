@@ -1893,9 +1893,9 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                             .length;
                     }
                 }
-                $scope.model.totalSamples = numParams == 0 ? 0 :
+                $scope.model.totalSamples = numParams === 0 ? 0 :
                     ($scope.model.scanType === 'random' ? $scope.model.numSamples :
-                    Math.pow($scope.model.totalSamples, numParams));
+                    Math.pow($scope.model.numSamples, numParams));
             };
 
             function updateElements() {
@@ -1909,7 +1909,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                         }
                     };
                 }
-                $scope.updateTotalSamples();
+                updateParams();
             }
 
             function updateParams() {
@@ -1921,9 +1921,8 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 }
                 $scope.rsOptParams = [...s];
                 $scope.rsOptElementFields = [];
-                elementFields = [];
                 SIREPO.APP_SCHEMA.view.rsOptElement.basic = [];
-                const m = SIREPO.APP_SCHEMA.model[$scope.modelName];
+                let m = SIREPO.APP_SCHEMA.model[$scope.modelName];
 
                 // dynamically change the schema
                 for (let p of $scope.rsOptParams) {
@@ -1932,10 +1931,10 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                     $scope.rsOptElementFields.push(m[fp][SIREPO.INFO_INDEX_LABEL]);
                     SIREPO.APP_SCHEMA.view.rsOptElement.basic.push(fp);
                 }
+                $scope.updateTotalSamples();
             }
 
             function updateElementWatchFields() {
-                elementFields = [];
                 for (let i = 0; i < $scope.model.elements.length; ++i) {
                     let e = $scope.model.elements[i];
                     for (let p of $scope.rsOptParams) {
@@ -1954,7 +1953,6 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
             appState.whenModelsLoaded($scope, function() {
                 updateElements();
-                updateParams();
                 updateElementWatchFields();
                 panelState.enableField('exportRsOpt', 'totalSamples', false);
                 appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
