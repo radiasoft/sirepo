@@ -1,0 +1,44 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "id": 1,
+                "items": [
+                    2,
+                    3,
+                    -3
+                ]
+            },
+            {
+                "id": 3,
+                "items": [
+                    4,
+                    5,
+                    -4
+                ]
+            },
+            {
+                "id": 4,
+                "items": [
+                    2,
+                    5
+                ]
+            }
+        ],
+        "elements": [
+            {
+                "_id": 2,
+                "name": "2",
+                "original_id": 2
+            },
+            {
+                "_id": 5,
+                "name": "5",
+                "original_id": 5
+            }
+        ],
+        "simulation": {
+            "visualizationBeamlineId": 1
+        }
+    }
+}

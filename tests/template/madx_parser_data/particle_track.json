@@ -613,6 +613,7 @@
         "simulation": {
             "activeBeamlineId": 125,
             "commandTemplate": "particle",
+            "computeTwissFromParticles": "0",
             "documentationUrl": "",
             "enableParticleTracking": "1",
             "folder": "/",
