@@ -152,8 +152,7 @@ def default_command():
                 s.append(
                     _Sim(a, e.name, r.report, r.binary_data_file).create_task(),
                 )
-                # Sleep a bit to not completely flood server
-                await tornado.gen.sleep(1)
+                await _pause_for_server()
         return s
 
     random.seed()
@@ -202,8 +201,7 @@ class _App(PKDict):
 
 async def _cancel_all_tasks(tasks):
     for t in tasks:
-        # Sleep a bit to not completely flood server
-        await tornado.gen.sleep(1)
+        await _pause_for_server()
         pkdlog('cancelling task={}', _task_id(t))
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
@@ -217,7 +215,7 @@ class _Client(PKDict):
     def __init__(self, email, **kwargs):
         super().__init__(
             email=email,
-            uid='<unknown>',
+            uid=None,
             _headers=PKDict({'User-Agent': 'test_http'}),
             **kwargs
         )
@@ -550,6 +548,12 @@ def _init():
         run_max_secs=(120, pkconfig.parse_seconds, 'maximum amount of time to let a simulation run'),
         validate_cert=(not pkconfig.channel_in('dev'), bool, 'whether or not to validate server tls cert')
     )
+
+
+async def _pause_for_server():
+    # Sleep a bit to give the server time to respond to requests. Without
+    # it connections were being abruptly closed
+    await tornado.gen.sleep(1)
 
 
 def _task_id(task):
