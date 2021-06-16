@@ -65,11 +65,11 @@ _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
-_SIM_REPORTS = ['geometry', 'reset', 'solver']
-_REPORTS = ['fieldLineoutReport', 'geometry', 'kickMapReport', 'reset', 'solver']
+_SIM_REPORTS = ['geometry', 'reset', 'solverAnimation']
+_REPORTS = ['fieldLineoutReport', 'geometry', 'kickMapReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
     reset='geometry',
-    solver='geometry',
+    solverAnimation='geometry',
 )
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
@@ -605,6 +605,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
 
     report = data.get('report', '')
     rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
+    pkdp('RPT {} OUT {}', report, rpt_out)
     res, v = template_common.generate_parameters_file(data)
     if rpt_out in _POST_SIM_REPORTS:
         return res
@@ -670,9 +671,10 @@ def _generate_parameters_file(data, is_parallel, for_export):
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get('paths', []))
     v.kickMap = data.models.get('kickMapReport', None)
     if 'solver' in report or for_export:
+        pkdlog('BLD FOR SOLVE')
         v.doSolve = True
         v.gId = _get_g_id(sim_id)
-        s = data.models.solver
+        s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method

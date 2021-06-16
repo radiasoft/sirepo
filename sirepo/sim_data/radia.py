@@ -21,9 +21,14 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model in (
-            'solver', 'reset'
+            'reset',
+            #'solver', 'reset'
         ):
             return 'animation'
+        if analysis_model in (
+            'solverAnimation',
+        ):
+            return 'solverAnimation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod

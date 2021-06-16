@@ -285,7 +285,7 @@
         ]
     },
     "frameIdFields": {
-        "solver": [],
+        "solverAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -486,7 +486,7 @@
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
-       "racetrack": {
+        "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
             "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
@@ -523,7 +523,7 @@
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
-        "solver":  {
+        "solverAnimation":  {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
@@ -878,7 +878,7 @@
                 "heightAxis"
             ]
         },
-        "solver": {
+        "solverAnimation": {
             "title": "Solver",
             "basic": [
                 "precision",
