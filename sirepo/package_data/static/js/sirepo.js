@@ -1426,13 +1426,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     }
 
-    function sendRequest(name, callback, forceRun) {
+    function sendRequest(name, callback, forceRun, errorCallback) {
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(resp) {
             setPanelValue(name, 'loading', false);
             if (resp.error) {
                 setPanelValue(name, 'error', resp.error);
+                if (errorCallback) {
+                    errorCallback(resp);
+                }
             }
             else {
                 setPanelValue(name, 'data', resp);
@@ -1630,7 +1633,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         requestSender.newWindow('pythonSource', args);
     };
 
-    self.requestData = function(name, callback, forceRun) {
+    self.requestData = function(name, callback, forceRun, errorCallback) {
         if (! appState.isLoaded()) {
             return;
         }
@@ -1648,10 +1651,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             simulationQueue.cancelItem(queueItems[name]);
         }
         self.addPendingRequest(name, function() {
-            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun, errorCallback);
         });
         if (! self.isHidden(name)) {
-            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun, errorCallback);
         }
     };
 
