@@ -242,19 +242,52 @@ def _unique_madx_elements(data):
             res.append(el._id)
         return res
 
-    def _reduce_to_elements(beamline_id):
-        def _do(beamline_id, res=None):
-            if res is None:
-                res = []
-            for item_id in beamline_map[beamline_id]['items']:
-                item_id = abs(item_id)
-                if item_id in beamline_map:
-                    _do(item_id, res)
-                else:
-                    res.append(item_id)
-            return res
+    def _insert_items(old_items, new_items, beamline, index):
+        beamline['items'] = old_items[:index] + \
+            new_items + old_items[index + 1:]
 
-        return _do(beamline_id)
+    def _reflect_children(id_to_reflect, index, beamline, reflecting_grandchildren=False):
+        if abs(id_to_reflect) not in beamline_map:
+            # It is an element, we're done.
+            return
+        if id_to_reflect < 0 and reflecting_grandchildren:
+            # TODO(e-carlin): This is may be wrong. The manual says "Sub-lines
+            # of reflected lines are also reflected" but, it doesn't say if a
+            # sub-line of the sub-line is itself reflected then the reflections
+            # cancel eachother out. It seems to work but could be wrong.
+            beamline['items'][index] = abs(id_to_reflect)
+            return
+        n = beamline_map[abs(id_to_reflect)]['items'].copy()
+        n.reverse()
+        _insert_items(beamline['items'], n, beamline_map[beamline.id], index)
+        for i, e in enumerate(n):
+            _reflect_children(e, index + i, b, reflecting_grandchildren=True)
+
+    def _reduce_to_elements_with_reflection(beamline):
+        """Reduce a beamline to just elements while reflecting negative sub-lines
+
+        An item that is negative means it and all of it's sublines
+        need to be reflected (reverse the order of elements).
+        Manual section on "Reflection and Repetition":
+        https://mad.web.cern.ch/mad/webguide/manual.html#Ch13.S3
+        """
+        for i, e in enumerate(beamline['items'].copy()):
+            if e >= 0:
+                if e in beamline_map:
+                    _insert_items(
+                        beamline['items'],
+                        beamline_map[e]['items'],
+                        beamline,
+                        i,
+                    )
+                    break
+                continue
+            _reflect_children(e, i, beamline)
+            break
+        else:
+            return
+        # Need to start over because items have changed out from underneath us
+        _reduce_to_elements_with_reflection(beamline_map[data.models.simulation.visualizationBeamlineId])
 
     def _remove_unused_elements(items):
         res = []
@@ -279,7 +312,7 @@ def _unique_madx_elements(data):
         b.id: b for b in data.models.beamlines
     })
     b = beamline_map[data.models.simulation.visualizationBeamlineId]
-    b['items'] = _reduce_to_elements(b.id)
+    _reduce_to_elements_with_reflection(b)
     _remove_unused_elements(b['items'])
     b['items'] = _do_unique(b['items'])
     data.models.beamlines = [b]
