@@ -120,6 +120,12 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
+        # TODO(e-carlin): Ok for this to happen here?
+        _SIM_DATA.put_sim_file(
+            _dmp_file(sim_in.models.simulation.simulationId),
+            _DMP_FILE,
+            sim_in,
+        )
     if 'kickMapReport' in sim_in.report:
         template_common.write_sequential_result(
             _kick_map_plot(sim_in.simulationId, sim_in.models.kickMapReport),
@@ -284,6 +290,7 @@ def python_source_for_model(data, model):
 
 
 def write_parameters(data, run_dir, is_parallel):
+# TODO(e-carlin): we may not have access to these files (NERSC). Should use run_dir.
     sim_id = data.simulationId
     if data.report in _SIM_REPORTS:
         # remove centrailzed geom files
@@ -298,7 +305,7 @@ def write_parameters(data, run_dir, is_parallel):
         #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, is_parallel, False),
+        _generate_parameters_file(data, is_parallel, False, run_dir=run_dir),
     )
 
 
@@ -515,8 +522,10 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _dmp_file(sim_id):
-    return _get_res_file(sim_id, _DMP_FILE)
+def _dmp_file(sim_id, run_dir=None):
+    # TODO(e-carlin): _GEOM_DIR isn't a run dir. run_dir is an abspath to a compute dir.
+    # _GEOM_DIR is just the basename of a dir.
+    return _get_res_file(sim_id, _DMP_FILE, run_dir=run_dir or _GEOM_DIR)
     #return _get_lib_file(sim_id, _DMP_FILE)
 
 
@@ -600,7 +609,7 @@ def _generate_obj_data(g_id, name):
     return radia_util.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data, is_parallel, for_export):
+def _generate_parameters_file(data, is_parallel, for_export, run_dir=None):
     import jinja2
 
     report = data.get('report', '')
@@ -617,7 +626,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
-    v.dmpOutputFile = _DMP_FILE if for_export else _dmp_file(sim_id)
+    v.dmpOutputFile = _DMP_FILE if for_export else _dmp_file(sim_id, run_dir=run_dir)
     if 'dmpImportFile' in data.models.simulation:
         v.dmpImportFile = data.models.simulation.dmpImportFile if for_export else \
             simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -673,7 +682,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
     if 'solver' in report or for_export:
         pkdlog('BLD FOR SOLVE')
         v.doSolve = True
-        v.gId = _get_g_id(sim_id)
+        v.gId = _get_g_id(sim_id, run_dir=run_dir)
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
@@ -717,12 +726,16 @@ def _geom_h5_path(view_type, field_type=None):
     return p
 
 
-def _get_g_id(sim_id):
-    with open(str(_dmp_file(sim_id)), 'rb') as f:
+def _get_g_id(sim_id, run_dir=None):
+    with open(str(_dmp_file(sim_id, run_dir=run_dir)), 'rb') as f:
         return radia_util.load_bin(f.read())
 
 
 def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
+    run_dir = pkio.py_path(run_dir)
+    p = run_dir.join(filename)
+    if p.exists():
+        return p
     return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
         .join(run_dir).join(filename)
 

@@ -86,3 +86,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 data.fieldType,
                 data.name + '.' + data.fileType))
         return res
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        # TODO(e-carlin): share filename with template
+        return [PKDict(basename='geometry.dat')]
