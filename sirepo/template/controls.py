@@ -95,6 +95,8 @@ def _delete_unused_madx_commands(data):
         by_name.twiss.sectorfile = '0'
         by_name.twiss.sectormap = '0'
         by_name.twiss.file = '1';
+    data.models.bunch.beamDefinition = 'gamma';
+    _SIM_DATA.update_beam_gamma(by_name.beam)
     data.models.commands = [
         by_name.beam,
         PKDict(
@@ -167,6 +169,7 @@ def _generate_madx(v, data):
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
     v.summaryCSVHeader = ','.join(kicker.header + header)
+    v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in kicker.kick]))
     v.correctorCount = len(kicker.kick)
     v.monitorCount = len(header) / 2
     data.models.externalLattice.report = ''
@@ -180,7 +183,6 @@ def _get_external_lattice(simulation_id):
             sirepo.simulation_db.SIMULATION_DATA_FILE,
         ),
     )
-    d.models.bunch.beamDefinition = 'pc';
     _delete_unused_madx_models(d)
     _delete_unused_madx_commands(d)
     _unique_madx_elements(d)

@@ -39,7 +39,6 @@
         "sirepoLibs": {
             "js": [
                 "controls.js",
-                "sirepo-dom.js",
                 "sirepo-lattice.js"
             ],
              "css": [
@@ -85,7 +84,7 @@
             "particle": ["Particle", "ParticleType", "electron", "The name of particles in the beam."],
             "mass": ["Mass [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
             "charge": ["Charge [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
-            "gamma": ["Gamma", "Float", 0.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles."],
+            "gamma": ["Gamma", "Float", 1.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles.", 1e-99],
             "ex": ["Horizontal Emittance [m]", "Float", 1.0],
             "ey": ["Vertical Emittance [m]", "Float", 1.0],
             "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
