@@ -534,6 +534,14 @@ class _ComputeJob(PKDict):
     async def _receive_api_admJobs(cls, req):
         return cls._get_running_pending_jobs()
 
+    @classmethod
+    async def _receive_api_admUserApprovals(cls, req):
+        # TODO(e-carlin): need to think about this read happening inside of supervisor.
+        # maybe it should happen in flask since that is where our other user db operations
+        # happen.
+        return PKDict(e=1)
+
+
     async def _receive_api_downloadDataFile(self, req):
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(

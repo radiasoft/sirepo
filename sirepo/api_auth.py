@@ -10,6 +10,7 @@ from pykern import pkcollections
 from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import auth
+from sirepo import auth_role
 from sirepo import cookie
 import sirepo.util
 
@@ -42,5 +43,10 @@ def check_api_call(func):
             auth.require_user()
     elif expect == a.REQUIRE_AUTH_BASIC:
         auth.require_auth_basic()
+    elif expect == a.REQUIRE_ADM:
+        sirepo.auth.check_user_has_role(
+            auth.logged_in_user(),
+            auth_role.ROLE_ADM,
+        )
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
