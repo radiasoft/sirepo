@@ -30,11 +30,16 @@ def assert_api_def(func):
 def check_api_call(func):
     expect = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
-    if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
+    if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER, a.REQUIRE_ADM):
         if not cookie.has_sentinel():
             raise sirepo.util.SRException('missingCookies', None)
-        if expect == a.REQUIRE_USER:
+        if expect in (a.REQUIRE_USER, a.REQUIRE_ADM):
             auth.require_user()
+            if expect == a.REQUIRE_ADM:
+                sirepo.auth.check_user_has_role(
+                    auth.logged_in_user(),
+                    auth_role.ROLE_ADM,
+                )
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
@@ -43,10 +48,5 @@ def check_api_call(func):
             auth.require_user()
     elif expect == a.REQUIRE_AUTH_BASIC:
         auth.require_auth_basic()
-    elif expect == a.REQUIRE_ADM:
-        sirepo.auth.check_user_has_role(
-            auth.logged_in_user(),
-            auth_role.ROLE_ADM,
-        )
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
