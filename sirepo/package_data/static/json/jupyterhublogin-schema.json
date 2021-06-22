@@ -7,17 +7,17 @@
         }
     },
     "appDefaults": {
-        "route": "migrateJupyter"
+        "route": "migrateJupyterHub"
     },
     "localRoutes": {
-        "migrateJupyter": {
+        "migrateJupyterHub": {
             "route": "/migrate-jupyter",
             "config": {
-                "controller": "JupyterhubMigrateController as jupyterhubmigrate",
-                "templateUrl": "/static/html/jupyterhub-migrate.html"
+                "controller": "JupyterHubMigrateController as jupyterHubMigrate",
+                "templateUrl": "/static/html/jupyter-migrate.html"
             }
         },
-        "jupyterNameConflict": {
+        "jupyterHubNameConflict": {
             "route": "/jupyter-name-conflict",
             "config": {
                 "controller": "NameConflictController as nameConflict",

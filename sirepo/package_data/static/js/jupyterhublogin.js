@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('JupyterhubMigrateController', function(authState, jupyterhubloginService, requestSender, $scope) {
+SIREPO.app.controller('JupyterHubMigrateController', function(authState, jupyterHubLoginService, requestSender, $scope) {
     const self = this;
     self.isLoading = true;
     requestSender.sendRequest(
@@ -11,15 +11,15 @@ SIREPO.app.controller('JupyterhubMigrateController', function(authState, jupyter
         () => {self.isLoading = false;}
     );
     self.migrate = function(doMigration) {
-        jupyterhubloginService.doMigration(doMigration);
+        jupyterHubLoginService.doMigration(doMigration);
     };
 });
 
-SIREPO.app.controller('NameConflictController', function(requestSender, jupyterhubloginService, $route, $scope) {
+SIREPO.app.controller('NameConflictController', function(requestSender, jupyterHubLoginService, $route, $scope) {
     const self = this;
 
     self.noMigration = function() {
-        jupyterhubloginService.doMigration(false);
+        jupyterHubLoginService.doMigration(false);
     };
 
     self.logout = function() {
@@ -30,7 +30,7 @@ SIREPO.app.controller('NameConflictController', function(requestSender, jupyterh
     };
 });
 
-SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
+SIREPO.app.directive('appHeader', function(jupyterHubLoginService) {
     return {
 	restrict: 'A',
 	scope: {
@@ -78,13 +78,13 @@ SIREPO.app.directive('userApprovals', function(requestSender, appState) {
     };
 });
 
-SIREPO.app.factory('jupyterhubloginService', function(appState, requestSender) {
+SIREPO.app.factory('jupyterHubLoginService', function(appState, requestSender) {
     const self = {};
     appState.setAppService(self);
 
     self.doMigration = function(doMigration) {
         requestSender.sendRequest(
-            'migrateJupyterhub',
+            'migrateJupyterHub',
             null,
             {doMigration: doMigration}
         );

@@ -43,7 +43,7 @@ def api_jupyterHubUserApprovals():
 
 
 @sirepo.api_perm.require_user
-def api_migrateJupyterhub():
+def api_migrateJupyterHub():
     if not cfg.rs_jupyter_migrate:
         sirepo.util.raise_forbidden('migrate not enabled')
     # TODO(e-carlin): check roles
