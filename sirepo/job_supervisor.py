@@ -551,10 +551,6 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
-    @classmethod
-    async def _receive_api_ownJobs(cls, req):
-        return cls._get_running_pending_jobs(uid=req.content.uid)
-
     async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops
 

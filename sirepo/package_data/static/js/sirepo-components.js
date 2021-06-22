@@ -797,7 +797,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
                 '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
             // TODO(e-carlin): make an admin header and then jobs and users off of it
                 '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admUserApprovals\') }}">Users</a></li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'userApprovals\') }}">Users</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -4209,7 +4209,7 @@ SIREPO.app.directive('userApprovals', function(requestSender, appState) {
 
             $scope.getApprovals = function () {
                 requestSender.sendRequest(
-                    'admUserApprovals',
+                    'userApprovals',
                     (data) => {
                         srdbg(`ddddddddddddd `, data);
                     },

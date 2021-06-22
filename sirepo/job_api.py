@@ -44,15 +44,6 @@ def api_admJobs():
     )
 
 
-@api_perm.require_adm
-def api_admUserApprovals():
-    d = sirepo.http_request.parse_post()
-    pkdp('ddddddddddddddddddd={}', )
-    return _request(
-        _request_content=PKDict(**d),
-    )
-
-
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
 #TODO(robnagler) validate suffix and frame
