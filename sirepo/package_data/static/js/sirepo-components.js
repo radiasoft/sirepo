@@ -797,7 +797,9 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
                 '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
             // TODO(e-carlin): make an admin header and then jobs and users off of it
                 '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'userApprovals\') }}">Users</a></li>',
+            // TODO(e-carlin): need to also check if jupyter is enabled
+            // TODO(e-carlin): need to redirect to jupyter app then get local url
+                // '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'userApprovals\') }}">Users</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -4189,41 +4191,6 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
         },
     };
 });
-SIREPO.app.directive('userApprovals', function(requestSender, appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            wantAdm: '<',
-        },
-        template: [
-            '<div>',
-              '<table class="table">',
-            'xxxxxxxxxxxxxxxxxxxxxxxx',
-              '</table>',
-            '</div>',
-        ].join(''),
-        controller: function($scope, appState) {
-            function dataLoaded(data, status) {
-                $scope.data = data;
-            }
-
-            $scope.getApprovals = function () {
-                requestSender.sendRequest(
-                    'userApprovals',
-                    (data) => {
-                        srdbg(`ddddddddddddd `, data);
-                    },
-                    {
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
-            };
-
-            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
-            $scope.getApprovals();
-        },
-    };
-});
-
 SIREPO.app.service('utilities', function($window, $interval) {
 
     var self = this;

@@ -43,6 +43,41 @@ SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
     };
 });
 
+SIREPO.app.directive('userApprovals', function(requestSender, appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            wantAdm: '<',
+        },
+        template: [
+            '<div>',
+              '<table class="table">',
+            'xxxxxxxxxxxxx',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, appState) {
+            function dataLoaded(data, status) {
+                $scope.data = data;
+            }
+
+            $scope.getApprovals = function () {
+                requestSender.sendRequest(
+                    'jupyterHubUserApprovals',
+                    (data) => {
+                        srdbg(`ddddddddddddd `, data);
+                    },
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    });
+            };
+
+            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
+            $scope.getApprovals();
+        },
+    };
+});
+
 SIREPO.app.factory('jupyterhubloginService', function(appState, requestSender) {
     const self = {};
     appState.setAppService(self);

@@ -33,10 +33,20 @@ _HUB_USER_SEP = '-'
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 
 
+@sirepo.api_perm.require_adm
+def api_jupyterHubUserApprovals():
+    d = sirepo.http_request.parse_post()
+    pkdp('ddddddddddddddddddd={}', )
+    return _request(
+        _request_content=PKDict(**d),
+    )
+
+
 @sirepo.api_perm.require_user
 def api_migrateJupyterhub():
     if not cfg.rs_jupyter_migrate:
         sirepo.util.raise_forbidden('migrate not enabled')
+    # TODO(e-carlin): check roles
     d = sirepo.http_request.parse_json()
     if not d.doMigration:
         create_user()
@@ -51,6 +61,8 @@ def api_redirectJupyterHub():
     u = unchecked_jupyterhub_user_name()
     if u:
         return sirepo.http_reply.gen_redirect('jupyterHub')
+    # TODO(e-carlin): check roles? We don't really have to but
+    # maybe it would be nice to not have jupyter users that don't have the role
     if not cfg.rs_jupyter_migrate:
         if not u:
             create_user()

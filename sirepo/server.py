@@ -640,15 +640,6 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-@api_perm.require_adm
-def api_userApprovals():
-    d = sirepo.http_request.parse_post()
-    pkdp('ddddddddddddddddddd={}', )
-    return _request(
-        _request_content=PKDict(**d),
-    )
-
-
 def init(uwsgi=None, use_reloader=False, is_server=False):
     """Initialize globals and populate simulation dir"""
     global _app

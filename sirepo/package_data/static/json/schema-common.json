@@ -132,6 +132,7 @@
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",
+        "jupyterHubUserApprovals": "/jupyterhub-user-approvals",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "migrateJupyterhub": "/migrate-jupyterhub",
@@ -156,8 +157,7 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
-        "userApprovals": "/user-approvals"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "appDefaults": {
@@ -405,12 +405,6 @@
             },
             "source": {
                 "route": "/source/:simulationId"
-            },
-            "userApprovals": {
-                "route": "/user-approvals",
-                "config": {
-                  "templateUrl": "/static/html/user-approvals.html"
-                }
             }
         },
         "model": {

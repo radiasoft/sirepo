@@ -11,6 +11,12 @@ import sirepo.feature_config
 ROLE_ADM = 'adm'
 ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
 ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
+_SEP = '_'
+_SIM_TYPE_ROLE_PREFIX = 'sim' + _SEP + 'type' + _SEP
+
+STATE_PENDING = 'pending'
+STATE_DENIED = 'denied'
+
 
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 
@@ -31,5 +37,8 @@ def get_all():
     ]
 
 
-def for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
+def for_sim_type(sim_type, state=''):
+    s = state
+    if s:
+        s = _SEP + s
+    return _SIM_TYPE_ROLE_PREFIX + sim_type + s

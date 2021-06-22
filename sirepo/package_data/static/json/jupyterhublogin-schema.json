@@ -23,6 +23,12 @@
                 "controller": "NameConflictController as nameConflict",
                 "templateUrl": "/static/html/jupyter-name-conflict.html"
             }
+        },
+        "userApprovals": {
+            "route": "/jupyter-user-approvals",
+            "config": {
+                "templateUrl": "/static/html/jupyter-user-approvals.html"
+            }
         }
     }
 }
