@@ -51,6 +51,7 @@ def get_application_data(data, **kwargs):
             res.append(PKDict(
                 name=m.simulation.name,
                 simulationId=m.simulation.simulationId,
+                invalid=not (m.beamlines and _has_kickers(m))
             ))
         return PKDict(simList=res)
     elif data.method == 'get_external_lattice':
@@ -183,6 +184,8 @@ def _get_external_lattice(simulation_id):
             sirepo.simulation_db.SIMULATION_DATA_FILE,
         ),
     )
+    if not d.models.beamlines:
+        return PKDict()
     _delete_unused_madx_models(d)
     _delete_unused_madx_commands(d)
     _unique_madx_elements(d)
@@ -192,6 +195,18 @@ def _get_external_lattice(simulation_id):
         externalLattice=d,
         optimizerSettings=_SIM_DATA.default_optimizer_settings(d.models),
     )
+
+
+def _has_kickers(model):
+    if not model.elements or not model.beamlines:
+        return False
+    k_ids = [e._id for e in model.elements if 'KICKER' in e.type]
+    if not k_ids:
+        return False
+    for b in model.beamlines:
+        if any([item in k_ids for item in b['items']]):
+            return True
+    return False
 
 
 def _read_summary_line(run_dir, line_count=None):

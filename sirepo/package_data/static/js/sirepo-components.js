@@ -4154,7 +4154,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
         },
         template: [
             '<div style="white-space: nowrap">',
-              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
+              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name disable when item.invalid for item in simList"></select>',
               ' ',
               '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
             '</div>',
