@@ -41,7 +41,7 @@ def api_jupyterHubUserApprovals():
         role=sirepo.auth_role.for_sim_type(
             'jupyterhublogin',
             # TODO(e-carlin): add back in
-            # state=sirepo.auth_role.STATE_PENDING,
+            # state=sirepo.auth_role.STATE.pending,
         ),
     )
     return PKDict(users=[
@@ -68,6 +68,7 @@ def api_migrateJupyterHub():
 def api_redirectJupyterHub():
     u = unchecked_jupyterhub_user_name()
     if u:
+        pkdp('uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu')
         return sirepo.http_reply.gen_redirect('jupyterHub')
     # TODO(e-carlin): check roles? We don't really have to but
     # maybe it would be nice to not have jupyter users that don't have the role

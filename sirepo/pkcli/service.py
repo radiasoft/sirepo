@@ -98,6 +98,7 @@ def http():
             _kill()
 
 def jupyterhub():
+    import shutil
     import sirepo.template
 
     assert pkconfig.channel_in('dev')
@@ -106,6 +107,9 @@ def jupyterhub():
         import jupyterhub
     except ImportError:
         raise AssertionError('jupyterhub not installed. run `pip install jupyterhub==1.1.0 notebook`')
+    p = 'configurable-http-proxy'
+    if not shutil.which(p):
+        raise AssertionError(f'{p} not installed. run `npm i -g {p}`')
     import sirepo.sim_api.jupyterhublogin
     import sirepo.server
 

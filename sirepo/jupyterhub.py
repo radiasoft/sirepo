@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdp
 import contextlib
 import jupyterhub.auth
 import sirepo.auth
+import sirepo.auth_role
 import sirepo.cookie
 import sirepo.server
 import sirepo.util
@@ -66,7 +67,19 @@ class Authenticator(jupyterhub.auth.Authenticator):
             return True
 
     def _check_permissions(self):
+        import sirepo.auth_db
+        # Order of these checks is important
         sirepo.auth.require_user()
+
+        # TODO(e-carlin): check if pending or denied as well
+        sirepo.auth_db.UserRole.has_role(
+            sirepo.auth.logged_in_user(),
+            sirepo.auth_role.for_sim_type(
+                'jupyterhublogin' ,
+                state=sirepo.auth_role.STATE.pending,
+            ),
+        )
+        sirepo.auth_db.has_role()
         sirepo.auth.require_sim_type('jupyterhublogin')
 
 
