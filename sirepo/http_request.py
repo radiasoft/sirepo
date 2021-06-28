@@ -128,6 +128,7 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
+    # TODO(e-carlin): this will fail because the require_sim_type check is wrong (doesn't account for different states)
     sirepo.auth.require_sim_type(res.type)
     return res
 

@@ -37,16 +37,17 @@ _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 @sirepo.api_perm.require_adm
 def api_jupyterHubUserApprovals():
     d = sirepo.http_request.parse_post()
-    r = sirepo.auth_role.for_sim_type(
-        'jupyterhublogin',
-        state=sirepo.auth_role.STATE_PENDING,
+    u = sirepo.auth_db.UserRole.search_all_by(
+        role=sirepo.auth_role.for_sim_type(
+            'jupyterhublogin',
+            # TODO(e-carlin): add back in
+            # state=sirepo.auth_role.STATE_PENDING,
+        ),
     )
-    # TODO(e-carlin): get all uid's will role r and return to GUI (probably get their email too)
-    if sirepo.auth_db
-    pkdp('rrrrrrrrrrrrr={}', r)
-    return _request(
-        _request_content=PKDict(**d),
-    )
+    return PKDict(users=[
+        PKDict(role=x.role, uid=x.uid) for x in u
+        if sirepo.auth_role.STATE.pending in x.role
+    ])
 
 
 @sirepo.api_perm.require_user

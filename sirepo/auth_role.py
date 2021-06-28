@@ -6,6 +6,7 @@ u"""User roles
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
+from pykern.pkcollections import PKDict
 import sirepo.feature_config
 
 ROLE_ADM = 'adm'
@@ -14,12 +15,8 @@ ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 _SEP = '_'
 _SIM_TYPE_ROLE_PREFIX = 'sim' + _SEP + 'type' + _SEP
 
-STATE_PENDING = 'pending'
-STATE_DENIED = 'denied'
-
-
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
-
+STATE = PKDict(pending='pending')
 
 def for_new_user(is_guest):
     if is_guest and pkconfig.channel_in('dev'):
@@ -34,7 +31,7 @@ def get_all():
         ROLE_ADM,
         ROLE_PAYMENT_PLAN_ENTERPRISE,
         ROLE_PAYMENT_PLAN_PREMIUM,
-    ]
+    ] + 'sim_type_jupyterhublogin_pending' # TODO(e-carlin): deal with states for sim type roles
 
 
 def for_sim_type(sim_type, state=''):
