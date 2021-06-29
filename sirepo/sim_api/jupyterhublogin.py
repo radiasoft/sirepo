@@ -81,11 +81,13 @@ def api_redirectJupyterHub():
 @sirepo.api_perm.require_user
 def api_submitReasonForJupyterHubUse():
     r = sirepo.http_request.parse_json()
+    pkdp('rrrrrrrrrrrrrrrrrrrr={}', r)
+    assert r.justification, f'must provide justification={r.justification}'
     with sirepo.util.THREAD_LOCK:
         s = sirepo.auth.state_of_role_for_sim_type('jupyterhublogin')
         # TODO(e-carlin): better error letting user know they've already submitted a reason or been granted/denied
         assert s is None, \
-            f'state of role expecting=None actual={s}'
+            f'state of role={s} expecting=None'
         sirepo.auth_db.UserRole(
             uid=sirepo.auth.logged_in_user(),
             role=sirepo.auth_role.for_sim_type(

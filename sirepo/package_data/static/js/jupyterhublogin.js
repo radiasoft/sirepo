@@ -30,17 +30,19 @@ SIREPO.app.controller('NameConflictController', function(requestSender, jupyterH
     };
 });
 
-SIREPO.app.controller('PromptForJustificationController', function(requestSender) {
+SIREPO.app.controller('PromptForJustificationController', function(requestSender, $interval) {
     const self = this;
-    srdbg(`xxxxxxxxxxxxxxxxxxx`);
+    self.justification = null;
 
-    // self.submit = function() {
-    //     jupyterHubLoginService.doMigration(false);
-    //     requestSender.sendRequest(
-    //         'redirectJupyterHub',
-    //         () => {self.isLoading = false;}
-    //     );
-    // };
+    self.submit = function() {
+        requestSender.sendRequest(
+            'submitReasonForJupyterHubUse',
+            () => {
+                srdbg(`ddddddddddddddddddddddddddddd`);
+            },
+            {justification: self.justification}
+        );
+    };
 });
 
 SIREPO.app.directive('appHeader', function(jupyterHubLoginService) {

@@ -5,9 +5,11 @@
       <form>
         <div class="form-group">
           <label>blah blah blah</label>
-          <textarea class="form-control" rows="3"></textarea>
+          <textarea class="form-control" rows="3" data-ng-model="promptForJustification.justification"></textarea>
         </div>
-        <button data-ng-click="promptForJustification.submit()" type="submit" class="btn btn-large btn-primary">Submit</button>
+        <div data-disable-after-click="">
+          <button data-ng-click="promptForJustification.submit()" type="submit" class="btn btn-large btn-primary" data-ng-disabled="! promptForJustification.justification">Submit</button>
+        </div>
       </form>
     </div>
   </div>
