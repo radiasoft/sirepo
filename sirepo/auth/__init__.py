@@ -352,6 +352,19 @@ def require_sim_type(sim_type):
         sirepo.auth_role.for_sim_type(sim_type),
     )
 
+# TODO(e-carlin): sort
+def role_for_sim_type_state(sim_type):
+    c = sirepo.feature_config.auth_controlled_sim_types()
+    assert sim_type in c, \
+        f'sim_type={sim_type} not an auth_controlled_sim_types={c}'
+    r = auth_db.UserRole.role_like(logged_in_user(), sirepo.auth_role.for_sim_type(sim_type))
+    assert len(r) <=1, \
+        f'expecting at most one role for sim_type={sim_type} found={[PKDict(u=x.uid, r=x.role) for x in r]}'
+    if not r:
+        return None
+    # TODO(e-carlin): we need to write a migration that adds _granted to all sim_types in role table
+    return sirepo.auth_role.STATE[r[0].role.split('_')[-1]]
+
 
 def require_user():
     e = None

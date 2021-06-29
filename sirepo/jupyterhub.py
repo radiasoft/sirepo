@@ -70,16 +70,13 @@ class Authenticator(jupyterhub.auth.Authenticator):
         import sirepo.auth_db
         # Order of these checks is important
         sirepo.auth.require_user()
-
-        # TODO(e-carlin): check if pending or denied as well
-        sirepo.auth_db.UserRole.has_role(
-            sirepo.auth.logged_in_user(),
-            sirepo.auth_role.for_sim_type(
-                'jupyterhublogin' ,
-                state=sirepo.auth_role.STATE.pending,
-            ),
-        )
-        sirepo.auth_db.has_role()
+        # TODO(e-carlin): cleanup these checks, need better abstraction over states
+        s = sirepo.auth.role_for_sim_type_state('jupyterhublogin')
+        pkdp('sssssssssssssssssssssss={}', s)
+        assert 0
+        # if s is None:
+        #     go to page to ask from protmp
+        # TODO(e-carlin): handle other states
         sirepo.auth.require_sim_type('jupyterhublogin')
 
 

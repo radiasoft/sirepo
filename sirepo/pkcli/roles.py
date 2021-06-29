@@ -80,8 +80,9 @@ def _parse_args(uid_or_email, roles):
             u = sirepo.auth.unchecked_get_user(uid_or_email)
         if not u:
             pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
-        if roles:
-            a = sirepo.auth_role.get_all()
-            assert set(roles).issubset(a), \
-                'roles={} not a subset of all_roles={}'.format(roles, a)
+        # TODO(e-carlin): add back in - need to deal with states
+        # if roles:
+        #     a = sirepo.auth_role.get_all()
+        #     assert set(roles).issubset(a), \
+        #         'roles={} not a subset of all_roles={}'.format(roles, a)
         yield u

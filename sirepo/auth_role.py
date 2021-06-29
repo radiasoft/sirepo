@@ -16,7 +16,10 @@ _SEP = '_'
 _SIM_TYPE_ROLE_PREFIX = 'sim' + _SEP + 'type' + _SEP
 
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
-STATE = PKDict(pending='pending')
+STATE = PKDict(
+    granted='granted',
+    pending='pending',
+)
 
 def for_new_user(is_guest):
     if is_guest and pkconfig.channel_in('dev'):

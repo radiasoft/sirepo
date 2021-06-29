@@ -282,6 +282,13 @@ def init():
                 return bool(cls.search_by(uid=uid, role=role))
 
         @classmethod
+        def role_like(cls, uid, search_term):
+            with sirepo.util.THREAD_LOCK:
+                return cls._session().query(cls).filter(
+                    cls.role.contains(search_term),
+                ).all()
+
+        @classmethod
         def uids_of_paid_users(cls):
             return [
                 x[0] for x in cls._session().query(cls).with_entities(cls.uid).filter(
