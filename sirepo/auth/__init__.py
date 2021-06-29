@@ -353,7 +353,7 @@ def require_sim_type(sim_type):
     )
 
 # TODO(e-carlin): sort
-def role_for_sim_type_state(sim_type):
+def state_of_role_for_sim_type(sim_type):
     c = sirepo.feature_config.auth_controlled_sim_types()
     assert sim_type in c, \
         f'sim_type={sim_type} not an auth_controlled_sim_types={c}'

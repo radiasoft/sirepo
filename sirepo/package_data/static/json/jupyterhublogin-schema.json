@@ -24,6 +24,13 @@
                 "templateUrl": "/static/html/jupyter-name-conflict.html"
             }
         },
+        "promptForJupyterHubJustification": {
+            "route": "/jupyter-prompt-for-justification",
+            "config": {
+                "controller": "PromptForJustificationController as promptForJustification",
+                "templateUrl": "/static/html/jupyter-prompt-for-justification.html"
+            }
+        },
         "userApprovals": {
             "route": "/jupyter-user-approvals",
             "config": {

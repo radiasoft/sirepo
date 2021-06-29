@@ -508,13 +508,20 @@ def api_listSimulations():
 # visitor rather than user because error pages are rendered by the application
 @api_perm.allow_visitor
 def api_simulationSchema():
-    return http_reply.gen_json(
-        simulation_db.get_schema(
-            http_request.parse_params(
+    t = http_request.parse_params(
                 type=flask.request.form['simulationType'],
-            ).type,
-        ),
-    )
+                # TODO(e-carlin): does this work? Did we just make flash insecure?
+                # the schema is publicly available (in GitHub) so I don't think this
+                # is a problem. But, it could mean a user can access a simulation page
+                # when they shouldn't. api_listSimulations is still protected so maybe it
+                # is ok but need to test on flash going to the simulations list page
+                # as well as going to a simulation page whether or not the user is
+                # still forbidden
+        # TODO(e-carlin): this isn't good. this is a major entrypoint and we need to validate the sim type
+                require_sim_type=False,
+            ).type
+    pkdp('tttttttttttttttttt={}', t)
+    return http_reply.gen_json(simulation_db.get_schema(t))
 
 
 @api_perm.allow_visitor

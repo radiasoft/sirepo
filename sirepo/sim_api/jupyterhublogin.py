@@ -78,6 +78,25 @@ def api_redirectJupyterHub():
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.http_reply.gen_json_ok()
 
+@sirepo.api_perm.require_user
+def api_submitReasonForJupyterHubUse():
+    r = sirepo.http_request.parse_json()
+    with sirepo.util.THREAD_LOCK:
+        s = sirepo.auth.state_of_role_for_sim_type('jupyterhublogin')
+        # TODO(e-carlin): better error letting user know they've already submitted a reason or been granted/denied
+        assert s is None, \
+            f'state of role expecting=None actual={s}'
+        sirepo.auth_db.UserRole(
+            uid=sirepo.auth.logged_in_user(),
+            role=sirepo.auth_role.for_sim_type(
+                'jupyterhublogin',
+                state=sirepo.auth_role.STATE.pending,
+            ),
+        ).save()
+        # TODO(e-carlin): send email to sirepo support staff with reason (r)
+        pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+        return sirepo.http_reply.gen_json_ok()
+
 
 def create_user(github_handle=None, check_dir=False):
     """Create a Jupyter user and possibly migrate their data from old jupyter.

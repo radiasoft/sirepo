@@ -14,6 +14,7 @@ import sirepo.auth
 import sirepo.auth_role
 import sirepo.cookie
 import sirepo.server
+import sirepo.uri
 import sirepo.util
 import tornado.web
 import werkzeug.exceptions
@@ -43,9 +44,20 @@ class Authenticator(jupyterhub.auth.Authenticator):
                 return None
             except sirepo.util.SRException as e:
                 r = e.sr_args.get('routeName')
-                if r not in ('completeRegistration', 'login', 'loginFail'):
+                pkdp('eeeeeeeeeeee={}', e)
+                if r not in (
+                        'completeRegistration',
+                        'login',
+                        'loginFail',
+                        'promptForJupyterHubJustification',
+                ):
                     raise
-                handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}')
+                # TODO(e-carlin): go to prompt page, logout, it doesn't work (goes to wrong url)
+                pkdp('rrrrrrrrrrrrrrrrrrrr={}', sirepo.uri.local_route('jupyterhublogin', route_name=r))
+                handler.redirect(
+                    sirepo.uri.local_route('jupyterhublogin', route_name=r),
+                    # f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}'
+                )
                 raise tornado.web.Finish()
             u = sirepo.sim_api.jupyterhublogin.unchecked_jupyterhub_user_name(
                 have_simulation_db=False,
@@ -71,12 +83,10 @@ class Authenticator(jupyterhub.auth.Authenticator):
         # Order of these checks is important
         sirepo.auth.require_user()
         # TODO(e-carlin): cleanup these checks, need better abstraction over states
-        s = sirepo.auth.role_for_sim_type_state('jupyterhublogin')
-        pkdp('sssssssssssssssssssssss={}', s)
-        assert 0
-        # if s is None:
-        #     go to page to ask from protmp
-        # TODO(e-carlin): handle other states
+        s = sirepo.auth.state_of_role_for_sim_type('jupyterhublogin')
+        if s is None:
+            raise sirepo.util.SRException('promptForJupyterHubJustification', PKDict())
+        assert 0, '# TODO(e-carlin): handle other states'
         sirepo.auth.require_sim_type('jupyterhublogin')
 
 

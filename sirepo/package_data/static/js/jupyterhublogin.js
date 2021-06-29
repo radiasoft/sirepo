@@ -30,6 +30,19 @@ SIREPO.app.controller('NameConflictController', function(requestSender, jupyterH
     };
 });
 
+SIREPO.app.controller('PromptForJustificationController', function(requestSender) {
+    const self = this;
+    srdbg(`xxxxxxxxxxxxxxxxxxx`);
+
+    // self.submit = function() {
+    //     jupyterHubLoginService.doMigration(false);
+    //     requestSender.sendRequest(
+    //         'redirectJupyterHub',
+    //         () => {self.isLoading = false;}
+    //     );
+    // };
+});
+
 SIREPO.app.directive('appHeader', function(jupyterHubLoginService) {
     return {
 	restrict: 'A',

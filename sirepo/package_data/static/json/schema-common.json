@@ -156,6 +156,7 @@
         "srwLight": "/light",
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
+        "submitReasonForJupyterHubUse": "/submit-reason-for-jupyter-use",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
