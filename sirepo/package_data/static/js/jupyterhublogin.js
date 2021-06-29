@@ -37,8 +37,11 @@ SIREPO.app.controller('PromptForJustificationController', function(requestSender
     self.submit = function() {
         requestSender.sendRequest(
             'submitReasonForJupyterHubUse',
-            () => {
-                srdbg(`ddddddddddddddddddddddddddddd`);
+            (data) => {
+                if (data.state !== 'ok') {
+                    throw new Error('response from server not ok');
+                }
+                $('#sr-jupyterhub-justification-done').modal('show');
             },
             {justification: self.justification}
         );
