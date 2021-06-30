@@ -61,7 +61,7 @@ SIREPO.app.directive('appHeader', function(jupyterHubLoginService) {
     };
 });
 
-SIREPO.app.directive('userApprovals', function(requestSender, appState) {
+SIREPO.app.directive('userApprovalsList', function(requestSender, appState) {
     return {
         restrict: 'A',
         scope: {
@@ -69,27 +69,43 @@ SIREPO.app.directive('userApprovals', function(requestSender, appState) {
         },
         template: [
             '<div>',
-              '<table class="table">',
-            'xxxxxxxxxxxxx',
-              '</table>',
+                '<table class="table">',
+            '<thead>',
+            '<tr>',
+            '<th data-ng-repeat="h in headers">{{ h }}</th>',
+            '<th></th>',
+            '<th></th>',
+            '</tr>',
+            '</thead>',
+            '<tbody>',
+            '<tr data-ng-repeat="user in users">',
+            '<td data-ng-repeat="field in user">{{ field }}</td>',
+            '<td>approve</td>',
+            '<td>deny</td>',
+            '</tr>',
+            '</tbody>',
+                '</table>',
             '</div>',
         ].join(''),
         controller: function($scope, appState) {
-            function dataLoaded(data, status) {
-                $scope.data = data;
-            }
+            $scope.headers = null;
+            $scope.users = null;
 
             $scope.getApprovals = function () {
                 requestSender.sendRequest(
                     'jupyterHubUserApprovals',
                     (data) => {
-                        srdbg(`ddddddddddddd `, data);
+                        $scope.headers = data.headers;
+                        $scope.users = data.users.map((u) => {
+                            return data.headers.map((h) => u[h])
+                        })
                     },
                     {
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
 
+            // TODO(e-carlin): why clear?
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getApprovals();
         },
