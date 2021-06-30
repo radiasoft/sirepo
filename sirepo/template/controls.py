@@ -51,6 +51,7 @@ def get_application_data(data, **kwargs):
             res.append(PKDict(
                 name=m.simulation.name,
                 simulationId=m.simulation.simulationId,
+                invalidMsg=None if _has_kickers(m) else 'No beamlines' if not _has_beamline(m) else 'No kickers'
             ))
         return PKDict(simList=res)
     elif data.method == 'get_external_lattice':
@@ -192,6 +193,22 @@ def _get_external_lattice(simulation_id):
         externalLattice=d,
         optimizerSettings=_SIM_DATA.default_optimizer_settings(d.models),
     )
+
+
+def _has_beamline(model):
+    return model.elements and model.beamlines
+
+
+def _has_kickers(model):
+    if not _has_beamline(model):
+        return False
+    k_ids = [e._id for e in model.elements if 'KICKER' in e.type]
+    if not k_ids:
+        return False
+    for b in model.beamlines:
+        if any([item in k_ids for item in b['items']]):
+            return True
+    return False
 
 
 def _read_summary_line(run_dir, line_count=None):

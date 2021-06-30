@@ -4154,13 +4154,19 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
         },
         template: [
             '<div style="white-space: nowrap">',
-              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
+              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>',
               ' ',
               '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.simList = null;
+
+            // special processing of the item's name if necessary
+            $scope.itemName = function(item) {
+                return item.invalidMsg ? `${item.name} <${item.invalidMsg}>` : item.name;
+            };
+
             $scope.openSimulation = function() {
                 if ($scope.model && $scope.model[$scope.field]) {
                     //TODO(e-carlin): this depends on the visualization route
