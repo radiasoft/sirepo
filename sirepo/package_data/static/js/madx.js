@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation', 'twissFromParticlesAnimation'];
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot"></div>',
     ].join('');
@@ -219,6 +219,18 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 });
                 return;
             }
+            if (info.modelKey == 'twissFromParticlesAnimation') {
+                self.outputFiles.push({
+                    info: info,
+                    reportType: 'parameterWithLattice',
+                    viewName: 'twissFromParticlesAnimation',
+                    panelTitle: 'Twiss From Particles',
+                    modelAccess: {
+                        modelKey: 'twissFromParticlesAnimation',
+                    },
+                });
+                return;
+            }
             var outputFile = {
                 info: info,
                 reportType: info.isHistogram ? 'heatmap' : 'parameterWithLattice',
@@ -246,12 +258,12 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                     y3: 'None',
                 };
                 // better twiss defaults
-                if (info.filename.indexOf('twiss') >= 0) {
+                if (info.filename.indexOf('twiss') >= 0 || info.modelKey.indexOf('twiss') >= 0) {
                     $.extend(appState.models[modelKey], {
                         includeLattice: "1",
-                        y1: "betx",
-                        y2: "bety",
-                        y3: "dx"
+                        x: 's',
+                        y1: 'betx',
+                        y2: 'bety',
                     });
                 }
             }
@@ -617,8 +629,12 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     ];
 });
 
-SIREPO.viewLogic('simulationSettingsView', function(panelState, madxService, $scope) {
+SIREPO.viewLogic('simulationSettingsView', function(commandService, panelState, madxService, $scope) {
     $scope.whenSelected = function() {
         panelState.showField('bunch', 'numberOfParticles', madxService.isParticleSimulation());
+        panelState.showField(
+            'simulation',
+            'computeTwissFromParticles',
+            madxService.isParticleSimulation());
     };
 });

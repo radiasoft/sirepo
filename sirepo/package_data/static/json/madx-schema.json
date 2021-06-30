@@ -228,7 +228,8 @@
         "simulation": {
             "enableParticleTracking": ["Particle Tracking", "Boolean", "1"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
-            "commandTemplate": ["Template", "CommandTemplate", "particle"]
+            "commandTemplate": ["Template", "CommandTemplate", "particle"],
+            "computeTwissFromParticles": ["Compute Twiss From Particles", "Boolean", "0"]
         },
         "beamlineReport": {
             "notes": ["Notes", "Text", ""]
@@ -662,6 +663,14 @@
         },
         "twissEllipseReport": {
             "dim": ["Dimension", "SpaceCoordinate", "x"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "twissFromParticlesAnimation": {
+            "x": ["Horizontal Value to Plot", "ValueList", ""],
+            "y1": ["Vertical Value to Plot", "ValueList", ""],
+            "y2": ["Vertical Value to Plot", "ValueList", ""],
+            "y3": ["Vertical Value to Plot", "ValueList", ""],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "twissReport": {
@@ -1817,7 +1826,8 @@
             "title": "Simulation Settings",
             "basic": [
                 "simulation.visualizationBeamlineId",
-                "bunch.numberOfParticles"
+                "bunch.numberOfParticles",
+                "simulation.computeTwissFromParticles"
             ],
             "advanced": []
         },
@@ -1828,6 +1838,23 @@
         "twissEllipseReport": {
             "title": "Twiss Ellipse",
             "advanced": ["dim"]
+        },
+        "twissFromParticlesAnimation": {
+            "title": "Twiss From Particles",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1",
+                        "y2",
+                        "y3"
+                    ]]
+                ],
+                "includeLattice",
+                "notes"
+            ]
         },
         "twissAnimation": {
             "model": "elementAnimation",
