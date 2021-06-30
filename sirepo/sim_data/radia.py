@@ -5,6 +5,7 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
@@ -32,6 +33,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+
+        def _find_obj_by_name(obj_arr, obj_name):
+            return next((x for x in obj_arr if x.name == obj_name), None)
+
         dm = data.models
         cls._init_models(
             dm,
@@ -45,6 +50,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.exampleName = dm.simulation.name
             if dm.simulation.name == 'Wiggler':
                 dm.geometry.isSolvable = '0'
+        if dm.simulation.magnetType == 'undulator':
+            if not dm.hybridUndulator.get('magnetBaseObjectId'):
+                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Magnet Block').id
+            if not dm.hybridUndulator.get('poleBaseObjectId'):
+                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Pole').id
+            if not dm.simulation.get('heightAxis'):
+                dm.simulation.heightAxis = 'z'
+        for o in dm.geometry.objects:
+            if not o.get('bevels'):
+                o.bevels = []
         sch = cls.schema()
         for m in [m for m in dm if m in sch.model]:
             s_m = sch.model[m]

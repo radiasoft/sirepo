@@ -177,7 +177,8 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
     $sanitizeProvider.enableSvg(true);
-    $sanitizeProvider.addValidAttrs(['id', 'style']);
+    $sanitizeProvider.addValidAttrs(['id', 'label', 'style']);
+    $sanitizeProvider.addValidElements(['select', 'option']);
     SIREPO.appFieldEditors = '';
 
     function addRoute(routeName) {
@@ -327,6 +328,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     function broadcastLoaded() {
         $rootScope.$broadcast('modelsLoaded');
+    }
+
+    function broadcastSaved(name) {
+        $rootScope.$broadcast(name + '.saved');
+        $rootScope.$broadcast('modelSaved', name);
     }
 
     function deepEqualsNoSimulationStatus(models1, models2) {
@@ -775,6 +781,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             }
             if (callback) {
                 callback();
+            }
+            // broadcast when save is done, for taking actions on now-persisted model
+            for (let m of updatedModels) {
+                broadcastSaved(m);
             }
         });
     };
@@ -1425,13 +1435,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     }
 
-    function sendRequest(name, callback, forceRun) {
+    function sendRequest(name, callback, forceRun, errorCallback) {
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(resp) {
             setPanelValue(name, 'loading', false);
             if (resp.error) {
                 setPanelValue(name, 'error', resp.error);
+                if (errorCallback) {
+                    errorCallback(resp);
+                }
             }
             else {
                 setPanelValue(name, 'data', resp);
@@ -1589,6 +1602,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
+    self.isSubclass = function(model1, model2) {
+        const m1 = SIREPO.APP_SCHEMA.model[model1];
+        if (! m1._super) {
+            return false;
+        }
+        return m1._super.indexOf(model2) >= 0;
+    };
+
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
         var args = {
             '<simulation_id>': simulationId,
@@ -1621,7 +1642,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         requestSender.newWindow('pythonSource', args);
     };
 
-    self.requestData = function(name, callback, forceRun) {
+    self.requestData = function(name, callback, forceRun, errorCallback) {
         if (! appState.isLoaded()) {
             return;
         }
@@ -1639,10 +1660,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             simulationQueue.cancelItem(queueItems[name]);
         }
         self.addPendingRequest(name, function() {
-            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun, errorCallback);
         });
         if (! self.isHidden(name)) {
-            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun, errorCallback);
         }
     };
 

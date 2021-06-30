@@ -14,7 +14,27 @@
         }
     },
     "constants": {
-        "helpVideoURL": "https://vimeo.com/410318423/632634aa5d"
+        "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
+        "rsoptElements": {
+            "aperture": {
+                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+            },
+            "ellipsoidMirror": {
+                "positionFields": ["horizontalOffset", "verticalOffset", "position"],
+                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+            },
+            "mirror": {
+                "positionFields": ["", "", "position"]
+            },
+            "sphericalMirror": {
+                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
+                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+            },
+            "toroidalMirror": {
+                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
+                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+            }
+        }
     },
     "enum": {
         "AnalyticalTreatment": [
@@ -293,6 +313,10 @@
             ["file", "Image File"],
             ["randomDisk", "Random 2D Objects"]
         ],
+        "ScanType": [
+            ["grid", "Grid"],
+            ["random", "Random"]
+        ],
         "SimulationState": [
             ["initial", "Initial State"],
             ["running", "Running"],
@@ -451,6 +475,21 @@
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
+        },
+        "rsOptElement": {
+            "id": ["_", "Integer", -1],
+            "enabled": ["Enabled", "Boolean", "0"],
+            "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "position": ["Position along Optical Path [m]", "Float"],
+            "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
+            "title": ["_", "String", ""]
+        },
+        "exportRsOpt": {
+            "elements": ["Beamline Elements", "RSOptElements", []],
+            "numCores": ["Number of Cores", "Integer", 4],
+            "numSamples": ["Number of Samples", "Integer", 100],
+            "numWorkers": ["Number of Workers", "Integer", 1],
+            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly for a total of <number of samples>^<number of params> samples. Random takes a random sample for each param for a total of <number of samples>"]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -1606,6 +1645,24 @@
             "title": "Mirror",
             "basic": [],
             "advanced": ["notes"]
+        },
+        "rsOptElement": {
+            "title": "rsopt Element",
+            "basic": [
+                "offsetRanges",
+                "rotationRanges"
+            ],
+            "advanced": []
+        },
+        "exportRsOpt": {
+            "title": "Generate Machine Learning Data Script",
+            "basic": [
+            ],
+            "advanced": [
+                "elements",
+                "scanType",
+                "numSamples"
+            ]
         },
         "multipole": {
             "title": "Dipole",

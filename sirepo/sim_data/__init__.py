@@ -5,6 +5,9 @@ u"""Type-based simulation operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+
+import uuid
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -396,6 +399,8 @@ class SimDataBase(object):
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
+                if d[1] == 'UUID' and not res[f]:
+                    res[f] = str(uuid.uuid4())
         return res
 
     # TODO(e-carlin): Supplying uid is a temprorary workaround until

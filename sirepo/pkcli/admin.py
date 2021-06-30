@@ -64,6 +64,31 @@ def create_examples():
                     if example.models.simulation.name not in names:
                         _create_example(example)
 
+# TODO(e-carlin): more than uid (ex email)
+def delete_user(uid):
+    """Delete a user and all of their data across Sirepo and Jupyter
+
+    This will delete information based on what is configured. So configure
+    all service (jupyterhublogin, email, etc.) that may be relevant. Once
+    this script runs all records are blown away from the db's so if you
+    forget to configure something you will have to delete manually.
+
+    Args:
+        uid: UID of the user to delete
+    """
+    import sirepo.server
+    import sirepo.template
+    sirepo.server.init()
+    with auth_db.session_and_lock(), \
+         auth.set_user_outside_of_http_request(uid):
+        if sirepo.template.is_sim_type('jupyterhublogin'):
+            from sirepo.sim_api import jupyterhublogin
+            jupyterhublogin.delete_user_dir(uid)
+        simulation_db.delete_user(uid)
+        # This needs to be done last so we have access to the records in
+        # previous steps.
+        auth_db.UserDbBase.delete_user(uid)
+
 
 def move_user_sims(target_uid=''):
     """Moves non-example sims and lib files into the target user's directory.

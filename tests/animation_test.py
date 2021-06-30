@@ -150,25 +150,6 @@ def test_warpvnd_2(fc):
     )
 
 
-def test_webcon(fc):
-    fc.sr_animation_run(
-        'Clustering Demo',
-        'epicsServerAnimation',
-        PKDict(
-            beamPositionReport=PKDict(
-                runSimulation=True,
-                expect_y_range='^.0.0.*, 0.0',
-            ),
-            correctorSettingReport=PKDict(
-                runSimulation=True,
-                expect_y_range=r'^.0.0.*, 0.0',
-            ),
-        ),
-        expect_completed=False,
-        timeout=10,
-    )
-
-
 def test_zgoubi(fc):
     fc.sr_animation_run(
         'EMMA',

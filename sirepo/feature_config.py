@@ -14,7 +14,7 @@ _DEPENDENT_CODES = [
 ]
 
 #: Codes on prod
-_PROD_FOSS_CODES = frozenset((
+PROD_FOSS_CODES = frozenset((
     'controls',
     'elegant',
     'jspec',
@@ -27,7 +27,6 @@ _PROD_FOSS_CODES = frozenset((
     'synergia',
     'warppba',
     'warpvnd',
-    'webcon',
     'zgoubi',
 ))
 
@@ -41,7 +40,7 @@ _NON_PROD_FOSS_CODES = frozenset((
 ))
 
 #: All possible open source codes
-_FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
+_FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
 #: codes for which we default to giving the user authorization but it can be revoked
 _DEFAULT_PROPRIETARY_CODES = frozenset(('jupyterhublogin',))
@@ -123,6 +122,7 @@ def _init():
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
             show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
+            show_rsopt_ml=(pkconfig.channel_in_internal_test(), bool, 'Show "Export ML Script" menu item'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
@@ -134,7 +134,7 @@ def _init():
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
-            _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
+            PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
         )
     )
     s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)

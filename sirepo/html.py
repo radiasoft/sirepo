@@ -12,7 +12,7 @@ import re
 import sys
 
 
-_CALL_RE = re.compile(r'(\w+)\(([^\)]*)\);', flags=re.MULTILINE)
+_CALL_RE = re.compile(r'^\s+(\w+)\(([^\)]*)\);', flags=re.MULTILINE)
 
 _ARGS_RE = re.compile(r'\s*,\s*')
 
@@ -29,6 +29,8 @@ def render(path):
             f'function={f} not in map path={path}'
         k = PKDict(ctx=PKDict(path=path))
         for a in  _ARGS_RE.split(match.group(2).strip()):
+            if not a:
+                continue
             m = _ARG_RE.search(a)
             assert m, \
                 f'invalid keyword argument={a} function={f} path={path}'
@@ -58,5 +60,25 @@ def _widget_sim_settings_and_status(ctx, scope):
     </div>
     <div class="clearfix"></div>'''
 
+
+def _widget_supported_codes(ctx):
+    import sirepo.feature_config
+    res = '''<li class="supported-codes">
+              <button class="dropdown-toggle" type="button" id="sr-landing-supported-codes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                <span>Supported Codes</span>
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
+    '''
+    x = PKDict([(s, s) for s in sirepo.feature_config.PROD_FOSS_CODES])
+    #TODO(pjm): make list dynamic based on user auth
+    x.pkupdate(
+        activait='ml',
+        jupyter='jupyterhublogin',
+    )
+    del x['ml']
+    for k in sorted(x.keys()):
+        res += f'<li><a href="/{x[k]}">{k}</a></li>'
+    return res + '</ul></li>'
 
 _init()

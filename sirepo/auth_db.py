@@ -113,6 +113,13 @@ def db_filename():
 
 
 def init():
+    def _create_tables(engine):
+        b = UserDbBase
+        k = set(b.metadata.tables.keys())
+        assert k.issubset(set(b.TABLES)), \
+            f'sqlalchemy tables={k} not a subset of known tables={b.TABLES}'
+        b.metadata.create_all(engine)
+
     global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
 
     if _engine:
@@ -130,6 +137,18 @@ def init():
     class UserDbBase(object):
         STRING_ID = sqlalchemy.String(8)
         STRING_NAME =  sqlalchemy.String(100)
+        TABLES = [
+            # Order is important. SQLite doesn't allow for foreign key constraints to
+            # be added after creation. So, the tables are ordered in the way
+            # constraints should be carried out. For example, a user is deleted
+            # from auth_email_user_t before user_registration_t.
+            'auth_github_user_t',
+            'auth_email_user_t',
+            'jupyterhub_user_t',
+            'user_role_t',
+            'user_registration_t',
+            'db_upgrade_t',
+        ]
 
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
@@ -139,6 +158,24 @@ def init():
             with sirepo.util.THREAD_LOCK:
                 self._session().delete(self)
                 self._session().commit()
+
+        @classmethod
+        def delete_user(cls, uid):
+            """Delete user from all tables"""
+            for t in cls.TABLES:
+                m = cls._unchecked_model_from_tablename(t)
+                # Exlicit None check because sqlalchemy overrides __bool__ to
+                # raise TypeError
+                if m is None or 'uid' not in m.columns:
+                    continue
+                cls.execute(sqlalchemy.delete(m).where(m.c.uid==uid))
+            cls._session().commit()
+
+        @classmethod
+        def execute(cls, statement):
+            cls._session().execute(
+                statement.execution_options(synchronize_session='fetch')
+            )
 
         @classmethod
         def delete_all(cls):
@@ -172,14 +209,20 @@ def init():
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with sirepo.util.THREAD_LOCK:
-                cls._session().query(cls).filter(
+                cls.execute(sqlalchemy.delete(cls).where(
                     getattr(cls, column).in_(values),
-                ).delete(synchronize_session='fetch')
+                ))
                 cls._session().commit()
 
         @classmethod
         def _session(cls):
             return sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
+
+        @classmethod
+        def _unchecked_model_from_tablename(cls, tablename):
+            for k, v in cls.metadata.tables.items():
+                if k == tablename:
+                    return v
 
 
     class DbUpgrade(UserDbBase):
@@ -216,11 +259,11 @@ def init():
         @classmethod
         def delete_roles(cls, uid, roles):
             with sirepo.util.THREAD_LOCK:
-                cls._session().query(cls).filter(
+                cls.execute(sqlalchemy.delete(cls).where(
                     cls.uid == uid,
-                ).filter(
+                ).where(
                     cls.role.in_(roles),
-                ).delete(synchronize_session='fetch')
+                ))
                 cls._session().commit()
                 audit_proprietary_lib_files(uid)
 
@@ -245,7 +288,7 @@ def init():
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
-    UserDbBase.metadata.create_all(_engine)
+    _create_tables(_engine)
 
 
 def init_model(callback):

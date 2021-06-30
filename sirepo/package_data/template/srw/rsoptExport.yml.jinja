@@ -1,0 +1,39 @@
+codes:
+  - python:
+      settings:
+      parameters:
+        {% for e in rsOptElements %}
+        {% for x in e.position %}
+        {% if e.offsets[loop.index0] != 0 %}
+        {{ e.title }}_pos_{{ loop.index0 }}:
+          min: {{ x - e.offsets[loop.index0] / 2.0 }}
+          max: {{ x + e.offsets[loop.index0] / 2.0 }}
+          samples: {{ numSamples }}
+          start: {{ x }}
+        {% endif %}
+        {% endfor %}
+        {% for t in e.angle %}
+        {% if e.rotations[loop.index0] != 0 %}
+        {{ e.title }}_angle_{{ loop.index0 }}:
+          min: {{ t - e.rotations[loop.index0] / 2.0 }}
+          max: {{ t + e.rotations[loop.index0] / 2.0 }}
+          samples: {{ numSamples }}
+          start: {{ t }}
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+      setup:
+        input_file: {{ pyFileName }}
+        function: set_rsopt_params_dummy
+        execution_type: parallel
+options:
+  {% if scanType == 'grid' %}
+  software: mesh_scan
+  {% elif scanType == 'random' %}
+  software: lh_scan
+  nworkers: {{ numWorkers }}
+  batch_size: {{ numSamples }}
+  {% endif %}
+  run_dir: {{ runDir }}
+  sim_dirs_make: False
+

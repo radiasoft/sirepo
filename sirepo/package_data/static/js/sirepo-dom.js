@@ -8,7 +8,7 @@ var srdbg = SIREPO.srdbg;
 class UIAttribute {  //extends UIOutput {
     constructor(name, value) {
         this.name = name;
-        this.value = value;
+        this.setValue(value);
     }
 
     static attrsToTemplate(arr) {
@@ -17,6 +17,10 @@ class UIAttribute {  //extends UIOutput {
             s += `${attr.toTemplate()} `;
         }
         return s;
+    }
+
+    setValue(value) {
+        this.value = value;
     }
 
     toTemplate() {
@@ -48,7 +52,7 @@ class UIElement {  //extends UIOutput {
             a = new UIAttribute(name, value);
             this.attrs[name] = a;
         }
-        a.value = value;
+        a.setValue(value);
     }
 
     addAttributes(arr) {
@@ -62,6 +66,12 @@ class UIElement {  //extends UIOutput {
         this.children.push(el);
         for (let s of el.siblings || []) {
             this.addChild(s);
+        }
+    }
+
+    addChildren(arr) {
+        for (let c of arr) {
+            this.addChild(c);
         }
     }
 
@@ -82,10 +92,14 @@ class UIElement {  //extends UIOutput {
     }
 
     addSibling(el) {
-        this.siblings.push(el);
         if (this.parent) {
+            this.siblings.push(el);
             this.parent.addChild(el);
         }
+    }
+
+    clearChildren() {
+        this.children = [];
     }
 
     getAttr(name) {
@@ -106,6 +120,10 @@ class UIElement {  //extends UIOutput {
         return this.getAttr('class');
     }
 
+    getIdSelector() {
+        return `#${this.id}`;
+    }
+
     getSibling(id) {
         for (let x of this.siblings) {
             if (x.id === id) {
@@ -115,6 +133,16 @@ class UIElement {  //extends UIOutput {
         return null;
     }
 
+    removeAttribute(name) {
+        delete this.attrs[name];
+    }
+
+    removeChild(id) {
+        let c = this.getChild(id);
+        if (c) {
+            this.children.splice(this.children.indexOf(c), 1);
+        }
+    }
 
     removeClasses(cl) {
         let a = this.getClasses();
@@ -132,17 +160,35 @@ class UIElement {  //extends UIOutput {
         this.setClass(arr.join(' '));
     }
 
+    removeSibling(id) {
+        let s = this.getSibling(id);
+        if (s) {
+            this.siblings.splice(this.children.indexOf(s), 1);
+            if (this.parent) {
+                this.parent.removeChild(id);
+            }
+        }
+    }
+
+    setAttribute(name, val) {
+        this.getAttr(name).setValue(val);
+    }
+
     setClass(cl) {
         let a = this.getClasses();
         if (! a) {
             this.addAttribute('class', cl);
             return;
         }
-        a.value = cl;
+        a.setValue(cl);
     }
 
     setText(str) {
         this.text = str;  //this.encode(str);
+    }
+
+    toDOM() {
+        return document.getElementById(this.id);
     }
 
     toTemplate() {
@@ -186,10 +232,40 @@ class UIWarning extends UIElement {
     }
 }
 
+
+// wrapper for raw html strings
+class UIHTML {
+    constructor(html) {
+        this.html = html;
+    }
+
+    toTemplate() {
+        return this.html;
+    }
+}
+
+
+// wrapper for html strings. No parsing (yet)
+class UIRawHTML {
+    constructor(html) {
+        this.html = html;
+    }
+
+    toTemplate() {
+        return this.html;
+    }
+}
+
 class UIInput extends UIElement {
-    constructor(tag, id, attrs) {
-        super(tag, id, attrs);
+    constructor(id, type, initVal, attrs) {
+        super('input', id, attrs);
+        this.addAttribute('type', type);
+        this.addAttribute('value', initVal);
         this.addSibling(new UIWarning());
+    }
+
+    getValue() {
+        return this.toDOM().value;
     }
 }
 
@@ -254,20 +330,137 @@ class UIEnumButton extends UIElement {
     }
 }
 
-class UIEnumOption extends UIElement {
-    constructor(enumItem) {
-        super('option');
-        this.addAttribute('label', `${enumItem.label}`);
-        this.addAttribute('value', `${enumItem.value}`);
+class UISelect extends UIElement {
+    constructor(id, attrs, options=[]) {
+        super('select', id, attrs);
+        this.addChildren(options);
+    }
+
+    // sugar
+    addOption(o) {
+        this.addChild(o);
+    }
+
+    addOptions(arr) {
+        this.addChildren(arr);
+    }
+}
+
+class UISelectOption extends UIElement {
+    constructor(id, label, value) {
+        super('option', id, [
+            new UIAttribute('label', label),
+            new UIAttribute('value', value),
+        ]);
+
+    }
+}
+
+class UIEnumOption extends UISelectOption {
+    constructor(id, enumItem) {
+        super(id, `${enumItem[1]}`, `${enumItem[0]}`);
     }
 }
 
 
+class SVGContainer extends UIElement {
+    constructor(id, width, height) {
+        super('svg', id, [
+            new UIAttribute('width', width),
+            new UIAttribute('height', height),
+        ]);
+    }
+}
 
 class SVGGroup extends UIElement {
     constructor(id) {
         super('g', id);
     }
+}
+
+class SVGPath extends UIElement {
+    constructor(id, points, offsets, doClose, strokeColor, fillColor) {
+        super('path', id);
+        this.doClose = doClose;
+        this.fillColor = fillColor;
+        this.offsets = offsets;
+        this.points = points;
+        this.scales = [1.0, 1.0];
+        this.strokeColor = strokeColor;
+
+        this.addAttribute('d', '');
+        this.addAttribute('fill', fillColor);
+        this.addAttribute('stroke', strokeColor);
+        this.update();
+    }
+
+    closestCorner(x, y) {
+        let d = Number.MAX_VALUE;
+        let closest = null;
+        for (let c of this.corners) {
+            let d2 = (c[0] - x) * (c[0] - x) + (c[1] - y) * (c[1] - y);
+            if (d2 < d) {
+                d = d2;
+                closest = c;
+            }
+        }
+        return closest;
+    }
+
+    closestLines(x, y) {
+        return this.linesWithCorner(this.closestCorner(x, y));
+    }
+
+    linesWithCorner(c) {
+        let lines = [];
+        for (let l of this.lines) {
+            if (l[0] == c || l[1] == c) {
+                lines.push(l);
+            }
+        }
+        return lines;
+    }
+
+    pathPoint(i) {
+        let p = [];
+        for(let j of [0, 1]) {
+            p.push(this.offsets[j] + this.scales[j] * this.points[i][j]);
+        }
+        return p;
+    }
+
+    setFill(color) {
+        this.fillColor = color;
+        this.setAttribute('fill', this.fillColor);
+    }
+
+    setScales(scales) {
+        this.scales = scales;
+    }
+
+    setStroke(color) {
+        this.strokeColor = color;
+        this.setAttribute('stroke', this.strokeColor);
+    }
+
+    update() {
+        let c = this.pathPoint(0);
+        this.corners = [c];
+        this.lines = [];
+        let p = `M${c[0]},${c[1]} `;
+        for (let i = 1; i < this.points.length; ++i) {
+            c = this.pathPoint(i);
+            this.lines.push([c, this.corners[this.corners.length - 1]]);
+            this.corners.push(c);
+            p += `L${c[0]},${c[1]} `;
+        }
+        if (this.doClose) {
+            this.lines.push([this.corners[this.corners.length - 1], this.corners[0]]);
+            p += 'z';
+        }
+        this.getAttr('d').setValue(p);
+    }
+
 }
 
 class SVGRect extends UIElement {
@@ -412,6 +605,9 @@ class SVGTable extends SVGGroup {
 }
 
 SIREPO.DOM = {
+    SVGContainer: SVGContainer,
+    SVGGroup:SVGGroup,
+    SVGPath: SVGPath,
     SVGRect: SVGRect,
     SVGTable: SVGTable,
     SVGText: SVGText,
@@ -421,5 +617,8 @@ SIREPO.DOM = {
     UIEnum: UIEnum,
     UIEnumOption: UIEnumOption,
     UIInput: UIInput,
+    UIRawHTML: UIRawHTML,
+    UISelect: UISelect,
+    UISelectOption: UISelectOption,
     UIWarning: UIWarning,
 };

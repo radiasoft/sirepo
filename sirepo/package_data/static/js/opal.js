@@ -308,7 +308,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, requestSender, opalService, $scope) {
     var self = this;
     self.simScope = $scope;
     self.panelState = panelState;
@@ -369,6 +369,15 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 
     self.simState.errorMessage = function() {
         return self.errorMessage;
+    };
+
+    self.simState.logFileURL = function() {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': -1,
+        });
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -656,6 +665,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
             $scope.hasMissingFiles = function() {
                 if (parentScope.fileUploadError) {
                     if (parentScope.errorData && parentScope.errorData.missingFiles) {
+                        parentScope.hideMainImportSelector = true;
                         $scope.missingFiles = [];
                         parentScope.errorData.missingFiles.forEach(function(f) {
                             f.file = {};
@@ -689,9 +699,17 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
         controller: function($scope, $element) {
             let data, pngCanvas, renderer, renderWindow, vtkAPI;
 
-            function createAxes(ranges) {
+            function createAxes(bounds) {
                 const pb = renderer.computeVisiblePropBounds();
-                const padPct = 0.1;
+                if (bounds) {
+                    if (bounds[0][0] < pb[4]) {
+                        pb[4] = bounds[0][0];
+                    }
+                    if (bounds[0][1] > pb[5]) {
+                        pb[5] = bounds[0][1];
+                    }
+                }
+                const padPct = 0.01;
                 const bndBox = vtkPlotting.coordMapper().buildBox(
                     [
                         Math.abs(pb[1] - pb[0]),
@@ -708,35 +726,17 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 $scope.axisObj.initializeWorld({});
 
                 $scope.axisCfg = {};
-                geometry.basis.forEach((dim, idx) => {
+                geometry.basis.forEach((dim) => {
+                    const idx = geometry.basis.indexOf(dim);
                     $scope.axisCfg[dim] = {
                         label: dim + ' [m]',
-                        max: ranges[idx][dim == 'z' ? 0 : 1],
-                        min: ranges[idx][dim == 'z' ? 1 : 0],
+                        min: pb[idx * 2 + (dim == 'z' ? 1 : 0)],
+                        max: pb[idx * 2 + 1 + (dim == 'z' ? -1 : 0)],
                         numPoints: 2,
                         screenDim: dim == 'x' ? 'y' : 'x',
                         showCentral: dim === appState.models.simulation.beamAxis,
                     };
                 });
-            }
-
-            function getRanges(points) {
-                const ranges = [
-                    [points[0], points[0]],
-                    [points[1], points[1]],
-                    [points[2], points[2]],
-                ];
-                for (let i = 3; i < points.length; i += 1) {
-                    const r = ranges[i % 3];
-                    const v = points[i];
-                    if (v < r[0]) {
-                        r[0] = v;
-                    }
-                    else if (v > r[1]) {
-                        r[1] = v;
-                    }
-                }
-                return ranges;
             }
 
             function getVtkElement() {
@@ -762,7 +762,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 mapper.setInputData(pd);
                 actor.setMapper(mapper);
                 renderer.addActor(actor);
-                createAxes(getRanges(data.points));
+                createAxes(data.bounds);
                 vtkAPI.showSide('y');
                 pngCanvas.copyCanvas();
 

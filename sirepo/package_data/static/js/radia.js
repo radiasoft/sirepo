@@ -3,21 +3,14 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-//import {SirepoDOM, SirepoSelection, SirepoSelectionOption} from './sirepo-dom.module';
-
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
-        //'<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
-        //...new SirepoSelection('MaterialType', false).val,
-        //'</div>',
-        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
-            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
-            '<div class="sr-input-warning">',
-            '</div>',
+        '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
+          '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
         '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
@@ -28,20 +21,28 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
+        '<div data-ng-switch-when="Group" class="col-sm-12">',
+            '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
+        '</div>',
         '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
             '<div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>',
         '</div>',
         '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
             '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
         '</div>',
-        '<div data-ng-switch-when="Group" class="col-sm-12">',
-          '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
+        '<div data-ng-switch-when="ObjectType" class="col-sm-7">',
+            '<div data-shape-editor="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>',
         '</div>',
-        '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
-          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
+        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
+            '<div class="sr-input-warning">',
+            '</div>',
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
+        '</div>',
+        '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
+          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
         '</div>',
     ].join('');
 });
@@ -56,6 +57,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     appState.setAppService(self);
 
+    self.axes = ['x', 'y', 'z'];
     self.isEditing = false;
     self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
@@ -258,6 +260,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomObject.material',
         'geomObject.symmetryType',
         'simulation.beamAxis',
+        'simulation.heightAxis',
     ];
     const groupModels = [
         'geomGroup',
@@ -272,7 +275,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'hybridUndulator.poleMaterial',
         'simulation.beamAxis',
     ];
-    var watchedModels = [
+    const watchedModels = [
         'geomObject',
         'geomGroup',
         'hybridUndulator',
@@ -281,6 +284,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'undulator',
     ];
 
+    self.axes = ['x', 'y', 'z'];
     self.builderCfg = {
         fitToObjects: true,
         fixedDomain: false,
@@ -879,13 +883,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
+    function updateSimEditor() {
+        panelState.enableField('simulation', 'magnetType', false);
+        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            let axis = e[SIREPO.ENUM_INDEX_VALUE];
+            panelState.showEnum('simulation', 'heightAxis', axis, axis !== appState.models.simulation.beamAxis);
+        }
+    }
+
     function updateUndulatorEditor() {
         let modelName = 'hybridUndulator';
         let u = appState.models[modelName];
 
-            panelState.enableField('hybridUndulator', 'magnetLength', false);
+        panelState.enableField('hybridUndulator', 'magnetLength', false);
 
-            for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
             let axis = e[SIREPO.ENUM_INDEX_VALUE];
             panelState.showEnum(modelName, 'gapAxis', axis, axis !== appState.models.simulation.beamAxis);
         }
@@ -990,6 +1002,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
             ) {
                 appState.models.geometry.lastModified = Date.now();
+                appState.models.simulation.widthAxis = self.axes.filter((a) => {
+                    return a !== appState.models.simulation.beamAxis &&
+                        a !== appState.models.simulation.heightAxis;
+                })[0];
+                appState.saveQuietly('simulation');
                 appState.models.kickMapReport.periodLength = appState.models.hybridUndulator.periodLength;
                 appState.saveQuietly('kickMapReport');
             }
@@ -1023,7 +1040,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             updateObjectEditor();
         });
         $scope.$on('simulation.editor.show', function(e, o) {
-            panelState.enableField('simulation', 'magnetType', false);
+            updateSimEditor();
         });
         $scope.$on('tool.editor.show', function(e, o) {
             updateToolEditor();
@@ -1200,6 +1217,127 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
                 return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
             }
         }
+    };
+});
+
+SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            modelName: '=',
+            parentController: '=',
+            object: '=',
+        },
+
+        template: [
+            '<table class="table table-hover">',
+              '<colgroup>',
+                '<col style="width: 20ex">',
+                '<col style="width: 20ex">',
+                '<col style="width: 20ex">',
+              '</colgroup>',
+              '<thead>',
+                '<tr>',
+                  '<th>Edge Index</th>',
+                  '<th>Gap Dist</th>',
+                  '<th>Transverse Dist</th>',
+                  '<th></th>',
+                '</tr>',
+              '</thead>',
+             '<tbody>',
+            '<tr>',
+            '</tr>',
+                '<tr data-ng-repeat="item in loadItems()">',
+                    '<td>{{ item.edge }}</td>',
+                    '<td>{{ item.amountGap }}mm</td>',
+                    '<td>{{ item.amountTrans }}mm</td>',
+                  '<td style="text-align: right">',
+                    '<div class="sr-button-bar-parent">',
+                        '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
+                            ' <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                        '</div>',
+                    '<div>',
+                  '</td>',
+                '</tr>',
+            '</tbody>',
+            '</table>',
+            '<button data-ng-click="addItem()" id="sr-new-bevel" class="btn btn-info btn-xs pull-right">New Bevel <span class="glyphicon glyphicon-plus"></span></button>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let isEditing = false;
+            let itemModel = 'objectBevel';
+            let watchedModels = [itemModel];
+
+            $scope.items = [];
+            $scope.radiaService = radiaService;
+            $scope.selectedItem = null;
+
+            function itemIndex(data) {
+                return $scope.items.indexOf(data);
+            }
+
+            $scope.addItem = function() {
+                let b = appState.setModelDefaults({}, itemModel);
+                $scope.editItem(b, true);
+            };
+
+            $scope.deleteItem = function(item) {
+                var index = itemIndex(item);
+                if (index < 0) {
+                    return;
+                }
+                $scope.field.splice(index, 1);
+                appState.saveChanges('geometry');
+            };
+
+            $scope.editItem = function(item, isNew) {
+                isEditing = ! isNew;
+                $scope.selectedItem = item;
+                appState.models[itemModel] = item;
+                panelState.showModalEditor(itemModel);
+            };
+
+            $scope.getSelected = function() {
+                return $scope.selectedItem;
+            };
+
+            $scope.loadItems = function() {
+                $scope.items = $scope.field;
+                return $scope.items;
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+
+                $scope.$on('modelChanged', function(e, modelName) {
+                    if (watchedModels.indexOf(modelName) < 0) {
+                        return;
+                    }
+                    $scope.selectedItem = null;
+                    if (! isEditing) {
+                        $scope.field.push(appState.models[modelName]);
+                        isEditing = true;
+                    }
+                    appState.saveChanges('geometry', function () {
+                        $scope.loadItems();
+                    });
+                });
+
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (watchedModels.indexOf(name) < 0) {
+                        return;
+                    }
+                    appState.removeModel(name);
+                });
+
+                $scope.loadItems();
+            });
+
+        },
     };
 });
 
@@ -3428,4 +3566,194 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     };
 
     return self;
+});
+
+SIREPO.app.directive('shapeEditor', function(appState, panelState, plotting, radiaService, utilities) {
+
+    const inset = 1;
+    const availableShapes = ['box'];
+    let sel = new SIREPO.DOM.UISelect('', [
+        new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
+    ]);
+    sel.addClasses('form-control');
+    sel.addOptions(SIREPO.APP_SCHEMA.enum.ObjectType
+        .filter(o => {
+            return availableShapes.indexOf(o[0]) >= 0;
+        })
+        .map(o => {
+            return new SIREPO.DOM.UIEnumOption('', o);
+        })
+    );
+
+    let btn = new SIREPO.DOM.UIElement('button', null, [
+        new SIREPO.DOM.UIAttribute('data-ng-click', 'editShape()')
+    ]);
+    const shapePickerId = 'sr-shape-picker';
+
+    let shapes = {};
+    let w = 0;
+    let h = 0;
+    for (let name in SIREPO.APP_SCHEMA.constants.geomObjShapes) {
+        const s = SIREPO.APP_SCHEMA.constants.geomObjShapes[name];
+        let b = ptsBounds(s.points);
+        w = Math.max(w, Math.abs(b[0].max - b[0].min));
+        h = Math.max(h, Math.abs(b[1].max - b[1].min));
+        shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, [inset, inset], s.doClose, s.stroke, s.fill);
+    }
+    // make it square
+    let l = Math.max(w, h) + 2 * inset;
+    let svg = new SIREPO.DOM.SVGContainer(shapePickerId, l, l);
+    btn.addChild(svg);
+
+    function ptsBounds(pts) {
+        let b = [{min: Number.MAX_VALUE, max: -Number.MAX_VALUE}, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE}];
+        for (let p of pts) {
+            for (let x of ['min', 'max']) {
+                for (let i of [0, 1]) {
+                    b[i][x] = Math[x](b[i][x], p[i]);
+                }
+            }
+        }
+        return b;
+    }
+
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+            fieldClass: '=',
+            parentController: '=',
+            viewName: '=',
+            object: '=',
+        },
+        template: [
+          '<div data-ng-class="fieldClass">',
+            sel.toTemplate(),
+            btn.toTemplate(),
+          '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let size = $scope.object.size.split(/\s*,\s*/).map((x) => {
+                return parseFloat(x);
+            });
+
+            plotting.setupSelector($scope, $element);
+
+            $scope.loadImage = function() {
+                let s = shapes[$scope.model[$scope.field]];
+                $scope.updateShape(s);
+                $(`${svg.getIdSelector()}`).html(s.toTemplate());
+            };
+
+            $scope.editShape = function() {
+                appState.models.geomObject = $scope.object;
+                panelState.showModalEditor('objectShape');
+            };
+
+            $scope.updateShape = function(s) {
+                s.setFill($scope.object.color);
+                const ar = size[radiaService.axes.indexOf(appState.models.simulation.widthAxis)] /
+                    size[radiaService.axes.indexOf(appState.models.simulation.heightAxis)];
+                s.setScales([
+                    ar >= 1 ? ar : 1.0,
+                    ar >= 1 ? 1.0 : ar
+                ]);
+                s.update();
+            };
+
+           function updateSubclasses() {
+               $scope.object._super.forEach((m) => {
+                   if (! appState.models[m]) {
+                       return;
+                   }
+               });
+           }
+
+           appState.watchModelFields($scope, [`${$scope.modelName}.${$scope.field}`], $scope.loadImage);
+
+           $scope.loadImage();
+        },
+    };
+});
+
+SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, $scope) {
+    let ctr = [];
+    let modelType = null;
+    let size = [];
+    let geomIndices = {};
+
+    $scope.modelData = appState.models[$scope.modelName];
+
+    $scope.whenSelected = function() {
+        modelType = appState.models.geomObject.type;
+        size = $scope.modelData.size.split(/\s*,\s*/).map((x) => {
+            return parseFloat(x);
+        });
+        ctr = $scope.modelData.center.split(/\s*,\s*/).map((x) => {
+            return parseFloat(x);
+        });
+
+        geomIndices = {
+            width: radiaService.axes.indexOf(appState.models.simulation.widthAxis),
+            height: radiaService.axes.indexOf(appState.models.simulation.heightAxis),
+            thickness: radiaService.axes.indexOf(appState.models.simulation.beamAxis)
+        };
+        $scope.$parent.advancedFields.forEach((f) => {
+            let mf = modelField(f);
+            panelState.showField(mf[0], mf[1], panelState.isSubclass(modelType, mf[0]));
+        });
+    };
+
+    function modelField(f) {
+        let mf = appState.parseModelField(f);
+        return mf ? mf : [$scope.$parent.modelName, f];
+    }
+
+});
+
+SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
+
+    $scope.modelData = appState.models[$scope.modelName];
+    
+    return {
+        getBaseObject: function() {
+            return $scope.modelData;
+        },
+    };
+});
+
+
+SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
+
+    $scope.watchFields = [
+        ['hybridUndulator.magnetObjectType', 'hybridUndulator.poleObjectType'], update
+    ];
+
+    const baseObjectNames = {
+        'Poles': 'pole',
+        'Permanent Magnets': 'magnet'
+    };
+
+    $scope.modelData = appState.models[$scope.modelName];
+
+    $scope.getBaseObjectId = function() {
+        let n = baseObjectNames[$scope.$parent.activePage.name];
+        return n ?  $scope.modelData[`${n}BaseObjectId`] : null;
+    };
+
+    $scope.whenSelected = function() {
+    };
+
+
+    function update(a) {
+    }
+
+    return {
+        getObjectId: $scope.getBaseObjectId,
+        getBaseObject: function() {
+            return radiaService.getObject($scope.getBaseObjectId());
+        },
+    };
 });

@@ -135,6 +135,13 @@ def create_user(github_handle=None, check_dir=False):
         return u
 
 
+def delete_user_dir(uid):
+    n = unchecked_jupyterhub_user_name(have_simulation_db=False)
+    if not n:
+        return
+    pkio.unchecked_remove(_user_dir(user_name=n))
+
+
 def init_apis(*args, **kwargs):
     global cfg
 
