@@ -55,9 +55,10 @@ def test_rpn():
 
 
 def _rpn_value(v):
-    from sirepo.template import elegant
+    from sirepo.template import template_common
     v = PKDict(v)
+    v.simulationType = 'elegant'
     v.method = 'rpn_value'
     if 'variables' not in v:
         v.variables = []
-    return elegant.get_application_data(v)
+    return template_common.stateful_compute_dispatch(v)

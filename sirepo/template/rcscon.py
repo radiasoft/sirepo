@@ -16,7 +16,7 @@ import os
 import re
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _OUTPUT_FILE = PKDict(
     fitOutputFile='fit.csv',
@@ -82,12 +82,6 @@ def extract_report_data(run_dir, sim_in):
     )
 
 
-def get_application_data(data, **kwargs):
-    if data.method == 'compute_column_count':
-        return _compute_file_column_count(data.files)
-    assert False, 'unknown get_application_data: {}'.format(data)
-
-
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     f = sim_in.models.files
@@ -139,6 +133,10 @@ def sim_frame(frame_args):
     if 'partitionAnimation' in frame_args.frameReport:
         return _partition_animation(frame_args)
     return _fit_animation(frame_args)
+
+
+def stateful_compute_compute_column_count(data):
+    return _compute_file_column_count(data.files)
 
 
 def write_parameters(data, run_dir, is_parallel):

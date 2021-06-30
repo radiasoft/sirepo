@@ -37,7 +37,7 @@ import uti_plot_com
 import werkzeug
 import zipfile
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = False
 
@@ -303,11 +303,11 @@ def extract_report_data(filename, sim_in):
     subtitle_datum = ''
     subtitle_format = '{}'
     if r in ('intensityReport',):
-        schema_enum = _SCHEMA['enum']['Polarization']
+        schema_enum = SCHEMA['enum']['Polarization']
         subtitle_datum = report_model['polarization']
         subtitle_format = '{} Polarization'
     elif r in ('initialIntensityReport', 'sourceIntensityReport') or _SIM_DATA.is_watchpoint(r):
-        schema_enum = _SCHEMA['enum']['Characteristic']
+        schema_enum = SCHEMA['enum']['Characteristic']
         subtitle_datum = report_model['characteristic']
     # Schema enums are indexed by strings, but model data may be numeric
     schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
@@ -368,29 +368,10 @@ def export_rsopt_config(data, filename):
 
 
 def get_application_data(data, **kwargs):
-    if data['method'] == 'model_list':
-        res = []
-        model_name = data['model_name']
-        if model_name == 'electronBeam':
-            res.extend(get_predefined_beams())
-        res.extend(_load_user_model_list(model_name))
-        if model_name == 'electronBeam':
-            for beam in res:
-                srw_common.process_beam_parameters(beam)
-        return PKDict({
-            'modelList': res
-        })
-    if data.method == 'create_shadow_simulation':
-        from sirepo.template.srw_shadow_converter import SRWShadowConverter
-        return SRWShadowConverter().srw_to_shadow(data)
-    if data['method'] == 'delete_user_models':
-        return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
     # TODO(e-carlin): This doesn't seem to be used in GUI? Discuss with pjm
     # elif data['method'] == 'compute_grating_orientation':
     #     return _compute_grating_orientation(data['optical_element'])
-    elif data['method'] == 'compute_undulator_length':
-        return compute_undulator_length(data['tabulated_undulator'])
-    elif data['method'] == 'processedImage':
+    if data['method'] == 'processedImage':
         try:
             return _process_image(data, kwargs['tmp_dir'])
         except Exception as e:
@@ -629,6 +610,33 @@ def python_source_for_model(data, model, plot_reports=True):
 
 def remove_last_frame(run_dir):
     pass
+
+
+def stateful_compute_compute_undulator_length(data):
+    return compute_undulator_length(data['tabulated_undulator'])
+
+
+def stateful_compute_create_shadow_simulation(data):
+    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    return SRWShadowConverter().srw_to_shadow(data)
+
+
+def stateful_compute_delete_user_models(data):
+    return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
+
+
+# TODO(e-carlin): Discuss with rn. This reads/writes lib files to user's lib dir.
+# Does that qualify as statefulCompute?
+def stateful_compute_model_list(data):
+    res = []
+    model_name = data['model_name']
+    if model_name == 'electronBeam':
+        res.extend(get_predefined_beams())
+    res.extend(_load_user_model_list(model_name))
+    if model_name == 'electronBeam':
+        for beam in res:
+            srw_common.process_beam_parameters(beam)
+    return PKDict(modelList=res)
 
 
 def stateless_compute_compute_PGM_value(data):
@@ -1128,7 +1136,7 @@ def _extract_beamline_orientation(filename):
 
 
 def _extract_brilliance_report(model, data):
-    label = template_common.enum_text(_SCHEMA, 'BrillianceReportType', model['reportType'])
+    label = template_common.enum_text(SCHEMA, 'BrillianceReportType', model['reportType'])
     if model['reportType'] in ('3', '4'):
         label += ' [rad]'
     elif model['reportType'] in ('5', '6'):
@@ -1143,7 +1151,7 @@ def _extract_brilliance_report(model, data):
         if m:
             x_points.append((np.array(data[f]['data']) * scale_adjustment).tolist())
             points.append(data['e{}'.format(m.group(1))]['data'])
-    title = template_common.enum_text(_SCHEMA, 'BrightnessComponent', model['brightnessComponent'])
+    title = template_common.enum_text(SCHEMA, 'BrightnessComponent', model['brightnessComponent'])
     if model['brightnessComponent'] == 'k-tuning':
         if model['initialHarmonic'] == model['finalHarmonic']:
             title += ', Harmonic {}'.format(model['initialHarmonic'])
@@ -1165,7 +1173,7 @@ def _extract_brilliance_report(model, data):
 
 def _extract_trajectory_report(model, data):
     available_axes = PKDict()
-    for s in _SCHEMA['enum']['TrajectoryPlotAxis']:
+    for s in SCHEMA['enum']['TrajectoryPlotAxis']:
         available_axes[s[0]] = s[1]
     x_points = data[model['plotAxisX']]['data']
     plots = []
@@ -1428,10 +1436,9 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['photonEnergy'] = float(data['models']['simulation']['photonEnergy'])
         data['models']['simulation']['finalPhotonEnergy'] = data['models']['simulation']['photonEnergy'] + half_width
         data['models']['simulation']['photonEnergy'] -= half_width
-
     # do this before validation or arrays get turned into strings
     rsopt_ctx = _rsopt_jinja_context(data.models.exportRsOpt)
-    _validate_data(data, _SCHEMA)
+    _validate_data(data, SCHEMA)
     last_id = None
     if _SIM_DATA.is_watchpoint(report):
         last_id = _SIM_DATA.watchpoint_id(report)
@@ -1589,7 +1596,7 @@ def _intensity_units(is_gaussian, sim_in):
             i = sim_in['models'][sim_in['report']]['fieldUnits']
         else:
             i = sim_in['models']['initialIntensityReport']['fieldUnits']
-        return _SCHEMA['enum']['FieldUnits'][int(i)][1]
+        return SCHEMA['enum']['FieldUnits'][int(i)][1]
     return 'ph/s/.1%bw/mm^2'
 
 

@@ -176,7 +176,8 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
     }
 
     function updateAnalysisParameters() {
-        requestSender.getApplicationData(
+        requestSender.sendStatefulCompute(
+            appState,
             {
                 method: 'column_info',
                 analysisData: appState.models.analysisData,
@@ -186,7 +187,8 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
                     appState.models.analysisData.columnInfo = data.columnInfo;
                     appState.saveChanges('analysisData');
                 }
-            });
+            }
+        );
     }
 
     self.hasFile = function() {

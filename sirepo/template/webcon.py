@@ -22,7 +22,7 @@ import sirepo.util
 import six
 
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 SIM_TYPE = 'webcon'
 
@@ -163,19 +163,7 @@ def get_analysis_report(run_dir, data):
         ),
     )
 
-
 def get_application_data(data, **kwargs):
-    if data['method'] == 'column_info':
-        data = PKDict(
-            models=PKDict(
-                analysisData=data['analysisData'],
-            ),
-        )
-        return PKDict(
-            columnInfo=_column_info(
-                str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
-            ),
-        )
     if data['method'] == 'update_kicker':
         return _update_epics_kicker(data)
     if data['method'] == 'read_kickers':
@@ -475,6 +463,19 @@ def read_epics_values(server_address, fields):
 
 def run_epics_command(server_address, cmd):
     return template_common.subprocess_output(cmd, epics_env(server_address))
+
+
+def stateful_compute_column_info(data):
+    data = PKDict(
+        models=PKDict(
+            analysisData=data['analysisData'],
+        ),
+    )
+    return PKDict(
+        columnInfo=_column_info(
+            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
+        ),
+    )
 
 
 def update_epics_kickers(epics_settings, sim_dir, fields, values):
@@ -913,7 +914,7 @@ def _fit_to_equation(x, y, equation, var, params):
     #     Variable and parameters must be 1 alphabetic character
 
     eq_ops = [t for t in _tokenize_equation(equation) if t != var and t not in params]
-    eq_ops_rejected = [op for op in eq_ops if op not in _SCHEMA.constants.allowedEquationOps]
+    eq_ops_rejected = [op for op in eq_ops if op not in SCHEMA.constants.allowedEquationOps]
     assert len(eq_ops_rejected) == 0, \
         sirepo.util.err(eq_ops_rejected, 'operation fobidden')
     assert _validate_eq_var(var), \

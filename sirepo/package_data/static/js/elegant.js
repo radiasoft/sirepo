@@ -198,7 +198,8 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
 
     function updateBeamInputType(cmd) {
         // detemine the input file type (elegant or spiffe)
-        requestSender.getApplicationData(
+        requestSender.sendStatefulCompute(
+            appState,
             {
                 method: 'get_beam_input_type',
                 input_file: 'bunchFile-sourceFile.' + cmd.input,

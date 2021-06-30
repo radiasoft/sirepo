@@ -23,7 +23,7 @@ import re
 import sirepo.sim_data
 
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -132,7 +132,7 @@ def extract_particle_report(frame_args, particle_type):
 
 
 def generate_parameters_file(data, is_parallel=False):
-    template_common.validate_models(data, _SCHEMA)
+    template_common.validate_models(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
     v['isAnimationView'] = is_parallel
     v['incSteps'] = 50
