@@ -9,7 +9,7 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
-def test_get_beam_input_type(fc):
+def test_elegant_get_beam_input_type(fc):
     from pykern import pkunit
     f = None
     r = _do_stateful_compute(fc, 'get_beam_input_type', PKDict(input_file=f))
@@ -49,7 +49,8 @@ def _do_stateful_compute(fc, method, data):
     )
 
 
-def _do_stateless_compute(fc, method, data):
+def _do_stateless_compute(fc, method, data=None):
+    data = data or PKDict()
     t = 'madx'
     d = fc.sr_sim_data(sim_name='FODO PTC', sim_type=t)
     return _do(
