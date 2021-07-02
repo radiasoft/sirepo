@@ -7,7 +7,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
           '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
@@ -52,7 +52,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
-        return 'solver';
+        return 'solverAnimation';
     };
 
     appState.setAppService(self);
@@ -2441,7 +2441,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-basic-editor-panel="" data-view-name="solver">',
+                '<div data-basic-editor-panel="" data-view-name="solverAnimation">',
                         '<div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation()"></div>',
                         '<div data-ng-show="viz.solution">',
                                 '<div><strong>Time:</strong> {{ solution().time }}ms</div>',

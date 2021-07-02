@@ -57,7 +57,6 @@ _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _KICK_MAP_COLS = ['x', 'y', 'xpFactor', 'ypFactor']
 _KICK_MAP_UNITS = ['m', 'm', '(T*m)$a2$n', '(T*m)$a2$n']
-_FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geometry.h5'
 _KICK_FILE = 'kickMap.h5'
@@ -65,11 +64,12 @@ _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
-_SIM_REPORTS = ['geometry', 'reset', 'solver']
-_REPORTS = ['fieldLineoutReport', 'geometry', 'kickMapReport', 'reset', 'solver']
+_SIM_FILES = [_DMP_FILE, _GEOM_FILE]
+_SIM_REPORTS = ['geometry', 'reset', 'solverAnimation']
+_REPORTS = ['fieldLineoutReport', 'geometry', 'kickMapReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
     reset='geometry',
-    solver='geometry',
+    solverAnimation='geometry',
 )
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
@@ -97,6 +97,7 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         solution=_read_solution(data.simulationId),
     )
+
 
 def create_archive(sim):
     if sim.filename.endswith('dat'):
@@ -520,9 +521,37 @@ def _dmp_file(sim_id):
     #return _get_lib_file(sim_id, _DMP_FILE)
 
 
-def _fields_file(sim_id):
-    return _get_res_file(sim_id, _FIELDS_FILE)
-    #return _get_lib_file(sim_id, _FIELDS_FILE)
+def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
+    g_id = _get_g_id(sim_id)
+    v = _generate_field_data(g_id, name, f_type, [f_path]).data[0].vectors
+    pts = numpy.array(v.vertices).reshape(-1, 3)
+    plots = []
+    labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
+    x = pts[:, _AXES.index(beam_axis)]
+    y = pts[:, _AXES.index(h_axis)]
+    z = pts[:, _AXES.index(v_axis)]
+    f = numpy.array(v.directions).reshape(-1, 3)
+    m = numpy.array(v.magnitudes)
+
+    for c in (h_axis, v_axis):
+        plots.append(
+            PKDict(
+                points=(m * f[:, _AXES.index(c)]).tolist(),
+                label=f'{labels[c]} ({c}) [{radia_util.FIELD_UNITS[f_type]}]',
+                style='line'
+            )
+        )
+    return template_common.parameter_plot(
+        x.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title=f'{f_type} on {f_path.name}',
+            y_label=f_type,
+            x_label=f'{beam_axis} [mm]',
+            summaryData=PKDict(),
+        ),
+    )
 
 
 def _find_obj_by_name(obj_arr, obj_name):
@@ -671,8 +700,8 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.kickMap = data.models.get('kickMapReport', None)
     if 'solver' in report or for_export:
         v.doSolve = True
-        v.gId = _get_g_id(sim_id)
-        s = data.models.solver
+        #v.gId = _get_g_id(sim_id, run_dir=run_dir)
+        s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
         v.solveMethod = s.method
@@ -736,39 +765,6 @@ def _get_sdds(cols, units):
                 n, '', units[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
             )
     return _cfg.sdds
-
-
-def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
-    g_id = _get_g_id(sim_id)
-    v = _generate_field_data(g_id, name, f_type, [f_path]).data[0].vectors
-    pts = numpy.array(v.vertices).reshape(-1, 3)
-    plots = []
-    labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
-    x = pts[:, _AXES.index(beam_axis)]
-    y = pts[:, _AXES.index(h_axis)]
-    z = pts[:, _AXES.index(v_axis)]
-    f = numpy.array(v.directions).reshape(-1, 3)
-    m = numpy.array(v.magnitudes)
-
-    for c in (h_axis, v_axis):
-        plots.append(
-            PKDict(
-                points=(m * f[:, _AXES.index(c)]).tolist(),
-                label=f'{labels[c]} ({c}) [{radia_util.FIELD_UNITS[f_type]}]',
-                style='line'
-            )
-        )
-    return template_common.parameter_plot(
-        x.tolist(),
-        plots,
-        PKDict(),
-        PKDict(
-            title=f'{f_type} on {f_path.name}',
-            y_label=f_type,
-            x_label=f'{beam_axis} [mm]',
-            summaryData=PKDict(),
-        ),
-    )
 
 
 def _kick_map_plot(sim_id, model):
@@ -844,6 +840,7 @@ def _read_id_map(sim_id):
     return PKDict() if not m else PKDict(
         {k:(v if isinstance(v, int) else pkcompat.from_bytes(v)) for k, v in m.items()}
     )
+
 
 def _read_kick_map(sim_id):
     return _read_h5_path(sim_id, _KICK_FILE, _H5_PATH_KICK_MAP, run_dir='kickMapReport')
