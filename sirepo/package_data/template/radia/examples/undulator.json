@@ -9,11 +9,11 @@
             "paths": [
                 {
                     "_super": "fieldPath",
-                    "begin": "-0.0,-57.5,-0.0",
-                    "end": "0.0,57.5,0.0",
+                    "begin": "-0.0,-150,-0.0",
+                    "end": "0.0,150,0.0",
                     "id": "6233b2ae-cc3e-4ec8-a746-b1e947a67ca0",
                     "name": "y axis",
-                    "numPoints": 59,
+                    "numPoints": 301,
                     "type": "line"
                 }
             ]

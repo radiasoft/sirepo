@@ -50,6 +50,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.exampleName = dm.simulation.name
             if dm.simulation.name == 'Wiggler':
                 dm.geometry.isSolvable = '0'
+                if not len(dm.fieldPaths.paths):
+                    dm.fieldPaths.paths.append(PKDict(
+                        _super='fieldPath',
+                        begin='0, -225, 0',
+                        end='0, 225, 0',
+                        id= 0,
+                        name='y axis',
+                        numPoints=101,
+                        type='line'
+                    ))
         if dm.simulation.magnetType == 'undulator':
             if not dm.hybridUndulator.get('magnetBaseObjectId'):
                 dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Magnet Block').id
