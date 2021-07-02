@@ -4,7 +4,7 @@
             "path": "line",
             "paths": []
         },
-        "geometry": {
+        "geometryReport": {
             "isSolvable": "0",
             "name": "Wiggler",
             "beamAxis": "y",

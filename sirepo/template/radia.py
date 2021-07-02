@@ -57,7 +57,7 @@ _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _KICK_MAP_COLS = ['x', 'y', 'xpFactor', 'ypFactor']
 _KICK_MAP_UNITS = ['m', 'm', '(T*m)$a2$n', '(T*m)$a2$n']
-_GEOM_DIR = 'geometry'
+_GEOM_DIR = 'geometryReport'
 _GEOM_FILE = 'geometry.h5'
 _KICK_FILE = 'kickMap.h5'
 _KICK_SDDS_FILE = 'kickMap.sdds'
@@ -65,11 +65,11 @@ _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
 _SIM_FILES = [_DMP_FILE, _GEOM_FILE]
-_SIM_REPORTS = ['geometry', 'reset', 'solverAnimation']
-_REPORTS = ['fieldLineoutReport', 'geometry', 'kickMapReport', 'reset', 'solverAnimation']
+_SIM_REPORTS = ['geometryReport', 'reset', 'solverAnimation']
+_REPORTS = ['fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
-    reset='geometry',
-    solverAnimation='geometry',
+    reset='geometryReport',
+    solverAnimation='geometryReport',
 )
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
@@ -149,12 +149,14 @@ def extract_report_data(run_dir, sim_in):
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve or geometry change
 def get_application_data(data, **kwargs):
+    pkdp('GET APP DATA: START')
     if 'method' not in data:
         raise RuntimeError('no application data method')
     if data.method not in _SCHEMA.constants.getDataMethods:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
+    pkdp('GET APP DATA: GET SIM ID')
     sim_id = data.simulationId
     try:
         g_id = _get_g_id(sim_id)
@@ -186,15 +188,19 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_kick_map':
         return _read_or_generate_kick_map(g_id, data)
     if data.method == 'get_geom':
+        pkdp('GET APP DATA: GET GEOM')
         g_types = data.get(
             'geomTypes',
             [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
         )
         g_types.extend(['center', 'name', 'size', 'id'])
+        pkdp('GET APP DATA: G TYPES {}', g_types)
         res = _read_or_generate(g_id, data)
+        pkdp('GET APP DATA: READ OR GEN RES')
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
         res.idMap = id_map
+        pkdp('GET APP DATA: RETURNING GEOM')
         return res
     if data.method == 'save_field':
         data.method = 'get_field'
@@ -265,7 +271,7 @@ def new_simulation(data, new_simulation_data):
     beam_axis = new_simulation_data.beamAxis
     #TODO(mvk): dict of magnet types to builder methods
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        _build_undulator_objects(data.models.geometry, data.models.hybridUndulator, beam_axis)
+        _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, beam_axis)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
             beam_axis
@@ -582,13 +588,16 @@ def _generate_field_integrals(g_id, f_paths):
                 res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
     except RuntimeError as e:
-        pkdc('Radia error {}', e.message)
+        pkdlog('Radia error {}', e.message)
         return PKDict(error=e.message)
 
 
 def _generate_data(g_id, in_data, add_lines=True):
+    pkdp('GEN DATA: START')
     try:
+        pkdp('GEN DATA: OBJ DATA')
         o = _generate_obj_data(g_id, in_data.name)
+        pkdp('GEN DATA: GOT OBJ DATA')
         if in_data.viewType == _SCHEMA.constants.viewTypeObjects:
             return o
         elif in_data.viewType == _SCHEMA.constants.viewTypeFields:
@@ -599,7 +608,7 @@ def _generate_data(g_id, in_data, add_lines=True):
                 _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
-        pkdc('Radia error {}', e.message)
+        pkdlog('Radia error {}', e.message)
         return PKDict(error=e.message)
 
 
@@ -626,6 +635,7 @@ def _generate_kick_map(g_id, model):
 
 
 def _generate_obj_data(g_id, name):
+    pkdp('GEN OBJ DATA: START')
     return radia_util.geom_to_data(g_id, name=name)
 
 
@@ -643,7 +653,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.isParallel = is_parallel
 
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
-    g = data.models.geometry
+    g = data.models.geometryReport
 
     v.dmpOutputFile = _DMP_FILE if for_export else _dmp_file(sim_id)
     if 'dmpImportFile' in data.models.simulation:
@@ -796,7 +806,7 @@ def _parse_input_file_arg_str(s):
 
 
 def _prep_new_sim(data):
-    data.models.geometry.name = data.models.simulation.name
+    data.models.geometryReport.name = data.models.simulation.name
 
 
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
@@ -805,12 +815,12 @@ def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
             return template_common.h5_to_dict(hf, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
-            pkdc(f'{filename} not found in {run_dir}')
+            pkdlog(f'{filename} not found in {run_dir}')
             # need to generate file
             return None
     except KeyError:
         # no such path in file
-        pkdc(f'path {h5path} not found in {run_dir}/{filename}')
+        pkdlog(f'path {h5path} not found in {run_dir}/{filename}')
         return None
     # propagate other errors
 
@@ -847,17 +857,23 @@ def _read_kick_map(sim_id):
 
 
 def _read_or_generate(g_id, data):
+    pkdp('READ OR GEN: START')
     f_type = data.get('fieldType', None)
     res = _read_data(data.simulationId, data.viewType, f_type)
+    pkdp('READ OR GEN: READ RES {}', res)
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
+    pkdp('READ OR GEN: WRITE TO H5')
+    d = _generate_data(g_id, data, add_lines=False)
+    pkdp('READ OR GEN: GEN DONE {}', d)
     with h5py.File(_geom_file(data.simulationId), 'a') as f:
         template_common.write_dict_to_h5(
-            _generate_data(g_id, data, add_lines=False),
+            d, #_generate_data(g_id, data, add_lines=False),
             f,
             h5_path=_geom_h5_path(data.viewType, f_type)
         )
+    pkdp('READ OR GEN: RUN GET APP DATA')
     return get_application_data(data)
 
 

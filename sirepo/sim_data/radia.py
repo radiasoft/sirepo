@@ -23,8 +23,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in (
             'reset'
         ):
+            pkdp('COMP -> AN solverAnimation')
             return 'solverAnimation'
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        m = super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        pkdp('COMP {} -> AN {}', analysis_model, m)
+        return m
 
     @classmethod
     def __dynamic_defaults(cls, data, model):
@@ -43,21 +46,27 @@ class SimData(sirepo.sim_data.SimDataBase):
             None,
             dynamic=lambda m: cls.__dynamic_defaults(data, m)
         )
+        if dm.get('geometry'):
+            dm.geometryReport = dm.geometry.copy()
+            del dm['geometry']
+        if dm.get('solver'):
+            dm.solverAnimation = dm.solver.copy()
+            del dm['solver']
         if not dm.fieldPaths.get('paths'):
             dm.fieldPaths.paths = []
         if dm.simulation.get('isExample'):
             if not dm.simulation.get('exampleName'):
                 dm.simulation.exampleName = dm.simulation.name
             if dm.simulation.name == 'Wiggler':
-                dm.geometry.isSolvable = '0'
+                dm.geometryReport.isSolvable = '0'
         if dm.simulation.magnetType == 'undulator':
             if not dm.hybridUndulator.get('magnetBaseObjectId'):
-                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Magnet Block').id
+                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Magnet Block').id
             if not dm.hybridUndulator.get('poleBaseObjectId'):
-                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Pole').id
+                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Pole').id
             if not dm.simulation.get('heightAxis'):
                 dm.simulation.heightAxis = 'z'
-        for o in dm.geometry.objects:
+        for o in dm.geometryReport.objects:
             if not o.get('bevels'):
                 o.bevels = []
         sch = cls.schema()
