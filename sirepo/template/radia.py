@@ -149,14 +149,12 @@ def extract_report_data(run_dir, sim_in):
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve or geometry change
 def get_application_data(data, **kwargs):
-    pkdp('GET APP DATA: START')
     if 'method' not in data:
         raise RuntimeError('no application data method')
     if data.method not in _SCHEMA.constants.getDataMethods:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
-    pkdp('GET APP DATA: GET SIM ID')
     sim_id = data.simulationId
     try:
         g_id = _get_g_id(sim_id)
@@ -188,19 +186,15 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_kick_map':
         return _read_or_generate_kick_map(g_id, data)
     if data.method == 'get_geom':
-        pkdp('GET APP DATA: GET GEOM')
         g_types = data.get(
             'geomTypes',
             [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
         )
         g_types.extend(['center', 'name', 'size', 'id'])
-        pkdp('GET APP DATA: G TYPES {}', g_types)
         res = _read_or_generate(g_id, data)
-        pkdp('GET APP DATA: READ OR GEN RES')
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
         res.idMap = id_map
-        pkdp('GET APP DATA: RETURNING GEOM')
         return res
     if data.method == 'save_field':
         data.method = 'get_field'
@@ -710,7 +704,6 @@ def _generate_parameters_file(data, is_parallel, for_export):
     v.kickMap = data.models.get('kickMapReport', None)
     if 'solver' in report or for_export:
         v.doSolve = True
-        #v.gId = _get_g_id(sim_id, run_dir=run_dir)
         s = data.models.solverAnimation
         v.solvePrec = s.precision
         v.solveMaxIter = s.maxIterations
@@ -857,23 +850,17 @@ def _read_kick_map(sim_id):
 
 
 def _read_or_generate(g_id, data):
-    pkdp('READ OR GEN: START')
     f_type = data.get('fieldType', None)
     res = _read_data(data.simulationId, data.viewType, f_type)
-    pkdp('READ OR GEN: READ RES {}', res)
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
-    pkdp('READ OR GEN: WRITE TO H5')
-    d = _generate_data(g_id, data, add_lines=False)
-    pkdp('READ OR GEN: GEN DONE {}', d)
     with h5py.File(_geom_file(data.simulationId), 'a') as f:
         template_common.write_dict_to_h5(
-            d, #_generate_data(g_id, data, add_lines=False),
+            _generate_data(g_id, data, add_lines=False),
             f,
             h5_path=_geom_h5_path(data.viewType, f_type)
         )
-    pkdp('READ OR GEN: RUN GET APP DATA')
     return get_application_data(data)
 
 

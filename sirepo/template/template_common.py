@@ -292,10 +292,12 @@ def write_dict_to_h5(d, file_path, h5_path=None):
     except KeyError:
         for k in d:
             p = f'{h5_path}/{k}'
+            pkdp('WRITE {} -> {} ({}) TO {}', k, d[k], type(d[k]).__name__, p)
             try:
                 with h5py.File(file_path, 'a') as f:
                     f.create_dataset(p, data=d[k])
-            except TypeError:
+            except TypeError as e:
+                pkdp('ERR {}', e)
                 write_dict_to_h5(d[k], file_path, h5_path=p)
 
 
