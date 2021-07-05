@@ -58,7 +58,7 @@ _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _KICK_MAP_COLS = ['x', 'y', 'xpFactor', 'ypFactor']
 _KICK_MAP_UNITS = ['m', 'm', '(T*m)$a2$n', '(T*m)$a2$n']
 _GEOM_DIR = 'geometryReport'
-_GEOM_FILE = 'geometry.h5'
+_GEOM_FILE = 'geometryReport.h5'
 _KICK_FILE = 'kickMap.h5'
 _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
@@ -290,13 +290,13 @@ def write_parameters(data, run_dir, is_parallel):
         # remove centrailzed geom files
         pkio.unchecked_remove(
             _geom_file(sim_id),
-            #_get_res_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
-            _get_res_file(sim_id, _GEOM_FILE),
+            #_get_sim_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
+            _get_sim_file(sim_id, _GEOM_FILE),
             #_dmp_file(sim_id)
         )
     if data.report == 'kickMapReport':
-        pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE, run_dir='kickMapReport'))
-        #pkio.unchecked_remove(_get_res_file(sim_id, _KICK_FILE))
+        pkio.unchecked_remove(_get_sim_file(sim_id, _KICK_FILE, run_dir='kickMapReport'))
+        #pkio.unchecked_remove(_get_sim_file(sim_id, _KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, is_parallel, False),
@@ -517,7 +517,7 @@ _FIELD_PT_BUILDERS = {
 
 
 def _dmp_file(sim_id):
-    return _get_res_file(sim_id, _DMP_FILE)
+    return _get_sim_file(sim_id, _DMP_FILE)
     #return _get_lib_file(sim_id, _DMP_FILE)
 
 
@@ -587,11 +587,8 @@ def _generate_field_integrals(g_id, f_paths):
 
 
 def _generate_data(g_id, in_data, add_lines=True):
-    pkdp('GEN DATA: START')
     try:
-        pkdp('GEN DATA: OBJ DATA')
         o = _generate_obj_data(g_id, in_data.name)
-        pkdp('GEN DATA: GOT OBJ DATA')
         if in_data.viewType == _SCHEMA.constants.viewTypeObjects:
             return o
         elif in_data.viewType == _SCHEMA.constants.viewTypeFields:
@@ -629,7 +626,6 @@ def _generate_kick_map(g_id, model):
 
 
 def _generate_obj_data(g_id, name):
-    pkdp('GEN OBJ DATA: START')
     return radia_util.geom_to_data(g_id, name=name)
 
 
@@ -691,7 +687,7 @@ def _generate_parameters_file(data, is_parallel, for_export):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else _get_res_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
+    v.dataFile = _GEOM_FILE if for_export else _get_sim_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
@@ -737,7 +733,7 @@ def _geom_directions(beam_axis, vert_axis):
 
 
 def _geom_file(sim_id):
-    return _get_res_file(sim_id, _GEOM_FILE)
+    return _get_sim_file(sim_id, _GEOM_FILE)
 
 
 def _geom_h5_path(view_type, field_type=None):
@@ -752,7 +748,7 @@ def _get_g_id(sim_id):
         return radia_util.load_bin(f.read())
 
 
-def _get_res_file(sim_id, filename, run_dir=_GEOM_DIR):
+def _get_sim_file(sim_id, filename, run_dir=_GEOM_DIR):
     return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
         .join(run_dir).join(filename)
 
@@ -804,16 +800,17 @@ def _prep_new_sim(data):
 
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
-        with h5py.File(_get_res_file(sim_id, filename, run_dir=run_dir), 'r') as hf:
-            return template_common.h5_to_dict(hf, path=h5path)
+        p = _get_sim_file(sim_id, filename, run_dir=run_dir)
+        with h5py.File(_get_sim_file(sim_id, filename, run_dir=run_dir), 'r') as f:
+            return template_common.h5_to_dict(f, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
-            pkdlog(f'{filename} not found in {run_dir}')
+            pkdlog(f'file {filename} not found in {p}')
             # need to generate file
             return None
     except KeyError:
         # no such path in file
-        pkdlog(f'path {h5path} not found in {run_dir}/{filename}')
+        pkdlog(f'path {h5path} not found in {p}')
         return None
     # propagate other errors
 
@@ -839,7 +836,7 @@ def _read_data(sim_id, view_type, field_type):
 
 
 def _read_id_map(sim_id):
-    m = _read_h5_path(sim_id, _GEOM_FILE, 'idMap')
+    m = _read_h5_path(sim_id, _GEOM_FILE, _H5_PATH_ID_MAP)
     return PKDict() if not m else PKDict(
         {k:(v if isinstance(v, int) else pkcompat.from_bytes(v)) for k, v in m.items()}
     )
@@ -855,12 +852,11 @@ def _read_or_generate(g_id, data):
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
-    with h5py.File(_geom_file(data.simulationId), 'a') as f:
-        template_common.write_dict_to_h5(
-            _generate_data(g_id, data, add_lines=False),
-            f,
-            h5_path=_geom_h5_path(data.viewType, f_type)
-        )
+    template_common.write_dict_to_h5(
+        _generate_data(g_id, data, add_lines=False),
+        _geom_file(data.simulationId),
+        h5_path=_geom_h5_path(data.viewType, f_type)
+    )
     return get_application_data(data)
 
 

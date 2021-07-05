@@ -23,10 +23,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in (
             'reset'
         ):
-            pkdp('COMP -> AN solverAnimation')
             return 'solverAnimation'
         m = super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
-        pkdp('COMP {} -> AN {}', analysis_model, m)
         return m
 
     @classmethod
