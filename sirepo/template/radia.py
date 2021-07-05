@@ -801,7 +801,7 @@ def _prep_new_sim(data):
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
         p = _get_sim_file(sim_id, filename, run_dir=run_dir)
-        with h5py.File(_get_sim_file(sim_id, filename, run_dir=run_dir), 'r') as f:
+        with h5py.File(p, 'r') as f:
             return template_common.h5_to_dict(f, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
