@@ -295,7 +295,7 @@ def write_dict_to_h5(d, file_path, h5_path=None):
             try:
                 with h5py.File(file_path, 'a') as f:
                     f.create_dataset(p, data=d[k])
-            except TypeError as e:
+            except TypeError:
                 write_dict_to_h5(d[k], file_path, h5_path=p)
 
 
