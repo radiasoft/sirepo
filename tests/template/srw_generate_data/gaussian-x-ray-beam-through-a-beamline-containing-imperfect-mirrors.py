@@ -7,7 +7,6 @@ try:
 except:
     pass
 
-
 import srwl_bl
 import srwlib
 import srwlpy

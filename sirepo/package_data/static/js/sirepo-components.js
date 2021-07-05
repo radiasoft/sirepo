@@ -612,6 +612,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             field: '=fieldEditor',
             model: '=',
             customLabel: '=',
+            customInfo: '=',
             labelSize: '@',
             fieldSize: '@',
             form: '=',
@@ -725,7 +726,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             }
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
+            $scope.info = $scope.customInfo || appState.modelInfo($scope.modelName)[$scope.field];
             if (! $scope.info) {
                 throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
             }
@@ -1397,6 +1398,7 @@ SIREPO.app.directive('modelField', function(appState) {
         scope: {
             field: '=modelField',
             modelName: '=',
+            customInfo: '=',
             customLabel: '=',
             labelSize: '@',
             fieldSize: '@',
@@ -1406,7 +1408,7 @@ SIREPO.app.directive('modelField', function(appState) {
             viewName: '=',
         },
         template: [
-            '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>',
+            '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>',
         ].join(''),
         controller: function($scope) {
             var modelName = $scope.modelName;
@@ -4154,13 +4156,19 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
         },
         template: [
             '<div style="white-space: nowrap">',
-              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
+              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>',
               ' ',
               '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.simList = null;
+
+            // special processing of the item's name if necessary
+            $scope.itemName = function(item) {
+                return item.invalidMsg ? `${item.name} <${item.invalidMsg}>` : item.name;
+            };
+
             $scope.openSimulation = function() {
                 if ($scope.model && $scope.model[$scope.field]) {
                     //TODO(e-carlin): this depends on the visualization route
