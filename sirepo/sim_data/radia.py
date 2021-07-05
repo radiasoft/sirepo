@@ -56,7 +56,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if not dm.simulation.get('exampleName'):
                 dm.simulation.exampleName = dm.simulation.name
             if dm.simulation.name == 'Wiggler':
-                dm.geometry.isSolvable = '0'
+                dm.geometryReport.isSolvable = '0'
                 if not len(dm.fieldPaths.paths):
                     dm.fieldPaths.paths.append(PKDict(
                         _super='fieldPath',
@@ -102,4 +102,4 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _sim_file_basenames(cls, data):
         # TODO(e-carlin): share filename with template
-        return [PKDict(basename='geometry.dat')]
+        return []

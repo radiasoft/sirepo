@@ -102,7 +102,7 @@ def background_percent_complete(report, run_dir, is_running):
 def create_archive(sim):
     if sim.filename.endswith('dat'):
         return sirepo.http_reply.gen_file_as_attachment(
-            _dmp_file(sim.id),
+            _dmp_file(),
             content_type='application/octet-stream',
             filename=sim.filename,
         )
@@ -122,11 +122,11 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
         # TODO(e-carlin): Ok for this to happen here?
-        _SIM_DATA.put_sim_file(
-            _dmp_file(sim_in.models.simulation.simulationId),
-            _DMP_FILE,
-            sim_in,
-        )
+        #_SIM_DATA.put_sim_file(
+        #    _dmp_file(sim_in.models.simulation.simulationId),
+        #    _DMP_FILE,
+        #    sim_in,
+        #)
     if 'kickMapReport' in sim_in.report:
         template_common.write_sequential_result(
             _kick_map_plot(sim_in.simulationId, sim_in.models.kickMapReport),
@@ -163,7 +163,7 @@ def get_application_data(data, **kwargs):
     g_id = -1
     sim_id = data.simulationId
     try:
-        g_id = _get_g_id(sim_id)
+        g_id = _get_g_id()
     except IOError as e:
         if pkio.exception_is_not_found(e):
             # No Radia dump file
@@ -298,12 +298,11 @@ def write_parameters(data, run_dir, is_parallel):
         pkio.unchecked_remove(
             _geom_file(sim_id),
             #_get_sim_file(sim_id, _GEOM_FILE, run_dir=_SIM_DATA.compute_model('solver')),
-            _get_sim_file(sim_id, _GEOM_FILE),
+            #_get_sim_file(sim_id, _GEOM_FILE),
             #_dmp_file(sim_id)
         )
     if data.report == 'kickMapReport':
-        pkio.unchecked_remove(_get_sim_file(sim_id, _KICK_FILE, run_dir='kickMapReport'))
-        #pkio.unchecked_remove(_get_sim_file(sim_id, _KICK_FILE))
+        pkio.unchecked_remove(_get_sim_file(_KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, is_parallel, False, run_dir=run_dir),
@@ -523,15 +522,12 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _dmp_file(sim_id):
-    # TODO(e-carlin): _GEOM_DIR isn't a run dir. run_dir is an abspath to a compute dir.
-    # _GEOM_DIR is just the basename of a dir.
-    return _get_sim_file(sim_id, _DMP_FILE)
-
+def _dmp_file():
+    return _get_sim_file(_DMP_FILE)
 
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
-    g_id = _get_g_id(sim_id)
+    g_id = _get_g_id()
     v = _generate_field_data(g_id, name, f_type, [f_path]).data[0].vectors
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
@@ -655,7 +651,7 @@ def _generate_parameters_file(data, is_parallel, for_export, run_dir=None):
     sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometryReport
 
-    v.dmpOutputFile = _DMP_FILE if for_export else _dmp_file(sim_id, run_dir=run_dir)
+    v.dmpOutputFile = _DMP_FILE if for_export else _dmp_file()
     if 'dmpImportFile' in data.models.simulation:
         v.dmpImportFile = data.models.simulation.dmpImportFile if for_export else \
             simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -697,7 +693,7 @@ def _generate_parameters_file(data, is_parallel, for_export, run_dir=None):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v.viewType = v_type
-    v.dataFile = _GEOM_FILE if for_export else _get_sim_file(sim_id, f'{rpt_out}.h5', run_dir=rpt_out)
+    v.dataFile = _GEOM_FILE if for_export else _get_sim_file(f'{rpt_out}.h5')
     if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
@@ -743,7 +739,7 @@ def _geom_directions(beam_axis, vert_axis):
 
 
 def _geom_file(sim_id):
-    return _get_sim_file(sim_id, _GEOM_FILE)
+    return _get_sim_file(_GEOM_FILE)
 
 
 def _geom_h5_path(view_type, field_type=None):
@@ -753,18 +749,13 @@ def _geom_h5_path(view_type, field_type=None):
     return p
 
 
-def _get_g_id(sim_id, run_dir=None):
-    with open(str(_dmp_file(sim_id, run_dir=run_dir)), 'rb') as f:
+def _get_g_id():
+    with open(_dmp_file(), 'rb') as f:
         return radia_util.load_bin(f.read())
 
 
-def _get_sim_file(sim_id, filename, run_dir=_GEOM_DIR):
-    run_dir = pkio.py_path(run_dir)
-    p = run_dir.join(filename)
-    if p.exists():
-        return p
-    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
-        .join(run_dir).join(filename)
+def _get_sim_file(filename):
+    return pkio.py_path().join(filename)
 
 
 def _get_sdds(cols, units):
@@ -782,7 +773,7 @@ def _get_sdds(cols, units):
 
 def _kick_map_plot(sim_id, model):
     from sirepo import srschema
-    g_id = _get_g_id(sim_id)
+    g_id = _get_g_id()
     component = model.component
     km = _generate_kick_map(g_id, model)
     if not km:
@@ -814,12 +805,12 @@ def _prep_new_sim(data):
 
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
-        p = _get_sim_file(sim_id, filename, run_dir=run_dir)
+        p = _get_sim_file(filename)
         with h5py.File(p, 'r') as f:
             return template_common.h5_to_dict(f, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
-            pkdlog(f'file {filename} not found in {p}')
+            pkdlog(f'file {p} not found')
             # need to generate file
             return None
     except KeyError:
