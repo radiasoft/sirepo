@@ -25,8 +25,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'reset'
         ):
             return 'solverAnimation'
-        m = super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
-        return m
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def __dynamic_defaults(cls, data, model):
