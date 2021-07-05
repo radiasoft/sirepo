@@ -70,6 +70,11 @@ _LOG_DIR = '__srwl_logs__'
 
 _JSON_MESSAGE_EXPANSION = 20
 
+_RSOPT_PARAMS = {
+    i for sublist in [v for v in [list(_SCHEMA.constants.rsOptElements[k].keys()) for
+        k in _SCHEMA.constants.rsOptElements]] for i in sublist
+}
+
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
 _USER_MODEL_LIST_FILENAME = PKDict({
@@ -1430,7 +1435,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['photonEnergy'] -= half_width
 
     # do this before validation or arrays get turned into strings
-    rsopt_ctx = _rsopt_jinja_context(data.models.exportRsOpt)
+    if report == 'rsoptExport':
+        rsopt_ctx = _rsopt_jinja_context(data.models.exportRsOpt)
     _validate_data(data, _SCHEMA)
     last_id = None
     if _SIM_DATA.is_watchpoint(report):
@@ -1676,10 +1682,9 @@ def _process_intensity_reports(source_type, undulator_type):
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != '0']
     for e in x:
-        e.offsets = sirepo.util.split_comma_delimited_string(e.offsetRanges, float)
-        e.position = [float(p) for p in e.positionFields]
-        e.rotations = sirepo.util.split_comma_delimited_string(e.rotationRanges, float)
-        e.vector = [float(p) for p in e.vectorFields]
+        for p in _RSOPT_PARAMS:
+            if p in e:
+                e[p].offsets = sirepo.util.split_comma_delimited_string(e[f'{p}Offsets'], float)
     return x
 
 
@@ -1819,8 +1824,9 @@ def _rsopt_jinja_context(model):
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
+        rsOptElements=_process_rsopt_elements(model.elements),
+        rsOptParams=_RSOPT_PARAMS,
         scanType=model.scanType,
-        rsOptElements=_process_rsopt_elements(model.elements)
     )
 
 
