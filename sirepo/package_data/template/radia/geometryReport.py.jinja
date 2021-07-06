@@ -82,13 +82,22 @@ def _build_radia_geom():
 
 
 def _write_dict_to_h5(data, h5_path):
-    sirepo.mpi.restrict_op_to_first_rank(
-        lambda: template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
-    )
+    # temp workaround of #3676
+    print('WRITE TO H5 {}'.format(h5_path))
+    if slurm_rank < 0:
+        sirepo.mpi.restrict_op_to_first_rank(
+            lambda: template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
+        )
+    elif slurm_rank == sirepo.mpi.FIRST_RANK:
+        template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
+
 
 def _write_dmp(g_id, f_path):
     with open(f_path, 'wb') as f:
         f.write(radia_util.dump_bin(g_id))
+
+# temp workaround of #3676
+slurm_rank = int(os.environ['SLURM_PROCID']) if 'SLURM_PROCID' in os.environ else -1
 
 with radia_util.MPI() as m:
 {% if doReset %}
@@ -118,6 +127,8 @@ with radia_util.MPI() as m:
         g_data = radia_util.vector_field_to_data(g_id, '{{ geomName }}', f, radia_util.FIELD_UNITS['{{ fieldType }}'])
         _write_dict_to_h5(g_data, '{{ h5FieldPath }}')
 {% endif %}
-    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
-
-
+    # temp workaround of #3676
+    if slurm_rank < 0:
+        sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
+    elif slurm_rank == sirepo.mpi.FIRST_RANK:
+        _write_dmp(g_id, '{{ dmpOutputFile }}')
