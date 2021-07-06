@@ -237,6 +237,7 @@
             ["v", "Vertical"]
         ],
         "MagnetType": [
+            ["dipole", "C-Bend Dipole"],
             ["freehand", "Freehand"],
             ["undulator", "Undulator"]
         ],
@@ -330,6 +331,27 @@
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
+        },
+        "dipole": {
+            "_super": ["_", "model", "radiaObject"],
+            "coilBaseObjectId": ["_", "UUID", ""],
+            "coilColor": ["Color", "Color", "#ff0000"],
+            "coilInnerRadius": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
+            "coilOuterRadius": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "coilHeight": ["Thickness [mm]", "Float", 18.0, "Period length/2 - pole length"],
+            "coilCurrentDensity": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
+            "coilSide1": ["Material", "MaterialType", "NdFeB"],
+            "coilSide2": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "magnetBaseObjectId": ["_", "UUID", ""],
+            "magnetColor": ["Color", "Color", "#ff00ff"],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
+            "magnetDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "magnetLength": ["Thickness [mm]", "Float", 5.0, "Length along beam axis"],
+            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
+            "magnetMaterial": ["Material", "MaterialType", "custom"],
+            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "magnetObjType": ["Shape", "ObjectType", "box"]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
