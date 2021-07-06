@@ -230,7 +230,7 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    assert model in _REPORTS, f'unknown report: {model}'
+    assert model in _REPORTS, 'model={}: unknown report'.format(model)
     name = simulation_db.read_json(
         run_dir.join(template_common.INPUT_BASE_NAME)
     ).models.simulation.name
@@ -518,7 +518,6 @@ _FIELD_PT_BUILDERS = {
 
 def _dmp_file(sim_id):
     return _get_sim_file(sim_id, _DMP_FILE)
-    #return _get_lib_file(sim_id, _DMP_FILE)
 
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
@@ -582,8 +581,9 @@ def _generate_field_integrals(g_id, f_paths):
                 res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
     except RuntimeError as e:
-        pkdlog('Radia error {}', e.message)
-        return PKDict(error=e.message)
+        return _radia_error('_generate_field_integrals', e)
+        #pkdlog('Radia error {}', e.message)
+        #return PKDict(error='e.message'.format())
 
 
 def _generate_data(g_id, in_data, add_lines=True):
@@ -599,8 +599,7 @@ def _generate_data(g_id, in_data, add_lines=True):
                 _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
-        pkdlog('Radia error {}', e.message)
-        return PKDict(error=e.message)
+        return _radia_error('_generate_data', e)
 
 
 def _generate_kick_map(g_id, model):
@@ -798,19 +797,24 @@ def _prep_new_sim(data):
     data.models.geometryReport.name = data.models.simulation.name
 
 
+def _radia_error(fn, e):
+    s = 'Radia error={} in function={}'.format(e.message, fn)
+    pkdlog(s)
+    return PKDict(error=s)
+
+
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
-        p = _get_sim_file(sim_id, filename, run_dir=run_dir)
-        with h5py.File(p, 'r') as f:
+        with h5py.File(_get_sim_file(sim_id, filename, run_dir=run_dir), 'r') as f:
             return template_common.h5_to_dict(f, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
-            pkdlog(f'file {filename} not found in {p}')
+            pkdlog('filename={} not found in run_dir={}', filename, run_dir)
             # need to generate file
             return None
-    except KeyError:
+    except template_common.NoH5PathError:
         # no such path in file
-        pkdlog(f'path {h5path} not found in {p}')
+        pkdlog('h5Path={} not found in filename={}', h5path, filename)
         return None
     # propagate other errors
 
@@ -871,7 +875,7 @@ def _read_solution(sim_id):
     s = _read_h5_path(
         sim_id,
         _GEOM_FILE,
-        _H5_PATH_SOLUTION,
+        '/POOP', #_H5_PATH_SOLUTION,
     )
     if not s:
         return None
@@ -978,7 +982,9 @@ def _validate_objects(objects):
         if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
                 raise ValueError(
-                    f'{o.name}: anisotropic material {o.material} requires non-0 magnetization'
+                    '{}: anisotropic material {} requires non-0 magnetization'.format(
+                        o.name, o.material
+                    )
                 )
 
 
