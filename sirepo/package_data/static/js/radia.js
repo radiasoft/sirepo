@@ -1830,9 +1830,10 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     method: 'get_field_integrals',
                     simulationId: appState.models.simulation.simulationId,
                 };
-                radiaService.getRadiaData(inData, function(d) {
-                    $scope.integrals = d;
-                });
+                // may need another report instead of this
+                //radiaService.getRadiaData(inData, function(d) {
+                //    $scope.integrals = d;
+                //});
             }
 
             $scope.$on('fieldPaths.changed', function () {
@@ -2063,9 +2064,9 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
                     method: 'get_kick_map_plot',
                     simulationId: appState.models.simulation.simulationId,
                 };
-                radiaService.getRadiaData(inData, function(d) {
-                    //$scope.data = d;
-                });
+                //radiaService.getRadiaData(inData, function(d) {
+                //    //$scope.data = d;
+                //});
             }
             appState.whenModelsLoaded($scope, function() {
                $scope.model = appState.models.kickMapReport;
@@ -2641,7 +2642,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene', sceneData);
+                srdbg('buildScene', sceneData);
                 // scene -> multiple data -> multiple actors
                 let name = sceneData.name;
                 let data = sceneData.data;
@@ -3324,20 +3325,27 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                //srdbg('getting app data...', inData);
+                srdbg('getting app data...', inData);
                 $rootScope.$broadcast('vtk.showLoader');
+                /*
                 radiaService.getRadiaData(
                     inData,
                     function(d) {
-                        //srdbg('got app data', d);
+                        srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
                             setupSceneData(d);
                             return;
                         }
-                        //srdbg('no app data, requesting');
+                        srdbg('no app data, requesting');
                         panelState.clear('geometryReport');
                         panelState.requestData('geometryReport', setupSceneData, true);
                     });
+                 */
+                appState.models.geometryReport.doGenerate = appState.hasModelChanged('geometryReport');
+                appState.saveQuietly('geometryReport');
+                panelState.requestData('geometryReport', setupSceneData, true);
+                //panelState.requestData('geometryReport', setupSceneData, appState.hasModelChanged('geometryReport'));
+                //appState.saveChanges('geometryReport', setupSceneData);
             }
 
             $scope.eventHandlers = {

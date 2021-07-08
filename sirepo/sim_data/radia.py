@@ -88,11 +88,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def sim_files_to_run_dir(cls, data, run_dir):
+    def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
         try:
             super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound:
-            pass
+        except sirepo.sim_data.SimDbFileNotFound as e:
+            if post_init:
+                raise e
 
     @classmethod
     def _lib_file_basenames(cls, data):

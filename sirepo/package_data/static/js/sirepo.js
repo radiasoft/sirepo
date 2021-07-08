@@ -607,6 +607,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return res + h + ':' + m + ':' + s;
     };
 
+    self.hasModelChanged = function(modelName) {
+        return ! self.deepEquals(savedModelValues[modelName], self.models[modelName]) ;
+    };
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
