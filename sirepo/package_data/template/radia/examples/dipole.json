@@ -25,7 +25,7 @@
             "notes": "",
             "viewType": "objects"
         },
-       "geometry": {
+       "geometryReport": {
            "isSolvable": "1",
             "name": "Dipole",
             "beamAxis": "x",

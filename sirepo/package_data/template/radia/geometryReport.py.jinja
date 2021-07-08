@@ -21,6 +21,7 @@ _GROUP_MODELS = (_MODEL_GROUP, _MODEL_GROUP_UND)
 _OBJ_MODELS = (_MODEL_BOX, _MODEL_OBJECT)
 _MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
 
+{% if doGenerate %}
 sirepo_objs = {{ objects }}
 
 def _add_object(o, radia_objs, id_map):
@@ -79,12 +80,13 @@ def _build_radia_geom():
     g_id = radia_util.build_container(radia_objs)
 {% endif %}
     return g_id, id_map
-
+{% endif %}
 
 def _write_dict_to_h5(data, h5_path):
     sirepo.mpi.restrict_op_to_first_rank(
         lambda: template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
     )
+
 
 def _write_dmp(g_id, f_path):
     with open(f_path, 'wb') as f:
@@ -94,10 +96,14 @@ with radia_util.MPI() as m:
 {% if doReset %}
     radia_util.reset()
 {% endif %}
+{% if doGenerate %}
     g_id, id_map = _build_radia_geom()
     g_data = radia_util.geom_to_data(g_id, name='{{ geomName }}')
     _write_dict_to_h5(g_data, '{{ h5ObjPath }}')
     _write_dict_to_h5(id_map, '{{ h5IdMapPath }}')
+{% else %}
+    g_id = {{ gId }}
+{% endif %}
 
 {% if doSolve %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
@@ -119,5 +125,4 @@ with radia_util.MPI() as m:
         _write_dict_to_h5(g_data, '{{ h5FieldPath }}')
 {% endif %}
     sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
-
 

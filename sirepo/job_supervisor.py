@@ -641,7 +641,7 @@ class _ComputeJob(PKDict):
                     state=job.ERROR,
                     error='another browser is running the simulation',
                 )
-            return PKDict(state=self.db.status)
+            return self._status_reply(req)
         if (
             not f
             and self._req_is_valid(req)

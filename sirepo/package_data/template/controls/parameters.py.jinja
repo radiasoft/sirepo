@@ -51,8 +51,8 @@ def _optimize_nelder_mead(variable_count):
 
 def _optimize_polyfit(variable_count):
     settings_0 = np.zeros(variable_count)
-    sets = np.identity(len(targets))
-    M = np.zeros(sets.shape)
+    sets = np.identity(variable_count)
+    M = np.zeros([variable_count, len(targets)])
     sets_a = np.linspace(-5, 5, 5) * 0.01
     readings = np.zeros([len(targets), 5])
     for i in range(0, len(settings_0)):
@@ -112,6 +112,12 @@ with open('{{ summaryCSV }}', 'w') as f:
 res = _optimize_nelder_mead({{ correctorCount }})
 {% elif optimizerSettings_method == 'polyfit' %}
 res = _optimize_polyfit({{ correctorCount }})
+{% elif optimizerSettings_method == 'runOnce' %}
+res = {
+    'message': '',
+    'success': True,
+    'result': update_and_run_simulation(np.array({{ initialCorrectors }})),
+}
 {% else %}
 raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))
 {% endif %}

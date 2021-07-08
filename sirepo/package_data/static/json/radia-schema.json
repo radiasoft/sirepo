@@ -368,7 +368,7 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "gamma"]
         },
-        "geometry": {
+        "geometryReport": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "id": ["_", "UUID", ""],
             "isSolvable": ["_", "Boolean", "1"],
@@ -457,9 +457,6 @@
             "end": ["End", "FloatStringArray", "10.0, 0, 0", "End point", "x, y, z"],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
-        },
-        "magnet": {
-            "_super": ["_", "model", "geometry"]
         },
         "magnetDisplay": {
             "bgColor": ["Background Color", "Color", "#ffffff"],
@@ -755,10 +752,10 @@
         "magnetDisplay": {
             "title": "Magnet Viewer",
             "basic": [
-                "geometry.name",
+                "geometryReport.name",
                 "viewType",
                 "bgColor",
-                "geometry.alpha",
+                "geometryReport.alpha",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"

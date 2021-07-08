@@ -15,24 +15,56 @@
     },
     "constants": {
         "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
-        "rsoptElements": {
+        "rsOptDefaultOffsetInfo": {
+            "position": ["Position [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "radius": ["Radius [m]", "FloatStringArray", "0.0", "", "Radius"],
+            "rotation": ["Rotation [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
+            "size": ["Size [m]", "FloatStringArray", "0.0, 0.0", "", "Horizontal, Vertical"]
+       },
+        "rsOptElements": {
             "aperture": {
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "size": {
+                    "fieldNames": ["horizontalSize", "verticalSize"]
+                }
             },
             "ellipsoidMirror": {
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"],
-                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
             },
             "mirror": {
-                "positionFields": ["", "", "position"]
+                "position": {
+                    "fieldNames": ["", "", "position"]
+                }
             },
             "sphericalMirror": {
-                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "radius": {
+                    "fieldNames": ["radius"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
             },
             "toroidalMirror": {
-                "vectorFields": ["normalVectorX", "normalVectorY", "normalVectorZ"],
-                "positionFields": ["horizontalOffset", "verticalOffset", "position"]
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "radius": {
+                    "fieldNames": ["tangentialRadius", "sagittalRadius"],
+                    "offsetInfo": ["_", "FloatStringArray", "0.0, 0.0", "", "Tangential, Saggital"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
             }
         }
     },
@@ -476,21 +508,6 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
-        "rsOptElement": {
-            "id": ["_", "Integer", -1],
-            "enabled": ["Enabled", "Boolean", "0"],
-            "offsetRanges": ["Offset Ranges [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
-            "position": ["Position along Optical Path [m]", "Float"],
-            "rotationRanges": ["Rotation Ranges [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
-            "title": ["_", "String", ""]
-        },
-        "exportRsOpt": {
-            "elements": ["Beamline Elements", "RSOptElements", []],
-            "numCores": ["Number of Cores", "Integer", 4],
-            "numSamples": ["Number of Samples", "Integer", 100],
-            "numWorkers": ["Number of Workers", "Integer", 1],
-            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly for a total of <number of samples>^<number of params> samples. Random takes a random sample for each param for a total of <number of samples>"]
-        },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -598,6 +615,14 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+        },
+        "exportRsOpt": {
+            "elements": ["Beamline Elements", "RSOptElements", []],
+            "numCores": ["Number of Cores", "Integer", 4],
+            "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
+            "numWorkers": ["Number of Workers", "Integer", 1],
+            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly. Random takes a random sample for each parameter."],
+            "totalSamples": ["Total Samples", "Integer", 100, "Grid: &lt;number of samples&gt;^&lt;number of params&gt;. Random: &lt;number of samples&gt;", 1]
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
@@ -835,6 +860,11 @@
             "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
             "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
             "17": ["Set Nominal Values", "Button", "1"]
+        },
+        "rsOptElement": {
+            "id": ["_", "Integer", -1],
+            "enabled": ["Enabled", "Boolean", "0"],
+            "title": ["_", "String", ""]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
@@ -1646,14 +1676,6 @@
             "basic": [],
             "advanced": ["notes"]
         },
-        "rsOptElement": {
-            "title": "rsopt Element",
-            "basic": [
-                "offsetRanges",
-                "rotationRanges"
-            ],
-            "advanced": []
-        },
         "exportRsOpt": {
             "title": "Generate Machine Learning Data Script",
             "basic": [
@@ -1661,7 +1683,8 @@
             "advanced": [
                 "elements",
                 "scanType",
-                "numSamples"
+                "numSamples",
+                "totalSamples"
             ]
         },
         "multipole": {
@@ -1743,6 +1766,11 @@
                     "precision"
                 ]]
             ]
+        },
+        "rsOptElement": {
+            "title": "rsopt Element",
+            "basic": [],
+            "advanced": []
         },
         "sample": {
             "title": "Sample",
