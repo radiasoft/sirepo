@@ -285,7 +285,7 @@
         ]
     },
     "frameIdFields": {
-        "solver": [],
+        "solverAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -368,7 +368,7 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "gamma"]
         },
-        "geometry": {
+        "geometryReport": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "id": ["_", "UUID", ""],
             "isSolvable": ["_", "Boolean", "1"],
@@ -458,9 +458,6 @@
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
-        "magnet": {
-            "_super": ["_", "model", "geometry"]
-        },
         "magnetDisplay": {
             "bgColor": ["Background Color", "Color", "#ffffff"],
             "fieldType": ["Field", "FieldType", "M"],
@@ -523,7 +520,7 @@
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
-        "solver":  {
+        "solverAnimation":  {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
@@ -755,10 +752,10 @@
         "magnetDisplay": {
             "title": "Magnet Viewer",
             "basic": [
-                "geometry.name",
+                "geometryReport.name",
                 "viewType",
                 "bgColor",
-                "geometry.alpha",
+                "geometryReport.alpha",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"
@@ -878,7 +875,7 @@
                 "heightAxis"
             ]
         },
-        "solver": {
+        "solverAnimation": {
             "title": "Solver",
             "basic": [
                 "precision",
