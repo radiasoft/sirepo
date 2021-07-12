@@ -443,6 +443,8 @@ def api_robotsTxt():
 
 @api_perm.allow_visitor
 def api_root(path_info):
+    if path_info is None:
+        return http_reply.gen_redirect(cfg.home_page_uri)
     if sirepo.template.is_sim_type(path_info):
         return _render_root_page('index', PKDict(app_name=path_info))
     u = sirepo.uri.unchecked_root_redirect(path_info)
@@ -749,4 +751,5 @@ cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
     google_tag_manager_id=(None, str, 'enable google analytics with this id'),
+    home_page_uri=('/en/landing.html', str, 'home page to redirect to'),
 )

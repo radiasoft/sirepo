@@ -37,9 +37,6 @@ _REQUIRED_MODULES = ('server', 'auth', 'srtime')
 #: Where to route when no routes match (root)
 _default_route = None
 
-#: When there is no uri (homePage)
-_empty_route = None
-
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
 _uri_to_route = None
 
@@ -197,7 +194,7 @@ def _dispatch(path):
     with sirepo.auth.process_request():
         try:
             if path is None:
-                return call_api(_empty_route.func, {})
+                return call_api(_default_route.func, PKDict(path_info=None))
             # werkzeug doesn't convert '+' to ' '
             parts = re.sub(r'\+', ' ', path).split('/')
             try:
@@ -231,7 +228,7 @@ def _dispatch_empty():
 
 
 def _init_uris(app, simulation_db, sim_types):
-    global _default_route, _empty_route, srunit_uri, _api_to_route, _uri_to_route
+    global _default_route, srunit_uri, _api_to_route, _uri_to_route
 
     assert not _default_route, \
         '_init_uris called twice'
@@ -257,7 +254,6 @@ def _init_uris(app, simulation_db, sim_types):
             srunit_uri = v
     assert _default_route, \
         'missing default route'
-    _empty_route = _uri_to_route.en
     _validate_root_redirect_uris(_uri_to_route, simulation_db)
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
