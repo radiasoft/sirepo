@@ -5,6 +5,7 @@ import os
 import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
+import sirepo.sim_data.radia
 import sirepo.util
 from sirepo.template import radia_examples
 from sirepo.template import radia_util
@@ -21,7 +22,6 @@ _GROUP_MODELS = (_MODEL_GROUP, _MODEL_GROUP_UND)
 _OBJ_MODELS = (_MODEL_BOX, _MODEL_OBJECT)
 _MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
 
-{% if doGenerate %}
 sirepo_objs = {{ objects }}
 
 def _add_object(o, radia_objs, id_map):
@@ -80,7 +80,11 @@ def _build_radia_geom():
     g_id = radia_util.build_container(radia_objs)
 {% endif %}
     return g_id, id_map
-{% endif %}
+
+def _put_sim_files():
+    for f in ['{{ dataFile }}', '{{ dmpOutputFile }}']:
+        sirepo.mpi.restrict_op_to_first_rank(lambda: sirepo.sim_data.radia.SimData.put_sim_file('{{ simId }}', f, f))
+
 
 def _write_dict_to_h5(data, h5_path):
     sirepo.mpi.restrict_op_to_first_rank(
@@ -96,14 +100,10 @@ with radia_util.MPI() as m:
 {% if doReset %}
     radia_util.reset()
 {% endif %}
-{% if doGenerate %}
     g_id, id_map = _build_radia_geom()
     g_data = radia_util.geom_to_data(g_id, name='{{ geomName }}')
     _write_dict_to_h5(g_data, '{{ h5ObjPath }}')
     _write_dict_to_h5(id_map, '{{ h5IdMapPath }}')
-{% else %}
-    g_id = {{ gId }}
-{% endif %}
 
 {% if doSolve %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
@@ -112,17 +112,16 @@ with radia_util.MPI() as m:
 {% endif %}
 
 {% if viewType == VIEW_TYPE_FIELD %}
+    field = None
 {% if fieldType == FIELD_TYPE_MAG_M %}
-    f = radia_util.get_magnetization(g_id)
+    field = radia_util.get_magnetization(g_id)
 {% elif fieldType in POINT_FIELD_TYPES %}
-    f = radia_util.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
-{% else %}
-    f = None
+    field = radia_util.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
 {% endif %}
     m.barrier()
-    if f:
-        g_data = radia_util.vector_field_to_data(g_id, '{{ geomName }}', f, radia_util.FIELD_UNITS['{{ fieldType }}'])
+    if field:
+        g_data = radia_util.vector_field_to_data(g_id, '{{ geomName }}', field, radia_util.FIELD_UNITS['{{ fieldType }}'])
         _write_dict_to_h5(g_data, '{{ h5FieldPath }}')
 {% endif %}
     sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
-
+    _put_sim_files()

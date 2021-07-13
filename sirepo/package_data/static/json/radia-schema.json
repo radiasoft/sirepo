@@ -369,6 +369,7 @@
             "type": ["_", "ObjectType", "gamma"]
         },
         "geometryReport": {
+            "doGenerate": ["_", "Boolean", "1"],
             "id": ["_", "UUID", ""],
             "isSolvable": ["_", "Boolean", "1"],
             "name": ["Name", "String", ""],

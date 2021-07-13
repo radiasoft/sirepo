@@ -111,27 +111,28 @@ def create_archive(sim):
 
 
 def extract_report_data(run_dir, sim_in):
-    pkdp('EXTRACT RPT {} IN {}', sim_in.report, run_dir)
     assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
+    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     if 'reset' in sim_in.report:
         template_common.write_sequential_result({}, run_dir=run_dir)
     if 'geometryReport' in sim_in.report:
-        # copy from run_dir to sim dir?
-        _put_sim_files(sim_in)
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type ==\
             _SCHEMA.constants.viewTypeFields else None
+        d = _get_geom_data(
+                _get_g_id(),
+                sim_in.models.simulation.name,
+                v_type,
+                f_type,
+                field_paths=sim_in.models.fieldPaths.paths
+            )
         template_common.write_sequential_result(
-            #_read_data(v_type, f_type),
-            _get_geom_data(_get_g_id(), v_type, f_type),
+            d,
             run_dir=run_dir,
         )
-        return
-    # copy from sim dir to run_dir?
-    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     if 'kickMapReport' in sim_in.report:
         template_common.write_sequential_result(
-            _kick_map_plot(sim_in.simulationId, sim_in.models.kickMapReport),
+            _kick_map_plot(sim_in.models.kickMapReport),
             run_dir=run_dir,
         )
     if 'fieldLineoutReport' in sim_in.report:
@@ -157,7 +158,6 @@ def extract_report_data(run_dir, sim_in):
 # should only have to blow away the file after a solve or geometry change
 # begin deprrecating this...except for save field?
 def get_application_data(data, **kwargs):
-    pkdp('GET APP DATA FOR {}', data.method)
     if 'method' not in data:
         raise RuntimeError('no application data method')
     if data.method not in _SCHEMA.constants.getDataMethods:
@@ -291,15 +291,6 @@ def python_source_for_model(data, model):
 
 
 def write_parameters(data, run_dir, is_parallel):
-# TODO(e-carlin): we may not have access to these files (NERSC). Should use run_dir.
-    #if data.report in _SIM_REPORTS:
-    #    # remove centrailzed geom files
-    #    pkio.unchecked_remove(
-    #        _geom_file(),
-    #        _dmp_file()
-    #    )
-    #if data.report == 'kickMapReport':
-    #    pkio.unchecked_remove(_get_sim_file(_KICK_FILE))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, is_parallel, run_dir=run_dir),
@@ -521,7 +512,8 @@ _FIELD_PT_BUILDERS = {
 
 def _delete_sim_files(sim_in):
     for f in _SIM_FILES:
-        _SIM_DATA.delete_sim_file(f, sim_in)
+        #_SIM_DATA.delete_sim_file(f, sim_in)
+        pkio.unchecked_remove(f)
 
 
 def _field_lineout_plot(name, f_type, f_path, beam_axis, v_axis, h_axis):
@@ -589,17 +581,16 @@ def _generate_field_integrals(g_id, f_paths):
         return PKDict(error=e.message)
 
 
-def _generate_data(g_id, in_data, add_lines=True):
+def _generate_data(g_id, name, view_type, field_type, field_paths=None):
     try:
-        o = _generate_obj_data(g_id, in_data.name)
-        if in_data.viewType == _SCHEMA.constants.viewTypeObjects:
+        o = _generate_obj_data(g_id, name)
+        if view_type == _SCHEMA.constants.viewTypeObjects:
             return o
-        elif in_data.viewType == _SCHEMA.constants.viewTypeFields:
+        elif view_type == _SCHEMA.constants.viewTypeFields:
             g = _generate_field_data(
-                g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
+                g_id, name, field_type, field_paths
             )
-            if add_lines:
-                _add_obj_lines(g, o)
+            _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
         pkdlog('Radia error {}', e.message)
@@ -642,25 +633,26 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         return res
 
     g = data.models.geometryReport
+    v.simId = data.models.simulation.simulationId
 
     v.doSolve = 'solver' in report or for_export
-    v.doGenerate = g.get('doGenerate', True) or v.doSolve
-    pkdp('GEN IN {}? {}/{}', run_dir, g.get('doGenerate'), v.doGenerate)
-    if not v.doGenerate:
+    v.doReset = 'reset' in report
+    doGenerate = _normalize_bool(g.get('doGenerate', True)) or v.doSolve or v.doReset
+    if not doGenerate:
         try:
             # use the previous results
             _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
         except sirepo.sim_data.SimDbFileNotFound as e:
-            pkdp('CANT MOVE TO {} ({}), MUST GENERATE', e, run_dir)
-            v.doGenerate = True
+            doGenerate = True
 
-    if not v.doGenerate:
+    if not doGenerate:
         return res
+
+    # ensure old files are gone
+    _delete_sim_files(data)
 
     v.doReset = False
     v.isParallel = is_parallel
-
-    v.gId = _get_g_id()
 
     v.dmpOutputFile = _DMP_FILE
     if 'dmpImportFile' in data.models.simulation:
@@ -761,36 +753,33 @@ def _get_g_id():
         return radia_util.load_bin(f.read())
 
 
-# send model
-def _get_geom_data(g_id, data):
-    pkdp('GET GEOM DATA')
-
-    id_map = _read_id_map()
-    if data.viewType == _SCHEMA.constants.viewTypeFields:
-        f_type = data.get('fieldType')
+def _get_geom_data(
+        g_id,
+        name,
+        view_type,
+        field_type,
+        field_paths=None,
+        geom_types=[_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
+    ):
+    if view_type == _SCHEMA.constants.viewTypeFields:
         res = _generate_field_data(
-            g_id, data.name, f_type, data.get('fieldPaths', None)
+            g_id, name, field_type, field_paths
         )
-        res.solution = _read_solution()
-        res.idMap = id_map
-        tmp_f_type = data.fieldType
-        data.fieldType = None
-        data.geomTypes = [_SCHEMA.constants.geomTypeLines]
-        data.viewType = _SCHEMA.constants.viewTypeObjects
-        new_res = _get_geom_data(g_id, data)
-        res.data += new_res.data
-        data.fieldType = tmp_f_type
+        res.data += _get_geom_data(
+            g_id,
+            name,
+            _SCHEMA.constants.viewTypeObjects,
+            None,
+            geom_types=[_SCHEMA.constants.geomTypeLines]
+        ).data
         return res
 
-    g_types = data.get(
-        'geomTypes',
-        [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
-    )
-    g_types.extend(['center', 'name', 'size', 'id'])
-    res = _read_or_generate(g_id, data)
+    geom_types.extend(['center', 'name', 'size', 'id'])
+    res = _read_or_generate(g_id, name, view_type, None)
     rd = res.data if 'data' in res else []
-    res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
-    res.idMap = id_map
+    res.data = [{k: d[k] for k in d.keys() if k in geom_types} for d in rd]
+    res.idMap = _read_id_map()
+    res.solution = _read_solution()
     return res
 
 
@@ -820,7 +809,7 @@ def _get_sdds(cols, units):
     return _cfg.sdds
 
 
-def _kick_map_plot(sim_id, model):
+def _kick_map_plot(model):
     from sirepo import srschema
     g_id = _get_g_id()
     component = model.component
@@ -838,6 +827,11 @@ def _kick_map_plot(sim_id, model):
     )
 
 
+def _normalize_bool(x):
+    bool_map = {'1': True, '0': False}
+    return bool_map[x] if x in bool_map else x
+
+
 def _parse_input_file_arg_str(s):
     d = PKDict()
     for kvp in s.split(_SCHEMA.constants.inputFileArgDelims.list):
@@ -853,9 +847,9 @@ def _prep_new_sim(data):
 
 
 # copies files to the base simulation directory
-def _put_sim_files(sim_in):
+def _put_sim_files(sim_id):
     for f in _SIM_FILES:
-        _SIM_DATA.put_sim_file(f, f, sim_in)
+        _SIM_DATA.put_sim_file(sim_id, f, f)
 
 
 def _read_h5_path(filename, h5path):
@@ -905,18 +899,17 @@ def _read_kick_map():
     return _read_h5_path(_KICK_FILE, _H5_PATH_KICK_MAP)
 
 
-def _read_or_generate(g_id, data):
-    f_type = data.get('fieldType', None)
-    res = _read_data(data.viewType, f_type)
+def _read_or_generate(g_id, name, view_type, field_type, field_paths=None):
+    res = _read_data(view_type, field_type)
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
     template_common.write_dict_to_h5(
-        _generate_data(g_id, data, add_lines=False),
+        _generate_data(g_id, name, view_type, field_type, field_paths),
         _GEOM_FILE,
-        h5_path=_geom_h5_path(data.viewType, f_type)
+        h5_path=_geom_h5_path(view_type, field_type)
     )
-    return get_application_data(data)
+    return _get_geom_data(g_id, name, view_type, field_type, field_paths)
 
 
 def _read_or_generate_kick_map(g_id, data):

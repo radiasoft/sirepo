@@ -100,7 +100,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.alphaDelegate = function() {
-        var m = 'geometryReport';
+        var m = 'magnetDisplay';
         var f = 'alpha';
         var d = panelState.getFieldDelegate(m, f);
         d.range = function() {
@@ -183,6 +183,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     self.pathTypeModel = function(type) {
         return type + 'Path';
+    };
+
+    self.saveGeometry = function(doGenerate, isQuiet, callback) {
+        appState.models.geometryReport.doGenerate = doGenerate;
+        if (isQuiet) {
+            appState.saveQuietly('geometryReport');
+        }
+        else {
+            appState.saveChanges('geometryReport', callback);
+        }
     };
 
     self.setSelectedObject = function(o) {
@@ -333,7 +343,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         // if object was in a group, remove from that group
         removeFromGroup(o);
         appState.models.geometryReport.objects.splice(oIdx, 1);
-        appState.saveChanges('geometryReport');
+        radiaService.saveGeometry(true, false);
+        //appState.models.geometryReport.doGenerate = true;
+        //appState.saveChanges('geometryReport');
     };
 
     function removeFromGroup(o) {
@@ -1026,6 +1038,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
                 }
             }
+            /*
             appState.saveChanges('geometryReport', function (d) {
                 panelState.clear('geometryReport');
                 // need to rebuild the geometry after changes were made
@@ -1035,6 +1048,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     }
                 });
             });
+
+             */
+            radiaService.saveGeometry(true, false, () => {
+                panelState.clear('geometryReport');
+                // need to rebuild the geometry after changes were made
+                panelState.requestData('geometryReport', function(data) {
+                    if (self.selectedObject) {
+                        loadShapes();
+                    }
+                });
+            });
+
         });
         $scope.$on('geomObject.editor.show', function(e, o) {
             updateObjectEditor();
@@ -1292,7 +1317,9 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                     return;
                 }
                 $scope.field.splice(index, 1);
-                appState.saveChanges('geometryReport');
+                radiaService.saveGeometry(true);
+                //appState.models.geometryReport.doGenerate = true;
+                //appState.saveChanges('geometryReport');
             };
 
             $scope.editItem = function(item, isNew) {
@@ -1322,9 +1349,13 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                         $scope.field.push(appState.models[modelName]);
                         isEditing = true;
                     }
-                    appState.saveChanges('geometryReport', function () {
+                    radiaService.saveGeometry(true, false,() => {
                         $scope.loadItems();
                     });
+                    //appState.models.geometryReport.doGenerate = true;
+                    //appState.saveChanges('geometryReport', function () {
+                    //    $scope.loadItems();
+                    //});
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {
@@ -2203,7 +2234,9 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     return;
                 }
                 $scope.field.splice(index, 1);
-                appState.saveChanges('geometryReport');
+                radiaService.saveGeometry(true);
+                //appState.models.geometryReport.doGenerate = true;
+                //appState.saveChanges('geometryReport');
             };
 
             $scope.editItem = function(item, isNew) {
@@ -2318,9 +2351,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                         $scope.field.push(appState.models[modelName]);
                         isEditing = true;
                     }
-                    appState.saveChanges('geometryReport', function () {
+                    radiaService.saveGeometry(true, false,() => {
                         $scope.loadItems();
                     });
+                    //appState.models.geometryReport.doGenerate = true;
+                    //appState.saveChanges('geometryReport', function() {
+                    //    $scope.loadItems();
+                    //});
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {
@@ -2549,10 +2586,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var colorScale = null;
             var cPicker = null;
             var displayFields = [
-                 'magnetDisplay.pathType',
                  'magnetDisplay.viewType',
                  'magnetDisplay.fieldType',
             ];
+            let displayVals = getDisplayVals();
             var fieldDisplayModelFields = {
                 'fieldDisplay': ['colorMap', 'scaling'],
             };
@@ -2642,7 +2679,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                srdbg('buildScene', sceneData);
+                //srdbg('buildScene', sceneData);
                 // scene -> multiple data -> multiple actors
                 let name = sceneData.name;
                 let data = sceneData.data;
@@ -2790,10 +2827,27 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 enableWatchFields(true);
             }
 
+            function didDisplayValsChange() {
+                let v = getDisplayVals();
+                for (let i = 0; i < v.length; ++i) {
+                    if (v[i] != displayVals[i]) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             function enableWatchFields(doEnable) {
                 watchFields.forEach(function (wf) {
                     var mf = appState.parseModelField(wf);
                     panelState.enableField(mf[0], mf[1], doEnable);
+                });
+            }
+
+            function getDisplayVals() {
+                return displayFields.map((f) => {
+                    let mf = appState.parseModelField(f);
+                    return appState.models[mf[0]][mf[1]];
                 });
             }
 
@@ -3304,6 +3358,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function updateViewer() {
                 //srdbg('update v');
+                displayVals = getDisplayVals();
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
@@ -3325,27 +3380,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                srdbg('getting app data...', inData);
+                //srdbg('getting app data...', inData);
                 $rootScope.$broadcast('vtk.showLoader');
-                /*
-                radiaService.getRadiaData(
-                    inData,
-                    function(d) {
-                        srdbg('got app data', d);
-                        if (d && d.data && d.data.length) {
-                            setupSceneData(d);
-                            return;
-                        }
-                        srdbg('no app data, requesting');
-                        panelState.clear('geometryReport');
-                        panelState.requestData('geometryReport', setupSceneData, true);
-                    });
-                 */
-                appState.models.geometryReport.doGenerate = appState.hasModelChanged('geometryReport');
-                appState.saveQuietly('geometryReport');
+                radiaService.saveGeometry(false, true);
                 panelState.requestData('geometryReport', setupSceneData, true);
-                //panelState.requestData('geometryReport', setupSceneData, appState.hasModelChanged('geometryReport'));
-                //appState.saveChanges('geometryReport', setupSceneData);
             }
 
             $scope.eventHandlers = {
@@ -3389,9 +3427,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('geomObject.changed', function(e) {
-                appState.saveChanges('geometryReport', function (d) {
-                    //srdbg('geom save', d);
-                });
+                radiaService.saveGeometry(true, false)
             });
 
             $scope.$on('fieldPaths.changed', function () {
@@ -3422,8 +3458,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         $interval.cancel(interval);
                         interval = null;
                     }
-                    updateViewer();
+                    // only fetch if we need different view or field
+                    if (didDisplayValsChange()) {
+                        updateViewer();
+                    }
                 }, 500, 1);
+
             });
 
             $scope.$on('framesCleared', function () {

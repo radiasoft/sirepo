@@ -737,6 +737,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.saveQuietly = function(name) {
+        srdbg('SAVE Q', name);
         // saves the model, but doesn't broadcast the change
         savedModelValues[name] = self.cloneModel(name);
     };
@@ -754,6 +755,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (typeof(name) == 'string') {
             name = [name];
         }
+        srdbg('SAVE', name);
         var updatedModels = [];
         var requireReportUpdate = false;
 
