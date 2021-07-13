@@ -37,4 +37,3 @@ def test_injection(fc):
     # test successful injection
     r = fc.get('/en/landing.html')
     pkre(_TEST_ID, pkcompat.from_bytes(r.data))
-
