@@ -1842,19 +1842,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.linePaths = function () {
                 return (($scope.model || {}).paths || []).filter($scope.isLine);
             };
-/*
-            function updateTable() {
-                requestSender.getApplicationData(
-                    {
-                        fieldPaths: $scope.linePaths(),
-                        method: 'get_field_integrals',
-                        simulationId: appState.models.simulation.simulationId,
-                    },
-                    function(d) {
-                        $scope.integrals = d;
-                    });
-            }
-*/
+
             function updateTable() {
                 var inData = {
                     fieldPaths: $scope.linePaths(),
@@ -3428,7 +3416,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('geomObject.changed', function(e) {
-                radiaService.saveGeometry(true, false)
+                radiaService.saveGeometry(true, false);
             });
 
             $scope.$on('fieldPaths.changed', function () {

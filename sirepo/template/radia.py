@@ -64,7 +64,6 @@ _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
-#_SIM_FILES = [_DMP_FILE, _GEOM_FILE]
 _SIM_REPORTS = ['geometryReport', 'reset', 'solverAnimation']
 _REPORTS = ['fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
@@ -781,19 +780,6 @@ def _get_geom_data(
     res.idMap = _read_id_map()
     res.solution = _read_solution()
     return res
-
-
-def _get_sim_file(filename):
-    return filename
-
-
-def _get_sim_db_file(filename, sim_id):
-    return sirepo.simulation_db.simulation_file_uri(
-        _SIM_DATA.sim_type(),
-        sim_id,
-        filename,
-    )
-    #return _SIM_DATA.get_sim_file(filename, data)
 
 
 def _get_sdds(cols, units):
