@@ -3383,6 +3383,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('getting app data...', inData);
                 $rootScope.$broadcast('vtk.showLoader');
                 radiaService.saveGeometry(false, true);
+                panelState.clear('geometryReport');
                 panelState.requestData('geometryReport', setupSceneData, true);
             }
 
