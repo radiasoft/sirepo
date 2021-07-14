@@ -10,7 +10,6 @@ from pykern.pkcollections import PKDict
 from sirepo import simulation_db
 import math
 import sirepo.sim_data
-import srwlib
 import scipy.constants
 
 _SRW = sirepo.sim_data.get_class('srw')
