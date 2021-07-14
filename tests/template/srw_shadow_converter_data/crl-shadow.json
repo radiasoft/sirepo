@@ -214,7 +214,9 @@
             }
         ],
         "bendingMagnet": {
+            "calculateFieldMethod": "radius",
             "fdistr": "4",
+            "magneticField": 0.8002189024183939,
             "ph1": 8000,
             "ph2": 8000.001,
             "r_magnet": 25.1772

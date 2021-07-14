@@ -1579,7 +1579,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
         var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME];
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
+              '<a class="navbar-brand" href="/"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="Sirepo"></a>',
               '<div class="navbar-brand">',
                 '<a class="hidden-md hidden-sm" href="/light">', appInfo.longName, '</a>',
                 '<a class="hidden-xs hidden-lg hidden-xl" href="/light">', appInfo.shortName, '</a>',
@@ -1651,7 +1651,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             $scope.showOpenShadow = function() {
                 return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
                     && $scope.nav.isActive('beamline')
-                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator());
+                    && (srwService.isGaussianBeam() || srwService.isIdealizedUndulator() || srwService.isMultipole());
             };
 
             $scope.showRsOptML = function() {

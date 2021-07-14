@@ -556,29 +556,6 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v.shadowOutputFile = _SHADOW_OUTPUT_FILE
     if _has_zone_plate(beamline):
         v.zonePlateMethods = template_common.render_jinja(SIM_TYPE, v, 'zone_plate.py')
-    if r == 'initialIntensityReport':
-        v.distanceFromSource = beamline[0].position if beamline else template_common.DEFAULT_INTENSITY_DISTANCE
-    elif r == 'beamStatisticsReport':
-        v.simulation_npoint = 10000
-        v.undulatorSettings = template_common.render_jinja(SIM_TYPE, v, 'undulator.py')
-        v.beamlineOptics = _generate_beamline_optics(data.models, calc_beam_stats=True)
-        v.beamStatsFile = BEAM_STATS_FILE
-        assert v.simulation_sourceType in ('geometricSource', 'undulator')
-        if v.simulation_sourceType == 'geometricSource':
-            if v.geometricSource_f_color == '1':
-                v.photonEnergy = v.geometricSource_singleEnergyValue
-            else:
-                v.photonEnergy = (v.geometricSource_ph1 + v.geometricSource_ph2) / 2
-        elif v.simulation_sourceType == 'undulator':
-            if v.undulator_select_energy == 'range':
-                v.photonEnergy = (v.undulator_emin + v.undulator_emax) / 2
-            else:
-                v.photonEnergy = v.undulator_photon_energy
-        return template_common.render_jinja(SIM_TYPE, v, 'beam_statistics.py')
-    elif _SIM_DATA.is_watchpoint(r):
-        v.beamlineOptics = _generate_beamline_optics(data.models, last_id=_SIM_DATA.watchpoint_id(r))
-    else:
-        v.distanceFromSource = report_model.distanceFromSource
 
     if v.simulation_sourceType == 'bendingMagnet':
         v.bendingMagnetSettings = _generate_bending_magnet(data)
@@ -592,6 +569,31 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
             v.wigglerTrajectoryInput = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
     elif v.simulation_sourceType == 'undulator':
         v.undulatorSettings = template_common.render_jinja(SIM_TYPE, v, 'undulator.py')
+
+    if r == 'initialIntensityReport':
+        v.distanceFromSource = beamline[0].position if beamline else template_common.DEFAULT_INTENSITY_DISTANCE
+    elif r == 'beamStatisticsReport':
+        v.simulation_npoint = 10000
+        v.beamlineOptics = _generate_beamline_optics(data.models, calc_beam_stats=True)
+        v.beamStatsFile = BEAM_STATS_FILE
+        assert v.simulation_sourceType in ('bendingMagnet', 'geometricSource', 'undulator')
+        if v.simulation_sourceType == 'geometricSource':
+            if v.geometricSource_f_color == '1':
+                v.photonEnergy = v.geometricSource_singleEnergyValue
+            else:
+                v.photonEnergy = (v.geometricSource_ph1 + v.geometricSource_ph2) / 2
+        elif v.simulation_sourceType == 'undulator':
+            if v.undulator_select_energy == 'range':
+                v.photonEnergy = (v.undulator_emin + v.undulator_emax) / 2
+            else:
+                v.photonEnergy = v.undulator_photon_energy
+        elif v.simulation_sourceType == 'bendingMagnet':
+            v.photonEnergy = v.bendingMagnet_ph1
+        return template_common.render_jinja(SIM_TYPE, v, 'beam_statistics.py')
+    elif _SIM_DATA.is_watchpoint(r):
+        v.beamlineOptics = _generate_beamline_optics(data.models, last_id=_SIM_DATA.watchpoint_id(r))
+    else:
+        v.distanceFromSource = report_model.distanceFromSource
     return template_common.render_jinja(SIM_TYPE, v)
 
 

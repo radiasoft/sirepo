@@ -131,9 +131,9 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService)
     //TODO(pjm): also KB Mirror and  Monocromator
     self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch', 'zonePlate'];
     self.prepareToSave = function() {};
-    self.showBeamStatisticsReport = function() {
-        return ['geometricSource', 'undulator'].indexOf(appState.models.simulation.sourceType) >= 0;
-    };
+    self.showBeamStatisticsReport = () =>
+        ['bendingMagnet', 'geometricSource', 'undulator'].indexOf(
+            appState.models.simulation.sourceType) >= 0;
 });
 
 SIREPO.app.controller('SourceController', function(appState, shadowService) {
@@ -340,10 +340,38 @@ SIREPO.viewLogic('wigglerView', function(appState, panelState, shadowService, $s
     ];
 });
 
-SIREPO.viewLogic('bendingMagnetView', function(shadowService, $scope) {
-    $scope.whenSelected = shadowService.updateRayFilterFields;
+SIREPO.viewLogic('bendingMagnetView', function(appState, panelState, shadowService, $scope) {
+
+    function computeFieldRadius() {
+        let bm = appState.models.bendingMagnet;
+        let isRadius = bm.calculateFieldMethod == 'radius';
+        const c = 299792458;
+        const e = 1e9 / c * appState.models.electronBeam.bener;
+        if (isRadius) {
+            if (bm.r_magnet) {
+                bm.magneticField = e / bm.r_magnet;
+            }
+        }
+        else if (bm.magneticField) {
+            bm.r_magnet = e / bm.magneticField;
+        }
+        panelState.enableFields('bendingMagnet', [
+            'r_magnet', isRadius,
+            'magneticField', ! isRadius,
+        ]);
+    }
+
+    $scope.whenSelected = () => {
+        shadowService.updateRayFilterFields();
+        computeFieldRadius();
+    };
     $scope.watchFields = [
         ['rayFilter.f_bound_sour'], shadowService.updateRayFilterFields,
+        [
+            'bendingMagnet.calculateFieldMethod',
+            'bendingMagnet.r_magnet',
+            'bendingMagnet.magneticField',
+        ], computeFieldRadius,
     ];
 });
 
