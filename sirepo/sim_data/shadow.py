@@ -7,6 +7,7 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
+import scipy.constants
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -18,11 +19,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         cls._init_models(dm, (
             'beamStatisticsReport',
+            'bendingMagnet',
             'initialIntensityReport',
             'plotXYReport',
             'undulator',
             'undulatorBeam',
         ))
+        if 'magneticField' not in dm.bendingMagnet:
+            dm.bendingMagnet.magneticField = 1e9 / scipy.constants.c * float(dm.electronBeam.bener) / float(dm.bendingMagnet.r_magnet)
         for m in dm:
             if cls.is_watchpoint(m):
                 cls.update_model_defaults(dm[m], 'watchpointReport')

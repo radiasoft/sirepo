@@ -175,7 +175,7 @@ def _run_shadow(cfg_dir, data):
             y_range=[ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
             x_label=_label_with_units(model['x'], column_values),
             y_label=_label_with_units(model['y'], column_values),
-            z_label='Frequency',
+            z_label='Intensity' if int(model['weight']) else 'Rays',
             title=u'{}, {}'.format(_label(model['x'], column_values), _label(model['y'], column_values)),
             z_matrix=values.tolist(),
             frameCount=1,
