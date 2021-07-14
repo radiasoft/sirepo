@@ -167,7 +167,7 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         res = _generate_field_data(
-            g_id, data.name, f_type, data.get('fieldPaths', None)
+            sim_id, g_id, data.name, f_type, data.get('fieldPaths')
         )
         res.solution = _read_solution(sim_id)
         res.idMap = id_map
@@ -182,7 +182,7 @@ def get_application_data(data, **kwargs):
         return res
 
     if data.method == 'get_field_integrals':
-        return _generate_field_integrals(g_id, data.fieldPaths)
+        return _generate_field_integrals(sim_id, g_id, data.fieldPaths)
     if data.method == 'get_kick_map':
         return _read_or_generate_kick_map(g_id, data)
     if data.method == 'get_geom':
@@ -306,6 +306,12 @@ def write_parameters(data, run_dir, is_parallel):
 def _add_obj_lines(field_data, obj):
     for d in obj.data:
         field_data.data.append(PKDict(lines=d.lines))
+
+
+def _backend_alert(sim_id, g_id, e):
+    raise sirepo.util.UserAlert(
+        'backend Radia runtime error={} in simulation={} for key={}'.format(e, sim_id, g_id)
+    )
 
 
 def _build_clone_xform(num_copies, alt_fields, transforms):
@@ -522,7 +528,7 @@ def _dmp_file(sim_id):
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
     g_id = _get_g_id(sim_id)
-    v = _generate_field_data(g_id, name, f_type, [f_path]).data[0].vectors
+    v = _generate_field_data(sim_id, g_id, name, f_type, [f_path]).data[0].vectors
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
@@ -558,15 +564,18 @@ def _find_obj_by_name(obj_arr, obj_name):
     return a[0] if a else None
 
 
-def _generate_field_data(g_id, name, field_type, field_paths):
-    if field_type == radia_util.FIELD_TYPE_MAG_M:
-        f = radia_util.get_magnetization(g_id)
-    elif field_type in radia_util.POINT_FIELD_TYPES:
-        f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
-    return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
+def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
+    try:
+        if field_type == radia_util.FIELD_TYPE_MAG_M:
+            f = radia_util.get_magnetization(g_id)
+        elif field_type in radia_util.POINT_FIELD_TYPES:
+            f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
+        return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
 
 
-def _generate_field_integrals(g_id, f_paths):
+def _generate_field_integrals(sim_id, g_id, f_paths):
     l_paths = [fp for fp in f_paths if fp.type == 'line']
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
@@ -581,9 +590,7 @@ def _generate_field_integrals(g_id, f_paths):
                 res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
     except RuntimeError as e:
-        return _radia_error('_generate_field_integrals', e)
-        #pkdlog('Radia error {}', e.message)
-        #return PKDict(error='e.message'.format())
+        _backend_alert(sim_id, g_id, e)
 
 
 def _generate_data(g_id, in_data, add_lines=True):
@@ -593,13 +600,13 @@ def _generate_data(g_id, in_data, add_lines=True):
             return o
         elif in_data.viewType == _SCHEMA.constants.viewTypeFields:
             g = _generate_field_data(
-                g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
+                in_data.simulationId, g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths')
             )
             if add_lines:
                 _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
-        return _radia_error('_generate_data', e)
+        _backend_alert(in_data.simulationId, g_id, e)
 
 
 def _generate_kick_map(g_id, model):
@@ -797,12 +804,6 @@ def _prep_new_sim(data):
     data.models.geometryReport.name = data.models.simulation.name
 
 
-def _radia_error(fn, e):
-    s = 'Radia error={} in function={}'.format(e.message, fn)
-    pkdlog(s)
-    return PKDict(error=s)
-
-
 def _read_h5_path(sim_id, filename, h5path, run_dir=_GEOM_DIR):
     try:
         with h5py.File(_get_sim_file(sim_id, filename, run_dir=run_dir), 'r') as f:
@@ -875,7 +876,7 @@ def _read_solution(sim_id):
     s = _read_h5_path(
         sim_id,
         _GEOM_FILE,
-        '/POOP', #_H5_PATH_SOLUTION,
+        _H5_PATH_SOLUTION,
     )
     if not s:
         return None
