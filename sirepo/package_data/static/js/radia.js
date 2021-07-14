@@ -186,7 +186,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
-        appState.models.geometryReport.doGenerate = doGenerate;
+        appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
             appState.saveQuietly('geometryReport');
         }
@@ -344,8 +344,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         removeFromGroup(o);
         appState.models.geometryReport.objects.splice(oIdx, 1);
         radiaService.saveGeometry(true, false);
-        //appState.models.geometryReport.doGenerate = true;
-        //appState.saveChanges('geometryReport');
     };
 
     function removeFromGroup(o) {
@@ -1318,8 +1316,6 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                 }
                 $scope.field.splice(index, 1);
                 radiaService.saveGeometry(true);
-                //appState.models.geometryReport.doGenerate = true;
-                //appState.saveChanges('geometryReport');
             };
 
             $scope.editItem = function(item, isNew) {
@@ -1352,10 +1348,6 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                     radiaService.saveGeometry(true, false,() => {
                         $scope.loadItems();
                     });
-                    //appState.models.geometryReport.doGenerate = true;
-                    //appState.saveChanges('geometryReport', function () {
-                    //    $scope.loadItems();
-                    //});
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {
@@ -2223,8 +2215,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 }
                 $scope.field.splice(index, 1);
                 radiaService.saveGeometry(true);
-                //appState.models.geometryReport.doGenerate = true;
-                //appState.saveChanges('geometryReport');
             };
 
             $scope.editItem = function(item, isNew) {
@@ -2342,10 +2332,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     radiaService.saveGeometry(true, false,() => {
                         $scope.loadItems();
                     });
-                    //appState.models.geometryReport.doGenerate = true;
-                    //appState.saveChanges('geometryReport', function() {
-                    //    $scope.loadItems();
-                    //});
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {
