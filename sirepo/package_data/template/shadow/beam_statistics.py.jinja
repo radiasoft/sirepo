@@ -19,7 +19,17 @@ sigmaz = {{ geometricSource_sigmaz }}
 sigdiz = {{ geometricSource_sigdiz }}
 {% elif simulation_sourceType == 'undulator' %}
 {{undulatorSettings}}
+{% elif simulation_sourceType == 'bendingMagnet' %}
+source = Shadow.Source()
+beam = Shadow.Beam()
+source.NPOINT = {{simulation_npoint}}
+source.ISTAR1 = {{simulation_istar1}}
+{{bendingMagnetSettings}}
+beam.genSource(source)
+rays = beam.rays
+{% endif %}
 
+{% if simulation_sourceType in ('bendingMagnet', 'undulator') %}
 def rays_sigma(rays, idx):
     return numpy.sqrt(numpy.mean(rays[:, idx] ** 2))
 
