@@ -5,7 +5,6 @@ import os
 import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
-import sirepo.sim_data.radia
 import sirepo.util
 from sirepo.template import radia_examples
 from sirepo.template import radia_util
@@ -83,7 +82,7 @@ def _build_radia_geom():
 
 def _put_sim_files():
     for f in ['{{ dataFile }}', '{{ dmpOutputFile }}']:
-        sirepo.mpi.restrict_op_to_first_rank(lambda: sirepo.sim_data.radia.SimData.put_sim_file('{{ simId }}', f, f))
+        sirepo.mpi.restrict_op_to_first_rank(lambda: sirepo.sim_data.get_class('radia').put_sim_file('{{ simId }}', f, f))
 
 
 def _write_dict_to_h5(data, h5_path):
