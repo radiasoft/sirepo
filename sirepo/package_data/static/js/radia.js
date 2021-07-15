@@ -2778,7 +2778,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function didDisplayValsChange() {
-                let v = getDisplayVals();
+                const v = getDisplayVals();
                 for (let i = 0; i < v.length; ++i) {
                     if (v[i] != displayVals[i]) {
                         return true;
@@ -2796,8 +2796,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function getDisplayVals() {
                 return displayFields.map((f) => {
-                    let mf = appState.parseModelField(f);
-                    return appState.models[mf[0]][mf[1]];
+                    const m = appState.parseModelField(f);
+                    return appState.models[m[0]][m[1]];
                 });
             }
 
