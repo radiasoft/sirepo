@@ -1036,18 +1036,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
                 }
             }
-            /*
-            appState.saveChanges('geometryReport', function (d) {
-                panelState.clear('geometryReport');
-                // need to rebuild the geometry after changes were made
-                panelState.requestData('geometryReport', function(data) {
-                    if (self.selectedObject) {
-                        loadShapes();
-                    }
-                });
-            });
-
-             */
             radiaService.saveGeometry(true, false, () => {
                 panelState.clear('geometryReport');
                 // need to rebuild the geometry after changes were made
@@ -1842,9 +1830,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     simulationId: appState.models.simulation.simulationId,
                 };
                 // may need another report instead of this
-                //radiaService.getRadiaData(inData, function(d) {
-                //    $scope.integrals = d;
-                //});
+                radiaService.getRadiaData(inData, function(d) {
+                    $scope.integrals = d;
+                });
             }
 
             $scope.$on('fieldPaths.changed', function () {
@@ -2068,23 +2056,11 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
         controller: function($scope) {
 
             $scope.dataCleared = true;
-            // not needed unless/until we change from heatmap to a vtk plot
-            function updateKickMaps() {
-                let inData = {
-                    model: $scope.model,
-                    method: 'get_kick_map_plot',
-                    simulationId: appState.models.simulation.simulationId,
-                };
-                //radiaService.getRadiaData(inData, function(d) {
-                //    //$scope.data = d;
-                //});
-            }
             appState.whenModelsLoaded($scope, function() {
                $scope.model = appState.models.kickMapReport;
                // wait until we have some data to update
                $scope.$on('radiaViewer.loaded', function () {
                    $scope.dataCleared = false;
-                    //updateKickMaps();
                });
             });
 
