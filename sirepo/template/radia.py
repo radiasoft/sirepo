@@ -640,7 +640,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         try:
             # use the previous results
             _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
-        except sirepo.sim_data.SimDbFileNotFound as e:
+        except sirepo.sim_data.SimDbFileNotFound:
             doGenerate = True
 
     if not doGenerate:
