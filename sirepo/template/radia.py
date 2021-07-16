@@ -828,12 +828,6 @@ def _prep_new_sim(data):
     data.models.geometryReport.name = data.models.simulation.name
 
 
-# copies files to the base simulation directory
-def _put_sim_files(sim_id):
-    for f in _SIM_FILES:
-        _SIM_DATA.put_sim_file(sim_id, f, f)
-
-
 def _read_h5_path(filename, h5path):
     try:
         with h5py.File(filename, 'r') as f:
