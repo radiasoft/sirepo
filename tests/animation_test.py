@@ -24,10 +24,10 @@ def test_elegant(fc):
         'Compact Storage Ring',
         'animation',
         PKDict({
-            'elementAnimation20-20': PKDict(
+            'elementAnimation20-21': PKDict(
                 expect_y_range='-0.0003.*, 0.0003.*, 200',
             ),
-            'elementAnimation20-28': PKDict(
+            'elementAnimation20-29': PKDict(
                 expect_y_range='^.9.44.*, 0.0012',
             ),
             'elementAnimation22-13': PKDict(
