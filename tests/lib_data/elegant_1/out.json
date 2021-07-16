@@ -2646,6 +2646,7 @@
                 "load_balancing_on": 0,
                 "losses": "",
                 "losses_include_global_coordinates": "0",
+                "losses_s_limit": "-1.79E308, 1.79E308",
                 "magnets": "%s.mag",
                 "monitor_memory_usage": "0",
                 "output": "",
@@ -2657,6 +2658,7 @@
                 "rfc_reference_output": "",
                 "show_element_timing": "0",
                 "sigma": "%s.sig",
+                "suppress_parameter_defaults": "0",
                 "tracking_updates": "1",
                 "use_beamline": 829,
                 "wrap_around": "1"
@@ -5486,6 +5488,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5502,6 +5505,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5518,6 +5522,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5534,6 +5539,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5550,6 +5556,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5566,6 +5573,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5582,6 +5590,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5598,6 +5607,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5614,6 +5624,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5630,6 +5641,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5646,6 +5658,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -6104,6 +6117,7 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": 0.0,
+                "malign_method": "0",
                 "max_normal_order": -1,
                 "max_skew_order": -1,
                 "min_normal_order": -1,
@@ -6111,6 +6125,7 @@
                 "n_kicks": 4,
                 "n_slices": 4,
                 "name": "LTP:Q6",
+                "pitch": 0.0,
                 "radial": "0",
                 "random_multipole_factor": 1.0,
                 "random_multipoles": "",
@@ -6125,7 +6140,8 @@
                 "type": "KQUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 306,
@@ -6163,6 +6179,7 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": 0.0,
+                "malign_method": "0",
                 "max_normal_order": -1,
                 "max_skew_order": -1,
                 "min_normal_order": -1,
@@ -6170,6 +6187,7 @@
                 "n_kicks": 4,
                 "n_slices": 4,
                 "name": "LTP:Q7",
+                "pitch": 0.0,
                 "radial": "0",
                 "random_multipole_factor": 1.0,
                 "random_multipoles": "",
@@ -6184,7 +6202,8 @@
                 "type": "KQUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 53,
@@ -11870,6 +11889,7 @@
                 "l": 0.0,
                 "name": "L1:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11889,6 +11909,7 @@
                 "l": 0.0,
                 "name": "L2:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11908,6 +11929,7 @@
                 "l": 0.0,
                 "name": "L2:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11927,6 +11949,7 @@
                 "l": 0.0,
                 "name": "L2:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11946,6 +11969,7 @@
                 "l": 0.0,
                 "name": "L3:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11965,6 +11989,7 @@
                 "l": 0.0,
                 "name": "L3:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11984,6 +12009,7 @@
                 "l": 0.0,
                 "name": "L3:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12003,6 +12029,7 @@
                 "l": 0.0,
                 "name": "L4:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12022,6 +12049,7 @@
                 "l": 0.0,
                 "name": "L4:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12041,6 +12069,7 @@
                 "l": 0.0,
                 "name": "L4:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12060,6 +12089,7 @@
                 "l": 0.0,
                 "name": "L5:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12079,6 +12109,7 @@
                 "l": 0.0,
                 "name": "L5:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12098,6 +12129,7 @@
                 "l": 0.0,
                 "name": "L5:PM4",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -12159,14 +12191,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 608,
@@ -12195,14 +12230,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 613,
@@ -12231,14 +12269,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 614,
@@ -12267,14 +12308,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 694,
@@ -12303,14 +12347,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 695,
@@ -12339,14 +12386,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 594,
@@ -12375,14 +12425,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:QE1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 595,
@@ -12411,14 +12464,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:QE2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 88,
@@ -12447,14 +12503,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 89,
@@ -12483,14 +12542,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 90,
@@ -12519,14 +12581,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 91,
@@ -12555,14 +12620,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 92,
@@ -12591,14 +12659,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 30,
@@ -12627,14 +12698,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 37,
@@ -12663,14 +12737,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 42,
@@ -12699,14 +12776,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 45,
@@ -12735,14 +12815,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 102,
@@ -12771,14 +12854,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 104,
@@ -12807,14 +12893,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 106,
@@ -12843,14 +12932,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 108,
@@ -12879,14 +12971,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 110,
@@ -12915,14 +13010,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 112,
@@ -12951,14 +13049,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 114,
@@ -12987,14 +13088,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 116,
@@ -13023,14 +13127,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 183,
@@ -13059,14 +13166,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 184,
@@ -13095,14 +13205,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 186,
@@ -13131,14 +13244,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 187,
@@ -13167,14 +13283,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 188,
@@ -13203,14 +13322,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 189,
@@ -13239,14 +13361,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 342,
@@ -13275,14 +13400,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 344,
@@ -13311,14 +13439,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 346,
@@ -13347,14 +13478,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 348,
@@ -13383,14 +13517,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 350,
@@ -13419,14 +13556,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 330,
@@ -13455,14 +13595,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 332,
@@ -13491,14 +13634,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 334,
@@ -13527,14 +13673,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 336,
@@ -13563,14 +13712,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 338,
@@ -13599,14 +13751,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 340,
@@ -13635,14 +13790,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 696,
@@ -13671,14 +13829,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LA:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 697,
@@ -13707,14 +13868,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LA:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 698,
@@ -13743,14 +13907,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 699,
@@ -13779,14 +13946,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 700,
@@ -13815,14 +13985,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 701,
@@ -13851,14 +14024,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 702,
@@ -13887,14 +14063,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 703,
@@ -13923,14 +14102,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 704,
@@ -13959,14 +14141,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 705,
@@ -13995,14 +14180,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 781,
@@ -14031,14 +14219,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 304,
@@ -14067,14 +14258,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q10",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 782,
@@ -14103,14 +14297,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 783,
@@ -14139,14 +14336,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 784,
@@ -14175,14 +14375,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 785,
@@ -14211,14 +14414,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 307,
@@ -14247,14 +14453,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 309,
@@ -14283,14 +14492,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q9",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 62,
@@ -14319,14 +14531,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 63,
@@ -14355,14 +14570,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 64,
@@ -14391,14 +14609,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 65,
@@ -14427,14 +14648,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 556,
@@ -14463,14 +14687,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 569,
@@ -14499,14 +14726,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q10",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 570,
@@ -14535,14 +14765,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q11",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 557,
@@ -14571,14 +14804,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 558,
@@ -14607,14 +14843,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 559,
@@ -14643,14 +14882,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 560,
@@ -14679,14 +14921,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 561,
@@ -14715,14 +14960,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 562,
@@ -14751,14 +14999,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 563,
@@ -14787,14 +15038,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 564,
@@ -14823,14 +15077,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q9",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 586,
@@ -14859,14 +15116,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "QB1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 582,
@@ -14895,14 +15155,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "QB2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 706,
@@ -14931,14 +15194,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TE:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 707,
@@ -14967,14 +15233,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TE:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 769,
@@ -15003,14 +15272,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 770,
@@ -15039,14 +15311,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 771,
@@ -15075,14 +15350,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 772,
@@ -15111,14 +15389,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 773,
@@ -15147,14 +15428,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 733,
@@ -15183,14 +15467,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU1:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 734,
@@ -15219,14 +15506,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU1:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 735,
@@ -15255,14 +15545,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU2:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 736,
@@ -15291,14 +15584,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU2:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 737,
@@ -15327,14 +15623,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU3:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 738,
@@ -15363,14 +15662,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU3:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 739,
@@ -16953,6 +17255,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16969,6 +17272,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16985,6 +17289,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17001,6 +17306,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17017,6 +17323,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17033,6 +17340,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17049,6 +17357,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17065,6 +17374,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17081,6 +17391,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17097,6 +17408,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -17113,6 +17425,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
