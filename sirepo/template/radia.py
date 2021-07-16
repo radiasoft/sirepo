@@ -511,12 +511,6 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _delete_sim_files(sim_in):
-    for f in _SIM_FILES:
-        #_SIM_DATA.delete_sim_file(f, sim_in)
-        pkio.unchecked_remove(f)
-
-
 def _field_lineout_plot(name, f_type, f_path, beam_axis, v_axis, h_axis):
     v = _generate_field_data(_get_g_id(), name, f_type, [f_path]).data[0].vectors
     pts = numpy.array(v.vertices).reshape(-1, 3)
@@ -647,7 +641,8 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         return res
 
     # ensure old files are gone
-    _delete_sim_files(data)
+    for f in _SIM_FILES:
+        pkio.unchecked_remove(f)
 
     v.doReset = False
     v.isParallel = is_parallel
