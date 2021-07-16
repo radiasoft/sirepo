@@ -552,9 +552,10 @@ def _find_obj_by_name(obj_arr, obj_name):
 
 
 def _generate_field_data(g_id, name, field_type, field_paths):
+    assert field_type in radia_util.FIELD_TYPES, 'field_type={}: invalid field type'.format(field_type)
     if field_type == radia_util.FIELD_TYPE_MAG_M:
         f = radia_util.get_magnetization(g_id)
-    elif field_type in radia_util.POINT_FIELD_TYPES:
+    else:
         f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
     return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
 
@@ -757,6 +758,7 @@ def _get_geom_data(
         field_paths=None,
         geom_types=[_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
     ):
+    assert view_type in VIEW_TYPES, 'view_type={}: invalid view type'.format(view_type)
     if view_type == _SCHEMA.constants.viewTypeFields:
         res = _generate_field_data(
             g_id, name, field_type, field_paths
