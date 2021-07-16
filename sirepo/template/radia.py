@@ -522,8 +522,6 @@ def _field_lineout_plot(name, f_type, f_path, beam_axis, v_axis, h_axis):
     plots = []
     labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
     x = pts[:, _AXES.index(beam_axis)]
-    y = pts[:, _AXES.index(h_axis)]
-    z = pts[:, _AXES.index(v_axis)]
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
 
