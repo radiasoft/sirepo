@@ -516,12 +516,10 @@ def _delete_sim_files(sim_in):
 
 
 def _field_lineout_plot(name, f_type, f_path, beam_axis, v_axis, h_axis):
-    g_id = _get_g_id()
-    v = _generate_field_data(g_id, name, f_type, [f_path]).data[0].vectors
+    v = _generate_field_data(_get_g_id(), name, f_type, [f_path]).data[0].vectors
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
-    x = pts[:, _AXES.index(beam_axis)]
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
 
@@ -534,7 +532,7 @@ def _field_lineout_plot(name, f_type, f_path, beam_axis, v_axis, h_axis):
             )
         )
     return template_common.parameter_plot(
-        x.tolist(),
+        pts[:, _AXES.index(beam_axis)].tolist(),
         plots,
         PKDict(),
         PKDict(
