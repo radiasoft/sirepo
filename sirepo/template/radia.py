@@ -8,6 +8,8 @@ Radia "instance" goes away and references no longer have any meaning.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import division
+
+import pykern.pkio
 from pykern import pkcollections
 from pykern import pkcompat
 from pykern import pkio
@@ -744,8 +746,7 @@ def _geom_h5_path(view_type, field_type=None):
 
 
 def _get_g_id():
-    with open(_DMP_FILE, 'rb') as f:
-        return radia_util.load_bin(f.read())
+    return radia_util.load_bin(pykern.pkio.read_binary(_DMP_FILE))
 
 
 def _get_geom_data(
