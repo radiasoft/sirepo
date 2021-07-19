@@ -714,6 +714,10 @@ class SimDataBase(object):
         ).raise_for_status()
 
     @classmethod
+    def _sim_file_basenames(cls, data):
+        return []
+
+    @classmethod
     def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
         p = run_dir.join(uri.split('/')[-1])
         r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
