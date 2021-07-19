@@ -510,8 +510,12 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
+    def sim_file_basenames(cls, data):
+        return cls._sim_file_basenames(data)
+
+    @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
-        for b in cls._sim_file_basenames(data):
+        for b in cls.sim_file_basenames(data):
             cls._sim_file_to_run_dir(
                 data.models.simulation.simulationId,
                 b.basename,
@@ -718,10 +722,6 @@ class SimDataBase(object):
         if is_exe:
             p.chmod(cls._EXE_PERMISSIONS)
         return p
-
-    @classmethod
-    def _sim_file_basenames(cls, data):
-        return []
 
     @classmethod
     def _sim_file_to_run_dir(cls, sim_id, basename, run_dir, is_exe=False):

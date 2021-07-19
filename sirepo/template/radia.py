@@ -74,7 +74,7 @@ _REPORT_RES_MAP = PKDict(
 )
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
-_SIM_FILES = [b.basename for b in _SIM_DATA._sim_file_basenames(None)]
+_SIM_FILES = [b.basename for b in _SIM_DATA.sim_file_basenames(None)]
 
 _ZERO = [0, 0, 0]
 
