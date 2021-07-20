@@ -1125,9 +1125,10 @@ def _update_geom_from_undulator(geom, und, beam_axis):
             [_build_translate_clone(beam_dir * und.periodLength / 2)]
         )]
 
+    term_gap = und.terminationGap * beam_dir
     pos = pole_dim_half.length + \
           magnet_dim_half.length / 2 + \
-          beam_dir * und.numPeriods * und.periodLength / 2
+          beam_dir * und.numPeriods * und.periodLength / 2 + term_gap
     magnet_cap = _update_cuboid(
         _find_obj_by_name(geom.objects, 'End Block'),
         magnet_transverse_ctr + pos,

@@ -410,8 +410,8 @@
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
-            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
             "magnetObjType": ["Shape", "ObjectType", "box"],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleBaseObjectId": ["_", "UUID", ""],
             "poleColor": ["Color", "Color", "#ff00ff"],
@@ -423,6 +423,7 @@
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "poleObjType": ["Shape", "ObjectType", "box"],
+            "terminationGap": ["Air Gap to Termination [mm]", "Float", 0.0, "", 0.0],
             "autoTerminate": ["Auto Terminate", "Boolean", "1", "When true, the undulator is terminated with a magnet block of half thickness immediately following the final period. Otherwise the termination must be specified."]
         },
         "invertField": {
@@ -698,7 +699,8 @@
                     "gap",
                     "gapAxis",
                     "numPeriods",
-                    "periodLength"
+                    "periodLength",
+                    "terminationGap"
                 ]],
                 ["Poles", [
                     "poleObjType",
