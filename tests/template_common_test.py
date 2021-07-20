@@ -10,7 +10,6 @@ import zipfile
 
 from pykern import pkresource
 from pykern import pkunit
-from pykern.pkcollections import PKDict
 from sirepo.template import template_common
 
 
@@ -41,6 +40,7 @@ def test_validate_safe_zip():
 
 def test_dict_to_from_h5():
     from pykern import pkio
+    from pykern.pkcollections import PKDict
     import h5py
 
     # _TEST_DICT includes single-valued entries (str and int), an array,
