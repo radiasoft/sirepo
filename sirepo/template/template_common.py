@@ -379,13 +379,13 @@ def h5_to_dict(hf, path=None):
             except (AttributeError, TypeError):
                 # AttributeErrors occur when invoking tolist() on non-arrays
                 # TypeErrors occur when accessing a group with [()]
-                # In each case we recurse one step deeper into the path
+                # in each case we recurse one step deeper into the path
                 p = '{}/{}'.format(path, k)
                 d[k] = h5_to_dict(hf, path=p)
     except TypeError as te:
-        # This TypeError occurs when hf[path] is not iterable (e.g. a string)
-        # assume this is a single-valued entry
-        return hf[path][()]
+        # this TypeError occurs when hf[path] is not iterable (e.g. a string)
+        # assume this is a single-valued entry and run it through pkcompat
+        return pkcompat.from_bytes(hf[path][()])
     # replace dicts with arrays on a 2nd pass
     try:
         indices = [int(k) for k in d.keys()]
