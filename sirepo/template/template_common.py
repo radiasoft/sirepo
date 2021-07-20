@@ -376,10 +376,14 @@ def h5_to_dict(hf, path=None):
         for k in hf[path]:
             try:
                 d[k] = hf[path][k][()].tolist()
-            except AttributeError:
+            except (AttributeError, TypeError):
+                # AttributeErrors occur when invoking tolist() on non-arrays
+                # TypeErrors occur when accessing a group with [()]
+                # In each case we recurse one step deeper into the path
                 p = '{}/{}'.format(path, k)
                 d[k] = h5_to_dict(hf, path=p)
-    except TypeError:
+    except TypeError as te:
+        # This TypeError occurs when hf[path] is not iterable (e.g. a string)
         # assume this is a single-valued entry
         return hf[path][()]
     # replace dicts with arrays on a 2nd pass
@@ -389,10 +393,10 @@ def h5_to_dict(hf, path=None):
         for i in indices:
             d_arr[i] = d[str(i)]
         d = d_arr
-    except IndexError:
+    except IndexError as ie:
         # integer keys but not an array
         pass
-    except ValueError:
+    except ValueError as ve:
         # keys not all integers, we're done
         pass
     return d
