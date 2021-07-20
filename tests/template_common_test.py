@@ -10,6 +10,9 @@ import zipfile
 
 from pykern import pkresource
 from pykern import pkunit
+from pykern.pkcollections import PKDict
+from sirepo.template import template_common
+
 
 def test_validate_safe_zip():
     from sirepo.template import srw
@@ -34,3 +37,28 @@ def test_validate_safe_zip():
 
     # Finally, accept a zip file known to be safe
     srw._validate_safe_zip(zip_dir + '/good_zip.zip', zip_dir, srw.validate_magnet_data_file)
+
+
+def test_dict_to_from_h5():
+    from pykern import pkio
+    import h5py
+
+    # _TEST_DICT includes single-valued entries (str and int), an array,
+    # and keys that evaluate to ints
+    _TEST_DICT = PKDict(
+        a_str='A',
+        b_dict=PKDict(
+            b_str='B',
+            b_arr=[0, 1, 2]
+        )
+    )
+    _TEST_DICT['999'] = '999'
+    _TEST_DICT['998'] = 998
+    _TEST_H5_FILE = 'test.h5'
+
+    pkio.unchecked_remove(_TEST_H5_FILE)
+    template_common.write_dict_to_h5(_TEST_DICT, _TEST_H5_FILE)
+    d = None
+    with h5py.File(_TEST_H5_FILE, 'r') as f:
+        d = template_common.h5_to_dict(f)
+    pkunit.pkeq(_TEST_DICT, d)
