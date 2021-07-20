@@ -382,7 +382,7 @@ def h5_to_dict(hf, path=None):
                 # in each case we recurse one step deeper into the path
                 p = '{}/{}'.format(path, k)
                 d[k] = h5_to_dict(hf, path=p)
-    except TypeError as te:
+    except TypeError:
         # this TypeError occurs when hf[path] is not iterable (e.g. a string)
         # assume this is a single-valued entry and run it through pkcompat
         return pkcompat.from_bytes(hf[path][()])
@@ -393,10 +393,10 @@ def h5_to_dict(hf, path=None):
         for i in indices:
             d_arr[i] = d[str(i)]
         d = d_arr
-    except IndexError as ie:
+    except IndexError:
         # integer keys but not an array
         pass
-    except ValueError as ve:
+    except ValueError:
         # keys not all integers, we're done
         pass
     return d
