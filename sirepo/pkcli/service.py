@@ -31,7 +31,7 @@ def flask():
     from sirepo import server
     import sirepo.pkcli.setup_dev
 
-    with pkio.save_chdir(_run_dir()):
+    with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in('dev')
@@ -41,6 +41,7 @@ def flask():
         import werkzeug.serving
         werkzeug.serving.click = None
         app.run(
+            exclude_patterns=[str(r.join('*'))],
             host=_cfg().ip,
             port=_cfg().port,
             threaded=True,

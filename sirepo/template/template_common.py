@@ -381,12 +381,16 @@ def h5_to_dict(hf, path=None):
         for k in hf[path]:
             try:
                 d[k] = hf[path][k][()].tolist()
-            except AttributeError:
+            except (AttributeError, TypeError):
+                # AttributeErrors occur when invoking tolist() on non-arrays
+                # TypeErrors occur when accessing a group with [()]
+                # in each case we recurse one step deeper into the path
                 p = '{}/{}'.format(path, k)
                 d[k] = h5_to_dict(hf, path=p)
     except TypeError:
-        # assume this is a single-valued entry
-        return hf[path][()]
+        # this TypeError occurs when hf[path] is not iterable (e.g. a string)
+        # assume this is a single-valued entry and run it through pkcompat
+        return pkcompat.from_bytes(hf[path][()])
     except KeyError as e:
         # no such path into the h5 file - re-raise so we know where it came from
         raise NoH5PathError(e)
@@ -582,7 +586,7 @@ def sim_frame_dispatch(frame_args):
 
 def stateless_compute_dispatch(data):
     m = data.method
-    assert re.search(r'^\w{1,30}$', m), \
+    assert re.search(r'^\w{1,35}$', m), \
         f'method={m} not a valid python function name or too long'
     return getattr(
         sirepo.template.import_module(data.simulationType),

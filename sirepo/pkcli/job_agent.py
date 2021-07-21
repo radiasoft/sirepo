@@ -727,7 +727,7 @@ fi
 
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
-exec srun {s} /bin/bash bash.stdin
+exec srun {'--mpi=pmi2' if pkconfig.channel_in('dev') else ''} {s} /bin/bash bash.stdin
 '''
         )
         return f
