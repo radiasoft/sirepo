@@ -474,9 +474,13 @@ def _build_undulator_objects(geom, und, beam_axis):
     und.poleBaseObjectId = pole.id
     mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
     geom.objects.append(mag_pole_grp)
-    magnet_cap = _build_cuboid(name='End Block')
-    geom.objects.append(magnet_cap)
-    oct_grp = _build_group([half_pole, mag_pole_grp, magnet_cap], name='Octant')
+    term_grp = _build_group(
+        [_build_cuboid(name=f'{t.type}.{i}') for i, t in enumerate(und.terminations)],
+        name='Termination'
+    )
+    #magnet_cap = _build_cuboid(name='End Block')
+    #geom.objects.append(magnet_cap)
+    oct_grp = _build_group([half_pole, mag_pole_grp, term_grp], name='Octant')
     geom.objects.append(oct_grp)
 
     return _update_geom_from_undulator(
@@ -1074,6 +1078,42 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     magnet_transverse_ctr = magnet_dim_half.width / 2 - \
                             (gap_offset + magnet_dim_half.height + gap_half_height)
 
+    obj_props = PKDict(
+        pole=PKDict(
+            color=und.poleColor,
+            dim=pole_dim,
+            dim_half=pole_dim_half,
+            material=und.poleMaterial,
+            mat_file=und.poleMaterialFile,
+            mag=pole_mag,
+            rem_mag=und.poleRemanentMag,
+            segs=pole_segs,
+            transverse_ctr=pole_transverse_ctr
+        ),
+        magnet=PKDict(
+            color=und.magnetColor,
+            dim=magnet_dim,
+            dim_half=magnet_dim_half,
+            material=und.magnetMaterial,
+            mat_file=und.magnetMaterialFile,
+            mag=mag_mag,
+            rem_mag=und.magnetRemanentMag,
+            segs=mag_segs,
+            transverse_ctr=magnet_transverse_ctr
+        )
+    )
+    #for k in obj_props:
+    #    p = obj_props[k]
+    #    p.color = und[f'{k}Color'],
+    #    p.dim = pole_dim,
+    #    dim_half = pole_dim_half,
+    #    material = und.poleMaterial,
+    #    mat_file = und.poleMaterialFile,
+    #    mag = pole_mag,
+    #    rem_mag = und.poleRemanentMag,
+    #    segs = pole_segs,
+    #    transverse_ctr = pole_transverse_ctr
+
     pos = pole_dim_half.length / 2
     half_pole = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Half Pole'),
@@ -1125,23 +1165,38 @@ def _update_geom_from_undulator(geom, und, beam_axis):
             [_build_translate_clone(beam_dir * und.periodLength / 2)]
         )]
 
-    term_gap = und.terminationGap * beam_dir
     pos = pole_dim_half.length + \
-          magnet_dim_half.length / 2 + \
-          beam_dir * und.numPeriods * und.periodLength / 2 + term_gap
-    magnet_cap = _update_cuboid(
-        _find_obj_by_name(geom.objects, 'End Block'),
-        magnet_transverse_ctr + pos,
-        magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
-        mag_segs,
-        und.magnetMaterial,
-        und.magnetMaterialFile,
-        (-1) ** und.numPeriods * mag_mag,
-        und.magnetRemanentMag,
-        und.magnetColor
-    )
-    if magnet_block.bevels:
-        magnet_cap.bevels = magnet_block.bevels.copy()
+        magnet_dim_half.length / 2 + \
+        beam_dir * (und.numPeriods * und.periodLength / 2)
+
+    for t, i in enumerate(und.terminations):
+        pos += t.airGap
+        props = obj_props[t.type]
+        o = _update_cuboid(
+            _find_obj_by_name(geom.objects, f'{t.type}.{i}'),
+            props.transverse_ctr + pos,
+            props.dim_half.width + props.dim_half.height + t.length,
+            props.segs,
+            props.material,
+            props.mat_file,
+            props.mag,
+            props.rem_mag,
+            props.color
+        )
+
+    #magnet_cap = _update_cuboid(
+    #    _find_obj_by_name(geom.objects, 'End Block'),
+    #    magnet_transverse_ctr + pos,
+    #    magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
+    #    mag_segs,
+    #    und.magnetMaterial,
+    #    und.magnetMaterialFile,
+    #    (-1) ** und.numPeriods * mag_mag,
+    #    und.magnetRemanentMag,
+    #    und.magnetColor
+    #)
+    #if magnet_block.bevels:
+    #    magnet_cap.bevels = magnet_block.bevels.copy()
 
     oct_grp = _find_obj_by_name(geom.objects, 'Octant')
     oct_grp.transforms = [

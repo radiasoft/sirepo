@@ -41,6 +41,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
+        '<div data-ng-switch-when="TerminationTable" class="col-sm-12">',
+          '<div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
+        '</div>',
         '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
           '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
         '</div>',
@@ -2123,6 +2126,128 @@ SIREPO.app.directive('numberList', function() {
         },
     };
 });
+
+SIREPO.app.directive('terminationTable', function(appState, panelState, radiaService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            modelName: '=',
+            parentController: '=',
+            object: '=',
+        },
+
+        template: [
+            '<table class="table table-hover">',
+              '<colgroup>',
+                '<col style="width: 20ex">',
+                '<col style="width: 20ex">',
+                '<col style="width: 20ex">',
+              '</colgroup>',
+              '<thead>',
+                '<tr>',
+                  '<th>Object Type</th>',
+                  '<th>Length</th>',
+                  '<th>Air Gap</th>',
+                  '<th></th>',
+                '</tr>',
+              '</thead>',
+             '<tbody>',
+            '<tr>',
+            '</tr>',
+                '<tr data-ng-repeat="item in loadItems()">',
+                    '<td>{{ item.type }}</td>',
+                    '<td>{{ item.length }}mm</td>',
+                    '<td>{{ item.airGap }}mm</td>',
+                  '<td style="text-align: right">',
+                    '<div class="sr-button-bar-parent">',
+                        '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
+                            ' <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
+                        '</div>',
+                    '<div>',
+                  '</td>',
+                '</tr>',
+            '</tbody>',
+            '</table>',
+            '<button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Group <span class="glyphicon glyphicon-plus"></span></button>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let isEditing = false;
+            let itemModel = 'termination';
+            let watchedModels = [itemModel];
+
+            $scope.items = [];
+            $scope.radiaService = radiaService;
+            $scope.selectedItem = null;
+
+            function itemIndex(data) {
+                return $scope.items.indexOf(data);
+            }
+
+            $scope.addItem = function() {
+                let b = appState.setModelDefaults({}, itemModel);
+                $scope.editItem(b, true);
+            };
+
+            $scope.deleteItem = function(item) {
+                var index = itemIndex(item);
+                if (index < 0) {
+                    return;
+                }
+                $scope.field.splice(index, 1);
+                appState.saveChanges('geometry');
+            };
+
+            $scope.editItem = function(item, isNew) {
+                isEditing = ! isNew;
+                $scope.selectedItem = item;
+                appState.models[itemModel] = item;
+                panelState.showModalEditor(itemModel);
+            };
+
+            $scope.getSelected = function() {
+                return $scope.selectedItem;
+            };
+
+            $scope.loadItems = function() {
+                $scope.items = $scope.field;
+                return $scope.items;
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+
+                $scope.$on('modelChanged', function(e, modelName) {
+                    if (watchedModels.indexOf(modelName) < 0) {
+                        return;
+                    }
+                    $scope.selectedItem = null;
+                    if (! isEditing) {
+                        $scope.field.push(appState.models[modelName]);
+                        isEditing = true;
+                    }
+                    appState.saveChanges('geometry', function () {
+                        $scope.loadItems();
+                    });
+                });
+
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (watchedModels.indexOf(name) < 0) {
+                        return;
+                    }
+                    appState.removeModel(name);
+                });
+
+                $scope.loadItems();
+            });
+
+        },
+    };
+});
+
 
 // this kind of thing should be generic
 SIREPO.app.directive('transformTable', function(appState, panelState, radiaService) {

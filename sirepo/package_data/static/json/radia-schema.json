@@ -279,6 +279,10 @@
             ["translate", "Translate"],
             ["rotate", "Rotate"]
         ],
+        "TerminationType": [
+            ["magnet", "Magnet"],
+            ["pole", "Pole"]
+        ],
         "ViewType": [
             ["objects", "Objects"],
             ["fields", "Fields"]
@@ -410,8 +414,8 @@
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
-            "magnetObjType": ["Shape", "ObjectType", "box"],
             "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "magnetObjType": ["Shape", "ObjectType", "box"],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleBaseObjectId": ["_", "UUID", ""],
             "poleColor": ["Color", "Color", "#ff00ff"],
@@ -422,9 +426,7 @@
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleObjType": ["Shape", "ObjectType", "box"],
-            "terminationGap": ["Air Gap to Termination [mm]", "Float", 0.0, "", 0.0],
-            "autoTerminate": ["Auto Terminate", "Boolean", "1", "When true, the undulator is terminated with a magnet block of half thickness immediately following the final period. Otherwise the termination must be specified."]
+            "poleObjType": ["Shape", "ObjectType", "box"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -554,6 +556,11 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "tee"]
         },
+        "termination": {
+            "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
+            "length": ["Object Length [mm]", "Float", 9.0],
+            "type": ["Object Type", "TerminationType", "magnet", ""]
+        },
         "transform": {
             "id": ["_", "UUID", ""],
             "name": ["Name", "String", "Transform"],
@@ -575,6 +582,7 @@
             "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
+            "terminations": ["Termination Groups", "TerminationTable", []],
             "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
@@ -699,8 +707,7 @@
                     "gap",
                     "gapAxis",
                     "numPeriods",
-                    "periodLength",
-                    "terminationGap"
+                    "periodLength"
                 ]],
                 ["Poles", [
                     "poleObjType",
@@ -724,6 +731,9 @@
                     "magnetMagnetization",
                     "magnetRemanentMag",
                     "magnetColor"
+                ]],
+                ["Termination", [
+                    "terminations"
                 ]]
             ]
         },
@@ -902,6 +912,19 @@
                 "symmetryPoint"
             ]
         },
+        "termination": {
+            "title": "Termination Group",
+            "basic": [
+                "type",
+                "length",
+                "airGap"
+            ],
+            "advanced": [
+                "type",
+                "length",
+                "airGap"
+            ]
+        },
         "transform": {
             "title": "Apply Transform",
             "basic": [
@@ -952,6 +975,9 @@
                     "hybridUndulator.magnetMaterialFile",
                     "hybridUndulator.gapOffset",
                     "hybridUndulator.magnetColor"
+                ]],
+                ["Termination", [
+                    "terminations"
                 ]]
             ]
         }
