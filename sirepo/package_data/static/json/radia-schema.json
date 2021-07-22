@@ -582,7 +582,15 @@
             "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
-            "terminations": ["Termination Groups", "TerminationTable", []],
+            "terminations": ["Termination Groups", "TerminationTable",
+                [
+                    {
+                        "airGap": 0,
+                        "length": 9,
+                        "type": "magnet"
+                    }
+                ]
+            ],
             "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
@@ -913,7 +921,7 @@
             ]
         },
         "termination": {
-            "title": "Termination Group",
+            "title": "Termination",
             "basic": [
                 "type",
                 "length",

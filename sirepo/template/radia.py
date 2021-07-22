@@ -1103,17 +1103,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
             transverse_ctr=magnet_transverse_ctr
         )
     )
-    #for k in obj_props:
-    #    p = obj_props[k]
-    #    p.color = und[f'{k}Color'],
-    #    p.dim = pole_dim,
-    #    dim_half = pole_dim_half,
-    #    material = und.poleMaterial,
-    #    mat_file = und.poleMaterialFile,
-    #    mag = pole_mag,
-    #    rem_mag = und.poleRemanentMag,
-    #    segs = pole_segs,
-    #    transverse_ctr = pole_transverse_ctr
 
     pos = pole_dim_half.length / 2
     half_pole = _update_cuboid(
@@ -1141,6 +1130,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetColor
     )
     und.magnetBaseObjectId = magnet_block.id
+    if magnet_block.bevels:
+        obj_props.magnet.bevels = magnet_block.bevels
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
@@ -1156,6 +1147,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     )
     und.poleBaseObjectId = pole.id
     if pole.bevels:
+        obj_props.pole.bevels = pole.bevels
         half_pole.bevels = pole.bevels.copy()
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
@@ -1167,7 +1159,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         )]
 
     pos = pole_dim_half.length + \
-        magnet_dim_half.length / 2 + \
         beam_dir * (und.numPeriods * und.periodLength / 2)
 
     oct_grp = _find_obj_by_name(geom.objects, 'Octant')
@@ -1180,11 +1171,12 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     terms = []
     num_term_mags = 0
     for i, t in enumerate(und.terminations):
-        pos += t.airGap * beam_dir
+        l = t.length * beam_dir
+        pos += (t.airGap + l / 2) * beam_dir
         props = obj_props[t.type]
         o = _build_cuboid(
             props.transverse_ctr + pos,
-            props.dim_half.width + props.dim.height + (t.length * beam_dir),
+            props.dim_half.width + props.dim.height + l,
             props.segs,
             props.material,
             props.mat_file,
@@ -1193,7 +1185,9 @@ def _update_geom_from_undulator(geom, und, beam_axis):
             _undulator_termination_name(i, t.type),
             props.color
         )
+        o.bevels = props.bevels
         terms.append(o)
+        pos += l / 2
         if t.type == 'magnet':
             num_term_mags += 1
     geom.objects.extend(terms)
@@ -1204,20 +1198,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     else:
         _update_group(g, terms, do_replace=True)
     _update_group(oct_grp, [g])
-
-    #magnet_cap = _update_cuboid(
-    #    _find_obj_by_name(geom.objects, 'End Block'),
-    #    magnet_transverse_ctr + pos,
-    #    magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
-    #    mag_segs,
-    #    und.magnetMaterial,
-    #    und.magnetMaterialFile,
-    #    (-1) ** und.numPeriods * mag_mag,
-    #    und.magnetRemanentMag,
-    #    und.magnetColor
-    #)
-    #if magnet_block.bevels:
-    #    magnet_cap.bevels = magnet_block.bevels.copy()
 
     oct_grp.transforms = [
         _build_symm_xform(width_dir, _ZERO, 'perpendicular'),

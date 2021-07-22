@@ -2173,7 +2173,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 '</tr>',
             '</tbody>',
             '</table>',
-            '<button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Group <span class="glyphicon glyphicon-plus"></span></button>',
+            '<button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>',
         ].join(''),
         controller: function($scope, $element) {
             let isEditing = false;

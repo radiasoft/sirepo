@@ -117,22 +117,37 @@
                     ]
                 },
                 {
-                    "_super": "geomObject",
-                    "center": "16.25,53.0,-33.5",
+                    "name": "termination.magnet.0",
+                    "model": "box",
                     "color": "#00ffff",
+                    "_super": "geomObject",
+                    "type": "box",
+                    "bevels": [],
+                    "center": "16.25,53.0,-33.5",
                     "division": "1,3,1",
-                    "groupId": "630ea5d1-4948-498e-8ef3-1f2d86d51e57",
-                    "id": "fa384db4-6d1f-42e9-a4d1-1ff42c5930e8",
+                    "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
                     "layoutShape": "rect",
                     "magnetization": "0.0,-1.0,0.0",
+                    "remanentMag": 1.2,
                     "material": "NdFeB",
                     "materialFile": "",
-                    "model": "box",
-                    "name": "End Block",
-                    "remanentMag": 1.2,
                     "size": "32.5,9.0,45.0",
                     "transforms": [],
-                    "type": "box"
+                    "groupId": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c",
+                    "h_m_curve": null
+                },
+                {
+                    "name": "Termination",
+                    "model": "geomGroup",
+                    "color": null,
+                    "_super": "radiaObject",
+                    "layoutShape": "rect",
+                    "members": [
+                        "b40f7233-89ba-49d5-90bc-f4efb4e0e421"
+                    ],
+                    "transforms": [],
+                    "groupId": "630ea5d1-4948-498e-8ef3-1f2d86d51e57",
+                    "id": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c"
                 },
                 {
                     "_super": "radiaObject",
@@ -143,7 +158,7 @@
                     "members": [
                         "b861cdfe-879d-48c2-9fb9-b9095a0e7f3e",
                         "a41746a3-88fd-4fde-980d-87f542158116",
-                        "fa384db4-6d1f-42e9-a4d1-1ff42c5930e8"
+                        "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c"
                     ],
                     "model": "geomGroup",
                     "name": "Octant",
@@ -216,6 +231,13 @@
             "poleMaterial": "custom",
             "poleMaterialFile": "VaPermendur.csv",
             "poleRemanentMag": 0,
+            "terminations": [
+                {
+                    "airGap": 0,
+                    "length": 9,
+                    "type": "magnet"
+                }
+            ],
             "transforms": [],
             "transverseAxis": "x"
         },
