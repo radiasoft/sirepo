@@ -321,12 +321,12 @@ def _build_cuboid(
     ):
     return _update_cuboid(
         _build_geom_obj('box', obj_name=name),
-        center or [0.0, 0.0, 0.0],
-        size or [1.0, 1.0, 1.0],
-        segments or [1, 1, 1],
+        center if center is not None else [0.0, 0.0, 0.0],
+        size if size is not None else [1.0, 1.0, 1.0],
+        segments if segments is not None else [1, 1, 1],
         material,
         matFile,
-        magnetization or [0.0, 0.0, 0.0],
+        magnetization if magnetization is not None else [0.0, 0.0, 0.0],
         rem_mag or 0.0,
         color
     )
@@ -474,12 +474,9 @@ def _build_undulator_objects(geom, und, beam_axis):
     und.poleBaseObjectId = pole.id
     mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
     geom.objects.append(mag_pole_grp)
-    term_grp = _build_group(
-        [_build_cuboid(name=f'{t.type}.{i}') for i, t in enumerate(und.terminations)],
-        name='Termination'
-    )
-    #magnet_cap = _build_cuboid(name='End Block')
-    #geom.objects.append(magnet_cap)
+    # empty termination group
+    term_grp = _build_group([], name='Termination')
+    geom.objects.append(term_grp)
     oct_grp = _build_group([half_pole, mag_pole_grp, term_grp], name='Octant')
     geom.objects.append(oct_grp)
 
@@ -1019,6 +1016,10 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
+def _undulator_termination_name(index, term_type):
+    return f'termination.{term_type}.{index}'
+
+
 def _update_cuboid(b, center, size, segments, material, mat_file, magnetization, rem_mag, color):
     b.center = sirepo.util.to_comma_delimited_string(center)
     b.color = color
@@ -1169,20 +1170,40 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         magnet_dim_half.length / 2 + \
         beam_dir * (und.numPeriods * und.periodLength / 2)
 
-    for t, i in enumerate(und.terminations):
-        pos += t.airGap
+    oct_grp = _find_obj_by_name(geom.objects, 'Octant')
+
+    # rebuild the termination group
+    geom.objects[:] = [
+        o for i, o in enumerate(geom.objects) if \
+        o.name not in [_undulator_termination_name(i, n[0]) for n in _SCHEMA.enum.TerminationType]
+    ]
+    terms = []
+    num_term_mags = 0
+    for i, t in enumerate(und.terminations):
+        pos += t.airGap * beam_dir
         props = obj_props[t.type]
-        o = _update_cuboid(
-            _find_obj_by_name(geom.objects, f'{t.type}.{i}'),
+        o = _build_cuboid(
             props.transverse_ctr + pos,
-            props.dim_half.width + props.dim_half.height + t.length,
+            props.dim_half.width + props.dim.height + (t.length * beam_dir),
             props.segs,
             props.material,
             props.mat_file,
-            props.mag,
+            (-1) ** (und.numPeriods + num_term_mags) * props.mag,
             props.rem_mag,
+            _undulator_termination_name(i, t.type),
             props.color
         )
+        terms.append(o)
+        if t.type == 'magnet':
+            num_term_mags += 1
+    geom.objects.extend(terms)
+    g = _find_obj_by_name(geom.objects, 'Termination')
+    if not g:
+        g = _build_group(terms, name='Termination')
+        geom.objects.append(g)
+    else:
+        _update_group(g, terms, do_replace=True)
+    _update_group(oct_grp, [g])
 
     #magnet_cap = _update_cuboid(
     #    _find_obj_by_name(geom.objects, 'End Block'),
@@ -1198,7 +1219,6 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     #if magnet_block.bevels:
     #    magnet_cap.bevels = magnet_block.bevels.copy()
 
-    oct_grp = _find_obj_by_name(geom.objects, 'Octant')
     oct_grp.transforms = [
         _build_symm_xform(width_dir, _ZERO, 'perpendicular'),
         _build_symm_xform(gap_dir, _ZERO, 'parallel'),
