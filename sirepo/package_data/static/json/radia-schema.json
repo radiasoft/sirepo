@@ -369,7 +369,7 @@
             "type": ["_", "ObjectType", "gamma"]
         },
         "geometryReport": {
-            "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "doGenerate": ["_", "Boolean", "1"],
             "id": ["_", "UUID", ""],
             "isSolvable": ["_", "Boolean", "1"],
             "name": ["Name", "String", ""],
@@ -459,6 +459,7 @@
             "type": ["_", "PathType", "line"]
         },
         "magnetDisplay": {
+            "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "bgColor": ["Background Color", "Color", "#ffffff"],
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
@@ -483,7 +484,7 @@
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
-       "racetrack": {
+        "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
             "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
@@ -755,7 +756,7 @@
                 "geometryReport.name",
                 "viewType",
                 "bgColor",
-                "geometryReport.alpha",
+                "alpha",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"

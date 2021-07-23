@@ -88,6 +88,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
+        try:
+            super().sim_files_to_run_dir(data, run_dir)
+        except sirepo.sim_data.SimDbFileNotFound as e:
+            if post_init:
+                raise e
+
+    @classmethod
     def _lib_file_basenames(cls, data):
         res = []
         if 'dmpImportFile' in data.models.simulation:
@@ -98,3 +106,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 data.fieldType,
                 data.name + '.' + data.fileType))
         return res
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        # TODO(e-carlin): share filename with template
+        return [
+            PKDict(basename='geometry.dat'),
+            PKDict(basename='geometryReport.h5'),
+        ]

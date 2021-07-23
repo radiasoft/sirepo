@@ -158,8 +158,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             flash4=cls.flash_exe_basename(data),
         ).items():
             p = t.join(c)
-            cls.delete_sim_file(cls._flash_file_prefix(b), data)
-            cls.put_sim_file(p, b, data)
+            cls.delete_sim_file(
+                data.models.simulation.simulationId,
+                cls._flash_file_prefix(b),
+            )
+            cls.put_sim_file(data.models.simulation.simulationId, p, b)
             if p.check(link=1):
                 p.copy(run_dir.join(b))
             else:
