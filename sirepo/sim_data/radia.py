@@ -21,9 +21,10 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model in (
-            'solver', 'reset'
+            'solverAnimation',
+            'reset'
         ):
-            return 'animation'
+            return 'solverAnimation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
@@ -44,13 +45,19 @@ class SimData(sirepo.sim_data.SimDataBase):
             None,
             dynamic=lambda m: cls.__dynamic_defaults(data, m)
         )
+        if dm.get('geometry'):
+            dm.geometryReport = dm.geometry.copy()
+            del dm['geometry']
+        if dm.get('solver'):
+            dm.solverAnimation = dm.solver.copy()
+            del dm['solver']
         if not dm.fieldPaths.get('paths'):
             dm.fieldPaths.paths = []
         if dm.simulation.get('isExample'):
             if not dm.simulation.get('exampleName'):
                 dm.simulation.exampleName = dm.simulation.name
             if dm.simulation.name == 'Wiggler':
-                dm.geometry.isSolvable = '0'
+                dm.geometryReport.isSolvable = '0'
                 if not len(dm.fieldPaths.paths):
                     dm.fieldPaths.paths.append(PKDict(
                         _super='fieldPath',
@@ -63,7 +70,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     ))
         if dm.simulation.magnetType == 'undulator':
             if not dm.hybridUndulator.get('magnetBaseObjectId'):
-                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Magnet Block').id
+                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Magnet Block').id
             if not dm.hybridUndulator.get('poleBaseObjectId'):
                 dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Pole').id
             if not dm.hybridUndulator.get('terminations'):
@@ -97,6 +104,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
+        try:
+            super().sim_files_to_run_dir(data, run_dir)
+        except sirepo.sim_data.SimDbFileNotFound as e:
+            if post_init:
+                raise e
+
+    @classmethod
     def _lib_file_basenames(cls, data):
         res = []
         if 'dmpImportFile' in data.models.simulation:
@@ -107,3 +122,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 data.fieldType,
                 data.name + '.' + data.fileType))
         return res
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        # TODO(e-carlin): share filename with template
+        return [
+            PKDict(basename='geometry.dat'),
+            PKDict(basename='geometryReport.h5'),
+        ]
