@@ -3696,7 +3696,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 SIREPO.app.directive('shapeEditor', function(appState, panelState, plotting, radiaService, utilities) {
 
     const inset = 1;
-    const availableShapes = ['box'];
+    const availableShapes = ['box', 'gamma'];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);
