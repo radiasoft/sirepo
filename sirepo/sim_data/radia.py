@@ -72,25 +72,25 @@ class SimData(sirepo.sim_data.SimDataBase):
             if not dm.hybridUndulator.get('magnetBaseObjectId'):
                 dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Magnet Block').id
             if not dm.hybridUndulator.get('poleBaseObjectId'):
-                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometry.objects, 'Pole').id
+                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Pole').id
             if not dm.hybridUndulator.get('terminations'):
                 dm.hybridUndulator.terminations = []
-            t = _find_obj_by_name(dm.geometry.objects, 'Termination')
+            t = _find_obj_by_name(dm.geometryReport.objects, 'Termination')
             if not t:
                 t = cls.model_defaults('geomGroup')
                 t.name = 'Termination'
-                dm.geometry.objects.append(t)
-                _find_obj_by_name(dm.geometry.objects, 'Octant')
-            b = _find_obj_by_name(dm.geometry.objects, 'End Block')
+                dm.geometryReport.objects.append(t)
+                _find_obj_by_name(dm.geometryReport.objects, 'Octant')
+            b = _find_obj_by_name(dm.geometryReport.objects, 'End Block')
             if b:
                 b.name = 'termination.magnet.0'
                 tt = cls.model_defaults('termination')
-                tt.length = sirepo.util.split_comma_delimited_string(b.size)[['x', 'y', 'z'].index(dm.simulation.beamAxis)]
+                tt.length = sirepo.util.split_comma_delimited_string(b.size, float)[['x', 'y', 'z'].index(dm.simulation.beamAxis)]
 
             if not dm.simulation.get('heightAxis'):
                 dm.simulation.heightAxis = 'z'
 
-        for o in dm.geometry.objects:
+        for o in dm.geometryReport.objects:
             if not o.get('bevels'):
                 o.bevels = []
         sch = cls.schema()
