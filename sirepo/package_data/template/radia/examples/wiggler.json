@@ -1,8 +1,22 @@
 {
     "models": {
-         "fieldPaths": {
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "linear"
+        },
+        "fieldPaths": {
             "path": "line",
-            "paths": []
+            "paths": [
+                {
+                    "_super": "fieldPath",
+                    "begin": "0, -225, 0",
+                    "end": "0, 225, 0",
+                    "id": 0,
+                    "name": "y axis",
+                    "numPoints": 101,
+                    "type": "line"
+                }
+            ]
         },
         "geometry": {
             "isSolvable": "0",
@@ -20,7 +34,7 @@
         "magnetDisplay": {
             "bgColor": "#ffffff",
             "fieldPoints": [],
-            "fieldType": "M",
+            "fieldType": "B",
             "notes": "",
             "viewType": "objects"
         },

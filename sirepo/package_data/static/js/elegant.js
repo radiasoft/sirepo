@@ -417,12 +417,12 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.latticeService = latticeService;
 
     self.advancedNames = [
-        'ALPH', 'APCONTOUR', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BOFFAXE', 'BRANCH', 'BRAT', 'BUMPER', 'CCBEND', 'CENTER',
+        'ALPH', 'APCONTOUR', 'BEAMBEAM', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BOFFAXE', 'BRANCH', 'BRAT', 'BUMPER', 'CCBEND', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
         'CWIGGLER', 'DSCATTER', 'EDRIFT', 'EHKICK', 'EKICKER', 'ELSE',
         'EMATRIX', 'EMITTANCE', 'ENERGY', 'EVKICK', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
-        'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
+        'GFWIGGLER', 'GKICKMAP', 'HISTOGRAM', 'HKICK', 'HMON',
         'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
         'LMIRROR', 'LRWAKE', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',

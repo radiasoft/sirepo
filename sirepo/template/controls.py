@@ -51,6 +51,7 @@ def get_application_data(data, **kwargs):
             res.append(PKDict(
                 name=m.simulation.name,
                 simulationId=m.simulation.simulationId,
+                invalidMsg=None if _has_kickers(m) else 'No beamlines' if not _has_beamline(m) else 'No kickers'
             ))
         return PKDict(simList=res)
     elif data.method == 'get_external_lattice':
@@ -95,6 +96,8 @@ def _delete_unused_madx_commands(data):
         by_name.twiss.sectorfile = '0'
         by_name.twiss.sectormap = '0'
         by_name.twiss.file = '1';
+    data.models.bunch.beamDefinition = 'gamma';
+    _SIM_DATA.update_beam_gamma(by_name.beam)
     data.models.commands = [
         by_name.beam,
         PKDict(
@@ -130,6 +133,8 @@ def _generate_parameters_file(data):
     _generate_madx(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
+    if data.get('report') == 'initialMonitorPositionsReport':
+        v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -165,6 +170,7 @@ def _generate_madx(v, data):
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
     v.summaryCSVHeader = ','.join(kicker.header + header)
+    v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in kicker.kick]))
     v.correctorCount = len(kicker.kick)
     v.monitorCount = len(header) / 2
     data.models.externalLattice.report = ''
@@ -178,16 +184,31 @@ def _get_external_lattice(simulation_id):
             sirepo.simulation_db.SIMULATION_DATA_FILE,
         ),
     )
-    d.models.bunch.beamDefinition = 'pc';
     _delete_unused_madx_models(d)
     _delete_unused_madx_commands(d)
-    _unique_madx_elements(d)
+    sirepo.template.madx.uniquify_elements(d)
     _add_monitor(d)
     sirepo.template.madx.eval_code_var(d)
     return PKDict(
         externalLattice=d,
         optimizerSettings=_SIM_DATA.default_optimizer_settings(d.models),
     )
+
+
+def _has_beamline(model):
+    return model.elements and model.beamlines
+
+
+def _has_kickers(model):
+    if not _has_beamline(model):
+        return False
+    k_ids = [e._id for e in model.elements if 'KICKER' in e.type]
+    if not k_ids:
+        return False
+    for b in model.beamlines:
+        if any([item in k_ids for item in b['items']]):
+            return True
+    return False
 
 
 def _read_summary_line(run_dir, line_count=None):
@@ -218,64 +239,3 @@ def _read_summary_line(run_dir, line_count=None):
         if len(header) == len(line):
             return [PKDict(zip(header, line))]
     return None
-
-
-def _unique_madx_elements(data):
-    def _do_unique(elem_ids):
-        element_map = PKDict({e._id: e for e in data.models.elements})
-        names = set([e.name for e in data.models.elements])
-        max_id = LatticeUtil.max_id(data)
-        res = []
-        for el_id in elem_ids:
-            if el_id not in res:
-                res.append(el_id)
-                continue
-            el = copy.deepcopy(element_map[el_id])
-            el.name = _unique_name(el.name, names)
-            max_id += 1
-            el._id = max_id
-            data.models.elements.append(el)
-            res.append(el._id)
-        return res
-
-    def _reduce_to_elements(beamline_id):
-        def _do(beamline_id, res=None):
-            if res is None:
-                res = []
-            for item_id in beamline_map[beamline_id]['items']:
-                item_id = abs(item_id)
-                if item_id in beamline_map:
-                    _do(item_id, res)
-                else:
-                    res.append(item_id)
-            return res
-
-        return _do(beamline_id)
-
-    def _remove_unused_elements(items):
-        res = []
-        for el in data.models.elements:
-            if el._id in items:
-                res.append(el)
-        data.models.elements = res
-
-    def _unique_name(name, names):
-        assert name in names
-        count = 2
-        m = re.search(r'(\d+)$', name)
-        if m:
-            count = int(m.group(1))
-            name = re.sub(r'\d+$', '', name)
-        while f'{name}{count}' in names:
-            count += 1
-        names.add(f'{name}{count}')
-        return f'{name}{count}'
-
-    beamline_map = PKDict({
-        b.id: b for b in data.models.beamlines
-    })
-    b = beamline_map[data.models.simulation.visualizationBeamlineId]
-    b['items'] = _reduce_to_elements(b.id)
-    _remove_unused_elements(b['items'])
-    b['items'] = _do_unique(b['items'])
-    data.models.beamlines = [b]

@@ -147,6 +147,11 @@
             ["1", "First half"],
             ["2", "Second half"]
         ],
+        "BeambeamDistribution": [
+            ["gaussian", "gaussian"],
+            ["uniform", "uniform"],
+            ["parabolic", "parabolic"]
+        ],
         "BmapxyMethod": [
             ["", ""],
             ["runge-kutta", "Runge-Kutta"],
@@ -231,6 +236,11 @@
             ["first", "first"],
             ["pmaximum", "pmaximum"]
         ],
+        "GkickmapYawend": [
+            ["-1", "Entrance"],
+            ["0", "Center"],
+            ["1", "Exit"]
+        ],
         "IonEffectsFieldCalculationMethod": [
             ["", ""],
             ["gaussianfit", "gaussianfit"],
@@ -272,6 +282,11 @@
             ["ideal", "ideal"],
             ["exact", "exact"],
             ["leading terms", "leading terms"]
+        ],
+        "MalignMethod": [
+            ["0", "original"],
+            ["1", "new entrace-centered"],
+            ["2", "new body-centered"]
         ],
         "MapsolenoidMethod": [
             ["runge-kutta", "Runge-Kutta"],
@@ -334,6 +349,10 @@
             ["bulirsch-stoer", "Bulirsch-Stoer"],
             ["non-adaptive runge-kutta", "Non-adaptive Runge-Kutta"],
             ["modified-midpoint", "Modified Midpoint"]
+        ],
+        "ScatterDistribution": [
+            ["gaussian", "gaussian"],
+            ["uniform", "uniform"]
         ],
         "SetReferenceParticleOutputComparisonMode": [
             ["", ""],
@@ -707,6 +726,8 @@
         },
         "command_chromaticity": {
             "sextupoles": ["Sextupoles", "OptionalStringUpper", "", "List of names of elements to use to correct the chromaticities. Several names may be given and names may include wildcards. If so, then sextupoles in each group are changed by the same amount for each iteration. This would typically be used when the sextupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
+            "lower_limits": ["Lower Limits", "OptionalString", "", "List of lower limits for each family"],
+            "upper_limits": ["Upper Limits", "OptionalString", "", "List of upper limits for each family"],
             "exclude": ["Exclude", "OptionalStringUpper", "", "List of names of elements to exclude. This may be used to exclude some sextupoles that are matched by wildcards in the sextupole list."],
             "dnux_dp": ["Dnux DP", "RPNValue", 0, "Desired chromaticity values."],
             "dnuy_dp": ["Dnuy DP", "RPNValue", 0, ""],
@@ -729,6 +750,7 @@
             "start_from_centroid": ["Start From Centroid", "RPNBoolean", "1", "A flag indicating whether to force the computation to start from the centroids of the beam distribution."],
             "start_from_dp_centroid": ["Start From DP Centroid", "RPNBoolean", "1", "A flag indicating whether to force the computation to use the momentum centroid of the beam for the closed orbit. This can allow computing the closed orbit for an off-momentum beam, then starting the beam on that orbit using the offset_by_orbit or center_on_orbit parameters of the track command. In contrast to the start_from_centroid, this command doesn't force the algorithm to start from the beam transverse centroids."],
             "closed_orbit_accuracy": ["Closed Orbit Accuracy", "RPNValue", 1e-12, "The desired accuracy of the closed orbit, in terms of the difference between the start and end coordinates, in meters."],
+            "closed_orbit_accuracy_requirement": ["Closed Orbit Accuracy Requirement", "RPNValue", 1e-12, "The required accuracy of the closed orbit. If not achieved, the closed orbit calculation is considered to have failed"],
             "closed_orbit_iterations": ["Closed Orbit Iterations", "Integer", 10, "The number of iterations to take in finding the closed orbit."],
             "iteration_fraction": ["Iteration Fraction", "RPNValue", 1, "Fraction of computed change that is used each iteration. For lattices that are very nonlinear or close to unstable, a number less than 1 can be helpful. Otherwise, it only slows the simulation."],
             "fraction_multiplier": ["Fraction Multiplier", "RPNValue", 1.05, "Multiplier to apply to the iteration fraction if iteration is converging."],
@@ -737,7 +759,8 @@
             "start_from_recirc": ["Start From Recirc", "RPNBoolean", "0", "A flag indicating whether to compute the closed orbit from the recirculation (recirc) element in the beamline. In general, if one has a recirculation element, one should give this flag."],
             "verbosity": ["Verbosity", "Integer", 0, "A larger value results in more printouts during the computations."],
             "tracking_turns": ["Tracking Turns", "Integer", 0, "If non-zero, the number of turns to track for detemination of the closed orbit by averaging. This may be useful if the regular closed orbit algorithm complains about convergence issues."],
-            "disable": ["Disable", "RPNBoolean", "0", "If non-zero, disables the command."]
+            "disable": ["Disable", "RPNBoolean", "0", "If non-zero, disables the command."],
+            "immediate": ["Immediate", "RPNBoolean", "0", "If non-zero, computations are done immediately, so the command acts as an action command."]
         },
         "command_correct": {
             "mode": ["Mode", "CorrectMode", "trajectory", ""],
@@ -773,8 +796,10 @@
             "start_from_centroid": ["Start From Centroid", "RPNBoolean", "1", "Flag indicating that correction should start from the beam centroid. For orbit correction, only the beam momentum centroid is relevant."],
             "use_actual_beam": ["Use Actual Beam", "RPNBoolean", "0", "Flag indicating that correction should employ tracking of the beam distribution rather than a single particle. This is valid for trajectory correction only."],
             "closed_orbit_accuracy": ["Closed Orbit Accuracy", "RPNValue", 1e-12, "Accuracy of closed orbit computation."],
-            "closed_orbit_iterations": ["Closed Orbit Iterations", "Integer", 10, "Number of iterations of closed orbit computation."],
+            "closed_orbit_accuracy_requirement": ["Closed Orbit Accuracy Requirement", "RPNValue", 1e-12, "The required accuracy of the closed orbit. If not achieved, the closed orbit calculation is considered to have failed"],            "closed_orbit_iterations": ["Closed Orbit Iterations", "Integer", 10, "Number of iterations of closed orbit computation."],
             "closed_orbit_iteration_fraction": ["Closed Orbit Iteration Fraction", "RPNValue", 1, "Fraction of change in closed orbit to use at each iteration."],
+            "closed_orbit_fraction_multiplier": ["Closed Orbit Fraction Multiplier", "RPNValue", 1.05, " Multiplier to apply to the iteration fraction if iteration is converging."],
+            "closed_orbit_multiplier_interval": ["Closed Orbit Multiplier Interval", "RPNValue", 5, "Interval in number of iterations at which to adjust the iteration fraction."],
             "closed_orbit_tracking_turns": ["Closed Orbit Tracking Turns", "RPNValue", 0, "If non-zero, the absolute value gives the number of turns to track for detemination of the closed orbit by averaging. This may be useful if the regular closed orbit algorithm complains about convergence issues. If less than zero, then only this method is used. If greater than zero, then regular orbit determination is tried first, and tracking is used as a fallback."],
             "use_perturbed_matrix": ["Use Perturbed Matrix", "RPNBoolean", "0", "If nonzero, specifies that prior to each correction elegant shall recompute the response matrix. This is useful if the lattice is changing significantly between corrections."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the command is ignored."],
@@ -920,6 +945,7 @@
         },
         "command_global_settings": {
             "inhibit_fsync": ["Inhibit FSYNC", "RPNBoolean", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
+            "allow_overwriting": ["Allow Overwriting", "RPNBoolean", "0", "By default, elegant will overwrite existing output files. If this parameter is set to 0, it will instead exit if an output file already exists."],
             "echo_namelists": ["Echo Namelists", "RPNBoolean", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
             "SR_gaussian_limit": ["SR Gaussian Limit", "RPNValue", 3, "By default, elegant uses a 3-σ cutoff for the gaussian random numbers used in simulation of synchrotron radiation from CSBEND, CSRCSBEND, KQUAD, KSEXT, and SREFFECTS. This parameter allows changing the cutoff."],
             "inhibit_seed_permutation": ["Inhibit Seed Permutation", "RPNBoolean", "0", "If nonzero, randomization of the user-supplied random number seed is not performed. This feature is useful in that it provides a higher degree of apparent randomness, in that small changes in the seed result in very different random sequences."],
@@ -929,6 +955,7 @@
             "exact_normalized_emittance": ["Exact Normalized Emittance", "RPNBoolean", "0", "By default, elegant uses an approximate computation for the normalized emittance, namely, εn = ε⟨βγ⟩, where ε is the geometric emittance computed from the trace-space coordinates. If this variable is set to a non-zero value, elegant instead uses a slower but more accurate method, namely, using the momentum coordinates.. The results will show up in the sigma and final output files, if these are requested in the run_setup command."],
             "parallel_tracking_based_matrices": ["Parallel Tracking Based Matrices", "RPNBoolean", "1", "If non-zero, then the matrices determined by tracking for various elements (e.g., BRAT, BGGEXP, CCBEND) are computed using parallel resources in Pelegant. This can save considerable wall clock time. N.B.: This is set to zero when using parallel_optimization_setup."],
             "share_tracking_based_matrices": ["Share Tracking Based Matrices", "RPNBoolean", "1", "If non-zero, then the matrices determined by tracking for various elements (e.g., BRAT, BGGEXP, CCBEND) are computed only once for a set of identical elements, then shared."],
+            "tracking_based_matrices_store_limit": ["Tracking Based Matrices Store Limit", "RPNValue", 5000, "The maximum number of matrices that will be stored for possible sharing."],
             "tracking_matrix_step_factor": ["Tracking Matrix Step Factor", "RPNValue", 1, "The default step size for tracking-based matrices is 5 × 10-5 (in the appropriate units for each corodinate). This can be increased or decreased by supplying a value for tracking_matrix_step_factor."],
             "tracking_matrix_points": ["Tracking Matrix Points", "RPNValue", 9, "By default, five grid points are used in each dimension for tracking-based matrix determination. This can be increased by setting tracking_matrix_points to a larger, odd value, at the expense of longer running time. (The run time scales approximately as the sixth power of this value.)"],
             "tracking_matrix_step_size": ["Tracking Matrix Step Size", "Float6StringArray", "5e-5, 5e-5, 5e-5, 5e-5, 5e-5, 5e-5", "Sets the step sizes, in each of the six coordinates, used for tracking-based matrix determination"]
@@ -999,7 +1026,7 @@
             "ion_species_output": ["Ion Species Output", "RPNBoolean", "0", ""],
             "ion_output_interval": ["Ion Output Interval", "Integer", 1, "The interval in bunches between output of ion data."],
             "field_calculation_method": ["Field Calculation Method", "IonEffectsFieldCalculationMethod", "", "By default, the fields are computed on the assumption that the beam and ion distributions are gaussian. This is a good assumption for the beam, but not highly accurate for the ions. More accurate, but slower, methods is sums of two or three gaussians, or sums of two or three lorentzians"],
-
+            "gaussian_ion_range": ["Gaussian Ion Range", "RPNValue", 3, "If the default field calculation method is used, gives the range (in beam sigma) over which ions are counted, for calculating the ion-beam kicks"],
             "distribution_fit_target": ["Distribution Fit Target", "RPNValue", 0.03, ""],
             "distribution_fit_tolerance": ["Distribution Fit Tolerance", "RPNValue", 1e-5, ""],
             "distribution_fit_evaluations": ["Distribution Fit Evaluations", "Integer", 300, ""],
@@ -1129,6 +1156,7 @@
             "equilibrium": ["Equilibrium", "RPNBoolean", "1", "A flag indicating, if set, that the equilibrium moments should be found. If matched=1 and equilibrium=0, then the initial twiss parameters are computed from the periodic solution for the beamline."],
             "radiation": ["Radiation", "RPNBoolean", "1", "A flag indicating, if set, that synchrotron radiation effects should be included. N.B.: this flag is all that needs to be set if the lattice contains no kick elements. However, if the lattice contains CSBEND, CSRCSBEND, KQUAD, or KQUAD elements (or other elements with SYNCH_RAD and ISR parameters), then the SYNCH_RAD andISR must be set to 1 as well."],
             "n_slices": ["N Slices", "Integer", 10, "The number of slices into which to cut individual dipoles, quadrupoles, and sextuoples for computations. 10 has been found to work for all rings tested, but users are advised to ensure it is sufficient for their cases."],
+            "tracking_based_diffusion_matrix_particles": ["Tracking Based Diffusion Matrix Particles", "RPNValue", 1000, "For most elements, the diffusion matrix determined by moments_output is computing used matrix concatenation. For some elements, this doesn’t work well because of possible internal coordinate transformations. For these elements, the diffusion matrix is determined approximately by tracking an ensemble of tracking_based_diffusion_matrix_particles particles. Setting this parameter to 0 will disable this feature."],
             "slice_etilted": ["Slice Etilted", "Integer", 1, ""],
             "emit_x": ["Emit X", "RPNValue", 0, "If matched=0, then these specify the starting beam ellipses in all three planes. ) This command performs several functions. In the most basic form, it propagates beam moments, i.e., the 6x6 sigma matrix, from the beginning to the end of a transport line, including coupling from rotated elements or offset sextupoles. This can be performed with or without synchrotron radiation effects in dipoles, quadrupoles, and sextupoles. These computations include the evolution of the trajectory due to errors and (if included) synchrotron radiation. If desired, the command will instead compute the periodic beam moments. In this case, the user must include an appropriate rf cavity in the lattice in order to get valid results. (By \"appropriate rf cavity\" we mean that it must have the right voltage, frequency, and phase to support stored beam.) It is also suggested that the user compute the closed orbit using closed_orbit so that the computations are performed on the closed orbit. The results of moments computation may be subjected to optimization using values at marker elements. See the documentation for MARK for more details. Notes: ( • When using CSBEND, KQUAD, and KSEXT elements, one may find that the calculations of moments_output do not make sense. This is because, by default, synchrotron radiation is disabled on these elements. To resolve the issue, set ISR=1 and SYNCH_RAD=1 on CSBEND at a miminum. If a closed orbit is present, making the same setting on the KQUAD and KSEXT is also suggested. It is essential to do this if there is an rf frequency offset. • When bending magnets are tilted, elegant has problems computing the moments and closed orbit self-consistently when the bending radius is small. To address this, the n_slices parameter is set to 1 for tilted bending magnets when slice_etilted=0. This reduces the accuracy of the calculations. Users are strongly advised to check that this is acceptable."],
             "beta_x": ["Beta X", "RPNValue", 0, ""],
@@ -1239,6 +1267,30 @@
             "summarize_setup": ["Summarize Setup", "RPNBoolean", "0", "A flag indicating, if set, that a summary of the optimization parameters should be printed."]
         },
         "command_parallel_optimization_setup": {
+            "equation": ["Equation", "OptionalString", "", "An rpn equation for the optimization function, expressed in terms of any parameters of any optimization variables, the \"final\" parameters of the beam (as recorded in the final output file available in the run_setup namelist), and selected quantities from Twiss parameter, tune shift with amplitude, closed orbit, beam moments, driving terms, and other computations."],
+            "mode": ["Mode", "OptimizationSetupMode", "minimize", ""],
+            "method": ["Method", "OptimizationSetupMethod", "simplex", ""],
+            "tolerance": ["Tolerance", "RPNValue", -0.01, "The convergence criterion for the optimization, with a negative value indicating a fractional criterion."],
+            "target": ["Target", "RPNValue", 0, "The value which, if reached, results in immediate termination of the optimization, whether it has converged or not."],
+            "center_on_orbit": ["Center On Orbit", "RPNBoolean", "0", "A flag indicating whether to center the beam transverse coordinates on the closed orbit before tracking."],
+            "center_momentum_also": ["Center Momentum Also", "RPNBoolean", "1", "A flag indicating whether to center the momentum coordinate also."],
+            "soft_failure": ["Soft Failure", "RPNBoolean", "1", "A flag indicating, if set, that failure of an optimization pass should not result in termination of the optimization."],
+            "n_passes": ["N Passes", "RPNValue", 2, "The number of optimization passes made to achieve convergence (\"simplex\" only). A pass ends (roughly) when the number of evaluations is completed or the function doesn't change within the tolerance. A new pass involves starting the optimization again using step sizes determined from the range of the simplex and the factor simplex_pass_factor."],
+            "n_evaluations": ["N Evaluations", "Integer", 500, "The number of allowed evaluations of the optimization function. If simplex optimization is used, this is the number of allowed evaluations per pass."],
+            "n_restarts": ["N Restarts", "Integer", 0, "The number of complete restarts of the optimization (simplex only). This is an additional loop around the n_passes loop. The difference is that a restart involves using the optimized result but the original step sizes. It is highly recommended that this feature be used if convergence problems are seen."],
+            "matrix_order": ["Matrix Order", "Integer", 1, "Specifies the highest order of matrix elements that should be available for fitting. Elements up to third order are available for the terminal point of the beamline, and up to secod order for interior fit points. Names for first-, second-, and third-order elements are of the form Rij, Tijk, and Uijkl."],
+            "log_file": ["Log File", "OutputFile", "", "A file to which progress reports will be written as optimization proceeds. For SDDS data, use the final output file from the run_setup namelist."],
+            "term_log_file": ["Term Log File", "OutputFile", "", "This names a file to which the values of the optimization terms are written at the completion of optimization, which can be convenient when large numbers of terms are used. For example, by using sddssort one could find which terms are contributing most to the penalty value."],
+            "output_sparsing_factor": ["Output Sparsing Factor", "Integer", 0, "If set to a value larger than 0, results in sparsing of output to the \"final\" file (see run_setup). This can make a significant difference in the optimization speed."],
+            "balance_terms": ["Balance Terms", "RPNBoolean", "0", "If nonzero, then all terms of the optimization expression have their weights adjusted so they make equal contributions to the penalty function. This can help prevent optimization of a single term at the expense of others. It is performed only for the initial value of the optimization function."],
+            "restart_worst_term_factor": ["Restart Worst Term Factor", "RPNValue", 1, "Often when there are convergence problems, it is because a few terms are causing difficulty. Convergence can often be obtained by increasing the weighting of these terms. If restart_worst_term_factor is positive, then elegant will multiply the weight of the restart_worst_terms largest terms by this factor at the beginning of a restart."],
+            "restart_worst_terms": ["Restart Worst Terms", "Integer", 1, ""],
+            "verbose": ["Verbose", "Integer", 1, ""],
+            "simplex_divisor": ["Simplex Divisor", "RPNValue", 3, "The factor by which simplex step sizes are changed as the optimization algorithm searches for a valid initial simplex."],
+            "simplex_pass_range_factor": ["Simplex Pass Range Factor", "RPNValue", 1, "When starting a new pass, the simplex optimizer takes the range over the previous simplex of each variable times this factor as the starting step size for that variable. This can be useful if the optimization brings the system close to an instability. In such a case, the simplex routine may have trouble constructing an initial simplex if the range of the variables is large. Setting this control to a value less than 1 may help."],
+            "include_simplex_1d_scans": ["Include Simplex 1D Scans", "RPNBoolean", "1", "If nonzero, optimizer performs single-variable scans prior to starting simplex optimization. This is usually a good idea, but in some cases it will cause problems. For example, if your design is on the edge of being unstable, you may get some many errors from the initial steps that the single-variable optimizer can't continue. Disabling the single-variable scans will sometimes solve this."],
+            "start_from_simplex_vertex1": ["Start From Simplex Vertex1", "RPNBoolean", "0", "If nonzero, optimizer uses the initial simplex vertex as the starting point for each new 1d scan. Otherwise, it uses the result of the previous scan."],
+            "restart_random_numbers": ["Restart Random Numbers", "RPNBoolean", "0", "If nonzero, the random number generators used by elegant are reset for each evaluation of the optimization function. This is valuable if one is optimizing tracking results that involve random processes (e.g., ISR or scattering)."],
             "method": ["Method", "ParallelOptimizationSetupMethod", "simplex", ""],
             "hybrid_simplex_tolerance": ["Hybrid Simplex Tolerance", "RPNValue", -0.01, "For the parallel “hybridsimplex” method, these set, respectively, the tolerance value for changes between full iterations (restarts). If the result does not improve by more than hybrid_simplex_tolerance after hybrid_simplex_tolerance_count iterations, the optimization terminates."],
             "hybrid_simplex_tolerance_count": ["Hybrid Simplex Tolerance Count", "RPNValue", 2, ""],
@@ -1341,8 +1393,10 @@
             "acceptance": ["Acceptance", "OutputFile", "", "The name of an SDDS file into which the initial coordinates of transmitted particles will be written."],
             "losses": ["Losses", "OutputFile", "", "The name of an SDDS file into which information on lost particles will be written."],
             "losses_include_global_coordinates": ["Losses Include Global Coordinates", "RPNBoolean", "0", "If nonzero, the losses output file includes the global coordinates of lost particles."],
+            "losses_s_limit": ["Losses S Limit", "Float2StringArray", "-1.79E308, 1.79E308", "Specifies the minimum and maximum s coordinate for logging of lost particles."],
             "magnets": ["Magnets", "OutputFile", "", "The name of an SDDS file into which a magnet layout representation will be written."],
             "parameters": ["Parameters", "OutputFile", "", "The name of an SDDS file into which parameters of accelerator elements are written. N.B.: this file does not contain any non-numerical parameters of the lattice. Hence, it is not a complete description of the settings of the lattice."],
+            "suppress_parameter_defaults": ["Suppress Parameter Defaults", "RPNBoolean", "0", "If non-zero, then the parameters output file will not contain rows for parameters whose values are identical to the then-current default values. This can result in significantly smaller parameter files and faster loading. The downside is that future changes to defaults would possible result in difficulty reproducing a result from a saved parameter file."],
             "rfc_reference_output": ["Rfc Reference Output", "OutputFile", "", "The (incomplete) name of an SDDS file into which the internally-determined reference times for RFCA and RFCW elements are written. This file can be loaded with load_parameters to exactly reproduce cavity phasing, e.g., for backtracking."],
             "combine_bunch_statistics": ["Combine Bunch Statistics", "RPNBoolean", "0", "A flag indicating whether to combine statistical information for all simulation steps. If non-zero, then the sigma and centroid data will be combined over all simulation steps."],
             "wrap_around": ["Wrap Around", "RPNBoolean", "1", "A flag indicating whether the s coordinate should wrap-around or increase monotonically in multipass simulations. If zero, then the centroid and sigma data is computed for each turn with the s coordinate increasing continuously."],
@@ -1605,12 +1659,23 @@
             "dy": ["DY [M]", "RPNValue", 0, "misalignment"],
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
             "resolution": ["RESOLUTION [M]", "RPNValue", 0, "z resolution of finding intersection"],
+            "xfactor": ["XFACTOR", "RPNValue", 1, "factor by which to multiply x contour values"],
+            "yfactor": ["YFACTOR", "RPNValue", 1, "factor by which to multiply y contour values"],
             "invert": ["INVERT", "RPNBoolean", "0", "if non-zero, contour defines an obstruction rather than an aperture"],
             "sticky": ["STICKY", "RPNBoolean", "0", "if non-zero, effect persists in downstream elements until canceled or replaced"],
             "cancel": ["CANCEL", "RPNBoolean", "0", "if non-zero, sole effect is to cancel previous sticky APCONTOUR"],
             "filename": ["FILENAME", "InputFile", "", "name of file containing contour data"],
             "xcolumn": ["XCOLUMN", "OptionalString", "", "name of column containing x data"],
             "ycolumn": ["YCOLUMN", "OptionalString", "", "name of column containing y data"],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
+        "BEAMBEAM": {
+            "charge": ["CHARGE [C]", "RPNValue", 0, "charge of opposing beam"],
+            "xcenter": ["XCENTER [M]", "RPNValue", 0, "horizontal center position of opposing beam"],
+            "ycenter": ["YCENTER [M]", "RPNValue", 0, "vertical center position of opposing beam"],
+            "xsize": ["XSIZE [M]", "RPNValue", 0, "horizontal size of opposing beam"],
+            "ysize": ["YSIZE [M]", "RPNValue", 0, "vertical size of opposing beam"],
+            "distribution": ["DISTRIBUTION", "BeambeamDistribution", "gaussian", "distribution type of opposing beam"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "BGGEXP": {
@@ -1621,6 +1686,14 @@
             "normal_filename": ["NORMAL FILENAME", "InputFile", "", "name of file containing generalized gradient data for normal terms, new convention"],
             "skew_filename": ["SKEW FILENAME", "InputFile", "", "name of file containing generalized gradient data for skew terms, new convention"],
             "strength": ["STRENGTH", "RPNValue", 1, "factor by which to multiply field"],
+            "factor0": ["FACTOR0", "RPNValue", 1, "factor by which to multiply field from m=0 (solenoid) terms"],
+            "factor1": ["FACTOR1", "RPNValue", 1, "factor by which to multiply field from m=1 (dipole) terms"],
+            "factor2": ["FACTOR2", "RPNValue", 1, "factor by which to multiply field from m=2 (quadrupole) terms"],
+            "factor3": ["FACTOR3", "RPNValue", 1, "factor by which to multiply field from m=3 (sextupole) terms"],
+            "factor4": ["FACTOR4", "RPNValue", 1, "factor by which to multiply field from m=4 (octupole) terms"],
+            "bxfactor": ["BXFACTOR", "RPNValue", 1, "factor by which to multiply x component of field. Requires SYMPLECTIC=0."],
+            "byfactor": ["BYFACTOR", "RPNValue", 1, "factor by which to multiply y component of field. Requires SYMPLECTIC=0."],
+            "bzfactor": ["BZFACTOR", "RPNValue", 1, "factor by which to multiply z component of field. Requires SYMPLECTIC=0."],
             "tilt": ["TILT [RAD]", "RPNValue", 0, "rotation about longitudinal axis"],
             "dx": ["DX [M]", "RPNValue", 0, "misalignment"],
             "dy": ["DY [M]", "RPNValue", 0, "misalignment"],
@@ -1665,6 +1738,9 @@
             "lfield": ["LFIELD [M]", "RPNValue", -1, "expected length of the field map. If negative, use L."],
             "strength": ["STRENGTH", "RPNValue", 1, "factor by which to multiply field"],
             "fse": ["FSE", "RPNValue", 0, "Fractional Strength Error."],
+            "bxfactor": ["BXFACTOR", "RPNValue", 1, "factor by which to multiply x component of field."],
+            "byfactor": ["BYFACTOR", "RPNValue", 1, "factor by which to multiply y component of field."],
+            "bzfactor": ["BZFACTOR", "RPNValue", 1, "factor by which to multiply z component of field."],
             "accuracy": ["ACCURACY", "RPNValue", 0, "integration accuracy"],
             "method": ["METHOD", "BmxyzMethod", "", "integration method"],
             "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z) and either (Bx, By, Bz) or (Fx, Fy, Fz)"],
@@ -1726,6 +1802,7 @@
             "xexit": ["XEXIT [M]", "RPNValue", 0, "x coordinate of nominal exit point"],
             "zexit": ["ZEXIT [M]", "RPNValue", 0, "z coordinate of nominal exit point"],
             "dxmap": ["DXMAP [M]", "RPNValue", 0, "x displacement of map"],
+            "dymap": ["DYMAP [M]", "RPNValue", 0, "y displacement of map"],
             "dzmap": ["DZMAP [M]", "RPNValue", 0, "z displacement of map"],
             "yawmap": ["YAWMAP [RAD]", "RPNValue", 0, "yaw of map about x=z=0"],
             "factor": ["FACTOR", "RPNValue", 1, "factor by which to multiply fields"],
@@ -1787,7 +1864,8 @@
             "fse_dipole": ["FSE DIPOLE", "RPNValue", 0, "fractional strength error of dipole component"],
             "fse_quadrupole": ["FSE QUADRUPOLE", "RPNValue", 0, "fractional strength error of quadrupole component"],
             "etilt": ["ETILT [RAD]", "RPNValue", 0, "error rotation about incoming longitudinal axis"],
-            "n_kicks": ["N_KICKS", "Integer", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "integration_order": ["INTEGRATION ORDER", "Integer", 4, "integration order (2 or 4)"],
             "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multipoles"],
             "edge_multipoles": ["EDGE MULTIPOLES", "InputFile", "", "input file for systematic entrance/exit edge multipoles"],
@@ -1916,7 +1994,10 @@
             "fse_dipole": ["FSE DIPOLE", "RPNValue", 0, "fractional strength error of dipole component"],
             "fse_quadrupole": ["FSE QUADRUPOLE", "RPNValue", 0, "fractional strength error of quadrupole component"],
             "etilt": ["ETILT [RAD]", "RPNValue", 0, "error rotation about incoming longitudinal axis"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "epitch": ["EPITCH [RAD]", "RPNValue", 0, "error rotation about horizontal axis. Ignored if MALIGN METHOD=0"],
+            "eyaw": ["EYAW [RAD]", "RPNValue", 0, "error rotation about vertical axis. Ignored if MALIGN METHOD=0"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "etilt_sign": ["ETILT SIGN", "RPNBoolean", "1", "Sign of ETILT relative to TILT. -1 is the old convention prior to 2020.5"],
             "nonlinear": ["NONLINEAR", "RPNBoolean", "1", "include nonlinear field components?"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
@@ -1965,6 +2046,9 @@
             "reference_correction": ["REFERENCE CORRECTION", "RPNBoolean", "0", "If nonzero, reference trajectory is subtracted from particle trajectories to compensate for inaccuracy in integration."],
             "tracking_matrix": ["TRACKING MATRIX", "RPNBoolean", "0", "If nonzero, matrix up to third order used for twiss parameters etc is computed from tracking. Experimental."],
             "fse_correction": ["FSE CORRECTION", "RPNBoolean", 0, "If nonzero, FSE is adjusted to compensate for edge effects when EDGE1_EFFECTS or EDGE2_EFFECTS = 2"],
+            "malign_method": ["MALIGN METHOD", "MalignMethod", "0"],
+            "xsteering": ["XSTEERING", "RPNBoolean", "0", "use for x steering (bend plane)?"],
+            "ysteering": ["YSTEERING", "RPNBoolean", "0", "use for y steering (non-bend plane)?"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "CSRCSBEND": {
@@ -1991,7 +2075,8 @@
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
             "fse": ["FSE", "RPNValue", 0, "fractional strength error"],
             "etilt": ["ETILT [RAD]", "RPNValue", 0, "error rotation about incoming longitudinal axis"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "etilt_sign": ["ETILT_SIGN", "RPNBoolean", "1", "Sign of ETILT relative to TILT. -1 is the old convention prior to 2020.5"],
             "nonlinear": ["NONLINEAR", "RPNBoolean", "1", "include nonlinear field components?"],
             "linearize": ["LINEARIZE", "RPNBoolean", "0", "use linear matrix instead of symplectic integrator?"],
@@ -2428,7 +2513,8 @@
             "dy": ["DY [M]", "RPNValue", 0, "misalignment"],
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
             "fse": ["FSE", "RPNValue", 0, "fractional strength error"],
-            "n_kicks": ["N KICKS", "RPNValue", 1, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "filename": ["FILENAME", "InputFile", "", "name of file containing multi-pole data"],
             "sqrt_order": ["SQRT ORDER", "RPNValue", 0, "Order of expansion of square-root in Hamiltonian. 0 means no expansion."],
@@ -2522,6 +2608,22 @@
             "verbosity": ["VERBOSITY", "Integer", 0, "A higher value requires more detailed printouts related to computations."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
+        "GKICKMAP": {
+            "l": ["L [M]", "RPNValue", 0, "length"],
+            "tilt": ["TILT [RAD]", "RPNValue", 0, "rotation about longitudinal axis"],
+            "dx": ["DX [M]", "RPNValue", 0, "misalignment"],
+            "dy": ["DY [M]", "RPNValue", 0, "misalignment"],
+            "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
+            "factor": ["FACTOR", "RPNValue", 1, "Factor by which to multiply the kicks."],
+            "xy_factor": ["XY FACTOR", "RPNValue", 1, "Factor by which to multiply the x and y values in the input file."],
+            "yaw": ["YAW [RAD", "RPNValue", 0, "Yaw angle of the device. Meaningful only if N KICKS is not 1."],
+            "input_file": ["INPUT FILE", "InputFile", "", "Name of SDDS file with undulator kickmap data."],
+            "n_kicks": ["N KICKS", "RPNValue", 1, "Number of kicks into which to split the element."],
+            "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical, singleparticle synchrotron radiation?"],
+            "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (quantum excitation)?"],
+            "yaw_end": ["YAW END", "GkickmapYawend", "0"],
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
         "HISTOGRAM": {
             "name": ["Name", "ValidatedString"],
             "filename": ["FILENAME", "OutputFile", "", "filename for histogram output, possibly incomplete (see below)"],
@@ -2567,6 +2669,7 @@
             "order": ["ORDER", "RPNValue", 0, "matrix order"],
             "readout": ["READOUT", "OptionalString", "", "rpn expression for readout (actual position supplied in variable x)"],
             "co_fitpoint": ["CO FITPOINT", "RPNBoolean", "0", "If nonzero, then closed orbit value is placed in variable <name>#<occurrence>.xco"],
+            "store_turn_by_turn": ["STORE TURN BY TURN", "RPNBoolean", "0", "If nonzero, then turn-byturn horizontal position readout is placed in variable <name>#<occurence>.x."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "IBSCATTER": {
@@ -2675,13 +2778,16 @@
             "l": ["L [M]", "RPNValue", 0, "length"],
             "k3": ["K3 [1/M⁴]", "RPNValue", 0, "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", 0, "rotation about longitudinal axis"],
+            "pitch": ["PITCH [RAD]", "RPNValue", 0, "error rotation about horizontal axis. Ignored if MALIGN METHOD=0"],
+            "yaw": ["YAW [RAD]", "RPNValue", 0, "error rotation about vertical axis. Ignored if MALIGN METHOD=0"],
             "bore": ["BORE [M]", "RPNValue", 0, "bore radius"],
             "b": ["B [T]", "RPNValue", 0, "field at pole tip (used if bore nonzero)"],
             "dx": ["DX [M]", "RPNValue", 0, "misalignment"],
             "dy": ["DY [M]", "RPNValue", 0, "misalignment"],
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
             "fse": ["FSE", "RPNValue", 0, "fractional strength error"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
             "random_multipoles": ["RANDOM MULTIPOLES", "InputFile", "", "input file for random multi-poles"],
@@ -2690,6 +2796,7 @@
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "isr1part": ["ISR1PART", "RPNValue", 1, "Include ISR for single-particle beam only if ISR=1 and ISR1PART=1"],
             "expand_hamiltonian": ["EXPAND HAMILTONIAN", "RPNBoolean", "0", "If 1, Hamiltonian is expanded to leading order."],
+            "malign_method": ["MALIGN METHOD", "MalignMethod", "0"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KPOLY": {
@@ -2709,6 +2816,8 @@
             "l": ["L [M]", "RPNValue", 0, "length"],
             "k1": ["K1 [1/M²]", "RPNValue", 0, "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", 0, "rotation about longitudinal axis"],
+            "pitch": ["PITCH [RAD]", "RPNValue", 0, "error rotation about horizontal axis. Ignored if MALIGN METHOD=0"],
+            "yaw": ["YAW [RAD]", "RPNValue", 0, "error rotation about vertical axis. Ignored if MALIGN METHOD=0"],
             "bore": ["BORE [M]", "RPNValue", 0, "bore radius"],
             "b": ["B [T]", "RPNValue", 0, "pole tip field (used if bore nonzero)"],
             "dx": ["DX [M]", "RPNValue", 0, "misalignment"],
@@ -2721,7 +2830,8 @@
             "vcalibration": ["VCALIBRATION", "RPNValue", 1, "calibration factor for vertical correction kick"],
             "hsteering": ["HSTEERING", "RPNBoolean", "0", "use for horizontal correction?"],
             "vsteering": ["VSTEERING", "RPNBoolean", "0", "use for vertical correction?"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
             "edge_multipoles": ["EDGE MULTIPOLES", "InputFile", "", "input file for systematic edge multipoles"],
@@ -2758,6 +2868,7 @@
             "radial": ["RADIAL", "RPNBoolean", "0", "If non-zero, converts the quadrupole into a radially-focusing lens"],
             "expand_hamiltonian": ["EXPAND HAMILTONIAN", "RPNBoolean", "0", "If 1, Hamiltonian is expanded to leading order."],
             "tracking_matrix": ["TRACKING MATRIX", "Integer", 0, "If nonzero, gives order of tracking-based matrix up to third order to be used for twiss parameters etc. If zero, 2nd-order analytical matrix is used."],
+            "malign_method": ["MALIGN METHOD", "MalignMethod", "0"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "KQUSE": {
@@ -2771,7 +2882,8 @@
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
             "fse1": ["FSE1 [M]", "RPNValue", 0, "fractional strength error for K1"],
             "fse2": ["FSE2 [M]", "RPNValue", 0, "fractional strength error for K2"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "integration_order": ["INTEGRATION ORDER", "RPNValue", 4, "integration order (2 or 4)"],
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
@@ -2818,6 +2930,8 @@
             "k1": ["K1 [1/M²]", "RPNValue", 0, "geometric quadrupole strength error."],
             "j1": ["J1 [1∕M²]", "RPNValue", 0, "geometric skew quadrupole strength"],
             "tilt": ["TILT [RAD]", "RPNValue", 0, "rotation about longitudinal axis"],
+            "pitch": ["PITCH [RAD]", "RPNValue", 0, "error rotation about horizontal axis. Ignored if MALIGN METHOD=0"],
+            "yaw": ["YAW [RAD]", "RPNValue", 0, "error rotation about vertical axis. Ignored if MALIGN METHOD=0"],
             "bore": ["BORE [M]", "RPNValue", 0, "bore radius"],
             "b": ["B [T]", "RPNValue", 0, "field at pole tip (used if bore nonzero)"],
             "dx": ["DX [M]", "RPNValue", 0, "misalignment"],
@@ -2830,7 +2944,8 @@
             "vcalibration": ["VCALIBRATION", "RPNValue", 1, "calibration factor for vertical correction kick"],
             "hsteering": ["HSTEERING", "RPNBoolean", "0", "use for horizontal correction?"],
             "vsteering": ["VSTEERING", "RPNBoolean", "0", "use for vertical correction?"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "systematic_multipoles": ["SYSTEMATIC MULTIPOLES", "InputFile", "", "input file for systematic multi-poles"],
             "edge_multipoles": ["EDGE MULTIPOLES", "InputFile", "", "input file for systematic edge multipoles"],
@@ -2848,6 +2963,7 @@
             "isr": ["ISR", "RPNBoolean", "0", "include incoherent synchrotron radiation (scattering)?"],
             "isr1part": ["ISR1PART", "RPNValue", 1, "Include ISR for single-particle beam only if ISR=1 and ISR1PART=1"],
             "expand_hamiltonian": ["EXPAND HAMILTONIAN", "RPNBoolean", "0", "If 1, Hamiltonian is expanded to leading order."],
+            "malign_method": ["MALIGN METHOD", "MalignMethod", "0"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "LMIRROR": {
@@ -3113,6 +3229,7 @@
             "xreadout": ["XREADOUT", "OptionalString", "", "rpn expression for x readout (actual position supplied in variables x, y"],
             "yreadout": ["YREADOUT", "OptionalString", "", "rpn expression for y readout (actual position supplied in variables x, y"],
             "co_fitpoint": ["CO FITPOINT", "RPNBoolean", "0", "If nonzero, then closed orbit values are placed in variables <name>#<occurrence>.xco and <name>#<occurence>.yco"],
+            "store_turn_by_turn": ["STORE TURN BY TURN", "RPNBoolean", "0", "If nonzero, then turn-byturn horizontal/vertical position readout is placed in variable <name>#<occurence>.x/y."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "MRFDF": {
@@ -3154,7 +3271,8 @@
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
             "factor": ["FACTOR", "RPNValue", 1, "factor by which to multiply strength"],
             "order": ["ORDER", "RPNValue", 1, "multipole order"],
-            "n_kicks": ["N KICKS", "RPNValue", 4, "number of kicks"],
+            "n_kicks": ["N KICKS", "Integer", 4, "number of kicks. Deprecated. Use N_SLICES."],
+            "n_slices": ["N SLICES", "Integer", 4, "number of slices (full integrator steps)."],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical synchrotron radiation?"],
             "expand_hamiltonian": ["EXPAND HAMILTONIAN", "RPNBoolean", "0", "If 1, Hamiltonian is expanded to leading order."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
@@ -3247,6 +3365,8 @@
             "l": ["L [M]", "RPNValue", 0, "length"],
             "k1": ["K1 [1/M²]", "RPNValue", 0, "geometric strength"],
             "tilt": ["TILT [RAD]", "RPNValue", 0, "rotation about longitudinal axis"],
+            "pitch": ["PITCH [RAD]", "RPNValue", 0, "error rotation about horizontal axis. Ignored if MALIGN METHOD=0"],
+            "yaw": ["YAW [RAD]", "RPNValue", 0, "error rotation about vertical axis. Ignored if MALIGN METHOD=0"],
             "dx": ["DX [M]", "RPNValue", 0, "misalignment"],
             "dy": ["DY [M]", "RPNValue", 0, "misalignment"],
             "dz": ["DZ [M]", "RPNValue", 0, "misalignment"],
@@ -3274,6 +3394,7 @@
             "i3m": ["I3M [M⁴]", "RPNValue", 0, "i3-fringe integral"],
             "lambda2m": ["LAMBDA2M [M³]", "RPNValue", 0, "lambda2-fringe integral"],
             "radial": ["RADIAL", "RPNBoolean", "0", "If non-zero, converts the quadrupole into a radially-focusing lens"],
+            "malign_method": ["MALIGN METHOD", "MalignMethod", "0"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "QUFRINGE": {
@@ -3531,6 +3652,7 @@
             "quadrature_filter": ["QUADRATURE FILTER", "OptionalString", "", "IIR filter specification for quadrature component feedback"],
             "feedback_record": ["FEEDBACK RECORD", "OptionalString", "", "output file for feedback data"],
             "mute_generator": ["MUTE GENERATOR", "RPNValue", -1, "If nonnegative, gives the pass on which to mute the generator. This simulates an rf trip."],
+            "generator_factor": ["GENERATOR FACTOR", "RPNValue", 1, "Multiplies the generator current by the specified factor."],
             "noise_alpha_gen": ["NOISE ALPHA GEN", "InputFileXY", "", "<filename>=<x>+<y> specifying alpha(t) for generator noise."],
             "noise_alpha_genX": ["X", "String", ""],
             "noise_alpha_genY": ["Y", "String", ""],
@@ -3692,6 +3814,7 @@
             "probability": ["PROBABILITY", "RPNValue", 1, "Probability that any particle will be selected for scattering."],
             "startonpass": ["STARTONPASS", "RPNValue", 0, "Pass number to start on."],
             "endonpass": ["ENDONPASS", "RPNValue", -1, "Pass number to end on (inclusive). Ignored if negative."],
+            "distribution": ["DISTRIBUTION", "ScatterDistribution", "gaussian"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SCMULT": {
@@ -4247,6 +4370,7 @@
             "order": ["ORDER", "RPNValue", 0, "matrix order"],
             "readout": ["READOUT", "OptionalString", "", "rpn expression for readout (actual position supplied in variable y)"],
             "co_fitpoint": ["CO FITPOINT", "RPNBoolean", "0", "If nonzero, then closed orbit value is placed in variable <name>#<occurence>.yco"],
+            "store_turn_by_turn": ["STORE TURN BY TURN", "RPNBoolean", "0", "If nonzero, then turn-byturn vertical position readout is placed in variable <name>#<occurence>.y."],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "WAKE": {
@@ -4765,6 +4889,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "sextupoles",
+                "lower_limits",
+                "upper_limits",
                 "exclude",
                 "dnux_dp",
                 "dnuy_dp",
@@ -4792,6 +4918,7 @@
                 "start_from_centroid",
                 "start_from_dp_centroid",
                 "closed_orbit_accuracy",
+                "closed_orbit_accuracy_requirement",
                 "closed_orbit_iterations",
                 "iteration_fraction",
                 "fraction_multiplier",
@@ -4800,7 +4927,8 @@
                 "start_from_recirc",
                 "verbosity",
                 "tracking_turns",
-                "disable"
+                "disable",
+                "immediate"
             ]
         },
         "command_correct": {
@@ -4841,8 +4969,11 @@
                 "start_from_centroid",
                 "use_actual_beam",
                 "closed_orbit_accuracy",
+                "closed_orbit_accuracy_requirement",
                 "closed_orbit_iterations",
                 "closed_orbit_iteration_fraction",
+                "closed_orbit_fraction_multiplier",
+                "closed_orbit_multiplier_interval",
                 "closed_orbit_tracking_turns",
                 "use_perturbed_matrix",
                 "disable",
@@ -5043,6 +5174,7 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "inhibit_fsync",
+                "allow_overwriting",
                 "echo_namelists",
                 "mpi_randomization_mode",
                 "exact_normalized_emittance",
@@ -5052,6 +5184,7 @@
                 "error_log_file",
                 "parallel_tracking_based_matrices",
                 "share_tracking_based_matrices",
+                "tracking_based_matrices_store_limit",
                 "tracking_matrix_step_factor",
                 "tracking_matrix_points",
                 "tracking_matrix_step_size"
@@ -5147,6 +5280,7 @@
                 "ion_species_output",
                 "ion_output_interval",
                 "field_calculation_method",
+                "gaussian_ion_range",
                 "distribution_fit_target",
                 "distribution_fit_tolerance",
                 "distribution_fit_evaluations",
@@ -5310,6 +5444,7 @@
                 "equilibrium",
                 "radiation",
                 "n_slices",
+                "tracking_based_diffusion_matrix_particles",
                 "slice_etilted",
                 "emit_x",
                 "beta_x",
@@ -5465,6 +5600,30 @@
             "description": "define overall parallel optimization parameters and methods.",
             "fieldsPerTab": 8,
             "advanced": [
+                "equation",
+                "mode",
+                "method",
+                "tolerance",
+                "target",
+                "center_on_orbit",
+                "center_momentum_also",
+                "soft_failure",
+                "n_passes",
+                "n_evaluations",
+                "n_restarts",
+                "matrix_order",
+                "log_file",
+                "term_log_file",
+                "output_sparsing_factor",
+                "balance_terms",
+                "restart_worst_term_factor",
+                "restart_worst_terms",
+                "verbose",
+                "simplex_divisor",
+                "simplex_pass_range_factor",
+                "include_simplex_1d_scans",
+                "start_from_simplex_vertex1",
+                "restart_random_numbers",
                 "method",
                 "hybrid_simplex_tolerance",
                 "hybrid_simplex_tolerance_count",
@@ -5607,8 +5766,10 @@
                 "acceptance",
                 "losses",
                 "losses_include_global_coordinates",
+                "losses_s_limit",
                 "magnets",
                 "parameters",
+                "suppress_parameter_defaults",
                 "rfc_reference_output",
                 "combine_bunch_statistics",
                 "wrap_around",
@@ -5951,12 +6112,28 @@
                 "dy",
                 "dz",
                 "resolution",
+                "xfactor",
+                "yfactor",
                 "invert",
                 "sticky",
                 "cancel",
                 "filename",
                 "xcolumn",
                 "ycolumn",
+                "group"
+            ]
+        },
+        "BEAMBEAM": {
+            "title": "BEAMBEAM",
+            "description": "An element to provide kicks from another beam",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "charge",
+                "xcenter",
+                "ycenter",
+                "xsize",
+                "ysize",
+                "distribution",
                 "group"
             ]
         },
@@ -5972,6 +6149,14 @@
                 "normal_filename",
                 "skew_filename",
                 "strength",
+                "factor0",
+                "factor1",
+                "factor2",
+                "factor3",
+                "factor4",
+                "bxfactor",
+                "byfactor",
+                "bzfactor",
                 "tilt",
                 "dx",
                 "dy",
@@ -6026,6 +6211,9 @@
                 "lfield",
                 "strength",
                 "fse",
+                "bxfactor",
+                "byfactor",
+                "bzfactor",
                 "accuracy",
                 "method",
                 "filename",
@@ -6102,6 +6290,7 @@
                 "xexit",
                 "zexit",
                 "dxmap",
+                "dymap",
                 "dzmap",
                 "yawmap",
                 "factor",
@@ -6172,6 +6361,7 @@
                 "fse_quadrupole",
                 "etilt",
                 "n_kicks",
+                "n_slices",
                 "integration_order",
                 "systematic_multipoles",
                 "edge_multipoles",
@@ -6330,7 +6520,10 @@
                 "fse_dipole",
                 "fse_quadrupole",
                 "etilt",
+                "epitch",
+                "eyaw",
                 "n_kicks",
+                "n_slices",
                 "etilt_sign",
                 "nonlinear",
                 "synch_rad",
@@ -6379,6 +6572,9 @@
                 "reference_correction",
                 "tracking_matrix",
                 "fse_correction",
+                "malign_method",
+                "xsteering",
+                "ysteering",
                 "group"
             ]
         },
@@ -6411,6 +6607,7 @@
                 "fse",
                 "etilt",
                 "n_kicks",
+                "n_slices",
                 "etilt_sign",
                 "nonlinear",
                 "linearize",
@@ -6923,6 +7120,7 @@
                 "dz",
                 "fse",
                 "n_kicks",
+                "n_slices",
                 "synch_rad",
                 "filename",
                 "sqrt_order",
@@ -7037,6 +7235,27 @@
                 "group"
             ]
         },
+        "GKICKMAP": {
+            "title": "GKICKMAP",
+            "description": "An ordinary kick map (use UKICKMAP for undualtors).",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "l",
+                "tilt",
+                "dx",
+                "dy",
+                "dz",
+                "factor",
+                "xy_factor",
+                "yaw",
+                "input_file",
+                "n_kicks",
+                "synch_rad",
+                "isr",
+                "yaw_end",
+                "group"
+            ]
+        },
         "HISTOGRAM": {
             "title": "HISTOGRAM",
             "description": "Request for histograms of particle coordinates to be output to SDDS file.",
@@ -7096,6 +7315,7 @@
                 "order",
                 "readout",
                 "co_fitpoint",
+                "store_turn_by_turn",
                 "group"
             ]
         },
@@ -7229,6 +7449,8 @@
                 "l",
                 "k3",
                 "tilt",
+                "pitch",
+                "yaw",
                 "bore",
                 "b",
                 "dx",
@@ -7236,6 +7458,7 @@
                 "dz",
                 "fse",
                 "n_kicks",
+                "n_slices",
                 "synch_rad",
                 "systematic_multipoles",
                 "random_multipoles",
@@ -7244,6 +7467,7 @@
                 "isr",
                 "isr1part",
                 "expand_hamiltonian",
+                "malign_method",
                 "group"
             ]
         },
@@ -7273,6 +7497,8 @@
                 "l",
                 "k1",
                 "tilt",
+                "pitch",
+                "yaw",
                 "bore",
                 "b",
                 "dx",
@@ -7286,6 +7512,7 @@
                 "hsteering",
                 "vsteering",
                 "n_kicks",
+                "n_slices",
                 "synch_rad",
                 "systematic_multipoles",
                 "edge_multipoles",
@@ -7322,6 +7549,7 @@
                 "radial",
                 "expand_hamiltonian",
                 "tracking_matrix",
+                "malign_method",
                 "group"
             ]
         },
@@ -7341,6 +7569,7 @@
                 "fse1",
                 "fse2",
                 "n_kicks",
+                "n_slices",
                 "synch_rad",
                 "integration_order",
                 "isr",
@@ -7397,6 +7626,8 @@
                 "k1",
                 "j1",
                 "tilt",
+                "pitch",
+                "yaw",
                 "bore",
                 "b",
                 "dx",
@@ -7410,6 +7641,7 @@
                 "hsteering",
                 "vsteering",
                 "n_kicks",
+                "n_slices",
                 "synch_rad",
                 "systematic_multipoles",
                 "edge_multipoles",
@@ -7427,6 +7659,7 @@
                 "isr",
                 "isr1part",
                 "expand_hamiltonian",
+                "malign_method",
                 "group"
             ]
         },
@@ -7768,6 +8001,7 @@
                 "xreadout",
                 "yreadout",
                 "co_fitpoint",
+                "store_turn_by_turn",
                 "group"
             ]
         },
@@ -7820,6 +8054,7 @@
                 "factor",
                 "order",
                 "n_kicks",
+                "n_slices",
                 "synch_rad",
                 "expand_hamiltonian",
                 "group"
@@ -7947,6 +8182,8 @@
                 "l",
                 "k1",
                 "tilt",
+                "pitch",
+                "yaw",
                 "dx",
                 "dy",
                 "dz",
@@ -7974,6 +8211,7 @@
                 "i3m",
                 "lambda2m",
                 "radial",
+                "malign_method",
                 "group"
             ]
         },
@@ -8277,6 +8515,7 @@
                 "quadrature_filter",
                 "feedback_record",
                 "mute_generator",
+                "generator_factor",
                 "noise_alpha_gen",
                 "noise_phi_gen",
                 "noise_alpha_v",
@@ -8460,6 +8699,7 @@
                 "probability",
                 "startonpass",
                 "endonpass",
+                "distribution",
                 "group"
             ]
         },
@@ -9155,6 +9395,7 @@
                 "order",
                 "readout",
                 "co_fitpoint",
+                "store_turn_by_turn",
                 "group"
             ]
         },

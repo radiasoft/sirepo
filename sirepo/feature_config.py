@@ -27,7 +27,6 @@ PROD_FOSS_CODES = frozenset((
     'synergia',
     'warppba',
     'warpvnd',
-    'webcon',
     'zgoubi',
 ))
 

@@ -789,20 +789,23 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         });
     };
 
+    self.setFieldDefaults = function(model, field, fieldInfo) {
+        let defaultVal = fieldInfo[2];
+        if (! model[field]) {
+            if (defaultVal !== undefined) {
+                // for cases where the default value is an object, we must
+                // clone it or the schema itself will change as the model changes
+                model[field] = self.isObject(defaultVal) ? self.clone(defaultVal) : defaultVal;
+            }
+        }
+    };
+
     self.setModelDefaults = function(model, modelName) {
         // set model defaults from schema
         const schema = SIREPO.APP_SCHEMA.model[modelName];
         const fields = Object.keys(schema);
         for (let i = 0; i < fields.length; i++) {
-            let f = fields[i];
-            let defaultVal = schema[f][2];
-            if (! model[f]) {
-                if (defaultVal !== undefined) {
-                    // for cases where the default value is an object, we must
-                    // clone it or the schema itself will change as the model changes
-                    model[f] = self.isObject(defaultVal) ? self.clone(defaultVal) : defaultVal;
-                }
-            }
+            self.setFieldDefaults(model, fields[i], schema[fields[i]]);
         }
         return model;
     };
@@ -1435,13 +1438,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     }
 
-    function sendRequest(name, callback, forceRun) {
+    function sendRequest(name, callback, forceRun, errorCallback) {
         setPanelValue(name, 'loading', true);
         setPanelValue(name, 'error', null);
         var responseHandler = function(resp) {
             setPanelValue(name, 'loading', false);
             if (resp.error) {
                 setPanelValue(name, 'error', resp.error);
+                if (errorCallback) {
+                    errorCallback(resp);
+                }
             }
             else {
                 setPanelValue(name, 'data', resp);
@@ -1639,7 +1645,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         requestSender.newWindow('pythonSource', args);
     };
 
-    self.requestData = function(name, callback, forceRun) {
+    self.requestData = function(name, callback, forceRun, errorCallback) {
         if (! appState.isLoaded()) {
             return;
         }
@@ -1657,10 +1663,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             simulationQueue.cancelItem(queueItems[name]);
         }
         self.addPendingRequest(name, function() {
-            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun, errorCallback);
         });
         if (! self.isHidden(name)) {
-            queueItems[name] = sendRequest(name, wrappedCallback, forceRun);
+            queueItems[name] = sendRequest(name, wrappedCallback, forceRun, errorCallback);
         }
     };
 
