@@ -191,8 +191,8 @@ class SimDataBase(object):
         return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
-    def delete_sim_file(cls, basename, data):
-        return cls._delete_sim_db_file(cls._sim_file_uri(basename, data))
+    def delete_sim_file(cls, sim_id, basename):
+        return cls._delete_sim_db_file(cls._sim_file_uri(sim_id, basename))
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -487,8 +487,8 @@ class SimDataBase(object):
         return []
 
     @classmethod
-    def put_sim_file(cls, file_path, basename, data):
-        return cls._put_sim_db_file(file_path, cls._sim_file_uri(basename, data))
+    def put_sim_file(cls, sim_id, file_path, basename):
+        return cls._put_sim_db_file(file_path, cls._sim_file_uri(sim_id, basename))
 
     @classmethod
     def resource_dir(cls):
@@ -510,11 +510,15 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
+    def sim_file_basenames(cls, data):
+        return cls._sim_file_basenames(data)
+
+    @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
-        for b in cls._sim_file_basenames(data):
+        for b in cls.sim_file_basenames(data):
             cls._sim_file_to_run_dir(
+                data.models.simulation.simulationId,
                 b.basename,
-                data,
                 run_dir,
                 is_exe=b.get('is_exe', False),
             )
@@ -710,6 +714,10 @@ class SimDataBase(object):
         ).raise_for_status()
 
     @classmethod
+    def _sim_file_basenames(cls, data):
+        return []
+
+    @classmethod
     def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
         p = run_dir.join(uri.split('/')[-1])
         r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
@@ -720,24 +728,19 @@ class SimDataBase(object):
         return p
 
     @classmethod
-    def _sim_file_basenames(cls, data):
-        return []
-
-    @classmethod
-    def _sim_file_to_run_dir(cls, basename, data, run_dir, is_exe=False):
+    def _sim_file_to_run_dir(cls, sim_id, basename, run_dir, is_exe=False):
         return cls._sim_db_file_to_run_dir(
-            cls._sim_file_uri(basename, data),
+            cls._sim_file_uri(sim_id, basename),
             run_dir,
             is_exe=is_exe,
         )
 
     @classmethod
-    def _sim_file_uri(cls, basename, data):
-        import sirepo.simulation_db
-
-        return sirepo.simulation_db.simulation_file_uri(
+    def _sim_file_uri(cls, sim_id, basename):
+        from sirepo import simulation_db
+        return simulation_db.simulation_file_uri(
             cls.sim_type(),
-            data.models.simulation.simulationId,
+            sim_id,
             basename,
         )
 

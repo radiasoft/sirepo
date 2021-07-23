@@ -285,7 +285,7 @@
         ]
     },
     "frameIdFields": {
-        "solver": [],
+        "solverAnimation": [],
         "magnetViewer": []
     },
     "localRoutes": {
@@ -368,8 +368,8 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "gamma"]
         },
-        "geometry": {
-            "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
+        "geometryReport": {
+            "doGenerate": ["_", "Boolean", "1"],
             "id": ["_", "UUID", ""],
             "isSolvable": ["_", "Boolean", "1"],
             "name": ["Name", "String", ""],
@@ -458,10 +458,8 @@
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
-        "magnet": {
-            "_super": ["_", "model", "geometry"]
-        },
         "magnetDisplay": {
+            "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "bgColor": ["Background Color", "Color", "#ffffff"],
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
@@ -486,7 +484,7 @@
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
-       "racetrack": {
+        "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
             "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
@@ -523,7 +521,7 @@
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
-        "solver":  {
+        "solverAnimation":  {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
@@ -755,10 +753,10 @@
         "magnetDisplay": {
             "title": "Magnet Viewer",
             "basic": [
-                "geometry.name",
+                "geometryReport.name",
                 "viewType",
                 "bgColor",
-                "geometry.alpha",
+                "alpha",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"
@@ -878,7 +876,7 @@
                 "heightAxis"
             ]
         },
-        "solver": {
+        "solverAnimation": {
             "title": "Solver",
             "basic": [
                 "precision",
