@@ -90,7 +90,6 @@ def _write_dict_to_h5(data, h5_path):
         lambda: template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
     )
 
-
 def _write_dmp(g_id, f_path):
     with open(f_path, 'wb') as f:
         f.write(radia_util.dump_bin(g_id))
@@ -124,3 +123,4 @@ with radia_util.MPI() as m:
 {% endif %}
     sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
     _put_sim_files()
+
