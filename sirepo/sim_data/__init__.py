@@ -398,8 +398,7 @@ class SimDataBase(object):
         res = PKDict()
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
-                m = d[1] in [f'model.{m}' for m in cls.schema().model.keys()]
-                res[f] = d[2] if not m else cls.model_defaults(d[1].split('.')[1])
+                res[f] = d[2]
                 if d[1] == 'UUID' and not res[f]:
                     res[f] = str(uuid.uuid4())
         return res

@@ -586,7 +586,6 @@
             "gap": ["Gap [mm]", "Float", 20.0, "", 0.0],
             "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
-            "octant": ["_", "model.geomGroup", {}],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
             "terminations": ["Termination Groups", "TerminationTable",
                 [
