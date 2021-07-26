@@ -1166,8 +1166,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleColor
     )
     und.poleBaseObjectId = pole.id
+    obj_props.pole.bevels = pole.bevels or []
     if pole.bevels:
-        obj_props.pole.bevels = pole.bevels or []
         half_pole.bevels = pole.bevels.copy()
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
