@@ -9,7 +9,6 @@ Radia "instance" goes away and references no longer have any meaning.
 """
 from __future__ import division
 
-import pykern.pkio
 from pykern import pkcollections
 from pykern import pkcompat
 from pykern import pkio
@@ -112,7 +111,7 @@ def create_archive(sim):
 
 
 def extract_report_data(run_dir, sim_in):
-    assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
+    assert sim_in.report in _REPORTS, 'report={}: unknown report'.format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     if 'reset' in sim_in.report:
         template_common.write_sequential_result({}, run_dir=run_dir)
@@ -121,6 +120,7 @@ def extract_report_data(run_dir, sim_in):
         f_type = sim_in.models.magnetDisplay.fieldType if v_type ==\
             _SCHEMA.constants.viewTypeFields else None
         d = _get_geom_data(
+                sim_in.models.simulation.simulationId,
                 _get_g_id(),
                 sim_in.models.simulation.name,
                 v_type,
@@ -144,6 +144,7 @@ def extract_report_data(run_dir, sim_in):
         h_axis = next(iter(set(_AXES) - {beam_axis, v_axis}))
         template_common.write_sequential_result(
             _field_lineout_plot(
+                sim_in.models.simulation.simulationId,
                 sim_in.models.simulation.name,
                 sim_in.models.fieldLineoutReport.fieldType,
                 sim_in.models.fieldLineoutReport.fieldPath,
@@ -177,7 +178,7 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         res = _generate_field_data(
-            g_id, data.name, f_type, data.get('fieldPaths', None)
+            sim_id, g_id, data.name, f_type, data.get('fieldPaths')
         )
         res.solution = _read_solution()
         res.idMap = id_map
@@ -192,7 +193,7 @@ def get_application_data(data, **kwargs):
         return res
 
     if data.method == 'get_field_integrals':
-        return _generate_field_integrals(g_id, data.fieldPaths)
+        return _generate_field_integrals(sim_id, g_id, data.fieldPaths)
     if data.method == 'get_kick_map':
         return _read_or_generate_kick_map(g_id, data)
     if data.method == 'get_geom':
@@ -201,7 +202,7 @@ def get_application_data(data, **kwargs):
             [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
         )
         g_types.extend(['center', 'name', 'size', 'id'])
-        res = _read_or_generate(g_id, data)
+        res = _read_or_generate(sim_id, g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
         res.idMap = id_map
@@ -240,7 +241,7 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    assert model in _REPORTS, f'unknown report: {model}'
+    assert model in _REPORTS, 'model={}: unknown report'.format(model)
     name = simulation_db.read_json(
         run_dir.join(template_common.INPUT_BASE_NAME)
     ).models.simulation.name
@@ -301,6 +302,12 @@ def write_parameters(data, run_dir, is_parallel):
 def _add_obj_lines(field_data, obj):
     for d in obj.data:
         field_data.data.append(PKDict(lines=d.lines))
+
+
+def _backend_alert(sim_id, g_id, e):
+    raise sirepo.util.UserAlert(
+        'backend Radia runtime error={} in simulation={} for key={}'.format(e, sim_id, g_id)
+    )
 
 
 def _build_clone_xform(num_copies, alt_fields, transforms):
@@ -511,8 +518,8 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _field_lineout_plot(name, f_type, f_path, beam_axis, v_axis, h_axis):
-    v = _generate_field_data(_get_g_id(), name, f_type, [f_path]).data[0].vectors
+def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
+    v = _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path]).data[0].vectors
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
@@ -545,16 +552,19 @@ def _find_obj_by_name(obj_arr, obj_name):
     return a[0] if a else None
 
 
-def _generate_field_data(g_id, name, field_type, field_paths):
+def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
     assert field_type in radia_util.FIELD_TYPES, 'field_type={}: invalid field type'.format(field_type)
-    if field_type == radia_util.FIELD_TYPE_MAG_M:
-        f = radia_util.get_magnetization(g_id)
-    else:
-        f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
-    return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
+    try:
+        if field_type == radia_util.FIELD_TYPE_MAG_M:
+            f = radia_util.get_magnetization(g_id)
+        else:
+            f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
+        return radia_util.vector_field_to_data(g_id, name, f, radia_util.FIELD_UNITS[field_type])
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
 
 
-def _generate_field_integrals(g_id, f_paths):
+def _generate_field_integrals(sim_id, g_id, f_paths):
     l_paths = [fp for fp in f_paths if fp.type == 'line']
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
@@ -569,24 +579,22 @@ def _generate_field_integrals(g_id, f_paths):
                 res[p.name][i_type] = radia_util.field_integral(g_id, i_type, p1, p2)
         return res
     except RuntimeError as e:
-        pkdlog('Radia error {}', e.message)
-        return PKDict(error=e.message)
+        _backend_alert(sim_id, g_id, e)
 
 
-def _generate_data(g_id, name, view_type, field_type, field_paths=None):
+def _generate_data(sim_id, g_id, name, view_type, field_type, field_paths=None):
     try:
         o = _generate_obj_data(g_id, name)
         if view_type == _SCHEMA.constants.viewTypeObjects:
             return o
         elif view_type == _SCHEMA.constants.viewTypeFields:
             g = _generate_field_data(
-                g_id, name, field_type, field_paths
+                sim_id, g_id, name, field_type, field_paths
             )
             _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
-        pkdlog('Radia error {}', e.message)
-        return PKDict(error=e.message)
+        _backend_alert(sim_id, g_id, e)
 
 
 def _generate_kick_map(g_id, model):
@@ -742,10 +750,11 @@ def _geom_h5_path(view_type, field_type=None):
 
 
 def _get_g_id():
-    return radia_util.load_bin(pykern.pkio.read_binary(_DMP_FILE))
+    return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
 def _get_geom_data(
+        sim_id,
         g_id,
         name,
         view_type,
@@ -756,9 +765,10 @@ def _get_geom_data(
     assert view_type in VIEW_TYPES, 'view_type={}: invalid view type'.format(view_type)
     if view_type == _SCHEMA.constants.viewTypeFields:
         res = _generate_field_data(
-            g_id, name, field_type, field_paths
+            sim_id, g_id, name, field_type, field_paths
         )
         res.data += _get_geom_data(
+            sim_id,
             g_id,
             name,
             _SCHEMA.constants.viewTypeObjects,
@@ -768,7 +778,7 @@ def _get_geom_data(
         return res
 
     geom_types.extend(['center', 'name', 'size', 'id'])
-    res = _read_or_generate(g_id, name, view_type, None)
+    res = _read_or_generate(sim_id, g_id, name, view_type, None)
     rd = res.data if 'data' in res else []
     res.data = [{k: d[k] for k in d.keys() if k in geom_types} for d in rd]
     res.idMap = _read_id_map()
@@ -832,12 +842,12 @@ def _read_h5_path(filename, h5path):
             return template_common.h5_to_dict(f, path=h5path)
     except IOError as e:
         if pkio.exception_is_not_found(e):
-            pkdlog(f'file {filename} not found')
+            pkdlog('filename={} not found', filename)
             # need to generate file
             return None
-    except KeyError:
+    except template_common.NoH5PathError:
         # no such path in file
-        pkdlog(f'path {h5path} not found in {filename}')
+        pkdlog('h5Path={} not found in filename={}', h5path, filename)
         return None
     # propagate other errors
 
@@ -873,17 +883,17 @@ def _read_kick_map():
     return _read_h5_path(_KICK_FILE, _H5_PATH_KICK_MAP)
 
 
-def _read_or_generate(g_id, name, view_type, field_type, field_paths=None):
+def _read_or_generate(sim_id, g_id, name, view_type, field_type, field_paths=None):
     res = _read_data(view_type, field_type)
     if res:
         return res
     # No such file or path, so generate the data and write to the existing file
     template_common.write_dict_to_h5(
-        _generate_data(g_id, name, view_type, field_type, field_paths),
+        _generate_data(sim_id, g_id, name, view_type, field_type, field_paths),
         _GEOM_FILE,
         h5_path=_geom_h5_path(view_type, field_type)
     )
-    return _get_geom_data(g_id, name, view_type, field_type, field_paths)
+    return _get_geom_data(sim_id, g_id, name, view_type, field_type, field_paths)
 
 
 def _read_or_generate_kick_map(g_id, data):
@@ -1003,7 +1013,9 @@ def _validate_objects(objects):
         if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
                 raise ValueError(
-                    f'{o.name}: anisotropic material {o.material} requires non-0 magnetization'
+                    '{}: anisotropic material {} requires non-0 magnetization'.format(
+                        o.name, o.material
+                    )
                 )
 
 

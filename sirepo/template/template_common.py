@@ -120,6 +120,11 @@ class ModelUnits():
         return model
 
 
+class NoH5PathError(KeyError):
+    """The given path into an h5 file does not exist"""
+    pass
+
+
 class ParticleEnergy():
     """Computes the energy related fields for a particle from one field.
     Units:
@@ -386,6 +391,10 @@ def h5_to_dict(hf, path=None):
         # this TypeError occurs when hf[path] is not iterable (e.g. a string)
         # assume this is a single-valued entry and run it through pkcompat
         return pkcompat.from_bytes(hf[path][()])
+    except KeyError as e:
+        # no such path into the h5 file - re-raise so we know where it came from
+        raise NoH5PathError(e)
+
     # replace dicts with arrays on a 2nd pass
     try:
         indices = [int(k) for k in d.keys()]
