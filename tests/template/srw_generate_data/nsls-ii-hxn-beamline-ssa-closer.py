@@ -642,13 +642,6 @@ def main():
     v.tr_pl = 'xz'
     v.ws = True
     v.ws_pl = 'xy'
-    mag = None
-    if v.rs_type == 'm':
-        mag = srwlib.SRWLMagFldC()
-        mag.arXc.append(0)
-        mag.arYc.append(0)
-        mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
-        mag.arZc.append(v.mp_zc)
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
