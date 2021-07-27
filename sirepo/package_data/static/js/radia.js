@@ -1569,35 +1569,18 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
                 });
             };
+              '<a href class="btn btn-default input-group-addon elegant-download-button" data-file-value-button="" data-ng-href="{{ fileDownloadURL(model) }}"><span class="glyphicon glyphicon-cloud-download"></span></a>',
+
 
             $scope.download = function() {
-                let pfe = radiaService.pointFieldExports[$scope.tModel.exportType];
-                let ct = pfe.contentType;
-                let p = radiaService.selectedPath;
-                let f = `${appState.models.simulation.name}-${p.name}-${$scope.fieldType()}`;
-                let ext = pfe.extension;
-                let fn = panelState.fileNameFromText(f, ext);
-                requestSender.getApplicationData(
-                    {
-                        beamAxis: appState.models.simulation.beamAxis,
-                        contentType: ct,
-                        fieldPaths: [p],
-                        fieldType: $scope.fieldType(),
-                        fileExt: ext,
-                        exportType: $scope.tModel.exportType,
-                        gap: $scope.tModel.gap,
-                        method: 'save_field',
-                        name: p.name,
-                        responseType: pfe.responseType,
-                        simulationId: appState.models.simulation.simulationId,
-                        viewType: 'fields',
-                    },
-                    function(d) {
-                        saveAs(new Blob([d], {type: ct}), fn);
-                        radiaService.showFieldDownload(false);
-                    },
-                    fn
-                );
+                requestSender.newWindow('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': 'fieldLineoutReport',
+                    '<frame>': -1,
+                    '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
+                });
+                radiaService.showFieldDownload(false);
             };
 
             $scope.fieldType = function() {

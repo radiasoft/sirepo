@@ -10,7 +10,17 @@
             "_default": [
                 {
                     "title": "Save as SDDS",
-                    "suffix": ""
+                    "suffix": "sdds"
+                }
+            ],
+            "fieldLineoutReport": [
+                {
+                    "title": "Save as CSV",
+                    "suffix": "csv"
+                },
+                {
+                    "title": "Save for SRW import",
+                    "suffix": "zip"
                 }
             ],
             "kickMapReport": [
