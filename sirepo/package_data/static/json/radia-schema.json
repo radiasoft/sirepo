@@ -341,6 +341,7 @@
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
         },
+        "fieldIntegralReport": {},
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -605,6 +606,11 @@
                 "numCopies",
                 "alternateFields"
             ]
+        },
+        "fieldIntegralReport": {
+            "title": "Field Integrals (T · mm)",
+            "advanced": [],
+            "basic": []
         },
         "fieldLineoutReport": {
             "title": "Field on Path",

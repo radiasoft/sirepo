@@ -1824,15 +1824,10 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             function updateTable() {
-                var inData = {
-                    fieldPaths: $scope.linePaths(),
-                    method: 'get_field_integrals',
-                    simulationId: appState.models.simulation.simulationId,
-                };
-                // may need another report instead of this
-                radiaService.getRadiaData(inData, function(d) {
-                    $scope.integrals = d;
-                });
+                panelState.clear('fieldIntegralReport');
+                panelState.requestData('fieldIntegralReport', (data) => {
+                    $scope.integrals = data;
+                }, true);
             }
 
             $scope.$on('fieldPaths.changed', function () {

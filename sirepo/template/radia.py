@@ -64,9 +64,9 @@ _KICK_FILE = 'kickMap.h5'
 _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
-_POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
+_POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport']
 _SIM_REPORTS = ['geometryReport', 'reset', 'solverAnimation']
-_REPORTS = ['fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
+_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
     reset='geometryReport',
     solverAnimation='geometryReport',
@@ -135,6 +135,15 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(
             _kick_map_plot(sim_in.models.kickMapReport),
             run_dir=run_dir,
+        )
+    if 'fieldIntegralReport' in sim_in.report:
+        template_common.write_sequential_result(
+            _generate_field_integrals(
+                sim_in.models.simulation.simulationId,
+                _get_g_id(),
+                sim_in.models.fieldPaths.paths or []
+            ),
+            run_dir=run_dir
         )
     if 'fieldLineoutReport' in sim_in.report:
         beam_axis = sim_in.models.simulation.beamAxis
