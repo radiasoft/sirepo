@@ -341,7 +341,9 @@
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
         },
-        "fieldIntegralReport": {},
+        "fieldIntegralReport": {
+            "lastCalculated": ["_", "Integer", -1]
+        },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],

@@ -1824,6 +1824,8 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             function updateTable() {
+                appState.models.fieldIntegralReport.lastCalculated = Date.now();
+                appState.saveQuietly('fieldIntegralReport');
                 panelState.clear('fieldIntegralReport');
                 panelState.requestData('fieldIntegralReport', (data) => {
                     $scope.integrals = data;
