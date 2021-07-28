@@ -155,17 +155,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return (appState.models.fieldTypes || {}).path;
     };
 
-    self.getRadiaData = function(inData, handler) {
-        // store inData on the model, so that we can refer to it if
-        // getApplicationData fails
-        requestSender.getApplicationData(inData, function (d) {
-            if (d.error) {
-                throw new Error(d.error);
-            }
-            handler(d);
-        });
-    };
-
     self.getSelectedObject = function() {
         return self.selectedObject;
     };
@@ -3080,7 +3069,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function init() {
                 //srdbg('init...');
-                $scope.$broadcast('sliderParent.ready', appState.models.geometryReport);
+                $scope.$broadcast('sliderParent.ready', appState.models.magnetDisplay);
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
@@ -3144,7 +3133,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! renderer) {
                     return;
                 }
-                var alpha = $scope.gModel.alpha;
+                const alpha = $scope.model.alpha;
                 for (var id in actorInfo) {
                     var info = actorInfo[id];
                     var s = info.scalars;
@@ -3271,7 +3260,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     $scope.isViewTypeFields()
                 );
                 panelState.showField(
-                    'geometryReport',
+                    'magnetDisplay',
                     'alpha',
                     $scope.isViewTypeObjects()
                 );
