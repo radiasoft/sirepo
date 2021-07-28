@@ -106,6 +106,8 @@ RUN_MODES = frozenset((SEQUENTIAL, PARALLEL, SBATCH))
 #: categories of jobs
 KINDS = frozenset((SEQUENTIAL, PARALLEL))
 
+# https://docs.nersc.gov/jobs/policy/
+# https://docs.nersc.gov/performance/knl/getting-started/#knl-vs-haswell
 #: Max values for each nersc queue
 NERSC_QUEUE_MAX = PKDict(
     hours=PKDict(
@@ -114,7 +116,7 @@ NERSC_QUEUE_MAX = PKDict(
         regular=48,
     ),
     cores=PKDict(
-        debug=2048,
+        debug=34816,
         premium=56704,
         regular=61824,
 
