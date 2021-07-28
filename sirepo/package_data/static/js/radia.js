@@ -1558,9 +1558,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
                 });
             };
-              '<a href class="btn btn-default input-group-addon elegant-download-button" data-file-value-button="" data-ng-href="{{ fileDownloadURL(model) }}"><span class="glyphicon glyphicon-cloud-download"></span></a>',
-
-
+            
             $scope.download = function() {
                 requestSender.newWindow('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
