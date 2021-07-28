@@ -812,8 +812,8 @@
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
-            "bx": ["Horizontal Magnetic Field [T]", "Float", 0.4],
-            "by": ["Vertical Magnetic Field [T]", "Float", 0.0],
+            "bx": ["Horizontal Magnetic Field [T]", "Float", 0.0],
+            "by": ["Vertical Magnetic Field [T]", "Float", 0.4],
             "length": ["Effective Length [m]", "Float"]
         },
         "obstacle": {
