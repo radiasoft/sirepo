@@ -2473,7 +2473,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.axisObj = null;
             $scope.defaultColor = "#ff0000";
-            $scope.gModel = null;
             $scope.mode = null;
 
             $scope.isViewTypeFields = function () {
@@ -2497,7 +2496,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var SCALAR_ARRAY = 'scalars';
 
             var actorInfo = {};
-            var alphaDelegate = null;
+            var alphaDelegate = radiaService.alphaDelegate();
             var beamAxis = [[-1, 0, 0], [1, 0, 0]];
             var cm = vtkPlotting.coordMapper();
             var colorbar = null;
@@ -3254,6 +3253,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if ($scope.isViewTypeObjects())  {
                     d3.select('svg.colorbar').remove();
                 }
+                if ($scope.isViewTypeFields())  {
+                    setColorMap();
+                    setScaling();
+                }
                 panelState.showField(
                     'magnetDisplay',
                     'fieldType',
@@ -3271,8 +3274,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     var mf = appState.parseModelField(f);
                     panelState.showField(mf[0], mf[1], $scope.isViewTypeFields());
                 });
-                setColorMap();
-                setScaling();
             }
 
             function updateViewer() {
@@ -3317,12 +3318,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
-                $scope.gModel = appState.models.geometryReport;
                 appState.watchModelFields($scope, watchFields, updateLayout);
                 appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
-                alphaDelegate = radiaService.alphaDelegate();
                 alphaDelegate.update = setAlpha;
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
+                updateLayout();
             });
 
             // or keep stuff on vtk viewer scope?
