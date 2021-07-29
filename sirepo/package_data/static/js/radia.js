@@ -1065,7 +1065,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
 
     let SINGLE_PLOTS = ['magnetViewer',];
-    let POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport',];
+    let POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
 
     let solving = false;
 
@@ -1105,7 +1105,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.simHandleStatus = function(data) {
         if (data.error) {
             solving = false;
-            throw new Error('Solver failed: ' + data.error);
         }
         SINGLE_PLOTS.forEach(function(name) {
             frameCache.setFrameCount(0, name);
@@ -2495,6 +2494,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             var actorInfo = {};
             var alphaDelegate = radiaService.alphaDelegate();
+            alphaDelegate.update = setAlpha;
             var beamAxis = [[-1, 0, 0], [1, 0, 0]];
             var cm = vtkPlotting.coordMapper();
             var colorbar = null;
@@ -3099,6 +3099,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 m.setMaxPixelSize(100);
                 vtkAPI.setMarker(m);
                 updateViewer();
+                updateLayout();
             }
 
             function numColors(polyData, type) {
@@ -3247,7 +3248,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateLayout() {
-                //srdbg('updateLayout', appState.models.magnetDisplay.viewType);
                 if ($scope.isViewTypeObjects())  {
                     d3.select('svg.colorbar').remove();
                 }
@@ -3275,7 +3275,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer() {
-                //srdbg('update v');
                 displayVals = getDisplayVals();
                 sceneData = {};
                 actorInfo = {};
@@ -3318,9 +3317,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
                 appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
-                alphaDelegate.update = setAlpha;
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
-                updateLayout();
             });
 
             // or keep stuff on vtk viewer scope?
