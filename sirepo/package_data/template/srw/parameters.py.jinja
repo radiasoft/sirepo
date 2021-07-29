@@ -251,11 +251,14 @@ varParam = [
     ['rs_type', 's', '{{rs_type}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if simulation_sourceType == 'm' %}
 #---Multipole
-    ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
-    ['mp_order', 'i', 1, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
-    ['mp_distribution', 's', '{{multipole_distribution}}', 'normal (n) or skew (s)'],
-    ['mp_len', 'f', {{multipole_length}}, 'effective length [m]'],
-    ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
+    ['mag_by', 'f', {{multipole_by}}, 'vertical magnetic field [T]'],
+    ['mag_bx', 'f', {{multipole_bx}}, 'horizontal magnetic field [T]'],
+    ['mag_gn', 'f', 0., 'gradient of normal magnetic field quadrupole [T/m]'],
+    ['mag_gs', 'f', 0., 'gradient of skew magnetic field quadrupole [T/m]'],
+    ['mag_len', 'f', {{multipole_length}}, 'magnetic length [m]'],
+    ['mag_led', 'f', 0., 'magnetic edge length bw 10% and 90% of peak field [m]; G/(1 + ((z-zc)/d)^2)^2 field dependence is assumed'],
+    ['mag_r', 'f', 0., 'radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0)'],
+    ['mag_zc', 'f', 0., 'center longitudinal position [m]'],
 {% endif %}
 
     {% if beamlineOpticsParameters %}

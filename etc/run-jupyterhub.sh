@@ -1,8 +1,13 @@
 #!/bin/bash
 set -eou pipefail
 
-export SIREPO_AUTH_METHODS=email
 export SIREPO_FEATURE_CONFIG_DEFAULT_PROPRIETARY_SIM_TYPES=jupyterhublogin
+
+if [[ ! ${SIREPO_AUTH_METHODS:-} ]]; then
+    export SIREPO_AUTH_METHODS=email
+elif [[ ! $SIREPO_AUTH_METHODS =~ 'email' ]]; then
+    export SIREPO_AUTH_METHODS=$SIREPO_AUTH_METHODS:email
+fi
 
 if [[ ${SIREPO_AUTH_GITHUB_KEY:-} || ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
     export SIREPO_AUTH_GITHUB_METHOD_VISIBLE=0
