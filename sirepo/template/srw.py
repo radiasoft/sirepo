@@ -202,8 +202,8 @@ def compute_crl_focus(model):
         delta=model.refractiveIndex,
         p0=model.position
     )
-    model.focalDistance = d.ideal_focus
-    model.absoluteFocusPosition = d.p1_ideal_from_source
+    model.focalDistance = d['ideal_focus']
+    model.absoluteFocusPosition = d['p1_ideal_from_source']
     return model
 
 
