@@ -8,5 +8,5 @@ c.JupyterHub.authenticator_class = sirepo.jupyterhub.Authenticator
 c.JupyterHub.base_url = '/{{ uri_root }}'
 c.JupyterHub.ip = '127.0.0.1'
 c.JupyterHub.port = {{ jupyterhub_port }}
-c.JupyterHub.spawner_class = jupyterhub.spawner.SimpleLocalProcessSpawner
 c.Spawner.debug = {{ jupyterhub_debug }}
+c.Spawner.default_url = '/lab'
