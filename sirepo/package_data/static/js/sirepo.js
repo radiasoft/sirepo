@@ -2976,11 +2976,9 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         });
     };
     self.getUserFolderPaths = function() {
-        return self.getUserFolders().map(function (item) {
-            return self.pathName(item);
-        }).sort(function(a, b) {
-            return a.localeCompare(b);
-        });
+        return self.getUserFolders()
+            .map(item => self.pathName(item))
+            .sort((a, b) => a.localeCompare(b));
     };
     self.defaultCreationFolder = function() {
         var cf = self.getUserFolderPaths().indexOf(self.getActiveFolderPath()) >= 0 ? self.getActiveFolder() : self.rootFolder();
@@ -3006,6 +3004,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 let sim = data[i].simulation;
                 item.name = sim.name;
                 item.notes = sim.notes;
+                item.lastModified = sim.lastModified;
             }
             else {
                 self.addToTree(data[i].simulation);
@@ -3044,8 +3043,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                     }
                 }
                 if (folder) {
-                    if (item.last_modified > folder.lastModified) {
-                        folder.lastModified = item.last_modified;
+                    if (! folder.lastModified || item.lastModified > folder.lastModified) {
+                        folder.lastModified = item.lastModified;
                     }
                 }
                 else {
@@ -3054,7 +3053,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                         parent: currentFolder,
                         isFolder: true,
                         children: [],
-                        lastModified: item.last_modified,
+                        lastModified: item.lastModified,
                     };
                     currentFolder.children.push(folder);
                 }
@@ -3065,7 +3064,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 parent: currentFolder,
                 name: item.name,
                 simulationId: item.simulationId,
-                lastModified: item.last_modified,
+                lastModified: item.lastModified,
                 isExample: item.isExample,
                 notes: item.notes,
             };
@@ -3516,9 +3515,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                     return;
                 }
                 self.isWaitingForList = false;
-                data.sort(function(a, b) {
-                    return a.last_modified.localeCompare(b.last_modified);
-                });
                 fileManager.updateTreeFromFileList(data);
                 checkURLForFolder();
             });
