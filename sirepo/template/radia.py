@@ -266,8 +266,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         if sfx == 'sdds':
             _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
         if sfx == 'txt':
-            #pkio.write_text(f'{run_dir}/{f}', km_dict.txt)
-            #pkio.write_text(run_dir.join(f), km_dict.txt)
             pkio.write_text(f, km_dict.txt)
         return f
     if model == 'fieldLineoutReport':

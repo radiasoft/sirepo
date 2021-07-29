@@ -3065,7 +3065,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function init() {
-                //srdbg('init...');
                 $scope.$broadcast('sliderParent.ready', appState.models.magnetDisplay);
                 if (! renderer) {
                     throw new Error('No renderer!');
@@ -3279,25 +3278,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
-                //enableWatchFields(false);
-                var inData = {
-                    method: 'get_geom',
-                    name: appState.models.geometryReport.name,
-                    viewType: appState.models.magnetDisplay.viewType,
-                    simulationId: appState.models.simulation.simulationId,
-                };
-                if (appState.models.simulation.dmpImportFile) {
-                    inData.dmpImportFile = appState.models.simulation.dmpImportFile;
-                }
-                if ($scope.isViewTypeFields()) {
-                    inData.fieldType = appState.models.magnetDisplay.fieldType;
-                    inData.method = 'get_field';
-                }
-                if (radiaService.pointFieldTypes.indexOf(appState.models.magnetDisplay.fieldType) >= 0 ) {
-                    inData.fieldPaths = appState.models.fieldPaths.paths;
-                }
-
-                //srdbg('getting app data...', inData);
                 $rootScope.$broadcast('vtk.showLoader');
                 radiaService.saveGeometry(false, true);
                 panelState.clear('geometryReport');
