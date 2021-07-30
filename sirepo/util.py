@@ -40,6 +40,8 @@ THREAD_LOCK = threading.RLock()
 #: length of string returned by create_token
 TOKEN_SIZE = 16
 
+_logged_in_request = _logged_outside_request = 0
+
 
 class Reply(Exception):
     """Raised to end the request.
@@ -185,7 +187,14 @@ def flask_app():
 
 def in_flask_request():
     import sys
+    global _logged_in_request, _logged_outside_request
     f = sys.modules.get('flask')
+    if _logged_in_request < 10 and f and f.request:
+        _logged_in_request += 1
+        pkdlog('in flask request')
+    if _logged_outside_request < 10 and (not f or (f and not f.request)):
+        _logged_outside_request += 1
+        pkdlog('outside flask request')
     return f and f.request or None
 
 

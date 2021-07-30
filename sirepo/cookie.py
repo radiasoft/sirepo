@@ -105,7 +105,7 @@ def unchecked_get_value(key, default=None):
 
 def unchecked_remove(key):
     try:
-        s = _state()
+        s = _state(check_none=False)
         res = s[key]
         del s[key]
         return res
@@ -117,7 +117,7 @@ def unchecked_remove(key):
 def _set_state(header):
     # Maintain cookie states on stack to allow setting of cookies
     # within a state where a cookie is already set
-    p = _state()
+    p = _state(check_none=False)
     try:
         sirepo.srcontext.set(_SRCONTEXT_KEY, _State(header))
         yield
@@ -225,8 +225,12 @@ def _cfg_http_name(value):
     return value
 
 
-def _state():
-    return sirepo.srcontext.get(_SRCONTEXT_KEY)
+def _state(check_none=True):
+    s = sirepo.srcontext.get(_SRCONTEXT_KEY)
+    if check_none and s is None:
+        raise AssertionError(f'no {_SRCONTEXT_KEY}')
+    return s
+
 
 
 cfg = pkconfig.init(
