@@ -254,9 +254,9 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
-            ["gamma", "Gamma"],
+            ["gamma", "Extruded Gamma"],
             ["racetrack", "RaceTrack"],
-            ["tee", "Tee"]
+            ["tee", "Extruded Tee"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -334,6 +334,10 @@
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
+        },
+        "extrudedPoly": {
+            "_super": ["_", "model", "geomObject"],
+            "points": ["Points", "Points", []]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -545,7 +549,7 @@
         "spatialTransform": {
         },
         "stemmed": {
-            "_super": ["_", "model", "geomObject"],
+            "_super": ["_", "model", "extrudedPoly"],
             "armHeight": ["Arm Height [mm]", "Float", 1.0, "Height of the stem in gap direction"],
             "stemWidth": ["Stem Width [mm]", "Float", 1.0, "Transverse width of the stem"]
         },
@@ -730,8 +734,7 @@
                     "poleMaterial",
                     "poleMaterialFile",
                     "poleMagnetization",
-                    "poleRemanentMag",
-                    "poleColor"
+                    "poleRemanentMag"
                 ]],
                 ["Permanent Magnets", [
                     "magnetObjType",
@@ -742,8 +745,7 @@
                     "magnetMaterial",
                     "magnetMaterialFile",
                     "magnetMagnetization",
-                    "magnetRemanentMag",
-                    "magnetColor"
+                    "magnetRemanentMag"
                 ]],
                 ["Termination", [
                     "terminations"
@@ -818,10 +820,12 @@
             "title": "Object Shape Editor",
             "model": "geomObject",
             "basic": [
+                "type",
                 "color",
                 "bevels"
             ],
             "advanced": [
+                "type",
                 "color",
                 "bevels"
             ]
@@ -980,16 +984,14 @@
                     "hybridUndulator.poleLength",
                     "hybridUndulator.poleDivision",
                     "hybridUndulator.poleMaterial",
-                    "hybridUndulator.poleMaterialFile",
-                    "hybridUndulator.poleColor"
+                    "hybridUndulator.poleMaterialFile"
                 ]],
                 ["Permanent Magnets", [
                     "hybridUndulator.magnetCrossSection",
                     "hybridUndulator.magnetDivision",
                     "hybridUndulator.magnetMaterial",
                     "hybridUndulator.magnetMaterialFile",
-                    "hybridUndulator.gapOffset",
-                    "hybridUndulator.magnetColor"
+                    "hybridUndulator.gapOffset"
                 ]],
                 ["Termination", [
                     "terminations"
