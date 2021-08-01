@@ -232,19 +232,6 @@ class UIWarning extends UIElement {
     }
 }
 
-
-// wrapper for raw html strings
-class UIHTML {
-    constructor(html) {
-        this.html = html;
-    }
-
-    toTemplate() {
-        return this.html;
-    }
-}
-
-
 // wrapper for html strings. No parsing (yet)
 class UIRawHTML {
     constructor(html) {
