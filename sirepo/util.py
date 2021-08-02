@@ -20,6 +20,7 @@ import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import sys
 import threading
 
 
@@ -40,7 +41,7 @@ THREAD_LOCK = threading.RLock()
 #: length of string returned by create_token
 TOKEN_SIZE = 16
 
-_logged_in_request = _logged_outside_request = 0
+_log_not_flask = _log_not_request = 0
 
 
 class Reply(Exception):
@@ -186,16 +187,23 @@ def flask_app():
     return flask.current_app or None
 
 def in_flask_request():
-    import sys
-    global _logged_in_request, _logged_outside_request
+    # These are globals but possibly accessed from a threaded context. That is
+    # desired so we limit logging between all threads.
+    # The number 10 below doesn't need to be exact. Just something greater than
+    # "a few" so we see logging once the app is initialized and serving requests.
+    global _log_not_flask, _log_not_request
     f = sys.modules.get('flask')
-    if _logged_in_request < 10 and f and f.request:
-        _logged_in_request += 1
-        pkdlog('in flask request')
-    if _logged_outside_request < 10 and (not f or (f and not f.request)):
-        _logged_outside_request += 1
-        pkdlog('outside flask request')
-    return f and f.request or None
+    if not f:
+        if _log_not_flask < 10:
+            _log_not_flask += 1
+            pkdlog('flask is not imported')
+        return False
+    if not f.request:
+        if _log_not_request < 10:
+            _log_not_request += 1
+            pkdlog('flask.request is False')
+        return False
+    return True
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):
