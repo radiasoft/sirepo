@@ -63,31 +63,6 @@ class MPI:
         self._uti_mpi('barrier')
 
 
-def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
-
-    b = numpy.array(beam_dir)
-    g = numpy.array(gap_dir)
-    x = numpy.array(trans_dir)
-    sz = numpy.array(obj_size)
-    ctr = numpy.array(obj_ctr)
-    e = int(bevel.edge)
-    half_size = sz / 2
-    corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
-    trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]
-    gap_offset = bevel.amountGap * g * [-1, -1, 1, 1][e]
-
-    v = trans_offset - gap_offset
-    vx2 = numpy.dot(trans_offset, trans_offset)
-    vg2 = numpy.dot(gap_offset, gap_offset)
-    v2 = numpy.dot(v, v)
-
-    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
-    pt = corner + trans_offset
-
-    # object id, plane normal, point in plane - returns a new id in an array for some reason
-    return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
-
-
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'
@@ -172,6 +147,31 @@ _TRANSFORMS = PKDict(
 )
 
 
+def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
+
+    b = numpy.array(beam_dir)
+    g = numpy.array(gap_dir)
+    x = numpy.array(trans_dir)
+    sz = numpy.array(obj_size)
+    ctr = numpy.array(obj_ctr)
+    e = int(bevel.edge)
+    half_size = sz / 2
+    corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
+    trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]
+    gap_offset = bevel.amountGap * g * [-1, -1, 1, 1][e]
+
+    v = trans_offset - gap_offset
+    vx2 = numpy.dot(trans_offset, trans_offset)
+    vg2 = numpy.dot(gap_offset, gap_offset)
+    v2 = numpy.dot(v, v)
+
+    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
+    pt = corner + trans_offset
+
+    # object id, plane normal, point in plane - returns a new id in an array for some reason
+    return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
+
+
 def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
 
@@ -192,12 +192,46 @@ def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
+def build_stemmed_poly(center, size, beam_dir, gap_dir, trans_dir, stem_width, arm_height, material, magnetization, rem_mag, segments, h_m_curve=None):
+
+    b = numpy.array(beam_dir)
+    g = numpy.array(gap_dir)
+    x = numpy.array(trans_dir)
+    sz = numpy.array(size)
+    ctr = numpy.array(center)
+
+    sz1 = (sz * trans_dir - abs(stem_width)) + (abs(arm_height) * gap_dir) + sz * beam_dir
+    ctr1 = (ctr * trans_dir) + ((ctr + sz / 2 - arm_height / 2) * gap_dir) + (ctr * beam_dir)
+    b1 = build_cuboid(ctr1.tolist(), sz1.tolist(), material, magnetization, rem_mag, None)
+
+    sz2 = (abs(stem_width) * trans_dir) + (sz - abs(arm_height)) * (gap_dir + sz * beam_dir)
+    ctr2 = ((ctr - sz / 2 + stem_width / 2)  * trans_dir) + ((ctr - arm_height / 2) * gap_dir) + (ctr * beam_dir)
+    b2 = build_cuboid(ctr2.tolist(), sz2.tolist(), material, magnetization, rem_mag, None)
+
+    g_id = build_container([b1, b2])
+    if segments and any([s > 1 for s in segments]):
+        radia.ObjDivMag(g_id, segments)
+    return g_id
+
+
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')
 
 
 def dump_bin(g_id):
     return radia.UtiDmp(g_id, 'bin')
+
+def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, h_m_curve=None):
+    g_id = radia.ObjThckPgn(
+        numpy.sum(numpy.array(beam_dir) * center),
+        numpy.sum(numpy.array(beam_dir) * size),
+        pts,
+        numpy.full((len(pts), 2), [1, 1]).tolist(),
+        beam_axis,
+        magnetization
+    )
+    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
+    return g_id
 
 
 # only i (?), m, h
