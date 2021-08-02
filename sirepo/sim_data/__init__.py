@@ -13,7 +13,6 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
-from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc
 import hashlib
@@ -21,7 +20,9 @@ import importlib
 import inspect
 import re
 import requests
+import sirepo.feature_config
 import sirepo.job
+import sirepo.resource
 import sirepo.template
 import sirepo.util
 
@@ -64,20 +65,17 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    return importlib.import_module(
-        '.' + sirepo.template.assert_sim_type(
-            type_or_data['simulationType'] if isinstance(
-                type_or_data,
-                dict,
-            ) else type_or_data
-        ),
-        __name__,
-    ).SimData
+    s = sirepo.template.assert_sim_type(
+        type_or_data['simulationType'] if isinstance(
+            type_or_data,
+            dict,
+        ) else type_or_data)
+    return sirepo.util.import_sim_module(s, 'sim_data.' + s).SimData
 
 
-def resource_dir():
-    """root directory for template resources"""
-    return pkio.py_path(pkresource.filename('template'))
+def resource_path(filename):
+    """Path to common (not specific to sim type) resource file"""
+    return sirepo.resource.template(filename)
 
 
 def template_globals(sim_type=None):
@@ -340,7 +338,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_resource_dir(cls):
-        return cls._memoize(cls.resource_dir().join('lib'))
+        return cls._memoize(cls._resource_dir().join('lib'))
 
     @classmethod
     def lib_file_write_path(cls, basename):
@@ -491,17 +489,13 @@ class SimDataBase(object):
         return cls._put_sim_db_file(file_path, cls._sim_file_uri(sim_id, basename))
 
     @classmethod
-    def resource_dir(cls):
-        return cls._memoize(resource_dir().join(cls.sim_type()))
-
-    @classmethod
     def resource_path(cls, filename):
         """Static resource (package_data) files for simulation
 
         Returns:
             py.path.local: absolute path to folder
         """
-        return cls.resource_dir().join(filename)
+        return cls._resource_dir().join(filename)
 
     @classmethod
     def schema(cls):
@@ -712,6 +706,10 @@ class SimDataBase(object):
             cfg.supervisor_sim_db_file_uri + uri,
             data=pkio.read_binary(file_path),
         ).raise_for_status()
+
+    @classmethod
+    def _resource_dir(cls):
+        return cls._memoize(sirepo.resource.template(cls.sim_type()))
 
     @classmethod
     def _sim_file_basenames(cls, data):

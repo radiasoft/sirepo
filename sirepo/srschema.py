@@ -5,12 +5,12 @@ u"""Simulation schema
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
 from pykern import pkconfig
-from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import util
 import re
+import sirepo.resource
 
 
 # keep sirepo-components.js "safePath" in sync with these values
@@ -163,7 +163,7 @@ def validate(schema):
         _validate_cookie_def(sch_cookies[sc])
     for t in schema.dynamicModules:
         for src in schema.dynamicModules[t]:
-            pkresource.filename(src[1:])
+            sirepo.resource.filename(src[1:])
     _validate_strings(schema.strings)
 
 

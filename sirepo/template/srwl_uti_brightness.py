@@ -3,10 +3,10 @@
 # SRW Brightness Calculation
 #############################################################################
 
-import math
 from scipy import special
+import math
 import numpy as np
-from pykern import pkresource
+import sirepo.resource
 
 #General constants
 _ElMass_kg=9.10938e-31
@@ -20,9 +20,9 @@ _Planck_eVs=4.135667662e-15
 #fluxcorrectionarray = np.loadtxt("resource/gwSrwBrilUndHarmUnivFlux.txt")
 #divcorrectionarray = np.loadtxt("resource/gwSrwBrilUndHarmUnivDiv.txt")
 #sizecorrectionarray = np.loadtxt("resource/gwSrwBrilUndHarmUnivSize.txt")
-fluxcorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivFlux.txt"))
-divcorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivDiv.txt"))
-sizecorrectionarray = np.loadtxt(pkresource.filename("template/srw/brilliance/gwSrwBrilUndHarmUnivSize.txt"))
+fluxcorrectionarray = np.loadtxt(str(sirepo.resource.filename('template', 'srw', 'brilliance', 'gwSrwBrilUndHarmUnivFlux.txt')))
+divcorrectionarray = np.loadtxt(str(sirepo.resource.filename('template', 'srw', 'brilliance', 'gwSrwBrilUndHarmUnivDiv.txt')))
+sizecorrectionarray = np.loadtxt(str(sirepo.resource.filename('template', 'srw', 'brilliance', 'gwSrwBrilUndHarmUnivSize.txt')))
 #srwlib.srwl_uti_read_data_cols
 #np.array(srwlib.srwl_uti_read_data_cols('gwSrwBrilUndHarmUnivFlux.txt', '\t'))
 #srwl_uti_interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0)

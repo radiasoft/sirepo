@@ -77,6 +77,16 @@ def cfg():
     return _cfg or _init()
 
 
+def dynamic_sim_type_packages():
+    """Names of packages that contain the dynamic sim types"""
+    return frozenset(cfg().dynamic_sim_types.values())
+
+
+def dynamic_sim_types():
+    """Names of sim_types that live outside of Sirepo"""
+    return frozenset(cfg().dynamic_sim_types.keys())
+
+
 def for_sim_type(sim_type):
     """Get cfg for simulation type
 
@@ -109,6 +119,10 @@ def _init():
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
         default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
+        dynamic_sim_types=(
+            '',
+            _parse_to_dict,
+            'Codes that will be loaded from outside the sirepo repo. Element at i % 2 is package name. Element at i % 1 code name.'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
@@ -144,5 +158,20 @@ def _init():
     x = s.difference(VALID_CODES)
     assert not x, \
         'sim_type(s) invalid={} expected={}'.format(x, VALID_CODES)
+    # SECURITY: _cfg.dynamic_sim_types cannot be validated because their names
+    # cannot be publicly exposed.
+    s.update(_cfg.dynamic_sim_types.keys())
     _cfg.sim_types = frozenset(s)
     return _cfg
+
+
+def _parse_to_dict(string):
+    from pykern import pkconfig
+    from pykern.pkcollections import PKDict
+    if not string:
+        return PKDict()
+    t = pkconfig.parse_tuple(string)
+    if len(t) % 2 != 0:
+        raise AssertionError(f'expecting a matching number of keys and values: {t}')
+    i = iter(t)
+    return PKDict(zip(i, i))

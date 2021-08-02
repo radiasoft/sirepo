@@ -7,7 +7,6 @@ u"""zgoubi datafile parser
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
-from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db

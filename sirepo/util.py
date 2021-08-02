@@ -14,6 +14,7 @@ import base64
 import concurrent.futures
 import contextlib
 import hashlib
+import importlib
 import inspect
 import numconv
 import pykern.pkinspect
@@ -182,6 +183,19 @@ def flask_app():
     import flask
 
     return flask.current_app or None
+
+
+def import_sim_module(sim_type, module):
+    """Import module for sim type
+
+    sim_type will be used to find the root package (ex sirepo)
+    and module will be appended to it (ex sim_data.srw)
+    """
+    import sirepo.feature_config
+    return importlib.import_module(
+        sirepo.feature_config.cfg().dynamic_sim_types.get(sim_type, 'sirepo') + \
+        f'.{module}' if module else '',
+    )
 
 def in_flask_request():
     import sys

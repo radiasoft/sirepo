@@ -9,7 +9,6 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
-from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
@@ -28,9 +27,11 @@ import random
 import re
 import sirepo.auth
 import sirepo.job
+import sirepo.resource
 import sirepo.srdb
 import sirepo.template
 import time
+import werkzeug.utils
 
 #: Names to display to use for jobRunMode
 
@@ -44,12 +45,6 @@ SCHEMA_COMMON = None
 
 #: Simulation file name is globally unique to avoid collisions with simulation output
 SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
-
-#: The root of the pkresource tree (package_data)
-RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
-
-#: Where server files and static files are found
-STATIC_FOLDER = RESOURCE_FOLDER.join('static')
 
 #: where users live under db_dir
 USER_ROOT_DIR = 'user'
@@ -151,8 +146,16 @@ def delete_user(uid):
     pkio.unchecked_remove(user_path(uid=uid))
 
 def examples(app):
+    d = None
+    try:
+        d = sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR)
+    except Exception as e:
+        if pkio.exception_is_not_found(e):
+            # Not all sim types have examples (ex jupyterhublogin)
+            return []
+        raise
     files = pkio.walk_tree(
-        sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR),
+        d,
         re.escape(JSON_SUFFIX) + '$',
     )
     #TODO(robnagler) Need to update examples statically before build
@@ -245,8 +248,8 @@ def get_schema(sim_type):
         else list(feature_config.cfg().sim_types)[0]
     if t in _SCHEMA_CACHE:
         return _SCHEMA_CACHE[t]
-    schema = read_json(
-        STATIC_FOLDER.join('json/{}-schema'.format(t)))
+    schema = read_json(sirepo.resource.static('json', f'{t}-schema.json'))
+    _merge_dicts(schema.get('appInfo', PKDict()), SCHEMA_COMMON.appInfo)
     schema.update(SCHEMA_COMMON)
     schema.update(
         feature_config=feature_config.for_sim_type(t)
@@ -674,20 +677,6 @@ def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
-def static_file_path(file_dir, file_name):
-    """Absolute path to a static file
-    For requesting static files (hence a public interface)
-
-    Args:
-        file_dir (str): directory in package_data/static
-        file_name (str): name of the file
-
-    Returns:
-        py.path: absolute path of the file
-    """
-    return STATIC_FOLDER.join(file_dir).join(file_name)
-
-
 @contextlib.contextmanager
 def tmp_dir(chdir=False, uid=None):
     """Generates new, temporary directory
@@ -878,7 +867,6 @@ def _files_in_schema(schema):
             paths[file_type].extend(map(lambda file_name:
                     _pkg_relative_path_static(file_type + '/' + path, file_name),
                     schema[source][file_type]))
-
     return paths
 
 
@@ -904,14 +892,13 @@ def _init():
         sbatch_display=(None, str, 'how to display sbatch cluster to user'),
         tmp_dir=(None, pkio.py_path, 'Used by utilities (not regular config)'),
     )
-    fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
-    with open(str(fn)) as f:
+    with open(str(sirepo.resource.static('json', f'schema-common{JSON_SUFFIX}'))) as f:
         SCHEMA_COMMON = json_load(f)
     # In development, any schema update creates a new version
     if pkconfig.channel_in('dev'):
         SCHEMA_COMMON.version = max([
-            _timestamp(pkio.py_path(fn).mtime()) \
-            for fn in glob.glob(str(STATIC_FOLDER.join('json/*{}'.format(JSON_SUFFIX))))
+            _timestamp(fn.mtime()) \
+            for fn in sirepo.resource.glob_static(f'json/*{JSON_SUFFIX}')
         ])
     else:
         SCHEMA_COMMON.version = sirepo.__version__
@@ -994,7 +981,7 @@ def _pkg_relative_path_static(file_dir, file_name):
     Returns:
         str: full relative path of the file
     """
-    return '/' + RESOURCE_FOLDER.bestrelpath(static_file_path(file_dir, file_name))
+    return '/' + sirepo.resource.static(file_dir, file_name, relpath=True)
 
 
 def _random_id(parent_dir, simulation_type=None, uid=None):

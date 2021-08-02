@@ -6,7 +6,6 @@ u"""PyTest for :mod:`sirepo.importer`
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkresource
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest

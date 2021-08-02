@@ -70,7 +70,10 @@ def _widget_supported_codes(ctx):
               </button>
               <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
     '''
-    x = PKDict([(s, s) for s in sirepo.feature_config.PROD_FOSS_CODES])
+    x = PKDict([
+        (s, s) for s in \
+        sirepo.feature_config.PROD_FOSS_CODES.union(sirepo.feature_config.dynamic_sim_types())
+    ])
     #TODO(pjm): make list dynamic based on user auth
     x.pkupdate(
         activait='ml',
