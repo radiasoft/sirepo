@@ -1547,23 +1547,12 @@ def _generate_srw_main(data, plot_reports):
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
-    #TODO(pjm): work-around for #1593
-    content.append('mag = None')
-    content.append("if v.rs_type == 'm':")
-    for line in (
-            'mag = srwlib.SRWLMagFldC()',
-            'mag.arXc.append(0)',
-            'mag.arYc.append(0)',
-            'mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))',
-            'mag.arZc.append(v.mp_zc)',
-    ):
-        content.append('    {}'.format(line))
     if _SIM_DATA.srw_is_background_report(report):
         content.append(
             # Number of "iterations" per save is best set to num processes
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
-    content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
+    content.append('srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)')
     return '\n'.join([f'    {x}' for x in content] + [''] + ([] if for_rsopt \
         else ['main()', '']))
 

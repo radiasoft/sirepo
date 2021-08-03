@@ -95,6 +95,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'initialIntensityReport',
             'intensityReport',
             'mirrorReport',
+            'multipole',
             'exportRsOpt',
             'powerDensityReport',
             'simulation',
@@ -232,6 +233,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm.electronBeamPosition.drift = -1.8 if 'HXN' in dm.simulation.name else -1.0234
         if cls.srw_is_gaussian_source(dm.simulation):
             cls.__fixup_gaussian_divergence(dm.gaussianBeam)
+        if 'distribution' in dm.multipole:
+            dm.multipole.bx = dm.multipole.field if dm.multipole.distribution == 's' else 0
+            dm.multipole.by = dm.multipole.field if dm.multipole.distribution == 'n' else 0
+            del dm.multipole['distribution']
+            del dm.multipole['field']
         cls._organize_example(data)
 
     @classmethod

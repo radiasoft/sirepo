@@ -18,7 +18,7 @@
                 }
             ]
         },
-        "geometry": {
+        "geometryReport": {
             "id": "2c295c26-e14d-4f70-b888-6efc40a1036b",
             "isSolvable": "1",
             "name": "Undulator",

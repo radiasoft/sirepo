@@ -281,10 +281,6 @@
             ["0", "No approximation (use the standard 5D integration method)"],
             ["1", "Integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance"]
         ],
-        "MultipoleOrientation": [
-            ["n", "Horizontal"],
-            ["s", "Vertical"]
-        ],
         "OutputImageFormat": [
             ["tif", "TIF"],
             ["tiff", "TIFF"],
@@ -816,8 +812,8 @@
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
-            "field": ["Magnetic Field [T]", "Float"],
-            "distribution": ["Orientation", "MultipoleOrientation"],
+            "bx": ["Horizontal Magnetic Field [T]", "Float", 0.4],
+            "by": ["Vertical Magnetic Field [T]", "Float", 0.0],
             "length": ["Effective Length [m]", "Float"]
         },
         "obstacle": {
@@ -1691,9 +1687,9 @@
             "title": "Dipole",
             "basic": [],
             "advanced": [
-                "field",
-                "length",
-                "distribution"
+                "bx",
+                "by",
+                "length"
             ]
         },
         "multiElectronAnimation": {

@@ -402,8 +402,14 @@ class SRWShadowConverter():
         shadow.rayFilter.f_bound_sour = '2'
         shadow.rayFilter.distance = srw.beamline[0].position
 
-        # calculate magnet radius
-        shadow.bendingMagnet.r_magnet = 1e9 / scipy.constants.c * srw.electronBeam.energy / srw.multipole.field
+        # calculate magnet radius from magnetic field
+        f = srw.multipole.by
+        if f == 0:
+            if srw.multipole.bx != 0:
+                f = srw.multipole.bx
+            else:
+                f = 1
+        shadow.bendingMagnet.r_magnet = 1e9 / scipy.constants.c * srw.electronBeam.energy / f
 
 
     def __next_id(self):
