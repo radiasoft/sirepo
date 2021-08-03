@@ -47,6 +47,14 @@
                 ],
                 "stroke": "black"
             },
+            "cee": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [24, 0], [24, 8], [8, 8], [8, 16], [24, 16], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
             "gamma": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -254,6 +262,7 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
+            ["cee", "Extruded Cee"],
             ["gamma", "Extruded Gamma"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
@@ -312,6 +321,10 @@
         "box": {
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "box"]
+        },
+        "cee": {
+            "_super": ["_", "model", "extrudedPoly"],
+            "type": ["_", "ObjectType", "cee"]
         },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -399,6 +412,7 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
+            "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
@@ -727,7 +741,7 @@
                     "periodLength"
                 ]],
                 ["Poles", [
-                    "poleObjType",
+                    "geomObject.shapeButton",
                     "poleCrossSection",
                     "poleLength",
                     "poleDivision",
@@ -737,7 +751,7 @@
                     "poleRemanentMag"
                 ]],
                 ["Permanent Magnets", [
-                    "magnetObjType",
+                    "geomObject.shapeButton",
                     "magnetCrossSection",
                     "magnetLength",
                     "gapOffset",
