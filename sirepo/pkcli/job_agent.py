@@ -700,12 +700,17 @@ class _SbatchRun(_SbatchCmd):
                 f'sbatchProject={p} is invalid. hpssquota={o}'
             return f'#SBATCH --account={p}'
 
+        def _processor():
+            if self.msg.sbatchQueue == 'debug':
+                return 'knl'
+            return 'haswell'
+
         i = self.msg.shifterImage
         s = o = ''
 #POSIT: job_api has validated values
         if i:
             o = f'''#SBATCH --image={i}
-#SBATCH --constraint=haswell
+#SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node=32
 {_assert_project()}'''
