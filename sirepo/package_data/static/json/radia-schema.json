@@ -47,6 +47,14 @@
                 ],
                 "stroke": "black"
             },
+            "cee": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [24, 0], [24, 8], [8, 8], [8, 16], [24, 16], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
             "gamma": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -255,9 +263,10 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
-            ["gamma", "Gamma"],
+            ["cee", "Extruded Cee"],
+            ["gamma", "Extruded Gamma"],
             ["racetrack", "RaceTrack"],
-            ["tee", "Tee"]
+            ["tee", "Extruded Tee"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -279,6 +288,10 @@
         "SpatialTransform": [
             ["translate", "Translate"],
             ["rotate", "Rotate"]
+        ],
+        "TerminationType": [
+            ["magnet", "Magnet"],
+            ["pole", "Pole"]
         ],
         "ViewType": [
             ["objects", "Objects"],
@@ -309,6 +322,10 @@
         "box": {
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "box"]
+        },
+        "cee": {
+            "_super": ["_", "model", "extrudedPoly"],
+            "type": ["_", "ObjectType", "cee"]
         },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -350,6 +367,10 @@
             "magnetMaterial": ["Material", "MaterialType", "custom"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "magnetObjType": ["Shape", "ObjectType", "box"]
+        },
+        "extrudedPoly": {
+            "_super": ["_", "model", "geomObject"],
+            "points": ["Points", "Points", []]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -411,6 +432,7 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
+            "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
@@ -442,8 +464,7 @@
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleObjType": ["Shape", "ObjectType", "box"],
-            "autoTerminate": ["Auto Terminate", "Boolean", "1", "When true, the undulator is terminated with a magnet block of half thickness immediately following the final period. Otherwise the termination must be specified."]
+            "poleObjType": ["Shape", "ObjectType", "box"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -504,6 +525,12 @@
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
+        "pureUndulator": {
+            "_super": ["_", "model", "undulator"],
+            "crossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
+            "length": ["Thickness [mm]", "Float", 18.0, "Period length/2"],
+            "magnet": ["_", "model.geomObject", {}]
+        },
         "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
@@ -556,7 +583,7 @@
         "spatialTransform": {
         },
         "stemmed": {
-            "_super": ["_", "model", "geomObject"],
+            "_super": ["_", "model", "extrudedPoly"],
             "armHeight": ["Arm Height [mm]", "Float", 1.0, "Height of the stem in gap direction"],
             "stemWidth": ["Stem Width [mm]", "Float", 1.0, "Transverse width of the stem"]
         },
@@ -570,6 +597,12 @@
         "tee": {
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "tee"]
+        },
+        "termination": {
+            "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
+            "length": ["Object Length [mm]", "Float", 9.0],
+            "object": ["_", "model.geomObject", {}],
+            "type": ["Object Type", "TerminationType", "magnet", ""]
         },
         "transform": {
             "id": ["_", "UUID", ""],
@@ -592,6 +625,15 @@
             "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
+            "terminations": ["Termination Groups", "TerminationTable",
+                [
+                    {
+                        "airGap": 0,
+                        "length": 9,
+                        "type": "magnet"
+                    }
+                ]
+            ],
             "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
@@ -719,18 +761,17 @@
                     "periodLength"
                 ]],
                 ["Poles", [
-                    "poleObjType",
+                    "geomObject.shapeButton",
                     "poleCrossSection",
                     "poleLength",
                     "poleDivision",
                     "poleMaterial",
                     "poleMaterialFile",
                     "poleMagnetization",
-                    "poleRemanentMag",
-                    "poleColor"
+                    "poleRemanentMag"
                 ]],
                 ["Permanent Magnets", [
-                    "magnetObjType",
+                    "geomObject.shapeButton",
                     "magnetCrossSection",
                     "magnetLength",
                     "gapOffset",
@@ -738,8 +779,10 @@
                     "magnetMaterial",
                     "magnetMaterialFile",
                     "magnetMagnetization",
-                    "magnetRemanentMag",
-                    "magnetColor"
+                    "magnetRemanentMag"
+                ]],
+                ["Termination", [
+                    "terminations"
                 ]]
             ]
         },
@@ -811,9 +854,13 @@
             "title": "Object Shape Editor",
             "model": "geomObject",
             "basic": [
+                "type",
+                "color",
                 "bevels"
             ],
             "advanced": [
+                "type",
+                "color",
                 "bevels"
             ]
         },
@@ -918,6 +965,19 @@
                 "symmetryPoint"
             ]
         },
+        "termination": {
+            "title": "Termination",
+            "basic": [
+                "type",
+                "length",
+                "airGap"
+            ],
+            "advanced": [
+                "type",
+                "length",
+                "airGap"
+            ]
+        },
         "transform": {
             "title": "Apply Transform",
             "basic": [
@@ -958,16 +1018,17 @@
                     "hybridUndulator.poleLength",
                     "hybridUndulator.poleDivision",
                     "hybridUndulator.poleMaterial",
-                    "hybridUndulator.poleMaterialFile",
-                    "hybridUndulator.poleColor"
+                    "hybridUndulator.poleMaterialFile"
                 ]],
                 ["Permanent Magnets", [
                     "hybridUndulator.magnetCrossSection",
                     "hybridUndulator.magnetDivision",
                     "hybridUndulator.magnetMaterial",
                     "hybridUndulator.magnetMaterialFile",
-                    "hybridUndulator.gapOffset",
-                    "hybridUndulator.magnetColor"
+                    "hybridUndulator.gapOffset"
+                ]],
+                ["Termination", [
+                    "terminations"
                 ]]
             ]
         }
