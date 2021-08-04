@@ -834,12 +834,10 @@
             "title": "Object Shape Editor",
             "model": "geomObject",
             "basic": [
-                "type",
                 "color",
                 "bevels"
             ],
             "advanced": [
-                "type",
                 "color",
                 "bevels"
             ]

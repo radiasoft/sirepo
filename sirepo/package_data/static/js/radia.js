@@ -3710,6 +3710,7 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
         shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, [inset, inset], s.doClose, s.stroke, s.fill);
     }
     let btn = new SIREPO.DOM.SVGShapeButton('sr-shape-edit-btn', (Math.max(w, h) + 2 * inset), 'editShape');
+    btn.addAttribute('title', 'Click to edit');
 
     function ptsBounds(pts) {
         let b = [{min: Number.MAX_VALUE, max: -Number.MAX_VALUE}, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE}];
@@ -3738,12 +3739,6 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
           '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            let obj = appState.models[$scope.modelName];
-
-            let size = obj.size.split(/\s*,\s*/).map((x) => {
-                return parseFloat(x);
-            });
-
             plotting.setupSelector($scope, $element);
 
             $scope.loadImage = function() {
@@ -3755,6 +3750,10 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
             };
 
             $scope.updateShape = function() {
+                const obj = appState.models[$scope.modelName];
+                const size = obj.size.split(/\s*,\s*/).map((x) => {
+                    return parseFloat(x);
+                });
                 let s = shapes[obj.type];
                 s.setFill(obj.color);
                 const ar = size[radiaService.axes.indexOf(appState.models.simulation.widthAxis)] /
@@ -3767,18 +3766,9 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
                 return s;
             };
 
-           function updateSubclasses() {
-               obj._super.forEach((m) => {
-                   if (! appState.models[m]) {
-                       return;
-                   }
-               });
-           }
-
-           $scope.$on(`${$scope.modelName}.changed`, () => {
-               obj = appState.models[$scope.modelName];
+            $scope.$on(`${$scope.modelName}.changed`, () => {
                $scope.loadImage();
-           });
+            });
         },
     };
 });
