@@ -1163,7 +1163,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetColor
     )
     und.magnetBaseObjectId = magnet_block.id
-    obj_props.magnet.bevels = magnet_block.bevels or []
+    obj_props.magnet.bevels = magnet_block.get('bevels', [])
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
@@ -1178,9 +1178,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleColor
     )
     und.poleBaseObjectId = pole.id
-    obj_props.pole.bevels = pole.bevels or []
-    if pole.bevels:
-        half_pole.bevels = pole.bevels.copy()
+    obj_props.pole.bevels = pole.get('bevels', [])
+    half_pole.bevels = obj_props.pole.bevels.copy()
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
     mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
