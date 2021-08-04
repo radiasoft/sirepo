@@ -3709,7 +3709,7 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
         h = Math.max(h, Math.abs(b[1].max - b[1].min));
         shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, [inset, inset], s.doClose, s.stroke, s.fill);
     }
-    let btn = new SIREPO.DOM.SVGShapeButton('sr-shape-edit-btn', (Math.max(w, h) + 2 * inset), 'editShape')
+    let btn = new SIREPO.DOM.SVGShapeButton('sr-shape-edit-btn', (Math.max(w, h) + 2 * inset), 'editShape');
 
     function ptsBounds(pts) {
         let b = [{min: Number.MAX_VALUE, max: -Number.MAX_VALUE}, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE}];
@@ -3881,13 +3881,17 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
 
     $scope.modelData = appState.models[$scope.modelName];
 
+    $scope.getBaseObject = function() {
+        return radiaService.getObject($scope.getBaseObjectId());
+    };
+
     $scope.getBaseObjectId = function() {
-        let n = baseObjectNames[$scope.$parent.activePage.name];
+        let n = baseObjectName();
         return n ?  $scope.modelData[`${n}BaseObjectId`] : null;
     };
 
     $scope.whenSelected = function() {
-        const o = radiaService.getObject($scope.getBaseObjectId());
+        const o = $scope.getBaseObject();
         if (! o) {
             return;
         }
@@ -3895,14 +3899,26 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
         appState.saveChanges('geomObject');
     };
 
+    $scope.$on('geomObject.changed', () => {
+        const o = $scope.getBaseObject();
+        if (! o || appState.models.geomObject.id != o.id) {
+            return;
+        }
+        $scope.modelData[`${baseObjectName()}Color`] = o.color;
+        appState.saveChanges($scope.modelName);
+    });
+
+    //TODO(mvk): this is all pretty cheesy.  Need a better relationship between the "magnet" like
+    // hybridUndulator and the objects in geometryReport
+    function baseObjectName() {
+        return baseObjectNames[$scope.$parent.activePage.name];
+    }
 
     function update(a) {
     }
 
     return {
         getObjectId: $scope.getBaseObjectId,
-        getBaseObject: function() {
-            return radiaService.getObject($scope.getBaseObjectId());
-        },
+        getBaseObject: $scope.getBaseObject,
     };
 });

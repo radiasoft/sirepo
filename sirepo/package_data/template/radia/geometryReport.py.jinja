@@ -38,8 +38,6 @@ def _add_object(o, radia_objs, id_map):
                 g_id,
                 [c / 255.0 for c in tuple(int(o.color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))]
             )
-    if o.model == _MODEL_GAMMA:
-        g_id = radia_util.build_stemmed_poly(ctr, sz, {{ beam_dir }}, {{ height_dir }}, {{ width_dir }}, o.stem_width, o.arm_height, o.material, m, o.remanentMag,
     if o.model in _GROUP_MODELS:
         grp = []
         for obj_id in o.members:
