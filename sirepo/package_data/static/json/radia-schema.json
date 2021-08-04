@@ -399,8 +399,7 @@
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
-            "members": ["_", "Group", []],
-            "model": "geomGroup"
+            "members": ["_", "Group", []]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -413,7 +412,6 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
-            "model": "geomObject",
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
