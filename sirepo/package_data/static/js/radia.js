@@ -3785,7 +3785,7 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['box', 'cee', 'gamma',];
+    const availableShapes = ['box',];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);
