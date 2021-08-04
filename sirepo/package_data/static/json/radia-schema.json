@@ -399,7 +399,8 @@
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
-            "members": ["_", "Group", []]
+            "members": ["_", "Group", []],
+            "model": "geomGroup"
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -412,6 +413,7 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
+            "model": "geomObject",
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
@@ -505,12 +507,6 @@
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
-        "pureUndulator": {
-            "_super": ["_", "model", "undulator"],
-            "crossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
-            "length": ["Thickness [mm]", "Float", 18.0, "Period length/2"],
-            "magnet": ["_", "model.geomObject", {}]
-        },
         "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
@@ -581,7 +577,6 @@
         "termination": {
             "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
             "length": ["Object Length [mm]", "Float", 9.0],
-            "object": ["_", "model.geomObject", {}],
             "type": ["Object Type", "TerminationType", "magnet", ""]
         },
         "transform": {
