@@ -1133,6 +1133,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 solving = false;
             }
         }
+        radiaService.saveGeometry(false, true);
         frameCache.setFrameCount(data.frameCount);
     };
 
@@ -3332,7 +3333,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 //srdbg('getting app data...', inData);
                 $rootScope.$broadcast('vtk.showLoader');
-                radiaService.saveGeometry(false, true);
                 panelState.clear('geometryReport');
                 panelState.requestData('geometryReport', setupSceneData, true);
             }

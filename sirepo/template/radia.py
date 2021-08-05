@@ -629,7 +629,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     report = data.get('report', '')
     rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
     res, v = template_common.generate_parameters_file(data)
-    if rpt_out in _POST_SIM_REPORTS:
+    if rpt_out in _P3ST_SIM_REPORTS:
         return res
 
     g = data.models.geometryReport
@@ -637,15 +637,15 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 
     v.doSolve = 'solver' in report or for_export
     v.doReset = 'reset' in report
-    doGenerate = _normalize_bool(g.get('doGenerate', True)) or v.doSolve or v.doReset
-    if not doGenerate:
+    do_generate = _normalize_bool(g.get('doGenerate', True)) or v.doSolve or v.doReset
+    if not do_generate:
         try:
             # use the previous results
             _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
         except sirepo.sim_data.SimDbFileNotFound:
-            doGenerate = True
+            do_generate = True
 
-    if not doGenerate:
+    if not do_generate:
         return res
 
     # ensure old files are gone
