@@ -1125,6 +1125,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     updateReports();
                 }
                 solving = false;
+                radiaService.saveGeometry(false, true);
             }
         }
         frameCache.setFrameCount(data.frameCount);
@@ -3407,7 +3408,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 actorInfo = {};
                 radiaService.objBounds = null;
                 $rootScope.$broadcast('vtk.showLoader');
-                radiaService.saveGeometry(false, true);
                 panelState.clear('geometryReport');
                 panelState.requestData('geometryReport', setupSceneData, true);
             }
