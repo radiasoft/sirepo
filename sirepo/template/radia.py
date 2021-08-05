@@ -629,7 +629,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     report = data.get('report', '')
     rpt_out = f'{_REPORT_RES_MAP.get(report, report)}'
     res, v = template_common.generate_parameters_file(data)
-    if rpt_out in _P3ST_SIM_REPORTS:
+    if rpt_out in _SIM_REPORTS:
         return res
 
     g = data.models.geometryReport
