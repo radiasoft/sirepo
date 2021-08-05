@@ -1131,9 +1131,9 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     updateReports();
                 }
                 solving = false;
+                radiaService.saveGeometry(false, true);
             }
         }
-        radiaService.saveGeometry(false, true);
         frameCache.setFrameCount(data.frameCount);
     };
 
