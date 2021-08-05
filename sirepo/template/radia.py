@@ -64,9 +64,9 @@ _KICK_FILE = 'kickMap.h5'
 _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
-_POST_SIM_REPORTS = ['fieldLineoutReport', 'kickMapReport']
+_POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport']
 _SIM_REPORTS = ['geometryReport', 'reset', 'solverAnimation']
-_REPORTS = ['fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
+_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
     reset='geometryReport',
     solverAnimation='geometryReport',
@@ -135,6 +135,15 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(
             _kick_map_plot(sim_in.models.kickMapReport),
             run_dir=run_dir,
+        )
+    if 'fieldIntegralReport' in sim_in.report:
+        template_common.write_sequential_result(
+            _generate_field_integrals(
+                sim_in.models.simulation.simulationId,
+                _get_g_id(),
+                sim_in.models.fieldPaths.paths or []
+            ),
+            run_dir=run_dir
         )
     if 'fieldLineoutReport' in sim_in.report:
         beam_axis = sim_in.models.simulation.beamAxis
@@ -242,17 +251,41 @@ def get_application_data(data, **kwargs):
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     assert model in _REPORTS, 'model={}: unknown report'.format(model)
-    name = simulation_db.read_json(
-        run_dir.join(template_common.INPUT_BASE_NAME)
-    ).models.simulation.name
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    sim = data.models.simulation
+    name = sim.name
+    sim_id = sim.simulationId
+    beam_axis = _BEAM_AXIS_ROTATIONS[sim.beamAxis]
+    rpt = data.models[model]
+    default_sfx = _SCHEMA.constants.dataDownloads._default[0].suffix
+    sfx = (options.suffix or default_sfx) if options and 'suffix' in options else \
+        default_sfx
+    f = f'{model}.{sfx}'
     if model == 'kickMapReport':
-        sfx = (options.suffix or 'sdds') if options and 'suffix' in options else 'sdds'
-        km_dict = _read_kick_map()
-        f = f'{model}.{sfx}'
+        km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
         if sfx == 'sdds':
             _save_kick_map_sdds(name, km_dict.x, km_dict.y, km_dict.h, km_dict.v, f)
         if sfx == 'txt':
-            pkio.write_text(f'{run_dir}/{f}', km_dict.txt)
+            pkio.write_text(f, km_dict.txt)
+        return f
+    if model == 'fieldLineoutReport':
+        f_type = rpt.fieldType
+        fd = _generate_field_data(
+            sim_id, _get_g_id(), name, f_type, [rpt.fieldPath]
+        )
+        v = fd.data[0].vectors
+        if sfx == 'sdds':
+            return _save_fm_sdds(name, v, beam_axis, f)
+        if sfx == 'csv':
+            return _save_field_csv(f_type, v, beam_axis, f)
+        if sfx == 'zip':
+            return _save_field_srw(
+                f_type,
+                data.models.hybridUndulator.gap,
+                v,
+                beam_axis,
+                pkio.py_path(f)
+            )
         return f
 
 
