@@ -10,7 +10,17 @@
             "_default": [
                 {
                     "title": "Save as SDDS",
-                    "suffix": ""
+                    "suffix": "sdds"
+                }
+            ],
+            "fieldLineoutReport": [
+                {
+                    "title": "Save as CSV",
+                    "suffix": "csv"
+                },
+                {
+                    "title": "Save for SRW import",
+                    "suffix": "zip"
                 }
             ],
             "kickMapReport": [
@@ -341,6 +351,9 @@
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
         },
+        "fieldIntegralReport": {
+            "lastCalculated": ["_", "Integer", -1]
+        },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -605,6 +618,11 @@
                 "numCopies",
                 "alternateFields"
             ]
+        },
+        "fieldIntegralReport": {
+            "title": "Field Integrals (T · mm)",
+            "advanced": [],
+            "basic": []
         },
         "fieldLineoutReport": {
             "title": "Field on Path",
