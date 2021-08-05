@@ -566,7 +566,7 @@
         }
     },
     "strings": {
-        "completionState": "Import a MAD-X or elegant Lattice",
+        "completionState": "",
         "importText": "Import a MAD-X or elegant Lattice"
     },
     "view": {
