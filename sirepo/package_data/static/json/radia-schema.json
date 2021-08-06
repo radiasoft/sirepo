@@ -57,6 +57,14 @@
                 ],
                 "stroke": "black"
             },
+            "cee": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [24, 0], [24, 8], [8, 8], [8, 16], [24, 16], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
             "gamma": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -319,6 +327,10 @@
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "box"]
         },
+        "cee": {
+            "_super": ["_", "model", "extrudedPoly"],
+            "type": ["_", "ObjectType", "cee"]
+        },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -340,6 +352,10 @@
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
+        },
+        "extrudedPoly": {
+            "_super": ["_", "model", "geomObject"],
+            "points": ["Points", "Points", []]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -549,7 +565,7 @@
         "spatialTransform": {
         },
         "stemmed": {
-            "_super": ["_", "model", "geomObject"],
+            "_super": ["_", "model", "extrudedPoly"],
             "armHeight": ["Arm Height [mm]", "Float", 1.0, "Height of the stem in gap direction"],
             "stemWidth": ["Stem Width [mm]", "Float", 1.0, "Transverse width of the stem"]
         },
