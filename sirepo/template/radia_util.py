@@ -192,46 +192,12 @@ def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-def build_stemmed_poly(center, size, beam_dir, gap_dir, trans_dir, stem_width, arm_height, material, magnetization, rem_mag, segments, h_m_curve=None):
-
-    b = numpy.array(beam_dir)
-    g = numpy.array(gap_dir)
-    x = numpy.array(trans_dir)
-    sz = numpy.array(size)
-    ctr = numpy.array(center)
-
-    sz1 = (sz * trans_dir - abs(stem_width)) + (abs(arm_height) * gap_dir) + sz * beam_dir
-    ctr1 = (ctr * trans_dir) + ((ctr + sz / 2 - arm_height / 2) * gap_dir) + (ctr * beam_dir)
-    b1 = build_cuboid(ctr1.tolist(), sz1.tolist(), material, magnetization, rem_mag, None)
-
-    sz2 = (abs(stem_width) * trans_dir) + (sz - abs(arm_height)) * (gap_dir + sz * beam_dir)
-    ctr2 = ((ctr - sz / 2 + stem_width / 2)  * trans_dir) + ((ctr - arm_height / 2) * gap_dir) + (ctr * beam_dir)
-    b2 = build_cuboid(ctr2.tolist(), sz2.tolist(), material, magnetization, rem_mag, None)
-
-    g_id = build_container([b1, b2])
-    if segments and any([s > 1 for s in segments]):
-        radia.ObjDivMag(g_id, segments)
-    return g_id
-
-
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')
 
 
 def dump_bin(g_id):
     return radia.UtiDmp(g_id, 'bin')
-
-def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, h_m_curve=None):
-    g_id = radia.ObjThckPgn(
-        numpy.sum(numpy.array(beam_dir) * center),
-        numpy.sum(numpy.array(beam_dir) * size),
-        pts,
-        numpy.full((len(pts), 2), [1, 1]).tolist(),
-        beam_axis,
-        magnetization
-    )
-    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
-    return g_id
 
 
 # only i (?), m, h
