@@ -13,7 +13,7 @@ def test_run():
     from pykern import pkunit
     from pykern.pkdebug import pkdp, pkdlog
 
-    with _rsprivate():
+    with _install():
         fc = _fc()
         r = fc.sr_login_as_guest()
         d = fc.sr_sim_data(sim_type='code1', sim_name='Secret sauce')
@@ -25,12 +25,9 @@ def _fc():
     from pykern.pkcollections import PKDict
     from sirepo import srunit
 
-    PKDict(
-        SIREPO_FEATURE_CONFIG_DYNAMIC_SIM_TYPES='code1:rsprivate',
-    )
     fc = srunit.flask_client(
         cfg=PKDict(
-            SIREPO_FEATURE_CONFIG_DYNAMIC_SIM_TYPES='code1:rsprivate',
+            SIREPO_FEATURE_CONFIG_DYNAMIC_SIM_TYPES='code1:sirepo_test_dynamics_sim_type',
         ),
         no_chdir_work=True,
     )
@@ -38,22 +35,16 @@ def _fc():
 
 
 @contextlib.contextmanager
-def _rsprivate():
+def _install():
     from pykern import pkunit, pkio
     from pykern.pkdebug import pkdp, pkdlog
-    import importlib
-    import pip
-    import site
     import subprocess
+    import sys
 
     with pkunit.save_chdir_work() as d:
-        pkunit.data_dir().join('rsprivate.tar.gz').copy(d)
-        subprocess.run('tar xzf rsprivate.tar.gz', shell=True)
-        with pkio.save_chdir('rsprivate'):
-            try:
-                pip.main(['install', '-e', '.'])
-                # Makes rsprivate importable
-                importlib.reload(site)
-                yield
-            finally:
-                subprocess.run('pip uninstall -y rsprivate', shell=True)
+        subprocess.run('pip uninstall -y sirepo_test_dynamics_sim_type', shell=True)
+        pkunit.data_dir().join('sirepo_test_dynamics_sim_type.tar.gz').copy(d)
+        subprocess.run('tar xzf sirepo_test_dynamics_sim_type.tar.gz', shell=True)
+        with pkio.save_chdir('sirepo_test_dynamics_sim_type') as d:
+            sys.path.append(str(d))
+            yield

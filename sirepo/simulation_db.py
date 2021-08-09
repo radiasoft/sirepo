@@ -31,7 +31,6 @@ import sirepo.resource
 import sirepo.srdb
 import sirepo.template
 import time
-import werkzeug.utils
 
 #: Names to display to use for jobRunMode
 
@@ -981,6 +980,8 @@ def _pkg_relative_path_static(file_dir, file_name):
     Returns:
         str: full relative path of the file
     """
+    # POSIT: static files outside of Sirepo use the same path structure relative
+    # to the static dir
     return '/' + sirepo.resource.static(file_dir, file_name, relpath=True)
 
 
