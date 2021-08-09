@@ -42,7 +42,6 @@ def _install():
     import sys
 
     with pkunit.save_chdir_work() as d:
-        subprocess.run('pip uninstall -y sirepo_test_dynamics_sim_type', shell=True)
         pkunit.data_dir().join('sirepo_test_dynamics_sim_type.tar.gz').copy(d)
         subprocess.run('tar xzf sirepo_test_dynamics_sim_type.tar.gz', shell=True)
         with pkio.save_chdir('sirepo_test_dynamics_sim_type') as d:
