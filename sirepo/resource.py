@@ -9,7 +9,7 @@ from pykern import pkio
 from pykern import pkresource
 import os
 import sirepo.feature_config
-import werkzeug.utils
+import sirepo.util
 
 
 def filename(*paths):
@@ -55,8 +55,8 @@ def static(*paths, relpath=False, check_input=False):
         py.path: path to file
     """
     p = pkresource.filename(
-        werkzeug.utils.safe_join('static', *paths) if check_input \
-        else os.path.join(*paths),
+        sirepo.util.safe_join('static', *paths) if check_input \
+        else os.path.join('static', *paths),
         additional_packages=sirepo.feature_config.dynamic_sim_type_packages(),
         relpath=relpath
     )

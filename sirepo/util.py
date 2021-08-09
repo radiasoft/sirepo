@@ -22,6 +22,7 @@ import pykern.pkio
 import pykern.pkjson
 import random
 import threading
+import werkzeug.utils
 
 
 cfg = None
@@ -247,6 +248,10 @@ def random_base62(length=32):
     """
     r = random.SystemRandom()
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
+
+
+def safe_join(*paths):
+    return werkzeug.utils.safe_join(*paths)
 
 
 def secure_filename(path):
