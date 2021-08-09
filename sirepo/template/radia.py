@@ -147,9 +147,7 @@ def extract_report_data(run_dir, sim_in):
         )
     if 'fieldLineoutReport' in sim_in.report:
         beam_axis = sim_in.models.simulation.beamAxis
-        v_axis = sim_in.models.undulator.gapAxis if \
-            sim_in.models.simulation.magnetType == 'undulator' else \
-            _GAP_AXIS_MAP[beam_axis]
+        v_axis = sim_in.models.simulation.heightAxis
         h_axis = next(iter(set(_AXES) - {beam_axis, v_axis}))
         template_common.write_sequential_result(
             _field_lineout_plot(
@@ -304,9 +302,10 @@ def new_simulation(data, new_simulation_data):
     data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     _prep_new_sim(data)
     beam_axis = new_simulation_data.beamAxis
+    height_axis = new_simulation_data.heightAxis
     #TODO(mvk): dict of magnet types to builder methods
     if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
-        _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, beam_axis)
+        _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, beam_axis, height_axis)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
             beam_axis
@@ -494,7 +493,7 @@ def _build_translate_clone(dist):
     return tx
 
 
-def _build_undulator_objects(geom, und, beam_axis):
+def _build_undulator_objects(geom, und, beam_axis, height_axis):
 
     # arrange objects
     geom.objects = []
@@ -518,7 +517,8 @@ def _build_undulator_objects(geom, und, beam_axis):
     return _update_geom_from_undulator(
         geom,
         _build_geom_obj('hybridUndulator', obj_name=geom.name),
-        beam_axis
+        beam_axis,
+        height_axis
     )
 
 
@@ -701,7 +701,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     wd, hd, bd = _geom_directions(
         data.models.simulation.beamAxis,
-        data.models.hybridUndulator.gapAxis if v.magnetType == 'undulator' else 'y'
+        data.models.simulation.heightAxis
     )
     v.width_dir = wd.tolist()
     v.height_dir = hd.tolist()
@@ -1093,11 +1093,11 @@ def _update_cuboid(b, center, size, segments, material, mat_file, magnetization,
     return b
 
 
-def _update_geom_from_undulator(geom, und, beam_axis):
+def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
-    width_dir, gap_dir, beam_dir = _geom_directions(beam_axis, und.gapAxis)
+    width_dir, gap_dir, beam_dir = _geom_directions(beam_axis, height_axis)
     dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
 
     pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)

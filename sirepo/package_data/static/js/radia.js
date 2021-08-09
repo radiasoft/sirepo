@@ -6,6 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
+    SIREPO.appDefaultSimulationValues.simulation.heightAxis = 'y';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
@@ -14,6 +15,9 @@ SIREPO.app.config(function() {
         '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
+        '</div>',
+        '<div data-ng-switch-when="CoordinateSystem" class="col-sm-12">',
+          '<div data-coordinate-system="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
         '</div>',
         '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
           '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
@@ -882,24 +886,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
-    function updateSimEditor() {
-        panelState.enableField('simulation', 'magnetType', false);
-        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
-            let axis = e[SIREPO.ENUM_INDEX_VALUE];
-            panelState.showEnum('simulation', 'heightAxis', axis, axis !== appState.models.simulation.beamAxis);
-        }
-    }
-
     function updateUndulatorEditor() {
         let modelName = 'hybridUndulator';
         let u = appState.models[modelName];
 
         panelState.enableField('hybridUndulator', 'magnetLength', false);
-
-        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
-            let axis = e[SIREPO.ENUM_INDEX_VALUE];
-            panelState.showEnum(modelName, 'gapAxis', axis, axis !== appState.models.simulation.beamAxis);
-        }
 
         for (let m of ['pole', 'magnet']) {
             const matField = `${m}Material`;
@@ -1036,15 +1027,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             });
 
         });
+
         $scope.$on('geomObject.editor.show', function(e, o) {
             updateObjectEditor();
         });
-        $scope.$on('simulation.editor.show', function(e, o) {
-            updateSimEditor();
-        });
+
         $scope.$on('tool.editor.show', function(e, o) {
             updateToolEditor();
         });
+
         $scope.$on('layout.object.dropped', function (e, lo) {
             var m = appState.setModelDefaults({}, lo.model);
             m.center = lo.center;
@@ -1053,9 +1044,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             m.model = lo.model;
             self.editObject(m);
         });
+
         $scope.$on('drop.target.enabled', function (e, val) {
             self.dropEnabled = val;
         });
+
         $scope.$parent.$on('sr-tabSelected', function(event, modelName) {
             updateUndulatorEditor();
         });
@@ -1133,10 +1126,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.simState = persistentSimulation.initSimulationState(self);
 
-    $scope.$on('simulation.editor.show', function(e, o) {
-        panelState.enableField('simulation', 'magnetType', false);
-    });
-
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('modelChanged', (e, modelName) => {
             let m = appState.models[modelName];
@@ -1170,7 +1159,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, requestSender) {
+SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1197,6 +1186,9 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+
+            $scope.newSim = {};
+
             $scope.exportDmp = function() {
                 requestSender.newWindow('exportArchive', {
                     '<simulation_id>': appState.models.simulation.simulationId,
@@ -1216,6 +1208,39 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
             function isRawExample(name) {
                 return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
             }
+
+            function updateSimEditor() {
+                srdbg('UPDATE ISM ED');
+                panelState.enableField(
+                    'simulation',
+                    'magnetType',
+                    activeSection.getActiveSection() === 'simulations'
+                );
+                for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+                    let axis = e[SIREPO.ENUM_INDEX_VALUE];
+                    panelState.showEnum(
+                        'simulation',
+                        'heightAxis',
+                        axis,
+                        axis !== appState.models.simulation.beamAxis
+                    );
+                }
+            }
+
+            $scope.$on('simulation.editor.show', () => {
+                if (activeSection.getActiveSection() === 'simulations') {
+
+                    $scope.newSim = appState.setModelDefaults({}, 'simulation');
+                    $scope.model = $scope.newSim;
+                }
+                $scope.$watch('newSim.beamAxis', (n, o, scope) => {
+                    srdbg('new s ch', n, o);
+                });
+                updateSimEditor();
+            });
+            $scope.$on('simulation.editor.hide', () => {
+                $scope.newSim = {};
+            });
         }
     };
 });
@@ -1336,6 +1361,38 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
 
                 $scope.loadItems();
             });
+
+        },
+    };
+});
+
+SIREPO.app.directive('coordinateSystem', function(appState, panelState, radiaService) {
+
+    const inset = 1;
+    const coordSysId = 'sr-coord-sys';
+
+    let w = 64 + 2 * inset;
+    let h = 64 + 2 * inset;
+    let svg = new SIREPO.DOM.SVGContainer(coordSysId, w, h);
+    let rotBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-rot-btn');
+    let relectBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-refl-btn');
+
+    // axes are 'x', 'y', 'z'
+    return {
+        restrict: 'A',
+        scope: {
+            axes: '=',
+            field: '=',
+            fieldName: '=',
+            labels: '=',
+            model: '=',
+            modelName: '=',
+            svgObj: '=',
+        },
+        template: [
+            svg.toTemplate(),
+        ].join(''),
+        controller: function($scope, $element) {
 
         },
     };
@@ -3699,4 +3756,12 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
             return radiaService.getObject($scope.getBaseObjectId());
         },
     };
+});
+
+SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
+    $scope.watchFields = [
+        ['simulation.beamAxis'], () => {
+            srdbg('CH BEAM ACIS');
+        },
+    ];
 });

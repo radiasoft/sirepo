@@ -272,6 +272,7 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
+            ["cee", "Cee"],
             ["gamma", "Gamma"],
             ["racetrack", "RaceTrack"],
             ["tee", "Tee"]
@@ -463,7 +464,6 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "component": ["Component", "KickMapComponent", "h"],
             "direction": ["Direction", "FloatStringArray", "0, 0, 1", "Beam direction", "x, y, z"],
-            "gapAxis": ["_", "BeamAxis", "z", ""],
             "inProgressText": ["_", "String", "Calculating"],
             "isSelfContained": ["_", "Boolean", "1"],
             "numPeriods": ["Number of Periods", "Integer", 1],
@@ -597,11 +597,10 @@
         "undulator": {
             "_super": ["_", "model", "radiaObject"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "1"],
-            "gap": ["Gap [mm]", "Float", 20.0, "", 0.0],
-            "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
+            "gap": ["Gap [mm]", "Float", 20.0, "", 0.0, "Measured along the height axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
-            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
+            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and height axes"]
         }
     },
     "strings": {
@@ -728,7 +727,6 @@
             "basic": [
                 ["Main", [
                     "gap",
-                    "gapAxis",
                     "numPeriods",
                     "periodLength"
                 ]],
@@ -963,7 +961,6 @@
             "basic": [
                 ["Main", [
                     "gap",
-                    "gapAxis",
                     "numPeriods",
                     "periodLength"
                 ]],
