@@ -544,17 +544,16 @@ def api_srUnit():
 def api_staticFile(path_info=None):
     """flask.send_from_directory for static folder.
 
-    Uses safe_join which doesn't allow indexing, paths with '..',
-    or absolute paths.
-
     Args:
         path_info (str): relative path to join
     Returns:
         flask.Response: flask.send_from_directory response
     """
     if not path_info:
-        raise sirepo.util.raise_not_found('empty path info')
-    p = sirepo.resource.static(path_info)
+        sirepo.util.raise_not_found('empty path info')
+    # SECURITY: Use check_input to verify that the path does not escape the
+    # static dir.
+    p = sirepo.resource.static(path_info, check_input=True)
     r = None
     if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):
         return http_reply.headers_for_cache(
