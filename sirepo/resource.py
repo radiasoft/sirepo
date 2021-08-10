@@ -13,7 +13,7 @@ import sirepo.feature_config
 import sirepo.util
 
 
-def filename(*paths):
+def file_path(*paths):
     """Get absolute path to a resource file
 
     Args:
@@ -67,4 +67,4 @@ def static(*paths, relpath=False, check_input=False):
 
 
 def template(common_filename_or_sim_type):
-    return filename('template', common_filename_or_sim_type)
+    return file_path('template', common_filename_or_sim_type)

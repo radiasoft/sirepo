@@ -163,7 +163,7 @@ def validate(schema):
         _validate_cookie_def(sch_cookies[sc])
     for t in schema.dynamicModules:
         for src in schema.dynamicModules[t]:
-            sirepo.resource.filename(src[1:])
+            sirepo.resource.file_path(src[1:])
     _validate_strings(schema.strings)
 
 
