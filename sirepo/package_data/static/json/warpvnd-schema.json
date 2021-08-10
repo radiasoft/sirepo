@@ -2,6 +2,10 @@
     "constants": {
         "cellColors": ["#ff0000", "#008000", "#0000ff"],
         "nonZeroVoltsColor": "#6992ff",
+        "elementStroke": {
+            "cathode": "#FF9269",
+            "anode": "#6992ff"
+        },
         "particleTrackColor": "#4682b4",
         "planeCaudal":  "caudal",
         "planeDexter": "dexter",
@@ -28,7 +32,8 @@
         "CurrentMode": [
             ["1", "User Specified"],
             ["2", "Child-Langmuir Emission"],
-            ["3", "Thermionic Emission"]
+            ["3", "Thermionic Emission"],
+            ["4", "Schottky Emission"]
         ],
         "Dimension": [
             ["x", "X"],
@@ -53,7 +58,12 @@
             ["20", "20"]
         ],
         "ObjectiveFunction": [
-            ["efficiency", "Efficiency"]
+            ["transparency", "Transparency"]
+        ],
+        "ParticleReflection": [
+            ["none", "None"],
+            ["diffuse", "Diffuse"],
+            ["specular", "Specular"]
         ],
         "ParticleRenderCount": [
             ["100", "100"],
@@ -135,10 +145,8 @@
     },
     "model": {
         "anode": {
-            "isReflector": ["Add Reflector", "Boolean", "0"],
-            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
+            "reflectorType": ["Particle Reflection", "ParticleReflection", "none"],
+            "reflectorProbability": ["Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
         },
         "beam": {
             "currentMode": ["Current Mode", "CurrentMode"],
@@ -153,6 +161,10 @@
         "box": {
             "_super": ["_", "model", "conductor"]
         },
+        "cathode": {
+            "reflectorType": ["Particle Reflection", "ParticleReflection", "none"],
+            "reflectorProbability": ["Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
+        },
         "conductor": {
             "name": ["Name", "String"],
             "xLength": ["Width (X) [µm]", "OptFloat"],
@@ -161,12 +173,10 @@
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "reflectorType": ["Particle Reflection", "ParticleReflection", "none"],
+            "reflectorProbability": ["Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "color": ["Color", "Color", "#6992ff"],
-            "type": ["Type", "ConductorType", "box"],
-            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "refScheme": ["Reflection Scheme", "ReflectionScheme", "uniform"]
+            "type": ["Type", "ConductorType", "box"]
         },
         "conductorGridReport": {
             "tileDomain": ["Show tiled domain", "Boolean", "0"]
@@ -221,7 +231,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "optimizer": {
-            "objective": ["Objective Function", "ObjectiveFunction", "efficiency"],
+            "objective": ["Objective Function", "ObjectiveFunction", "transparency"],
             "tolerance": ["Tolerance", "Float", 0.001],
             "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
@@ -278,32 +288,42 @@
             "zLength": ["Length (Z) [µm]", "Float"]
         }
     },
+    "strings": {
+        "importText": "Import an stl file"
+    },
     "view": {
         "anode": {
             "title": "Anode",
             "advanced": [
                 "beam.anode_voltage",
                 "beam.anode_work_function",
-                "isReflector",
-                "diffProb"
+                "reflectorType",
+                "reflectorProbability"
             ]
         },
         "beam": {
-            "title": "Beam",
+            "title": "Emitter and Collector Properties",
             "basic": [
                 "currentMode",
                 "beam_current",
-                "species"
+                "species",
+                "cathode_temperature",
+                "anode_voltage",
+                [
+                    ["Cathode", [
+                        "cathode_work_function",
+                        "cathode.reflectorType",
+                        "cathode.reflectorProbability"
+                    ]],
+                    ["Anode", [
+                        "anode_work_function",
+                        "anode.reflectorType",
+                        "anode.reflectorProbability"
+                    ]]
+                ]
             ],
             "advanced": [
-                "currentMode",
-                "beam_current",
-                "species",
-                "x_radius",
-                "cathode_temperature",
-                "cathode_work_function",
-                "anode_voltage",
-                "anode_work_function"
+                "x_radius"
             ]
         },
         "box": {
@@ -316,8 +336,8 @@
                 "yLength",
                 "isConductor",
                 "permittivity",
-                "isReflector",
-                "diffProb",
+                "reflectorType",
+                "reflectorProbability",
                 "color"
             ]
         },
@@ -336,7 +356,9 @@
             "title": "Cathode",
             "advanced": [
                 "beam.cathode_temperature",
-                "beam.cathode_work_function"
+                "beam.cathode_work_function",
+                "reflectorType",
+                "reflectorProbability"
             ]
         },
         "conductorGridReport": {

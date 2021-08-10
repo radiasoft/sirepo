@@ -10,10 +10,13 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+import functools
 import signal
+import sirepo.events
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
+import sirepo.sim_db_file
 import sirepo.srdb
 import sirepo.srtime
 import tornado.httpserver
@@ -43,6 +46,7 @@ def default_command():
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
+            (sirepo.job.SIM_DB_FILE_URI + '/(.+)', sirepo.sim_db_file.FileReq),
         ],
         debug=cfg.debug,
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
@@ -106,32 +110,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         self.close()
 
 
-class _DataFileReq(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ["PUT"]
-
-    def on_connection_close(self):
-        pass
-
-    async def put(self, path):
-        # should be exactly two levels
-        (d, f) = path.split('/')
-        assert sirepo.job.UNIQUE_KEY_RE.search(d), \
-            'invalid directory={}'.format(d)
-        d = sirepo.job.DATA_FILE_ROOT.join(d)
-        assert d.check(dir=True), \
-            'directory does not exist={}'.format(d)
-        # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
-        assert not f.startswith('.'), \
-            'invalid file={}'.format(f)
-        d.join(f).write_binary(self.request.body)
-
-    def sr_on_exception(self):
-        self.send_error()
-        self.on_connection_close()
-
-
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ["POST"]
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
@@ -164,6 +143,7 @@ class _ServerReq(_JsonPostRequestHandler):
     def sr_on_exception(self):
         self.send_error()
         self.on_connection_close()
+
 
 
 async def _incoming(content, handler):
@@ -203,6 +183,22 @@ class _ServerSrtime(_JsonPostRequestHandler):
 
 def _sigterm(signum, frame):
     tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
+
+
+class _DataFileReq(tornado.web.RequestHandler):
+
+    async def put(self, path):
+        # should be exactly two levels
+        (d, f) = path.split('/')
+        assert sirepo.job.UNIQUE_KEY_RE.search(d), \
+            'invalid directory={}'.format(d)
+        d = sirepo.job.DATA_FILE_ROOT.join(d)
+        assert d.check(dir=True), \
+            'directory does not exist={}'.format(d)
+        # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
+        assert not f.startswith('.'), \
+            'invalid file={}'.format(f)
+        d.join(f).write_binary(self.request.body)
 
 
 async def _terminate():

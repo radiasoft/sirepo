@@ -7,11 +7,11 @@ u"""Support for unit tests
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
+import contextlib
 import flask
 import flask.testing
 import json
 import re
-
 
 #: Default "app"
 MYAPP = 'myapp'
@@ -29,6 +29,16 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 CONFTEST_DEFAULT_CODES = None
 
 SR_SIM_TYPE_DEFAULT = MYAPP
+
+#: Sirepo db dir
+_DB_DIR = 'db'
+
+@contextlib.contextmanager
+def auth_db_session():
+    import sirepo.auth_db
+    with sirepo.auth_db.session():
+        yield
+
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
@@ -64,12 +74,12 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None):
         from pykern import pkunit
         with pkunit.save_chdir_work() as wd:
             from pykern import pkio
-            cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
+            setup_srdb_root(cfg=cfg)
             pkconfig.reset_state_for_testing(cfg)
             from sirepo import server as s
 
             server = s
-            app = server.init()
+            app = server.init(is_server=True)
             app.config['TESTING'] = True
             app.test_client_class = _TestClient
             setattr(app, a, app.test_client(job_run_mode=job_run_mode))
@@ -81,6 +91,17 @@ def init_auth_db():
     fc = flask_client(sim_types=MYAPP)
     fc.sr_login_as_guest()
     return fc, fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
+
+
+def setup_srdb_root(cfg=None):
+    from pykern import pkunit, pkio
+    import os
+    e = cfg
+    if not e:
+        e = os.environ
+    e.update(
+        SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join(_DB_DIR))),
+    )
 
 
 def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg=None):
@@ -561,7 +582,7 @@ class _TestClient(flask.testing.FlaskClient):
 
         if not uid:
             uid = self.sr_auth_state().uid
-        return pkunit.work_dir().join('db', 'user', uid)
+        return pkunit.work_dir().join(_DB_DIR, 'user', uid)
 
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):

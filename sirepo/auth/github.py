@@ -57,7 +57,7 @@ def api_authGithubAuthorized():
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user').json()
     sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
-    with auth_db.thread_lock:
+    with util.THREAD_LOCK:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
             # always update user_name
@@ -94,35 +94,6 @@ def avatar_uri(model, size):
         model.user_name,
         size,
     )
-
-
-def init_apis(*args, **kwargs):
-
-    def _init_model(base):
-        """Creates User class bound to dynamic `db` variable"""
-        global AuthGithubUser, UserModel
-
-        class AuthGithubUser(base):
-            __tablename__ = 'auth_github_user_t'
-            oauth_id = sqlalchemy.Column(base.STRING_NAME, primary_key=True)
-            user_name = sqlalchemy.Column(base.STRING_NAME, unique=True, nullable=False)
-            uid = sqlalchemy.Column(base.STRING_ID, unique=True)
-
-        UserModel = AuthGithubUser
-
-    global cfg, AUTH_METHOD_VISIBLE
-    cfg = pkconfig.init(
-        callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
-        key=pkconfig.Required(str, 'Github key'),
-        method_visible=(
-            True,
-            bool,
-            'github auth method is visible to users when it is an enabled method',
-        ),
-        secret=pkconfig.Required(str, 'Github secret'),
-    )
-    AUTH_METHOD_VISIBLE = cfg.method_visible
-    auth_db.init_model(_init_model)
 
 
 class _Client(authlib.integrations.base_client.RemoteApp):
@@ -168,3 +139,34 @@ class _Client(authlib.integrations.base_client.RemoteApp):
 def _client(state):
     """Makes it easier to mock, see github_srunit.py"""
     return _Client(state)
+
+
+def _init():
+    def _init_model(base):
+        """Creates User class bound to dynamic `db` variable"""
+        global AuthGithubUser, UserModel
+
+        class AuthGithubUser(base):
+            __tablename__ = 'auth_github_user_t'
+            oauth_id = sqlalchemy.Column(base.STRING_NAME, primary_key=True)
+            user_name = sqlalchemy.Column(base.STRING_NAME, unique=True, nullable=False)
+            uid = sqlalchemy.Column(base.STRING_ID, unique=True)
+
+        UserModel = AuthGithubUser
+
+    global cfg, AUTH_METHOD_VISIBLE
+    cfg = pkconfig.init(
+        callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
+        key=pkconfig.Required(str, 'Github key'),
+        method_visible=(
+            True,
+            bool,
+            'github auth method is visible to users when it is an enabled method',
+        ),
+        secret=pkconfig.Required(str, 'Github secret'),
+    )
+    AUTH_METHOD_VISIBLE = cfg.method_visible
+    auth_db.init_model(_init_model)
+
+
+_init()

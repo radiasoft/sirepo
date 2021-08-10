@@ -5,8 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-    SIREPO.appMadxExport = true;
-    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte or .madx) file';
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
           '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
@@ -46,6 +44,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
           '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
         '</div>',
+        '<div data-ng-switch-when="Float2StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="2"></div>',
+        '</div>',
     ].join('');
     SIREPO.appDownloadLinks = [
         '<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
@@ -69,15 +70,15 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             alpha: ['ALPH'],
-            aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'PEPPOT', 'RCOL', 'SCRAPER'],
-            bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+            aperture: ['APCONTOUR', 'CLEAN', 'ECOL', 'MAXAMP', 'PEPPOT', 'RCOL', 'SCRAPER', 'TAPERAPC', 'TAPERAPE', 'TAPERAPR'],
+            bend: ['BRAT', 'BUMPER', 'CCBEND', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
             drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
             lens: ['LTHINLENS'],
-            magnet: ['BMAPXY', 'HKICK', 'KICKER', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+            magnet: ['BMAPXY', 'BOFFAXE', 'HKICK', 'KICKER', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'POLYSERIES', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
             malign: ['MALIGN'],
             mirror: ['LMIRROR'],
             recirc: ['RECIRC'],
-            rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+            rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'SHRFDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
             solenoid: ['MAPSOLENOID', 'SOLE'],
             undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
             watch: ['HMON', 'MARK', 'MONI', 'VMON', 'WATCH'],
@@ -225,6 +226,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             : ((cmd.emit_z !== 0 || cmd.beta_z !== 0)
                ? 3 // emit z, beta z, alpha z
                : 2); // sigma s, sigma dp, alpha z
+        updateTwissFromBunch(bunch);
     }
 
     function updateCommandFromBunch(cmd, bunch) {
@@ -248,6 +250,19 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             cmd.sigma_dp = 0;
             cmd.sigma_s = 0;
             cmd.dp_s_coupling = 0;
+        }
+        updateTwissFromBunch(bunch);
+    }
+
+    function updateTwissFromBunch(bunch) {
+        var cmd = self.findFirstCommand('twiss_output');
+        if (cmd) {
+            ['beta', 'alpha', 'eta', 'etap'].forEach(function(prefix) {
+                ['_x', '_y'].forEach(function(suffix) {
+                    var f = prefix + suffix;
+                    cmd[f] = bunch[f];
+                });
+            });
         }
     }
 
@@ -354,16 +369,16 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
         'vary_element',
     ];
     self.advancedNames = [
-        'amplification_factors', 'analyze_map', 'aperture_data', 'change_particle',
+        'amplification_factors', 'analyze_map', 'aperture_data', 'change_particle', 'change_start', 'chaos_map',
         'closed_orbit', 'correct', 'correct_tunes', 'correction_matrix_output',
         'coupled_twiss_output', 'divide_elements', 'elastic_scattering', 'find_aperture',
         'floor_coordinates', 'frequency_map', 'global_settings', 'ignore_elements',
         'inelastic_scattering', 'insert_elements', 'insert_sceffects', 'ion_effects',
         'linear_chromatic_tracking_setup', 'link_control', 'link_elements', 'modulate_elements',
-        'moments_output', 'momentum_aperture', 'optimization_constraint', 'optimization_covariable',
+        'moments_output', 'momentum_aperture', 'obstruction_data', 'optimization_constraint', 'optimization_covariable',
         'parallel_optimization_setup', 'print_dictionary', 'ramp_elements', 'replace_elements',
         'rf_setup', 'rpn_expression', 'rpn_load', 'sasefel',
-        'save_lattice', 'sdds_beam', 'slice_analysis', 'steering_element',
+        'save_lattice', 'sdds_beam', 'set_reference_particle_output', 'slice_analysis', 'steering_element',
         'touschek_scatter', 'transmute_elements','tune_footprint', 'tune_shift_with_amplitude',
         'twiss_analysis',
     ];
@@ -402,12 +417,12 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.latticeService = latticeService;
 
     self.advancedNames = [
-        'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
+        'ALPH', 'APCONTOUR', 'BEAMBEAM', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BOFFAXE', 'BRANCH', 'BRAT', 'BUMPER', 'CCBEND', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
         'CWIGGLER', 'DSCATTER', 'EDRIFT', 'EHKICK', 'EKICKER', 'ELSE',
         'EMATRIX', 'EMITTANCE', 'ENERGY', 'EVKICK', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
-        'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
+        'GFWIGGLER', 'GKICKMAP', 'HISTOGRAM', 'HKICK', 'HMON',
         'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
         'LMIRROR', 'LRWAKE', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
@@ -415,13 +430,13 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'MATTER', 'MAXAMP', 'MBUMPER', 'MHISTOGRAM',
         'MODRF', 'MONI', 'MRFDF', 'MULT',
         'NIBEND', 'NISEPT', 'OCTU', 'PEPPOT',
-        'PFILTER', 'QUFRINGE', 'RAMPP', 'RAMPRF',
+        'PFILTER', 'POLYSERIES', 'QUFRINGE', 'RAMPP', 'RAMPRF',
         'RBEN', 'RCOL', 'RECIRC', 'REFLECT',
         'REMCOR', 'RFCA', 'RFCW', 'RFDF',
         'RFMODE', 'RFTM110', 'RFTMEZ0', 'RIMULT',
         'RMDF', 'ROTATE', 'SAMPLE', 'SBEN',
-        'SCATTER', 'SCMULT', 'SCRAPER', 'SCRIPT',
-        'SLICE', 'SOLE', 'SPEEDBUMP', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
+        'SCATTER', 'SCMULT', 'SCRAPER', 'SCRIPT', 'SHRFDF',
+        'SLICE', 'SOLE', 'SPEEDBUMP', 'SREFFECTS', 'STRAY', 'TAPERAPC', 'TAPERAPE', 'TAPERAPR', 'TFBDRIVER',
         'TFBPICKUP', 'TMCF', 'TRCOUNT', 'TRFMODE',
         'TRWAKE', 'TSCATTER', 'TUBEND', 'TWISS', 'TWLA',
         'TWMTA', 'TWPL', 'UKICKMAP', 'VKICK',
@@ -608,9 +623,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         if (appState.isLoaded()) {
             var res = self.simState.stateAsText();
             var sim = appState.applicationState().simulation;
-            if (sim.backtracking == '1') {
-                res += ' Backtrace';
-            }
             if (sim.simulationMode == 'parallel') {
                 res += ' in Parallel';
             }

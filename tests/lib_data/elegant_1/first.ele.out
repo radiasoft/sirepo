@@ -6,14 +6,14 @@
 &run_setup
   semaphore_file = run_setup.semaphore,
   always_change_p0 = 1,
-  centroid = "run_setup.centroid.sdds",
+  centroid = "%s.cen",
   default_order = 1,
-  final = "run_setup.final.sdds",
+  final = "%s.fin",
   lattice = "PClinac_TESSA_LSC.lte",
-  magnets = "run_setup.magnets.sdds",
+  magnets = "%s.mag",
   p_central = 85.0,
-  parameters = "run_setup.parameters.sdds",
-  sigma = "run_setup.sigma.sdds",
+  parameters = "%s.param",
+  sigma = "%s.sig",
   use_beamline = "LTOMATCH",
 &end
 
@@ -49,8 +49,6 @@
   allow_missing_elements = 1,
   item = "TOTAL",
   name = "Q",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "charge",
   value = 3e-10,
 &end
@@ -58,8 +56,6 @@
 &alter_elements
   item = "PHASE",
   name = "L2CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 57.55,
 &end
@@ -67,8 +63,6 @@
 &alter_elements
   item = "PHASE",
   name = "L4CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 95.0,
 &end
@@ -76,8 +70,6 @@
 &alter_elements
   item = "PHASE",
   name = "L5CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 95.0,
 &end
@@ -86,8 +78,6 @@
   item = "VOLT",
   multiplicative = 1,
   name = "L4CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 1.07,
 &end
@@ -96,8 +86,6 @@
   item = "VOLT",
   multiplicative = 1,
   name = "L5CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 1.07,
 &end
@@ -105,8 +93,6 @@
 &alter_elements
   item = "LSC",
   name = "*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 1.0,
 &end
@@ -114,8 +100,6 @@
 &alter_elements
   item = "N_KICKS",
   name = "*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 5.0,
 &end
@@ -123,16 +107,14 @@
 &twiss_output
   alpha_x = -1.609709872915761,
   alpha_y = -1.653138844198896,
-  beta_x = 4.034896311524342,
+  beta_x = "({sddsanalyzebeam whruby.sdds -pipe=out | sdds2stream -pipe -column=betax})",
   beta_y = 4.199343696609461,
-  filename = "twiss_output.filename.sdds",
-  higher_order_chromaticity_range = 0.0004,
+  filename = "%s.twi",
   matched = 0,
 &end
 
 &run_control
   n_indices = 1,
-  n_steps = 1.0,
 &end
 
 &link_elements
@@ -156,21 +138,21 @@
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
+  input = "PCG.sdds",
   reuse_bunch = 1,
   sample_fraction = 0.1,
 &end
 
 &save_lattice
-  filename = "save_lattice.filename.lte",
+  filename = "%s_save.lte",
   output_seq = 1,
 &end
 
 &matrix_output
-  SDDS_output = "matrix_output.SDDS_output.sdds",
+  SDDS_output = "matrix_output.sdds",
   SDDS_output_order = 2,
   output_at_each_step = 1,
-  printout = "matrix_output.printout.sdds",
+  printout = "%s_out.matrix",
   printout_order = 2,
 &end
 

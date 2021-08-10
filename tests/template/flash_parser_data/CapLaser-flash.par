@@ -1,0 +1,322 @@
+##### Laser deposition with BELLA-like parameters for gas and heater laser. #####
+##########################
+#                        #
+#     I/O PARAMETERS     #
+#                        #
+##########################
+
+### File Descriptors ###
+run_comment = "capillary discharge simulation with laser pulse"
+log_file    = "bella.log"
+basenm      = "bella_"
+
+### Checkpoint Options  ###
+checkpointFileIntervalTime = 20.e-9
+checkpointFileIntervalStep = 1000000
+
+### Plot Options ###
+plotFileNumber       = 1
+plotFileIntervalStep = 1000000
+plotFileIntervalTime = 1.e-9
+plot_var_1           = "dens"
+plot_var_2           = "pres"
+plot_var_3           = "tele"
+plot_var_4           = "tion"
+plot_var_5           = "trad"
+plot_var_6           = "ye"
+plot_var_7           = "sumy"
+plot_var_8           = "depo"
+#plot_var_8           = "fill"
+#plot_var_9           = "wall"
+plot_var_10          = "magz"
+plot_var_11          = "velx"
+plot_var_12          = "kapa"
+
+### Restart Options ###
+restart              = .false.
+#checkpointFileNumber = 36
+#plotfileNumber       = 1
+
+wr_integrals_freq = 10 # dat file dump frequency
+io_writeMscalarIntegrals = .TRUE.
+
+########################################
+#                                      #
+#     RADIATION/OPACITY PARAMETERS     #
+#                                      #
+########################################
+rt_useMGD       = .true.
+rt_mgdNumGroups = 6
+rt_mgdBounds_1  = 1.0e-01
+rt_mgdBounds_2  = 1.0e+00
+rt_mgdBounds_3  = 1.0e+01
+rt_mgdBounds_4  = 1.0e+02
+rt_mgdBounds_5  = 1.0e+03
+rt_mgdBounds_6  = 1.0e+04
+rt_mgdBounds_7  = 1.0e+05
+rt_mgdFlMode    = "fl_harmonic"
+rt_mgdFlCoef    = 1.0
+
+rt_mgdXlBoundaryType = "reflecting"
+rt_mgdXrBoundaryType = "reflecting"
+rt_mgdYlBoundaryType = "vacuum"
+rt_mgdYrBoundaryType = "vacuum"
+rt_mgdZlBoundaryType = "reflecting"
+rt_mgdZrBoundaryType = "reflecting"
+
+useOpacity     = .true.
+
+### SET FILL (HYDROGEN) OPACITY OPTIONS ###
+op_fillAbsorb   = "op_tabpa"
+op_fillEmiss    = "op_tabpe"
+op_fillTrans    = "op_tabro"
+op_fillFileType = "ionmix4"
+#op_fillFileName = "h-imx-004.cn4"
+op_fillFileName = "hydrogen-fill-imx.cn4"
+
+### SET WALL (ALUMINUM) OPACITY OPTIONS ###
+op_wallAbsorb   = "op_tabpa"
+op_wallEmiss    = "op_tabpe"
+op_wallTrans    = "op_tabro"
+op_wallFileType = "ionmix4"
+#op_wallFileName = "al-imx-004.cn4"
+op_wallFileName = "alumina-wall-imx.cn4"
+
+
+############################
+#                          #
+#     LASER PARAMETERS     #
+#                          #
+############################
+useEnergyDeposition = .true.
+ed_maxRayCount      = 10000
+ed_gradOrder        = 2
+
+# Sticking with 3D-in-2D to reduce errors. 3D-in-2D ray tracing is more flexible, but 2D-in-2D ray tracing should be adequate for rays parallel to axis.
+ed_laser3Din2D = .true.
+ed_laser3Din2DwedgeAngle = 0.1 #specifies the azimuthal decomposition of the laser cross-section - not needed for 2Din2D
+
+### LASER IO OPTIONS ###
+ed_useLaserIO                  = .true.
+ed_laserIOMaxNumberOfPositions = 10000
+ed_laserIOMaxNumberOfRays      = 128
+
+### SETUP LASER PULSES ###
+ed_numberOfPulses = 1
+
+# Define Pulse 1:
+ed_numberOfSections_1 = 4
+ed_time_1_1  = 740.0e-09
+ed_time_1_2  = 740.1e-09
+ed_time_1_3  = 748.0e-09
+ed_time_1_4  = 748.1e-09
+
+ed_power_1_1 = 0.0
+ed_power_1_2 = 37.5e6 # 37.5 MW * 8 ns = 300 mJ
+ed_power_1_3 = 37.5e6
+ed_power_1_4 = 0.0
+
+### SETUP LASER BEAM ###
+ed_numberOfBeams = 1
+
+# Setup Gaussian Beam:
+# For 50 micron spot size, Rayleigh range is 1.4755639097744362 cm
+
+# X=r, Y=z, Z=theta (unused)
+ed_lensX_1                    = 0.0 # center of lens on axis
+ed_lensY_1                    = 0.0 #-0.754867 this must lie outside of domain
+ed_lensZ_1                    = -1.475564 #this must lie outside the domain
+ed_lensSemiAxisMajor_1        = 200.0e-04
+
+ed_targetX_1                  = 0.0
+ed_targetY_1                  = 0.0
+ed_targetZ_1                  = 0.0 #Actually this is the Z parameter (or "Y" coordinate in other R-Z situations)
+ed_targetSemiAxisMajor_1      = 200.0e-04 #This will cover a bit more than the 1/e^2 length
+ed_targetSemiAxisMinor_1      = 200.0e-04 #This will cover a bit more than the 1/e^2 length
+
+ed_pulseNumber_1              =  1
+ed_wavelength_1               =  0.532 # 1.053
+ed_crossSectionFunctionType_1 = "gaussian2D" #"gaussian2D" for 3D-in-2D, "gaussian1D" for 2D-in-2D
+ed_gaussianExponent_1         =  1.0
+ed_gaussianRadiusMajor_1      =  8.495e-03 #efolding length is (1.699/2)* the FWHM, so if FWHM is 50 microns, then it's 84.95 microns
+ed_gaussianRadiusMinor_1      =  8.495e-03
+ed_numberOfRays_1             =  1024
+ed_gridType_1                 =  "radial2D" #"radial2D" needed for 3D, "statistical1D" for 2D-in-2D
+ed_gridnRadialTics_1          =  1024 # I think this is redundant for 2D-in-2D
+ed_semiAxisMajorTorsionAngle_1 =  0.0 #needed for 3D
+ed_semiAxisMajorTorsionAxis_1 = "x" #needed for 3D
+
+#ed_printMain                  = .true. #added for additional diagnostics
+
+#################################
+#                               #
+#     CONDUCTION PARAMETERS     #
+#                               #
+#################################
+useDiffuse      = .true.
+useConductivity = .true.
+diff_useEleCond = .true.
+diff_eleFlMode  = "fl_larsen"
+diff_eleFlCoef  = 0.06
+diff_thetaImplct = 1.0
+
+diff_eleXlBoundaryType = "neumann"
+diff_eleXrBoundaryType = "dirichlet"
+diff_eleYlBoundaryType = "neumann"
+diff_eleYrBoundaryType = "neumann"
+diff_eleZlBoundaryType = "neumann"
+diff_eleZrBoundaryType = "neumann"
+
+
+####################################
+#                                  #
+#     HEAT EXCHANGE PARAMETERS     #
+#                                  #
+####################################
+useHeatexchange = .true.
+
+
+##########################
+#                        #
+#     EOS PARAMETERS     #
+#                        #
+##########################
+#gamma            = 1.66666666666666667 #Not needed unless using eos_gam
+eosModeInit      = "dens_temp_gather"
+smallt           = 1.0
+smallx           = 1.0e-99
+eos_useLogTables = .false.
+
+
+############################
+#                          #
+#     HYDRO PARAMETERS     #
+#                          #
+############################
+useHydro = .true.
+hy_fPresInMomFlux = 0.0
+
+order            = 3        # Interpolation order (first/second/third/fifth order)
+slopeLimiter     = "minmod" # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
+LimitedSlopeBeta = 1.       # Slope parameter for the "limited" slope by Toro
+charLimiting     = .true.   # Characteristic limiting vs. Primitive limiting
+use_avisc        = .true.   # use artificial viscosity (originally for PPM)
+cvisc            = 0.1      # coefficient for artificial viscosity
+use_flattening   = .false.  # use flattening (dissipative) (originally for PPM)
+use_steepening   = .false.  # use contact steepening (originally for PPM)
+use_upwindTVD    = .false.  # use upwind biased TVD slope for PPM (need nguard=6)
+RiemannSolver    = "hllc"   # # Roe, HLL, HLLC, HLLD, LLF, Marquina, Hybrid
+entropy          = .false.  # Entropy fix for the Roe solver
+shockDetect      = .TRUE.  # Shock Detect for numerical stability
+use_hybridOrder  = .false.  # Enforce Riemann density jump
+
+killdivb        = .true.    # DivB control switch
+E_modification  = .false.   # High order algorithm for E-field construction
+energyFix       = .true.    # Update magnetic energy using staggered B-fields
+ForceHydroLimit = .false.   # Pure Hydro Limit (B=0)
+prolMethod      = "balsara_prol" # Prolongation method (injecton_prol, balsara_prol)
+
+#	Flux Conservation for AMR - turn it off for now.
+flux_correct    = .false.
+
+useMagneticResistivity = .true.
+conserveAngField = .false.
+conserveAngMom = .false.
+usediffusecomputedtmagnetic = .true.
+usediffusecomputedtspecies = .false.
+usediffusecomputedttherm = .false.
+usediffusecomputedtvisc = .false.
+
+gr_pmrpcurvilinear = .true.
+gr_pmrpcurvilinearconserve = .true.
+gr_pmrpdivergencefree = 1
+gr_pmrpforceconsistency = .false.
+gr_pmrpCylindricalPm  = .true.
+
+hy_fullSpecMsFluxHandling = .false.
+
+# Hydro boundary conditions:
+xl_boundary_type = "axisymmetric"
+xr_boundary_type = "user"
+yl_boundary_type = "outflow"
+yr_boundary_type = "outflow"
+zl_boundary_type = "reflect"
+zr_boundary_type = "reflect"
+
+
+##############################
+#                            #
+#     INITIAL CONDITIONS     #
+#                            #
+##############################
+
+# Peak field at wall in gauss
+sim_peakField = 2.25e3 # Corresponds to 450 A longitudinal current
+sim_period    = 800.0e-09
+
+# Wall material defaults set for alumina (Al2O3) at ~1 eV:
+sim_rhoWall  = 3.987 #2.7
+sim_teleWall = 11598.
+sim_tionWall = 11598.
+sim_tradWall = 11598.
+ms_wallA = 20.3922 #26.9815386
+ms_wallZ = 10.0 #13.0
+ms_wallZMin = 0.001
+eos_wallEosType = "eos_tab"
+eos_wallSubType = "ionmix4"
+eos_wallTableFile = "alumina-wall-imx.cn4"
+
+# Fill material defaults set for hydrogen (H2) at ~1 eV:
+sim_rhoFill = 8.e-7
+sim_teleFill = 11598.
+sim_tionFill = 11598.
+sim_tradFill = 11598.
+ms_fillA = 1.00794
+ms_fillZ = 1.0
+ms_fillZMin = 0.001
+eos_fillEosType = "eos_tab"
+eos_fillSubType = "ionmix4"
+eos_fillTableFile = "hydrogen-fill-imx.cn4"
+
+# Conductivity of the wall in cgs. This is largely ignored when using the Spitzer Conductivity
+sim_condWall = 1.95e5 # AVG between Hydrogen gas and Al wall at initial condition
+
+###########################
+#                         #
+#     TIME PARAMETERS     #
+#                         #
+###########################
+tstep_change_factor = 1.10
+cfl            = 0.3
+dt_diff_factor = 0.45 # 51./37.=1.28 time speedup compared to dt_diff_factor = 0.3 (0.6 is too big)
+rt_dtFactor    = 1.0e+100
+hx_dtFactor    = 1.0e+100
+tmax           = 720.0e-09
+dtmin          = 1.0e-16
+dtinit         = 1.0e-15
+dtmax          = 1.0e-09
+nend           = 10000000
+
+
+###########################
+#                         #
+#     MESH PARAMETERS     #
+#                         #
+###########################
+geometry = "cylindrical"
+
+# Domain size:
+xmin = 0.0
+xmax = 400.0e-04
+ymin = -200.0e-04
+ymax = 200.0e-04
+
+# Total number of blocks:
+nblockx = 2
+nblocky = 1
+
+lrefine_max = 2
+lrefine_min = 1
+refine_var_1 = "dens"
+refine_var_2 = "tele"
+refine_var_3 = "depo"

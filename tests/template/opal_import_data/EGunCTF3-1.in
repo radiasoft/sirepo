@@ -111,7 +111,7 @@ Dist1:DISTRIBUTION, TYPE = "GUNGAUSSFLATTOPTH",
 		    NBIN=5;
 
 Dist2:DISTRIBUTION, TYPE=fromfile,
-		    FNAME="ReferenceParticles.dat";
+		    FNAME="Reference-Particles-1.dat";
 
 beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 20000, BFREQ = BF, BCURRENT = BC, CHARGE = -1;
 

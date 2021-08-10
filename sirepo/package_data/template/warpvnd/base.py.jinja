@@ -1,23 +1,38 @@
+# -*- python -*-
 from __future__ import absolute_import, division, print_function
 import warpoptions
 warpoptions.ignoreUnknownArgs = True
 
+from numpy import linalg
+from scipy import constants
+from scipy import spatial
+from scipy.interpolate import interp1d as scipy_interp1d
 import h5py
+import json
+import math
 import numpy as np
-import sys
-import warp as wp
+import os
 import rswarp
+import scipy
+import sys
+import time
 
-from rswarp.diagnostics import FieldDiagnostic
-from rswarp.cathode import sources
 from rswarp.cathode import injectors
+from rswarp.cathode import sources
+from rswarp.diagnostics import ConductorTemplates
+from rswarp.diagnostics import FieldDiagnostic
+from rswarp.diagnostics import ImpactDensity
+from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.run_files.tec.reflection import particlereflector
 from rswarp.stlconductor import stlconductor
 
-from scipy import constants
 
+import warp as wp
 from warp.data_dumping.openpmd_diag import ParticleDiagnostic
 from warp.field_solvers.generateconductors import XPlane, YPlane, ZPlane, Box, Sphere
+from warp.particles.singleparticle import TraceParticle
+from warp.run_modes.egun_like import gun, gunppzx #needed for egun script
+
 
 {% if isOptimize %}
 def parse_opts():
@@ -261,53 +276,93 @@ if USER_INJECT == 2:
 {% endif %}
 
 elif USER_INJECT == 3:
-{% if is3D %}
-    # True Thermionic injection
+    # Thermionic injection according to Richardson Dushmann
+
     wp.top.inject = 1
-
-    # Set both beams to same npinject to keep weights the same
-    beam.npinject = PTCL_PER_STEP
-
     wp.w3d.l_inj_exact = True
 
-    # Specify thermal properties
+    # Specify thermal properties and compute current
     beam.vthz = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
     beam.vthperp = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
     wp.top.lhalfmaxwellinject = 1  # inject z velocities as half Maxwellian
-
     beam_current = sources.j_rd(CATHODE_TEMP, CATHODE_PHI) * cathode_area  # steady state current in Amps
-    #print('beam current expected: {}, current density {}'.format(beam_current, beam_current / cathode_area))
 
-    #Compute Child-Langmuir limit for this setup A/m^2
-    cl_limit = sources.cl_limit(CATHODE_PHI, ANODE_WF, GRID_BIAS, PLATE_SPACING)
-    jcl = cl_limit*cathode_area
-
-    #print('child-langmuir  limit: {}, current density {}'.format(jcl, cl_limit))
+    #specify other beam properties
     beam.ibeam = beam_current
+    beam.npinject = PTCL_PER_STEP
     beam.a0 = SOURCE_RADIUS_1
     beam.b0 = SOURCE_RADIUS_1
     beam.ap0 = .0e0
     beam.bp0 = .0e0
-{% else %}
-    wp.top.lambdarinject = 1.0
-    wp.top.inject = 4
-    electric_field = {{ maxConductorVoltage }} / 4.495e-06
-    delta_w = np.sqrt(constants.elementary_charge **3 * electric_field / (4 * np.pi * constants.epsilon_0))
+
+elif USER_INJECT == 4:
+    def schottky_emission():
+        #injection specification for installation
+
+        global num_particles_res
+
+        Ez = solverE.getez()
+        if wp.w3d.solvergeom == wp.w3d.XYZgeom:
+            Ez_mean = np.mean(Ez[:, :, 0])
+        else:
+            Ez_mean = np.mean(Ez[:, 0])
+
+        beta = 27 #field enhancement factor
+
+        if wp.w3d.inj_js == beam.js:
+            delta_w = 0.
+            if Ez_mean < 0.:
+                delta_w = np.sqrt(beta * constants.elementary_charge ** 3 * np.abs(Ez_mean) / (4 * np.pi * constants.epsilon_0))
+
+            rd_current = AR * CATHODE_TEMP ** 2 * np.exp(
+                - (CATHODE_PHI * constants.elementary_charge - delta_w) / (CATHODE_TEMP * kb_J)) * cathode_area
+            electrons_per_second = rd_current / constants.elementary_charge
+            electrons_per_step = electrons_per_second * wp.top.dt
+            float_num_particles = electrons_per_step / beam.sw
+            num_particles = int(float_num_particles + num_particles_res + np.random.rand())
+            num_particles_res += float_num_particles - num_particles
+
+            # --- Create the particles on the surface
+            x = -beam.a0 + 2 * beam.a0 * np.random.rand(num_particles)
+            y = -beam.b0 + 2 * beam.b0 * np.random.rand(num_particles)
+            vz = np.random.rand(num_particles)
+            vz = np.maximum(1e-14 * np.ones_like(vz), vz);
+            vz = beam.vthz * np.sqrt(-2.0 * np.log(vz))
+
+    # Field enhanced thermionic emission calculated via a Schottky correction
+
+    wp.w3d.l_inj_exact = True
+    wp.w3d.l_inj_user_particles_v = True
+
+    # Schottky model
+    wp.top.inject = 1
+    wp.top.ninject = 1
+    wp.top.lhalfmaxwellinject = 1  # inject z velocities as half Maxwellian
+    wp.top.zinject = np.asarray([Z_PART_MIN])
+    wp.top.ainject = np.asarray([SOURCE_RADIUS_1])
+    wp.top.binject = np.asarray([SOURCE_RADIUS_2])
+
+    electric_field = 0
+    delta_w = np.sqrt(constants.elementary_charge ** 3 * electric_field / (4 * np.pi * constants.epsilon_0))
     A0 = 1.20173e6
-    rd_current = A0 * CATHODE_TEMP**2 * np.exp( - (CATHODE_PHI * constants.elementary_charge - delta_w) / (CATHODE_TEMP * constants.k)) * cathode_area
-    electrons_per_second = rd_current / constants.elementary_charge
-    electrons_per_step = electrons_per_second * wp.top.dt
+    lambdaR = 0.5 #Richardson constant adjustment
+    AR = A0*lambdaR
 
-    beam.sw = electrons_per_step / PTCL_PER_STEP / 2.
-
-    wp.top.tempinject = CATHODE_TEMP
-    wp.top.workinject = np.asarray([[CATHODE_PHI * constants.elementary_charge]])
-    wp.top.npinject = 0
-    wp.top.lhalfmaxwellinject = 1
     beam.a0 = SOURCE_RADIUS_1
     beam.b0 = SOURCE_RADIUS_2
-    beam.vthz = np.sqrt(CATHODE_TEMP * constants.k / beam.mass)
-{% endif -%}
+    beam.ap0 = .0e0
+    beam.bp0 = .0e0
+    beam.vthz = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
+    beam.vthperp = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
+
+    # use Richardson current to estimate particle weight
+    rd_current = AR * CATHODE_TEMP ** 2 * np.exp(- (CATHODE_PHI * constants.elementary_charge) / (CATHODE_TEMP * kb_J)) * cathode_area
+    electrons_per_second = rd_current / constants.elementary_charge
+    electrons_per_step = electrons_per_second * wp.top.dt
+    beam.sw = electrons_per_step / PTCL_PER_STEP
+
+    num_particles_res = 0
+    wp.installuserparticlesinjection(schottky_emission)
 
 {% endif -%}
 
@@ -334,7 +389,7 @@ conductors = [
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
     # add scale when available in rswarp
-    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ c.id }})
+    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ c.id }}),
 {% else %}
     wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}, condid={{ c.id }}),
 {% endif %}
@@ -358,10 +413,8 @@ stl_conductors = {
 reflectors = [
 {% for c in conductors %}
     {
-        'isReflector': {{ c.conductor_type.isReflector }},
-        'specProb': {{ c.conductor_type.specProb }},
-        'diffProb': {{ c.conductor_type.diffProb }},
-        'refScheme': '{{ c.conductor_type.refScheme }}'
+        'reflectorType': '{{ c.conductor_type.reflectorType }}',
+        'reflectorProbability': {{ c.conductor_type.reflectorProbability }},
     },
 {% endfor %}
 ]
@@ -369,7 +422,7 @@ reflectors = [
 # Install reflecting conductors regardless of voltage
 for c_idx, c in enumerate(conductors):
     r = reflectors[c_idx]
-    if c.voltage != 0 or r['isReflector']:
+    if c.voltage != 0 or r['reflectorType'] != 'none':
         wp.installconductor(c, dfill=wp.largepos)
 
 max_c_id = max([c.condid for c in conductors]) if len(conductors) > 0 else 0
@@ -386,17 +439,45 @@ wp.installconductor(plate, dfill=wp.largepos)
 
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept={{ saveIntercept }})
 
-{% if anode.isReflector %}
-reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
-particlereflector.installparticlereflector(reflector)
+{% if anode_reflectorType != 'none' %}
+particlereflector.installparticlereflector(
+    particlereflector.ParticleReflector(
+        scraper=scraper,
+        conductor=plate,
+        spref=wp.Species(type=wp.Electron, name='Electron'),
+        srefprob={{ anode_reflectorProbability if anode_reflectorType == 'specular' else 0 }},
+        drefprob={{ anode_reflectorProbability if anode_reflectorType == 'diffuse' else 0 }},
+        refscheme='uniform',
+    ),
+)
 {% endif %}
 
-# Ignore specular probability and reflection scheme for now
+{% if cathode_reflectorType != 'none' %}
+particlereflector.installparticlereflector(
+    particlereflector.ParticleReflector(
+        scraper=scraper,
+        conductor=source,
+        spref=wp.Species(type=wp.Electron, name='Electron'),
+        srefprob={{ cathode_reflectorProbability if cathode_reflectorType == 'specular' else 0 }},
+        drefprob={{ cathode_reflectorProbability if cathode_reflectorType == 'diffuse' else 0 }},
+        refscheme='uniform',
+    )
+)
+{% endif %}
+
 for r_idx, r in enumerate(reflectors):
     c = conductors[r_idx]
-    if r['isReflector']:
-        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob=0., drefprob=r['diffProb'], refscheme='uniform')
-        particlereflector.installparticlereflector(reflector)
+    if r['reflectorType'] != 'none':
+        particlereflector.installparticlereflector(
+            particlereflector.ParticleReflector(
+                scraper=scraper,
+                conductor=c,
+                spref=wp.Species(type=wp.Electron, name='Electron'),
+                srefprob=r['reflectorProbability'] if r['reflectorType'] == 'specular' else 0,
+                drefprob=r['reflectorProbability'] if r['reflectorType'] == 'diffuse' else 0,
+                refscheme='uniform',
+            )
+        )
 
 #------
 

@@ -1,0 +1,16 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-6">
+      <div data-setup-arguments-panel=""></div>
+    </div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="problemFiles"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="appState.models.problemFiles.archive" data-ng-hide="setup.panelState.isHidden('setupAnimation')">
+      <div data-simple-panel="setupAnimation">
+        <div>{{ setup.successMessage }}</div>
+        <div data-sim-status-panel="setup.simState" data-start-function="setup.startSimulation()"></div>
+      </div>
+    </div>
+  </div>
+</div>

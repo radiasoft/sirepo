@@ -11,7 +11,6 @@ wp.generate()
 solverE.mgmaxiters = 100
 
 #------
-import time
 
 #%%time
 num_steps = {{ simulationGrid_num_steps }}
@@ -23,44 +22,9 @@ time1 = time.time()
 time_per_step = (time1-time0)/num_steps
 
 #------
-from warp.particles.singleparticle import TraceParticle
-
-def get_MB_velocities(n_part, T):
-    '''Return a distribution of particle velocities representing a Maxwell-Boltzmann
-    distribution.
-
-    Each velocity distribution is a temperature dependent Gaussian. Due to the geometry
-    of the cathode, negative longitudinal velocities are discarded. The individual
-    velocity distributions are assumed to be independent, and hence there is no covariance
-    between them.
-
-    Arguments:
-    n_part (int): number of particles to be used in the distribution
-    T (float): temperature of the cathode in K
-
-    Returns:
-    pos_output (ndArray): n_part x 3 array with (vx,vy,vz) values for each particle
-
-    '''
-    var_xy = kb_J*T/constants.m_e #Define the variance of the distribution in the x,y planes
-    var_z = 2*kb_J*T/constants.m_e #Variance in z plane is twice that in the horizontal
-    var_vs = np.asarray([var_xy,var_xy,var_z])
-    mean = [0,0,0] #Each distribution has a native mean of 0.
-    cov = np.multiply(var_vs,np.identity(3)) #distributions are assumed to be independent
-    #mean_vz = np.sqrt(2*var/np.pi) #compute this from all-positive component of distribution
-
-    #Additional values are computed so that tuples with negative vz can be discarded
-    flag_array_full = False
-    while not flag_array_full:
-        output = np.random.multivariate_normal(mean,cov,int(np.round(n_part*3)))
-        pos_output = output[np.where(output[:,2] > 0.)[0]]
-        if pos_output.shape[0] >= n_part:
-            flag_array_full = True
-
-    return pos_output[:n_part]
 
 electrons_tracked_t0 = wp.Species(type=wp.Electron)
-v_coords = get_MB_velocities(PTCL_PER_STEP,CATHODE_TEMP)
+v_coords = sources.get_MB_velocities(PTCL_PER_STEP,CATHODE_TEMP)
 x_vals = CHANNEL_WIDTH*(np.random.rand(PTCL_PER_STEP)-0.5)
 y_vals = CHANNEL_HEIGHT*(np.random.rand(PTCL_PER_STEP)-0.5)
 z_vals = np.zeros(PTCL_PER_STEP) + Z_PART_MIN #Add a minimum z coordinate to prevent absorption

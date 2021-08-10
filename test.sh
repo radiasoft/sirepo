@@ -23,7 +23,7 @@ test_main() {
     local pyfiles=( $(find sirepo -name \*.py | sort) )
     test_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
     local jsfiles=( sirepo/package_data/static/js/*.js )
-    test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
+    test_no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
     test_no_h5py
     test_js
     pykern test
@@ -37,8 +37,8 @@ test_msg() {
 }
 
 test_no_h5py() {
-    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|flash|opal|radia|rs4pi|synergia|warp|server.py)') )
-    local r=$(grep -l 'import.*h5py' "${f[@]}")
+    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|flash|opal|radia|rs4pi|silas|synergia|warp|server.py)') )
+    local r=$(grep -l '^import.*h5py' "${f[@]}")
     if [[ $r ]]; then
         test_err "import h5py found in: $r"
     fi

@@ -24,6 +24,14 @@ class Event(tornado.locks.Event):
         self._waiters = self._OrderedWaiters()
 
 
+def error_forbidden():
+    return tornado.web.HTTPError(403)
+
+
+def error_not_found():
+    return tornado.web.HTTPError(404)
+
+
 class Queue(tornado.queues.Queue):
 
     async def get(self):

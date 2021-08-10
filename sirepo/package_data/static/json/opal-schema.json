@@ -1,12 +1,28 @@
 {
     "constants": {
+        "clight": 299792458.0e-9,
+        "hasMadxExport": true,
         "helpUserManualURL": "https://gitlab.psi.ch/OPAL/src/wikis",
         "latticeKeywords": [
             "pi", "twopi", "raddeg", "degrad", "e", "emass", "pmass", "hmmass",
             "cmass", "umass", "mmass", "dmass", "xemass", "clight", "opalversion",
             "rank", "real", "const", "vector", "constraint", "objective", "true", "false",
             "string", "bool", "constant"
-        ]
+        ],
+        "particleMassAndCharge": {
+            "ELECTRON": [0.51099895000e-03, -1.0],
+            "PROTON": [0.93827208816, 1.0],
+            "POSITRON": [0.51099895000e-03, 1.0],
+            "ANTIPROTON": [0.93827208816, -1.0],
+            "CARBON": [11.17792922904, 12.0],
+            "HMINUS": [0.9392907080572553, -1.0],
+            "URANIUM": [221.7429041669396, 35.0],
+            "MUON": [0.1056583755, -1.0],
+            "DEUTERON": [1.8756129425808112, 1.0],
+            "XENON": [115.50526870008, 20.0],
+            "H2P": [1.8770537657865418, 1.0]
+        },
+        "simulationSourceExtension": "in"
     },
     "appModes": {
         "default": {
@@ -14,6 +30,10 @@
         }
     },
     "enum": {
+        "ElementPosition": [
+            ["relative", "Relative to each other (using DRIFT)"],
+            ["absolute", "Absolute (using ELEMEDGE)"]
+        ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
             ["px", "Px"],
@@ -33,6 +53,7 @@
             ["time", "time"]
         ],
         "PlotField": [
+            ["none", "None"],
             ["#sigma", "sigma"],
             ["#varepsilon x", "epsilon x"],
             ["#varepsilon y", "epsilon y"],
@@ -89,10 +110,10 @@
             ["minP z", "minP z"],
             ["minX x", "minX x"],
             ["minX y", "minX y"],
-            ["minX z", "minX z"],
-            ["none", "None"]
+            ["minX z", "minX z"]
         ],
         "Plot2Field": [
+            ["none", "None"],
             ["t", "t"],
             ["s", "s"],
             ["numParticles", "numParticles"],
@@ -134,32 +155,7 @@
             ["Ez ref", "Ez ref"],
             ["dE", "dE"],
             ["dt", "dt"],
-            ["partsOutside", "partsOutside"],
-            ["R0 x", "R0 x"],
-            ["R0 y", "R0 y"],
-            ["R0 s", "R0 s"],
-            ["P0 x", "P0 x"],
-            ["P0 y", "P0 y"],
-            ["P0 s", "P0 s"],
-            ["none", "None"]
-        ],
-        "TwissParameter": [
-            ["alfx", "alfx"],
-            ["betx", "betx"],
-            ["mux", "mux"],
-            ["xc", "xc"],
-            ["dx", "dx"],
-            ["dpx", "dpx"],
-            ["alfy", "alfy"],
-            ["bety", "bety"],
-            ["muy", "muy"],
-            ["yc", "yc"],
-            ["none", "None"]
-        ],
-        "AttlistValue": [
-            ["ACTUAL", "ACTUAL"],
-            ["IDEAL", "IDEAL"],
-            ["ERROR", "ERROR"]
+            ["partsOutside", "partsOutside"]
         ],
         "BeamParticle": [
             ["", "NOT SELECTED"],
@@ -260,16 +256,6 @@
             ["BOXCORNER", "BOXCORNER"],
             ["ELLIPTIC", "ELLIPTIC"]
         ],
-        "MicadoMethod": [
-            ["THICK", "THICK"],
-            ["THIN", "THIN"],
-            ["LINEAR", "LINEAR"]
-        ],
-        "MicadoPlane": [
-            ["X", "X"],
-            ["Y", "Y"],
-            ["BOTH", "BOTH"]
-        ],
         "MonitorMonitor_type": [
             ["TEMPORAL", "TEMPORAL"],
             ["SPATIAL", "SPATIAL"]
@@ -335,11 +321,6 @@
             ["LF-2", "LF-2"],
             ["MTS", "MTS"]
         ],
-        "TwissMethod": [
-            ["LINEAR", "LINEAR"],
-            ["THIN", "THIN"],
-            ["THICK", "THICK"]
-        ],
         "WakeConduct": [
             ["", "NOT SELECTED"],
             ["AC", "AC"],
@@ -378,6 +359,7 @@
         }
     },
     "frameIdFields": {
+        "beamline3dAnimation": [],
         "bunchAnimation": [
             "x",
             "y",
@@ -434,8 +416,15 @@
     },
     "model": {
         "beamline": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "x": ["X [m]", "RPNValue", 0, "The x-coordinate of the location of the particle source"],
+            "y": ["Y [m]", "RPNValue", 0, "The y-coordinate of the location of the particle source"],
+            "z": ["Z [m]", "RPNValue", 0, "The z-coordinate of the location of the particle source"],
+            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the particle source"],
+            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the particle source"],
+            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the particle source"]
         },
+        "beamline3dAnimation": {},
         "beamlineReport": {
         },
         "bunchReport": {
@@ -494,26 +483,11 @@
             "value": ["Value", "RPNValue"]
         },
         "simulation": {
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
-        "twissReport": {
-            "y1": ["Y1 Value", "TwissParameter", "betx"],
-            "y2": ["Y2 Value", "TwissParameter", "bety"],
-            "y3": ["Y3 Value", "TwissParameter", "dx"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
-            "notes": ["Notes", "Text", ""]
-        },
-        "CCOLLIMATOR": {
-            "name": ["NAME", "ValidatedString", "", ""],
+        "_ELEMENT": {
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "xstart": ["XSTART [mm]", "RPNValue", 0, "Start of x coordinate"],
-            "xend": ["XEND [mm]", "RPNValue", 0, "End of x coordinate,"],
-            "ystart": ["YSTART [mm]", "RPNValue", 0, "Start of y coordinate,"],
-            "yend": ["YEND [mm]", "RPNValue", 0, "End of y coordinate,"],
-            "zstart": ["ZSTART [mm]", "RPNValue", -100, "Start of vertical coordinate"],
-            "zend": ["ZEND [mm]", "RPNValue", 100, "End of vertical coordinate"],
-            "width": ["WIDTH [mm]", "RPNValue", 0, "Width of the collimator"],
-            "outfn": ["OUTFN", "OutputFile", "", "CCollimator output filename"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
             "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
@@ -526,6 +500,18 @@
             "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
             "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
             "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+        },
+        "CCOLLIMATOR": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "xstart": ["XSTART [mm]", "RPNValue", 0, "Start of x coordinate"],
+            "xend": ["XEND [mm]", "RPNValue", 0, "End of x coordinate,"],
+            "ystart": ["YSTART [mm]", "RPNValue", 0, "Start of y coordinate,"],
+            "yend": ["YEND [mm]", "RPNValue", 0, "End of y coordinate,"],
+            "zstart": ["ZSTART [mm]", "RPNValue", -100, "Start of vertical coordinate"],
+            "zend": ["ZEND [mm]", "RPNValue", 100, "End of vertical coordinate"],
+            "width": ["WIDTH [mm]", "RPNValue", 0, "Width of the collimator"],
+            "outfn": ["OUTFN", "OutputFile", "", "CCollimator output filename"]
         },
         "CYCLOTRON": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -557,228 +543,77 @@
             "trimcoilthreshold": ["TRIMCOILTHRESHOLD", "RPNValue", 0, "Minimum magnetic field [T] for which trim coils are applied"],
             "trimcoil": ["TRIMCOIL", "OptionalString", "", "List of trim coils"]
         },
-        "CYCLOTRONVALLEY": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "fmapfn": ["FMAPFN", "InputFile", "", "Filename for the fieldmap"],
-            "bflg": ["BFLG", "RPNValue", 0, "B flag"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
         "DEGRADER": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "outfn": ["OUTFN", "OutputFile", "", "Degrader output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "xsize": ["XSIZE [m]", "RPNValue", 1e6, "Major axis of the transverse elliptical shape"],
+            "ysize": ["YSIZE [m]", "RPNValue", 1e6, "Minor axis of the transverse elliptical shape"]
         },
         "DRIFT": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "geometry": ["GEOMETRY", "GeometryList", "", "BoundaryGeometry for Drifts"],
-            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"]
         },
         "ECOLLIMATOR": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "xsize": ["XSIZE [m]", "RPNValue", 0, "Horizontal half-aperture"],
             "ysize": ["YSIZE [m]", "RPNValue", 0, "Vertical half-aperture"],
-            "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"]
         },
         "FLEXIBLECOLLIMATOR": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "fname": ["FNAME", "InputFile", "", "File name containing description of holes"],
             "description": ["DESCRIPTION", "OptionalString", "", "String describing the distribution of holes"],
             "outfn": ["OUTFN", "OutputFile", "", "File name of log file for deleted particles"],
-            "dump": ["DUMP", "Boolean", "0", "Save quadtree and holes of collimator"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "dump": ["DUMP", "Boolean", "0", "Save quadtree and holes of collimator"]
         },
         "HKICKER": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "kick": ["KICK [rad]", "RPNValue", 0, "Horizontal deflection"],
-            "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"],
-            "k0": ["K0 [T]", "RPNValue", 0, "Normal dipole field"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "HMONITOR": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "INSTRUMENT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
         },
         "KICKER": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "hkick": ["HKICK [rad]", "RPNValue", 0, "Horizontal deflection"],
             "vkick": ["VKICK [rad]", "RPNValue", 0, "Vertical deflection"],
-            "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"],
-            "k0": ["K0 [T]", "RPNValue", 0, "Normal dipole field"],
-            "k0s": ["K0S [T]", "RPNValue", 0, "Skew dipole field"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
+        },
+        "LOCAL_CARTESIAN_OFFSET": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "end_position_x": ["END POSITION X [m]", "RPNValue", 0, "x component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_position_y": ["END POSITION Y [m]", "RPNValue", 0, "y component of position of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_normal_x": ["END NORMAL X [m]", "RPNValue", 0, "x component of normal of end of the offset in coordinate system of the end of the upstream element [m]."],
+            "end_normal_y": ["END NORMAL Y [m]", "RPNValue", 0, "y component of normal of end of the offset in coordinate system of the end of the upstream element [m]."]
         },
         "MARKER": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "_super": ["_", "model", "_ELEMENT"],
+            "name": ["NAME", "ValidatedString", "", ""]
         },
         "MONITOR": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0.01, "The element length"],
             "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"],
-            "monitor_type": ["TYPE", "MonitorMonitor_type", "SPATIAL", ""],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "monitor_type": ["TYPE", "MonitorMonitor_type", "SPATIAL", ""]
         },
         "MULTIPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "kn": ["KN [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strengths (normal)"],
-            "dkn": ["DKN [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strengths errors(normal)"],
-            "ks": ["KS [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strengths (skew)"],
-            "dks": ["DKS [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strength errors (skew)"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "kn": ["KN [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole coefficients"],
+            "dkn": ["DKN [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole strengths errors"],
+            "ks": ["KS [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole coefficients (skew)"],
+            "dks": ["DKS [$\\bf Tm^{-n}$]", "RPNValue", 0, "Normalised multipole strength errors (skew)"]
         },
         "MULTIPOLET": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "tp": ["TP", "RPNValue", 0, "Transverse Profile derivatives"],
+            "tp": ["TP [$\\bf Tm^{-n}$", "RPNValue", 0, "Transverse Profile derivatives"],
             "lfringe": ["LFRINGE [m]", "RPNValue", 0, "The length of the left end field"],
             "rfringe": ["RFRINGE [m]", "RPNValue", 0, "The length of the right end field"],
             "hapert": ["HAPERT [m]", "RPNValue", 0, "The aperture width"],
@@ -789,311 +624,70 @@
             "maxxorder": ["MAXXORDER", "RPNValue", 0, "Number of terms used in polynomial expansions"],
             "rotation": ["ROTATION [rad]", "RPNValue", 0, "Rotation angle about its axis for skew elements"],
             "varradius": ["VARRADIUS", "Boolean", "0", "Set true if radius of magnet is variable"],
-            "bblength": ["BBLENGTH [m]", "RPNValue", 0, "Distance between centre of magnet and entrance"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "MULTIPOLETCURVEDCONSTRADIUS": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "tp": ["TP [$\\bf m^{-k}$]", "RPNValue", 0, "Transverse Profile derivatives"],
-            "lfringe": ["LFRINGE [m]", "RPNValue", 0, "The length of the left end field"],
-            "rfringe": ["RFRINGE [m]", "RPNValue", 0, "The length of the right end field"],
-            "hapert": ["HAPERT [m]", "RPNValue", 0, "The aperture width"],
-            "vapert": ["VAPERT [m]", "RPNValue", 0, "The aperture height"],
-            "angle": ["ANGLE [rad]", "RPNValue", 0, "The azimuthal angle of the magnet in ring"],
-            "eangle": ["EANGLE [rad]", "RPNValue", 0, "The entrance angle"],
-            "maxforder": ["MAXFORDER", "RPNValue", 0, "Number of terms used in each field component"],
-            "maxxorder": ["MAXXORDER", "RPNValue", 0, "Number of terms used in polynomial expansions"],
-            "rotation": ["ROTATION [rad]", "RPNValue", 0, "Rotation angle about its axis for skew elements"],
-            "bblength": ["BBLENGTH [m]", "RPNValue", 0, "Distance between centre of magnet and entrance"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "MULTIPOLETCURVEDVARRADIUS": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "tp": ["TP [$\\bf m^{-k}$]", "RPNValue", 0, "Transverse Profile derivatives"],
-            "lfringe": ["LFRINGE [m]", "RPNValue", 0, "The length of the left end field"],
-            "rfringe": ["RFRINGE [m]", "RPNValue", 0, "The length of the right end field"],
-            "hapert": ["HAPERT [m]", "RPNValue", 0, "The aperture width"],
-            "vapert": ["VAPERT [m]", "RPNValue", 0, "The aperture height"],
-            "angle": ["ANGLE [rad]", "RPNValue", 0, "The azimuthal angle of the magnet in ring"],
-            "eangle": ["EANGLE [rad]", "RPNValue", 0, "The entrance angle"],
-            "maxforder": ["MAXFORDER", "RPNValue", 0, "Number of terms used in each field component"],
-            "maxxorder": ["MAXXORDER", "RPNValue", 0, "Number of terms used in polynomial expansions"],
-            "rotation": ["ROTATION [rad]", "RPNValue", 0, "Rotation angle about its axis for skew elements"],
-            "bblength": ["BBLENGTH [m]", "RPNValue", 0, "Distance between centre of magnet and entrance"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "MULTIPOLETSTRAIGHT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "tp": ["TP [$\\bf m^{-k}$]", "RPNValue", 0, "Transverse Profile derivatives"],
-            "lfringe": ["LFRINGE [m]", "RPNValue", 0, "The length of the left end field"],
-            "rfringe": ["RFRINGE [m]", "RPNValue", 0, "The length of the right end field"],
-            "hapert": ["HAPERT [m]", "RPNValue", 0, "The aperture width"],
-            "vapert": ["VAPERT [m]", "RPNValue", 0, "The aperture height"],
-            "eangle": ["EANGLE [rad]", "RPNValue", 0, "The entrance angle"],
-            "maxforder": ["MAXFORDER", "RPNValue", 0, "Number of terms used in each field component"],
-            "rotation": ["ROTATION [rad]", "RPNValue", 0, "Rotation angle about its axis for skew elements"],
-            "bblength": ["BBLENGTH [m]", "RPNValue", 0, "Distance between centre of magnet and entrance"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "bblength": ["BBLENGTH [m]", "RPNValue", 0, "Distance between centre of magnet and entrance"]
         },
         "OCTUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "k3": ["K3 [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised upright octupole coefficient"],
-            "dk3": ["DK3 [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised upright octupole coefficient error"],
-            "k3s": ["K3S [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised skew octupole coefficient"],
-            "dk3s": ["DK3S [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised skew octupole coefficient error"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "PARALLELPLATE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "volt": ["VOLT [MV]", "RPNValue", 0, "voltage"],
-            "freq": ["FREQ [MHz]", "RPNValue", 0, "frequency"],
-            "lag": ["LAG", "RPNValue", 0, "Phase lag (rad), !!!! was before in multiples of (2*pi) !!!!"],
-            "geometry": ["GEOMETRY", "GeometryList", "", "BoundaryGeometry for ParallelPlate"],
-            "plength": ["PLENGTH [Meter]", "RPNValue", 0, "Gap length"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "PATCH": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "hord": ["HORD", "RPNValue", 0, "Horizontal orbit shift"],
-            "vertd": ["VERTD", "RPNValue", 0, "Vertical orbit shift"],
-            "longd": ["LONGD", "RPNValue", 0, "Longitudinal orbit shift"],
-            "vx": ["VX", "RPNValue", 0, "Rotation around x-axis."],
-            "vy": ["VY", "RPNValue", 0, "Rotation around y-axis."],
-            "vs": ["VS", "RPNValue", 0, "Rotation around s-axis."],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "PEPPERPOT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "xsize": ["XSIZE [m]", "RPNValue", 0, "Size in x of the pepperpot"],
-            "ysize": ["YSIZE [m]", "RPNValue", 0, "Size in y of the pepperpot"],
-            "outfn": ["OUTFN", "OutputFile", "", "Pepperpot output filename"],
-            "nholx": ["NHOLX [x]", "RPNValue", 0, "Number of holes"],
-            "nholy": ["NHOLY [y]", "RPNValue", 0, "Number of holes"],
-            "r": ["R [m]", "RPNValue", 0, "Radios of a holes"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "k3": ["K3 [$\\bf Tm^{-3}$]", "RPNValue", 0, "Normalised upright octupole component"],
+            "dk3": ["DK3", "RPNValue", 0, "Normalised upright octupole coefficient error"],
+            "k3s": ["K3S [$\\bf Tm^{-3}$]", "RPNValue", 0, "Normalised skew octupole component"],
+            "dk3s": ["DK3S", "RPNValue", 0, "Normalised skew octupole coefficient error"]
         },
         "PROBE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "xstart": ["XSTART [mm]", "RPNValue", 0, "Start of x coordinate"],
             "xend": ["XEND [mm]", "RPNValue", 0, "End of x coordinate"],
             "ystart": ["YSTART [mm]", "RPNValue", 0, "Start of y coordinate"],
             "yend": ["YEND [mm]", "RPNValue", 0, "End of y coordinate"],
             "step": ["STEP [mm]", "RPNValue", 1, "Step size of the probe"],
-            "outfn": ["OUTFN", "OutputFile", "", "Output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"]
         },
         "QUADRUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "k1": ["K1 [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised upright quadrupole coefficient"],
-            "dk1": ["DK1 [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised upright quadrupole coefficient error"],
-            "k1s": ["K1S [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised skew quadrupole coefficient"],
-            "dk1s": ["DK1S [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised skew quadrupole coefficient error"],
-            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "k1": ["K1 [$\\bf Tm^{-1}$]", "RPNValue", 0, "The normal quadrupole component"],
+            "dk1": ["DK1", "RPNValue", 0, "Normalised upright quadrupole coefficient error"],
+            "k1s": ["K1S [$\\bf Tm^{-1}$]", "RPNValue", 0, "The skew quadrupole component"],
+            "dk1s": ["DK1S", "RPNValue", 0, "Normalised skew quadrupole coefficient error"],
+            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"]
         },
         "RBEND": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE [$\\bf m^{-1}$]", "RPNValue", 0, "Upright dipole coefficient"],
-            "k0": ["K0 [$\\bf m^{-1}$]", "RPNValue", 0, "Normal dipole coefficient"],
-            "k0s": ["K0S [$\\bf m^{-1}$]", "RPNValue", 0, "Skew dipole coefficient"],
-            "k1": ["K1 [$\\bf m^{-2}$]", "RPNValue", 0, "Upright quadrupole coefficient"],
-            "k1s": ["K1S [$\\bf m^{-2}$]", "RPNValue", 0, "Skew quadrupole coefficient"],
-            "k2": ["K2 [$\\bf m^{-3}$]", "RPNValue", 0, "Upright sextupole coefficient"],
-            "k2s": ["K2S [$\\bf m^{-3}$]", "RPNValue", 0, "Skew sextupole coefficient"],
-            "k3": ["K3 [$\\bf m^{-4}$]", "RPNValue", 0, "Upright octupole coefficient"],
-            "k3s": ["K3S [$\\bf m^{-4}$]", "RPNValue", 0, "Skew octupole coefficient"],
+            "angle": ["ANGLE [rad]", "RPNValue", 0, "Bend angle (radians). Field amplitude of bend will be adjusted to achieve this angle."],
+            "k0": ["K0 [T]", "RPNValue", 0, "Field amplitude in y direction. If the ANGLE attribute is set, K0 is ignored."],
+            "k0s": ["K0S [T]", "RPNValue", 0, "Field amplitude in x direction. If the ANGLE attribute is set, K0S is ignored."],
             "e1": ["E1 [rad]", "RPNValue", 0, "Entry pole face angle"],
             "e2": ["E2 [rad]", "RPNValue", 0, "Exit pole face angle"],
-            "h1": ["H1 [$\\bf m^{-1}$]", "RPNValue", 0, "Entry pole face curvature"],
-            "h2": ["H2 [$\\bf m^{-1}$]", "RPNValue", 0, "Exit pole face curvature"],
-            "hgap": ["HGAP", "RPNValue", 0, "Half gap width m"],
-            "fint": ["FINT", "RPNValue", 0.5, "Field integral (no dimension)"],
-            "slices": ["SLICES", "RPNValue", 1, "Number of slices to use"],
-            "stepsize": ["STEPSIZE", "RPNValue", 0, "Step-size to use for integration"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Filename for the fieldmap"],
             "gap": ["GAP [m]", "RPNValue", 0, "Full gap height of the magnet"],
-            "hapert": ["HAPERT [m]", "RPNValue", 0, "Bend plane magnet aperture"],
-            "designenergy": ["DESIGNENERGY [MeV]", "RPNValue", 0, "the mean energy of the particles"],
-            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "hapert": ["HAPERT [m]", "RPNValue", 0, "Non-bend plane aperture of the magnet"],
+            "designenergy": ["DESIGNENERGY [MeV]", "RPNValue", 0, "the mean energy of the particles"]
         },
         "RBEND3D": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE [$\\bf m^{-1}$]", "RPNValue", 0, "Upright dipole coefficient"],
-            "k0": ["K0 [$\\bf m^{-1}$]", "RPNValue", 0, "Normal dipole coefficient"],
-            "k0s": ["K0S [$\\bf m^{-1}$]", "RPNValue", 0, "Skew dipole coefficient"],
+            "angle": ["ANGLE [rad]", "RPNValue", 0, "Bend angle. Field amplitude of bend will be adjusted to achieve this angle."],
+            "k0": ["K0 [T]", "RPNValue", 0, "Field amplitude in y direction. If the ANGLE attribute is set, K0 is ignored."],
+            "k0s": ["K0S [T]", "RPNValue", 0, "Field amplitude in x direction. If the ANGLE attribute is set, K0S is ignored."],
             "e1": ["E1 [rad]", "RPNValue", 0, "Entry pole face angle"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Filename for the fieldmap"],
             "gap": ["GAP [m]", "RPNValue", 0, "Full gap height of the magnet"],
             "hapert": ["HAPERT [m]", "RPNValue", 0, "Bend plane magnet aperture"],
-            "designenergy": ["DESIGNENERGY [MeV]", "RPNValue", 0, "the mean energy of the particles"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "designenergy": ["DESIGNENERGY [MeV]", "RPNValue", 0, "the mean energy of the particles"]
         },
         "RCOLLIMATOR": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "xsize": ["XSIZE [m]", "RPNValue", 0, "Horizontal half-aperture"],
             "ysize": ["YSIZE [m]", "RPNValue", 0, "Vertical half-aperture"],
-            "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"]
         },
         "RFCAVITY": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "volt": ["VOLT [MV]", "RPNValue", 0, "RF voltage"],
             "dvolt": ["DVOLT [MV]", "RPNValue", 0, "RF voltage error"],
             "freq": ["FREQ [MHz]", "RPNValue", 0, "RF frequency"],
@@ -1118,23 +712,11 @@
             "phase_model": ["PHASE_MODEL", "OptionalString", "", "The name of the phase time dependence model."],
             "amplitude_model": ["AMPLITUDE_MODEL", "OptionalString", "", "The name of the amplitude time dependence model."],
             "frequency_model": ["FREQUENCY_MODEL", "OptionalString", "", "The name of the frequency time dependence model."],
-            "rfcavity_type": ["TYPE", "RfcavityRfcavity_type", "", ""],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "rfcavity_type": ["TYPE", "RfcavityRfcavity_type", "", ""]
         },
         "RINGDEFINITION": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "harmonic_number": ["HARMONIC_NUMBER", "RPNValue", 0, "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given turn)."],
             "lat_rinit": ["LAT_RINIT [m]", "RPNValue", 0, "The initial radius of the first element to be placed in the ring"],
             "lat_phiinit": ["LAT_PHIINIT [deg]", "RPNValue", 0, "The initial angle around the ring of the first element to be placed."],
@@ -1147,80 +729,32 @@
             "rffreq": ["RFFREQ [MHz]", "RPNValue", 0, "The nominal RF frequency of the ring"],
             "is_closed": ["IS_CLOSED", "OptionalString", "", "Set to 'false' to disable checking for closure of the ring"],
             "min_r": ["MIN_R [m]", "RPNValue", 0, "Minimum allowed radius during tracking. If not defined, any radius is allowed. If MIN_R is defined, MAX_R must also be defined."],
-            "max_r": ["MAX_R [m]", "RPNValue", 0, "Maximum allowed radius during tracking. If not defined, any radius is allowed. If MAX_R is defined, MIN_R must also be defined."],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "max_r": ["MAX_R [m]", "RPNValue", 0, "Maximum allowed radius during tracking. If not defined, any radius is allowed. If MAX_R is defined, MIN_R must also be defined."]
         },
         "SBEND": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE [$\\bf m^{-1}$]", "RPNValue", 0, "Upright dipole coefficient"],
-            "k0": ["K0 [$\\bf m^{-1}$]", "RPNValue", 0, "Normal dipole coefficient"],
-            "k0s": ["K0S [$\\bf m^{-1}$]", "RPNValue", 0, "Skew dipole coefficient"],
-            "k1": ["K1 [$\\bf m^{-2}$]", "RPNValue", 0, "Upright quadrupole coefficient"],
-            "k1s": ["K1S [$\\bf m^{-2}$]", "RPNValue", 0, "Skew quadrupole coefficient"],
-            "k2": ["K2 [$\\bf m^{-3}$]", "RPNValue", 0, "Upright sextupole coefficient"],
-            "k2s": ["K2S [$\\bf m^{-3}$]", "RPNValue", 0, "Skew sextupole coefficient"],
-            "k3": ["K3 [$\\bf m^{-4}$]", "RPNValue", 0, "Upright octupole coefficient"],
-            "k3s": ["K3S [$\\bf m^{-4}$]", "RPNValue", 0, "Skew octupole coefficient"],
+            "angle": ["ANGLE [rad]", "RPNValue", 0, "Bend angle. Field amplitude of the bend will be adjusted to achieve this angle."],
+            "k0": ["K0 [T]", "RPNValue", 0, "Field amplitude in y direction. If the ANGLE attribute is set, K0 is ignored."],
+            "k0s": ["K0S [T]", "RPNValue", 0, "Field amplitude in x direction. If the ANGLE attribute is set, K0S is ignored."],
             "e1": ["E1 [rad]", "RPNValue", 0, "Entry pole face angle"],
             "e2": ["E2 [rad]", "RPNValue", 0, "Exit pole face angle"],
-            "h1": ["H1 [$\\bf m^{-1}$]", "RPNValue", 0, "Entry pole face curvature"],
-            "h2": ["H2 [$\\bf m^{-1}$]", "RPNValue", 0, "Exit pole face curvature"],
-            "hgap": ["HGAP", "RPNValue", 0, "Half gap width m"],
-            "fint": ["FINT", "RPNValue", 0.5, "Field integral (no dimension)"],
-            "slices": ["SLICES", "RPNValue", 1, "Number of slices to use"],
-            "stepsize": ["STEPSIZE", "RPNValue", 0, "Step-size to use for integration"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Filename for the fieldmap"],
             "gap": ["GAP [m]", "RPNValue", 0, "Full gap height of the magnet"],
-            "hapert": ["HAPERT [m]", "RPNValue", 0, "Bend plane magnet aperture"],
+            "hapert": ["HAPERT [m]", "RPNValue", 0, "Non-bend plane aperture of the magnet"],
             "designenergy": ["DESIGNENERGY [MeV]", "RPNValue", 0, "the mean energy of the particles"],
-            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"]
         },
         "SBEND3D": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "fmapfn": ["FMAPFN", "InputFile", "", "The name of the field map."],
             "field_units": ["FIELD_UNITS", "RPNValue", 0, "Scale the field map up or down by this factor (default 1. is T)."],
-            "length_units": ["LENGTH_UNITS", "RPNValue", 0, "Units for length coordinates (default 1. is mm)."],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "length_units": ["LENGTH_UNITS", "RPNValue", 0, "Units for length coordinates (default 1. is mm)."]
         },
         "SCALINGFFAMAGNET": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "b0": ["B0 [T]", "RPNValue", 0, "The nominal dipole field of the magnet"],
             "r0": ["R0 [m]", "RPNValue", 0, "Radial scale"],
             "field_index": ["FIELD_INDEX", "RPNValue", 0, "The scaling magnet field index."],
@@ -1233,181 +767,41 @@
             "radial_pos_extent": ["RADIAL_POS_EXTENT [m]", "RPNValue", 0, "Particles are considered outside the tracking region if radius is greater than R0+RADIAL_POS_EXTENT"],
             "magnet_start": ["MAGNET_START [m]", "RPNValue", 0, "Determines the position of the central portion of the magnet field relative to the element start (default is 2*end_length)."],
             "magnet_end": ["MAGNET_END", "RPNValue", 0, "Offset to the end of the magnet, i.e. placement of the next element. Default is centre_length + 4*end_length."],
-            "azimuthal_extent": ["AZIMUTHAL_EXTENT [m]", "RPNValue", 0, "The field will be assumed zero if particles are more than AZIMUTHAL_EXTENT from the magnet centre (psi=0). Default is CENTRE_LENGTH/2.+5.*END_LENGTH"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "SEPARATOR": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "ex": ["EX [MV]", "RPNValue", 0, "The horizontal electrostatic field"],
-            "ey": ["EY [MV]", "RPNValue", 0, "The vertical electrostatic field"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "azimuthal_extent": ["AZIMUTHAL_EXTENT [m]", "RPNValue", 0, "The field will be assumed zero if particles are more than AZIMUTHAL_EXTENT from the magnet centre (psi=0). Default is CENTRE_LENGTH/2.+5.*END_LENGTH"]
         },
         "SEPTUM": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "xstart": ["XSTART", "RPNValue", 0, "Start of x coordinate"],
             "xend": ["XEND", "RPNValue", 0, "End of x coordinate"],
             "ystart": ["YSTART", "RPNValue", 0, "Start of y coordinate"],
             "yend": ["YEND", "RPNValue", 0, "End of y coordinate"],
             "width": ["WIDTH", "RPNValue", 0, "Width of the septum"],
-            "outfn": ["OUTFN", "OutputFile", "", "Output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"]
         },
         "SEXTUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "k2": ["K2 [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised upright sextupole coefficient"],
-            "dk2": ["DK2 [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised upright sextupole coefficient error"],
-            "k2s": ["K2S [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised skew sextupole coefficient"],
-            "dk2s": ["DK2S [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised skew sextupole coefficient error"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "SLIT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "xsize": ["XSIZE [m]", "RPNValue", 0, "Horizontal half-aperture"],
-            "ysize": ["YSIZE [m]", "RPNValue", 0, "Vertical half-aperture"],
-            "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "k2": ["K2 [$\\bf Tm^{-2}$]", "RPNValue", 0, "Normalised upright sextupole coefficient"],
+            "dk2": ["DK2", "RPNValue", 0, "Normalised upright sextupole coefficient error"],
+            "k2s": ["K2S [$\\bf Tm^{-2}$]", "RPNValue", 0, "Normalised skew sextupole coefficient"],
+            "dk2s": ["DK2S", "RPNValue", 0, "Normalised skew sextupole coefficient error"]
         },
         "SOLENOID": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "ks": ["KS [$\\bf m^{-1}$]", "RPNValue", 0, "Normalised solenoid strength"],
-            "dks": ["DKS [$\\bf m^{-1}$]", "RPNValue", 0, "Normalised solenoid strength error"],
+            "ks": ["KS [$\\bf Tm^{-1}$]", "RPNValue", 0, "The solenoid strength"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Solenoid field map filename"],
-            "fast": ["FAST", "Boolean", "1", "Faster but less accurate"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "fast": ["FAST", "Boolean", "1", "Faster but less accurate"]
         },
         "SOURCE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "SROT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE", "RPNValue", 0, "Angle for the transformation"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "STRIPPER": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "xstart": ["XSTART [mm]", "RPNValue", 0, "Start of x coordinate"],
-            "xend": ["XEND [mm]", "RPNValue", 0, "End of x coordinate,"],
-            "ystart": ["YSTART [mm]", "RPNValue", 0, "Start of y coordinate,"],
-            "yend": ["YEND [mm]", "RPNValue", 0, "End of y coordinate,"],
-            "opcharge": ["OPCHARGE", "RPNValue", 0, "Charge number of the outcome particle"],
-            "opmass": ["OPMASS [GeV/c^2]", "RPNValue", 0, "Mass of the outcome particle"],
-            "opyield": ["OPYIELD", "RPNValue", 0, "Yield (Particle number of the outcome particle) per income particle"],
-            "stop": ["STOP", "Boolean", "1", "Option Whether stop tracking at the stripper"],
-            "outfn": ["OUTFN", "OutputFile", "", "Output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"]
         },
         "TRAVELINGWAVE": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "volt": ["VOLT [MV/m]", "RPNValue", 0, "RF voltage"],
             "dvolt": ["DVOLT [MV/m]", "RPNValue", 0, "RF voltage error"],
             "freq": ["FREQ [MHz]", "RPNValue", 0, "RF frequency"],
@@ -1424,19 +818,7 @@
             "cavitytype": ["CAVITYTYPE [cyclotron]", "OptionalString", "", "STANDING or TRAVELING wave cavity in photoinjector and LINAC; SINGLEGAP or DOUBLEGAP cavity"],
             "numcells": ["NUMCELLS", "RPNValue", 0, "Number of cells in a TW structure"],
             "designenergy": ["DESIGNENERGY", "RPNValue", -1, "the mean energy of the particles at exit"],
-            "mode": ["MODE [2*pi]", "RPNValue", 0.333333333333333, "The phase shift between neighboring cells"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "mode": ["MODE [2*pi]", "RPNValue", 0.333333333333333, "The phase shift between neighboring cells"]
         },
         "TRIMCOIL": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1452,29 +834,17 @@
             "slptc": ["SLPTC", "RPNValue", 0, "Slopes of the rising edge [1/mm] (for PSI-BFIELD-MIRRORED)"]
         },
         "VARIABLE_RF_CAVITY": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "phase_model": ["PHASE_MODEL [rad]", "OptionalString", "", "The name of the phase time dependence model"],
             "amplitude_model": ["AMPLITUDE_MODEL [MV/m]", "OptionalString", "", "The name of the amplitude time dependence model"],
             "frequency_model": ["FREQUENCY_MODEL [MHz]", "OptionalString", "", "The name of the frequency time dependence model"],
             "width": ["WIDTH [m]", "RPNValue", 0, "Full width of the cavity"],
-            "height": ["HEIGHT [m]", "RPNValue", 0, "Full height of the cavity"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "height": ["HEIGHT [m]", "RPNValue", 0, "Full height of the cavity"]
         },
         "VARIABLE_RF_CAVITY_FRINGE_FIELD": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "phase_model": ["PHASE_MODEL [rad]", "OptionalString", "", "The name of the phase time dependence model"],
             "amplitude_model": ["AMPLITUDE_MODEL [MV/m]", "OptionalString", "", "The name of the amplitude time dependence model"],
             "frequency_model": ["FREQUENCY_MODEL [MHz]", "OptionalString", "", "The name of the frequency time dependence model"],
@@ -1484,99 +854,13 @@
             "end_length": ["END_LENGTH [m]", "RPNValue", 0, "Length of the cavity fringe fields"],
             "cavity_centre": ["CAVITY_CENTRE [m]", "RPNValue", 0, "Offset of the cavity centre from the beginning of the cavity"],
             "max_order": ["MAX_ORDER", "RPNValue", 0, "Maximum power of y that will be evaluated in field calculations."],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
+            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"]
         },
         "VKICKER": {
+            "_super": ["_", "model", "_ELEMENT"],
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "kick": ["KICK [rad]", "RPNValue", 0, "Vertical deflection"],
-            "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"],
-            "k0": ["K0 [T]", "RPNValue", 0, "Normal dipole field"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "VMONITOR": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "WIRE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "xsize": ["XSIZE [m]", "RPNValue", 0, "Horizontal half-aperture"],
-            "ysize": ["YSIZE [m]", "RPNValue", 0, "Vertical half-aperture"],
-            "xpos": ["XPOS [m]", "RPNValue", 0, "Horizontal position"],
-            "ypos": ["YPOS [m]", "RPNValue", 0, "Vertical position"],
-            "outfn": ["OUTFN", "OutputFile", "", "Wire output filename"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "YROT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE", "RPNValue", 0, "Angle for the transformation"],
-            "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
-            "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
-            "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
-            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the element"],
-            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the element"],
-            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the element"],
-            "dx": ["DX", "RPNValue", 0, "Misalignment in x direction"],
-            "dy": ["DY", "RPNValue", 0, "Misalignment in y direction"],
-            "dz": ["DZ", "RPNValue", 0, "Misalignment in z direction"],
-            "dtheta": ["DTHETA", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dphi": ["DPHI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"],
-            "dpsi": ["DPSI", "RPNValue", 0, "Misalignment in theta (Tait-Bryan angles)"]
-        },
-        "command_attlist": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of line to be listed"],
-            "file": ["FILE", "OutputFile", "ATTLIST", "Name of file to receive output"],
-            "all": ["ALL", "Boolean", "0", "Are all columns desired?"],
-            "value": ["VALUE", "AttlistValue", "ACTUAL", "Which value is desired: ACTUAL, IDEAL, or ERROR."],
-            "column": ["COLUMN", "OptionalString", "", "The columns to be written"]
+            "designenergy": ["DESIGNENERGY", "RPNValue", 0, "the mean energy of the particles"]
         },
         "command_beam": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1586,13 +870,9 @@
             "energy": ["ENERGY [GeV]", "RPNValue", 0, "Particle energy"],
             "pc": ["PC [GeV/c]", "RPNValue", 0, "Particle momentum"],
             "gamma": ["GAMMA", "RPNValue", 0, "ENERGY / MASS"],
-            "bcurrent": ["BCURRENT", "RPNValue", 0, "Beam current in A (all bunches)"],
-            "ex": ["EX", "RPNValue", 0, "Horizontal emittance"],
-            "ey": ["EY", "RPNValue", 0, "Vertical emittance"],
-            "et": ["ET", "RPNValue", 0, "Longitudinal emittance"],
-            "bfreq": ["BFREQ", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
-            "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"],
-            "nslice": ["NSLICE [bunch]", "RPNValue", 0, "Number of slices"]
+            "bcurrent": ["BCURRENT [A]", "RPNValue", 0, "Beam current in A (all bunches)"],
+            "bfreq": ["BFREQ [MHz]", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
+            "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"]
         },
         "command_distribution": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1709,16 +989,6 @@
             "sigmapt": ["SIGMAPT", "RPNValue", 0, "SIGMApt"],
             "cutoff": ["CUTOFF", "RPNValue", 3, "Longitudinal cutoff for Gaussian in units of sigma."]
         },
-        "command_eigen": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "table": ["TABLE", "OptionalString", "", "Name of table to be listed"],
-            "file": ["FILE", "OutputFile", "EIGEN", "Name of file to receive output"]
-        },
-        "command_envelope": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "table": ["TABLE", "OptionalString", "", "Name of table to be listed"],
-            "file": ["FILE", "OutputFile", "ENVELOPE", "Name of file to receive output"]
-        },
         "command_fieldsolver": {
             "name": ["NAME", "ValidatedString", "", ""],
             "fstype": ["FSTYPE", "FieldsolverFstype", "", "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE"],
@@ -1773,31 +1043,6 @@
             "zscale": ["ZSCALE", "RPNValue", 1, "Multiplicative scaling factor for Z coordinates"],
             "zshift": ["ZSHIFT", "RPNValue", 0, "Shift in z direction"],
             "aperture": ["APERTURE", "RPNValue", 0, "The element aperture"]
-        },
-        "command_list": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "table": ["TABLE", "OptionalString", "", "Name of table to be listed"],
-            "file": ["FILE", "OutputFile", "LIST", "Name of file to receive output"],
-            "all": ["ALL", "Boolean", "0", "Set true to list all columns"],
-            "column": ["COLUMN", "OptionalString", "", "Column specifiers"]
-        },
-        "command_matrix": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "table": ["TABLE", "OptionalString", "", "Name of table to be listed"],
-            "file": ["FILE", "OutputFile", "MATRIX", "Name of file to receive output"]
-        },
-        "command_micado": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "method": ["METHOD", "MicadoMethod", "LINEAR", "The method used for orbit tracking"],
-            "tol": ["TOL", "RPNValue", 0, "The tolerance for the r.m.s closed orbit."],
-            "iterations": ["ITERATIONS", "RPNValue", 0, "The number of iterations"],
-            "correctors": ["CORRECTORS", "RPNValue", 0, "The number of correctors to be used"],
-            "plane": ["PLANE", "MicadoPlane", "BOTH", "The plane(s) for which a Correction is desired"],
-            "listc1": ["LISTC1", "Boolean", "0", "List the correctors before correction"],
-            "listc": ["LISTC", "Boolean", "0", "List the correctors during correction"],
-            "listc2": ["LISTC2", "Boolean", "0", "List the correctors after correction"],
-            "listm1": ["LISTM1", "Boolean", "0", "List the monitors before correction"],
-            "listm2": ["LISTM2", "Boolean", "0", "List the monitors after correction"]
         },
         "command_option": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1879,35 +1124,8 @@
             "t": ["T [m]", "RPNValue", 0, "Initial horizontal position"],
             "pt": ["PT [1]", "RPNValue", 0, "Initial horizontal momentum"]
         },
-        "command_survey": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "Sum of design lengths"],
-            "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of the lattice to be surveyed"],
-            "range": ["RANGE", "OptionalString", "", "The range in the lattice"],
-            "static": ["STATIC", "Boolean", "0", "If true, the table is not recalculated at each iteration"],
-            "init": ["INIT", "OptionalString", "", "If given, this table position is used to initialise"],
-            "x0": ["X0 [m]", "RPNValue", 0, "Initial X position"],
-            "y0": ["Y0 [m]", "RPNValue", 0, "Initial Y position"],
-            "z0": ["Z0 [m]", "RPNValue", 0, "Initial Z position"],
-            "theta0": ["THETA0 [rad]", "RPNValue", 0, "Initial azimuth angle"],
-            "phi0": ["PHI0 [rad]", "RPNValue", 0, "Initial pitch angle"],
-            "psi0": ["PSI0 [rad]", "RPNValue", 0, "Initial roll angle"]
-        },
-        "command_threadall": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "tolq": ["TOLQ", "RPNValue", 0, "The tolerance for the closed orbit positions."],
-            "tolp": ["TOLP", "RPNValue", 0, "The tolerance for the closed orbit angles."],
-            "listm": ["LISTM", "Boolean", "0", "List the monitors after correction"],
-            "listc": ["LISTC", "Boolean", "0", "List the correctors after correction"]
-        },
         "command_title": {
             "string": ["STRING", "String", "", ""]
-        },
-        "command_threadbpm": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "tol": ["TOL", "RPNValue", 0, "The tolerance for the closed orbit positions."],
-            "listc": ["LISTC", "Boolean", "0", "List the correctors after correction"],
-            "listm": ["LISTM", "Boolean", "0", "List the monitors after correction"]
         },
         "command_track": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1936,50 +1154,6 @@
             "run_multipacting": ["MULTIPACTING", "Boolean", "0", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry"],
             "run_trackback": ["TRACKBACK", "Boolean", "0", "Track in reverse direction, default: false"]
         },
-        "command_twiss": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "line": ["LINE", "OptionalLatticeBeamlineList", "", "The beam line use for filling"],
-            "beam": ["BEAM", "BeamList", "", "The beam to be used"],
-            "range": ["RANGE", "OptionalString", "", "The range in the lattice"],
-            "static": ["STATIC", "Boolean", "0", "If true, the table is not recalculated at each iteration"],
-            "order": ["ORDER", "RPNValue", 2, "The order of the calculation"],
-            "method": ["METHOD", "TwissMethod", "LINEAR", "the algorithm used for filling:\n\t\t\tLINEAR, THIN, THICK, or TRANSPORT\n\t\t\tDefault value is LINEAR"],
-            "revbeam": ["REVBEAM", "Boolean", "0", "Set true to run beam backwards through lattice"],
-            "revtrack": ["REVTRACK", "Boolean", "0", "Set true to track against the beam"],
-            "micado": ["MICADO", "RPNValue", 0, "Number of iterations for MICADO algorithm"],
-            "correctors": ["CORRECTORS", "RPNValue", 0, "Number of correctors for MICADO algorithm"],
-            "thread": ["THREAD", "OptionalString", "", "Name of method for closed orbit threader"],
-            "tolq": ["TOLQ", "RPNValue", 0.001, "Tolerance for positions in closed orbit threader"],
-            "tolp": ["TOLP", "RPNValue", 0.001, "Tolerance for momenta in closed orbit threader"]
-        },
-        "command_twiss3": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "table": ["TABLE", "OptionalString", "", "Name of table to be listed"],
-            "file": ["FILE", "OutputFile", "TWISS3", "Name of file to receive output"]
-        },
-        "command_twisstrack": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "init": ["INIT", "OptionalString", "", "If given, this table position is used to initialise\n\t\t\t\tif not given, use the following parameters to initialise"],
-            "betx": ["BETX", "RPNValue", 1, "Initial horizontal beta"],
-            "alfx": ["ALFX", "RPNValue", 0, "Initial horizontal alpha"],
-            "bety": ["BETY", "RPNValue", 1, "Initial vertical beta"],
-            "alfy": ["ALFY", "RPNValue", 0, "Initial vertical alpha"],
-            "dx": ["DX", "RPNValue", 0, "Initial horizontal dispersion"],
-            "dpx": ["DPX", "RPNValue", 0, "Initial slope of horizontal dispersion"],
-            "dy": ["DY", "RPNValue", 0, "Initial vertical dispersion"],
-            "dpy": ["DPY", "RPNValue", 0, "Initial slope of vertical dispersion"],
-            "xc": ["XC", "RPNValue", 0, "Initial horizontal position"],
-            "pxc": ["PXC", "RPNValue", 0, "Initial horizontal slope"],
-            "yc": ["YC", "RPNValue", 0, "Initial vertical position"],
-            "pyc": ["PYC", "RPNValue", 0, "Initial vertical slope"],
-            "tc": ["TC", "RPNValue", 0, "Initial time difference"],
-            "ptc": ["PTC", "RPNValue", 0, "Initial relative momentum error"],
-            "length": ["LENGTH [m]", "RPNValue", 0, "Total length"],
-            "mu1": ["MU1", "RPNValue", 0, "Phase for mode 1"],
-            "mu2": ["MU2", "RPNValue", 0, "Phase for mode 2"],
-            "mu3": ["MU3", "RPNValue", 0, "Phase for mode 3"],
-            "deltap": ["DELTAP", "RPNValue", 0, "Differential momentum variation"]
-        },
         "command_wake": {
             "name": ["NAME", "ValidatedString", "", ""],
             "type": ["TYPE", "WakeType", "", "Specifies the wake function: 1D-CSR, 1D-CSR-IGF, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE, LONG-TRANSV-SHORT-RANGE"],
@@ -1995,12 +1169,26 @@
             "fname": ["FNAME", "InputFile", "", "Filename of the wakefield file"]
         }
     },
+    "strings": {
+        "simulationSource": "OPAL Source (*.in)"
+    },
     "view": {
         "beamline": {
             "title": "Beamline",
             "advanced": [
-                "name"
+                "name",
+                "x",
+                "y",
+                "z",
+                "theta",
+                "phi",
+                "psi"
             ]
+        },
+        "beamline3dAnimation": {
+            "title": "3D Beamline",
+            "advanced": [],
+            "canFullScreen": false
         },
         "beamlineReport": {
             "title": "Lattice",
@@ -2123,6 +1311,13 @@
                 "notes"
             ]
         },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "elementPosition"
+            ]
+        },
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
@@ -2138,19 +1333,9 @@
             "title": "Simulation Status",
             "advanced": []
         },
-        "twissReport": {
-            "title": "Twiss Parameters",
-            "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "includeLattice",
-                "notes"
-            ]
-        },
         "CCOLLIMATOR": {
             "title": "CCOLLIMATOR",
-            "description": "The CCOLLIMATOR element defines a rectangular-shape cyclotron collimator",
+            "description": "Radial rectangular collimator in cyclotrons",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2179,7 +1364,7 @@
         },
         "CYCLOTRON": {
             "title": "CYCLOTRON",
-            "description": "The CYCLOTRON defines an cyclotron",
+            "description": "A CYCLOTRON object includes the main characteristics of a cyclotron, the magnetic field, and also the initial condition of the injected reference particle",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2212,37 +1397,16 @@
                 "trimcoil"
             ]
         },
-        "CYCLOTRONVALLEY": {
-            "title": "CYCLOTRONVALLEY",
-            "description": "The CYCLOTRONVALLEY element defines a CyclotronValley for Multipacting Simulation.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "fmapfn",
-                "bflg",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
         "DEGRADER": {
             "title": "DEGRADER",
-            "description": "The DEGRADER element defines a degrader.",
+            "description": "Elliptical degrader",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
                 "outfn",
+                "xsize",
+                "ysize",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -2282,7 +1446,7 @@
         },
         "ECOLLIMATOR": {
             "title": "ECOLLIMATOR",
-            "description": "The ECOLLIMATOR element defines an elliptic collimator.",
+            "description": "Elliptic aperture",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2306,7 +1470,7 @@
         },
         "FLEXIBLECOLLIMATOR": {
             "title": "FLEXIBLECOLLIMATOR",
-            "description": "The FLEXIBLECOLLIMATOR element defines a slit.",
+            "description": "Description of shape and location of holes can be provided",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2331,56 +1495,13 @@
         },
         "HKICKER": {
             "title": "HKICKER",
-            "description": "The HKICKER element defines a closed orbit corrector acting on the horizontal plane.",
+            "description": "A corrector for the horizontal plane",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
                 "kick",
                 "designenergy",
-                "k0",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "HMONITOR": {
-            "title": "HMONITOR",
-            "description": "The HMONITOR element defines a monitor for the horizontal plane.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "INSTRUMENT": {
-            "title": "INSTRUMENT",
-            "description": "The INSTRUMENT element defines a generic beam observation device.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -2397,7 +1518,7 @@
         },
         "KICKER": {
             "title": "KICKER",
-            "description": "The KICKER element defines a closed orbit corrector acting on both planes.",
+            "description": "A corrector for both planes",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2405,8 +1526,6 @@
                 "hkick",
                 "vkick",
                 "designenergy",
-                "k0",
-                "k0s",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -2421,9 +1540,21 @@
                 "dpsi"
             ]
         },
+        "LOCAL_CARTESIAN_OFFSET": {
+            "title": "LOCAL_CARTESIAN_OFFSET",
+            "description": "The LOCAL_CARTESIAN_OFFSET element defines an offset in cartesian coordinates, relative to the last placed element.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "end_position_x",
+                "end_position_y",
+                "end_normal_x",
+                "end_normal_y"
+            ]
+        },
         "MARKER": {
             "title": "MARKER",
-            "description": "The MARKER element defines a marker.",
+            "description": "A marker",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2444,7 +1575,7 @@
         },
         "MONITOR": {
             "title": "MONITOR",
-            "description": "The MONITOR element defines a monitor for both planes.",
+            "description": "A MONITOR detects all particles passing it and writes the position, the momentum and the time when they hit",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2466,7 +1597,7 @@
         },
         "MULTIPOLE": {
             "title": "MULTIPOLE",
-            "description": "The MULTIPOLE element defines a thick multipole. * If the length is non-zero, the strengths are per unit length. * If the length is zero, the strengths are the values integrated over the length. * With zero length no synchrotron radiation can be calculated.",
+            "description": "The MULTIPOLE element defines a thick multipole. If the length is non-zero, the strengths are per unit length. If the length is zero, the strengths are the values integrated over the length. With zero length no synchrotron radiation can be calculated.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2491,7 +1622,7 @@
         },
         "MULTIPOLET": {
             "title": "MULTIPOLET",
-            "description": "The MULTIPOLET element defines a combined function multipole.",
+            "description": "A MULTIPOLET is a general multipole with extended features. It can represent a straight or curved magnet. In the curved case, the user may choose between constant or variable radius. This model includes fringe fields.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2522,103 +1653,9 @@
                 "dpsi"
             ]
         },
-        "MULTIPOLETCURVEDCONSTRADIUS": {
-            "title": "MULTIPOLETCURVEDCONSTRADIUS",
-            "description": "The MULTIPOLETCURVEDCONSTRADIUS element defines a curved combined function multipole magnet of constant curvature.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "tp",
-                "lfringe",
-                "rfringe",
-                "hapert",
-                "vapert",
-                "angle",
-                "eangle",
-                "maxforder",
-                "maxxorder",
-                "rotation",
-                "bblength",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "MULTIPOLETCURVEDVARRADIUS": {
-            "title": "MULTIPOLETCURVEDVARRADIUS",
-            "description": "The MULTIPOLETCURVEDVARRADIUS element defines a combined function multipole.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "tp",
-                "lfringe",
-                "rfringe",
-                "hapert",
-                "vapert",
-                "angle",
-                "eangle",
-                "maxforder",
-                "maxxorder",
-                "rotation",
-                "bblength",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "MULTIPOLETSTRAIGHT": {
-            "title": "MULTIPOLETSTRAIGHT",
-            "description": "The MULTIPOLETSTRAIGHT element defines a straight, combined function multipole magnet.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "tp",
-                "lfringe",
-                "rfringe",
-                "hapert",
-                "vapert",
-                "eangle",
-                "maxforder",
-                "rotation",
-                "bblength",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
         "OCTUPOLE": {
             "title": "OCTUPOLE",
-            "description": "The OCTUPOLE element defines a Octupole.",
+            "description": "An octupole",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2641,89 +1678,9 @@
                 "dpsi"
             ]
         },
-        "PARALLELPLATE": {
-            "title": "PARALLELPLATE",
-            "description": "The PARALLELPLATE element defines an  cavity.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "volt",
-                "freq",
-                "lag",
-                "geometry",
-                "plength",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "PATCH": {
-            "title": "PATCH",
-            "description": "The PATCH element implements a local reference change.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "hord",
-                "vertd",
-                "longd",
-                "vx",
-                "vy",
-                "vs",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "PEPPERPOT": {
-            "title": "PEPPERPOT",
-            "description": "The PEPPERPOT element defines an elliptic collimator.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "xsize",
-                "ysize",
-                "outfn",
-                "nholx",
-                "nholy",
-                "r",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
         "PROBE": {
             "title": "PROBE",
-            "description": "The PROBE element defines a Probe.",
+            "description": "The particles hitting on the probe is recorded",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2750,7 +1707,7 @@
         },
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
-            "description": "The QUADRUPOLE element defines a Quadrupole.",
+            "description": "A quadrupole",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2776,7 +1733,7 @@
         },
         "RBEND": {
             "title": "RBEND",
-            "description": "The RBEND element defines a rectangular bending magnet.",
+            "description": "An RBEND is a rectangular bending magnet. The key property of an RBEND is that it has parallel pole faces.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2784,23 +1741,12 @@
                 "angle",
                 "k0",
                 "k0s",
-                "k1",
-                "k1s",
-                "k2",
-                "k2s",
-                "k3",
-                "k3s",
                 "e1",
                 "e2",
-                "h1",
-                "h2",
-                "slices",
-                "stepsize",
                 "fmapfn",
                 "gap",
                 "hapert",
                 "designenergy",
-                "nslices",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -2817,7 +1763,7 @@
         },
         "RBEND3D": {
             "title": "RBEND3D",
-            "description": "The RBEND3D element defines an RBEND with 3D field maps",
+            "description": "An RBEND3D is a rectangular bending magnet. The key property of an RBEND3D is that it has parallel pole faces.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2846,7 +1792,7 @@
         },
         "RCOLLIMATOR": {
             "title": "RCOLLIMATOR",
-            "description": "The RCOLLIMATOR element defines a rectangular collimator.",
+            "description": "Rectangular aperture",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2870,7 +1816,7 @@
         },
         "RFCAVITY": {
             "title": "RFCAVITY",
-            "description": "The RFCAVITY element defines an RF cavity.",
+            "description": "An RF cavity",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2916,7 +1862,7 @@
         },
         "RINGDEFINITION": {
             "title": "RINGDEFINITION",
-            "description": "The RINGDEFINITION element defines basic ring parameters.",
+            "description": "A RingDefinition object contains the main characteristics of a generalized ring. The RingDefinition lists characteristics of the entire ring such as harmonic number together with the position of the initial element and the position of the reference trajectory.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2950,7 +1896,7 @@
         },
         "SBEND": {
             "title": "SBEND",
-            "description": "The SBEND element defines a sector bending magnet.",
+            "description": "An SBEND is a sector bending magnet. An SBEND can have independent entrance and exit edge angles.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2958,18 +1904,6 @@
                 "angle",
                 "k0",
                 "k0s",
-                "k1",
-                "k1s",
-                "k2",
-                "k2s",
-                "k3",
-                "k3s",
-                "e1",
-                "e2",
-                "h1",
-                "h2",
-                "slices",
-                "stepsize",
                 "fmapfn",
                 "gap",
                 "hapert",
@@ -2991,7 +1925,7 @@
         },
         "SBEND3D": {
             "title": "SBEND3D",
-            "description": "The SBEND3D element defines a sector bending magnet.",
+            "description": "The SBend3D element enables definition of a bend from 3D field maps.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -3015,7 +1949,7 @@
         },
         "SCALINGFFAMAGNET": {
             "title": "SCALINGFFAMAGNET",
-            "description": "The ScalingFFAMagnet element defines a FFA scaling magnet with zero or non-zero spiral angle.",
+            "description": "The scaling FFA magnet is a fully scaling field model that includes scaling fringe fields.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -3047,32 +1981,9 @@
                 "dpsi"
             ]
         },
-        "SEPARATOR": {
-            "title": "SEPARATOR",
-            "description": "The SEPARATOR element defines an electrostatic separator.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "ex",
-                "ey",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
         "SEPTUM": {
             "title": "SEPTUM",
-            "description": "The SEPTUM element defines a Septum.",
+            "description": "The particles hitting on the septum is removed from the bunch.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -3099,7 +2010,7 @@
         },
         "SEXTUPOLE": {
             "title": "SEXTUPOLE",
-            "description": "The SEXTUPOLE element defines a Sextupole.",
+            "description": "A sextupole",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -3122,39 +2033,14 @@
                 "dpsi"
             ]
         },
-        "SLIT": {
-            "title": "SLIT",
-            "description": "The SLIT element defines a slit.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "xsize",
-                "ysize",
-                "outfn",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
         "SOLENOID": {
             "title": "SOLENOID",
-            "description": "The SOLENOID element defines a Solenoid.",
+            "description": "A solenoid",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
                 "ks",
-                "dks",
                 "fmapfn",
                 "fast",
                 "aperture",
@@ -3173,7 +2059,7 @@
         },
         "SOURCE": {
             "title": "SOURCE",
-            "description": "The SOURCE element defines a Source.",
+            "description": "The SOURCE's first purpose is to indicate that the particles are emitted from a gun. This is needed to place the elements in three-dimensional space. Its second purpose is to delete impacting particles that are propagating in reverse direction.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -3193,61 +2079,9 @@
                 "dpsi"
             ]
         },
-        "SROT": {
-            "title": "SROT",
-            "description": "The SRot element defines a coordinate rotation around the s-axis.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "angle",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "STRIPPER": {
-            "title": "STRIPPER",
-            "description": "The STRIPPER element defines a Stripper.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "xstart",
-                "xend",
-                "ystart",
-                "yend",
-                "opcharge",
-                "opmass",
-                "opyield",
-                "stop",
-                "outfn",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
         "TRAVELINGWAVE": {
             "title": "TRAVELINGWAVE",
-            "description": "The TRAVELINGWAVE element defines a traveling wave structure.",
+            "description": "A traveling wave structure",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -3359,14 +2193,13 @@
         },
         "VKICKER": {
             "title": "VKICKER",
-            "description": "The VKICKER element defines a closed orbit corrector acting on the vertical plane.",
+            "description": "A corrector for the vertical plane",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
                 "kick",
                 "designenergy",
-                "k0",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -3379,88 +2212,6 @@
                 "dtheta",
                 "dphi",
                 "dpsi"
-            ]
-        },
-        "VMONITOR": {
-            "title": "VMONITOR",
-            "description": "The VMONITOR element defines a monitor for the vertical plane.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "WIRE": {
-            "title": "WIRE",
-            "description": "The WIRE element defines a wire.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "xsize",
-                "ysize",
-                "xpos",
-                "ypos",
-                "outfn",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "YROT": {
-            "title": "YROT",
-            "description": "The YROT element defines a coordinate rotation around the y-axis.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "angle",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi"
-            ]
-        },
-        "command_attlist": {
-            "title": "attlist",
-            "description": "The ATTLIST statement lists the element strengths in a beam line or a sequence.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "line",
-                "file",
-                "all",
-                "value",
-                "column"
             ]
         },
         "command_beam": {
@@ -3480,16 +2231,12 @@
                     "charge",
                     "gamma",
                     "energy",
-                    "pc",
-                    "ex",
-                    "ey",
-                    "et"
+                    "pc"
                 ]],
                 ["Other", [
                     "bfreq",
                     "bcurrent",
-                    "npart",
-                    "nslice"
+                    "npart"
                 ]]
             ]
         },
@@ -3611,26 +2358,6 @@
                 ]]
             ]
         },
-        "command_eigen": {
-            "title": "eigen",
-            "description": "The EIGEN statement lists the eigenvectors for a named TWISS table.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "table",
-                "file"
-            ]
-        },
-        "command_envelope": {
-            "title": "envelope",
-            "description": "The ENVELOPE statement lists the beam envelope for a named TWISS table.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "table",
-                "file"
-            ]
-        },
         "command_fieldsolver": {
             "title": "fieldsolver",
             "description": "The FIELDSOLVER statement defines data for a the field solver",
@@ -3707,46 +2434,6 @@
                 "zscale",
                 "zshift",
                 "aperture"
-            ]
-        },
-        "command_list": {
-            "title": "list",
-            "description": "The LIST statement lists a named table.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "table",
-                "file",
-                "all",
-                "column"
-            ]
-        },
-        "command_matrix": {
-            "title": "matrix",
-            "description": "The MATRIX statement lists the accumulated transfer matrix  for a named TWISS table.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "table",
-                "file"
-            ]
-        },
-        "command_micado": {
-            "title": "micado",
-            "description": "The MICADO command makes a correction using the MICADO algorithm.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "method",
-                "tol",
-                "iterations",
-                "correctors",
-                "plane",
-                "listc1",
-                "listc",
-                "listc2",
-                "listm1",
-                "listm2"
             ]
         },
         "command_option": {
@@ -3840,48 +2527,6 @@
                 "pt"
             ]
         },
-        "command_survey": {
-            "title": "survey",
-            "description": "The SURVEY command defines a table of survey data which can be matched or tabulated.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "line",
-                "range",
-                "static",
-                "init",
-                "x0",
-                "y0",
-                "z0",
-                "theta0",
-                "phi0",
-                "psi0"
-            ]
-        },
-        "command_threadall": {
-            "title": "threadall",
-            "description": "The THREADALL command threads the closed orbit using the position and angle at all positions.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "tolq",
-                "tolp",
-                "listm",
-                "listc"
-            ]
-        },
-        "command_threadbpm": {
-            "title": "threadbpm",
-            "description": "The THREADBPM command threads the closed orbit using the positions at all orbit monitors.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "tol",
-                "listc",
-                "listm"
-            ]
-        },
         "command_track": {
             "title": "track",
             "description": "The TRACK command initiates tracking.",
@@ -3912,65 +2557,6 @@
                     "run_boundarygeometry",
                     "run_trackback"
                 ]]
-            ]
-        },
-        "command_twiss": {
-            "title": "twiss",
-            "description": "The TWISS command defines a table of lattice functions which can be matched or tabulated over a periodic line.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "line",
-                "beam",
-                "range",
-                "static",
-                "order",
-                "method",
-                "revbeam",
-                "revtrack",
-                "micado",
-                "correctors",
-                "thread",
-                "tolq",
-                "tolp"
-            ]
-        },
-        "command_twiss3": {
-            "title": "twiss3",
-            "description": "The TWISS3 statement lists a named TWISS table in Mais-Ripken representation.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "table",
-                "file"
-            ]
-        },
-        "command_twisstrack": {
-            "title": "twisstrack",
-            "description": "The TWISSTRACK command defines a table of lattice functions which can be matched or tabulated for an insertion.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "init",
-                "betx",
-                "alfx",
-                "bety",
-                "alfy",
-                "dx",
-                "dpx",
-                "dy",
-                "dpy",
-                "xc",
-                "pxc",
-                "yc",
-                "pyc",
-                "tc",
-                "ptc",
-                "length",
-                "mu1",
-                "mu2",
-                "mu3",
-                "deltap"
             ]
         },
         "command_wake": {

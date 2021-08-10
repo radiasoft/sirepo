@@ -43,6 +43,22 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+
+        def _fixup_reflector(m):
+            if 'isReflector' not in m:
+                return
+            if m.isReflector == '1':
+                for f in 'specProb', 'diffProb':
+                    m[f] = float(m[f])
+                if m.specProb > 0:
+                    m.reflectorType = 'specular'
+                    m.reflectorProbability = m.specProb
+                elif m.diffProb > 0:
+                    m.reflectorType = 'diffuse'
+                    m.reflectorProbability = m.diffProb
+            for f in ('isReflector', 'specProb', 'diffProb', 'refScheme'):
+                del m[f]
+
         dm = data.models
         dm.pksetdefault(optimizer=PKDict)
         dm.optimizer.pksetdefault(
@@ -70,25 +86,25 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'particle3d',
                 'particleAnimation',
                 'simulation',
+                'cathode',
             ),
             dynamic=lambda m: cls.__dynamic_defaults(data, m),
         )
         pkcollections.unchecked_del(dm.particle3d, 'joinEvery')
-#TODO(robnagler) is this a denormalization of conductors?
+        for m in ('anode', 'cathode'):
+            _fixup_reflector(dm[m])
         s = cls.schema()
-        for c in dm.get('conductorTypes', []):
-#TODO(robnagler) can a conductor type be none?
-            if c is None:
-                continue
-#TODO(robnagler) why is this not a bool?
+        for c in dm.conductorTypes:
             x = c.setdefault('isConductor', '1' if c.voltage > 0 else '0')
-            c.pksetdefault(
-                color=s.get('zeroVoltsColor' if x == '0' else 'nonZeroVoltsColor'),
-            )
-#TODO(robnagler) how does this work? bc names are on schema, not conductor
-            cls.update_model_defaults(c, c.get('type', 'box'))
+            # conductor.color is null is examples
+            if not c.get('color', 0):
+                c.color = s.constants['zeroVoltsColor' if x == '0' else 'nonZeroVoltsColor']
+            cls.update_model_defaults(c, c.type)
+            _fixup_reflector(c)
         for c in dm.conductors:
             cls.update_model_defaults(c, 'conductorPosition')
+        if dm.optimizer.objective == 'efficiency':
+            dm.optimizer.objective = 'transparency'
         cls._organize_example(data)
 
     @classmethod

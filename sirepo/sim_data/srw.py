@@ -22,6 +22,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         'aspectRatio',
         'colorMap',
         'copyCharacteristic',
+        'horizontalOffset',
+        'horizontalSize',
         'intensityPlotsWidth',
         'maxIntensityLimit',
         'minIntensityLimit',
@@ -33,6 +35,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         'rotateAngle',
         'rotateReshape',
         'useIntensityLimits',
+        'usePlotRange',
+        'verticalOffset',
+        'verticalSize',
     ))
 
     SRW_RUN_ALL_MODEL = 'simulation'
@@ -90,6 +95,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             'initialIntensityReport',
             'intensityReport',
             'mirrorReport',
+            'multipole',
+            'exportRsOpt',
             'powerDensityReport',
             'simulation',
             'sourceIntensityReport',
@@ -224,6 +231,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'NSLS-II CSX-1 beamline'):
             dm.electronBeamPosition.driftCalculationMethod = 'manual'
             dm.electronBeamPosition.drift = -1.8 if 'HXN' in dm.simulation.name else -1.0234
+        if cls.srw_is_gaussian_source(dm.simulation):
+            cls.__fixup_gaussian_divergence(dm.gaussianBeam)
+        if 'distribution' in dm.multipole:
+            dm.multipole.bx = dm.multipole.field if dm.multipole.distribution == 's' else 0
+            dm.multipole.by = dm.multipole.field if dm.multipole.distribution == 'n' else 0
+            del dm.multipole['distribution']
+            del dm.multipole['field']
         cls._organize_example(data)
 
     @classmethod
@@ -291,7 +305,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def srw_is_beamline_report(cls, report):
         return not report or cls.is_watchpoint(report) \
             or report in ('multiElectronAnimation', cls.SRW_RUN_ALL_MODEL) \
-            or report == 'beamline3DReport'
+            or report == 'beamline3DReport' \
+            or  report == 'rsoptExport'
 
     @classmethod
     def srw_is_dipole_source(cls, sim):
@@ -457,6 +472,22 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
+    def __fixup_gaussian_divergence(cls, beam):
+        #TODO(pjm): keep in sync with srw.js convertGBSize()
+        def convert_gb_size(field, energy):
+            energy = float(energy)
+            value = float(beam[field])
+            if not value or not energy:
+                return 0
+            waveLength = (1239.84193e-9) / energy
+            factor = waveLength / (4 * math.pi)
+            return factor / (value * 1e-6) * 1e6
+
+        if beam.sizeDefinition == '1' and not beam.rmsDivergenceX:
+            beam.rmsDivergenceX = convert_gb_size('rmsSizeX', beam.photonEnergy)
+            beam.rmsDivergenceY = convert_gb_size('rmsSizeY', beam.photonEnergy)
+
+    @classmethod
     def __fixup_old_data_by_template(cls, data):
         import sirepo.template.srw_fixup
         import sirepo.template.srw
@@ -492,6 +523,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ).items():
                     if k not in i:
                         i[k] = v
+                if i.method == 'calculation':
+                    i.method = 'file'
             if t == 'crystal':
                 # this is a hack for existing bad data
                 for k in ['outframevx', 'outframevy', 'outoptvx', 'outoptvy', 'outoptvz',

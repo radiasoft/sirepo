@@ -15,12 +15,14 @@ from sirepo.template import lattice
 from sirepo.template import madx_parser
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+import copy
 import functools
 import math
 import numpy as np
 import os.path
 import pykern.pkinspect
 import re
+import scipy.constants
 import sirepo.sim_data
 
 
@@ -46,8 +48,6 @@ _FIELD_UNITS = PKDict(
     s='m',
     x='m',
     y='m',
-    px='rad',
-    py='rad',
 )
 
 _PI = 4 * math.atan(1)
@@ -77,6 +77,47 @@ _END_MATCH_COMMAND = 'endmatch'
 _PTC_TRACK_COMMAND = 'ptc_track'
 
 _PTC_TRACKLINE_COMMAND = 'ptc_trackline'
+
+_PTC_OBSERVE_TWISS_COLS = [
+    'W',
+    'alphax',
+    'alphay',
+    'betx',
+    'bety',
+    'emitx',
+    'emity',
+    'n',
+    'p0',
+    's',
+    'x0',
+    'xp0',
+    'xpxp',
+    'xpy',
+    'xpyp',
+    'xx',
+    'xxp',
+    'xy',
+    'xyp',
+    'y0',
+    'yp0',
+    'ypyp',
+    'yy',
+    'yyp',
+    # TODO(e-carlin): add back in when git.radiasoft.org/sirepo/issues/3669 is fixed
+    # Also, upated analyze_beam(2)
+    # 'dd',
+    # 'dy',
+    # 'etax',
+    # 'etay',
+    # 'xpd',
+    # 'xpz',
+    # 'xz',
+    # 'ypd',
+    # 'ypz',
+    # 'yz',
+    # 'zd',
+    # 'zz',
+]
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -130,18 +171,120 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def code_var(variables):
+    return code_variable.CodeVar(
+        variables,
+        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        case_insensitive=True,
+    )
+
+def eval_code_var(data):
+    # TODO(e-carlin): When #3111 is merged use the code in LibAdapterBase._convert
+    # to do this work. It is copied from there.
+    cv = code_var(data.models.rpnVariables)
+
+    def _model(model, name):
+        schema = _SCHEMA.model[name]
+
+        k = x = v = None
+        try:
+            for k, x in schema.items():
+                t = x[1]
+                v = model[k] if k in model else x[2]
+                if t == 'RPNValue':
+                    t = 'Float'
+                    if cv.is_var_value(v):
+                        model[k] = cv.eval_var_with_assert(v)
+                        continue
+                if t == 'Float':
+                    model[k] = float(v) if v else 0.
+                elif t == 'Integer':
+                    model[k] = int(v) if v else 0
+        except Exception as e:
+            pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+            raise
+
+    for x in  data.models.rpnVariables:
+        x.value = cv.eval_var_with_assert(x.value)
+    for k, v in data.models.items():
+        if k in _SCHEMA.model:
+            _model(v, k)
+    for x in ('elements', 'commands'):
+        for m in data.models[x]:
+            _model(m, LatticeUtil.model_name_for_data(m))
+
+
+def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, results=None):
+    if not results:
+        assert run_dir and filename, \
+            f'must supply either results or run_dir={run_dir} and filename={filename}'
+    t = results or madx_parser.parse_tfs_file(run_dir.join(filename))
+    plots = []
+    m = data.models[data.report]
+    for f in ('y1', 'y2', 'y3'):
+        if m[f] == 'None':
+            continue
+        plots.append(
+            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
+        )
+    x = m.get('x') or 's'
+    res = template_common.parameter_plot(
+        to_floats(t[x]),
+        plots,
+        m,
+        PKDict(
+            y_label='',
+            x_label=_field_label(x),
+        )
+    )
+    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
+        res.initialTwissParameters = PKDict(
+            betx=t.betx[0],
+            bety=t.bety[0],
+            alfx=t.alfx[0],
+            alfy=t.alfy[0],
+        )
+    return res
+
+
+def generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    _add_marker_and_observe(data)
+    util = LatticeUtil(data, _SCHEMA)
+    filename_map = _build_filename_map_from_util(util)
+    report = data.get('report', '')
+    v.twissOutputFilename = _TWISS_OUTPUT_FILE
+    v.lattice = _generate_lattice(filename_map, util)
+    v.variables = code_var(data.models.rpnVariables).generate_variables(_generate_variable)
+    v.useBeamline = util.select_beamline().name
+    if report == 'twissReport' or _is_report('bunchReport', report):
+        v.twissOutputFilename = _TWISS_OUTPUT_FILE
+        return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
+    _add_commands(data, util)
+    v.commands = _generate_commands(filename_map, util)
+    v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
+    if not v.hasTwiss:
+        v.twissOutputFilename = _TWISS_OUTPUT_FILE
+    return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
+
+
 def get_application_data(data, **kwargs):
-    if data.method == 'calculate_bunch_parameters':
-        return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
-    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        file_id = re.sub(r'elementAnimation', '', model)
-        return _get_filename_for_element_id(file_id, data).filename
+        if model == 'twissFromParticlesAnimation':
+            return [
+                f.filename for f in _build_filename_map(data).values() \
+                if hasattr(f, 'get') and f.get('model_type') == _PTC_TRACK_COMMAND
+            ][-1]
+        return _get_filename_for_element_id(
+            re.sub(r'elementAnimation', '', model),
+            data,
+        ).filename
     if _is_report('bunchReport', model):
         return PTC_PARTICLES_FILE
     assert False, f'no data file for model: {model}'
@@ -152,7 +295,6 @@ def import_file(req, **kwargs):
     assert re.search(r'\.madx$', req.filename, re.IGNORECASE), \
         'invalid file extension, expecting .madx'
     data = madx_parser.parse_file(text, downcase_variables=True)
-    _fixup_madx(data)
     # TODO(e-carlin): need to clean this up. copied from elegant
     data.models.simulation.name = re.sub(
         r'\.madx$',
@@ -163,10 +305,6 @@ def import_file(req, **kwargs):
     return data
 
 
-def madx_code_var(variables):
-    return _code_var(variables)
-
-
 def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     if success_exit:
         return None
@@ -174,7 +312,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -193,7 +331,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 # TODO(e-carlin): fixme - I don't return python
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
+    return generate_parameters_file(data)
 
 
 def sim_frame(frame_args):
@@ -210,8 +348,114 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
+def stateless_compute_calculate_bunch_parameters(data):
+    return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
+
+
+def to_float(value):
+    return float(value)
+
+
 def to_floats(values):
-    return [float(v) for v in values]
+    return [to_float(v) for v in values]
+
+
+def to_string(value):
+    return value.replace('"', '')
+
+
+def uniquify_elements(data):
+    def _do_unique(elem_ids):
+        element_map = PKDict({e._id: e for e in data.models.elements})
+        names = set([e.name for e in data.models.elements])
+        max_id = LatticeUtil.max_id(data)
+        res = []
+        for el_id in elem_ids:
+            if el_id not in res:
+                res.append(el_id)
+                continue
+            el = copy.deepcopy(element_map[el_id])
+            el.name = _unique_name(el.name, names)
+            max_id += 1
+            el._id = max_id
+            data.models.elements.append(el)
+            res.append(el._id)
+        return res
+
+    def _insert_items(old_items, new_items, beamline, index):
+        beamline['items'] = old_items[:index] + \
+            new_items + old_items[index + 1:]
+
+    def _reflect_children(id_to_reflect, index, beamline, reflecting_grandchildren=False):
+        if abs(id_to_reflect) not in beamline_map:
+            # It is an element, we're done.
+            return
+        if id_to_reflect < 0 and reflecting_grandchildren:
+            # TODO(e-carlin): This is may be wrong. The manual says "Sub-lines
+            # of reflected lines are also reflected" but, it doesn't say if a
+            # sub-line of the sub-line is itself reflected then the reflections
+            # cancel eachother out. It seems to work but could be wrong.
+            beamline['items'][index] = abs(id_to_reflect)
+            return
+        n = beamline_map[abs(id_to_reflect)]['items'].copy()
+        n.reverse()
+        _insert_items(beamline['items'], n, beamline_map[beamline.id], index)
+        for i, e in enumerate(n):
+            _reflect_children(e, index + i, b, reflecting_grandchildren=True)
+
+    def _reduce_to_elements_with_reflection(beamline):
+        """Reduce a beamline to just elements while reflecting negative sub-lines
+
+        An item that is negative means it and all of it's sublines
+        need to be reflected (reverse the order of elements).
+        Manual section on "Reflection and Repetition":
+        https://mad.web.cern.ch/mad/webguide/manual.html#Ch13.S3
+        """
+        for i, e in enumerate(beamline['items'].copy()):
+            if e >= 0:
+                if e in beamline_map:
+                    _insert_items(
+                        beamline['items'],
+                        beamline_map[e]['items'],
+                        beamline,
+                        i,
+                    )
+                    break
+                continue
+            _reflect_children(e, i, beamline)
+            break
+        else:
+            return
+        # Need to start over because items have changed out from underneath us
+        _reduce_to_elements_with_reflection(beamline_map[data.models.simulation.visualizationBeamlineId])
+
+    def _remove_unused_elements(items):
+        res = []
+        for el in data.models.elements:
+            if el._id in items:
+                res.append(el)
+        data.models.elements = res
+
+    def _unique_name(name, names):
+        assert name in names
+        count = 2
+        m = re.search(r'(\d+)$', name)
+        if m:
+            count = int(m.group(1))
+            name = re.sub(r'\d+$', '', name)
+        while f'{name}{count}' in names:
+            count += 1
+        names.add(f'{name}{count}')
+        return f'{name}{count}'
+
+    beamline_map = PKDict({
+        b.id: b for b in data.models.beamlines
+    })
+    b = beamline_map[data.models.simulation.visualizationBeamlineId]
+    _reduce_to_elements_with_reflection(b)
+    _remove_unused_elements(b['items'])
+    b['items'] = _do_unique(b['items'])
+    data.models.beamlines = [b]
 
 
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
@@ -227,7 +471,9 @@ def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
         return
     pkio.write_text(
         run_dir.join(filename),
-        _generate_parameters_file(data),
+        # generate_parameters_file may modify data and pkcli.madx may call
+        # write_parameters multiple times so make a copy
+        generate_parameters_file(copy.deepcopy(data)),
     )
 
 
@@ -249,6 +495,52 @@ def _add_commands(data, util):
     ))
 
 
+def _add_marker_and_observe(data):
+    def _add_marker(data):
+        assert len(data.models.beamlines) == 1, \
+            f'should have only one beamline reduced to elements. beamlines={data.models.beamlines}'
+        beam = data.models.beamlines[0]
+        markers = PKDict()
+        m = LatticeUtil.max_id(data)
+        for i, v in enumerate(beam['items'].copy()):
+            m += 1
+            beam['items'].insert(
+                (i * 2) + 1,
+                m,
+            )
+            n = f'Marker{m}'
+            markers[m] = n
+            data.models.elements.append(PKDict(
+                _id=m,
+                name=n,
+                type='MARKER',
+            ))
+        return markers, m
+
+    def _add_ptc_observe(markers, max_id):
+        for i, c in enumerate(data.models.commands):
+            if c._type == 'ptc_create_universe':
+                break
+        else:
+            raise AssertionError(
+                f'no ptc_create_universe command found in commands={data.models.commands}',
+            )
+        d = max_id
+        for m in markers.values():
+            d += 1
+            data.models.commands.insert(i + 1, PKDict(
+                _id=d,
+                _type='ptc_observe',
+                place=m,
+            ))
+
+    if not data.get('report') == 'animation' or \
+       not int(data.models.simulation.computeTwissFromParticles):
+        return
+    uniquify_elements(data)
+    _add_ptc_observe(*_add_marker(data))
+
+
 def _build_filename_map(data):
     return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
 
@@ -260,7 +552,7 @@ def _build_filename_map_from_util(util):
 def _calc_bunch_parameters(bunch, beam, variables):
     try:
         field = bunch.beamDefinition
-        cv = _code_var(variables)
+        cv = code_var(variables)
         energy = template_common.ParticleEnergy.compute_energy(
             SIM_TYPE,
             beam.particle,
@@ -279,14 +571,6 @@ def _calc_bunch_parameters(bunch, beam, variables):
     except AssertionError:
         pass
     return PKDict(command_beam=beam)
-
-
-def _code_var(variables):
-    return code_variable.CodeVar(
-        variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
-        case_insensitive=True,
-    )
 
 
 def _extract_report_bunchReport(data, run_dir):
@@ -322,8 +606,8 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_elementAnimation(data, run_dir, filename):
-    if re.search('twiss', filename):
-        return _extract_report_twissReport(data, run_dir, filename)
+    if _is_parameter_report_file(filename):
+        return extract_parameter_report(data, run_dir, filename)
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
@@ -381,38 +665,109 @@ def _extract_report_twissEllipseReport(data, run_dir):
     )
 
 
-def extract_report_twissReport(data, run_dir):
-    return _extract_report_twissReport(data, run_dir)
+def _extract_report_twissFromParticlesAnimation(data, run_dir, filename):
+    # load_output and analyze_beam adapted from:
+    # https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
+    def load_output(filename):
+        with pkio.open_text(filename) as f:
+            t = [x.strip().split() for x in f]
+            i = 0
+            res = []
+            while i < len(t):
+                l = t[i]
+                i += 1
+                if '#segment' in l:
+                    p = int(l[3])
+                    res.append(np.asarray(t[i:i + p]).astype(np.float))
+                    i += p
+            return res
 
+    def analyze_beam(ptc_dump, mc2=0.938):
+        f = [
+            's', 'n', 'xx', 'xxp', 'xy', 'xyp', 'xpxp', 'xpy', 'xpyp', 'yy',
+            'yyp', 'ypyp', 'W', 'x0', 'y0', 'xp0', 'yp0', 'p0',
+        ]
 
-def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
-    t = madx_parser.parse_tfs_file(run_dir.join(filename))
-    plots = []
-    m = data.models[data.report]
-    for f in ('y1', 'y2', 'y3'):
-        if m[f] == 'None':
-            continue
-        plots.append(
-            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
+        c = PKDict(
+            n=lambda snap, res: float(len(snap)),
+            x0=lambda snap, res: np.mean(snap[:,2]),
+            y0=lambda snap, res: np.mean(snap[:,4]),
+            xp0=lambda snap, res: np.mean(snap[:,3]),
+            yp0=lambda snap, res: np.mean(snap[:,5]),
+            x=lambda snap, res: snap[:,2] - np.mean(snap[:,2]),
+            px=lambda snap, res: snap[:,3] - np.mean(snap[:,3]),
+            y=lambda snap, res: snap[:,4] - np.mean(snap[:,4]),
+            py=lambda snap, res: snap[:,5] - np.mean(snap[:,5]),
+            # dt=lambda snap, res: snap[:,6] - np.mean(snap[:,6]),
+            # delta=lambda snap, res: snap[:,7] - np.mean(snap[:,7]),
+            s=lambda snap, res: np.average(snap[:,8]),
+            E=lambda snap, res: np.average(snap[:,9]),
+            p0=lambda snap, res: np.mean(snap[:,7]),
+            gamma=lambda snap, res: res.E / mc2,
+            beta=lambda snap, res: np.sqrt(1.0-1.0/(res.gamma**2)),
+            m=lambda snap, res: mc2 * 1.0e9 / (scipy.constants.c ** 2.) * scipy.constants.elementary_charge,
+            pz=lambda snap, res: res.gamma * res.beta * res.m * scipy.constants.c,
+            xp=lambda snap, res: res.px,
+            yp=lambda snap, res: res.py,
+            W=lambda snap, res: res.E,
+
+            # etax=lambda snap, res: np.dot(res.x, res.delta)/np.dot(res.delta,res.delta),
+            # etay=lambda snap, res: np.dot(res.y, res.delta)/np.dot(res.delta,res.delta),
+
+            # etaxp=lambda snap, res: np.dot(res.xp, res.delta)/np.dot(res.delta,res.delta),
+            # etayp=lambda snap, res: np.dot(res.yp, res.delta)/np.dot(res.delta,res.delta),
+            xx=lambda snap, res: np.dot(res.x, res.x) / res.n,
+            xxp=lambda snap, res: np.dot(res.x, res.xp) / res.n,
+            xy=lambda snap, res: np.dot(res.x, res.y) / res.n,
+            xyp=lambda snap, res: np.dot(res.x, res.yp) / res.n,
+            xpxp=lambda snap, res: np.dot(res.xp, res.xp) / res.n,
+            xpy=lambda snap, res: np.dot(res.xp, res.y) / res.n,
+            xpyp=lambda snap, res: np.dot(res.xp, res.yp) / res.n,
+            yy=lambda snap, res: np.dot(res.y, res.y) / res.n,
+            yyp=lambda snap, res: np.dot(res.y, res.yp) / res.n,
+            ypyp=lambda snap, res: np.dot(res.yp, res.yp) / res.n,
+            # xz=lambda snap, res: np.dot(res.x, res.dt) / res.n,
+            # xd=lambda snap, res: np.dot(res.x, res.delta) / res.n,
+            # xpz=lambda snap, res: np.dot(res.xp, res.dt) / res.n,
+            # xpd=lambda snap, res: np.dot(res.xp, res.delta) / res.n,
+            # yz=lambda snap, res: np.dot(res.y, res.dt) / res.n,
+            # dy=lambda snap, res: np.dot(res.y, res.delta) / res.n,
+            # ypz=lambda snap, res: np.dot(res.yp, res.dt) / res.n,
+            # ypd=lambda snap, res: np.dot(res.yp, res.delta) / res.n,
+            # zz=lambda snap, res: np.dot(res.dt,res.dt) / res.n,
+            # zd=lambda snap, res: np.dot(res.dt,res.delta) / res.n,
+            # dd=lambda snap, res: np.dot(res.delta,res.delta) / res.n,
         )
-    x = m.get('x') or 's'
-    res = template_common.parameter_plot(
-        to_floats(t[x]),
-        plots,
-        m,
-        PKDict(
-            y_label='',
-            x_label=_field_label(x),
-        )
+        s = []
+        for v in ptc_dump:
+            r = PKDict()
+            for k, e in c.items():
+                r[k] = e(v, r)
+            s.append([r[k] for k in f])
+
+        a = np.asarray(s)
+        res = PKDict()
+        for i in range(0, len(f)):
+            res[f[i]] = a[:,i]
+
+        res.emitx = np.sqrt(res.xx * res.xpxp - res.xxp ** 2.)
+        res.emity = np.sqrt(res.yy * res.ypyp - res.yyp ** 2.)
+        res.betx = res.xx / res.emitx
+        res.bety = res.yy / res.emity
+        res.alphax = - res.xxp / res.emitx
+        res.alphay = - res.yyp / res.emity
+        assert set(res.keys()) == set(_PTC_OBSERVE_TWISS_COLS), \
+            f'unknown ptc twiss columns={set(res.keys())}'
+        return res
+
+    return extract_parameter_report(
+        data,
+        results=analyze_beam(load_output(run_dir.join(filename))),
     )
-    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
-        res.initialTwissParameters = PKDict(
-            betx=t.betx[0],
-            bety=t.bety[0],
-            alfx=t.alfx[0],
-            alfy=t.alfx[0],
-        )
-    return res
+
+
+def _extract_report_twissReport(data, run_dir):
+    return extract_parameter_report(data, run_dir)
 
 
 def _field_label(field):
@@ -438,7 +793,7 @@ def _file_info(filename, run_dir, file_id):
     return PKDict(
         modelKey='elementAnimation{}'.format(file_id),
         filename=filename,
-        isHistogram='twiss' not in filename,
+        isHistogram=not _is_parameter_report_file(filename),
         plottableColumns=plottable,
         pageCount=count,
     )
@@ -463,31 +818,6 @@ def _first_beam_command(data):
     return m
 
 
-def _fixup_madx(madx):
-    # move imported beam over default-data.json beam
-    # remove duplicate twiss
-    # remove "call" and "use" commands
-    beam_idx = None
-    first_twiss = True
-    res = []
-    for cmd in madx.models.commands:
-        if cmd._type == 'call' or cmd._type == 'use':
-            continue
-        if cmd._type == 'beam':
-            if beam_idx is None:
-                beam_idx = madx.models.commands.index(cmd)
-            else:
-                res[beam_idx] = cmd
-                _update_beam_and_bunch(cmd, madx.models.bunch)
-                continue
-        elif cmd._type == 'twiss':
-            if first_twiss:
-                first_twiss = False
-                continue
-        res.append(cmd)
-    madx.models.commands = res
-
-
 def _format_field_value(state, model, field, el_type):
     v = model[field]
     if el_type == 'Boolean' or el_type == 'OptionalBoolean':
@@ -496,8 +826,14 @@ def _format_field_value(state, model, field, el_type):
         v = state.id_map[int(v)].name
     elif el_type == 'OutputFile':
         v = '"{}"'.format(state.filename_map[LatticeUtil.file_id(model._id, state.field_index)].filename)
+    elif el_type == 'RPNValue':
+        v = _format_rpn_value(v)
     return [field, v]
 
+
+def _format_rpn_value(value):
+    return code_variable.PurePythonEval.postfix_to_infix(value
+    )
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
@@ -520,40 +856,24 @@ def _generate_lattice(filename_map, util):
         lattice.LatticeIterator(filename_map, _format_field_value),
         want_semicolon=True,
         want_var_assign=True,
+        madx_name=True,
     )
-
-
-def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
-    util = LatticeUtil(data, _SCHEMA)
-    filename_map = _build_filename_map_from_util(util)
-    report = data.get('report', '')
-    code_var = _code_var(data.models.rpnVariables)
-    v.twissOutputFilename = _TWISS_OUTPUT_FILE
-    v.lattice = _generate_lattice(filename_map, util)
-    v.variables = code_var.generate_variables(_generate_variable)
-    v.useBeamline = util.select_beamline().name
-    if report == 'twissReport' or _is_report('bunchReport', report):
-        v.twissOutputFilename = _TWISS_OUTPUT_FILE
-        return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
-    _add_commands(data, util)
-    v.commands = _generate_commands(filename_map, util)
-    v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
-    if not v.hasTwiss:
-        v.twissOutputFilename = _TWISS_OUTPUT_FILE
-    return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, variables[name])
+        res += 'REAL {} = {};\n'.format(name, _format_rpn_value(variables[name]))
         visited[name] = True
     return res
 
 
 def _get_filename_for_element_id(file_id, data):
     return _build_filename_map(data)[file_id]
+
+
+def _is_parameter_report_file(filename):
+    return 'twiss' in filename or 'touschek' in filename
 
 
 def _is_report(name, report):
@@ -577,6 +897,15 @@ def _output_info(run_dir):
         f = files[k]
         if run_dir.join(f.filename).exists():
             res.append(_file_info(f.filename, run_dir, k))
+            if f.model_type == _PTC_TRACK_COMMAND and \
+               int(data.models.simulation.computeTwissFromParticles):
+                res.insert(0, PKDict(
+                    modelKey='twissFromParticlesAnimation',
+                    filename=f.filename,
+                    isHistogram=True,
+                    plottableColumns=_PTC_OBSERVE_TWISS_COLS,
+                    pageCount=0,
+                ))
     if LatticeUtil.find_first_command(data, _END_MATCH_COMMAND):
         res.insert(0, PKDict(
             modelKey='matchAnimation',
@@ -637,22 +966,6 @@ def _twiss_ellipse_rotation(alpha, beta):
     )
 
 
-def _update_beam_and_bunch(beam, bunch):
-    if 'particle' in beam:
-        beam.particle = beam.particle.lower()
-        found = False
-        for pt in _SCHEMA.enum.ParticleType:
-            if pt[0] == beam.particle:
-                found = True
-                break
-        if not found:
-            beam.particle = 'other'
-    for bd in _SCHEMA.enum.BeamDefinition:
-        if bd[0] in beam and beam[bd[0]]:
-            bunch.beamDefinition = bd[0]
-            break
-
-
 def _update_beam_energy(data):
     beam = _first_beam_command(data)
     bunch = data.models.bunch
@@ -660,3 +973,8 @@ def _update_beam_energy(data):
         for e in _SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
+    if bunch.longitudinalMethod == '1':
+        beam.sigt = _SCHEMA.model.command_beam.sigt[2]
+        beam.sige = _SCHEMA.model.command_beam.sige[2]
+    if bunch.longitudinalMethod == '2':
+        beam.et = _SCHEMA.model.command_beam.et[2]

@@ -15,6 +15,7 @@ SIREPO.app.config(function() {
         '<li data-lineout-csv-link="x"></li>',
         '<li data-lineout-csv-link="y"></li>',
         '<li data-lineout-csv-link="full"></li>',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
 });
 
@@ -81,9 +82,9 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
         return 'animation';
     };
 
-    self.computeOnServer = function(method, args, callback) {
+    self.statelessCompute = function(method, appState, args, callback) {
         args.method = method;
-        requestSender.getApplicationData(args, callback);
+        requestSender.statelessCompute(appState, args, callback);
     };
 
     self.initAutoTuneView = function(scope, watchFields, callback) {
@@ -128,9 +129,11 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService)
     self.beamlineService = beamlineService;
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
-    //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
-    self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'crl', 'mirror', 'watch'];
+    self.toolbarItemNames = ['aperture', 'obstacle', 'emptyElement', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch', 'zonePlate'];
     self.prepareToSave = function() {};
+    self.showBeamStatisticsReport = () =>
+        ['bendingMagnet', 'geometricSource', 'undulator'].indexOf(
+            appState.models.simulation.sourceType) >= 0;
 });
 
 SIREPO.app.controller('SourceController', function(appState, shadowService) {
@@ -270,8 +273,9 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, 
         if (appState.models.undulator.select_energy != 'harmonic') {
             return;
         }
-        shadowService.computeOnServer(
+        shadowService.statelessCompute(
             'compute_harmonic_photon_energy',
+            appState,
             {
                 undulator: appState.models.undulator,
                 undulatorBeam: appState.models.undulatorBeam,
@@ -336,10 +340,38 @@ SIREPO.viewLogic('wigglerView', function(appState, panelState, shadowService, $s
     ];
 });
 
-SIREPO.viewLogic('bendingMagnetView', function(shadowService, $scope) {
-    $scope.whenSelected = shadowService.updateRayFilterFields;
+SIREPO.viewLogic('bendingMagnetView', function(appState, panelState, shadowService, $scope) {
+
+    function computeFieldRadius() {
+        let bm = appState.models.bendingMagnet;
+        let isRadius = bm.calculateFieldMethod == 'radius';
+        const c = 299792458;
+        const e = 1e9 / c * appState.models.electronBeam.bener;
+        if (isRadius) {
+            if (bm.r_magnet) {
+                bm.magneticField = e / bm.r_magnet;
+            }
+        }
+        else if (bm.magneticField) {
+            bm.r_magnet = e / bm.magneticField;
+        }
+        panelState.enableFields('bendingMagnet', [
+            'r_magnet', isRadius,
+            'magneticField', ! isRadius,
+        ]);
+    }
+
+    $scope.whenSelected = () => {
+        shadowService.updateRayFilterFields();
+        computeFieldRadius();
+    };
     $scope.watchFields = [
         ['rayFilter.f_bound_sour'], shadowService.updateRayFilterFields,
+        [
+            'bendingMagnet.calculateFieldMethod',
+            'bendingMagnet.r_magnet',
+            'bendingMagnet.magneticField',
+        ], computeFieldRadius,
     ];
 });
 

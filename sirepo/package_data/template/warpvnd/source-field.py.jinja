@@ -28,9 +28,6 @@ if can_write_files:
 
 #------
 
-import json
-from scipy.interpolate import interp1d as scipy_interp1d
-
 #Grab Ez from the solver and average over the transverse (x) plane
 Ez = wp.getselfe(comp='z', bcast=0)
 

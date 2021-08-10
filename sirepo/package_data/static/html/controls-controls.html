@@ -1,0 +1,40 @@
+<div class="container-fluid" data-ng-if="! controls.hasMadxLattice()">
+  <div class="col-md-6 col-xl-4">
+    <div data-basic-editor-panel="" data-view-name="dataFile"></div>
+  </div>
+</div>
+<div class="container-fluid" data-ng-if="controls.hasMadxLattice()">
+  <div class="row">
+    <div class="col-sm-12">
+      <div data-simple-panel="beamline">
+        <div id="sr-lattice" data-lattice="" class="sr-plot" data-margin="25" data-model-name="beamlines" data-path-to-models="externalLattice"></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 col-xl-4" data-ng-if="controls.simState">
+      <div data-simple-panel="simulationStatus">
+        <div class="clearfix" data-optimizer-table=""></div>
+        <div data-sim-status-panel="controls.simState" data-start-function="controls.startSimulation()" data-cancel-callback="controls.cancelCallback()"></div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="command_beam"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-12">
+      <div data-simple-panel="monitors">
+        <div data-ng-repeat="item in controls.watches track by $index">
+          <div class="col-sm-6 col-md-3 col-xl-2">
+            <div style="margin-bottom: -25px" class="lead">{{ item.title }}</div>
+            <div data-report-content="{{ item.plotType }}" data-model-key="{{ item.modelKey }}"></div>
+          </div>
+          <div data-ng-if="$index % 4 == 3" class="clearfix hidden-xl"></div>
+          <div data-ng-if="$index % 6 == 5" class="clearfix visible-xl"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{ controls.init() }}
+</div>

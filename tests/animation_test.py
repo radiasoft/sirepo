@@ -24,16 +24,16 @@ def test_elegant(fc):
         'Compact Storage Ring',
         'animation',
         PKDict({
-            'elementAnimation20-18': PKDict(
+            'elementAnimation20-21': PKDict(
                 expect_y_range='-0.0003.*, 0.0003.*, 200',
             ),
-            'elementAnimation20-25': PKDict(
+            'elementAnimation20-29': PKDict(
                 expect_y_range='^.9.44.*, 0.0012',
             ),
             'elementAnimation22-13': PKDict(
                 expect_y_range=', 34.6',
             ),
-            'elementAnimation20-3': PKDict(
+            'elementAnimation20-4': PKDict(
                 expect_x_range='^.0.0, 46.0',
             ),
         }),
@@ -138,7 +138,7 @@ def test_warpvnd_2(fc):
         PKDict(
             currentAnimation=PKDict(
                 frame_index=0,
-                expect_y_range='0.0, 3.*e-05',
+                expect_y_range='0.0, 2.*e-05',
             ),
             fieldAnimation=PKDict(
                 frame_index=0,
@@ -147,25 +147,6 @@ def test_warpvnd_2(fc):
         ),
         expect_completed=False,
         timeout=20,
-    )
-
-
-def test_webcon(fc):
-    fc.sr_animation_run(
-        'Clustering Demo',
-        'epicsServerAnimation',
-        PKDict(
-            beamPositionReport=PKDict(
-                runSimulation=True,
-                expect_y_range='^.0.0.*, 0.0',
-            ),
-            correctorSettingReport=PKDict(
-                runSimulation=True,
-                expect_y_range=r'^.0.0.*, 0.0',
-            ),
-        ),
-        expect_completed=False,
-        timeout=10,
     )
 
 

@@ -1,41 +1,32 @@
 {
     "models": {
-         "fieldPaths": {
-            "path": "line",
-            "paths": []
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "linear"
         },
-        "geometry": {
+        "fieldPaths": {
+            "path": "line",
+            "paths": [
+                {
+                    "_super": "fieldPath",
+                    "begin": "0, -225, 0",
+                    "end": "0, 225, 0",
+                    "id": 0,
+                    "name": "y axis",
+                    "numPoints": 101,
+                    "type": "line"
+                }
+            ]
+        },
+        "geometryReport": {
+            "isSolvable": "0",
             "name": "Wiggler",
-            "beamAxis": "z",
+            "beamAxis": "y",
             "objects": [
                 {
-                    "color": "#00ffff",
+                    "id": "48022af9-3b43-424f-b43b-5cbeb0d36bd6",
                     "material": "",
                     "name": "Wiggler.Geom.0.polygons",
-                    "type": ""
-                },
-                {
-                    "color": "#ff6600",
-                    "material": "",
-                    "name": "Wiggler.Geom.1.polygons",
-                    "type": ""
-                },
-                {
-                    "color": "#00ffff",
-                    "material": "",
-                    "name": "Wiggler.Geom.2.polygons",
-                    "type": ""
-                },
-                {
-                    "color": "#ff6600",
-                    "material": "",
-                    "name": "Wiggler.Geom.3.polygons",
-                    "type": ""
-                },
-                {
-                    "color": "#ff6600",
-                    "material": "",
-                    "name": "Wiggler.Geom.4.polygons",
                     "type": ""
                 }
             ]
@@ -43,13 +34,16 @@
         "magnetDisplay": {
             "bgColor": "#ffffff",
             "fieldPoints": [],
-            "fieldType": "M",
+            "fieldType": "B",
             "notes": "",
             "viewType": "objects"
         },
         "simFolder": {},
         "simulation": {
+            "beamAxis": "y",
             "documentationUrl": "",
+            "enableKickMaps": "0",
+            "exampleName": "Wiggler",
             "folder": "/Examples",
             "isExample": true,
             "name": "Wiggler",

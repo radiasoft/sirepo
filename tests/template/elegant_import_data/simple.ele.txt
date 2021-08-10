@@ -10,14 +10,18 @@
   use_beamline = "bl",
 &end
 
-&sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
-  sample_fraction = 1.0,
+&insert_elements
+  element_def = "watchafl2: WATCH,filename=\"%s-afl2.w1\"",
+  name = "L2AS4END",
+  type = "MARK",
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
-  sample_fraction = 1.0,
+  input = "PCG.sdds",
+&end
+
+&sdds_beam
+  input = "PCG.sdds",
 &end
 
 &load_parameters

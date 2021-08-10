@@ -4,16 +4,10 @@ u"""Radia examples.
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import division
-
 import math
 import radia
 
-from sirepo.template import radia_tk
 
-_EXAMPLES = ['Dipole', 'Wiggler', 'Undulator']
-
-# eventually all these steps will come from the model and this will go away
 def dipole_example():
 
     # Geometry Parameters
@@ -146,12 +140,16 @@ def dipole_example():
         # Define the symmetries
         radia.TrfZerPerp(g, [0, 0, 0], [1, 0, 0])
         radia.TrfZerPara(g, [0, 0, 0], [0, 0, 1])
-        return t
+        return t, {
+            g: '1c3a32be-c19b-42f8-a303-28fecaa5c1f0',
+            coil: 'f904f1d1-93d5-4a84-bafb-cebf9efa0b35',
+        }
 
     # Define full magnet
     return geom(1)
 
 
+# DEPRECATED
 def undulator_example():
     mu0 = 4 * math.pi / 1e7
 
@@ -222,8 +220,8 @@ def undulator_example():
         zero = [0, 0, 0]
 
         # colors
-        c_pole = [1, 0, 1]
-        c_block = [0, 1, 1]
+        c_pole = [1, 0, 0]
+        c_block = [0, 0, 1]
 
         # full magnet will be assembled into this Radia group
         grp = radia.ObjCnt([])
@@ -347,16 +345,13 @@ def wiggler_example():
     # and reflect in the (x,y) plane [plane through (0,0,0) with normal (0,0,1)]
     radia.TrfZerPara(geom, [0, 0, 0], [0, 0, 1])
 
-    return geom
+    return geom, {
+        geom: '48022af9-3b43-424f-b43b-5cbeb0d36bd6',
+    }
 
 
-def build(name):
-    if name not in _EXAMPLES:
-        raise KeyError('{}: No such example'.format(name))
-    if name == 'Dipole':
-        return dipole_example()
-    if name == 'Wiggler':
-        return wiggler_example()
-    if name == 'Undulator':
-        return undulator_example()
+EXAMPLES = {
+    'Dipole': dipole_example,
+    'Wiggler': wiggler_example,
+}
 

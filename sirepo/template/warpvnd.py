@@ -168,7 +168,7 @@ def generate_field_report(data, run_dir, args=None):
 
 
 def get_application_data(data, **kwargs):
-    if 'method' in data and data['method'] == 'compute_simulation_steps':
+    if data.method == 'compute_simulation_steps':
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
         if field_file.exists():
@@ -180,7 +180,7 @@ def get_application_data(data, **kwargs):
                     'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
         return {}
-    if 'polys' in data:
+    if data.method == 'save_stl_polys' and 'polys' in data:
         _save_stl_polys(data)
         return {}
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -530,6 +530,34 @@ def _extract_field(field, data, data_file, args=None):
 
 
 def _extract_impact_density(run_dir, data):
+    if _SIM_DATA.warpvnd_is_3d(data):
+        return _extract_impact_density_3d(run_dir, data)
+    return _extract_impact_density_2d(run_dir, data)
+
+
+def _extract_impact_density_2d(run_dir, data):
+    # use a simple heatmap instead due to a normalization problem in rswarp
+    all_particles = np.load('all-particles.npy')
+    grid = data.models.simulationGrid
+    plate_spacing = _meters(grid.plate_spacing)
+    channel_width = _meters(grid.channel_width)
+    m = PKDict(
+        histogramBins=200,
+        plotRangeType='fixed',
+        horizontalSize=plate_spacing * 1.02,
+        horizontalOffset=plate_spacing / 2,
+        verticalSize=channel_width,
+        verticalOffset=0,
+    )
+    return template_common.heatmap([all_particles[1].tolist(), all_particles[0].tolist()], m, PKDict(
+        x_label='z [m]',
+        y_label='x [m]',
+        title='Impact Density',
+        aspectRatio=4.0 / 7,
+    ))
+
+
+def _extract_impact_density_3d(run_dir, data):
     try:
         with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
             plot_info = template_common.h5_to_dict(hf, path='density')
@@ -561,25 +589,6 @@ def _extract_impact_density(run_dir, data):
         dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
-    gated_ids = plot_info['gated_ids'] if 'gated_ids' in plot_info else []
-    lines = []
-
-    for i in gated_ids:
-        v = gated_ids[i]
-        for pos in ('bottom', 'left', 'right', 'top'):
-            if pos in v:
-                zmin, zmax, xmin, xmax = v[pos]['limits']
-                row = {
-                    'density': v[pos]['density'].tolist(),
-                }
-                if pos in ('bottom', 'top'):
-                    row['align'] = 'horizontal'
-                    row['points'] = [zmin, zmax, xmin + dx / 2.]
-                else:
-                    row['align'] = 'vertical'
-                    row['points'] = [xmin, xmax, zmin + dz / 2.]
-                lines.append(row)
-
     return {
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
@@ -589,7 +598,6 @@ def _extract_impact_density(run_dir, data):
         'x_label': 'z [m]',
         'z_label': 'y [m]',
         'density': plot_info['density'] if 'density' in plot_info else [],
-        'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],
     }
@@ -624,7 +632,7 @@ def _extract_optimization_results(run_dir, data, args):
         'optimizerInfo': field_info.tolist(),
         'x_index': x_index,
         'y_index': y_index,
-        'fields': map(lambda x: x.field, fields),
+        'fields': [x.field for x in fields],
     }
 
 
@@ -782,8 +790,7 @@ def _generate_parameters_file(data):
     v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _SIM_DATA.warpvnd_is_3d(data)
-    v['anode'] = _prepare_anode(data)
-    v['saveIntercept'] = v['anode']['isReflector']
+    v['saveIntercept'] = v['anode_reflectorType'] != 'none' or v['cathode_reflectorType'] != 'none'
     for c in data.models.conductors:
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
@@ -792,7 +799,7 @@ def _generate_parameters_file(data):
                 _stl_polygon_file(c.conductor_type.name),
             )
             break
-        if c.conductor_type.isReflector:
+        if c.conductor_type.reflectorType != 'none':
             v['saveIntercept'] = True
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
@@ -938,7 +945,6 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
         ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if 'file' in ct else 'None'
-        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -950,14 +956,6 @@ def _prepare_conductors(data):
     return data.models.conductors
 
 
-def _prepare_anode(data):
-    return {
-        'isReflector': data.models.anode['isReflector'] == '1',
-        'specProb': data.models.anode['specProb'],
-        'diffProb': data.models.anode['diffProb'],
-    }
-
-
 def _read_optimizer_output(run_dir):
     # only considers unique points as steps
     opt_file = run_dir.join(_OPTIMIZER_OUTPUT_FILE)
@@ -965,7 +963,7 @@ def _read_optimizer_output(run_dir):
         return None, None
     try:
         values = np.loadtxt(str(opt_file))
-        if values:
+        if values.any():
             if len(values.shape) == 1:
                 values = np.array([values])
         else:
@@ -1087,8 +1085,11 @@ def _stl_polygon_file(filename):
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file))), 'w') as hf:
-            template_common.dict_to_h5(data, hf, path='/')
+        template_common.write_dict_to_h5(
+            data,
+            _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)),
+            h5_path='/'
+        )
     except Exception as e:
-        pkdlog('!save_stl_polys FAIL: {}', e)
+        pkdlog('save_stl_polys error={}', e)
         pass

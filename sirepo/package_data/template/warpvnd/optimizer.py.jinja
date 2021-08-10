@@ -8,6 +8,7 @@ import re
 import scipy
 import subprocess
 import sys
+import json
 
 _MAX_VALUE = 1.0
 
@@ -44,6 +45,8 @@ def wrapper(parameters, bounds, constraints, cache):
         #TODO(pjm): put sr-opt somewhere common
         # read warp output, parse out lines beginning with sr-opt
         for line in iter(run_warp.stdout.readline, b''):
+            if not line:
+                break
             if re.search(r'^sr-opt:\s*', line):
                 line = re.sub(r'^sr-opt:\s*|\n$', '', line)
                 print(' {}'.format(line))
@@ -109,8 +112,6 @@ result = minimize(
         'initial_simplex': build_simplex(np.array(bounds)),
         'adaptive': True,
     })
-
-import json
 
 with open('{{ optimizerResultFile }}', 'w') as f:
     json.dump({

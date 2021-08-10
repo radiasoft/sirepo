@@ -13,13 +13,14 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import lattice
-from sirepo.template import sdds_util
 from sirepo.template import template_common
-from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx_converter import MadxConverter
 import h5py
+import math
 import numpy as np
 import re
+import sirepo.lib
 import sirepo.sim_data
 
 
@@ -27,6 +28,7 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OPAL_INPUT_FILE = 'opal.in'
 OPAL_OUTPUT_FILE = 'opal.out'
+OPAL_POSITION_FILE = 'opal-vtk.py'
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -35,32 +37,57 @@ _DIM_INDEX = PKDict(
 )
 _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
+_OPAL_VTK_FILE = 'opal_ElementPositions.vtk'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
-_TWISS_FILE_NAME = 'twiss.out'
-#TODO(pjm): parse from opal files into schema
-_OPAL_PI = 3.14159265358979323846
-_OPAL_CONSTANTS = PKDict(
-    pi=_OPAL_PI,
-    twopi=_OPAL_PI * 2.0,
-    raddeg=180.0 / _OPAL_PI,
-    degrad=_OPAL_PI / 180.0,
-    e=2.7182818284590452354,
-    emass=0.51099892e-03,
-    pmass=0.93827204e+00,
-    hmmass=0.939277e+00,
-    umass=238 * 0.931494027e+00,
-    cmass=12 * 0.931494027e+00,
-    mmass=0.10565837,
-    dmass=2*0.931494027e+00,
-    xemass=124*0.931494027e+00,
-    clight=299792458.0,
-    p0=1,
-    seed=123456789,
-)
+
+
+class LibAdapter(sirepo.lib.LibAdapterBase):
+
+    def parse_file(self, path):
+        from sirepo.template import opal_parser
+
+        data, input_files = opal_parser.parse_file(
+            pkio.read_text(path),
+            filename=path.basename,
+        )
+        self._verify_files(path, [f.filename for f in input_files])
+        return self._convert(data)
+
+    def write_files(self, data, source_path, dest_dir):
+        """writes files for the simulation
+
+        Returns:
+            PKDict: structure of files written (debugging only)
+        """
+
+        class _G(_Generate):
+
+            def _input_file(self, model_name, field, filename):
+                return f'"{filename}"'
+
+        g = _G(data)
+        r = PKDict(commands=dest_dir.join(source_path.basename))
+        pkio.write_text(r.commands, g.sim())
+        self._write_input_files(data, source_path, dest_dir)
+        r.output_files = LatticeUtil(data, _SCHEMA).iterate_models(
+            OpalOutputFileIterator(),
+        ).result.keys_in_order
+        return r
 
 
 class OpalElementIterator(lattice.ElementIterator):
+
+    def __init__(self, formatter, visited=None):
+        super().__init__(None, formatter)
+        self.visited = visited
+
+    def end(self, model):
+        if self.visited:
+            if '_id' in model and model._id not in self.visited:
+                return
+        super().end(model)
+
     def is_ignore_field(self, field):
         return field == 'name'
 
@@ -88,6 +115,170 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         else:
             self.model_index[self.model_name] = 1
 
+class OpalMadxConverter(MadxConverter):
+    _FIELD_MAP = [
+        ['DRIFT',
+            ['DRIFT', 'l'],
+        ],
+        ['SBEND',
+            ['SBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+        ],
+        ['RBEND',
+            ['RBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+        ],
+        ['QUADRUPOLE',
+            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
+        ],
+        ['SEXTUPOLE',
+            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'psi=tilt'],
+        ],
+        ['OCTUPOLE',
+            ['OCTUPOLE', 'l', 'k3', 'k3s', 'psi=tilt'],
+        ],
+        ['SOLENOID',
+         #TODO(pjm): compute dks from ksi?
+            ['SOLENOID', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+         #TODO(pjm): compute kn, ks from knl, ksl?
+            ['MULTIPOLE', 'psi=tilt'],
+        ],
+        ['HKICKER',
+            ['HKICKER', 'l', 'kick', 'psi=tilt'],
+        ],
+        ['VKICKER',
+            ['VKICKER', 'l', 'kick', 'psi=tilt'],
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'psi=tilt'],
+        ],
+        ['MARKER',
+            ['MARKER'],
+        ],
+        ['PLACEHOLDER',
+            ['DRIFT', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['DRIFT', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RFCAVITY',
+            ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
+        ],
+        ['TWCAVITY',
+            ['TRAVELINGWAVE', 'l', 'volt', 'lag', 'freq', 'dlag=delta_lag'],
+        ],
+        ['HMONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['VMONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['MONITOR',
+            ['MONITOR', 'l'],
+        ],
+    ]
+
+    def __init__(self):
+        super().__init__(SIM_TYPE, self._FIELD_MAP)
+
+    def to_madx(self, data):
+        madx = super().to_madx(data)
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        ob = LatticeUtil.find_first_command(data, 'beam')
+        for f in ob:
+            if f in mb and f in _SCHEMA.model.command_beam:
+                mb[f] = ob[f]
+                if f in ('gamma', 'energy', 'pc') and mb[f]:
+                    madx.models.bunch.beamDefinition = f
+        od = LatticeUtil.find_first_command(data, 'distribution')
+        #TODO(pjm): save dist in vars
+        return madx
+
+    def from_madx(self, madx):
+        data = super().from_madx(madx)
+        data.models.simulation.elementPosition = 'relative'
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        LatticeUtil.find_first_command(data, 'option').version = 20000
+        LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
+        LatticeUtil.find_first_command(data, 'beam').pc = self.particle_energy.pc
+        LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+        self.__fixup_distribution(madx, data)
+        return data
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+
+        if self.from_class.sim_type()  == SIM_TYPE:
+            pass
+        else:
+            if element_in.type == 'SBEND':
+                angle = self.__val(element_in.angle)
+                if angle != 0:
+                    length = self.__val(element_in.l)
+                    d1 = 2 * length / angle;
+                    element_out.l = d1 * math.sin(length / d1)
+            if element_in.type in ('SBEND', 'RBEND'):
+                # kenetic energy in MeV
+                element_out.designenergy = round(
+                    (math.sqrt(self.particle_energy.energy ** 2 + self.beam.mass ** 2) - self.beam.mass) * 1e3,
+                    6,
+                )
+                element_out.gap = 2 * self.__val(element_in.hgap)
+                element_out.fmapfn = 'hard_edge_profile.txt'
+            if element_in.type == 'QUADRUPOLE':
+                k1 = self.__val(element_out.k1)
+                if self.beam.charge < 0:
+                    k1 *= -1
+                element_out.k1 = '{} * {}'.format(k1, self._var_name('brho'))
+
+    def __fixup_distribution(self, madx, data):
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        dist = LatticeUtil.find_first_command(data, 'distribution')
+        beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
+        self._replace_var(data, 'brho', self.particle_energy.brho)
+        self._replace_var(data, 'gamma', self.particle_energy.gamma)
+        self._replace_var(data, 'beta', 'sqrt(1 - (1 / ({} * {})))'.format(
+            self._var_name('gamma'),
+            self._var_name('gamma'),
+        ))
+        for dim in ('x', 'y'):
+            self._replace_var(data, f'emit_{dim}', mb[f'e{dim}'])
+            beta = self._find_var(madx, f'beta_{dim}')
+            if beta:
+                dist[f'sigma{dim}'] = 'sqrt({} * {})'.format(
+                    self._var_name(f'emit_{dim}'), self._var_name(f'beta_{dim}'))
+                dist[f'sigmap{dim}'] = 'sqrt({} * {}) * {} * {}'.format(
+                    self._var_name(f'emit_{dim}'), self._var_name(f'gamma_{dim}'),
+                    self._var_name('beta'), self._var_name('gamma'))
+                dist[f'corr{dim}'] = '-{}/sqrt(1 + {} * {})'.format(
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'alpha_{dim}'),
+                )
+        if self._find_var(madx, 'dp_s_coupling'):
+            dist.corrz = self._var_name('dp_s_coupling')
+        ob = LatticeUtil.find_first_command(data, 'beam')
+        ob.bcurrent = mb.bcurrent
+        if self._find_var(madx, 'n_particles_per_bunch'):
+            ob.npart = self._var_name('n_particles_per_bunch')
+        dist.sigmaz = self.__val(mb.sigt)
+        dist.sigmapz = '{} * {} * {}'.format(mb.sige, self._var_name('beta'), self._var_name('gamma'))
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
+
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
@@ -107,25 +298,68 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def code_var(variables):
+    class _P(code_variable.PurePythonEval):
+        #TODO(pjm): parse from opal files into schema
+        _OPAL_PI = 3.14159265358979323846
+        _OPAL_CONSTANTS = PKDict(
+            pi=_OPAL_PI,
+            twopi=_OPAL_PI * 2.0,
+            raddeg=180.0 / _OPAL_PI,
+            degrad=_OPAL_PI / 180.0,
+            e=2.7182818284590452354,
+            emass=0.51099892e-03,
+            pmass=0.93827204e+00,
+            hmmass=0.939277e+00,
+            umass=238 * 0.931494027e+00,
+            cmass=12 * 0.931494027e+00,
+            mmass=0.10565837,
+            dmass=2*0.931494027e+00,
+            xemass=124*0.931494027e+00,
+            clight=299792458.0,
+            p0=1,
+            seed=123456789,
+        )
+
+        def __init__(self):
+            super().__init__(self._OPAL_CONSTANTS)
+
+        def eval_var(self, expr, depends, variables):
+            if re.match(r'^\{.+\}$', expr):
+                # It is an array of values
+                return expr, None
+            return super().eval_var(expr, depends, variables)
+    return code_variable.CodeVar(
+        variables,
+        _P(),
+        case_insensitive=True,
+    )
+
+
 def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if frame < 0:
+        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:
         return _OPAL_H5_FILE
-    elif model == 'plot2Animation':
+    if model == 'plot2Animation':
         return _OPAL_SDDS_FILE
-    elif 'elementAnimation' in model:
+    if model == 'beamline3dAnimation':
+        return _OPAL_VTK_FILE
+    if 'elementAnimation' in model:
         return _file_name_for_element_animation(run_dir, model)
     raise AssertionError('unknown model={}'.format(model))
 
 
 def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
+
     text = pkcompat.from_bytes(req.file_stream.read())
     if re.search(r'\.in$', req.filename, re.IGNORECASE):
         data, input_files = opal_parser.parse_file(
@@ -141,18 +375,15 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        from sirepo.template import madx_converter, madx_parser
-        madx = madx_parser.parse_file(text)
-        data = madx_converter.from_madx(SIM_TYPE, madx)
+        data = OpalMadxConverter().from_madx_text(text)
         data.models.simulation.name = re.sub(r'\.madx$', '', req.filename, flags=re.IGNORECASE)
-        _fixup_madx(madx, data)
     else:
         raise IOError('invalid file extension, expecting .in or .madx')
     return data
 
 
-def opal_code_var(variables):
-    return _code_var(variables)
+def new_simulation(data, new_simulation_data):
+    data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
 def post_execution_processing(
@@ -165,20 +396,17 @@ def post_execution_processing(
         return None
     if is_parallel:
         return _parse_opal_log(run_dir)
-    e = _parse_opal_log(run_dir)
-    if re.search(r'Singular matrix', e):
-        e = 'Twiss values could not be computed: Singular matrix'
-    return e
+    return _parse_opal_log(run_dir)
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
 def prepare_sequential_output_file(run_dir, data):
     report = data['report']
-    if 'bunchReport' in report or 'twissReport' in report:
+    if 'bunchReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -191,36 +419,14 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        return _export_madx(data)
+        return OpalMadxConverter().to_madx_text(data)
     return _generate_parameters_file(data)
 
 
 def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
-    if data.report == 'twissReport':
-        report['x'] = 's'
-        col_names, rows = _read_data_file(run_dir.join(_TWISS_FILE_NAME))
-        x = _column_data(report.x, col_names, rows)
-        y_range = None
-        plots = []
-        for f in ('y1', 'y2', 'y3'):
-            if report[f] == 'none':
-                continue
-            plots.append({
-                'points': _column_data(report[f], col_names, rows),
-                'label': '{} {}'.format(report[f], _units(report[f])),
-            })
-        res = PKDict(
-            title='',
-            x_range=[min(x), max(x)],
-            y_label='',
-            x_label='{} {}'.format(report.x, _units(report.x)),
-            x_points=x,
-            plots=plots,
-            y_range=template_common.compute_plot_color_and_range(plots),
-        )
-    elif 'bunchReport' in data.report:
+    if 'bunchReport' in data.report:
         res = _bunch_plot(report, run_dir, 0)
         res.title = ''
     else:
@@ -239,6 +445,40 @@ def sim_frame(frame_args):
         frame_args.frameIndex,
         _file_name_for_element_animation(frame_args),
     )
+
+
+def sim_frame_beamline3dAnimation(frame_args):
+    res = PKDict(
+        title=' ',
+        points=[],
+        polys=[],
+        colors=[],
+        bounds=_compute_3d_bounds(frame_args.run_dir),
+    )
+    state = None
+    with pkio.open_text(_OPAL_VTK_FILE) as f:
+        for line in f:
+            if line == '\n':
+                continue
+            if line.startswith('POINTS '):
+                state = 'points'
+                continue
+            if line.startswith('CELLS '):
+                state = 'polys'
+                continue
+            if line.startswith('CELL_TYPES'):
+                state = None
+                continue
+            if line.startswith('COLOR_SCALARS'):
+                state = 'colors'
+                continue
+            if state == 'points' or state == 'colors':
+                for v in line.split(' '):
+                    res[state].append(float(v))
+            elif state == 'polys':
+                for v in line.split(' '):
+                    res[state].append(int(v))
+    return res
 
 
 def sim_frame_bunchAnimation(frame_args):
@@ -288,6 +528,7 @@ def sim_frame_plotAnimation(frame_args):
 
 
 def sim_frame_plot2Animation(frame_args):
+    from sirepo.template import sdds_util
 
     x = None
     plots = []
@@ -307,6 +548,10 @@ def sim_frame_plot2Animation(frame_args):
             x = field
         else:
             plots.append(field)
+    # independent reads of file may produce more columns, trim to match x length
+    for p in plots:
+        if len(x.points) < len(p.points):
+            p.points = p.points[:len(x.points)]
     return template_common.parameter_plot(x.points, plots, {}, {
         'title': '',
         'y_label': '',
@@ -319,6 +564,186 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(OPAL_INPUT_FILE),
         _generate_parameters_file(data),
     )
+    if is_parallel:
+        pkio.write_text(
+            run_dir.join(OPAL_POSITION_FILE),
+            'import os\n' \
+            + 'os.system("python data/opal_ElementPositions.py --export-vtk")\n',
+        )
+
+
+class _Generate(sirepo.lib.GenerateBase):
+
+    def __init__(self, data):
+        self.data = data
+        self._schema = _SCHEMA
+
+    def sim(self):
+        d = self.data
+        self.jinja_env = template_common.flatten_data(d.models, PKDict())
+        self._code_var = code_var(d.models.rpnVariables)
+        if 'bunchReport' in d.get('report', ''):
+            return self._bunch_simulation()
+        return self._full_simulation()
+
+    def _bunch_simulation(self):
+        v = self.jinja_env
+        # keep only first distribution and beam in command list
+        beam = LatticeUtil.find_first_command(self.data, 'beam')
+        distribution = LatticeUtil.find_first_command(self.data, 'distribution')
+        v.beamName = beam.name
+        v.distributionName = distribution.name
+        # these need to get set to default or distribution won't generate in 1 step
+        # for emitted distributions
+        distribution.nbin = 0
+        distribution.emissionsteps = 1
+        distribution.offsetz = 0
+        self.data.models.commands = [
+            LatticeUtil.find_first_command(self.data, 'option'),
+            beam,
+            distribution,
+        ]
+        self._generate_commands_and_variables()
+        return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
+
+    def _format_field_value(self, state, model, field, el_type):
+        value = model[field]
+        if el_type == 'Boolean':
+            value = 'true' if value == '1' else 'false'
+        elif el_type == 'RPNValue':
+            value = _fix_opal_float(value)
+        elif el_type == 'InputFile':
+            value = self._input_file(LatticeUtil.model_name_for_data(model), field, value)
+        elif el_type == 'OutputFile':
+            ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
+            value = '"{}.{}.{}"'.format(model.name, field, ext)
+        elif re.search(r'List$', el_type):
+            value = state.id_map[int(value)].name
+        elif re.search(r'String', el_type):
+            if str(value):
+                if not re.search(r'^\s*\{.*\}$', value):
+                    value = '"{}"'.format(value)
+        elif LatticeUtil.is_command(model):
+            if el_type != 'RPNValue' and str(value):
+                value = '"{}"'.format(value)
+        elif not LatticeUtil.is_command(model):
+            if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
+                return ['type', value]
+        if str(value):
+            return [field, value]
+        return None
+
+    def _full_simulation(self):
+        v = self.jinja_env
+        v.lattice = self._generate_lattice(
+            self.util,
+            self._code_var,
+            LatticeUtil.find_first_command(
+                self.util.data,
+                'track',
+            ).line or self.util.select_beamline().id,
+        )
+        v.use_beamline = self.util.select_beamline().name
+        self._generate_commands_and_variables()
+        return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
+
+    def _generate_commands(self, util, is_header):
+        # reorder command so OPTION and list commands come first
+        commands = []
+        key = None
+        if is_header:
+            key = 'header_commands'
+            # add header commands in order, with option first
+            for ctype in _HEADER_COMMANDS:
+                for c in util.data.models.commands:
+                    if c._type == ctype:
+                        commands.append(c)
+        else:
+            key = 'other_commands'
+            for c in util.data.models.commands:
+                if c._type not in _HEADER_COMMANDS:
+                    commands.append(c)
+        util.data.models[key] = commands
+        res = util.render_lattice(
+            util.iterate_models(
+                OpalElementIterator(self._format_field_value),
+                key,
+            ).result,
+            quote_name=True,
+            want_semicolon=True)
+        # separate run from track, add endtrack
+        #TODO(pjm): better to have a custom element generator for this case
+        lines = []
+        for line in res.splitlines():
+            m = re.match('(.*?: track,.*?)(run_.*?)(;|,[^r].*)', line)
+            if m:
+                lines.append('{}{}'.format(re.sub(r',$', '', m.group(1)), m.group(3)))
+                lines.append(' run, {};'.format(re.sub(r'run_', '', m.group(2))))
+                lines.append('endtrack;')
+            else:
+                lines.append(line)
+        return '\n'.join(lines)
+
+    def _generate_commands_and_variables(self):
+        self.jinja_env.update(dict(
+            variables=self._code_var.generate_variables(self._generate_variable),
+            header_commands=self._generate_commands(self.util, True),
+            commands=self._generate_commands(self.util, False),
+        ))
+
+    def _generate_lattice(self, util, code_var, beamline_id):
+        if util.data.models.simulation.elementPosition == 'absolute':
+            beamline, visited = _generate_absolute_beamline(util, beamline_id)
+        else:
+            beamline, _, names, visited = _generate_beamline(util, code_var, beamline_id)
+            beamline += '{}: LINE=({});\n'.format(
+                util.id_map[beamline_id].name,
+                ','.join(names),
+            )
+        res = util.render_lattice(
+            util.iterate_models(
+                OpalElementIterator(self._format_field_value, visited),
+                'elements',
+            ).result,
+            quote_name=True,
+            want_semicolon=True,
+        ) + '\n'
+        res += beamline
+        return res
+
+    def _generate_variable(self, name, variables, visited):
+        res = ''
+        if name not in visited:
+            res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
+            visited[name] = True
+        return res
+
+    def _input_file(self, model_name, field, filename):
+        return '"{}"'.format(_SIM_DATA.lib_file_name_with_model_field(
+            model_name,
+            field,
+            filename,
+        ))
+
+
+def _compute_3d_bounds(run_dir):
+    res = []
+    p = run_dir.join('data/opal_ElementPositions.txt')
+    with pkio.open_text(p) as f:
+        for line in f:
+            m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
+            if m:
+                res.append([float(v) for v in (m.group(1), m.group(2), m.group(3))])
+    res = np.array(res)
+    bounds = []
+    for n in range(3):
+        v = res[:, n]
+        bounds.append([min(v), max(v)])
+    return bounds
+
+
+def _generate_parameters_file(data):
+    return _Generate(data).sim()
 
 
 def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
@@ -339,14 +764,6 @@ def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
         y_label=res.y.label,
         title=title,
     ))
-
-
-def _code_var(variables):
-    return code_variable.CodeVar(
-        variables,
-        code_variable.PurePythonEval(_OPAL_CONSTANTS),
-        case_insensitive=True,
-    )
 
 
 def _compute_range_across_frames(run_dir, data):
@@ -375,14 +792,6 @@ def _column_data(col, col_names, rows):
     for row in rows:
         res.append(float(row[idx]))
     return res
-
-
-def _export_madx(data):
-    from sirepo.template import madx, madx_converter
-    return madx.python_source_for_model(
-        madx_converter.to_madx(SIM_TYPE, data),
-        None,
-    )
 
 
 def _field_units(units, field):
@@ -420,33 +829,6 @@ def _find_run_method(commands):
     return 'THIN'
 
 
-def _fixup_madx(madx, data):
-    import sirepo.template.madx
-    cv = sirepo.template.madx.madx_code_var(madx.models.rpnVariables)
-    import pykern.pkjson
-    beam = LatticeUtil.find_first_command(madx, 'beam')
-    assert beam, 'MAD-X file missing BEAM command'
-    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
-        # unset the default mad-x value if other energy fields are set
-        beam.energy = 0
-    particle = beam.particle.lower()
-    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
-    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
-    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
-    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
-    for el in data.models.elements:
-        if el.type == 'SBEND' or el.type == 'RBEND':
-            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
-            el.designenergy = round(
-                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
-                6,
-            )
-            # this is different than the opal default of "2 * sin(angle / 2) / length"
-            # but matches elegant and synergia
-            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
-            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
-
-
 def _fix_opal_float(value):
     if value and not code_variable.CodeVar.is_var_value(value):
         # need to format values as floats, OPAL has overflow issues with large integers
@@ -454,170 +836,100 @@ def _fix_opal_float(value):
     return value
 
 
-def _format_field_value(state, model, field, el_type):
-    value = model[field]
-    if el_type == 'Boolean':
-        value = 'true' if value == '1' else 'false'
-    elif el_type == 'RPNValue':
-        value = _fix_opal_float(value)
-    elif el_type == 'InputFile':
-        value = '"{}"'.format(
-            _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value))
-    elif el_type == 'OutputFile':
-        ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
-        value = '"{}.{}.{}"'.format(model.name, field, ext)
-    elif re.search(r'List$', el_type):
-        value = state.id_map[int(value)].name
-    elif re.search(r'String', el_type):
-        if str(value):
-            if not re.search(r'^\s*\{.*\}$', value):
-                value = '"{}"'.format(value)
-    elif LatticeUtil.is_command(model):
-        if el_type != 'RPNValue' and str(value):
-            value = '"{}"'.format(value)
-    elif not LatticeUtil.is_command(model):
-        if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
-            return ['type', value]
-    if str(value):
-        return [field, value]
-    return None
-
-
-def _generate_commands(util, is_header):
-    # reorder command so OPTION and list commands come first
-    commands = []
-    key = None
-    if is_header:
-        key = 'header_commands'
-        # add header commands in order, with option first
-        for ctype in _HEADER_COMMANDS:
-            for c in util.data.models.commands:
-                if c._type == ctype:
-                    commands.append(c)
-    else:
-        key = 'other_commands'
-        for c in util.data.models.commands:
-            if c._type not in _HEADER_COMMANDS:
-                commands.append(c)
-    util.data.models[key] = commands
-    res = util.render_lattice(
-        util.iterate_models(
-            OpalElementIterator(None, _format_field_value),
-            key,
-        ).result,
-        want_semicolon=True)
-    # separate run from track, add endtrack
-    #TODO(pjm): better to have a custom element generator for this case
-    lines = []
-    for line in res.splitlines():
-        m = re.match('(.*?: track,.*?)(run_.*?)(;|,[^r].*)', line)
-        if m:
-            lines.append('{}{}'.format(re.sub(r',$', '', m.group(1)), m.group(3)))
-            lines.append(' run, {};'.format(re.sub(r'run_', '', m.group(2))))
-            lines.append('endtrack;')
-        else:
-            lines.append(line)
-    return '\n'.join(lines)
-
-
-def _generate_lattice(util, code_var, beamline_id):
-    res = util.render_lattice(
-        util.iterate_models(
-            OpalElementIterator(None, _format_field_value),
-            'elements',
-        ).result,
-        want_semicolon=True) + '\n'
-    count_by_name = PKDict()
+def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=None):
+    if count_by_name is None:
+        count_by_name = PKDict()
+    if visited is None:
+        visited = set()
     names = []
-    res += _generate_beamline(util, code_var, count_by_name, beamline_id, 0, names)[0]
-    res += '{}: LINE=({});\n'.format(
-        util.id_map[beamline_id].name,
+    res = ''
+    beamline = util.id_map[abs(beamline_id)]
+    items = beamline['items']
+    for idx in range(len(items)):
+        item_id = items[idx]
+        item = util.id_map[abs(item_id)]
+        name = item.name.upper()
+        if name not in count_by_name:
+            count_by_name[name] = 0
+        if 'type' in item:
+            # element
+            name = '"{}#{}"'.format(name, count_by_name[name])
+            count_by_name[item.name.upper()] += 1
+            pos = beamline.positions[idx]
+            res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), pos.elemedge)
+            names.append(name)
+            visited.add(item_id)
+        else :
+            if item_id not in visited:
+                text, visited = _generate_absolute_beamline(util, item_id, count_by_name, visited)
+                res += text
+            names.append('{}'.format(name))
+
+    has_orientation = False
+    for f in ('x', 'y', 'z', 'theta', 'phi', 'psi'):
+        if f in beamline and beamline[f]:
+            has_orientation = True
+            break
+    orientation = ''
+    if has_orientation:
+        orientation = ', ORIGIN={}, ORIENTATION={}'.format(
+            '{}{}, {}, {}{}'.format('{', beamline.x, beamline.y, beamline.z, '}'),
+            '{}{}, {}, {}{}'.format('{', beamline.theta, beamline.phi, beamline.psi, '}'),
+        )
+    res += '{}: LINE=({}){};\n'.format(
+        beamline.name,
         ','.join(names),
+        orientation,
     )
-    return res
+    return res, visited
 
 
-def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
+def _generate_beamline(util, code_var, beamline_id, count_by_name=None, edge=0, names=None, visited=None):
+    if count_by_name is None:
+        count_by_name = PKDict()
+    if names is None:
+        names = []
+    if visited is None:
+        visited = set()
     res = ''
     run_method = _find_run_method(util.data.models.commands)
-    items = util.id_map[abs(beamline_id)]['items']
+    beamline = util.id_map[abs(beamline_id)]
+    items = beamline['items']
     if beamline_id < 0:
-        items = reversed(items)
-    for item_id in items:
+        items = list(reversed(items))
+    for idx in range(len(items)):
+        item_id = items[idx]
         item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
-            name = item.name
+            name = item.name.upper()
             if name not in count_by_name:
                 count_by_name[name] = 0
             name = '"{}#{}"'.format(name, count_by_name[name])
-            count_by_name[item.name] += 1
+            count_by_name[item.name.upper()] += 1
             if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
-                res += '{}: {};\n'.format(name, item.name)
+                res += '"{}": {};\n'.format(name, item.name.upper())
                 names.append(name)
+                visited.add(item_id)
                 continue
             length = code_var.eval_var(item.l)[0]
             if item.type == 'DRIFT' and length < 0:
                 # don't include reverse drifts, for positioning only
                 pass
             else:
-                res += '{}: {},elemedge={};\n'.format(name, item.name, edge)
+                res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), edge)
                 names.append(name)
+                if item.type == 'SBEND' and run_method == 'THICK':
+                    # use arclength for SBEND with THICK tracker (only?)
+                    angle = code_var.eval_var_with_assert(item.angle)
+                    length = angle * length / (2 * math.sin(angle / 2))
+                visited.add(item_id)
             edge += length
         else:
             # beamline
-            text, edge = _generate_beamline(util, code_var, count_by_name, item_id, edge, names)
+            text, edge, names, visited = _generate_beamline(util, code_var, item_id, count_by_name, edge, names, visited)
             res += text
-    return res, edge
-
-
-def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
-    util = LatticeUtil(data, _SCHEMA)
-    code_var = _code_var(data.models.rpnVariables)
-    report = data.get('report', '')
-
-    if 'bunchReport' in report:
-        # keep only first distribution and beam in command list
-        beam = LatticeUtil.find_first_command(data, 'beam')
-        distribution = LatticeUtil.find_first_command(data, 'distribution')
-        v.beamName = beam.name
-        v.distributionName = distribution.name
-        # these need to get set to default or distribution won't generate in 1 step
-        # for emitted distributions
-        distribution.nbin = 0
-        distribution.emissionsteps = 1
-        data.models.commands = [
-            LatticeUtil.find_first_command(data, 'option'),
-            beam,
-            distribution,
-        ]
-    else:
-        if report == 'twissReport':
-            beamline_id = util.select_beamline().id
-        else:
-            beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
-        v.lattice = _generate_lattice(util, code_var, beamline_id)
-        v.use_beamline = util.select_beamline().name
-    v.update(dict(
-        variables=code_var.generate_variables(_generate_variable),
-        header_commands=_generate_commands(util, True),
-        commands=_generate_commands(util, False),
-    ))
-    if 'bunchReport' in report:
-        return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
-    if report == 'twissReport':
-        v.twiss_file_name = _TWISS_FILE_NAME
-        return template_common.render_jinja(SIM_TYPE, v, 'twiss.in')
-    return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
-
-
-def _generate_variable(name, variables, visited):
-    res = ''
-    if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
-        visited[name] = True
-    return res
+    return res, edge, names, visited
 
 
 def _iterate_hdf5_steps(path, callback, state):
@@ -703,12 +1015,6 @@ def _read_frame_count(run_dir):
     except IOError:
         pass
     return 0
-
-
-def _units(twiss_field):
-    if twiss_field in ('betx', 'bety', 'dx'):
-        return '[m]'
-    return ''
 
 
 def _units_from_hdf5(h5file, field):

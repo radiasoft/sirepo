@@ -12,31 +12,51 @@ import pytest
 
 
 def test_from_elegant_to_madx_and_back():
-    from pykern import pkio
-    from pykern.pkunit import pkeq
-    from sirepo.template import elegant, madx, madx_converter, madx_parser
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import elegant
+    from sirepo.template.elegant import ElegantMadxConverter
 
     with pkunit.save_chdir_work() as d:
         for name in ('SPEAR3', 'Compact Storage Ring', 'Los Alamos Proton Storage Ring'):
             data = _example_data(name)
-            mad = madx_parser.parse_file(elegant.python_source_for_model(data, 'madx'))
-            madx._fixup_madx(mad)
-            outfile = name.lower().replace(' ', '-') + '.madx'
-            actual = madx.python_source_for_model(mad, None)
-            pkio.write_text(outfile, actual)
-            e = pkunit.data_dir().join(outfile)
-            expect = pkio.read_text(e)
-            pkeq(expect, actual, 'diff {} {}', e, d.join(outfile))
+            actual = ElegantMadxConverter().to_madx_text(data)
+            file_eq(
+                name.lower().replace(' ', '-') + '.madx',
+                actual=actual,
+            )
+            file_eq(
+                name.lower().replace(' ', '-') + '.lte',
+                actual=elegant.python_source_for_model(
+                    ElegantMadxConverter().from_madx_text(actual),
+                    None,
+                ),
+            )
 
-            data = madx_parser.parse_file(actual)
-            lattice = madx_converter.from_madx(elegant.SIM_TYPE, data)
-            outfile = name.lower().replace(' ', '-') + '.lte'
-            actual = elegant.python_source_for_model(lattice, None)
-            pkio.write_text(outfile, actual)
-            e = pkunit.data_dir().join(outfile)
-            expect = pkio.read_text(e)
-            pkeq(expect, actual, 'diff {} {}', e, d.join(outfile))
 
+def test_import_elegant_export_madx(import_req):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import elegant
+    from sirepo.template.elegant import ElegantMadxConverter
+    data = elegant.import_file(import_req(pkunit.data_dir().join('test1.ele')))
+    data = elegant.import_file(import_req(pkunit.data_dir().join('test1.lte')), test_data=data)
+    # this is updated from javascript unfortunately
+    data.models.bunch.longitudinalMethod = '3'
+    actual = ElegantMadxConverter().to_madx_text(data)
+    file_eq(
+        'test1.madx',
+        actual=actual,
+    )
+
+def test_import_opal_export_madx(import_req):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import opal
+    from sirepo.template.opal import OpalMadxConverter
+    data = opal.import_file(import_req(pkunit.data_dir().join('test2.in')))
+    actual = OpalMadxConverter().to_madx_text(data)
+    file_eq(
+        'test2.madx',
+        actual=actual,
+    )
 
 def _example_data(simulation_name):
     from sirepo import simulation_db

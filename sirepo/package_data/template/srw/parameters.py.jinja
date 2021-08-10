@@ -1,3 +1,17 @@
+{%- macro rsOptFuctionSignature() %}
+{% for e in rsOptElements %}
+{% for p in rsOptParams %}
+{% if p in e %}
+{% for x in e[p].initial %}
+{% if e[p].offsets[loop.index0] != 0 %}
+    {{ e.title }}_{{ p }}_{{ loop.index0 }},
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endmacro -%}
+
 #!/usr/bin/env python
 import os
 try:
@@ -7,7 +21,6 @@ try:
 except:
     pass
 
-
 import srwl_bl
 import srwlib
 import srwlpy
@@ -16,11 +29,21 @@ import math
 import srwl_uti_smp
 {% endif %}
 
-
 def set_optics(v=None):
 {{beamlineOptics}}
 
-varParam = srwl_bl.srwl_uti_ext_options([
+{% if forRSOpt %}
+from pykern.pkdebug import pkdlog
+import numpy
+
+# This function is required by rsopt to generate data but is a noop otherwise
+def set_rsopt_params_dummy(
+{{ rsOptFuctionSignature() }}
+):
+    return 0
+{% endif %}
+
+varParam = [
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
 #---Data Folder
@@ -203,7 +226,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
     ['si_fn', 's', '{{initialIntensityReportFilename}}', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
     ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
-    ['ws_fni', 's', '{{watchpointReportFilename}}', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
+    ['ws_fni', 's', '{{watchpointReportFilename}}', '{{ ws_fni_desc }}'],
     ['ws_pl', 's', '', 'plot the resulting intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
     ['wm_nm', 'i', {{multiElectronAnimation_numberOfMacroElectrons}}, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
@@ -228,11 +251,14 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['rs_type', 's', '{{rs_type}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if simulation_sourceType == 'm' %}
 #---Multipole
-    ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
-    ['mp_order', 'i', 1, 'multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole'],
-    ['mp_distribution', 's', '{{multipole_distribution}}', 'normal (n) or skew (s)'],
-    ['mp_len', 'f', {{multipole_length}}, 'effective length [m]'],
-    ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
+    ['mag_by', 'f', {{multipole_by}}, 'vertical magnetic field [T]'],
+    ['mag_bx', 'f', {{multipole_bx}}, 'horizontal magnetic field [T]'],
+    ['mag_gn', 'f', 0., 'gradient of normal magnetic field quadrupole [T/m]'],
+    ['mag_gs', 'f', 0., 'gradient of skew magnetic field quadrupole [T/m]'],
+    ['mag_len', 'f', {{multipole_length}}, 'magnetic length [m]'],
+    ['mag_led', 'f', 0., 'magnetic edge length bw 10% and 90% of peak field [m]; G/(1 + ((z-zc)/d)^2)^2 field dependence is assumed'],
+    ['mag_r', 'f', 0., 'radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0)'],
+    ['mag_zc', 'f', 0., 'center longitudinal position [m]'],
 {% endif %}
 
     {% if beamlineOpticsParameters %}
@@ -255,7 +281,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
     #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
-])
+]
 
 {% if setupMagneticMeasurementFiles %}
 def setup_magnetic_measurement_files(filename, v):
@@ -294,5 +320,204 @@ def setup_magnetic_measurement_files(filename, v):
     v.und_mdir = os.path.dirname(f) or './'
 {% endif %}
 
-def main():
+{% if forRSOpt %}
+_BEAM_TMP_DIR = 'beams'
+_DATASET_DIR = 'datasets'
+_PARAM_TMP_DIR = 'parameters'
+_SRW_OUT_DIR = 'data_files'
+_TMP_DIRS = [_BEAM_TMP_DIR, _DATASET_DIR, _PARAM_TMP_DIR, _SRW_OUT_DIR]
+
+def _apply_rotation(angle, norms):
+    rx = numpy.array([[1, 0, 0], [0, numpy.cos(angle[0]), -numpy.sin(angle[0])], [0, numpy.sin(angle[0]), numpy.cos(angle[0])]])
+    ry = numpy.array([[numpy.cos(angle[1]), 0, numpy.sin(angle[1])], [0, 1, 0], [-numpy.sin(angle[1]), 0, numpy.cos(angle[1])]])
+    rz = numpy.array([[numpy.cos(angle[2]), -numpy.sin(angle[2]), 0], [numpy.sin(angle[2]), numpy.cos(angle[2]), 0], [0, 0, 1]])
+
+    rxy = numpy.dot(rx, ry)
+    r = numpy.dot(rxy ,rz)
+
+    return numpy.dot(r, norms)
+
+
+def _get_beamline_param(vp, srw_prefix, sirepo_name):
+    for p_arr in vp:
+        if p_arr[0].startswith(srw_prefix) and p_arr[3] == sirepo_name:
+            return p_arr
+    return None
+
+
+def _read_srw_file(filename):
+    import uti_plot_com
+    """ This function takes in an srw file and returns the beam data. This was adapted from srwl_uti_dataProcess.py file"""
+    data, mode, ranges, labels, units = uti_plot_com.file_load(filename)
+    data = numpy.array(data).reshape((ranges[8], ranges[5]), order='C')
+    '''
+    return {'data': data,
+            'shape': data.shape,
+            'mean': numpy.mean(data),
+            'photon_energy': ranges[0],
+            'horizontal_extent': ranges[3:5],
+            'vertical_extent': ranges[6:8],
+            'labels': labels,
+            'units': units}
+    '''
+    return data
+
+
+def _rsopt_run(filename):
+    from pykern import pkio
+    import multiprocessing
+    import time
+
+    # create temporary directories
+    for d in _TMP_DIRS:
+        pkio.mkdir_parent(d)
+
+    start_time = time.time()
+    data = numpy.load(filename)
+    tasks = data['x']
+    shape = data.dtype['x'].shape
+    # if a single parameter varies, rsopt does not put it into an array, so we must
+    if not shape:
+        tasks = tasks.reshape(len(tasks), -1)
+    n_runs = len(tasks)
+
+    n_processes = min(n_runs, multiprocessing.cpu_count() - 1)
+    pkdlog(f'Number of processes available: {n_processes}')
+
+    ####################### splits up the number of tasks to be done evenly across the number of processes available and assigns a task cut to each process
+    processes = []
+    split = n_runs // n_processes
+    idx0 = 0
+    for j in range(n_processes):
+        idx1 = n_runs if j == n_processes - 1 else idx0 + split
+        p = multiprocessing.Process(target=_rsopt_run_set, args=(tasks, idx0, idx1, j))
+        processes.append(p)
+        p.start()
+        idx0 += split
+
+    pkdlog('Processes started')
+
+    ####################### must join all processes to end multiprocess thread
+    for p in processes:
+        pkdlog(f'joining {p}...')
+        p.join()
+        pkdlog(f'joined {p}')
+
+    end_time = time.time()
+    pkdlog(f'Time to run {n_runs} simulations with {n_processes} processes: {numpy.round((end_time - start_time) / 60, 4)}m')
+
+    ###### reads in the temporary storage folder info to create one input and one output file for ML
+    beam_arrays = []
+    task_arrays = []
+    for i in range(n_runs):
+        beam_arrays.append(numpy.load(f'{_BEAM_TMP_DIR}/beam_{i}.npy'))
+        task_arrays.append(numpy.load(f'{_PARAM_TMP_DIR}/values_{i}.npy'))
+
+    beams_all = numpy.concatenate(beam_arrays, axis=0)
+    params_all = numpy.concatenate(task_arrays, axis=0)
+
+    save_str = ''.join([
+    {% for e in rsOptElements %}
+    {% for p in rsOptParams %}
+    {% if p in e %}
+    {% for x in e[p].initial %}
+    {% if e[p].offsets[loop.index0] != 0 %}
+        '{{ e.title }}_{{ p }}_{{ e[p].fieldNames[loop.index0] }}_',
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+    ])
+
+    ###### actual input and output files used for ML
+    numpy.save(f'{_DATASET_DIR}/beam_intensities_{save_str}{n_runs}_runs.npy', beams_all)
+    numpy.save(f'{_DATASET_DIR}/parameters_{save_str}{n_runs}_runs.npy', params_all)
+
+
+def _rsopt_run_set(param_arr, start, end, proc_num):
+    pkdlog(f'Process {proc_num} to complete {end - start} tasks')
+    task_num = start
+    param_set = param_arr[start:end]
+    for vals in param_set:
+        _rsopt_run_single(vals, proc_num, task_num)
+        task_num += 1
+
+
+def _rsopt_run_single(param_vals, proc_num, task_num):
+    vp = _rsopt_set_params(*param_vals)
+    f = _get_beamline_param(
+        vp,
+        'ws_fni',
+        '{{ ws_fni_desc }}'
+    )
+    f[2] = f'{_SRW_OUT_DIR}/res_int_se_{task_num}.dat'
 {{srwMain}}
+    beam = _read_srw_file(f[2])
+    h = beam.shape[0]
+    w = beam.shape[1]
+    beam = beam.reshape(1, h, w)
+    numpy.save(f'{_BEAM_TMP_DIR}/beam_{task_num}.npy', beam)
+    numpy.save(f'{_PARAM_TMP_DIR}/values_{task_num}.npy', [param_vals])
+    pkdlog(f'Process {proc_num} finished task {task_num}')
+
+
+# This function actually sets the data
+def _rsopt_set_params(
+{{ rsOptFuctionSignature() }}
+):
+    vp = varParam.copy()
+    {% for e in rsOptElements %}
+    {% if 'position' in e %}
+    {% for x in e.position.initial %}
+    {% if e.position.offsets[loop.index0] != 0 %}
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.position.fieldNames[loop.index0] }}')
+    if p:
+        p[2] = {{ e.title }}_position_{{ loop.index0 }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% if 'rotation' in e %}
+    {% if e.rotation.offsets[0] != 0 or e.rotation.offsets[1] != 0 or e.rotation.offsets[2] != 0 %}
+    a = [0.0, 0.0, 0.0]
+    {% for t in e.rotation.initial %}
+    {% if e.rotation.offsets[loop.index0] != 0 %}
+    a[{{ loop.index0 }}] = {{ e.title }}_rotation_{{ loop.index0 }}
+    {% endif %}
+    {% endfor %}
+    n = _apply_rotation(a, {{ e.rotation.initial }})
+    {% for t in e.rotation.fieldNames %}
+    t = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ t }}')
+    if t:
+        t[2] = n[{{ loop.index0 }}]
+    {% endfor %}
+    {% endif %}
+    {% endif %}
+    {% if 'radius' in e %}
+    {% for x in e.radius.initial %}
+    {% if e.radius.offsets[loop.index0] != 0 %}
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.radius.fieldNames[loop.index0] }}')
+    if p:
+        p[2] = {{ e.title }}_radius_{{ loop.index0 }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+    return vp
+
+{% endif %}
+
+def main():
+{% if forRSOpt %}
+    import sys
+    args = sys.argv[1:]
+    if len(args) < 2 or args[0] != 'rsopt_run':
+        sys.exit(f'usage: python {sys.argv[0]} rsopt_run <filename>')
+    del sys.argv[1:]
+    _rsopt_run(args[1])
+
+if __name__ == "__main__":
+    main()
+{% else %}
+{{srwMain}}
+{% endif %}

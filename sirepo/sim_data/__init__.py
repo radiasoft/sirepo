@@ -5,24 +5,33 @@ u"""Type-based simulation operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
+
+import uuid
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc
 import hashlib
 import importlib
 import inspect
 import re
 import requests
-import sirepo.util
+import sirepo.job
 import sirepo.template
+import sirepo.util
+
+cfg = None
 
 #: default compute_model
 _ANIMATION_NAME = 'animation'
+
+#: prefix for auth header of sim_db_file requests
+_AUTH_HEADER_PREFIX = f'{sirepo.util.AUTH_HEADER_SCHEME_BEARER} '
 
 #: use to separate components of job_id
 _JOB_ID_SEP = '-'
@@ -116,6 +125,8 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
+    _EXE_PERMISSIONS = 0o700
+
     @classmethod
     def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
@@ -178,6 +189,10 @@ class SimDataBase(object):
         d = model_or_data if isinstance(model_or_data, dict) else None
         #TODO(robnagler) is this necesary since m is parsed?
         return cls.parse_model(cls._compute_model(m, d))
+
+    @classmethod
+    def delete_sim_file(cls, sim_id, basename):
+        return cls._delete_sim_db_file(cls._sim_file_uri(sim_id, basename))
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -321,7 +336,7 @@ class SimDataBase(object):
         Returns:
             str: basename without type prefix
         """
-        return re.sub(r'^.*?-.*?\.', '', basename)
+        return re.sub(r'^.*?-.*?\.(.+\..+)$', r'\1', basename)
 
     @classmethod
     def lib_file_resource_dir(cls):
@@ -384,6 +399,8 @@ class SimDataBase(object):
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
+                if d[1] == 'UUID' and not res[f]:
+                    res[f] = str(uuid.uuid4())
         return res
 
     # TODO(e-carlin): Supplying uid is a temprorary workaround until
@@ -462,8 +479,16 @@ class SimDataBase(object):
         return 2 if cls.is_parallel(data) else 1
 
     @classmethod
-    def proprietary_code_rpm(cls):
-        return f'{cls.sim_type()}.rpm'
+    def proprietary_code_tarball(cls):
+        return None
+
+    @classmethod
+    def proprietary_code_lib_file_basenames(cls):
+        return []
+
+    @classmethod
+    def put_sim_file(cls, sim_id, file_path, basename):
+        return cls._put_sim_db_file(file_path, cls._sim_file_uri(sim_id, basename))
 
     @classmethod
     def resource_dir(cls):
@@ -485,8 +510,27 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
+    def sim_file_basenames(cls, data):
+        return cls._sim_file_basenames(data)
+
+    @classmethod
+    def sim_files_to_run_dir(cls, data, run_dir):
+        for b in cls.sim_file_basenames(data):
+            cls._sim_file_to_run_dir(
+                data.models.simulation.simulationId,
+                b.basename,
+                run_dir,
+                is_exe=b.get('is_exe', False),
+            )
+
+    @classmethod
     def sim_type(cls):
         return cls._memoize(pkinspect.module_basename(cls))
+
+    @classmethod
+    def support_files_to_run_dir(cls, data, run_dir):
+        cls.lib_files_to_run_dir(data, run_dir)
+        cls.sim_files_to_run_dir(data, run_dir)
 
     @classmethod
     def update_model_defaults(cls, model, name, dynamic=None):
@@ -549,6 +593,13 @@ class SimDataBase(object):
         return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
+    def _delete_sim_db_file(cls, uri):
+        _request(
+            'DELETE',
+            cfg.supervisor_sim_db_file_uri + uri,
+        ).raise_for_status()
+
+    @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
         if names:
             names = set(list(names) + ['simulation'])
@@ -562,16 +613,12 @@ class SimDataBase(object):
     @classmethod
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
-        import sirepo.job
 
         p = [cls.lib_file_resource_dir().join(basename)]
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
                 p = pkio.py_path(basename)
-                r = requests.get(
-                    cfg.lib_file_uri + basename,
-                    verify=sirepo.job.cfg.verify_tls,
-                )
+                r = _request('GET', cfg.lib_file_uri + basename)
                 r.raise_for_status()
                 p.write_binary(r.content)
                 return p
@@ -654,6 +701,53 @@ class SimDataBase(object):
         if dm.simulation.get('isExample') and dm.simulation.folder == '/':
             dm.simulation.folder = '/Examples'
 
+    @classmethod
+    def _proprietary_code_tarball(cls):
+        return f'{cls.sim_type()}.tar.gz'
+
+    @classmethod
+    def _put_sim_db_file(cls, file_path, uri):
+        _request(
+            'PUT',
+            cfg.supervisor_sim_db_file_uri + uri,
+            data=pkio.read_binary(file_path),
+        ).raise_for_status()
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        return []
+
+    @classmethod
+    def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
+        p = run_dir.join(uri.split('/')[-1])
+        r = _request('GET', cfg.supervisor_sim_db_file_uri + uri)
+        r.raise_for_status()
+        p.write_binary(r.content)
+        if is_exe:
+            p.chmod(cls._EXE_PERMISSIONS)
+        return p
+
+    @classmethod
+    def _sim_file_to_run_dir(cls, sim_id, basename, run_dir, is_exe=False):
+        return cls._sim_db_file_to_run_dir(
+            cls._sim_file_uri(sim_id, basename),
+            run_dir,
+            is_exe=is_exe,
+        )
+
+    @classmethod
+    def _sim_file_uri(cls, sim_id, basename):
+        from sirepo import simulation_db
+        return simulation_db.simulation_file_uri(
+            cls.sim_type(),
+            sim_id,
+            basename,
+        )
+
+
+class SimDbFileNotFound(Exception):
+    """A sim db file could not be found"""
+    pass
 
 def split_jid(jid):
     """Split jid into named parts
@@ -672,11 +766,30 @@ def split_jid(jid):
 def _init():
     global cfg
 
+    sirepo.job.init()
     cfg = pkconfig.init(
         lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
+        local_share_dir=('/home/vagrant/.local/share', pkio.py_path, 'dir for installed user files'),
+        supervisor_sim_db_file_uri=(None, str, 'where to get/put simulation db files from/to supervisor'),
+        supervisor_sim_db_file_token=(None, str, 'token for supervisor simulation file access'),
     )
+
+
+def _request(method, uri, data=None):
+    r = requests.request(
+        method,
+        uri,
+        data=data,
+        verify=sirepo.job.cfg.verify_tls,
+        headers=PKDict({
+                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX + cfg.supervisor_sim_db_file_token,
+            })
+    )
+    if method == 'GET' and r.status_code == 404:
+        raise SimDbFileNotFound(f'uri={uri} not found')
+    return r
 
 
 _init()

@@ -13,8 +13,15 @@
         "migrateJupyter": {
             "route": "/migrate-jupyter",
             "config": {
-                "controller": "JupyterhubloginController as jupyterhublogin",
-                "templateUrl": "/static/html/jupyterhublogin.html"
+                "controller": "JupyterhubMigrateController as jupyterhubmigrate",
+                "templateUrl": "/static/html/jupyterhub-migrate.html"
+            }
+        },
+        "jupyterNameConflict": {
+            "route": "/jupyter-name-conflict",
+            "config": {
+                "controller": "NameConflictController as nameConflict",
+                "templateUrl": "/static/html/jupyter-name-conflict.html"
             }
         }
     }

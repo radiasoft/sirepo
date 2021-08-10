@@ -4,6 +4,7 @@
             "classifier": "knn"
         },
         "columnInfo": {
+            "colsWithNonUniqueValues": {},
             "hasHeaderRow": true,
             "header": [
                 "sepal length",

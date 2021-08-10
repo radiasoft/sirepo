@@ -23,19 +23,19 @@ The events:
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+# Limit imports
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
 import aenum
 
 #: Map of events to handlers. Note: this is the list of all possible events.
 _MAP = PKDict(
-     auth_logout=[],
-     end_api_call=[],
-     github_authorized=[],
+    auth_logout=[],
+    end_api_call=[],
+    github_authorized=[],
 )
 
 
-def emit(event, kwargs):
+def emit(event, kwargs=None):
     """Call the handlers for `event` with `kwargs`
 
     Handlers will be called in registration order (FIFO).

@@ -1,0 +1,126 @@
+from __future__ import absolute_import, division, print_function
+
+import h5py
+import os
+import re
+from pykern.pkcollections import PKDict
+import sirepo.mpi
+import sirepo.util
+from sirepo.template import radia_examples
+from sirepo.template import radia_util
+from sirepo.template import template_common
+
+VIEW_TYPE_OBJ = 'objects'
+VIEW_TYPE_FIELD = 'fields'
+
+_MODEL_BOX = 'box'
+_MODEL_GROUP = 'geomGroup'
+_MODEL_GROUP_UND = 'geomUndulatorGroup'
+_MODEL_OBJECT = 'geomObject'
+_GROUP_MODELS = (_MODEL_GROUP, _MODEL_GROUP_UND)
+_OBJ_MODELS = (_MODEL_BOX, _MODEL_OBJECT)
+_MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
+
+sirepo_objs = {{ objects }}
+
+def _add_object(o, radia_objs, id_map):
+    if o.model == _MODEL_BOX:
+        ctr = sirepo.util.split_comma_delimited_string(o.center, float)
+        sz = sirepo.util.split_comma_delimited_string(o.size, float)
+        m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
+        div = sirepo.util.split_comma_delimited_string(o.division, int)
+        g_id = radia_util.build_cuboid(ctr, sz, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
+        if o.get('bevels'):
+            for b in o.bevels:
+                g_id = radia_util.apply_bevel(g_id, {{ beam_dir }}, {{ height_dir }}, {{ width_dir }}, ctr, sz, PKDict(b))
+        if o.color:
+            radia_util.apply_color(
+                g_id,
+                [c / 255.0 for c in tuple(int(o.color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))]
+            )
+    if o.model in _GROUP_MODELS:
+        grp = []
+        for obj_id in o.members:
+            obj = [mobj for mobj in sirepo_objs if mobj['id'] == obj_id][0]
+            m = PKDict(obj)
+            if m.id not in id_map.values():
+                # have not added this object yet
+                m_id = _add_object(m, radia_objs, id_map)
+                grp.append(m_id)
+            else:
+                grp.extend(
+                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == m.id]
+                )
+        g_id = radia_util.build_container(grp)
+    for transform in o.transforms:
+        radia_util.apply_transform(g_id, PKDict(transform))
+    id_map[g_id] = o.id
+    # don't add objects if they are already in a group
+    if not o.groupId:
+        radia_objs.append(g_id)
+    return g_id
+
+def _build_radia_geom():
+    id_map = PKDict()
+    radia_objs = []
+{% if is_raw %}
+    g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
+{% elif dmpImportFile %}
+    with open('{{ dmpImportFile }}', 'rb') as f:
+        b = f.read()
+        g_id = radia_util.load_bin(b)
+{% else %}
+    for obj in sirepo_objs:
+        o = PKDict(obj)
+        if o.model not in _MODELS or o.id in id_map.values():
+            continue
+        o_id = _add_object(o, radia_objs, id_map)
+        id_map[o_id] = o.id
+    g_id = radia_util.build_container(radia_objs)
+{% endif %}
+    return g_id, id_map
+
+def _put_sim_files():
+    for f in ['{{ dataFile }}', '{{ dmpOutputFile }}']:
+        sirepo.mpi.restrict_op_to_first_rank(lambda: sirepo.sim_data.get_class('radia').put_sim_file('{{ simId }}', f, f))
+
+
+def _write_dict_to_h5(data, h5_path):
+    sirepo.mpi.restrict_op_to_first_rank(
+        lambda: template_common.write_dict_to_h5(data, '{{ dataFile }}', h5_path=h5_path)
+    )
+
+def _write_dmp(g_id, f_path):
+    with open(f_path, 'wb') as f:
+        f.write(radia_util.dump_bin(g_id))
+
+with radia_util.MPI() as m:
+{% if doReset %}
+    radia_util.reset()
+{% endif %}
+    g_id, id_map = _build_radia_geom()
+    g_data = radia_util.geom_to_data(g_id, name='{{ geomName }}')
+    _write_dict_to_h5(g_data, '{{ h5ObjPath }}')
+    _write_dict_to_h5(id_map, '{{ h5IdMapPath }}')
+
+{% if doSolve %}
+    res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    m.barrier()
+    _write_dict_to_h5(res, '{{ h5SolutionPath }}')
+{% endif %}
+
+{% if viewType == VIEW_TYPE_FIELD %}
+    field = None
+{% if fieldType == FIELD_TYPE_MAG_M %}
+    field = radia_util.get_magnetization(g_id)
+{% elif fieldType in POINT_FIELD_TYPES %}
+    field = radia_util.get_field(g_id, '{{ fieldType }}', {{ fieldPoints }})
+{% endif %}
+    m.barrier()
+    if field:
+        g_data = radia_util.vector_field_to_data(g_id, '{{ geomName }}', field, radia_util.FIELD_UNITS['{{ fieldType }}'])
+        _write_dict_to_h5(g_data, '{{ h5FieldPath }}')
+{% endif %}
+    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, '{{ dmpOutputFile }}'))
+    _put_sim_files()
+

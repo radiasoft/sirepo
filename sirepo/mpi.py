@@ -12,6 +12,40 @@ from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import re
 import sys
 
+FIRST_RANK = 0
+
+
+def restrict_op_to_first_rank(op):
+    """If the process has rank FIRST_RANK, call a function. Otherwise do nothing.
+
+    Use this to call a function that will cause conflicts if called by multiple processes,
+    such as writing results to a file
+
+    Args:
+        op (function): function to call
+    """
+    c = None
+    r = FIRST_RANK
+    res = None
+    try:
+        import mpi4py.MPI
+        c = mpi4py.MPI.COMM_WORLD
+        if c.Get_size() > 1:
+            r = c.Get_rank()
+    except Exception:
+        pass
+    if r == FIRST_RANK:
+        try:
+            res = op()
+        except Exception as e:
+            pkdlog('op={} exception={} stack={}', op, e, pkdexc())
+            if c:
+                c.Abort(1)
+            raise e
+    if c:
+        res = c.bcast(res, root=FIRST_RANK)
+    return res
+
 
 def run_program(cmd, output='mpi_run.out', env=None):
     """Execute python script with mpi.

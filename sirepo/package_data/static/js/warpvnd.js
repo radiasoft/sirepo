@@ -30,7 +30,6 @@ SIREPO.app.config(function() {
           '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
         '</div>',
     ].join('');
-    SIREPO.appImportText = 'Import an stl file';
 });
 
 SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {
@@ -328,6 +327,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
             }
             polys.push(polyVerts);
         }
+        data.method = 'save_stl_polys';
         data.polys = polys;
         requestSender.getApplicationData(data, function(d) {
         });
@@ -361,7 +361,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
 });
 
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, persistentSimulation, utilities, validationService, vtkPlotting, warpvndService, $scope, $compile) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, vtkPlotting, warpvndService, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
     var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
@@ -422,19 +422,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         }
     }
 
-    function checkProbSum(modelName) {
-        if (! appState.models[modelName] || appState.models[modelName].isReflector !== '1') {
-            return true;
-        }
-        return probFields
-            .map(function (f) {
-                return parseFloat(utilities.ngModelForInput(modelName, f).$viewValue);
-            })
-            .reduce(function (sum, v) {
-                return sum + v;
-            }, 0) <= 1;
-    }
-
     // stl files can have arbitrary scale - we are using our knowledge of the problem space
     // to set the scale to something reasonable.  For example, an object with linear dimension
     // in the hundreds is assumed to be in nanometers, etc.  The user can adjust if it is wrong
@@ -462,77 +449,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return Math.round(10000 * scale * val / 1e-6) / 10000;
     }
 
-    //TODO(mvk): validate sizing
-    function plateSpacingValidator() {
-        return true;
-    }
-
-    //var probFields = ['specProb', 'diffProb'];
-    var probFields = ['diffProb'];
-    function probValidator(modelName, field) {
-        return function() {
-            var isValid = checkProbSum(modelName);
-            probFields.forEach(function (f) {
-                if (f === field) {
-                    return;
-                }
-                var m = utilities.ngModelForInput(modelName, f);
-                var n = utilities.modelFieldID(modelName, f);
-                m.$setValidity(n, isValid);
-            });
-            return isValid;
-        };
-    }
-
-    function reloadReflectorValidator(modelName) {
-        probFields.forEach(function (f) {
-            validationService.setModelFieldValidator(modelName, f,
-                probValidator(modelName, f),
-                function () {
-                    return 'Enter a value between 0 and 1';
-                }
-            );
-            var ngm = utilities.ngModelForInput(modelName, f);
-            if (ngm) {
-                ngm.$validate();
-            }
-        });
-    }
-
-    function removeReflectorValidator(modelName) {
-        probFields.forEach(function (f) {
-            var ngm = utilities.ngModelForInput(modelName, f);
-            if (! ngm) {
-                return;
-            }
-            ngm.$validate();
-            validationService.removeModelFieldValidator(modelName, f);
-        });
-    }
-
-    $scope.reflectors = {};
-
-    function initModal(modelName, modal) {
-        if (! $scope.reflectors[modelName]) {
-
-            // for now, force specular probablility to be 0.  We will keep the field in the model but it
-            // will not be in the view
-            //appState.models[modelName].specProb = 0;
-
-            $scope.reflectors[modelName] = {};
-            var dpDiv = $(modal).find('.' + utilities.modelFieldID(modelName, 'diffProb'));
-            $scope.msg = function () {
-                return probFields.reduce(function (m, f) {
-                    return m || validationService.getModelFieldMessage(modelName, f);
-                }, '');
-            };
-            var mds = '<div class="sr-input-warning col-sm-8 col-sm-offset-4">{{ msg() }}</div>';
-            var msgDiv = $compile(mds)($scope);
-            $(dpDiv).after(msgDiv);
-            $(modal).on('shown.bs.modal', reflectionUpdator(modelName));
-            $(modal).on('hidden.bs.modal', reflectionUpdator(modelName));
-        }
-    }
     function setFieldState() {
         ['xLength', 'yLength', 'zLength'].forEach(function (f) {
             panelState.enableField('stl', f, false);
@@ -540,13 +456,13 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     function updateAllFields() {
+        updateReflectorType('anode.reflectorType');
+        updateReflectorType('cathode.reflectorType');
         updateSimulationMode();
         updateBeamCurrent();
         updateBeamRadius();
         updateParticleZMin();
         updateParticlesPerStep();
-        updateReflection('anode');
-        updateReflection('box');
     }
 
     function updateBeamCurrent() {
@@ -590,23 +506,13 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         $scope.defaultColor = appState.models[type].isConductor === '0' ? '#f3d4c8' : '#6992ff';
     }
 
-    function reflectionUpdator(modelName) {
-        return function () {
-            updateReflection(modelName);
-        };
-    }
-
-    function updateReflection(modelName) {
-        var showProbs = (appState.models[modelName] || {}).isReflector === '1';
-        if (showProbs) {
-            reloadReflectorValidator(modelName);
+    function updateReflectorType(field) {
+        var f = appState.parseModelField(field);
+        var m = appState.models[f[0]];
+        panelState.enableField(f[0], 'reflectorProbability', m.reflectorType != 'none');
+        if (m.reflectorType == 'none') {
+            m.reflectorProbability = 0.0;
         }
-        else {
-            removeReflectorValidator(modelName);
-        }
-        probFields.forEach(function (f) {
-            panelState.showField(modelName, f, showProbs);
-        });
     }
 
     function updateSimulationMode() {
@@ -730,12 +636,12 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return appState.models.fieldCalcAnimation;
     };
 
-    self.getReflectOpacity = function(modelNameOrId, probType) {
+    self.getReflectOpacity = function(modelNameOrId) {
         var m = appState.models[modelNameOrId] || self.conductorTypeForId(modelNameOrId);
-        if (! m ||  m.isReflector !== '1') {
+        if (! m ||  m.reflectorType == 'none') {
             return 0;
         }
-        return m.diffProb;
+        return m.reflectorProbability;
     };
 
     self.handleModalShown = function(name) {
@@ -811,8 +717,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
-        appState.watchModelFields($scope, ['anode.isReflector'], reflectionUpdator('anode'));
-        appState.watchModelFields($scope, ['box.isReflector'], reflectionUpdator('box'));
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, ['fieldComparisonAnimation.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
@@ -822,14 +726,10 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             });
         });
         appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSimulationMode);
-
-
-        ['anode', 'box'].forEach(function (m) {
-            $scope.$on(m + '.editor.show', function () {
-                initModal(m, $('#' + panelState.modalId(m)));
-            });
-        });
-
+        appState.watchModelFields(
+            $scope,
+            ['anode.reflectorType', 'cathode.reflectorType', 'box.reflectorType'],
+            updateReflectorType);
     });
 });
 
@@ -1150,7 +1050,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
     };
 });
 
-SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelState, plotting, warpvndService) {
+SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelState, plotting, stringsService, warpvndService) {
     return {
         restrict: 'A',
         scope: {
@@ -1435,6 +1335,30 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function drawCathodeAndAnode(elev) {
+                function draw(element) {
+                    const reflects = appState.models[element[0]].reflectorType !== 'none';
+                    const ar = viewport.append('rect')
+                          .attr('class', 'warpvnd-plate')
+                          .classed(element[2], ! reflects);
+                    if (reflects) {
+                        ar.attr('fill', `url(#reflectionPattern-${element[0]})`)
+                            .attr(
+                                'stroke',
+                                SIREPO.APP_SCHEMA.constants.elementStroke[element[0]]
+                            );
+                    }
+                    ar.attr('x', axes.x.scale(element[1]))
+                        .attr('y', info.axis.scale(channel))
+                        .attr('width', w)
+                        .attr('height', h)
+                        .on('dblclick', function() { editPlate(element[0]); })
+                        .append('title').text(
+                            stringsService.ucfirst(
+                                element[0]
+                            ) + (reflects ? ' (reflector)' : '')
+                        );
+                }
+
                 var grid = appState.models.simulationGrid;
                 var info = plotInfoForElevation(elev);
                 var viewport = select(info.viewportClass);
@@ -1442,28 +1366,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var channel = toMicron(grid[info.heightField] / 2.0);
                 var h = info.axis.scale(-channel) - info.axis.scale(channel);
                 var w = axes.x.scale(0) - axes.x.scale(-plateSize);
-                var reflects = appState.models.anode.isReflector === '1';
-                viewport.append('rect')
-                    .attr('class', 'warpvnd-plate warpvnd-plate-no-voltage')
-                    .attr('x', axes.x.scale(-plateSize))
-                    .attr('y', info.axis.scale(channel))
-                    .attr('width', w)
-                    .attr('height', h)
-                    .on('dblclick', function() { editPlate('cathode'); })
-                    .append('title').text('Cathode');
-                var ar = viewport.append('rect')
-                    .attr('class', 'warpvnd-plate')
-                    .classed('warpvnd-plate-voltage', ! reflects);
-                if (reflects) {
-                    ar.attr('fill', 'url(#reflectionPattern-anode)')
-                        .attr('stroke', SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
-                }
-                ar.attr('x', axes.x.scale(toMicron(plateSpacing)))
-                    .attr('y', info.axis.scale(channel))
-                    .attr('width', w)
-                    .attr('height', h)
-                    .on('dblclick', function() { editPlate('anode'); })
-                    .append('title').text('Anode' + (reflects ? ' (reflector)' : ''));
+                [
+                    ['cathode', -plateSize, 'warpvnd-plate-no-voltage'],
+                    ['anode', toMicron(plateSpacing), 'warpvnd-plate-voltage'],
+                ].forEach((e) => draw(e));
             }
 
             function drawCathodeAndAnodes() {
@@ -1518,7 +1424,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             id: conductorPosition.id,
                             conductorType: conductorType,
                             elev: elev,
-                            isReflector: conductorType.isReflector,
+                            reflectorType: conductorType.reflectorType,
                         });
                         var dy = toMicron(grid[info.heightField]);
                         var y0 = -dy / 2;
@@ -1839,10 +1745,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return !  doesShapeCrossGridLine(d);
                     })
                     .classed('warpvnd-shape-voltage', function(d) {
-                        return d.isReflector !== '1' && d.conductorType.voltage > 0;
+                        return d.reflectorType == 'none' && d.conductorType.voltage > 0;
                     })
                     .classed('warpvnd-shape-no-voltage', function(d) {
-                        return d.isReflector !== '1' && d.conductorType.voltage == 0;
+                        return d.reflectorType == 'none' && d.conductorType.voltage == 0;
                     })
                     .classed('warpvnd-shape-inactive', function(d) {
                         if (! warpvndService.is3D()) {
@@ -1871,7 +1777,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
-                        if (d.isReflector === '1') {
+                        if (d.reflectorType != 'none') {
                             return 'fill:url(#reflectionPattern-' + d.conductorType.id + '); ' +
                                 'stroke: ' + shapeColor(d.conductorType.color);
                         }
@@ -1886,7 +1792,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
                 tooltip.text(function(d) {
                     return doesShapeCrossGridLine(d)
-                        ? d.conductorType.name + (d.conductorType.isReflector === '1' ? ' (reflector)' : '')
+                        ? d.conductorType.name + (d.conductorType.reflectorType !== 'none' ? ' (reflector)' : '')
                         : '⚠️ Conductor does not cross a warp grid line and will be ignored';
                 });
             }
@@ -2760,36 +2666,6 @@ SIREPO.app.directive('impactDensityPlot', function(errorService, plotting, plot2
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 $scope.updatePlot(json);
-
-                var i;
-                for (i = 0; i < json.density_lines.length; i++) {
-                    var lineInfo = json.density_lines[i];
-                    var p = lineInfo.points;
-                    if (! lineInfo.density.length) {
-                        lineInfo.density = [0];
-                    }
-                    var lineSegments = plotting.linearlySpacedArray(p[0], p[1], lineInfo.density.length + 1);
-                    var j;
-                    for (j = 0; j < lineSegments.length - 1; j++) {
-                        var v;
-                        var density = lineInfo.density[j];
-                        var p0 = lineSegments[j];
-                        var p1 = lineSegments[j + 1];
-                        if (lineInfo.align == 'horizontal') {
-                            v = [[p0, p[2]], [p1, p[2]]];
-                        }
-                        else {
-                            v = [[p[2], p0], [p[2], p1]];
-                        }
-                        v.srDensity = density;
-                        var path = viewport.append('path')
-                            .attr('class', 'line')
-                            .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
-                                  + (density > 0 ? $scope.colorScale(density) : 'black'))
-                            .datum(v);
-                        path.on('mouseover', mouseOver);
-                    }
-                }
 
                 // loop over conductors
                 // arr[0] + k * sk for 2d

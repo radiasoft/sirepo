@@ -19,19 +19,19 @@ def default_command():
         'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
     cfg = pkconfig.init(
         proprietary_code_uri=(
-            f'file://{pathlib.Path.home()}/src/radiasoft/rsconf/rpm',
+            f'file://{pathlib.Path.home()}/src/radiasoft/rsconf/proprietary',
             str,
-            'root uri of RPMs',
+            'root uri of proprietary codes files location',
         ),
     )
     _proprietary_codes()
 
 
 def _proprietary_codes():
-    """Get proprietary RPMs and put it in the proprietary code dir
+    """Get proprietary files and put it in the proprietary code dir
 
     Args:
-      uri (str): where to get RPM (file:// or http://)
+      uri (str): where to get file (file:// or http://)
     """
     import sirepo.feature_config
     import sirepo.sim_data
@@ -40,19 +40,20 @@ def _proprietary_codes():
     import urllib.request
 
     for s in sirepo.feature_config.cfg().proprietary_sim_types:
+        f = sirepo.sim_data.get_class(s).proprietary_code_tarball()
+        if not f:
+            return
         r = pkio.mkdir_parent(
             sirepo.srdb.proprietary_code_dir(s),
-        ).join(
-            sirepo.sim_data.get_class(s).proprietary_code_rpm(),
-        )
-        # POSIT: download/installers/rpm-code/dev-build.sh
-        u = f'{cfg.proprietary_code_uri}/rscode-{s}-dev.rpm'
+        ).join(f)
+        # POSIT: download/installers/flash-tarball/radiasoft-download.sh
+        u = f'{cfg.proprietary_code_uri}/{s}-dev.tar.gz'
         try:
             urllib.request.urlretrieve(u, r)
         except urllib.error.URLError as e:
             if not isinstance(e.reason, FileNotFoundError):
                 raise
-            pkdlog('uri={} not found; mocking empty rpm={}', u, r)
+            pkdlog('uri={} not found; mocking empty file={}', u, r)
             pkio.write_text(
                 r,
                 'mocked by sirepo.pkcli.setup_dev',

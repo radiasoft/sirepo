@@ -49,13 +49,13 @@ def test_energy_conversion_by_sim_type():
         )
     )
     pkeq(
-        ParticleEnergy.compute_energy('opal', 'electron', energy.copy()),
+        ParticleEnergy.compute_energy('opal', 'ELECTRON', energy.copy()),
         PKDict(
             beta=0.999999838815018,
-            brho=3.002077837014637,
-            energy=0.900000438932496,
+            brho=3.0020779662628776,
+            energy=0.9000004776801501,
             gamma=1761.257,
-            kinetic_energy=0.899489440004496,
-            pc=0.9000002938659415,
+            kinetic_energy=0.8994894787301502,
+            pc=0.9000003326135892,
         )
     )

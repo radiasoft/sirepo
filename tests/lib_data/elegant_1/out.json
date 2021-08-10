@@ -2564,11 +2564,11 @@
             }
         ],
         "bunch": {
-            "alpha_x": 1.0,
-            "alpha_y": 1.0,
+            "alpha_x": 0.0,
+            "alpha_y": 0.0,
             "alpha_z": 0.0,
-            "beta_x": 10.0,
-            "beta_y": 10.0,
+            "beta_x": 1.0,
+            "beta_y": 1.0,
             "beta_z": 0.0,
             "centroid": "0, 0, 0, 0, 0, 0",
             "distribution_cutoff": "3, 3, 3",
@@ -2596,7 +2596,7 @@
             "randomize_order": "0, 0, 0",
             "sigma_dp": 0.001,
             "sigma_s": 0.00065,
-            "symmetrize": "1",
+            "symmetrize": "0",
             "time_start": 0.0
         },
         "bunchFile": {
@@ -2631,7 +2631,8 @@
                 "_type": "run_setup",
                 "acceptance": "",
                 "always_change_p0": "1",
-                "centroid": "1",
+                "back_tracking": "0",
+                "centroid": "%s.cen",
                 "combine_bunch_statistics": "0",
                 "concat_order": 0,
                 "correction_iterations": 1,
@@ -2639,21 +2640,25 @@
                 "echo_lattice": "0",
                 "element_divisions": 0,
                 "expand_for": "",
-                "final": "1",
+                "final": "%s.fin",
                 "final_pass": "0",
                 "lattice": "PClinac_TESSA_LSC.lte",
                 "load_balancing_on": 0,
                 "losses": "",
-                "magnets": "1",
+                "losses_include_global_coordinates": "0",
+                "losses_s_limit": "-1.79E308, 1.79E308",
+                "magnets": "%s.mag",
                 "monitor_memory_usage": "0",
                 "output": "",
                 "p_central": 85.0,
                 "p_central_mev": 0.0,
-                "parameters": "1",
+                "parameters": "%s.param",
                 "print_statistics": "0",
                 "random_number_seed": 987654321,
+                "rfc_reference_output": "",
                 "show_element_timing": "0",
-                "sigma": "1",
+                "sigma": "%s.sig",
+                "suppress_parameter_defaults": "0",
                 "tracking_updates": "1",
                 "use_beamline": 829,
                 "wrap_around": "1"
@@ -2931,7 +2936,7 @@
                 "_type": "twiss_output",
                 "alpha_x": -1.609709872915761,
                 "alpha_y": -1.653138844198896,
-                "beta_x": 4.034896311524342,
+                "beta_x": "{sddsanalyzebeam whruby.sdds -pipe=out | sdds2stream -pipe -column=betax}",
                 "beta_y": 4.199343696609461,
                 "cavities_are_drifts_if_matched": "1",
                 "chromatic_tune_spread_half_range": 0.0,
@@ -2941,7 +2946,7 @@
                 "eta_y": 0.0,
                 "etap_x": 0.0,
                 "etap_y": 0.0,
-                "filename": "1",
+                "filename": "%s.twi",
                 "final_values_only": "0",
                 "higher_order_chromaticity": "0",
                 "higher_order_chromaticity_points": 5,
@@ -2966,7 +2971,7 @@
                 "bunch_frequency": 0.0,
                 "first_is_fiducial": "0",
                 "n_indices": 1,
-                "n_passes": 1,
+                "n_passes": 1.0,
                 "n_passes_fiducial": 0,
                 "n_steps": 1.0,
                 "reset_rf_for_each_step": "1",
@@ -3052,6 +3057,7 @@
                 "center_arrival_time": "0",
                 "center_transversely": "0",
                 "duplicate_stagger": "0, 0, 0, 0, 0, 0",
+                "fiducialization_bunch": 0,
                 "input": "PCG.sdds",
                 "input_type": "elegant",
                 "n_duplicates": 0,
@@ -3074,19 +3080,23 @@
             {
                 "_id": 20,
                 "_type": "save_lattice",
-                "filename": "1",
+                "filename": "%s_save.lte",
                 "output_seq": "1"
             },
             {
-                "SDDS_output": "1",
+                "SDDS_output": "matrix_output.sdds",
                 "SDDS_output_match": "",
                 "SDDS_output_order": 2,
                 "_id": 21,
                 "_type": "matrix_output",
                 "full_matrix_only": "0",
                 "individual_matrices": "0",
+                "mathematica_full_matrix": "0",
+                "mathematica_matrix_file": "",
+                "mathematica_matrix_name": "MFull",
                 "output_at_each_step": "1",
-                "printout": "1",
+                "print_element_data": "1",
+                "printout": "%s_out.matrix",
                 "printout_order": 2,
                 "start_from": "",
                 "start_from_occurence": 1
@@ -3096,6 +3106,7 @@
                 "_type": "track",
                 "center_momentum_also": "1",
                 "center_on_orbit": "0",
+                "check_beam_structure": "0",
                 "longitudinal_ring_only": "0",
                 "offset_by_orbit": "0",
                 "offset_momentum_also": "1",
@@ -3104,15 +3115,6 @@
                 "use_linear_chromatic_matrix": "0"
             }
         ],
-        "elementAnimation": {
-            "histogramBins": 200,
-            "horizontalOffset": 0.0,
-            "horizontalSize": 0.0,
-            "verticalOffset": 0.0,
-            "verticalSize": 0.0,
-            "x": "x",
-            "y": "xp"
-        },
         "elements": [
             {
                 "_id": 50,
@@ -3169,6 +3171,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3194,10 +3197,11 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "BB:BM1",
                 "nonlinear": "1",
-                "output_file": "1",
+                "output_file": "%s.BM1.csr",
                 "output_interval": 10.0,
                 "output_last_wake_only": "0",
                 "particle_output_file": "",
@@ -3245,6 +3249,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3270,10 +3275,11 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "BB:BM2",
                 "nonlinear": "1",
-                "output_file": "1",
+                "output_file": "%s.BM2.csr",
                 "output_interval": 10.0,
                 "output_last_wake_only": "0",
                 "particle_output_file": "",
@@ -3321,6 +3327,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3346,10 +3353,11 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "L3:BM1",
                 "nonlinear": "1",
-                "output_file": "1",
+                "output_file": "%s.B1.csr",
                 "output_interval": 10.0,
                 "output_last_wake_only": "0",
                 "particle_output_file": "",
@@ -3397,6 +3405,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3422,10 +3431,11 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "L3:BM2",
                 "nonlinear": "1",
-                "output_file": "1",
+                "output_file": "%s.B2.csr",
                 "output_interval": 10.0,
                 "output_last_wake_only": "0",
                 "particle_output_file": "",
@@ -3473,6 +3483,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3498,10 +3509,11 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "L3:BM3",
                 "nonlinear": "1",
-                "output_file": "1",
+                "output_file": "%s.B3.csr",
                 "output_interval": 10.0,
                 "output_last_wake_only": "0",
                 "particle_output_file": "",
@@ -3549,6 +3561,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3574,10 +3587,11 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "L3:BM4",
                 "nonlinear": "1",
-                "output_file": "1",
+                "output_file": "%s.B4.csr",
                 "output_interval": 10.0,
                 "output_last_wake_only": "0",
                 "particle_output_file": "",
@@ -3625,6 +3639,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3650,7 +3665,8 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "PB_BC1.1",
                 "nonlinear": "1",
                 "output_file": "",
@@ -3701,6 +3717,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3726,7 +3743,8 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "PB_BC1.2",
                 "nonlinear": "1",
                 "output_file": "",
@@ -3777,6 +3795,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3802,7 +3821,8 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "PB_BC1.3",
                 "nonlinear": "1",
                 "output_file": "",
@@ -3853,6 +3873,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3878,7 +3899,8 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "TC_BC1.1",
                 "nonlinear": "1",
                 "output_file": "",
@@ -3929,6 +3951,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -3954,7 +3977,8 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "TC_BC1.2",
                 "nonlinear": "1",
                 "output_file": "",
@@ -4005,6 +4029,7 @@
                 "edge2_effects": "1",
                 "edge_order": 1.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "expansion_order": 0.0,
                 "fint": 0.5,
                 "fse": 0.0,
@@ -4030,7 +4055,8 @@
                 "linearize": "0",
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
-                "n_kicks": 100.0,
+                "n_kicks": 100,
+                "n_slices": 4,
                 "name": "TC_BC1.3",
                 "nonlinear": "1",
                 "output_file": "",
@@ -4061,7 +4087,7 @@
                 "csr": "1",
                 "dz": 0.01,
                 "group": "",
-                "l": 0.120565622789519,
+                "l": 0.12056562278951899,
                 "linearize": "0",
                 "lsc_bins": 1024,
                 "lsc_high_frequency_cutoff0": -1.0,
@@ -4193,7 +4219,7 @@
                 "csr": "1",
                 "dz": 0.01,
                 "group": "",
-                "l": 0.11079515,
+                "l": 0.11079515000000001,
                 "linearize": "0",
                 "lsc_bins": 1024,
                 "lsc_high_frequency_cutoff0": -1.0,
@@ -4325,7 +4351,7 @@
                 "csr": "1",
                 "dz": 0.01,
                 "group": "",
-                "l": 0.122349946400042,
+                "l": 0.12234994640004199,
                 "linearize": "0",
                 "lsc_bins": 1024,
                 "lsc_high_frequency_cutoff0": -1.0,
@@ -4769,9 +4795,15 @@
                 "l": 0.288,
                 "name": "TE_PBU",
                 "periods": 9.0,
+                "pole1_factor": 1.0,
+                "pole2_factor": 1.0,
+                "pole3_factor": 1.0,
                 "sinusoidal": "1",
                 "steps_per_period": 10.0,
                 "synch_rad": "0",
+                "tgu": "0",
+                "tgu_comp_factor": 1.0,
+                "tgu_gradient": 0.0,
                 "tilt": 0.0,
                 "type": "CWIGGLER",
                 "verbosity": 0,
@@ -4799,9 +4831,15 @@
                 "l": 0.928,
                 "name": "TSU1",
                 "periods": 29.0,
+                "pole1_factor": 1.0,
+                "pole2_factor": 1.0,
+                "pole3_factor": 1.0,
                 "sinusoidal": "1",
                 "steps_per_period": 10.0,
                 "synch_rad": "0",
+                "tgu": "0",
+                "tgu_comp_factor": 1.0,
+                "tgu_gradient": 0.0,
                 "tilt": 0.0,
                 "type": "CWIGGLER",
                 "verbosity": 0,
@@ -4829,9 +4867,15 @@
                 "l": 0.928,
                 "name": "TSU2",
                 "periods": 29.0,
+                "pole1_factor": 1.0,
+                "pole2_factor": 1.0,
+                "pole3_factor": 1.0,
                 "sinusoidal": "1",
                 "steps_per_period": 10.0,
                 "synch_rad": "0",
+                "tgu": "0",
+                "tgu_comp_factor": 1.0,
+                "tgu_gradient": 0.0,
                 "tilt": 0.0,
                 "type": "CWIGGLER",
                 "verbosity": 0,
@@ -4859,9 +4903,15 @@
                 "l": 0.928,
                 "name": "TSU3",
                 "periods": 29.0,
+                "pole1_factor": 1.0,
+                "pole2_factor": 1.0,
+                "pole3_factor": 1.0,
                 "sinusoidal": "1",
                 "steps_per_period": 10.0,
                 "synch_rad": "0",
+                "tgu": "0",
+                "tgu_comp_factor": 1.0,
+                "tgu_gradient": 0.0,
                 "tilt": 0.0,
                 "type": "CWIGGLER",
                 "verbosity": 0,
@@ -4889,9 +4939,15 @@
                 "l": 0.928,
                 "name": "TSU4",
                 "periods": 29.0,
+                "pole1_factor": 1.0,
+                "pole2_factor": 1.0,
+                "pole3_factor": 1.0,
                 "sinusoidal": "1",
                 "steps_per_period": 10.0,
                 "synch_rad": "0",
+                "tgu": "0",
+                "tgu_comp_factor": 1.0,
+                "tgu_gradient": 0.0,
                 "tilt": 0.0,
                 "type": "CWIGGLER",
                 "verbosity": 0,
@@ -5432,6 +5488,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5448,6 +5505,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5464,6 +5522,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5480,6 +5539,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5496,6 +5556,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5512,6 +5573,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5528,6 +5590,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5544,6 +5607,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5560,6 +5624,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5576,6 +5641,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -5592,6 +5658,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "HMON",
                 "weight": 1.0
@@ -6028,6 +6095,7 @@
                 "edge2_linear": "1",
                 "edge2_nonlinear_factor": "1",
                 "edge_multipoles": "",
+                "expand_hamiltonian": "0",
                 "fse": 0.0,
                 "group": "",
                 "hcalibration": 1.0,
@@ -6049,8 +6117,15 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": 0.0,
-                "n_kicks": 4.0,
+                "malign_method": "0",
+                "max_normal_order": -1,
+                "max_skew_order": -1,
+                "min_normal_order": -1,
+                "min_skew_order": -1,
+                "n_kicks": 4,
+                "n_slices": 4,
                 "name": "LTP:Q6",
+                "pitch": 0.0,
                 "radial": "0",
                 "random_multipole_factor": 1.0,
                 "random_multipoles": "",
@@ -6061,10 +6136,12 @@
                 "systematic_multipole_factor": 1.0,
                 "systematic_multipoles": "",
                 "tilt": 0.0,
+                "tracking_matrix": 0,
                 "type": "KQUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 306,
@@ -6080,6 +6157,7 @@
                 "edge2_linear": "1",
                 "edge2_nonlinear_factor": "1",
                 "edge_multipoles": "",
+                "expand_hamiltonian": "0",
                 "fse": 0.0,
                 "group": "",
                 "hcalibration": 1.0,
@@ -6101,8 +6179,15 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": 0.0,
-                "n_kicks": 4.0,
+                "malign_method": "0",
+                "max_normal_order": -1,
+                "max_skew_order": -1,
+                "min_normal_order": -1,
+                "min_skew_order": -1,
+                "n_kicks": 4,
+                "n_slices": 4,
                 "name": "LTP:Q7",
+                "pitch": 0.0,
                 "radial": "0",
                 "random_multipole_factor": 1.0,
                 "random_multipoles": "",
@@ -6113,13 +6198,16 @@
                 "systematic_multipole_factor": 1.0,
                 "systematic_multipoles": "",
                 "tilt": 0.0,
+                "tracking_matrix": 0,
                 "type": "KQUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 53,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6139,6 +6227,7 @@
             },
             {
                 "_id": 54,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6158,6 +6247,7 @@
             },
             {
                 "_id": 55,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6177,6 +6267,7 @@
             },
             {
                 "_id": 56,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6196,6 +6287,7 @@
             },
             {
                 "_id": 57,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6215,6 +6307,7 @@
             },
             {
                 "_id": 58,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6234,6 +6327,7 @@
             },
             {
                 "_id": 59,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6253,6 +6347,7 @@
             },
             {
                 "_id": 60,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6272,6 +6367,7 @@
             },
             {
                 "_id": 61,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6291,6 +6387,7 @@
             },
             {
                 "_id": 66,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6310,6 +6407,7 @@
             },
             {
                 "_id": 67,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6329,6 +6427,7 @@
             },
             {
                 "_id": 717,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6348,6 +6447,7 @@
             },
             {
                 "_id": 718,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6367,6 +6467,7 @@
             },
             {
                 "_id": 711,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6386,6 +6487,7 @@
             },
             {
                 "_id": 712,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6405,6 +6507,7 @@
             },
             {
                 "_id": 69,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6424,6 +6527,7 @@
             },
             {
                 "_id": 70,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6443,6 +6547,7 @@
             },
             {
                 "_id": 71,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6462,6 +6567,7 @@
             },
             {
                 "_id": 81,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6481,6 +6587,7 @@
             },
             {
                 "_id": 82,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6500,6 +6607,7 @@
             },
             {
                 "_id": 83,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6519,6 +6627,7 @@
             },
             {
                 "_id": 84,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6538,6 +6647,7 @@
             },
             {
                 "_id": 85,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6557,6 +6667,7 @@
             },
             {
                 "_id": 86,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6576,6 +6687,7 @@
             },
             {
                 "_id": 87,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6595,6 +6707,7 @@
             },
             {
                 "_id": 94,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6614,6 +6727,7 @@
             },
             {
                 "_id": 95,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6633,6 +6747,7 @@
             },
             {
                 "_id": 98,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6652,6 +6767,7 @@
             },
             {
                 "_id": 100,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6671,6 +6787,7 @@
             },
             {
                 "_id": 124,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6690,6 +6807,7 @@
             },
             {
                 "_id": 135,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6709,6 +6827,7 @@
             },
             {
                 "_id": 136,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6728,6 +6847,7 @@
             },
             {
                 "_id": 137,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6747,6 +6867,7 @@
             },
             {
                 "_id": 141,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6766,6 +6887,7 @@
             },
             {
                 "_id": 142,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6785,6 +6907,7 @@
             },
             {
                 "_id": 143,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6804,6 +6927,7 @@
             },
             {
                 "_id": 147,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6823,6 +6947,7 @@
             },
             {
                 "_id": 148,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6842,6 +6967,7 @@
             },
             {
                 "_id": 127,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6861,6 +6987,7 @@
             },
             {
                 "_id": 200,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6880,6 +7007,7 @@
             },
             {
                 "_id": 161,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6899,6 +7027,7 @@
             },
             {
                 "_id": 125,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6918,6 +7047,7 @@
             },
             {
                 "_id": 162,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6937,6 +7067,7 @@
             },
             {
                 "_id": 170,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6956,6 +7087,7 @@
             },
             {
                 "_id": 191,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6975,6 +7107,7 @@
             },
             {
                 "_id": 192,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -6994,6 +7127,7 @@
             },
             {
                 "_id": 193,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7013,6 +7147,7 @@
             },
             {
                 "_id": 203,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7032,12 +7167,13 @@
             },
             {
                 "_id": 207,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 0.1384868,
+                "l": 0.13848680000000002,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -7051,12 +7187,13 @@
             },
             {
                 "_id": 210,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 0.2769996,
+                "l": 0.27699959999999996,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -7070,12 +7207,13 @@
             },
             {
                 "_id": 211,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 0.1096852,
+                "l": 0.10968520000000001,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -7089,6 +7227,7 @@
             },
             {
                 "_id": 208,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7108,6 +7247,7 @@
             },
             {
                 "_id": 194,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7127,6 +7267,7 @@
             },
             {
                 "_id": 217,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7146,6 +7287,7 @@
             },
             {
                 "_id": 218,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7165,6 +7307,7 @@
             },
             {
                 "_id": 219,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7184,6 +7327,7 @@
             },
             {
                 "_id": 230,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7203,6 +7347,7 @@
             },
             {
                 "_id": 235,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7222,6 +7367,7 @@
             },
             {
                 "_id": 236,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7241,6 +7387,7 @@
             },
             {
                 "_id": 237,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7260,6 +7407,7 @@
             },
             {
                 "_id": 241,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7279,6 +7427,7 @@
             },
             {
                 "_id": 242,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7298,6 +7447,7 @@
             },
             {
                 "_id": 243,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7317,6 +7467,7 @@
             },
             {
                 "_id": 256,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7336,6 +7487,7 @@
             },
             {
                 "_id": 264,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7355,6 +7507,7 @@
             },
             {
                 "_id": 270,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7374,6 +7527,7 @@
             },
             {
                 "_id": 277,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7393,6 +7547,7 @@
             },
             {
                 "_id": 278,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7412,6 +7567,7 @@
             },
             {
                 "_id": 292,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7431,12 +7587,13 @@
             },
             {
                 "_id": 293,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 0.04695,
+                "l": 0.046950000000000006,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -7450,6 +7607,7 @@
             },
             {
                 "_id": 272,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7469,6 +7627,7 @@
             },
             {
                 "_id": 279,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7488,6 +7647,7 @@
             },
             {
                 "_id": 265,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7507,6 +7667,7 @@
             },
             {
                 "_id": 271,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7526,6 +7687,7 @@
             },
             {
                 "_id": 587,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7545,6 +7707,7 @@
             },
             {
                 "_id": 585,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7564,6 +7727,7 @@
             },
             {
                 "_id": 583,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7583,6 +7747,7 @@
             },
             {
                 "_id": 581,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7602,6 +7767,7 @@
             },
             {
                 "_id": 667,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7621,6 +7787,7 @@
             },
             {
                 "_id": 668,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7640,6 +7807,7 @@
             },
             {
                 "_id": 669,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7659,6 +7827,7 @@
             },
             {
                 "_id": 670,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7678,6 +7847,7 @@
             },
             {
                 "_id": 671,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7697,6 +7867,7 @@
             },
             {
                 "_id": 672,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7716,6 +7887,7 @@
             },
             {
                 "_id": 673,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7735,6 +7907,7 @@
             },
             {
                 "_id": 660,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7754,6 +7927,7 @@
             },
             {
                 "_id": 661,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7773,6 +7947,7 @@
             },
             {
                 "_id": 662,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7792,6 +7967,7 @@
             },
             {
                 "_id": 628,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7811,6 +7987,7 @@
             },
             {
                 "_id": 629,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7830,6 +8007,7 @@
             },
             {
                 "_id": 630,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7849,6 +8027,7 @@
             },
             {
                 "_id": 631,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7868,6 +8047,7 @@
             },
             {
                 "_id": 632,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7887,6 +8067,7 @@
             },
             {
                 "_id": 633,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7906,6 +8087,7 @@
             },
             {
                 "_id": 634,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7925,6 +8107,7 @@
             },
             {
                 "_id": 635,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7944,6 +8127,7 @@
             },
             {
                 "_id": 636,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7963,6 +8147,7 @@
             },
             {
                 "_id": 637,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -7982,6 +8167,7 @@
             },
             {
                 "_id": 638,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8001,6 +8187,7 @@
             },
             {
                 "_id": 639,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8020,6 +8207,7 @@
             },
             {
                 "_id": 640,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8039,6 +8227,7 @@
             },
             {
                 "_id": 641,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8058,6 +8247,7 @@
             },
             {
                 "_id": 642,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8077,6 +8267,7 @@
             },
             {
                 "_id": 643,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8096,6 +8287,7 @@
             },
             {
                 "_id": 644,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8115,6 +8307,7 @@
             },
             {
                 "_id": 645,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8134,6 +8327,7 @@
             },
             {
                 "_id": 646,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8153,6 +8347,7 @@
             },
             {
                 "_id": 647,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8172,6 +8367,7 @@
             },
             {
                 "_id": 648,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8191,6 +8387,7 @@
             },
             {
                 "_id": 649,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8210,6 +8407,7 @@
             },
             {
                 "_id": 650,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8229,6 +8427,7 @@
             },
             {
                 "_id": 651,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8248,6 +8447,7 @@
             },
             {
                 "_id": 652,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8267,6 +8467,7 @@
             },
             {
                 "_id": 653,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8286,6 +8487,7 @@
             },
             {
                 "_id": 654,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8305,6 +8507,7 @@
             },
             {
                 "_id": 655,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8324,6 +8527,7 @@
             },
             {
                 "_id": 101,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8343,6 +8547,7 @@
             },
             {
                 "_id": 231,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8362,6 +8567,7 @@
             },
             {
                 "_id": 244,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8381,6 +8587,7 @@
             },
             {
                 "_id": 266,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8400,6 +8607,7 @@
             },
             {
                 "_id": 273,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8419,6 +8627,7 @@
             },
             {
                 "_id": 280,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8438,12 +8647,13 @@
             },
             {
                 "_id": 126,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 0.152758666333333,
+                "l": 0.15275866633333307,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -8457,6 +8667,7 @@
             },
             {
                 "_id": 128,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8476,6 +8687,7 @@
             },
             {
                 "_id": 313,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8495,6 +8707,7 @@
             },
             {
                 "_id": 459,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8514,6 +8727,7 @@
             },
             {
                 "_id": 795,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8533,6 +8747,7 @@
             },
             {
                 "_id": 314,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8552,6 +8767,7 @@
             },
             {
                 "_id": 461,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8571,6 +8787,7 @@
             },
             {
                 "_id": 315,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8590,6 +8807,7 @@
             },
             {
                 "_id": 796,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8609,6 +8827,7 @@
             },
             {
                 "_id": 797,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8628,6 +8847,7 @@
             },
             {
                 "_id": 316,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8647,6 +8867,7 @@
             },
             {
                 "_id": 798,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8666,6 +8887,7 @@
             },
             {
                 "_id": 793,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8685,6 +8907,7 @@
             },
             {
                 "_id": 794,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8704,6 +8927,7 @@
             },
             {
                 "_id": 790,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8723,6 +8947,7 @@
             },
             {
                 "_id": 791,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8742,6 +8967,7 @@
             },
             {
                 "_id": 792,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8761,6 +8987,7 @@
             },
             {
                 "_id": 789,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8780,6 +9007,7 @@
             },
             {
                 "_id": 788,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8799,6 +9027,7 @@
             },
             {
                 "_id": 787,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8818,6 +9047,7 @@
             },
             {
                 "_id": 317,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8837,6 +9067,7 @@
             },
             {
                 "_id": 318,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8856,6 +9087,7 @@
             },
             {
                 "_id": 319,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8875,6 +9107,7 @@
             },
             {
                 "_id": 464,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8894,6 +9127,7 @@
             },
             {
                 "_id": 320,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8913,6 +9147,7 @@
             },
             {
                 "_id": 321,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8932,6 +9167,7 @@
             },
             {
                 "_id": 463,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8951,6 +9187,7 @@
             },
             {
                 "_id": 322,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8970,6 +9207,7 @@
             },
             {
                 "_id": 805,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -8989,6 +9227,7 @@
             },
             {
                 "_id": 806,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9008,6 +9247,7 @@
             },
             {
                 "_id": 323,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9027,6 +9267,7 @@
             },
             {
                 "_id": 324,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9046,6 +9287,7 @@
             },
             {
                 "_id": 325,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9065,12 +9307,13 @@
             },
             {
                 "_id": 591,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 1.38047,
+                "l": 1.3804699999999999,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -9084,6 +9327,7 @@
             },
             {
                 "_id": 592,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9103,6 +9347,7 @@
             },
             {
                 "_id": 593,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9122,6 +9367,7 @@
             },
             {
                 "_id": 329,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9141,6 +9387,7 @@
             },
             {
                 "_id": 589,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9160,6 +9407,7 @@
             },
             {
                 "_id": 527,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9179,6 +9427,7 @@
             },
             {
                 "_id": 545,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9198,6 +9447,7 @@
             },
             {
                 "_id": 546,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9217,6 +9467,7 @@
             },
             {
                 "_id": 547,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9236,6 +9487,7 @@
             },
             {
                 "_id": 548,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9255,6 +9507,7 @@
             },
             {
                 "_id": 549,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9274,12 +9527,13 @@
             },
             {
                 "_id": 550,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
                 "high_frequency_cutoff1": -1.0,
                 "interpolate": "1",
-                "l": 0.53275,
+                "l": 0.5327500000000001,
                 "leffective": 0.0,
                 "low_frequency_cutoff0": -1.0,
                 "low_frequency_cutoff1": -1.0,
@@ -9293,6 +9547,7 @@
             },
             {
                 "_id": 551,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9312,6 +9567,7 @@
             },
             {
                 "_id": 552,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9331,6 +9587,7 @@
             },
             {
                 "_id": 553,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9350,6 +9607,7 @@
             },
             {
                 "_id": 554,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9369,6 +9627,7 @@
             },
             {
                 "_id": 529,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9388,6 +9647,7 @@
             },
             {
                 "_id": 530,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9407,6 +9667,7 @@
             },
             {
                 "_id": 531,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9426,6 +9687,7 @@
             },
             {
                 "_id": 532,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9445,6 +9707,7 @@
             },
             {
                 "_id": 533,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9464,6 +9727,7 @@
             },
             {
                 "_id": 534,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9483,6 +9747,7 @@
             },
             {
                 "_id": 535,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9502,6 +9767,7 @@
             },
             {
                 "_id": 536,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9521,6 +9787,7 @@
             },
             {
                 "_id": 537,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9540,6 +9807,7 @@
             },
             {
                 "_id": 538,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9559,6 +9827,7 @@
             },
             {
                 "_id": 540,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9578,6 +9847,7 @@
             },
             {
                 "_id": 541,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9597,6 +9867,7 @@
             },
             {
                 "_id": 542,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9616,6 +9887,7 @@
             },
             {
                 "_id": 543,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9635,6 +9907,7 @@
             },
             {
                 "_id": 544,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9654,6 +9927,7 @@
             },
             {
                 "_id": 528,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9673,6 +9947,7 @@
             },
             {
                 "_id": 555,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9692,6 +9967,7 @@
             },
             {
                 "_id": 40,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9711,6 +9987,7 @@
             },
             {
                 "_id": 32,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9730,6 +10007,7 @@
             },
             {
                 "_id": 38,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9749,6 +10027,7 @@
             },
             {
                 "_id": 43,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9768,6 +10047,7 @@
             },
             {
                 "_id": 46,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9787,6 +10067,7 @@
             },
             {
                 "_id": 26,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9806,6 +10087,7 @@
             },
             {
                 "_id": 29,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9825,6 +10107,7 @@
             },
             {
                 "_id": 35,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9844,6 +10127,7 @@
             },
             {
                 "_id": 49,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9863,6 +10147,7 @@
             },
             {
                 "_id": 460,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9882,6 +10167,7 @@
             },
             {
                 "_id": 663,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9901,6 +10187,7 @@
             },
             {
                 "_id": 664,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9920,6 +10207,7 @@
             },
             {
                 "_id": 665,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9939,6 +10227,7 @@
             },
             {
                 "_id": 666,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9958,6 +10247,7 @@
             },
             {
                 "_id": 759,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9977,6 +10267,7 @@
             },
             {
                 "_id": 760,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -9996,6 +10287,7 @@
             },
             {
                 "_id": 761,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10015,6 +10307,7 @@
             },
             {
                 "_id": 762,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10034,6 +10327,7 @@
             },
             {
                 "_id": 763,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10053,6 +10347,7 @@
             },
             {
                 "_id": 764,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10072,6 +10367,7 @@
             },
             {
                 "_id": 765,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10091,6 +10387,7 @@
             },
             {
                 "_id": 766,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10110,6 +10407,7 @@
             },
             {
                 "_id": 767,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10129,6 +10427,7 @@
             },
             {
                 "_id": 742,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10148,6 +10447,7 @@
             },
             {
                 "_id": 743,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10167,6 +10467,7 @@
             },
             {
                 "_id": 744,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10186,6 +10487,7 @@
             },
             {
                 "_id": 745,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10205,6 +10507,7 @@
             },
             {
                 "_id": 746,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10224,6 +10527,7 @@
             },
             {
                 "_id": 747,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10243,6 +10547,7 @@
             },
             {
                 "_id": 748,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10262,6 +10567,7 @@
             },
             {
                 "_id": 749,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10281,6 +10587,7 @@
             },
             {
                 "_id": 750,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10300,6 +10607,7 @@
             },
             {
                 "_id": 751,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10319,6 +10627,7 @@
             },
             {
                 "_id": 752,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10338,6 +10647,7 @@
             },
             {
                 "_id": 753,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10357,6 +10667,7 @@
             },
             {
                 "_id": 625,
+                "auto_leffective": "0",
                 "bins": 1024.0,
                 "group": "",
                 "high_frequency_cutoff0": -1.0,
@@ -10385,6 +10696,7 @@
                 "dyp": 0.0,
                 "dz": 0.0,
                 "end_pid": -1.0,
+                "floor": "0",
                 "force_modify_matrix": 0.0,
                 "group": "",
                 "name": "MALIN",
@@ -11577,6 +11889,7 @@
                 "l": 0.0,
                 "name": "L1:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11596,6 +11909,7 @@
                 "l": 0.0,
                 "name": "L2:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11615,6 +11929,7 @@
                 "l": 0.0,
                 "name": "L2:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11634,6 +11949,7 @@
                 "l": 0.0,
                 "name": "L2:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11653,6 +11969,7 @@
                 "l": 0.0,
                 "name": "L3:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11672,6 +11989,7 @@
                 "l": 0.0,
                 "name": "L3:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11691,6 +12009,7 @@
                 "l": 0.0,
                 "name": "L3:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11710,6 +12029,7 @@
                 "l": 0.0,
                 "name": "L4:PM1",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11729,6 +12049,7 @@
                 "l": 0.0,
                 "name": "L4:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11748,6 +12069,7 @@
                 "l": 0.0,
                 "name": "L4:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11767,6 +12089,7 @@
                 "l": 0.0,
                 "name": "L5:PM2",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11786,6 +12109,7 @@
                 "l": 0.0,
                 "name": "L5:PM3",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11805,6 +12129,7 @@
                 "l": 0.0,
                 "name": "L5:PM4",
                 "order": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "MONI",
                 "weight": 1.0,
@@ -11866,14 +12191,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 608,
@@ -11902,14 +12230,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 613,
@@ -11938,14 +12269,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 614,
@@ -11974,14 +12308,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 694,
@@ -12010,14 +12347,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 695,
@@ -12046,14 +12386,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:Q6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 594,
@@ -12082,14 +12425,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:QE1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 595,
@@ -12118,14 +12464,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "BB:QE2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 88,
@@ -12154,14 +12503,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 89,
@@ -12190,14 +12542,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 90,
@@ -12226,14 +12581,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 91,
@@ -12262,14 +12620,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 92,
@@ -12298,14 +12659,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 30,
@@ -12334,14 +12698,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 37,
@@ -12370,14 +12737,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 42,
@@ -12406,14 +12776,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 45,
@@ -12442,14 +12815,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L1:RG2:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 102,
@@ -12478,14 +12854,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 104,
@@ -12514,14 +12893,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 106,
@@ -12550,14 +12932,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 108,
@@ -12586,14 +12971,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 110,
@@ -12622,14 +13010,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 112,
@@ -12658,14 +13049,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 114,
@@ -12694,14 +13088,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 116,
@@ -12730,14 +13127,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L2:QM8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 183,
@@ -12766,14 +13166,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 184,
@@ -12802,14 +13205,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 186,
@@ -12838,14 +13244,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 187,
@@ -12874,14 +13283,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 188,
@@ -12910,14 +13322,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 189,
@@ -12946,14 +13361,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L3:QM6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 342,
@@ -12982,14 +13400,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 344,
@@ -13018,14 +13439,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 346,
@@ -13054,14 +13478,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 348,
@@ -13090,14 +13517,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 350,
@@ -13126,14 +13556,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 330,
@@ -13162,14 +13595,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 332,
@@ -13198,14 +13634,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L4:QM7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 334,
@@ -13234,14 +13673,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 336,
@@ -13270,14 +13712,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 338,
@@ -13306,14 +13751,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 340,
@@ -13342,14 +13790,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "L5:QM4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 696,
@@ -13378,14 +13829,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LA:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 697,
@@ -13414,14 +13868,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LA:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 698,
@@ -13450,14 +13907,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 699,
@@ -13486,14 +13946,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 700,
@@ -13522,14 +13985,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 701,
@@ -13558,14 +14024,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 702,
@@ -13594,14 +14063,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 703,
@@ -13630,14 +14102,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 704,
@@ -13666,14 +14141,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 705,
@@ -13702,14 +14180,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LE:Q8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 781,
@@ -13738,14 +14219,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 304,
@@ -13774,14 +14258,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q10",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 782,
@@ -13810,14 +14297,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 783,
@@ -13846,14 +14336,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 784,
@@ -13882,14 +14375,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 785,
@@ -13918,14 +14414,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 307,
@@ -13954,14 +14453,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 309,
@@ -13990,14 +14492,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "LTP:Q9",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 62,
@@ -14026,14 +14531,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 63,
@@ -14062,14 +14570,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 64,
@@ -14098,14 +14609,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 65,
@@ -14134,14 +14648,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PB:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 556,
@@ -14170,14 +14687,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 569,
@@ -14206,14 +14726,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q10",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 570,
@@ -14242,14 +14765,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q11",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 557,
@@ -14278,14 +14804,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 558,
@@ -14314,14 +14843,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 559,
@@ -14350,14 +14882,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 560,
@@ -14386,14 +14921,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 561,
@@ -14422,14 +14960,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q6",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 562,
@@ -14458,14 +14999,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q7",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 563,
@@ -14494,14 +15038,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q8",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 564,
@@ -14530,14 +15077,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "PTB:Q9",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 586,
@@ -14566,14 +15116,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "QB1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 582,
@@ -14602,14 +15155,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "QB2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 706,
@@ -14638,14 +15194,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TE:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 707,
@@ -14674,14 +15233,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TE:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 769,
@@ -14710,14 +15272,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 770,
@@ -14746,14 +15311,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 771,
@@ -14782,14 +15350,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q3",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 772,
@@ -14818,14 +15389,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q4",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 773,
@@ -14854,14 +15428,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TESSASPEC:Q5",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 733,
@@ -14890,14 +15467,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU1:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 734,
@@ -14926,14 +15506,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU1:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 735,
@@ -14962,14 +15545,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU2:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 736,
@@ -14998,14 +15584,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU2:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 737,
@@ -15034,14 +15623,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU3:Q1",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 738,
@@ -15070,14 +15662,17 @@
                 "lambda2m": 0.0,
                 "lambda2p": 0.0,
                 "leffective": -1.0,
+                "malign_method": "0",
                 "name": "TSU3:Q2",
                 "order": 0.0,
+                "pitch": 0.0,
                 "radial": "0",
                 "tilt": 0.0,
                 "type": "QUAD",
                 "vcalibration": 1.0,
                 "vkick": 0.0,
-                "vsteering": "0"
+                "vsteering": "0",
+                "yaw": 0.0
             },
             {
                 "_id": 739,
@@ -15093,8 +15688,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -15123,8 +15721,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -15153,8 +15754,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -15202,6 +15806,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15248,6 +15853,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15294,6 +15900,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15340,6 +15947,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15386,6 +15994,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15432,6 +16041,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15478,6 +16088,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15524,6 +16135,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15570,6 +16182,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15616,6 +16229,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15662,6 +16276,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15708,6 +16323,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15754,6 +16370,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15800,6 +16417,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15846,6 +16464,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15892,6 +16511,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15938,6 +16558,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -15984,6 +16605,7 @@
                 "sg_halfwidth": 4.0,
                 "sg_order": 1.0,
                 "smoothing": "0",
+                "t_reference": -1.0,
                 "tcolumn": "",
                 "trwake": 1.0,
                 "trwakefile": "",
@@ -16081,8 +16703,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16111,8 +16736,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16141,8 +16769,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.288,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16171,8 +16802,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16201,8 +16835,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16231,8 +16868,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16261,8 +16901,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16291,8 +16934,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16321,8 +16967,11 @@
                 "edge2_effects": "1",
                 "edge_order": 0.0,
                 "etilt": 0.0,
+                "etilt_sign": "1",
                 "fint": 0.5,
                 "fse": 0.0,
+                "fse_dipole": 0.0,
+                "fse_quadrupole": 0.0,
                 "group": "",
                 "h1": 0.0,
                 "h2": 0.0,
@@ -16606,6 +17255,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16622,6 +17272,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16638,6 +17289,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16654,6 +17306,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16670,6 +17323,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16686,6 +17340,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16702,6 +17357,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16718,6 +17374,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16734,6 +17391,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16750,6 +17408,7 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
@@ -16766,12 +17425,14 @@
                 "order": 0.0,
                 "readout": "",
                 "setpoint": 0.0,
+                "store_turn_by_turn": "0",
                 "tilt": 0.0,
                 "type": "VMON",
                 "weight": 1.0
             },
             {
                 "_id": 353,
+                "acausal_allowed": "0",
                 "allow_long_beam": "1",
                 "bunched_beam_mode": "1",
                 "change_p0": "1",
@@ -16796,7 +17457,7 @@
                 "end_pass": -1.0,
                 "end_pid": -1.0,
                 "exclude_slopes": "0",
-                "filename": "1",
+                "filename": "%s.ddin",
                 "flush_interval": 100.0,
                 "fraction": 1.0,
                 "group": "",
@@ -16807,6 +17468,7 @@
                 "mode": "coordinate",
                 "name": "DDPO",
                 "reference_frequency": -1.0,
+                "sparse_interval": 1,
                 "start_pass": 0.0,
                 "start_pid": -1.0,
                 "type": "WATCH",
@@ -16820,7 +17482,7 @@
                 "end_pass": -1.0,
                 "end_pid": -1.0,
                 "exclude_slopes": "0",
-                "filename": "1",
+                "filename": "LEAbeam.sdds",
                 "flush_interval": 100.0,
                 "fraction": 1.0,
                 "group": "",
@@ -16831,6 +17493,7 @@
                 "mode": "coordinate",
                 "name": "LEAB",
                 "reference_frequency": -1.0,
+                "sparse_interval": 1,
                 "start_pass": 0.0,
                 "start_pid": -1.0,
                 "type": "WATCH",
@@ -16844,7 +17507,7 @@
                 "end_pass": -1.0,
                 "end_pid": -1.0,
                 "exclude_slopes": "0",
-                "filename": "1",
+                "filename": "%s.w0",
                 "flush_interval": 100.0,
                 "fraction": 1.0,
                 "group": "",
@@ -16855,6 +17518,7 @@
                 "mode": "parameter",
                 "name": "w0",
                 "reference_frequency": -1.0,
+                "sparse_interval": 1,
                 "start_pass": 0.0,
                 "start_pid": -1.0,
                 "type": "WATCH",
@@ -16868,7 +17532,7 @@
                 "end_pass": -1.0,
                 "end_pid": -1.0,
                 "exclude_slopes": "0",
-                "filename": "1",
+                "filename": "%s.w0",
                 "flush_interval": 100.0,
                 "fraction": 1.0,
                 "group": "",
@@ -16879,6 +17543,7 @@
                 "mode": "coordinate",
                 "name": "WExit",
                 "reference_frequency": -1.0,
+                "sparse_interval": 1,
                 "start_pass": 0.0,
                 "start_pid": -1.0,
                 "type": "WATCH",
@@ -16889,15 +17554,15 @@
         ],
         "rpnCache": {
             "0.03865 2 *": 0.0773,
-            "0.05 .0061 2 / -": 0.04695,
-            "0.108075 0.23 2.245597e-01 - 2 / +": 0.11079515,
-            "0.1107202 0.1 0.10207 - 2 / +": 0.1096852,
-            "0.121365622789519 0.076 0.0776 - 2 / +": 0.120565622789519,
-            "0.123149946400042 0.076 0.0776 - 2 / +": 0.122349946400042,
-            "0.1395218 0.1 0.10207 - 2 / +": 0.1384868,
+            "0.05 .0061 2 / -": 0.046950000000000006,
+            "0.108075 0.23 2.245597e-01 - 2 / +": 0.11079515000000001,
+            "0.1107202 0.1 0.10207 - 2 / +": 0.10968520000000001,
+            "0.121365622789519 0.076 0.0776 - 2 / +": 0.12056562278951899,
+            "0.123149946400042 0.076 0.0776 - 2 / +": 0.12234994640004199,
+            "0.1395218 0.1 0.10207 - 2 / +": 0.13848680000000002,
             "0.1395478 0.1 0.10207 - 2 / +": 0.1385128,
-            "0.2140696 0.23 2.245597e-01 - 2 / +    0.1 0.10207 - 2 / +": 0.21575475,
-            "0.2790696 0.1 0.10207 - 2 / + 0.1 0.10207 - 2 / + ": 0.2769996,
+            "0.2140696 0.23 2.245597e-01 - 2 / + 0.1 0.10207 - 2 / +": 0.21575475,
+            "0.2790696 0.1 0.10207 - 2 / + 0.1 0.10207 - 2 / +": 0.27699959999999996,
             "0.2898049991 0.047030 -": 0.2427749991,
             "0.33543 -1.045700e-01 -": 0.44,
             "0.3384090006 0.115761599998606 -": 0.222647400601394,
@@ -16906,20 +17571,19 @@
             "0.396944985602385 0.076 0.0776 - 2 / +": 0.396144985602385,
             "0.411603 0.093121 -": 0.318482,
             "0.433712999 0.20756380 -": 0.226149199,
-            "0.535620666333333 0.382862 -": 0.152758666333333,
-            "0.60895 3 .0254 * -": 0.53275,
+            "0.535620666333333 0.382862 -": 0.15275866633333307,
+            "0.60895 3 .0254 * -": 0.5327500000000001,
             "0.990506785653688 0.076 0.0776 - 2 / +": 0.989706785653688,
             "1.671862 0.3127372 -": 1.3591248,
             "1.706443 3 .0254 * +": 1.782643,
             "2.125276e-01 0.3374724 +": 0.55,
-            "2.49807 23.250 20.750 + .0254 * -": 1.38047,
+            "2.49807 23.250 20.750 + .0254 * -": 1.3804699999999999,
             "20.750 .0254 * .1527 -": 0.37435,
             "23.250 .0254 * .1527 -": 0.43785
         },
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 831,
-            "backtracking": "0",
             "documentationUrl": "",
             "folder": "/",
             "name": "Example",

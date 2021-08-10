@@ -8,12 +8,14 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import contextlib
 import jupyterhub.auth
 import sirepo.auth
 import sirepo.cookie
 import sirepo.server
 import sirepo.util
 import tornado.web
+import werkzeug.exceptions
 
 _JUPYTERHUBLOGIN_ROUTE = '/jupyterhublogin'
 
@@ -31,36 +33,49 @@ class Authenticator(jupyterhub.auth.Authenticator):
         sirepo.server.init()
 
     async def authenticate(self, handler, data):
-        _set_cookie(handler)
-        try:
-            sirepo.auth.require_user()
-        except sirepo.util.SRException as e:
-            r = e.sr_args.get('routeName')
-            if r not in ('login', 'loginFail'):
-                raise
-            handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}')
-            raise tornado.web.Finish()
-        u = sirepo.sim_api.jupyterhublogin.jupyterhub_user_name(
-            have_simulation_db=False,
-        )
-        if not u:
-            handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}')
-            raise tornado.web.Finish()
-        return u
+        with _set_cookie(handler):
+            try:
+                self._check_permissions()
+            except werkzeug.exceptions.Forbidden:
+                # returning None means the user is forbidden (403)
+                # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.authenticate
+                return None
+            except sirepo.util.SRException as e:
+                r = e.sr_args.get('routeName')
+                if r not in ('completeRegistration', 'login', 'loginFail'):
+                    raise
+                handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}')
+                raise tornado.web.Finish()
+            u = sirepo.sim_api.jupyterhublogin.unchecked_jupyterhub_user_name(
+                have_simulation_db=False,
+            )
+            if not u:
+                handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}')
+                raise tornado.web.Finish()
+            return u
 
     async def refresh_user(self, user, handler=None):
-        _set_cookie(handler)
-        try:
-            sirepo.auth.require_user()
-        except sirepo.util.SRException:
-            # Returning False is what the jupyterhub API expects and jupyterhub
-            # will handle re-authenticating the user.
-            # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.refresh_user
-            return False
-        return True
+        with _set_cookie(handler):
+            try:
+                self._check_permissions()
+            except sirepo.util.SRException:
+                # Returning False is what the jupyterhub API expects and jupyterhub
+                # will handle re-authenticating the user.
+                # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.refresh_user
+                return False
+            return True
+
+    def _check_permissions(self):
+        sirepo.auth.require_user()
+        sirepo.auth.require_sim_type('jupyterhublogin')
 
 
+
+@contextlib.contextmanager
 def _set_cookie(handler):
-    sirepo.cookie.set_cookie_for_utils(
-        handler.get_cookie(sirepo.cookie.cfg.http_name),
-    )
+    import sirepo.auth_db
+    with sirepo.auth_db.session(), \
+         sirepo.cookie.set_cookie_outside_of_flask_request(
+             handler.get_cookie(sirepo.cookie.cfg.http_name),
+         ):
+        yield

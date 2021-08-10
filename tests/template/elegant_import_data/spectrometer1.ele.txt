@@ -6,34 +6,27 @@
 &run_setup
   semaphore_file = run_setup.semaphore,
   default_order = 1,
-  final = "run_setup.final.sdds",
+  final = "%s.fin",
   lattice = "spectrometer1.ele.lte",
   p_central_mev = 100.0,
-  parameters = "run_setup.parameters.sdds",
+  parameters = "%s.param",
   use_beamline = "BL",
 &end
 
 &twiss_output
-  beta_x = 1.0,
-  beta_y = 1.0,
-  higher_order_chromaticity_range = 0.0004,
   matched = 0,
   output_at_each_step = 1,
 &end
 
 &run_control
-  n_steps = 1.0,
 &end
 
 &optimization_setup
-  log_file = "optimization_setup.log_file.sdds",
+  log_file = "/dev/tty",
   n_evaluations = 1500,
-  n_passes = 3,
+  n_passes = 3.0,
   n_restarts = 2,
   output_sparsing_factor = 100,
-  restart_worst_term_factor = 1.0,
-  simplex_divisor = 3.0,
-  simplex_pass_range_factor = 1.0,
   tolerance = 1e-12,
   verbose = 0,
 &end
@@ -102,28 +95,24 @@
 &end
 
 &save_lattice
-  filename = "save_lattice.filename.lte",
+  filename = "%s.new",
 &end
 
 &run_setup
   semaphore_file = run_setup.semaphore,
-  lattice = "save_lattice",
-  magnets = "run_setup2.magnets.sdds",
-  output = "run_setup2.output.sdds",
+  lattice = "run.new",
+  magnets = "%s.mag",
+  output = "%s.out",
   p_central_mev = 100.0,
-  sigma = "run_setup2.sigma.sdds",
+  sigma = "%s.sig",
   use_beamline = "BL",
 &end
 
 &twiss_output
-  beta_x = 1.0,
-  beta_y = 1.0,
-  filename = "twiss_output2.filename.sdds",
-  higher_order_chromaticity_range = 0.0004,
+  filename = "%s.twi",
 &end
 
 &run_control
-  n_steps = 1.0,
 &end
 
 &bunched_beam

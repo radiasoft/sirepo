@@ -14,17 +14,22 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import numpy as np
-import os
 import re
+import sirepo.analysis
+import sirepo.numpy
 import sirepo.sim_data
+import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_OUTPUT_FILE = PKDict(
-    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+_SIM_REPORTS = [
+    'analysisReport',
+    'fftReport',
+]
+
+_CLASSIFIER_OUTPUT_FILE = PKDict(
     dtClassifierClassificationFile='dt-classifier-classification.json',
     dtClassifierConfusionFile='dt-classifier-confusion.json',
-    fitCSVFile='fit.csv',
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
@@ -33,12 +38,25 @@ _OUTPUT_FILE = PKDict(
     logisticRegressionClassificationFile='logistic-regression-classification.json',
     logisticRegressionConfusionFile='logistic-regression-confusion.json',
     logisticRegressionErrorFile='logistic-regression-error.npy',
+)
+
+_OUTPUT_FILE = PKDict(
+    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+    fitCSVFile='fit.csv',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
     trainFile='train.npy',
     validateFile='validate.npy',
+    **_CLASSIFIER_OUTPUT_FILE
 )
+
+_REPORTS = [
+    'fileColumnReport',
+    'partitionColumnReport',
+    'partitionSelectionReport',
+] + _SIM_REPORTS
+
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -47,26 +65,85 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     if report == 'classificationAnimation' and not is_running:
+        s = list(filter(
+            lambda path: path.basename in _CLASSIFIER_OUTPUT_FILE.values(),
+            pkio.sorted_glob(run_dir.join('*')),
+        ))
         return PKDict(
             framesForClassifier=data.models.classificationAnimation.classifier,
-            frameCount=1,
+            frameCount=1 if s else 0,
             percentComplete=100,
         )
-    fit_csv_file = run_dir.join(_OUTPUT_FILE.fitCSVFile)
-    if fit_csv_file.exists():
-        line = _read_last_csv_line(fit_csv_file)
-        m = re.search(r'^(\d+)', line)
-        if m and int(m.group(1)) > 0:
-            max_frame = data.models.neuralNet.epochs
-            res.frameCount = int(m.group(1)) + 1
-            res.percentComplete = float(res.frameCount) * 100 / max_frame
+    line = template_common.read_last_csv_line(run_dir.join(_OUTPUT_FILE.fitCSVFile))
+    m = re.search(r'^(\d+)', line)
+    if m and int(m.group(1)) > 0:
+        max_frame = data.models.neuralNet.epochs
+        res.frameCount = int(m.group(1)) + 1
+        res.percentComplete = float(res.frameCount) * 100 / max_frame
     return res
+
+
+def get_analysis_report(run_dir, data):
+    report = data.models[data.report]
+    info = data.models.columnInfo
+    x_idx = int(report.x)
+    y_idx = int(report.y1)
+    x_label = f'{info.header[x_idx]}'
+    y_label = f'{info.header[y_idx]}'
+
+    plot_data = _read_file_with_history(run_dir, _OUTPUT_FILE.scaledFile, report)
+    x = plot_data[:, x_idx]
+    y = plot_data[:, y_idx]
+    plots = [
+        PKDict(
+            points=y.tolist(),
+            label=y_label,
+            style='scatter',
+         )
+    ]
+    fields = PKDict()
+    summary_data = PKDict()
+    if 'action' in report:
+        if report.action == 'fit':
+            p_vals, p_errs, fit_plots = _get_fit_report(report, x, y)
+            summary_data.p_vals = p_vals.tolist()
+            summary_data.p_errs = p_errs.tolist()
+            plots.extend(fit_plots)
+        elif report.action == 'cluster':
+            fields.clusters = _compute_clusters(report, plot_data)
+    return x, plots, f'{x_label} vs {y_label}', fields, summary_data
+
+
+#TODO(MVK): 2d fft (?)
+def get_fft_report(run_dir, data):
+    info = data.models.columnInfo
+    col = data.models.fftReport.column
+    idx = int(col)
+    label = f'{info.header[idx]}'
+
+    t, y = _extract_column(run_dir, idx)
+    w, n = sirepo.analysis.get_fft(t, y)
+
+    plots = [
+        PKDict(
+            points=n,
+            label=f'{label}',
+        ),
+    ]
+
+    summaryData = PKDict(
+        freqs=[],
+        minFreq=w[0],
+        maxFreq=w[-1]
+    )
+
+    return w, plots, f'FFT', summaryData
 
 
 def get_application_data(data, **kwargs):
     if data.method == 'compute_column_info':
         return _compute_column_info(data.dataFile)
-    assert False, 'unknown get_application_data: {}'.format(data)
+    raise AssertionError(f'unknown get_application_data: {data}')
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -87,14 +164,17 @@ def python_source_for_model(data, model):
 
 
 def save_sequential_report_data(run_dir, sim_in):
+    assert _is_valid_report(sim_in.report), 'unknown report: {}'.format(sim_in.report)
     if 'fileColumnReport' in sim_in.report:
         _extract_file_column_report(run_dir, sim_in)
     elif 'partitionColumnReport' in sim_in.report:
         _extract_partition_report(run_dir, sim_in)
     elif sim_in.report == 'partitionSelectionReport':
         _extract_partition_selection(run_dir, sim_in)
-    else:
-        assert False, 'unknown report: {}'.format(sim_in.report)
+    elif 'analysisReport' in sim_in.report:
+        _extract_analysis_report(run_dir, sim_in)
+    elif 'fftReport' in sim_in.report:
+        _extract_fft_report(run_dir, sim_in)
 
 
 def sim_frame(frame_args):
@@ -120,7 +200,8 @@ def sim_frame_epochAnimation(frame_args):
     #TODO(pjm): improve heading text
     header = ['epoch', 'loss', 'val_loss']
     path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+
+    v = sirepo.numpy.ndarray_from_csv(path, True)
     if len(v.shape) == 1:
         v.shape = (v.shape[0], 1)
     return _report_info(
@@ -239,24 +320,24 @@ def _classification_metrics_report(frame_args, filename):
 
 
 def _compute_column_info(dataFile):
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_filename(dataFile.file)))
-    if re.search(r'\.npy$', path):
-        return _compute_numpy_info(path)
-    return _compute_csv_info(path)
+    f = dataFile.file
+    if re.search(r'\.npy$', f):
+        return _compute_numpy_info(f)
+    return _compute_csv_info(f)
 
 
-def _compute_csv_info(path):
+def _compute_csv_info(filename):
     res = PKDict(
         hasHeaderRow=True,
         rowCount=0,
     )
     row = None
-    with open(str(path)) as f:
+    with open(_filepath(filename)) as f:
         for r in csv.reader(f):
             if not row:
                 row = r
             res.rowCount += 1
-    if not row:
+    if not row or len(row) == 1:
         return PKDict(
             error='Invalid CSV file: no columns detected'
         )
@@ -265,14 +346,76 @@ def _compute_csv_info(path):
     if list(filter(lambda x: template_common.NUMERIC_RE.search(x), row)):
         row = ['column {}'.format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
+    res.colsWithNonUniqueValues = _cols_with_non_unique_values(
+        filename,
+        res.hasHeaderRow,
+        row,
+    )
     res.header = row
     res.inputOutput = ['none' for i in range(len(row))]
     return res
 
 
-def _compute_numpy_info(path):
+def _cols_with_non_unique_values(filename, has_header_row, header):
+    # TODO(e-carlin): support npy
+    assert not re.search(r'\.npy$', str(filename)), \
+        f'numpy files are not supported path={filename}'
+    v = sirepo.numpy.ndarray_from_csv(_filepath(filename), has_header_row)
+    res = PKDict()
+    for i, c in enumerate(np.all(v == v[0,:], axis = 0)):
+        if not c:
+            continue
+        res[header[i]] = True
+    return res
+
+
+def _compute_clusters(report, plot_data):
+
+    from sirepo.analysis import ml
+    method_params = PKDict(
+        agglomerative=PKDict(
+            count=report.clusterCount,
+        ),
+        dbscan=PKDict(
+            eps=report.clusterDbscanEps,
+        ),
+        gmix=PKDict(
+            count=report.clusterCount,
+            seed=report.clusterRandomSeed,
+        ),
+        kmeans=PKDict(
+            count=report.clusterCount,
+            seed=report.clusterRandomSeed,
+            kmeans_init=report.clusterKmeansInit
+        ),
+    )
+
+    cols = []
+    if 'clusterFields' not in report:
+        if len(cols) <= 1:
+            raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
+    for idx in range(len(report.clusterFields)):
+        if report.clusterFields[idx]:
+            cols.append(idx)
+    if len(cols) <= 1:
+        raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
+    x_scale = sirepo.analysis.ml.scale_data(plot_data[:, cols], [
+            report.clusterScaleMin,
+            report.clusterScaleMax,
+        ])
+    group = sirepo.analysis.ml.METHODS[report.clusterMethod](
+        x_scale, method_params[report.clusterMethod]
+    )
+    count = len(set(group)) if report.clusterMethod == 'dbscan' else report.clusterCount
+    return PKDict(
+        group=group.tolist(),
+        count=count,
+    )
+
+
+def _compute_numpy_info(filename):
     #TODO(pjm): compute column info from numpy file
-    assert False, 'not implemented yet'
+    raise NotImplementedError()
 
 
 def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
@@ -282,15 +425,16 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         for x, v in enumerate(r.matrix[y]):
             t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
-
-
+    labels = _get_classification_output_col_encoding(frame_args)
+    if labels:
+        labels = list(labels.values())
+    else:
+        labels = r.labels
     return template_common.heatmap(
         a,
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
-            labels=list(
-                _get_classification_output_col_encoding(frame_args).values(),
-            ),
+            labels=labels,
             title=title.format(**r),
             x_label='Predicted',
             y_label='True',
@@ -311,19 +455,37 @@ def _error_rate_report(frame_args, filename, x_label):
     ))
 
 
-def _extract_column(run_dir, sim_in, idx):
+def _extract_analysis_report(run_dir, sim_in):
+    x, plots, title, fields, summary_data = get_analysis_report(run_dir, sim_in)
+    _write_report(x, plots, title, fields=fields, summary_data=summary_data)
+
+
+def _extract_column(run_dir, idx):
     y = _read_file_column(run_dir, 'scaledFile', idx)
     return np.arange(0, len(y)), y
 
 
 def _extract_file_column_report(run_dir, sim_in):
-    idx = sim_in.models[sim_in.report].columnNumber
-    x, y = _extract_column(run_dir, sim_in, idx)
+    m = sim_in.models[sim_in.report]
+    idx = m.columnNumber
+    x, y = _extract_column(run_dir, idx)
+    if np.isnan(y).any():
+        template_common.write_sequential_result(PKDict(
+            error='Column values are not numeric',
+        ))
+        return
+    if 'x' in m and m.x is not None and m.x >= 0:
+        _, x = _extract_column(run_dir, m.x)
     _write_report(
         x,
-        [_plot_info(y)],
+        [_plot_info(y, style='scatter')],
         sim_in.models.columnInfo.header[idx],
     )
+
+
+def _extract_fft_report(run_dir, sim_in):
+    x, plots, title, summary_data = get_fft_report(run_dir, sim_in)
+    _write_report(x, plots, title, fields=PKDict(x_label='f [Hz]'), summary_data=summary_data)
 
 
 def _extract_partition_report(run_dir, sim_in):
@@ -353,8 +515,8 @@ def _extract_partition_selection(run_dir, sim_in):
     info = sim_in.models.columnInfo
     in_idx = info.inputOutput.index('input')
     out_idx = info.inputOutput.index('output')
-    x, y = _extract_column(run_dir, sim_in, in_idx)
-    _, y2 = _extract_column(run_dir, sim_in, out_idx)
+    x, y = _extract_column(run_dir, in_idx)
+    _, y2 = _extract_column(run_dir, out_idx)
     _write_report(
         x,
         [
@@ -366,6 +528,10 @@ def _extract_partition_selection(run_dir, sim_in):
 
 def _filename(name):
     return _SIM_DATA.lib_file_name_with_model_field('dataFile', 'file', name)
+
+
+def _filepath(name):
+    return _SIM_DATA.lib_file_abspath(_filename(name))
 
 
 def _fit_animation(frame_args):
@@ -393,16 +559,20 @@ def _fit_animation(frame_args):
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    dm = data.models
     res, v = template_common.generate_parameters_file(data)
-    v.dataFile = _filename(data.models.dataFile.file)
+    v.dataFile = _filename(dm.dataFile.file)
     v.pkupdate(
+        inputDim=dm.columnInfo.inputOutput.count('input'),
         layerImplementationNames=_layer_implementation_list(data),
-        neuralNetLayers=data.models.neuralNet.layers,
-        inputDim=data.models.columnInfo.inputOutput.count('input'),
+        neuralNetLayers=dm.neuralNet.layers,
+        outputDim=dm.columnInfo.inputOutput.count('output'),
     ).pkupdate(_OUTPUT_FILE)
-    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in data.models.columnInfo.inputOutput]) + ']'
+    v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in dm.columnInfo.inputOutput]) + ']'
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
+        return res
+    if _is_sim_report(report):
         return res
     v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
         or v.partition_section1 == 'train_and_test' \
@@ -411,7 +581,7 @@ def _generate_parameters_file(data):
     if 'partitionColumnReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
         return res
-    if data.models.dataFile.appMode == 'classification':
+    if dm.dataFile.appMode == 'classification':
         res += template_common.render_jinja(SIM_TYPE, v, 'classification-base.py')
         d = PKDict(
             decisionTree='decision-tree',
@@ -422,7 +592,7 @@ def _generate_parameters_file(data):
         return res + template_common.render_jinja(
             SIM_TYPE,
             v,
-            f'{d[data.models.classificationAnimation.classifier]}.py',
+            f'{d[dm.classificationAnimation.classifier]}.py',
         )
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
@@ -430,46 +600,46 @@ def _generate_parameters_file(data):
 
 
 def _get_classification_output_col_encoding(frame_args):
-    """Create _OUTPUT_FILE.classificationOutputColEncodingFile if not found.
-
-    This file is a "new" addition so "older" runs may not have it.
-    """
-    def _create_file():
-        from sklearn.preprocessing import LabelEncoder
-
-        # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
-        data = simulation_db.read_json(frame_args.run_dir.join(template_common.INPUT_BASE_NAME))
-        v = np.genfromtxt(
-            str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                _filename(data.models.dataFile.file),
-            )),
-            delimiter=',',
-            skip_header=data.models.columnInfo.hasHeaderRow,
-            dtype=None,
-            encoding='utf-8',
-        )
-        o = data.models.columnInfo.inputOutput.index('output')
-        c = v[f'f{o}']
-        e = LabelEncoder().fit(c)
-        res = PKDict(
-            zip(
-                e.transform(e.classes_).astype(np.float).tolist(),
-                e.classes_,
-            ),
-        )
-        pkjson.dump_pretty(
-            res,
-            filename=_OUTPUT_FILE.classificationOutputColEncodingFile,
-        )
-        return res
     try:
         return simulation_db.read_json(
             frame_args.run_dir.join(_OUTPUT_FILE.classificationOutputColEncodingFile),
         )
     except Exception as e:
         if pkio.exception_is_not_found(e):
-            return _create_file()
+            # no file exists, data may be only numeric values
+            return PKDict()
         raise e
+
+
+def _get_fit_report(report, x_vals, y_vals):
+    fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas = \
+        sirepo.analysis.fit_to_equation(
+            x_vals,
+            y_vals,
+            report.fitEquation,
+            report.fitVariable,
+            report.fitParameters,
+        )
+    plots = [
+        PKDict(
+            points=fit_y.tolist(),
+            x_points=fit_x.tolist(),
+            label='fit',
+        ),
+        PKDict(
+            points=fit_y_min.tolist(),
+            x_points=fit_x.tolist(),
+            label='confidence',
+            _parent='confidence'
+        ),
+        PKDict(
+            points=fit_y_max.tolist(),
+            x_points=fit_x.tolist(),
+            label='',
+            _parent='confidence'
+        ),
+    ]
+    return param_vals, param_sigmas, plots
 
 
 def _histogram_plot(values, vrange):
@@ -486,6 +656,16 @@ def _histogram_plot(values, vrange):
     return x, y
 
 
+def _is_sim_report(report):
+    #return 'analysisReport' in report or report in _SIM_REPORTS
+    return any([r in report for r in _SIM_REPORTS])
+
+
+def _is_valid_report(report):
+    return 'fileColumnReport' in report or 'partitionColumnReport' in report or \
+        _is_sim_report(report) or report in _REPORTS
+
+
 def _layer_implementation_list(data):
     res = {}
     for layer in data.models.neuralNet.layers:
@@ -493,8 +673,8 @@ def _layer_implementation_list(data):
     return res.keys()
 
 
-def _plot_info(y, label=''):
-    return PKDict(points=list(y), label=label)
+def _plot_info(y, label='', style=None):
+    return PKDict(points=list(y), label=label, style=style)
 
 
 def _read_file(run_dir, filename):
@@ -508,21 +688,29 @@ def _read_file_column(run_dir, name, idx):
     return _read_file(run_dir, _OUTPUT_FILE[name])[:, idx]
 
 
-def _read_last_csv_line(path):
-    # for performance, don't read whole file if only last line is needed
-    try:
-        with open(str(path), 'rb') as f:
-            f.readline()
-            f.seek(-2, os.SEEK_END)
-            while f.read(1) != b'\n':
-                f.seek(-2, os.SEEK_CUR)
-            return pkcompat.from_bytes(f.readline())
-    except IOError:
-        return ''
+def _read_file_with_history(run_dir, filename, report=None):
+    import copy
+    res = _read_file(run_dir, filename)
+    if not report:
+        return res
+    if 'history' in report:
+        for action in report.history:
+            if action.action == 'trim':
+                idx = int(action.trimField)
+                res = res[
+                    (res[:,idx] >= action.trimMin) & (res[:, idx] <= action.trimMax)
+                ]
+            elif action.action == 'cluster':
+                report2 = copy.deepcopy(report)
+                report2.update(action)
+                clusters = _compute_clusters(report2, res)
+                labels = np.array(clusters.group)
+                res = res[labels == action.clusterIndex,:]
+    return res
 
 
-def _report_info(x, plots, title=''):
-    return PKDict(
+def _report_info(x, plots, title='', fields=PKDict(), summary_data=PKDict()):
+    res = PKDict(
         title=title,
         x_range=[float(min(x)), float(max(x))],
         y_label='',
@@ -530,7 +718,10 @@ def _report_info(x, plots, title=''):
         x_points=list(x),
         plots=plots,
         y_range=template_common.compute_plot_color_and_range(plots),
+        summaryData=summary_data,
     )
+    res.update(fields)
+    return res
 
 
 def _update_range(vrange, values):
@@ -546,5 +737,7 @@ def _update_range(vrange, values):
         vrange[1] = maxv
 
 
-def _write_report(x, plots, title=''):
-    template_common.write_sequential_result(_report_info(x, plots, title))
+def _write_report(x, plots, title='', fields=PKDict(), summary_data=PKDict()):
+    template_common.write_sequential_result(_report_info(
+        x, plots, title, fields=fields, summary_data=summary_data
+    ))

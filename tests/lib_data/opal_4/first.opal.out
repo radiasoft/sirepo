@@ -1,0 +1,43 @@
+
+Title, string="Photoinjector Beamline";
+
+REAL beam_bunch_charge = 3e-10;
+REAL beta = 0.00234082060771566;
+REAL edes = 1.4e-09;
+REAL gamma = 1.0000027397318179;
+REAL hwl = 0.052464;
+REAL l1_phi_deg = -4.982;
+REAL l1_start = 1.917284;
+REAL n_particles = 100000.0;
+REAL p0 = 1.1961600796052967e-06;
+REAL pcg_length = 0.15;
+REAL pcg_offset = 0.738;
+REAL pcg_phi_deg = -13.534;
+REAL pcg_start = 0.0;
+REAL rf_freq = 2856000000.0;
+REAL slac_length = 3.01;
+REAL solenoid_length = 0.711202;
+REAL solenoid_start = 0.15490000000000004;
+REAL solenoid_strength = 0.22989;
+
+
+"OPT1": option,autophase=8.0,psdumpfreq=102.0,version=20000.0;
+
+"PCG": RFCAVITY,fmapfn="gunCavity.T7",freq=2856.0,l=0.15,lag=-0.23621286096491256,type=STANDING,volt=100.0;
+"MS": SOLENOID,fmapfn="Solenoid.T7",ks=0.22989,l=0.711202;
+"L1": TRAVELINGWAVE,fast=false,fmapfn="TWS_Sband.T7",freq=2856.0,l=3.01,lag=-0.0869523033343575,mode=0.3333333333333333,numcells=84.0,volt=17.594;
+
+"PCG#0": "PCG",elemedge=0.0;
+"MS#0": "MS",elemedge=0.15490000000000004;
+"L1#0": "L1",elemedge=1.917284;
+PCG_LINE: LINE=("PCG#0","MS#0","L1#0");
+LINAC: LINE=(PCG_LINE);
+
+
+"GEN_DIST": distribution,cutofflong=4.0,ekin=0.2,emissionmodel="ASTRA",emissionsteps=100.0,emitted=true,nbin=9.0,sigmat=1.15e-12,sigmax=0.0008,sigmay=0.0008,type="FLATTOP",writetofile=true;
+"COLD_GAUSSIAN": distribution,inputmounits="EV",sigmapx=50.0,sigmapy=50.0,sigmapz=1100000.0,sigmax=0.0014,sigmay=0.0014,sigmaz=0.0014,type="GAUSS",writetofile=true;
+"FS_SC": fieldsolver,bboxincr=1.0,fstype="FFT",mt=32.0,mx=32.0,my=32.0;
+"BEAM1": beam,bcurrent=0.8568,bfreq=2856.0,charge=-1.0,npart=100000.0,particle="ELECTRON",pc=1.1961600796052967e-06;
+"TR1": track,beam=BEAM1,dt=5e-13,line=LINAC,maxsteps=10000000.0,zstop=5.5;
+ run, beam=BEAM1,distribution=gen_dist,fieldsolver=FS_SC,method="PARALLEL-T";
+endtrack;

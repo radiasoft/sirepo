@@ -1089,6 +1089,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     let bs = layouts[l].filter(function (s) {
                         return `${s.id}`.split('-').length === 1;
                     });
+                    /*
                     let bdef = d3.select('.plot-viewport defs').selectAll(l)
                         .data(bs);
                     bdef.exit().remove();
@@ -1096,7 +1097,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         .append(function (d) {
                             return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
                         });
-
+                    */
                     let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
                         .data(layouts[l]);
                     ds.exit().remove();
@@ -1148,7 +1149,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return invObjScale * v;
                 }).join(',');
             }
-            
+
             function hideShapeLocation() {
                 select('.focus-text').text('');
             }
@@ -1242,14 +1243,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function replot() {
-                // total x extent
-                // add optional fit to objects
-                var bnds = $scope.source.shapeBounds();
+                let bnds = $scope.source.shapeBounds();
                 //srdbg('bnds', bnds);
-                var newDomain = $scope.cfg.initDomian;
+                let newDomain = $scope.cfg.initDomian;
                 SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
-                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
-                    var axis = axes[dim];
+                    let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    let axis = axes[dim];
                     axis.domain = newDomain[labDim];
                     if ($scope.cfg.fitToObjects) {
                         if (bnds[labDim][0] < axis.domain[0]) {
@@ -1261,6 +1260,23 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     }
                     axis.scale.domain(newDomain[labDim]);
                 });
+                // keep the size of the domains in each direction equal, in order to preserve
+                // the shapes (squares stay square, etc.(
+                if ($scope.cfg.preserveShape) {
+                    let newDomSpan = Math.max(
+                        Math.abs(newDomain.x[1] - newDomain.x[0]),
+                        Math.abs(newDomain.y[1] - newDomain.y[0])
+                    );
+                    SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
+                        let labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                        let domDiff = (
+                            newDomSpan - Math.abs(newDomain[labDim][1] - newDomain[labDim][0])
+                        ) / 2;
+                        newDomain[labDim][0] = newDomain[labDim][0] - domDiff;
+                        newDomain[labDim][1] = newDomain[labDim][1] + domDiff;
+                        axes[dim].scale.domain(newDomain[labDim]);
+                    });
+                }
                 $scope.resize();
             }
 
@@ -1328,6 +1344,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function shapeOrigin(shape, dim) {
                 var labDim = shape.elev[dim].axis;
+
                 return axes[dim].scale(
                     shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
                 );
@@ -1372,11 +1389,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeSize(shape, screenDim) {
-                var labDim = shape.elev[screenDim].axis;
-                return  Math.abs(
-                    axes[screenDim].scale(shape.center[labDim] + shape.size[labDim] / 2) -
-                    axes[screenDim].scale(shape.center[labDim] - shape.size[labDim] / 2)
-                );
+                let labDim = shape.elev[screenDim].axis;
+                let c = shape.center[labDim] || 0;
+                let s = shape.size[labDim] || 0;
+                return  Math.abs(axes[screenDim].scale(c + s / 2) - axes[screenDim].scale(c - s / 2));
             }
 
             function updateShapeAttributes(selection) {
@@ -1412,9 +1428,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         var pts = linePoints(d);
                         return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
                     })
-                    .attr('y2', function (d) {
+                    .attr('y2', function(d) {
                         var pts = linePoints(d);
                         return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
+                    })
+                    .attr('marker-end', function(d) {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
+                    })
+                    .attr('marker-start', function(d) {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
                     })
                     .attr('width', function(d) {
                         return shapeSize(d, 'x') + 2 * (d.outlineOffset || 0);
@@ -1643,8 +1669,13 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
             var axisCfg = axisCfgDefault;
 
-            var d3self = d3.selectAll($element);
+            var d3self = select();
             var lastSize = [1, 1];
+
+            function select(selector) {
+                var e = d3.select($element[0]);
+                return selector ? e.select(selector) : e;
+            }
 
             function refresh() {
                 var size = [$($element).width(), $($element).height()];
@@ -1782,7 +1813,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         axes[dim].updateLabelAndTicks({
                             width: newRange,
                             height: newRange
-                        }, d3.select);
+                        }, select);
                     }
 
                     d3self.select(axisSelector).attr('transform', xform);
@@ -1850,13 +1881,9 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 }
             }
 
-            appState.whenModelsLoaded($scope, function() {
-                init();
-            });
+            appState.whenModelsLoaded($scope, init);
 
-            $scope.$on('axes.refresh', function () {
-                refresh();
-            });
+            $scope.$on('axes.refresh', refresh);
 
             // may not need this refresh?
             $scope.$watch('boundObj', function (d) {
@@ -1941,6 +1968,20 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 setBg: setBgColor,
                 setCam: setCam,
                 setMarker: setMarker,
+                resetSide: 'x',
+                showSide: showSide,
+                axisDirs: {
+                    dir: 1,
+                    x: {
+                        camViewUp: [0, 0, 1]
+                    },
+                    y: {
+                        camViewUp: [0, 0, 1]
+                    },
+                    z: {
+                        camViewUp: [0, 1, 0]
+                    }
+                },
             };
 
             var cam = null;
@@ -1956,6 +1997,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             var renderWindow = null;
             var snapshotCanvas = null;
             var snapshotCtx = null;
+
+            const resize = utilities.debounce(refresh, 250);
 
             function getInteractionMode() {
                 return $scope.interactionMode;
@@ -1991,12 +2034,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             function ondblclick(evt) {
-                setCam();
-                refresh();
+                $scope.side = '';
+                $scope.showSide(api.resetSide);
             }
 
             function setBgColor(hexColor) {
                 renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
+                renderWindow.render();
             }
 
             function setCam(pos, vu) {
@@ -2012,6 +2056,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 var v = vu || [0, 0, 1];
                 cam.setViewUp(v[0], v[1], v[2]);
                 renderer.resetCamera();
+                // make room for left axis label on wide plots
+                cam.yaw(0.6);
                 if (marker) {
                     marker.updateMarkerOrientation();
                 }
@@ -2106,6 +2152,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         //listeners: lsnrs,
                         renderer: renderer,
                         window: renderWindow,
+                        fsRenderer: fsRenderer,
                     }
                 });
             };
@@ -2115,8 +2162,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 return {
                     pos: $(vtkCanvasHolder).position(),
                     size: {
-                        width: $(vtkCanvasHolder).width(),
-                        height: $(vtkCanvasHolder).height()
+                        width: Math.max(0, $(vtkCanvasHolder).width()),
+                        height: Math.max(0, $(vtkCanvasHolder).height()),
                     }
                 };
             };
@@ -2128,20 +2175,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 //renderWindow.getInteractor().setRecognizeGestures(mode === vtkUtils.INTERACTION_MODE_MOVE);
             };
 
-            $scope.axisDirs = {
-                dir: 1,
-                x: {
-                    camViewUp: [0, 0, 1]
-                },
-                y: {
-                    camViewUp: [0, 0, 1]
-                },
-                z: {
-                    camViewUp: [0, 1, 0]
-                }
-            };
+            $scope.axisDirs = api.axisDirs;
             $scope.side = 'x';
-            $scope.showSide = function(side) {
+            $scope.showSide = showSide;
+
+            function showSide(side) {
                 if (side == $scope.side) {
                     $scope.axisDirs.dir *= -1;
                 }
@@ -2151,7 +2189,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 });
                 setCam(cp, $scope.axisDirs[side].camViewUp);
                 refresh();
-            };
+            }
 
             $scope.toggleMarker = function() {
                 setMarkerVisible();
@@ -2189,15 +2227,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
             }
 
-            function resize(e) {
-                refresh();
-            }
-
             appState.whenModelsLoaded($scope, function () {
                 $scope.$on('vtk.selected', function (e, d) {
                     $scope.$applyAsync(function () {
                         $scope.selection = d;
                     });
+                });
+                $scope.$on('vtk.showLoader', function (e, d) {
+                    setBgColor('#dddddd');
+                    $($element).find('.vtk-load-indicator img').css('display', 'block');
+                });
+                $scope.$on('vtk.hideLoader', function (e, d) {
+                    setBgColor('#ffffff');
+                    $($element).find('.vtk-load-indicator img').css('display', 'none');
                 });
                 $scope.init();
             });

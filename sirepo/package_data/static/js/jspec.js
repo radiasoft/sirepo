@@ -14,7 +14,7 @@ SIREPO.app.config(function() {
     ].join('');
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
-          '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
+          '<div data-sim-list="" data-model="model" data-field="field" data-code="elegant"></div>',
         '</div>',
         '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
           '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
@@ -237,8 +237,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     });
 
-    self.showCompletionState = function() {
-        return self.hasParticles;
+    self.simCompletionState = function() {
+        if (! self.hasParticles) {
+            return '';
+        }
+        return  SIREPO.APP_SCHEMA.strings.completionState;
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
@@ -290,44 +293,6 @@ SIREPO.app.directive('appHeader', function() {
     };
 });
 
-SIREPO.app.directive('elegantSimList', function(appState, requestSender) {
-    return {
-        restrict: 'A',
-        template: [
-            '<div style="white-space: nowrap">',
-              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name for item in simList"></select>',
-              ' ',
-              '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openElegantSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.simList = null;
-            $scope.openElegantSimulation = function() {
-                if ($scope.model && $scope.model[$scope.field]) {
-                    //TODO(pjm): this depends on the visualization route being present in both jspec and elegant apps
-                    // need meta data for a page in another app
-                    requestSender.newLocalWindow(
-                        'visualization',
-                        {':simulationId': $scope.model[$scope.field]},
-                        'elegant');
-                }
-            };
-            appState.whenModelsLoaded($scope, function() {
-                requestSender.getApplicationData(
-                    {
-                        method: 'get_elegant_sim_list',
-                    },
-                    function(data) {
-                        if (appState.isLoaded() && data.simList) {
-                            $scope.simList = data.simList.sort(function(a, b) {
-                                return a.name.localeCompare(b.name);
-                            });
-                        }
-                    });
-            });
-        },
-    };
-});
 
 SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
     return {

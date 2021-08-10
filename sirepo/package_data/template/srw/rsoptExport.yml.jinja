@@ -1,0 +1,34 @@
+codes:
+  - python:
+      settings:
+      parameters:
+        {% for e in rsOptElements %}
+        {% for p in rsOptParams %}
+        {% if p in e %}
+        {% for x in e[p].initial %}
+        {% if e[p].offsets[loop.index0] != 0 %}
+        {{ e.title }}_{{ p }}_{{ loop.index0 }}:
+          min: {{ x - e[p].offsets[loop.index0] / 2.0 }}
+          max: {{ x + e[p].offsets[loop.index0] / 2.0 }}
+          samples: {{ numSamples }}
+          start: {{ x }}
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+      setup:
+        input_file: {{ pyFileName }}
+        function: set_rsopt_params_dummy
+        execution_type: parallel
+options:
+  {% if scanType == 'grid' %}
+  software: mesh_scan
+  {% elif scanType == 'random' %}
+  software: lh_scan
+  nworkers: {{ numWorkers }}
+  batch_size: {{ numSamples }}
+  {% endif %}
+  run_dir: {{ runDir }}
+  sim_dirs_make: False
+
