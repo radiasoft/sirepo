@@ -10,7 +10,6 @@ SIREPO.app.config(function() {
           '<div data-turn-count-field="" field="field" data-model="model"></div>',
         '</div>',
     ].join('');
-    SIREPO.appImportText = 'Import a MAD-X or elegant Lattice';
     SIREPO.FILE_UPLOAD_TYPE = {
         'bunch-particleFile': '.h5,.hdf5',
     };
@@ -63,7 +62,8 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     var self = this;
 
     function calculateBunchParameters() {
-        requestSender.getApplicationData(
+        requestSender.statelessCompute(
+            appState,
             {
                 method: 'calculate_bunch_parameters',
                 bunch: appState.clone(appState.models.bunch),
@@ -72,7 +72,8 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
                 if (data.bunch && appState.isLoaded()) {
                     appState.models.bunch = data.bunch;
                 }
-            });
+            }
+        );
     }
 
     function processBeamDefinition() {

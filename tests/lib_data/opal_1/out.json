@@ -1,17 +1,36 @@
 {
     "models": {
+        "beamline3dAnimation": {},
         "beamlines": [
             {
                 "id": 113,
                 "items": [
                     106,
-                    104,
                     107,
-                    105,
                     108,
                     103
                 ],
-                "name": "DRIVE"
+                "name": "DRIVE",
+                "phi": 0,
+                "positions": [
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 0.5
+                    }
+                ],
+                "psi": 0,
+                "theta": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         ],
         "bunchAnimation": {
@@ -138,7 +157,6 @@
                 "mass": 0.0,
                 "name": "BEAM1",
                 "npart": 10000.0,
-                "nslice": 0.0,
                 "particle": "ELECTRON",
                 "pc": 1.1961600796052967e-06
             },
@@ -387,7 +405,7 @@
                 "phi": 0.0,
                 "phi0": 0.0,
                 "psi": 0.0,
-                "rfcavity_type": "",
+                "rfcavity_type": "STANDING",
                 "rmax": 0.0,
                 "rmin": 0.0,
                 "shunt": 0.0,
@@ -501,6 +519,7 @@
         "simulation": {
             "activeBeamlineId": 113,
             "documentationUrl": "",
+            "elementPosition": "absolute",
             "folder": "/",
             "name": "AWA Photoinjector",
             "notes": "",

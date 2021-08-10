@@ -34,7 +34,7 @@
           </thead>
           <tbody>
             <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', simulations.sortField]">
-              <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'sr-user-item': ! simulations.fileManager.isItemExample(item), 'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder && item.isExample, 'sr-transparent-icon-user': ! item.isFolder && ! item.isExample}"></span> <span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName }}</span></a></td>
+              <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'sr-user-item': ! simulations.fileManager.isItemExample(item), 'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder && item.isExample, 'sr-transparent-icon-user': ! item.isFolder && ! item.isExample}"></span> <span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName }}</span></a> <span data-sr-tooltip="{{ item.notes }}"><span></td>
               <td>{{ item.lastModified }}</td>
             </tr>
             <tr data-ng-show="simulations.isWaitingForSim">
@@ -53,7 +53,7 @@
               <a href data-ng-dblclick="simulations.openItem(item)" class="sr-item-icon" data-toggle="dropdown">
                 <span class="caret" style="visibility: hidden"></span><span class="glyphicon" data-ng-class="{'sr-user-item': ! simulations.fileManager.isItemExample(item), 'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder && item.isExample, 'sr-transparent-icon-user': ! item.isFolder && ! item.isExample}"></span><span data-ng-if="simulations.fileManager.isItemExample(item)" class="glyphicon glyphicon-star sr-example-item" data-ng-class="{ 'sr-example-folder': item.isFolder, 'sr-example-sim': ! item.isFolder }"></span><span class="caret"></span>
               </a>
-              <a class="sr-item-text" href data-ng-click="simulations.openItem(item)"><span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName }}</span></a>
+              <div style="display: inline-block"><a href data-ng-click="simulations.openItem(item)"><span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName | limitTo: 60 }}</span></a> <span data-sr-tooltip="{{ item.notes }}"><span></div>
               <ul class="dropdown-menu">
                 <li><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon sr-nav-icon" data-ng-class="{'glyphicon-folder-open': item.isFolder, 'glyphicon-open-file': ! item.isFolder}"></span> Open</a></li>
                 <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.copyItem(item)"><span class="glyphicon glyphicon-duplicate sr-nav-icon"></span> Open as a New Copy</a></li>
@@ -61,7 +61,7 @@
                 <li data-ng-if="! simulations.fileManager.isItemExample(item)"><a href data-ng-click="simulations.moveItem(item)"><span class="glyphicon glyphicon-arrow-right sr-nav-icon"></span> Move</a></li>
                 <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.exportArchive(item, 'zip')"><span class="glyphicon glyphicon-save-file sr-nav-icon"></span> Export as Zip</a></li>
                 <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.exportArchive(item, 'html')"><span class="glyphicon glyphicon-export sr-nav-icon"></span> Self-Extracting Simulation</a></li>
-                <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.pythonSource(item)"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ simulations.stringsService.formatKey('simulationSource') }}</a></li>
+                <li data-ng-if="! item.isFolder && simulations.canDownloadInputFile()"><a href data-ng-click="simulations.pythonSource(item)"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ simulations.stringsService.formatKey('simulationSource') }}</a></li>
                 <li data-ng-if="simulations.canDelete(item)" class="divider"></li>
                 <li data-ng-if="simulations.canDelete(item)"><a href data-ng-click="simulations.deleteItem(item)"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
               </ul>

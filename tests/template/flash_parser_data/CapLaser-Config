@@ -1,0 +1,88 @@
+REQUIRES Driver
+REQUIRES physics/Hydro/HydroMain/unsplit/MHD_StaggeredMesh
+
+REQUESTS physics/Eos/EosMain/multiTemp/Multitype
+REQUESTS physics/Eos/EosMain/Tabulated
+REQUESTS physics/Diffuse/DiffuseMain/Unsplit
+REQUESTS physics/sourceTerms/EnergyDeposition
+REQUESTS physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer
+REQUESTS physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ
+REQUESTS physics/materialProperties/MagneticResistivity/MagneticResistivityMain/SpitzerHighZ
+
+# This simulation requires specifying the species via the setup
+# line. You must include the species setup variable:
+#
+# species=fill,wall
+#
+# An example of a setup line for this simulation is:
+#
+# ./setup -auto magnetoHD/CapLaserBELLA -site=rsX -2d -nxb=32 -nyb=32 +hdf5typeio species=fill,wall +mtmmmt +usm3t +mgd mgd_meshgroups=6 -parfile=bella_setup.par -objdir=BELLArun +laser ed_maxPulses=1 ed_maxPulseSections=4 ed_maxBeams=1
+
+DATAFILES al-imx-004.cn4
+DATAFILES h-imx-004.cn4
+
+##########################
+#                        #
+#   RUNTIME PARAMETERS   #
+#                        #
+##########################
+
+D sim_peakField peak field in gauss at capillary wall
+PARAMETER sim_peakField   REAL 2.4e3
+
+D sim_period circuit period in seconds
+PARAMETER sim_period   REAL 300.e-9
+
+# Target material defaults set for aluminum at room temperature:
+D sim_rhoTarg Initial target density
+PARAMETER sim_rhoWall   REAL 2.7
+
+D sim_teleTarg Initial target electron temperature
+PARAMETER sim_teleWall  REAL 290.11375
+
+D sim_tionTarg Initial target ion temperature
+PARAMETER sim_tionWall  REAL 290.11375
+
+D sim_tradTarg Initial target radiation temperature
+PARAMETER sim_tradWall  REAL 290.11375
+
+D sim_zminTarg target minimum zbar allowed
+PARAMETER sim_zminWall  REAL 0.0
+
+D sim_eosTarg chamber EOS type
+PARAMETER sim_eosWall   STRING "eos_tab" ["eos_tab","eos_gam"]
+
+D sim_condWall Wall conductivity at the gas/wall interface
+PARAMETER sim_condWall   REAL 1.95e5
+
+# Chamber material defaults set for Helium at pressure 1.6 mbar:
+D sim_rhoCham Initial chamber density
+PARAMETER sim_rhoFill   REAL 2.655e-07
+
+D sim_teleCham Initial chamber electron temperature
+PARAMETER sim_teleFill  REAL 290.11375
+
+D sim_tionCham Initial chamber ion temperature
+PARAMETER sim_tionFill  REAL 290.11375
+
+D sim_tradCham Initial chamber radiation temperature
+PARAMETER sim_tradFill  REAL 290.11375
+
+D sim_eosCham chamber EOS type
+PARAMETER sim_eosFill   STRING "eos_tab" ["eos_tab","eos_gam"]
+
+D cvio_variable Heatexchange saves Cv for ions here, for debugging
+VARIABLE CVIO
+D cvel_variable Heatexchange saves Cv for electrons here, for debugging
+VARIABLE CVEL
+VARIABLE KAPA
+#VARIABLE RHCD
+VARIABLE BDRY
+
+VARIABLE EX
+VARIABLE EY
+VARIABLE NELE
+VARIABLE BRSC
+VARIABLE BRMX
+VARIABLE ANGL
+VARIABLE RESI

@@ -28,10 +28,14 @@
         ],
         "BeamStatisticsParameter": [
             ["none", "None"],
+            ["angxz", "angxz"],
+            ["angxpzp", "angxpzp"],
             ["sigmax", "sigmax"],
             ["sigdix", "sigdix"],
             ["sigmaz", "sigmaz"],
             ["sigdiz", "sigdiz"],
+            ["sigmaxz", "sigmaxz"],
+            ["sigmaxpzp", "sigmaxpzp"],
             ["x", "x"],
             ["xp", "xp"],
             ["z", "z"],
@@ -115,6 +119,10 @@
             ["31", "S1-stokes = |Ep|² - |Es|²"],
             ["32", "S2-stokes = 2|Es||Ep|cos(Phase s-Phase p)"],
             ["33", "S3-stokes = 2|Es||Ep|sin(Phase s-Phase p)"]
+        ],
+        "ComputeFieldMethod": [
+            ["radius", "From Magnet Radius"],
+            ["field", "From Magnetic Field"]
         ],
         "CrystalMaterial": [
             ["AlphaAlumina", "AlphaAlumina"],
@@ -328,6 +336,11 @@
             ["0", "Point"],
             ["1", "Gaussian"],
             ["2", "FT(Divergences)"]
+        ],
+        "ZonePlateType": [
+            ["0", "Ordinary"],
+            ["1", "Zone-Doubled"],
+            ["2", "Zone-Filled"]
         ]
     },
     "dynamicFiles": {
@@ -405,7 +418,9 @@
             "ph1": ["Minimum Energy [eV]", "Float", 11160.0],
             "ph2": ["Maximum Energy [eV]", "Float", 0.0],
             "r_magnet": ["Magnet Radius [m]", "Float"],
-            "fdistr": ["Calculation Mode", "BendingMagnetMode"]
+            "fdistr": ["Calculation Mode", "BendingMagnetMode"],
+            "calculateFieldMethod": ["Compute Field/Radius", "ComputeFieldMethod", "radius"],
+            "magneticField": ["Magnetic Field [T]", "Float"]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -485,7 +500,7 @@
             "braggEnergyStep": ["Energy Step [eV]", "Float", 100.0]
         },
         "electronBeam": {
-            "bener": ["Energy [GeV]", "Float"],
+            "bener": ["Beam Energy [GeV]", "Float"],
             "sigmax": ["X Sigma [µm]", "Float"],
             "sigmaz": ["Z Sigma [µm]", "Float"],
             "epsi_x": ["X Emittance [nrad]", "Float"],
@@ -745,6 +760,19 @@
             "shift_x_value": ["Value", "Float", 0.0],
             "shift_betax_flag": ["Shift Transversal Coordinate", "BeamShift", "0"],
             "shift_betax_value": ["Value", "Float", 0.0]
+        },
+        "zonePlate": {
+            "title": ["Element Name", "String", "Zone Plate"],
+            "position": ["Position along Optical Path [m]", "Float"],
+            "zone_plate_type": ["Zone Plate Type", "ZonePlateType", "0"],
+            "width_coating": ["Coating Width [nm]", "Float", 20.0],
+            "height": ["Height [mm]", "Float", 4.0],
+            "diameter": ["Diameter [mm]", "Float", 4.0],
+            "b_min": ["Outer Zone Width [µm]", "Float", 10.0],
+            "zone_plate_material": ["Material", "ReflectivityMaterial", "Au"],
+            "template_material": ["Template Material", "ReflectivityMaterial", "SiO2"],
+            "n_points": ["Sampling Points", "Integer", 5000],
+            "last_index": ["Last Index of Focal Image", "Integer", 100]
         }
     },
     "view": {
@@ -832,7 +860,9 @@
                     ]
                 ]],
                 ["Magnet Parameters", [
+                    "calculateFieldMethod",
                     "r_magnet",
+                    "magneticField",
                     "fdistr",
                     [
                         ["Horizontal", [
@@ -1412,6 +1442,22 @@
                         ]]
                     ]
                 ]]
+            ]
+        },
+        "zonePlate": {
+            "title": "Zone Plage",
+            "advanced": [
+                "title",
+                "position",
+                "zone_plate_type",
+                "width_coating",
+                "height",
+                "diameter",
+                "b_min",
+                "zone_plate_material",
+                "template_material",
+                "n_points",
+                "last_index"
             ]
         }
     }

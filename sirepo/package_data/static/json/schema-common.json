@@ -121,6 +121,8 @@
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
+        "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
+        "exportRSOptConfig": "/export-rsopt-config/<simulation_type>/<simulation_id>/<filename>",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
@@ -129,9 +131,7 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
-        "redirectJupyterHub": "/redirect-jupyterhub",
         "jupyterHub": "/jupyter",
-        "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "migrateJupyterhub": "/migrate-jupyterhub",
@@ -139,6 +139,7 @@
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
+        "redirectJupyterHub": "/redirect-jupyterhub",
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
         "runCancel": "/run-cancel",
@@ -152,6 +153,7 @@
         "simulationSchema": "/simulation-schema",
         "srUnit": "/ srunit",
         "srwLight": "/light",
+        "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
@@ -167,7 +169,10 @@
             }
         },
         "constants": {
+            "canDownloadInputFile": true,
             "clientCookie": "sirepo_cookie_js",
+            "hasJupyterExport": false,
+            "hasMadxExport": false,
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
@@ -482,12 +487,14 @@
                 ]
             },
             "sirepoLibs": {
-                "js": ["sirepo.js"],
+                "js": ["sirepo.js", "sirepo-dom.js"],
                 "css": ["sirepo.css"]
             }
         },
         "strings": {
             "completionState": ": {frameCount} animation frames",
+            "genericSimulationError": "Error encountered during {typeOfSimulation}",
+            "importText": null,
             "simulationDataType": "simulation",
             "simulationDataTypePlural": "simulations",
             "simulationState": "{typeOfSimulation} {state}",

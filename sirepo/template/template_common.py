@@ -44,7 +44,7 @@ RUN_LOG = 'run.log'
 
 _HISTOGRAM_BINS_MAX = 500
 
-_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
+_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
 class ModelUnits():
@@ -118,6 +118,11 @@ class ModelUnits():
                     self.unit_def[name][field],
                     is_native)
         return model
+
+
+class NoH5PathError(KeyError):
+    """The given path into an h5 file does not exist"""
+    pass
 
 
 class ParticleEnergy():
@@ -267,23 +272,36 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     return y_range
 
 
-def dict_to_h5(d, hf, path=None):
-    if path is None:
-        path = ''
+def write_dict_to_h5(d, file_path, h5_path=None):
+    """ Store the contents of a dict in an h5 file starting at the provided path.
+    Stores the data recursively so that
+        {a: A, b: {c: C, d: D}}
+    maps the data to paths
+        <h5_path>/a   -> A
+        <h5_path>/b/c -> C
+        <h5_path>/b/d -> D
+
+    h5_to_dict() performs the reverse process
+    """
+    import h5py
+    if h5_path is None:
+        h5_path = ''
     try:
         for i in range(len(d)):
+            p = f'{h5_path}/{i}'
             try:
-                p = f'{path}/{i}'
-                hf.create_dataset(p, data=d[i])
+                with h5py.File(file_path, 'a') as f:
+                    f.create_dataset(p, data=d[i])
             except TypeError:
-                dict_to_h5(d[i], hf, path=p)
+                write_dict_to_h5(d[i], file_path, h5_path=p)
     except KeyError:
         for k in d:
-            p = f'{path}/{k}'
+            p = f'{h5_path}/{k}'
             try:
-                hf.create_dataset(p, data=d[k])
+                with h5py.File(file_path, 'a') as f:
+                    f.create_dataset(p, data=d[k])
             except TypeError:
-                dict_to_h5(d[k], hf, path=p)
+                write_dict_to_h5(d[k], file_path, h5_path=p)
 
 
 def enum_text(schema, name, value):
@@ -363,20 +381,30 @@ def h5_to_dict(hf, path=None):
         for k in hf[path]:
             try:
                 d[k] = hf[path][k][()].tolist()
-            except AttributeError:
+            except (AttributeError, TypeError):
+                # AttributeErrors occur when invoking tolist() on non-arrays
+                # TypeErrors occur when accessing a group with [()]
+                # in each case we recurse one step deeper into the path
                 p = '{}/{}'.format(path, k)
                 d[k] = h5_to_dict(hf, path=p)
     except TypeError:
-        # assume this is a single-valued entry
-        return hf[path][()]
+        # this TypeError occurs when hf[path] is not iterable (e.g. a string)
+        # assume this is a single-valued entry and run it through pkcompat
+        return pkcompat.from_bytes(hf[path][()])
+    except KeyError as e:
+        # no such path into the h5 file - re-raise so we know where it came from
+        raise NoH5PathError(e)
+
     # replace dicts with arrays on a 2nd pass
-    d_keys = d.keys()
     try:
-        indices = [int(k) for k in d_keys]
+        indices = [int(k) for k in d.keys()]
         d_arr = [None] * len(indices)
         for i in indices:
             d_arr[i] = d[str(i)]
         d = d_arr
+    except IndexError:
+        # integer keys but not an array
+        pass
     except ValueError:
         # keys not all integers, we're done
         pass
@@ -454,6 +482,20 @@ def parse_enums(enum_schema):
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
+
+
+def parse_mpi_log(run_dir):
+    e = None
+    f = run_dir.join('mpi_run.out')
+    if f.exists():
+        m = re.search(
+            r'^Traceback .*?^\w*Error: (.*?)\n',
+            pkio.read_text(f),
+            re.MULTILINE | re.DOTALL,
+        )
+        if m:
+            e = m.group(1)
+    return e
 
 
 def read_last_csv_line(path):
@@ -542,6 +584,16 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
+def stateless_compute_dispatch(data):
+    m = data.method
+    assert re.search(r'^\w{1,35}$', m), \
+        f'method={m} not a valid python function name or too long'
+    return getattr(
+        sirepo.template.import_module(data.simulationType),
+        f'stateless_compute_{m}',
+    )(data)
+
+
 def subprocess_output(cmd, env=None):
     """Run cmd and return output or None, logging errors.
 
@@ -570,6 +622,15 @@ def subprocess_output(cmd, env=None):
         out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
+
+
+def text_data_file(filename, run_dir):
+    """Return a datafile with a .txt extension so the text/plain mimetype is used.
+    """
+    return PKDict(
+        filename=run_dir.join(filename, abs=1),
+        uri=filename + '.txt',
+    )
 
 
 def validate_model(model_data, model_schema, enum_info):
@@ -659,7 +720,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub(r'[\"\'()]', '', str(v))
+    return re.sub(r'([^\\])[\"\']', r'\1', str(v))
 
 
 def _get_notes(data):

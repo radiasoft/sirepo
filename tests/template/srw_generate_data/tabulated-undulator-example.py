@@ -7,13 +7,11 @@ try:
 except:
     pass
 
-
 import srwl_bl
 import srwlib
 import srwlpy
 import math
 import srwl_uti_smp
-
 
 def set_optics(v=None):
     el = []
@@ -44,7 +42,8 @@ def set_optics(v=None):
     return srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+
+varParam = [
     ['name', 's', 'Tabulated Undulator Example', 'simulation name'],
 
 #---Data Folder
@@ -244,7 +243,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
     #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
-])
+]
 
 def setup_magnetic_measurement_files(filename, v):
     import os
@@ -281,8 +280,9 @@ def setup_magnetic_measurement_files(filename, v):
     v.und_mfs = os.path.basename(f)
     v.und_mdir = os.path.dirname(f) or './'
 
+
 def main():
-    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
+    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files("magnetic_measurements.zip", v)
     op = set_optics(v)
     v.ss = True
@@ -297,13 +297,6 @@ def main():
     v.tr_pl = 'xz'
     v.ws = True
     v.ws_pl = 'xy'
-    mag = None
-    if v.rs_type == 'm':
-        mag = srwlib.SRWLMagFldC()
-        mag.arXc.append(0)
-        mag.arYc.append(0)
-        mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
-        mag.arZc.append(v.mp_zc)
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()

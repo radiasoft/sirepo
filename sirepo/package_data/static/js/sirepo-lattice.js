@@ -131,8 +131,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     self.COMMAND_PREFIX = COMMAND_PREFIX;
 
     self.addToBeamline = function(item) {
-        self.getActiveBeamline().items.push(item.id || item._id);
-        appState.saveChanges('beamlines');
+        $rootScope.$broadcast('sr-addToBeamline', item);
     };
 
     self.angleFormat = function(angle) {
@@ -190,7 +189,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return;
     };
 
-    self.editElement = function(type, item) {
+    self.editElement = function(type, item, models) {
+        if (! appState.viewInfo(type)) {
+            return;
+        }
+        if (models) {
+            item = self.elementForId(item._id, models);
+        }
         appState.models[type] = item;
         self.setValidator(type, item);
         panelState.showModalEditor(type);
@@ -233,16 +238,15 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.elementForId = function(id, models) {
         models = models || appState.models;
-        var i;
         id = Math.abs(id);
-        for (i = 0; i < models.beamlines.length; i++) {
-            var b = models.beamlines[i];
+        for (let i = 0; i < models.beamlines.length; i++) {
+            let b = models.beamlines[i];
             if (b.id == id) {
                 return b;
             }
         }
-        for (i = 0; i < models.elements.length; i++) {
-            var e = models.elements[i];
+        for (let i = 0; i < models.elements.length; i++) {
+            let e = models.elements[i];
             if (e._id == id) {
                 return e;
             }
@@ -287,6 +291,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             count: 0,
             items: [],
         };
+        appState.setModelDefaults(beamline, 'beamline');
         self.setValidator('beamline', beamline);
         return beamline;
     };
@@ -325,6 +330,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         controller.bunchReportHeading = function(item) {
             return self.bunchReportHeading('bunchReport' + item.id);
         };
+    };
+
+    self.isAbsolutePositioning = function() {
+        return appState.models.simulation.elementPosition == 'absolute';
     };
 
     self.isCommandModelName = function(name) {
@@ -559,7 +568,7 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     appState.whenModelsLoaded($rootScope, clearBooleanValues);
 });
 
-SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, $document, $timeout, $window) {
+SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, rpnService, $document, $window) {
     return {
         restrict: 'A',
         scope: {},
@@ -570,15 +579,15 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                   '<a href data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
                 '</div>',
               '</div>',
-              '<div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
+              '<div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div style="display: inline-block;" class="sr-editor-item-hover">',
-                    '<div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item, $event)" data-ng-mousedown="onMouseDown(item, $event)" oncontextmenu="return false" data-ng-click="selectItem(item, $event)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="{\'sr-item-selected\': selectedItem == item, \'sr-lattice-icon\': item.isBeamline}"><span>{{ item.name }}</span></div>',
+                    '<div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-mousedown="onMouseDown(item, $event)" oncontextmenu="return false" data-ng-click="clickItem(item, $event)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="{\'sr-item-selected\': selectedItem == item, \'sr-lattice-icon\': item.isBeamline}"><span>{{ item.name }}</div>',
                     ' <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>',
                   '</div>',
                 '</div>',
-                '<div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)">',
+                '<div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> ',
                   '<div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>',
                 '</div>',
               '</div>',
@@ -594,10 +603,19 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               '</form>',
             '</div>',
             '<div style="display:none">',
-            '<div class="sr-lattice-item-popover">',
+            '<div data-ng-class="::popoverInfo.modifyBeamline.class">',
               '<div class="text-center">',
                 '<button class="btn btn-default" data-ng-click="unpackBeamline()">Unpack</button>',
                 ' <button class="btn btn-default" data-ng-if=":: canReverseBeamline()" data-ng-click="reverseBeamline()">Reverse</button>',
+                ' <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>',
+              '</div>',
+            '</div>',
+            '<div data-ng-class="::popoverInfo.elementPosition.class">',
+              '<div style="margin-bottom: 10px">',
+                '<input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />',
+              '</div>',
+              '<div class="text-center">',
+                '<button class="btn btn-primary" data-ng-click="setElementPosition()">Save Changes</button>',
                 ' <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>',
               '</div>',
             '</div>',
@@ -607,25 +625,67 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             $scope.beamlineItems = [];
             $scope.selectedItem = null;
             $scope.newBeamline = {};
-            var activeBeamline = null;
-            var dragCanceled = false;
-            var dropSuccess = false;
-            var isBeamlineCache = {};
-            var itemNameCache = {};
-            var lastSelectedItem = null;
+            // info is needed by the rpnValue editor
+            $scope.info = {};
+            let activeBeamline = null;
+            let activePopoverName = null;
+            let dragCanceled = false;
+            let dropHandled = false;
+            let isBeamlineCache = {};
+            let itemNameCache = {};
+            let lastSelectedItem = null;
+
+            $scope.popoverInfo = {
+                elementPosition: {
+                    class: 'sr-element-position-popover',
+                    title: 'Element Position [m]',
+                },
+                modifyBeamline: {
+                    class: 'sr-modify-beamline-popover',
+                    title: 'Modify the beamline?',
+                },
+            };
+
+            function getPosition(idx) {
+                if (! activeBeamline.positions) {
+                    activeBeamline.positions = [];
+                }
+                if (! activeBeamline.positions[idx]) {
+                    activeBeamline.positions[idx] = {};
+                }
+                return activeBeamline.positions[idx];
+            }
+
+            function getUIItem(item) {
+                return $($scope.element.find('.sr-lattice-item')[$scope.beamlineItems.indexOf(item)]);
+            }
 
             function isBeamline(id) {
-                var res = isBeamlineCache[id];
+                let res = isBeamlineCache[id];
                 if (res === undefined) {
-                    var el = latticeService.elementForId(id);
+                    let el = latticeService.elementForId(id);
                     res = el.type ? false : true;
                     isBeamlineCache[id] = res;
                 }
                 return res;
             }
 
+            function itemIndex(item) {
+                let res = -1;
+                $scope.beamlineItems.some((item, index) => {
+                    if (item.itemId == $scope.selectedItem.itemId) {
+                        res = index;
+                        return true;
+                    }
+                });
+                if (res < 0) {
+                    throw new Error('Invalid beamline index');
+                }
+                return res;
+            }
+
             function itemName(id) {
-                var res = itemNameCache[id];
+                let res = itemNameCache[id];
                 if (res === undefined) {
                     res = latticeService.nameForId(id);
                     res = (latticeService.isReversed(id) ? '-' : '') + res;
@@ -644,51 +704,125 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 };
             }
 
-            function showPopover(item, $event) {
-                if (item.isBeamline) {
-                    if (! $scope.popoverContent) {
-                        // keep a single reference to prevent garbage collection when dismissed?
-                        $scope.popoverContent = $('.sr-lattice-item-popover');
+            function nextPosition(index, data) {
+                let x = 0;
+                if (index > 0) {
+                    let item = $scope.beamlineItems[index - 1];
+                    let el = latticeService.elementForId(item.id);
+                    let pos = getPosition(index - 1);
+                    if (isBeamline(item.id)) {
+                        //TODO(pjm): determine where to start
+                        x = pos.z;
                     }
-                    var target = $($event.target).closest('.sr-lattice-item');
-                    target.popover({
-                        trigger: 'manual',
-                        html: true,
-                        placement: 'top',
-                        container: $scope.element,
-                        title: 'Modify the beamline?',
-                        content: $scope.popoverContent,
-                    });
-                    $scope.selectItem(item);
-                    target.popover('toggle');
+                    else {
+                        x = Math.round(
+                            (rpnService.getRpnValue(pos.elemedge) + rpnService.getRpnValue(el.l || 0))
+                                * 1e7) / 1e7;
+                    }
                 }
+                getPosition(index).elemedge = x;
             }
 
-            function updateBeamline() {
-                var items = [];
-                for (var i = 0; i < $scope.beamlineItems.length; i++) {
-                    items.push($scope.beamlineItems[i].id);
+            function itemPosition(index) {
+                let item = $scope.beamlineItems[index];
+                if (item.isBeamline) {
+                    return rpnService.getRpnValue(getPosition(index).z);
                 }
-                activeBeamline.items = items;
+                return rpnService.getRpnValue(getPosition(index).elemedge);
+            }
+
+            function setPosition(popupName, fields) {
+                $scope.clearPopover();
+                if (! $scope.selectedItem) {
+                    return;
+                }
+                let idx = itemIndex($scope.selectedItem);
+                let pos = getPosition(idx);
+                fields.forEach((f) => pos[f] = $scope.popoverInfo[popupName][f]);
+
+                if ((idx > 0 && itemPosition(idx - 1) > itemPosition(idx))
+                    || (idx < $scope.beamlineItems.length - 1 && itemPosition(idx + 1) < itemPosition(idx))) {
+                    // sort out-of-place elements
+                    let searchPos = itemPosition(idx);
+                    let targetIdx = $scope.beamlineItems.length - 1;
+                    $scope.beamlineItems.some((item, idx2) => {
+                        if (itemPosition(idx2) > searchPos) {
+                            targetIdx = idx > idx2 ? idx2 : idx2 - 1;
+                            return true;
+                        }
+                    });
+                    activeBeamline.items.splice(targetIdx, 0, activeBeamline.items.splice(idx, 1)[0]);
+                    activeBeamline.positions.splice(targetIdx, 0, activeBeamline.positions.splice(idx, 1)[0]);
+                    $scope.beamlineItems.splice(targetIdx, 0, $scope.beamlineItems.splice(idx, 1)[0]);
+                }
                 appState.saveChanges('beamlines');
             }
 
-            $scope.beamlineName = function() {
-                return activeBeamline ? activeBeamline.name : '';
+            function showElementPositionPopover(item) {
+                let idx = itemIndex(item);
+                $scope.popoverInfo.elementPosition.elemedge = getPosition(idx).elemedge;
+                showPopover(item, 'elementPosition');
+            }
+
+            function showModifyBeamlinePopover(item) {
+                showPopover(item, 'modifyBeamline');
+            }
+
+            function showPopover(item, popoverName) {
+                activePopoverName = popoverName;
+                let info = $scope.popoverInfo[popoverName];
+                if (! info.content) {
+                    // keep a single reference to prevent garbage collection when dismissed?
+                    info.content = $('.' + info.class);
+                }
+                let target = getUIItem(item);
+                target.popover({
+                    trigger: 'manual',
+                    html: true,
+                    placement: 'top',
+                    container: $scope.element,
+                    title: info.title,
+                    content: () => {
+                        return $scope.popoverInfo[activePopoverName].content;
+                    },
+                }).on('shown.bs.popover', () => $('.popover-content .form-control').first().select());
+                $scope.selectItem(item);
+                target.popover('toggle');
+            }
+
+            function showPopoverForItem(item) {
+                panelState.waitForUI(() => {
+                    if (! item.isBeamline && latticeService.isAbsolutePositioning()) {
+                        panelState.waitForUI(() => showElementPositionPopover(item));
+                    }
+                });
+            }
+
+            function updateBeamline() {
+                activeBeamline.items = $scope.beamlineItems.map((v) => v.id);
+                appState.saveChanges('beamlines');
+            }
+
+            $scope.beamlineName = () => activeBeamline ? activeBeamline.name : '';
+
+            $scope.canReverseBeamline = () => SIREPO.lattice.canReverseBeamline;
+
+            $scope.clearPopover = () => $('.sr-lattice-item').popover('hide');
+
+            $scope.clickItem = (item, $event) => {
+                $scope.selectItem(item, $event);
+                if (latticeService.isAbsolutePositioning()) {
+                    $('.sr-lattice-item').not(getUIItem(item)).popover('hide');
+                    if (! item.isBeamline) {
+                        showElementPositionPopover(item);
+                    }
+                }
             };
 
-            $scope.canReverseBeamline = function() {
-                return SIREPO.lattice.canReverseBeamline;
-            };
-
-            $scope.clearPopover = function() {
-                $('.sr-lattice-item').popover('hide');
-            };
-
-            $scope.createBeamlineFromElements = function() {
-                var ids = [];
-                var inCopy = false;
-                $scope.beamlineItems.some(function(item) {
+            $scope.createBeamlineFromElements = () => {
+                let ids = [];
+                let inCopy = false;
+                $scope.beamlineItems.some((item) => {
                     if (item.itemId == $scope.selectedItem.itemId
                         || item.itemId == lastSelectedItem.itemId) {
                         if (ids.length) {
@@ -701,10 +835,10 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                         ids.push(item.id);
                     }
                 });
-                var targetIndices = [];
-                for (var i = 0; i < $scope.beamlineItems.length - ids.length + 1; i++) {
-                    var foundIt = true;
-                    for (var j = 0; j < ids.length; j++) {
+                let targetIndices = [];
+                for (let i = 0; i < $scope.beamlineItems.length - ids.length + 1; i++) {
+                    let foundIt = true;
+                    for (let j = 0; j < ids.length; j++) {
                         if ($scope.beamlineItems[i + j].id != ids[j]) {
                             foundIt = false;
                             break;
@@ -716,9 +850,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                     }
                 }
                 // replaces all occurrences, targetIndices is reverse sorted
-                targetIndices.forEach(function(idx) {
-                    activeBeamline.items.splice(idx, ids.length, $scope.newBeamline.id);
-                });
+                targetIndices.forEach(
+                    (idx) => activeBeamline.items.splice(idx, ids.length, $scope.newBeamline.id));
                 $scope.newBeamline.items = ids;
                 appState.models.beamline = $scope.newBeamline;
                 appState.saveChanges('beamline');
@@ -727,22 +860,26 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 latticeService.editBeamline(activeBeamline);
             };
 
-            $scope.deleteItem = function(data) {
+            $scope.deleteItem = (data) => {
                 $scope.selectItem(data);
                 $('#sr-delete-lattice-item-dialog').modal('show');
             };
 
-            $scope.deleteSelectedItem = function() {
-                $scope.beamlineItems.splice($scope.beamlineItems.indexOf($scope.selectedItem), 1);
+            $scope.deleteSelectedItem = () => {
+                $scope.clearPopover();
+                let idx = $scope.beamlineItems.indexOf($scope.selectedItem);
+                $scope.beamlineItems.splice(idx, 1);
+                if (latticeService.isAbsolutePositioning()) {
+                    activeBeamline.positions.splice(idx, 1);
+                }
                 updateBeamline();
                 $scope.selectedItem = null;
             };
 
-            $scope.dragStart = function(data) {
+            $scope.dragStart = (data) => {
                 dragCanceled = false;
-                dropSuccess = false;
                 $scope.selectItem(data);
-                var idx;
+                let idx;
                 if (data._id) {
                     // dragging in a new element
                     idx = $scope.beamlineItems.length;
@@ -752,94 +889,97 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                     idx = $scope.beamlineItems.indexOf(data);
                 }
                 if (idx >= 0) {
-                    var count = 0;
-                    $('.sr-lattice-editor-panel').find('.sr-lattice-item').each(function() {
-                        $(this).removeClass('sr-move-left');
-                        $(this).removeClass('sr-move-right');
-                        $(this).addClass(count++ > idx ? 'sr-move-left' : 'sr-move-right');
+                    let count = 0;
+                    $('.sr-lattice-editor-panel').find('.sr-lattice-item').each((i, el) => {
+                        $(el).removeClass('sr-move-left')
+                            .removeClass('sr-move-right')
+                            .addClass(count++ > idx ? 'sr-move-left' : 'sr-move-right');
                     });
                 }
             };
 
-            $scope.dragStop = function(data) {
+            $scope.dropItem = (index, data) => {
                 if (! data || dragCanceled) {
                     return;
                 }
+                $scope.clearPopover();
+                let prev_index;
                 if (data.itemId) {
-                    $timeout(function() {
-                        if (! dropSuccess) {
-                            $scope.deleteItem(data);
-                        }
-                    });
-                }
-            };
-
-            $scope.dropItem = function(index, data) {
-                if (! data) {
-                    return;
-                }
-                if (data.itemId) {
-                    if (dragCanceled) {
+                    prev_index = $scope.beamlineItems.indexOf(data);
+                    if (prev_index == index) {
                         return;
                     }
-                    dropSuccess = true;
-                    var curr = $scope.beamlineItems.indexOf(data);
-                    $scope.beamlineItems.splice(curr, 1);
+                    $scope.beamlineItems.splice(prev_index, 1);
                 }
                 else {
-                    data = $scope.beamlineItems.splice($scope.beamlineItems.length - 1, 1)[0];
+                    prev_index = $scope.beamlineItems.length - 1;
+                    data = $scope.beamlineItems.splice(prev_index, 1)[0];
                 }
                 $scope.beamlineItems.splice(index, 0, data);
+                if (latticeService.isAbsolutePositioning()) {
+                    let pos = getPosition(prev_index);
+                    activeBeamline.positions.splice(prev_index, 1);
+                    activeBeamline.positions.splice(index, 0, pos);
+                    nextPosition(index, data);
+                    showPopoverForItem(data);
+                }
                 updateBeamline();
+                dropHandled = true;
             };
 
-            $scope.dropLast = function(data) {
-                if (! data || ! data.itemId) {
-                    return;
+            $scope.dropLast = (data) => {
+                if (data && data.itemId) {
+                    $scope.dropItem($scope.beamlineItems.length - 1, data);
                 }
-                if (dragCanceled) {
-                    return;
-                }
-                $scope.dropItem($scope.beamlineItems.length - 1, data);
             };
 
-            $scope.dropPanel = function(data) {
-                if (! data) {
+            $scope.dropPanel = (data) => {
+                if (! data
+                    || data.itemId
+                    || data.id == activeBeamline.id
+                    || dragCanceled) {
                     return;
                 }
-                if (data.itemId) {
-                    dropSuccess = true;
-                    return;
-                }
-                if (data.id == activeBeamline.id) {
-                    return;
-                }
-                var item = newBeamlineItem(data.id || data._id, appState.maxId($scope.beamlineItems, 'itemId') + 1);
+                $scope.clearPopover();
+                let item = newBeamlineItem(
+                    data.id || data._id,
+                    appState.maxId($scope.beamlineItems, 'itemId') + 1);
                 $scope.beamlineItems.push(item);
                 $scope.selectItem(item);
+                if (latticeService.isAbsolutePositioning()) {
+                    nextPosition($scope.beamlineItems.length - 1, item);
+                }
                 updateBeamline();
+                dropHandled = false;
+                panelState.waitForUI(() => {
+                    if (! dropHandled) {
+                        showPopoverForItem(item);
+                    }
+                });
             };
 
-            $scope.editorHeight = function() {
-                var w = $($window);
-                var el = $scope.element;
+            $scope.editorHeight = () => {
+                let el = $scope.element;
                 if (el) {
-                    return (w.height() - el.offset().top - 15) + 'px';
+                    return ($($window).height() - el.offset().top - 15) + 'px';
                 }
                 return '0';
             };
 
-            $scope.editItem = function(item, $event) {
-                var el = latticeService.elementForId(item.id);
-                if (el.type) {
-                    latticeService.editElement(el.type, el);
+            $scope.editItem = (item) => {
+                if (item.isBeamline) {
+                    if (! latticeService.isAbsolutePositioning()) {
+                        showModifyBeamlinePopover(item);
+                    }
                 }
                 else {
-                    showPopover(item, $event);
+                    $scope.clearPopover();
+                    let el = latticeService.elementForId(item.id);
+                    latticeService.editElement(el.type, el);
                 }
             };
 
-            $scope.onKeyDown = function(e) {
+            $scope.onKeyDown = (e) => {
                 // escape key - simulation a mouseup to cancel dragging
                 if (e.keyCode == 27) {
                     if ($scope.selectedItem) {
@@ -849,39 +989,42 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 }
             };
 
-            $scope.onMouseDown = function(item, $event) {
+            $scope.onMouseDown = (item, $event) => {
                 // right mouse button
-                if ($event.buttons == 2) {
-                    showPopover(item, $event);
+                if ($event.buttons == 2 && item.isBeamline) {
+                    if (! latticeService.isAbsolutePositioning()) {
+                        showModifyBeamlinePopover(item, $event);
+                    }
                 }
             };
 
-            $scope.reverseBeamline = function() {
+            $scope.reverseBeamline = () => {
                 $scope.clearPopover();
                 if (! $scope.selectedItem || ! $scope.selectedItem.isBeamline) {
                     return;
                 }
-                var item = $scope.selectedItem;
+                let item = $scope.selectedItem;
                 item.id = -item.id;
                 item.name = itemName(item.id);
                 updateBeamline();
             };
 
-            $scope.selectItem = function(item, $event) {
-                $scope.clearPopover();
+            $scope.selectItem = (item, $event) => {
                 if ($event && $event.shiftKey && $scope.selectedItem && (item != $scope.selectedItem)) {
-                    lastSelectedItem = item;
-                    $scope.newBeamline = latticeService.getNextBeamline();
-                    $('#sr-beamline-from-elements-dialog').modal('show');
+                    if (! latticeService.isAbsolutePositioning()) {
+                        lastSelectedItem = item;
+                        $scope.newBeamline = latticeService.getNextBeamline();
+                        $('#sr-beamline-from-elements-dialog').modal('show');
+                    }
                     return;
                 }
                 $('.sr-selected-lattice-item').removeClass('sr-selected-lattice-item');
                 $scope.selectedItem = item;
-                var idx = $scope.beamlineItems.indexOf($scope.selectedItem);
+                let idx = $scope.beamlineItems.indexOf($scope.selectedItem);
                 $('.sr-beamline-' + idx).addClass('sr-selected-lattice-item');
             };
 
-            $scope.showBeamlineNameModal = function() {
+            $scope.showBeamlineNameModal = () => {
                 if (activeBeamline) {
                     appState.models.beamline = activeBeamline;
                     latticeService.setValidator('beamline', activeBeamline);
@@ -889,34 +1032,35 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 }
             };
 
-            $scope.showEditor = function() {
-                if (! appState.isLoaded()) {
+            $scope.showEditor = () => {
+                if (! appState.isLoaded() || ! latticeService.activeBeamlineId) {
                     return false;
                 }
-                if (! latticeService.activeBeamlineId) {
-                    return false;
-                }
-                var beamline = latticeService.getActiveBeamline();
-                if (activeBeamline && activeBeamline == beamline && beamline.items.length == $scope.beamlineItems.length) {
+                let beamline = latticeService.getActiveBeamline();
+                if (activeBeamline && activeBeamline == beamline
+                    && beamline.items.length == $scope.beamlineItems.length) {
                     return true;
                 }
+                $scope.clearPopover();
                 activeBeamline = beamline;
                 $scope.selectItem();
                 $scope.beamlineItems = [];
-                activeBeamline.items.forEach(function(id, idx) {
-                    $scope.beamlineItems.push(newBeamlineItem(id, idx + 1));
-                });
+                activeBeamline.items.forEach(
+                    (id, idx) => $scope.beamlineItems.push(newBeamlineItem(id, idx + 1)));
                 return true;
             };
 
-            $scope.unpackBeamline = function() {
+            $scope.setElementPosition = () =>
+                setPosition('elementPosition', ['elemedge']);
+
+            $scope.unpackBeamline = () => {
                 $scope.clearPopover();
                 if (! $scope.selectedItem || ! $scope.selectedItem.isBeamline) {
                     return;
                 }
-                var idx = $scope.beamlineItems.indexOf($scope.selectedItem);
+                let idx = $scope.beamlineItems.indexOf($scope.selectedItem);
                 if (idx >= 0) {
-                    var items = latticeService.elementForId($scope.selectedItem.id).items;
+                    let items = latticeService.elementForId($scope.selectedItem.id).items;
                     if (latticeService.isReversed($scope.selectedItem.id)) {
                         items = items.slice().reverse();
                     }
@@ -927,12 +1071,12 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 }
             };
 
-            $scope.$on('modelChanged', function(e, name) {
+            $scope.$on('modelChanged', (e, name) => {
                 if (appState.models[name] && (appState.models[name].id || appState.models[name]._id)) {
-                    var id = appState.models[name].id || appState.models[name]._id;
+                    let id = appState.models[name].id || appState.models[name]._id;
                     if (itemNameCache[id]) {
                         delete itemNameCache[id];
-                        $scope.beamlineItems.forEach(function(item) {
+                        $scope.beamlineItems.forEach((item) => {
                             if (item.id == id) {
                                 item.name = itemName(id);
                             }
@@ -941,16 +1085,15 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 }
             });
 
-            $scope.$on('sr-beamlineItemSelected', function(e, beamlineIndex) {
-                $scope.selectItem($scope.beamlineItems[beamlineIndex]);
-            });
+            $scope.$on('sr-addToBeamline', (e, item) => $scope.dropPanel(item));
+            $scope.$on(
+                'sr-beamlineItemSelected',
+                (e, beamlineIndex) => $scope.selectItem($scope.beamlineItems[beamlineIndex]));
         },
         link: function(scope, element) {
-            $document.on('keydown', scope.onKeyDown);
-            scope.$on('$destroy', function() {
-                $document.off('keydown', scope.onKeyDown);
-            });
             scope.element = $(element).find('.sr-lattice-editor-panel').first();
+            $document.on('keydown', scope.onKeyDown);
+            scope.$on('$destroy', () => $document.off('keydown', scope.onKeyDown));
         }
     };
 });
@@ -1105,22 +1248,23 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
     return {
         restrict: 'A',
         scope: {
+            margin: '<',
             modelName: '@',
             flatten: '@',
             pathToModels: '@',
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var emptyList = [];
-            var beamlineItems = emptyList;
-            var panTranslate = [0, 0];
-            var picTypeCache = null;
-            var svgBounds = null;
+            let panTranslate = [0, 0];
+            let picTypeCache = null;
+            let selectedBeamline = null;
+            let svgBounds = null;
             var zoom = null;
-            var zoomScale = 1;
+            let zoomScale = 1;
+            const ABSOLUTE_POSITION_TYPE = 'absolutePosition';
             $scope.plotStyle = $scope.flatten ? '' : 'cursor: zoom-in;';
             $scope.isClientOnly = true;
-            $scope.margin = $scope.flatten ? 0 : 3;
+            $scope.margin = $scope.margin || ($scope.flatten ? 0 : 3);
             $scope.width = 1;
             $scope.height = 1;
             $scope.xScale = 1;
@@ -1141,7 +1285,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
 
             function itemTrackHash(item, group, length, angle) {
                 return group.items.length + '-' + item.name + '-' + item._id + '-' + length + '-'
-                    + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0) + '-' + item.beamlineIndex;
+                    + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0)
+                    + '-' + item.beamlineIndex + '-' + (item.elemedge || 0);
             }
 
             function subScaleWatch() {
@@ -1167,9 +1312,25 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var maxHeight = 0;
                 var maxLength = 0;
                 var currentLength = 0;
+                var isAbsolute = latticeService.isAbsolutePositioning();
 
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
+                    if (isAbsolute) {
+                        if (item.type == ABSOLUTE_POSITION_TYPE) {
+                            pos.x = rpnValue(item.x);
+                            pos.y = rpnValue(item.y);
+                            pos.angle = latticeService.radiansToDegrees(rpnValue(item.angle));
+                            group.rotate = pos.angle;
+                            group.rotateX = pos.x;
+                            group.rotateY = pos.y;
+                            pos.edgeStart = 0;
+                            updateBounds(pos.bounds, pos.x, pos.y, Math.max(0.5, pos.radius));
+                            continue;
+                        }
+                        x = item.elemedge - pos.edgeStart;
+                        currentLength = x;
+                    }
                     var picType = getPicType(item.type);
                     var length = rpnValue(item.l || item.xmax || 0);
                     if (picType == 'zeroLength') {
@@ -1187,7 +1348,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         length = travelLength;
                     }
                     var elRadius = rpnValue(item.rx || item.x_max || 0);
-                    pos.length += travelLength;
+                    if (isAbsolute) {
+                        pos.length = item.elemedge + travelLength;
+                    }
+                    else {
+                        pos.length += travelLength;
+                    }
                     //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
                         var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
@@ -1216,6 +1382,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         var enterEdge = rpnValue(item.e1 || 0);
                         var exitEdge = rpnValue(item.e2 || 0);
                         if (item.type.indexOf('RBEN') >= 0) {
+                            if (SIREPO.APP_SCHEMA.simulationType == 'opal') {
+                                enterEdge = exitEdge = 0;
+                            }
                             enterEdge += angle / 2;
                             exitEdge += angle / 2;
                         }
@@ -1442,18 +1611,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         maxHeight = Math.max(maxHeight, groupItem.height);
                         groupItem.trackHash = itemTrackHash(item, group, length);
                         group.items.push(groupItem);
-                        if (length >= 0) {
+                        if (length > 0) {
                             x += length;
-                            if (x > pos.bounds[2]) {
-                                pos.bounds[2] = x;
-                            }
                         }
-                        else {
-                            if (x < pos.bounds[0]) {
-                                pos.bounds[0] = x;
-                            }
-                        }
-                        if (currentLength < maxLength) {
+                        if (currentLength < maxLength || item.isOverlap) {
                             groupItem.opacity = 0.3;
                         }
                         currentLength += length || 0;
@@ -1479,8 +1640,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 pos.angle += newAngle;
             }
 
-            function beamlineContainsElement(beamlineItems, id, beamlineCache) {
-                if (beamlineItems.indexOf(id) >= 0) {
+            function beamlineContainsElement(items, id, beamlineCache) {
+                if (items.indexOf(id) >= 0) {
                     return true;
                 }
                 if (! beamlineCache) {
@@ -1489,8 +1650,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         beamlineCache[b.id] = b.items;
                     });
                 }
-                for (var i = 0; i < beamlineItems.length; i++) {
-                    var bid = beamlineItems[i];
+                for (var i = 0; i < items.length; i++) {
+                    var bid = items[i];
                     if (beamlineCache[bid]) {
                         if (beamlineContainsElement(beamlineCache[bid], id, beamlineCache)) {
                             return true;
@@ -1529,17 +1690,25 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     count: 0,
                     length: 0,
                     inReverseBend: false,
+                    edgeStart: 0,
                 };
-                var explodedItems = explodeItems(beamlineItems);
+                var explodedItems = explodeItems(selectedBeamline);
                 var group = [];
                 var groupDone = false;
                 for (var i = 0; i < explodedItems.length; i++) {
-                    if (groupDone) {
+                    var item = explodedItems[i];
+                    if (groupDone || item.type == ABSOLUTE_POSITION_TYPE) {
                         applyGroup(group, pos);
                         group = [];
                         groupDone = false;
+                        pos.edgeStart = 0;
+                        if (i > 0) {
+                            let prev = explodedItems[i - 1];
+                            if (prev.hasOwnProperty('l')) {
+                                pos.edgeStart = prev.elemedge + rpnValue(prev.l);
+                            }
+                        }
                     }
-                    var item = explodedItems[i];
                     var picType = getPicType(item.type);
                     //TODO(pjm): CHANGREF is zgoubi-specific
                     if (picType != 'drift' && item.type.indexOf('CHANGREF') < 0) {
@@ -1561,12 +1730,24 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             //TODO(pjm): will infinitely recurse if beamlines are self-referential
-            function explodeItems(items, res, reversed, beamlineIndex) {
+            function explodeItems(beamline, res, reversed, beamlineIndex) {
+                var items = beamline.items;
                 if (! res) {
                     res = [];
                 }
                 if (reversed) {
                     items = items.slice().reverse();
+                }
+                let isAbsolute = latticeService.isAbsolutePositioning();
+                if (isAbsolute) {
+                    if (beamline.z || beamline.x || beamline.theta) {
+                        res.push({
+                            type: ABSOLUTE_POSITION_TYPE,
+                            x: rpnValue(beamline.z),
+                            y: - rpnValue(beamline.x),
+                            angle: - rpnValue(beamline.theta),
+                        });
+                    }
                 }
                 for (var i = 0; i < items.length; i++) {
                     var id = items[i];
@@ -1574,6 +1755,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     item.beamlineIndex = beamlineIndex === undefined ? i : beamlineIndex;
                     item.indexClass = 'sr-beamline-' + item.beamlineIndex;
                     if (item.type) {
+                        if (isAbsolute) {
+                            item.elemedge = rpnValue(beamline.positions[i].elemedge);
+                        }
                         if (item.subElements) {
                             $.merge(res, item.subElements);
                         }
@@ -1582,7 +1766,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                     else {
-                        explodeItems(item.items, res, latticeService.isReversed(id), item.beamlineIndex);
+                        explodeItems(item, res, latticeService.isReversed(id), item.beamlineIndex);
                     }
                 }
                 return res;
@@ -1631,13 +1815,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     ? latticeService.getSimulationBeamline()
                     : latticeService.getActiveBeamline());
                 if (! beamline) {
-                    beamlineItems = emptyList;
+                    selectedBeamline = null;
                     return;
                 }
-                if (! forceUpdate && appState.deepEquals(beamline.items, beamlineItems)) {
+                if (! forceUpdate && selectedBeamline
+                    && appState.deepEquals(beamline.items, selectedBeamline.items)
+                    && appState.deepEquals(beamline.positions, selectedBeamline.positions)) {
                     return;
                 }
-                beamlineItems = appState.clone(beamline.items);
+                selectedBeamline = appState.clone(beamline);
                 $scope.svgGroups = [];
                 var pos = computePositions();
                 if (! $scope.flatten && beamlineValue(beamline, 'distance', Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2)))
@@ -1727,6 +1913,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
                 updateZoomAndPan();
                 $scope.$digest();
+                $scope.$broadcast('sr-renderBeamline');
             }
 
             $scope.destroy = function() {
@@ -1752,10 +1939,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.itemDblClicked = function(item) {
-                if ($scope.pathToModels) {
-                    return;
-                }
-                latticeService.editElement(item.type, item);
+                latticeService.editElement(item.type, item, $scope.models);
             };
 
             $scope.resize = function() {
@@ -1801,6 +1985,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     $scope.xOffset = - svgBounds[0] * scale + xOffset;
                     $scope.yOffset = - svgBounds[1] * scale + yOffset;
                     recalcScaleMarker();
+                    $scope.$broadcast('sr-renderBeamline');
                 }
             };
 
@@ -1855,11 +2040,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         renderBeamline(true);
                     }
                     if ($scope.models[name] && $scope.models[name]._id) {
-                        if (beamlineContainsElement(beamlineItems, $scope.models[name]._id)) {
+                        if (beamlineContainsElement(selectedBeamline.items, $scope.models[name]._id)) {
                             renderBeamline(true);
                         }
                     }
                 });
+
+                $scope.$on('cancelChanges', getModels);
 
                 $scope.$on('activeBeamlineChanged', function($event, updateNoWait) {
                     renderBeamline(false, updateNoWait);
@@ -2510,7 +2697,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                     '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">Variables</span>',
                   '</div>',
-                  '<div class="modal-body" style="max-height: 80vh; overflow-y: scroll;">',
+                  '<div class="modal-body" style="max-height: 80vh; overflow-y: auto;">',
                     '<div class="container-fluid">',
                       '<form name="form" class="form-horizontal" autocomplete="off">',
                         '<div class="form-group form-group-sm">',

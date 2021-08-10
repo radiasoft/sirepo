@@ -5,8 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-    SIREPO.appMadxExport = true;
-    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte or .madx) file';
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
           '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
@@ -419,12 +417,12 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.latticeService = latticeService;
 
     self.advancedNames = [
-        'ALPH', 'APCONTOUR', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BOFFAXE', 'BRANCH', 'BRAT', 'BUMPER', 'CCBEND', 'CENTER',
+        'ALPH', 'APCONTOUR', 'BEAMBEAM', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BOFFAXE', 'BRANCH', 'BRAT', 'BUMPER', 'CCBEND', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
         'CWIGGLER', 'DSCATTER', 'EDRIFT', 'EHKICK', 'EKICKER', 'ELSE',
         'EMATRIX', 'EMITTANCE', 'ENERGY', 'EVKICK', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
-        'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
+        'GFWIGGLER', 'GKICKMAP', 'HISTOGRAM', 'HKICK', 'HMON',
         'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
         'LMIRROR', 'LRWAKE', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',

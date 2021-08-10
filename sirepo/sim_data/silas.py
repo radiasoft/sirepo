@@ -16,13 +16,26 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         cls._init_models(
             dm,
-            ['gaussianBeam', 'simulation', 'simulationSettings', 'wavefrontSummaryAnimation'],
+            (
+                'crystalAnimation',
+                'crystal3dAnimation',
+                'crystalCylinder',
+                'crystalSettings',
+                'gaussianBeam',
+                'plotAnimation',
+                'plot2Animation',
+                'simulation',
+                'simulationSettings',
+                'wavefrontSummaryAnimation',
+            ),
         )
         for m in dm.beamline:
             cls.update_model_defaults(m, m.type)
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in ('crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'):
+            return 'crystalAnimation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod

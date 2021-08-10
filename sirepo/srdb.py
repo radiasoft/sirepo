@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import os.path
 import sys
 
-
 #: Relative to current directory only in dev mode
 _DEFAULT_ROOT = 'run'
 
@@ -22,9 +21,12 @@ _root = None
 #: internal config (always use `root`)
 _cfg = None
 
-
 #: subdir of where proprietary codes live
 _PROPRIETARY_CODE_DIR = 'proprietary_code'
+
+
+#: where job db is stored under srdb.root
+_SUPERVISOR_DB_SUBDIR = 'supervisor-job'
 
 
 def proprietary_code_dir(sim_type):
@@ -38,6 +40,12 @@ def proprietary_code_dir(sim_type):
 
 def root():
     return _root or _init_root()
+
+
+def supervisor_dir():
+    """Directory for supervisor job db"""
+
+    return root().join(_SUPERVISOR_DB_SUBDIR)
 
 
 def _init_root():

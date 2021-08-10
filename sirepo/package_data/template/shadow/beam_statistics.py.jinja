@@ -8,6 +8,10 @@ from sirepo.template import transfer_mat_bl
 from pykern.pkcollections import PKDict
 from pykern import pkjson
 
+{% if zonePlateMethods %}
+{{zonePlateMethods}}
+{% endif %}
+
 {% if simulation_sourceType == 'geometricSource' %}
 sigmax = {{ geometricSource_sigmax }}
 sigdix = {{ geometricSource_sigdix }}
@@ -15,7 +19,17 @@ sigmaz = {{ geometricSource_sigmaz }}
 sigdiz = {{ geometricSource_sigdiz }}
 {% elif simulation_sourceType == 'undulator' %}
 {{undulatorSettings}}
+{% elif simulation_sourceType == 'bendingMagnet' %}
+source = Shadow.Source()
+beam = Shadow.Beam()
+source.NPOINT = {{simulation_npoint}}
+source.ISTAR1 = {{simulation_istar1}}
+{{bendingMagnetSettings}}
+beam.genSource(source)
+rays = beam.rays
+{% endif %}
 
+{% if simulation_sourceType in ('bendingMagnet', 'undulator') %}
 def rays_sigma(rays, idx):
     return numpy.sqrt(numpy.mean(rays[:, idx] ** 2))
 
@@ -27,7 +41,7 @@ sigdiz = rays_sigma(rays, 5)
 
 beam_stats = []
 epsilon = {{beamStatisticsReport_epsilon}}
-beam = transfer_mat_bl.create_mat_rays(epsilon)
+beam = transfer_mat_bl.create_mat_rays(epsilon, {{ photonEnergy }})
 
 sigma_mat = numpy.matrix([
     [sigmax ** 2, 0, 0, 0],
@@ -53,6 +67,7 @@ def calculate_stats(pos, oe):
         z=z_prop_cen,
         zp=zp_prop_cen,
         matrix=Tmat.tolist(),
+        sigma_mx=res.tolist(),
         sigmax=math.sqrt(res[0, 0]) * 1e-2,
         sigdix=math.sqrt(res[1, 1]),
         sigmaz=math.sqrt(res[2, 2]) * 1e-2,

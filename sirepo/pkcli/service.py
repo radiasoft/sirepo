@@ -31,16 +31,17 @@ def flask():
     from sirepo import server
     import sirepo.pkcli.setup_dev
 
-    with pkio.save_chdir(_run_dir()):
+    with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in('dev')
-        app = server.init(use_reloader=_cfg().use_reloader)
+        app = server.init(use_reloader=_cfg().use_reloader, is_server=True)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
         import werkzeug.serving
         werkzeug.serving.click = None
         app.run(
+            exclude_patterns=[str(r.join('*'))],
             host=_cfg().ip,
             port=_cfg().port,
             threaded=True,
@@ -98,19 +99,56 @@ def http():
             _kill()
 
 def jupyterhub():
+    import importlib
     import sirepo.template
 
     assert pkconfig.channel_in('dev')
     sirepo.template.assert_sim_type('jupyterhublogin')
-    try:
-        import jupyterhub
-    except ImportError:
-        raise AssertionError('jupyterhub not installed. run `pip install jupyterhub`')
+    # POSIT: versions same in container-beamsim-jupyter/build.sh
+    # Order is important: jupyterlab-server should be last so it isn't
+    # overwritten with a newer version.
+    for m, v in ('jupyterhub', '1.1.0'), ('jupyterlab', '2.1.0 jupyterlab-server==1.2.0'):
+        try:
+            importlib.import_module(m)
+        except ModuleNotFoundError:
+            pkcli.command_error(
+                '{}: not installed run `pip install {}=={}`',
+                m,
+                m,
+                v,
+            )
     import sirepo.sim_api.jupyterhublogin
     import sirepo.server
 
     sirepo.server.init()
     with pkio.save_chdir(_run_dir().join('jupyterhub').ensure(dir=True)) as d:
+        # POSIT: Same kernel env as in container-beamsim-jupyter/build.sh
+        subprocess.run('''
+where=( $(python -m ipykernel install --display-name 'Python 3' --name 'py3' --user) )
+perl -pi -e '
+        sub _e {
+            return join(
+                qq{,\n},
+                map(
+                    $ENV{$_} ? qq{  "$_": "$ENV{$_}"} : (),
+                    qw(LD_LIBRARY_PATH PKG_CONFIG_PATH PYENV_VERSION PYTHONPATH),
+                ),
+            );
+        }
+        s/^\{/{\n "env": {\n@{[_e()]}\n },/
+    ' "${where[-1]}"/kernel.json''',
+            # SECURITY: Ok since this is dev and we aren't taking
+            # input from a user.
+            shell=True,
+        )
+        pksubprocess.check_call_with_signals((
+            'jupyter',
+            'serverextension',
+            'enable',
+            '--py',
+            'jupyterlab',
+            '--sys-prefix',
+        ))
         f = d.join('conf.py')
         pkjinja.render_resource(
             'jupyterhub_conf.py',

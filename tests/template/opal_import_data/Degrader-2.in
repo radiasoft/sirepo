@@ -17,6 +17,7 @@ REAL P0 = gamma*beta*PMASS;
 REAL brho = (PMASS*1.0e9*gambet) / CLIGHT;
 VALUE,{gamma,brho,Edes,beta,gambet};
 
+REAL test1 = sqrt(1 - pow(gamma, 2))
 REAL rf = 50.6328e6;
 REAL NProt =50000.0;
 
@@ -26,10 +27,10 @@ REAL OY = 0.1e-3;
 REAL KY = 0.29e-3;
 
 DISTRIB1: DISTRIBUTION,
-SIGMAX = 0.001861, SIGMAPX = 0.001485*gambet,
+SIGMAX = sqrt(1 - pow(0.001861, 2)), SIGMAPX = 0.001485*gambet,
 SIGMAY = 0.001974, SIGMAPY = 0.001291*gambet,
 SIGMAZ = 1e-05, SIGMAPZ = 0.0007*gambet,
-CORRX = 0.503, CORRY = 0.858, CORRZ = 0,
+CORRX = -gamma/sqrt(1 + pow(gamma, 2)), CORRY = 0.858, CORRZ = 0,
 R51 = 0, R52 = 0, R61 = 0, R62 = 0,
 CUTOFFX = 5, CUTOFFPX = 5, CUTOFFY = 5,
 CUTOFFPY = 5, CUTOFFLONG = 5, CUTOFFPZ = 5,

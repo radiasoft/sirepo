@@ -189,10 +189,9 @@
             "watchpointId": 0
         },
         "multipole": {
-            "distribution": "n",
-            "field": 0.4,
-            "length": 3,
-            "order": 1
+            "bx": 0,
+            "by": 0.4,
+            "length": 3
         },
         "postPropagation": [],
         "powerDensityReport": {

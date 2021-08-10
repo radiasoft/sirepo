@@ -4,6 +4,37 @@
             "localRoute": "controls"
         }
     },
+    "constants": {
+        "maxBPMPoints": 10,
+        "readoutElements": {
+            "HKICKER": {
+                "fields": ["current_kick"],
+                "group": "Kickers [A]"
+            },
+            "KICKER": {
+                "fields": ["current_hkick", "current_vkick"],
+                "group": "Kickers [A]"
+            },
+            "QUADRUPOLE": {
+                "fields": ["current_k1"],
+                "group": "Quads [A]"
+            },
+            "VKICKER": {
+                "fields": ["current_kick"],
+                "group": "Kickers [A]"
+            }
+        },
+        "clight": 299792458,
+        "particleMassAndCharge": {
+            "positron": [0.510998928e-03, 1],
+            "electron": [0.510998928e-03, -1],
+            "proton": [0.938272046, 1],
+            "antiproton": [0.938272046, -1],
+            "posmuon": [0.1056583715, 1],
+            "negmuon": [0.1056583715, -1],
+            "ion": [0.931494061, 1]
+        }
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
@@ -16,6 +47,10 @@
         }
     },
     "enum": {
+        "OptimizationMethod": [
+            ["nmead", "Nelder-Mead"],
+            ["polyfit", "Linear Response Matrix"]
+        ],
         "ParticleType": [
             ["positron", "Positron"],
             ["electron", "Electron"],
@@ -40,14 +75,16 @@
         }
     },
     "model": {
+        "ampTables": {
+        },
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
         "command_beam": {
-            "particle": ["PARTICLE", "ParticleType", "electron", "The name of particles in the beam."],
-            "mass": ["MASS [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
-            "charge": ["CHARGE [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
-            "pc": ["PC [GeV/c]", "Float", 0.0, "Momentum per particle."],
+            "particle": ["Particle", "ParticleType", "electron", "The name of particles in the beam."],
+            "mass": ["Mass [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
+            "charge": ["Charge [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
+            "gamma": ["Gamma", "Float", 1.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles.", 1e-99],
             "ex": ["Horizontal Emittance [m]", "Float", 1.0],
             "ey": ["Vertical Emittance [m]", "Float", 1.0],
             "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
@@ -62,32 +99,57 @@
             "dpy": ["Vertical Dispersion Derivative", "Float", 0.0],
             "dx": ["Horizontal Dispersion [m]", "Float", 0.0],
             "dy": ["Vertical Dispersion [m]", "Float", 0.0],
-            "px": ["Horizontal Centroid Derivative [2$\\pi$]", "Float", 0.0],
-            "py": ["Vertical Centroid Derivative [2$\\pi$]", "Float", 0.0],
+            "px": ["Horizontal Canonical Momentum of $p_x$", "Float", 0.0],
+            "py": ["Vertical Canonical Momentum of $p_y$", "Float", 0.0],
             "x": ["Horizontal Centroid [m]", "Float", 0.0],
             "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
         },
+        "initialMonitorPositionsReport": {},
+        "optimizerSettings": {
+            "method": ["Optimization Method", "OptimizationMethod", "nmead"]
+        },
+        "optimizerTarget": {
+            "x": ["X [m]", "Float", 0.0],
+            "y": ["Y [m]", "Float", 0.0],
+            "weight": ["Weight", "Float", 0.1]
+        },
         "HKICKER": {
-            "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PX$"]
+            "name": ["Name", "ValidatedString"],
+            "current_kick": ["Current [A]", "AmpField", 0.0],
+            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PX$"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "HMONITOR": {
+            "name": ["Name", "ValidatedString"]
         },
         "KICKER": {
-            "hkick": ["HKICK", "MiniFloat", 0.0, "The horizontal momentum change $\\delta PX$"],
-            "vkick": ["VKICK", "MiniFloat", 0.0, "The vertical momentum change $\\delta PY$"]
+            "name": ["Name", "ValidatedString"],
+            "current_hkick": ["Horizontal Current [A]", "AmpField", 0.0],
+            "current_vkick": ["Vertical Current [A]", "AmpField", 0.0],
+            "hkick": ["HKICK", "Float", 0.0, "The horizontal momentum change $\\delta PX$"],
+            "vkick": ["VKICK", "Float", 0.0, "The vertical momentum change $\\delta PY$"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "MONITOR": {
+            "name": ["Name", "ValidatedString"]
         },
         "QUADRUPOLE": {
-            "k1": ["K1 [$\\bf m^{-2}$]", "MiniFloat", 0.0, "The normal quadrupole coefficient"]
+            "name": ["Name", "ValidatedString"],
+            "current_k1": ["Current [A]", "AmpField", 0.0],
+            "k1": ["K1 [$\\bf m^{-2}$]", "Float", 0.0, "The normal quadrupole coefficient"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "VKICKER": {
-            "kick": ["KICK", "MiniFloat", 0.0, "The momentum change $\\delta PY$"]
+            "name": ["Name", "ValidatedString"],
+            "current_kick": ["Current [A]", "AmpField", 0.0],
+            "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PY$"],
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "VMONITOR": {
+            "name": ["Name", "ValidatedString"]
         }
     },
     "strings": {
@@ -106,7 +168,7 @@
                     "particle",
                     "mass",
                     "charge",
-                    "pc"
+                    "gamma"
                 ]],
                 ["Twiss", [
                     [
@@ -149,54 +211,72 @@
             ],
             "advanced": []
         },
+        "initialMonitorPositionsReport": {
+            "title": "",
+            "advanced": []
+        },
         "simulationStatus": {
-            "title": "Simulation Status",
+            "title": "Optimization Targets",
+            "advanced": []
+        },
+        "monitors": {
+            "title": "Monitors",
             "advanced": []
         },
         "HKICKER": {
             "title": "HKICKER",
             "description": "Horizontal Corrector",
-            "advanced": [],
-            "basic": [
-                "kick"
+            "advanced": [
+                "name",
+                "current_kick",
+                "ampTable"
             ]
         },
         "HMONITOR": {
             "title": "MONITOR",
-            "advanced": []
+            "advanced": [
+                "name"
+            ]
         },
         "KICKER": {
             "title": "KICKER",
             "description": "Corrector",
-            "basic": [
-                "hkick",
-                "vkick"
-            ],
-            "advanced": []
+            "advanced": [
+                "name",
+                "current_hkick",
+                "current_vkick",
+                "ampTable"
+            ]
         },
         "MONITOR": {
             "title": "MONITOR",
-            "advanced": []
+            "advanced": [
+                "name"
+            ]
         },
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
             "description": "Quadrupole",
-            "basic": [
-                "k1"
-            ],
-            "advanced": []
+            "advanced": [
+                "name",
+                "current_k1",
+                "ampTable"
+            ]
         },
         "VKICKER": {
             "title": "VKICKER",
             "description": "Vertical Corrector",
-            "advanced": [],
-            "basic": [
-                "kick"
+            "advanced": [
+                "name",
+                "current_kick",
+                "ampTable"
             ]
         },
         "VMONITOR": {
             "title": "MONITOR",
-            "advanced": []
+            "advanced": [
+                "name"
+            ]
         }
     }
 }

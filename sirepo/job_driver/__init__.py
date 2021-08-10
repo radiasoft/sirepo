@@ -13,7 +13,10 @@ import importlib
 import pykern.pkio
 import re
 import sirepo.auth
+import sirepo.events
+import sirepo.sim_db_file
 import sirepo.simulation_db
+import sirepo.srcontext
 import sirepo.srdb
 import sirepo.tornado
 import time
@@ -85,8 +88,8 @@ class DriverBase(PKDict):
             _idle_timer=None,
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
-#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
+        self._sim_db_file_token = sirepo.sim_db_file.token_for_user(self.uid)
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
         pkdlog('{}', self)
@@ -124,8 +127,10 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
+        import sirepo.auth_db
         m = op.msg
-        with sirepo.auth.set_user(m.uid):
+        with sirepo.auth_db.session(), \
+             sirepo.auth.set_user_outside_of_http_request(m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
             op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
                 job.unique_key()
@@ -211,6 +216,13 @@ class DriverBase(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME='1',
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
+                    self.cfg.supervisor_uri,
+                    job.SIM_DB_FILE_URI,
+                    sirepo.simulation_db.USER_ROOT_DIR,
+                    self.uid,
+                ),
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get('_agent_start_delay', 0),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(

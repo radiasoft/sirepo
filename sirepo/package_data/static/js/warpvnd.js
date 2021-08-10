@@ -30,7 +30,6 @@ SIREPO.app.config(function() {
           '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
         '</div>',
     ].join('');
-    SIREPO.appImportText = 'Import an stl file';
 });
 
 SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {
@@ -2668,36 +2667,6 @@ SIREPO.app.directive('impactDensityPlot', function(errorService, plotting, plot2
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 $scope.updatePlot(json);
-
-                var i;
-                for (i = 0; i < json.density_lines.length; i++) {
-                    var lineInfo = json.density_lines[i];
-                    var p = lineInfo.points;
-                    if (! lineInfo.density.length) {
-                        lineInfo.density = [0];
-                    }
-                    var lineSegments = plotting.linearlySpacedArray(p[0], p[1], lineInfo.density.length + 1);
-                    var j;
-                    for (j = 0; j < lineSegments.length - 1; j++) {
-                        var v;
-                        var density = lineInfo.density[j];
-                        var p0 = lineSegments[j];
-                        var p1 = lineSegments[j + 1];
-                        if (lineInfo.align == 'horizontal') {
-                            v = [[p0, p[2]], [p1, p[2]]];
-                        }
-                        else {
-                            v = [[p[2], p0], [p[2], p1]];
-                        }
-                        v.srDensity = density;
-                        var path = viewport.append('path')
-                            .attr('class', 'line')
-                            .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
-                                  + (density > 0 ? $scope.colorScale(density) : 'black'))
-                            .datum(v);
-                        path.on('mouseover', mouseOver);
-                    }
-                }
 
                 // loop over conductors
                 // arr[0] + k * sk for 2d

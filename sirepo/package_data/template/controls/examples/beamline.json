@@ -25,7 +25,7 @@
             "mass": 0.938,
             "name": null,
             "npart": 1,
-            "particle": "other",
+            "particle": "proton",
             "pc": 7.293853259,
             "radiate": "0",
             "sequence": "",
@@ -109,8 +109,8 @@
             "ripken": "0",
             "rmatrix": "0",
             "sectoracc": "0",
-            "sectorfile": "1",
-            "sectormap": "1",
+            "sectorfile": "0",
+            "sectormap": "0",
             "sectorpure": "0",
             "sectortable": "",
             "sequence": "",
@@ -119,8 +119,8 @@
             "useorbit": "",
             "wx": 0,
             "wy": 0,
-            "x": 0,
-            "y": 0
+            "x": 0.001,
+            "y": -0.001
         },
         "commands": [],
         "dataFile": {
@@ -136,85 +136,52 @@
                         "distance": 5.455956108890273,
                         "id": 125,
                         "items": [
-                            122,
-                            123,
-                            124
-                        ],
-                        "length": 5.4899999999999975,
-                        "name": "BL"
-                    },
-                    {
-                        "angle": 0,
-                        "count": 6,
-                        "distance": 1.6600000000000006,
-                        "id": 122,
-                        "items": [
                             101,
                             116,
                             102,
                             108,
-                            101,
+                            145,
                             104,
                             103,
                             105,
-                            103,
+                            146,
                             118,
-                            102,
+                            147,
                             110,
-                            103
-                        ],
-                        "length": 1.6600000000000006,
-                        "name": "ENT_LINE"
-                    },
-                    {
-                        "angle": 0,
-                        "count": 6,
-                        "distance": 1.6600000000000001,
-                        "id": 124,
-                        "items": [
-                            103,
-                            121,
-                            102,
-                            113,
-                            103,
-                            104,
-                            103,
-                            105,
-                            101,
-                            117,
-                            102,
-                            109,
-                            101
-                        ],
-                        "length": 1.6600000000000001,
-                        "name": "EXIT_LINE"
-                    },
-                    {
-                        "angle": 0,
-                        "count": 6,
-                        "distance": 2.162536180324509,
-                        "id": 123,
-                        "items": [
+                            148,
                             114,
-                            101,
+                            149,
                             120,
-                            102,
+                            150,
                             112,
-                            102,
+                            151,
                             119,
-                            102,
+                            152,
                             111,
-                            101,
-                            115
+                            153,
+                            115,
+                            154,
+                            121,
+                            155,
+                            113,
+                            156,
+                            157,
+                            158,
+                            159,
+                            160,
+                            117,
+                            161,
+                            109,
+                            162
                         ],
-                        "length": 2.17,
-                        "name": "MID_LINE"
+                        "length": 5.4899999999999975,
+                        "name": "BL"
                     }
                 ],
                 "bunch": {
                     "alfx": -3.237,
                     "alfy": 0.986,
-                    "beamDefinition": "gamma",
+                    "beamDefinition": "pc",
                     "betx": 29.528,
                     "bety": 7.347,
                     "ex": 1e-06,
@@ -249,12 +216,19 @@
                         "mass": 0.938,
                         "name": null,
                         "npart": 1,
-                        "particle": "other",
+                        "particle": "proton",
                         "pc": 7.293853259,
                         "radiate": "0",
                         "sequence": "",
                         "sige": 0.001,
                         "sigt": 1
+                    },
+                    {
+                        "_id": 144,
+                        "_type": "select",
+                        "column": "name,keyword,s,x,y",
+                        "flag": "twiss",
+                        "slice": 1
                     },
                     {
                         "_id": 131,
@@ -333,8 +307,8 @@
                         "ripken": "0",
                         "rmatrix": "0",
                         "sectoracc": "0",
-                        "sectorfile": "1",
-                        "sectormap": "1",
+                        "sectorfile": "0",
+                        "sectormap": "0",
                         "sectorpure": "0",
                         "sectortable": "",
                         "sequence": "",
@@ -343,27 +317,27 @@
                         "useorbit": "",
                         "wx": 0,
                         "wy": 0,
-                        "x": 0,
-                        "y": 0
+                        "x": 0.001,
+                        "y": -0.001
                     }
                 ],
                 "elements": [
                     {
                         "_id": 101,
                         "l": 0.5,
-                        "name": "D1",
+                        "name": "D36",
                         "type": "DRIFT"
                     },
                     {
                         "_id": 102,
                         "l": 0.05,
-                        "name": "D2",
+                        "name": "D34",
                         "type": "DRIFT"
                     },
                     {
                         "_id": 103,
                         "l": 0.1,
-                        "name": "D3",
+                        "name": "D30",
                         "type": "DRIFT"
                     },
                     {
@@ -621,31 +595,175 @@
                         "l": 0.01,
                         "name": "BPMY2",
                         "type": "VMONITOR"
+                    },
+                    {
+                        "_id": 145,
+                        "l": 0.5,
+                        "name": "D0",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 146,
+                        "l": 0.1,
+                        "name": "D6",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 147,
+                        "l": 0.05,
+                        "name": "D2",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 148,
+                        "l": 0.1,
+                        "name": "D8",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 149,
+                        "l": 0.5,
+                        "name": "D4",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 150,
+                        "l": 0.05,
+                        "name": "D10",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 151,
+                        "l": 0.05,
+                        "name": "D16",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 152,
+                        "l": 0.05,
+                        "name": "D18",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 153,
+                        "l": 0.5,
+                        "name": "D14",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 154,
+                        "l": 0.1,
+                        "name": "D12",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 155,
+                        "l": 0.05,
+                        "name": "D20",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 156,
+                        "l": 0.1,
+                        "name": "D24",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 157,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "k1": 5,
+                        "k1s": 0,
+                        "l": 0.1,
+                        "name": "QUAD3",
+                        "thick": "0",
+                        "tilt": 0,
+                        "type": "QUADRUPOLE"
+                    },
+                    {
+                        "_id": 158,
+                        "l": 0.1,
+                        "name": "D28",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 159,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "k1": -5,
+                        "k1s": 0,
+                        "l": 0.1,
+                        "name": "QUAD4",
+                        "thick": "0",
+                        "tilt": 0,
+                        "type": "QUADRUPOLE"
+                    },
+                    {
+                        "_id": 160,
+                        "l": 0.5,
+                        "name": "D22",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 161,
+                        "l": 0.05,
+                        "name": "D26",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 162,
+                        "l": 0.5,
+                        "name": "D32",
+                        "type": "DRIFT"
                     }
                 ],
-                "rpnVariables": [],
+                "rpnVariables": [
+                    {
+                        "name": "degree",
+                        "value": 0.017453292519943295
+                    },
+                    {
+                        "name": "e0",
+                        "value": 0.938
+                    },
+                    {
+                        "name": "gamma",
+                        "value": 7.84
+                    },
+                    {
+                        "name": "nn",
+                        "value": 1
+                    },
+                    {
+                        "name": "q",
+                        "value": 1
+                    }
+                ],
                 "simulation": {
                     "activeBeamlineId": 125,
-                    "commandTemplate": "none",
+                    "commandTemplate": "particle",
                     "documentationUrl": "",
                     "enableParticleTracking": "1",
-                    "folder": "/Examples",
-                    "name": "MAD-X Beamline",
+                    "folder": "/",
+                    "name": "example beamline",
                     "notes": "",
                     "visualizationBeamlineId": 125
                 }
             },
-            "simulationType": "madx",
-            "version": "20201020.175609"
+            "simulationType": "madx"
         },
         "simulation": {
             "documentationUrl": "",
             "folder": "/Examples",
-            "isExample": true,
             "name": "Sample MAD-X beamline",
             "notes": ""
         }
     },
-    "simulationType": "controls",
-    "version": "20201020.175609"
+    "simulationType": "controls"
 }

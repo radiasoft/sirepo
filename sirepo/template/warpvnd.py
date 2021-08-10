@@ -530,6 +530,34 @@ def _extract_field(field, data, data_file, args=None):
 
 
 def _extract_impact_density(run_dir, data):
+    if _SIM_DATA.warpvnd_is_3d(data):
+        return _extract_impact_density_3d(run_dir, data)
+    return _extract_impact_density_2d(run_dir, data)
+
+
+def _extract_impact_density_2d(run_dir, data):
+    # use a simple heatmap instead due to a normalization problem in rswarp
+    all_particles = np.load('all-particles.npy')
+    grid = data.models.simulationGrid
+    plate_spacing = _meters(grid.plate_spacing)
+    channel_width = _meters(grid.channel_width)
+    m = PKDict(
+        histogramBins=200,
+        plotRangeType='fixed',
+        horizontalSize=plate_spacing * 1.02,
+        horizontalOffset=plate_spacing / 2,
+        verticalSize=channel_width,
+        verticalOffset=0,
+    )
+    return template_common.heatmap([all_particles[1].tolist(), all_particles[0].tolist()], m, PKDict(
+        x_label='z [m]',
+        y_label='x [m]',
+        title='Impact Density',
+        aspectRatio=4.0 / 7,
+    ))
+
+
+def _extract_impact_density_3d(run_dir, data):
     try:
         with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
             plot_info = template_common.h5_to_dict(hf, path='density')
@@ -561,25 +589,6 @@ def _extract_impact_density(run_dir, data):
         dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
-    gated_ids = plot_info['gated_ids'] if 'gated_ids' in plot_info else []
-    lines = []
-
-    for i in gated_ids:
-        v = gated_ids[i]
-        for pos in ('bottom', 'left', 'right', 'top'):
-            if pos in v:
-                zmin, zmax, xmin, xmax = v[pos]['limits']
-                row = {
-                    'density': v[pos]['density'].tolist(),
-                }
-                if pos in ('bottom', 'top'):
-                    row['align'] = 'horizontal'
-                    row['points'] = [zmin, zmax, xmin + dx / 2.]
-                else:
-                    row['align'] = 'vertical'
-                    row['points'] = [xmin, xmax, zmin + dz / 2.]
-                lines.append(row)
-
     return {
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
@@ -589,7 +598,6 @@ def _extract_impact_density(run_dir, data):
         'x_label': 'z [m]',
         'z_label': 'y [m]',
         'density': plot_info['density'] if 'density' in plot_info else [],
-        'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],
     }
@@ -1077,8 +1085,11 @@ def _stl_polygon_file(filename):
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file))), 'w') as hf:
-            template_common.dict_to_h5(data, hf, path='/')
+        template_common.write_dict_to_h5(
+            data,
+            _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)),
+            h5_path='/'
+        )
     except Exception as e:
-        pkdlog('!save_stl_polys FAIL: {}', e)
+        pkdlog('save_stl_polys error={}', e)
         pass

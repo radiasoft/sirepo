@@ -14,7 +14,59 @@
         }
     },
     "constants": {
-        "helpVideoURL": "https://vimeo.com/410318423/632634aa5d"
+        "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
+        "rsOptDefaultOffsetInfo": {
+            "position": ["Position [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
+            "radius": ["Radius [m]", "FloatStringArray", "0.0", "", "Radius"],
+            "rotation": ["Rotation [rad]", "FloatStringArray", "0.0, 0.0, 0.0", "", "𝞱x, 𝞱y, 𝞱z"],
+            "size": ["Size [m]", "FloatStringArray", "0.0, 0.0", "", "Horizontal, Vertical"]
+       },
+        "rsOptElements": {
+            "aperture": {
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "size": {
+                    "fieldNames": ["horizontalSize", "verticalSize"]
+                }
+            },
+            "ellipsoidMirror": {
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
+            },
+            "mirror": {
+                "position": {
+                    "fieldNames": ["", "", "position"]
+                }
+            },
+            "sphericalMirror": {
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "radius": {
+                    "fieldNames": ["radius"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
+            },
+            "toroidalMirror": {
+                "position": {
+                    "fieldNames": ["horizontalOffset", "verticalOffset", "position"]
+                },
+                "radius": {
+                    "fieldNames": ["tangentialRadius", "sagittalRadius"],
+                    "offsetInfo": ["_", "FloatStringArray", "0.0, 0.0", "", "Tangential, Saggital"]
+                },
+                "rotation": {
+                    "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
+                }
+            }
+        }
     },
     "enum": {
         "AnalyticalTreatment": [
@@ -229,10 +281,6 @@
             ["0", "No approximation (use the standard 5D integration method)"],
             ["1", "Integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance"]
         ],
-        "MultipoleOrientation": [
-            ["n", "Horizontal"],
-            ["s", "Vertical"]
-        ],
         "OutputImageFormat": [
             ["tif", "TIF"],
             ["tiff", "TIFF"],
@@ -292,6 +340,10 @@
         "SampleSource": [
             ["file", "Image File"],
             ["randomDisk", "Random 2D Objects"]
+        ],
+        "ScanType": [
+            ["grid", "Grid"],
+            ["random", "Random"]
         ],
         "SimulationState": [
             ["initial", "Initial State"],
@@ -560,6 +612,14 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
+        "exportRsOpt": {
+            "elements": ["Beamline Elements", "RSOptElements", []],
+            "numCores": ["Number of Cores", "Integer", 4],
+            "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
+            "numWorkers": ["Number of Workers", "Integer", 1],
+            "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly. Random takes a random sample for each parameter."],
+            "totalSamples": ["Total Samples", "Integer", 100, "Grid: &lt;number of samples&gt;^&lt;number of params&gt;. Random: &lt;number of samples&gt;", 1]
+        },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -752,8 +812,8 @@
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
-            "field": ["Magnetic Field [T]", "Float"],
-            "distribution": ["Orientation", "MultipoleOrientation"],
+            "bx": ["Horizontal Magnetic Field [T]", "Float", 0.4],
+            "by": ["Vertical Magnetic Field [T]", "Float", 0.0],
             "length": ["Effective Length [m]", "Float"]
         },
         "obstacle": {
@@ -796,6 +856,11 @@
             "15": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
             "16": ["Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
             "17": ["Set Nominal Values", "Button", "1"]
+        },
+        "rsOptElement": {
+            "id": ["_", "Integer", -1],
+            "enabled": ["Enabled", "Boolean", "0"],
+            "title": ["_", "String", ""]
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
@@ -1607,13 +1672,24 @@
             "basic": [],
             "advanced": ["notes"]
         },
+        "exportRsOpt": {
+            "title": "Generate Machine Learning Data Script",
+            "basic": [
+            ],
+            "advanced": [
+                "elements",
+                "scanType",
+                "numSamples",
+                "totalSamples"
+            ]
+        },
         "multipole": {
             "title": "Dipole",
             "basic": [],
             "advanced": [
-                "field",
-                "length",
-                "distribution"
+                "bx",
+                "by",
+                "length"
             ]
         },
         "multiElectronAnimation": {
@@ -1686,6 +1762,11 @@
                     "precision"
                 ]]
             ]
+        },
+        "rsOptElement": {
+            "title": "rsopt Element",
+            "basic": [],
+            "advanced": []
         },
         "sample": {
             "title": "Sample",

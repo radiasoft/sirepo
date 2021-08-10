@@ -103,6 +103,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             _fixup_reflector(c)
         for c in dm.conductors:
             cls.update_model_defaults(c, 'conductorPosition')
+        if dm.optimizer.objective == 'efficiency':
+            dm.optimizer.objective = 'transparency'
         cls._organize_example(data)
 
     @classmethod

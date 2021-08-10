@@ -10,20 +10,38 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import asyncio
+import base64
 import concurrent.futures
+import contextlib
+import hashlib
 import inspect
 import numconv
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import sys
+import threading
 
+
+cfg = None
 
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
+#: Http auth header name
+AUTH_HEADER = 'Authorization'
+
+#: http auth header scheme bearer
+AUTH_HEADER_SCHEME_BEARER = 'Bearer'
+
+#: Lock for operations across Sirepo (flask)
+THREAD_LOCK = threading.RLock()
+
 #: length of string returned by create_token
 TOKEN_SIZE = 16
+
+_log_not_flask = _log_not_request = 0
 
 
 class Reply(Exception):
@@ -151,9 +169,6 @@ def convert_exception(exception, display_text='unexpected error'):
 
 
 def create_token(value):
-    import hashlib
-    import base64
-
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
         v = base64.b32encode(
             hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest())
@@ -170,6 +185,25 @@ def flask_app():
     import flask
 
     return flask.current_app or None
+
+def in_flask_request():
+    # These are globals but possibly accessed from a threaded context. That is
+    # desired so we limit logging between all threads.
+    # The number 10 below doesn't need to be exact. Just something greater than
+    # "a few" so we see logging once the app is initialized and serving requests.
+    global _log_not_flask, _log_not_request
+    f = sys.modules.get('flask')
+    if not f:
+        if _log_not_flask < 10:
+            _log_not_flask += 1
+            pkdlog('flask is not imported')
+        return False
+    if not f.request:
+        if _log_not_request < 10:
+            _log_not_request += 1
+            pkdlog('flask.request is False')
+        return False
+    return True
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):
@@ -233,6 +267,14 @@ def setattr_imports(imports):
 def split_comma_delimited_string(s, f_type):
     import re
     return [f_type(x) for x in re.split(r'\s*,\s*', s)]
+
+
+def to_comma_delimited_string(arr):
+    return ','.join([str(x) for x in arr])
+
+
+def url_safe_hash(value):
+    return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
 
 def _raise(exc, fmt, *args, **kwargs):

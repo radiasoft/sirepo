@@ -83,35 +83,51 @@ def _label_with_units(column, values):
     return _label(column, values)
 
 
+def _beam_statistics_values(beam_stats, field):
+    if field == 'sigmaxz':
+        return [-record.sigma_mx[0][2] if record.isRotated else record.sigma_mx[0][2] for record in beam_stats]
+    if field == 'sigmaxpzp':
+        return [-record.sigma_mx[1][3] if record.isRotated else record.sigma_mx[1][3] for record in beam_stats]
+    if re.search('z', field):
+        rotated_field = re.sub('z', 'x', field)
+    else:
+        rotated_field = re.sub('x', 'z', field)
+    return [record[rotated_field] if record.isRotated else record[field] for record in beam_stats]
+
+
 def _run_beam_statistics(cfg_dir, data):
     template_common.exec_parameters()
     report = data.models.beamStatisticsReport
     d = pkjson.load_any(py.path.local(cfg_dir).join(template.BEAM_STATS_FILE))
-    x = []
+    x = [record.s for record in d]
     plots = []
+
     for y in ('y1', 'y2', 'y3'):
         if report[y] == 'none':
             continue
         label = report[y]
         if label in ('sigmax', 'sigmaz'):
             label += ' [m]'
-        elif label in ('sigdix', 'sigdiz'):
+        elif label in ('sigdix', 'sigdiz', 'angxz', 'angxpzp'):
             label += ' [rad]'
         plots.append(PKDict(
             field=report[y],
-            points=[],
             label=label,
         ))
     for item in d:
-        x.append(item.s)
         for p in plots:
-            f = p.field
-            if item.isRotated:
-                if re.search('z', f):
-                    f = re.sub('z', 'x', f)
-                else:
-                    f = re.sub('x', 'z', f)
-            p.points.append(item[f])
+            if p.field == 'angxz':
+                sigmax = numpy.array(_beam_statistics_values(d, 'sigmax'))
+                sigmaz = numpy.array(_beam_statistics_values(d, 'sigmaz'))
+                sigmaxz = numpy.array(_beam_statistics_values(d, 'sigmaxz'))
+                p.points = ((1/2) * numpy.arctan(2.e-4 * sigmaxz / (sigmax ** 2 - sigmaz ** 2))).tolist()
+            elif p.field == 'angxpzp':
+                sigdix = numpy.array(_beam_statistics_values(d, 'sigdix'))
+                sigdiz = numpy.array(_beam_statistics_values(d, 'sigdiz'))
+                sigmaxpzp = numpy.array(_beam_statistics_values(d, 'sigmaxpzp'))
+                p.points = ((1/2) * numpy.arctan(2 * sigmaxpzp / (sigdix ** 2 - sigdiz ** 2))).tolist()
+            else:
+                p.points = _beam_statistics_values(d, p.field)
     return PKDict(
         aspectRatio=0.3,
         title='',
@@ -159,7 +175,7 @@ def _run_shadow(cfg_dir, data):
             y_range=[ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
             x_label=_label_with_units(model['x'], column_values),
             y_label=_label_with_units(model['y'], column_values),
-            z_label='Frequency',
+            z_label='Intensity' if int(model['weight']) else 'Rays',
             title=u'{}, {}'.format(_label(model['x'], column_values), _label(model['y'], column_values)),
             z_matrix=values.tolist(),
             frameCount=1,

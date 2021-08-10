@@ -56,6 +56,14 @@ def start():
         agent_id=pkconfig.Required(str, 'id of this agent'),
         fastcgi_sock_dir=(pkio.py_path('/tmp'), pkio.py_path, 'directory of fastcfgi socket, must be less than 50 chars'),
         start_delay=(0, pkconfig.parse_seconds, 'delay startup in internal_test mode'),
+        supervisor_sim_db_file_token=pkconfig.Required(
+            str,
+            'token for supervisor simulation db file access',
+        ),
+        supervisor_sim_db_file_uri=pkconfig.Required(
+            str,
+            'how to get/put simulation db files from/to supervisor',
+        ),
         supervisor_uri=pkconfig.Required(
             str,
             'how to connect to the supervisor',
@@ -334,7 +342,8 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
-        _assert_run_dir_exists(pkio.py_path(msg.runDir))
+        if msg.runDir:
+            _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
@@ -344,7 +353,8 @@ class _Dispatcher(PKDict):
             self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
             m.fastcgiFile = self._fastcgi_file
-            # Runs in a agent's directory, but chdir's to real runDirs
+            # Runs in an agent's directory and chdirs to real runDirs.
+            # Except in stateless_compute which doesn't interact with the db.
             m.runDir = pkio.py_path()
             # Kind of backwards, but it makes sense since we need to listen
             # so _do_fastcgi can connect
@@ -435,6 +445,8 @@ class _Cmd(PKDict):
                 SIREPO_MPI_CORES=self.msg.get('mpiCores', 1),
                 SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
+                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=cfg.supervisor_sim_db_file_uri,
+                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=cfg.supervisor_sim_db_file_token,
             ),
         )
 
@@ -591,6 +603,19 @@ class _SbatchRun(_SbatchCmd):
         self.msg.jobCmd = 'sbatch_status'
         self.pkdel('_in_file').remove()
 
+    async def _await_start_ready(self):
+        await self._start_ready.wait()
+        if self._terminating:
+            return
+        self._in_file = self._create_in_file()
+        pkdlog(
+            '{} sbatch_id={} starting jobCmd={}',
+            self,
+            self._sbatch_id,
+            self.msg.jobCmd,
+        )
+        await super().start()
+
     def destroy(self):
         if self._status_cb:
             self._status_cb.stop()
@@ -644,17 +669,10 @@ class _SbatchRun(_SbatchCmd):
         )
         self._start_ready = sirepo.tornado.Event()
         self._status_cb.start()
-        await self._start_ready.wait()
-        if self._terminating:
-            return
-        self._in_file = self._create_in_file()
-        pkdlog(
-            '{} sbatch_id={} starting jobCmd={}',
-            self,
-            self._sbatch_id,
-            self.msg.jobCmd,
-        )
-        await super().start()
+        # Starting an sbatch job may involve a long wait in the queue
+        # so release back to agent loop so we can process other ops
+        # while we wait for the job to start running
+        tornado.ioloop.IOLoop.current().add_callback(self._await_start_ready)
 
     async def _prepare_simulation(self):
         c = _SbatchCmd(
@@ -682,12 +700,17 @@ class _SbatchRun(_SbatchCmd):
                 f'sbatchProject={p} is invalid. hpssquota={o}'
             return f'#SBATCH --account={p}'
 
+        def _processor():
+            if self.msg.sbatchQueue == 'debug':
+                return 'knl'
+            return 'haswell'
+
         i = self.msg.shifterImage
         s = o = ''
 #POSIT: job_api has validated values
         if i:
             o = f'''#SBATCH --image={i}
-#SBATCH --constraint=haswell
+#SBATCH --constraint={_processor()}
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node=32
 {_assert_project()}'''
@@ -709,7 +732,7 @@ fi
 
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
-exec srun {s} /bin/bash bash.stdin
+exec srun {'--mpi=pmi2' if pkconfig.channel_in('dev') else ''} {s} /bin/bash bash.stdin
 '''
         )
         return f

@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from sirepo import simulation_db
 import math
 import sirepo.sim_data
+import scipy.constants
 
 _SRW = sirepo.sim_data.get_class('srw')
 _SHADOW = sirepo.sim_data.get_class('shadow')
@@ -26,17 +27,34 @@ class SRWShadowConverter():
             horizontalOffset='horizontalOffset',
             verticalOffset='verticalOffset',
         )],
+        ['bendingMagnet', 'simulation', PKDict(
+            ph1='photonEnergy',
+            ph2='photonEnergy',
+        )],
         ['crl', 'crl', PKDict(
             lensDiameter='horizontalApertureSize',
             lensThickness=['tipWallThickness', 1e-3],
             numberOfLenses='numberOfLenses',
             rmirr=['tipRadius', 1e-3],
         )],
+        ['crystal', 'crystal', PKDict(
+            phot_cent='energy',
+            braggMillerH='h',
+            braggMillerK='k',
+            braggMillerL='l',
+        )],
         ['undulator', 'undulator', PKDict(
             k_horizontal='horizontalDeflectingParameter',
             k_vertical='verticalDeflectingParameter',
             length='length',
             period='period',
+        )],
+        ['electronBeam', 'electronBeam', PKDict(
+            bener='energy',
+            sigmax='rmsSizeX',
+            sigmaz='rmsSizeY',
+            epsi_x='horizontalEmittance',
+            epsi_z='verticalEmittance',
         )],
         ['undulatorBeam', 'electronBeam', PKDict(
             alpha_x='horizontalAlpha',
@@ -103,12 +121,12 @@ class SRWShadowConverter():
             r_min='sagittalRadius',
         )],
         #TODO(pjm): srw "mirror" is only mirror errors, not reflective
-        ['mirror', 'mirror', PKDict(
-            halfWidthX1=['horizontalTransverseSize', 1e3 / 2],
-            halfWidthX2=['horizontalTransverseSize', 1e3 / 2],
-            halfLengthY1=['verticalTransverseSize', 1e3 / 2],
-            halfLengthY2=['verticalTransverseSize', 1e3 / 2],
-        )],
+        # ['mirror', 'mirror', PKDict(
+        #     halfWidthX1=['horizontalTransverseSize', 1e3 / 2],
+        #     halfWidthX2=['horizontalTransverseSize', 1e3 / 2],
+        #     halfLengthY1=['verticalTransverseSize', 1e3 / 2],
+        #     halfLengthY2=['verticalTransverseSize', 1e3 / 2],
+        # )],
         ['obstacle', 'obstacle', PKDict(
             shape='shape',
             horizontalSize='horizontalSize',
@@ -116,7 +134,20 @@ class SRWShadowConverter():
             horizontalOffset='horizontalOffset',
             verticalOffset='verticalOffset',
         )],
+        ['rayFilter', 'simulation', PKDict(
+            x1=['horizontalRange', -0.5],
+            x2=['horizontalRange', 0.5],
+            z1=['verticalRange', -0.5],
+            z2=['verticalRange', 0.5],
+        )],
         ['watch', 'watch', PKDict()],
+        ['zonePlate', 'zonePlate', PKDict(
+            width_coating=['thickness', 1e3],
+            height=['outerRadius', 2],
+            diameter=['outerRadius', 2],
+            zone_plate_material='mainMaterial',
+            template_material='complementaryMaterial',
+        )],
     ]
 
     def __init__(self):
@@ -134,7 +165,11 @@ class SRWShadowConverter():
             self.__beam_to_shadow(models, res.models)
         elif res.models.simulation.sourceType == 'undulator':
             self.__undulator_to_shadow(models, res.models)
+        elif res.models.simulation.sourceType == 'bendingMagnet':
+            self.__multipole_to_shadow(models, res.models)
         self.__beamline_to_shadow(models, res.models)
+        if res.models.simulation.sourceType == 'undulator':
+            self.__fix_undulator_gratings(res.models)
         _SHADOW.fixup_old_data(res)
         return res
 
@@ -151,6 +186,7 @@ class SRWShadowConverter():
             vdiv1=0,
             vdiv2=0,
         )
+        self.photon_energy = shadow.geometricSource.singleEnergyValue
 
     def __beamline_to_shadow(self, srw, shadow):
         for item in srw.beamline:
@@ -167,7 +203,9 @@ class SRWShadowConverter():
                 self.beamline.append(ap)
             elif item.type == 'crl':
                 self.beamline.append(self.__crl_to_shadow(item))
-            elif item.type in ('mirror', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'):
+            elif item.type == 'crystal':
+                self.__crystal_to_shadow(item)
+            elif item.type in ('ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'):
                 self.__mirror_to_shadow(item, shadow)
             elif item.type == 'grating':
                 self.__grating_to_shadow(item, shadow)
@@ -175,13 +213,17 @@ class SRWShadowConverter():
                 self.beamline.append(self.__copy_item(item, PKDict(
                     type='lens',
                 )))
+            elif item.type == 'zonePlate':
+                self.__zoneplate_to_shadow(item, shadow)
 
     def __closest_undulator_harmonic(self, srw):
+        from orangecontrib.shadow.util.undulator.source_undulator import SourceUndulator
         from syned.storage_ring.electron_beam import ElectronBeam
         from syned.storage_ring.magnetic_structures.undulator import Undulator
-        gamma = syned_electron_beam=ElectronBeam(
+        ebeam = ElectronBeam(
             energy_in_GeV=srw.electronBeam.energy,
-        ).gamma()
+        )
+        gamma = ebeam.gamma()
         u = Undulator(
             K_horizontal=float(srw.undulator.horizontalDeflectingParameter),
             K_vertical=float(srw.undulator.verticalDeflectingParameter),
@@ -190,15 +232,22 @@ class SRWShadowConverter():
         )
         search_energy = float(srw.simulation.photonEnergy)
         diff = search_energy
-        res = '1'
+        harmonic = '1'
+        energy = 1000
         for h in _SHADOW.schema().enum.Harmonic:
             v = u.resonance_energy(gamma, harmonic=int(h[0]))
             if abs(search_energy - v) < diff:
                 diff = abs(search_energy - v)
-                res = h[0]
+                harmonic = h[0]
+                energy = v
             if v > search_energy:
                 break
-        return res
+        su = SourceUndulator(
+            syned_electron_beam=ebeam,
+            syned_undulator=u,
+        )
+        su.set_energy_monochromatic_at_resonance(int(harmonic))
+        return harmonic, round(su._EMIN, 2), round(su._MAXANGLE * 1e6, 4)
 
     def __crl_to_shadow(self, item):
         return self.__copy_item(item, PKDict(
@@ -211,6 +260,27 @@ class SRWShadowConverter():
             pilingThickness=0,
             refractionIndex=1 - float(item.refractiveIndex),
         ))
+
+    def __crystal_to_shadow(self, item):
+        material_map = PKDict({
+            'Germanium (X0h)': 'Ge',
+            'Diamond (X0h)': 'Diamond',
+        })
+        angle, rotate, offset = self.__compute_angle(
+            'vertical' if item.diffractionAngle == '0' or item.diffractionAngle == '3.14159265' \
+            else 'horizontal',
+            item)
+        self.beamline.append(self.__copy_item(item, PKDict(
+            type='crystal',
+            braggMaterial=material_map.get(item.material, 'Si'),
+            f_mosaic='0',
+            braggMinEnergy=item.energy - 500,
+            braggMaxEnergy=item.energy + 500,
+            braggEnergyStep=50,
+            alpha=rotate,
+        )))
+        self.__reset_rotation(rotate, item.position)
+
 
     def __compute_angle(self, orientation, item):
         rotate = 0
@@ -290,6 +360,12 @@ class SRWShadowConverter():
         )))
         self.__reset_rotation(rotate, item.position)
 
+    def __fix_undulator_gratings(self, shadow):
+        # fix target photon energy on any gratings to exact photon energy value
+        for item in shadow.beamline:
+            if item.type == 'grating':
+                item.phot_cent = shadow.undulator.photon_energy
+
     def __mirror_to_shadow(self, item, shadow):
         orientation = item.get('autocomputeVectors')
         if item.type == 'mirror':
@@ -317,6 +393,25 @@ class SRWShadowConverter():
         self.__reset_rotation(rotate, item.position)
         #TODO(pjm): set vars: offx, offy, x_rot, y_rot, z_rot, cil_ang
 
+    def __multipole_to_shadow(self, srw, shadow):
+        self.__copy_model_fields('bendingMagnet', srw, shadow)
+        shadow.bendingMagnet.ph2 = shadow.bendingMagnet.ph1 + 0.001
+        self.__copy_model_fields('electronBeam', srw, shadow)
+
+        self.__copy_model_fields('rayFilter', srw, shadow)
+        shadow.rayFilter.f_bound_sour = '2'
+        shadow.rayFilter.distance = srw.beamline[0].position
+
+        # calculate magnet radius from magnetic field
+        f = srw.multipole.by
+        if f == 0:
+            if srw.multipole.bx != 0:
+                f = srw.multipole.bx
+            else:
+                f = 1
+        shadow.bendingMagnet.r_magnet = 1e9 / scipy.constants.c * srw.electronBeam.energy / f
+
+
     def __next_id(self):
         res = 0
         for item in self.beamline:
@@ -338,6 +433,7 @@ class SRWShadowConverter():
         _SOURCE_TYPE = PKDict(
             g='geometricSource',
             u='undulator',
+            m='bendingMagnet',
         )
         shadow.simulation.update(
             sourceType=_SOURCE_TYPE[srw.simulation.sourceType],
@@ -350,8 +446,21 @@ class SRWShadowConverter():
     def __undulator_to_shadow(self, srw, shadow):
         self.__copy_model_fields('undulator', srw, shadow)
         self.__copy_model_fields('undulatorBeam', srw, shadow)
+        harmonic, energy, angle = self.__closest_undulator_harmonic(srw)
         shadow.undulator.update(
-            energy_harmonic=self.__closest_undulator_harmonic(srw),
+            energy_harmonic=harmonic,
             f_coher='1',
             select_energy='harmonic',
+            photon_energy=energy,
+            maxangle=angle,
         )
+        self.photon_energy = energy
+
+
+    def __zoneplate_to_shadow(self, item, shadow):
+        #TODO(pjm): map User-defined matrials to defaults
+        self.beamline.append(self.__copy_item(item, PKDict(
+            type='zonePlate',
+            zone_plate_type='0',
+            b_min=(2 * item.outerRadius * 1e-3) / (4 * item.numberOfZones) * 1e6,
+        )))

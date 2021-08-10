@@ -12,7 +12,6 @@ import pytest
 
 
 def test_from_elegant_to_madx_and_back():
-    from pykern import pkio
     from pykern.pkunit import pkeq, file_eq
     from sirepo.template import elegant
     from sirepo.template.elegant import ElegantMadxConverter
@@ -33,6 +32,31 @@ def test_from_elegant_to_madx_and_back():
                 ),
             )
 
+
+def test_import_elegant_export_madx(import_req):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import elegant
+    from sirepo.template.elegant import ElegantMadxConverter
+    data = elegant.import_file(import_req(pkunit.data_dir().join('test1.ele')))
+    data = elegant.import_file(import_req(pkunit.data_dir().join('test1.lte')), test_data=data)
+    # this is updated from javascript unfortunately
+    data.models.bunch.longitudinalMethod = '3'
+    actual = ElegantMadxConverter().to_madx_text(data)
+    file_eq(
+        'test1.madx',
+        actual=actual,
+    )
+
+def test_import_opal_export_madx(import_req):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import opal
+    from sirepo.template.opal import OpalMadxConverter
+    data = opal.import_file(import_req(pkunit.data_dir().join('test2.in')))
+    actual = OpalMadxConverter().to_madx_text(data)
+    file_eq(
+        'test2.madx',
+        actual=actual,
+    )
 
 def _example_data(simulation_name):
     from sirepo import simulation_db

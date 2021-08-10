@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp
 import pykern.pkinspect
 import re
-import sirepo.uri_router
 
 try:
     # py3
@@ -28,16 +27,11 @@ PARAM_RE = r'([\?\*]?)<{}>'
 PATH_INFO_CHAR = '*'
 
 
-def api(*args, **kwargs):
-    """Alias for `uri_router.uri_for_api`"""
-    return uri_router.uri_for_api(*args, **kwargs)
-
-
 def app_root(sim_type):
     """Generate uri for application root
 
     Args:
-        sim_type (str): application name [flask.g.sirepo_sim_type]
+        sim_type (str): application name
 
     Returns:
         str: formatted URI

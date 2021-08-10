@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
+import contextlib
 import re
 import requests
 import sirepo.template
@@ -53,11 +54,7 @@ def default_command(in_file):
             return
         r = PKDict(res).pksetdefault(state=job.COMPLETED)
     except Exception as e:
-        r = PKDict(
-            state=job.ERROR,
-            error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
-            stack=pkdexc(),
-        )
+        r = _maybe_parse_user_alert(e)
     return pkjson.dump_pretty(r, pretty=False)
 
 
@@ -133,7 +130,7 @@ def _do_download_data_file(msg, template):
         c = r.get('content')
         if c is None:
             c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
-                if u.endswith(('py', 'txt', 'csv')) \
+                if u.endswith(('.py', '.txt', '.csv')) \
                 else r.filename.read_binary()
         requests.put(
             msg.dataFileUri + u,
@@ -147,6 +144,14 @@ def _do_download_data_file(msg, template):
 
 def _do_fastcgi(msg, template):
     import socket
+
+    @contextlib.contextmanager
+    def _update_run_dir_and_maybe_chdir(msg):
+        msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
+        with pkio.save_chdir(
+                msg.runDir,
+        ) if msg.runDir else contextlib.nullcontext():
+            yield
 
     def _recv():
         m = b''
@@ -172,8 +177,7 @@ def _do_fastcgi(msg, template):
             m = _recv()
             if not m:
                 return
-            m.runDir = pkio.py_path(m.runDir)
-            with pkio.save_chdir(m.runDir):
+            with _update_run_dir_and_maybe_chdir(m):
                 r = globals()['_do_' + m.jobCmd](
                     m,
                     sirepo.template.import_module(m.simulationType)
@@ -186,11 +190,7 @@ def _do_fastcgi(msg, template):
             assert c < _MAX_FASTCGI_EXCEPTIONS, \
                 'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
             c += 1
-            r = PKDict(
-                state=job.ERROR,
-                error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
-                stack=pkdexc(),
-            )
+            r = _maybe_parse_user_alert(e)
         s.sendall(pkjson.dump_bytes(r) + b'\n')
 
 
@@ -200,10 +200,7 @@ def _do_get_simulation_frame(msg, template):
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
     except Exception as e:
-        r = 'report not generated'
-        if isinstance(e, sirepo.util.UserAlert):
-            r = e.sr_args.error
-        return PKDict(state=job.ERROR, error=r, stack=pkdexc())
+        return _maybe_parse_user_alert(e, error='report not generated')
 
 
 def _do_prepare_simulation(msg, template):
@@ -239,6 +236,20 @@ def _do_sequential_result(msg, template):
         template.prepare_sequential_output_file(msg.runDir, msg.data)
         r = template_common.read_sequential_result(msg.runDir)
     return r
+
+
+def _do_stateless_compute(msg, template):
+    try:
+        return template_common.stateless_compute_dispatch(msg.data)
+    except Exception as e:
+        return _maybe_parse_user_alert(e)
+
+
+def _maybe_parse_user_alert(exception, error=None):
+    e = error or str(exception)
+    if isinstance(exception, sirepo.util.UserAlert):
+        e = exception.sr_args.error
+    return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
 def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):

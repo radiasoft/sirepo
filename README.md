@@ -24,7 +24,7 @@ as follows:
 ```bash
 $ mkdir sirepo
 $ cd sirepo
-$ curl radia.run | bash -s sirepo
+$ curl https://sirepo.run | bash
 ```
 
 For this to work, you will need to [install the prerequisites](https://github.com/radiasoft/download/blob/master/README.md#requirements).
