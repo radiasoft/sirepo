@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
-SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
@@ -2323,7 +2322,6 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
 
 SIREPO.app.directive('plot2d', function(authState, focusPointService, plotting, plot2dService) {
 
-    let res = SIREPO.PANELS.plot2d;
     return {
         restrict: 'A',
         scope: {

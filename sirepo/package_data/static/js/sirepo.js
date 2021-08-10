@@ -53,7 +53,6 @@ SIREPO.beamlineItemLogic = function(name, init) {
 };
 
 SIREPO.SNIPPETS = {};
-SIREPO.PANELS = {};
 
 SIREPO.viewLogic = function(name, init) {
     SIREPO.app.directive(name, function(appState) {
@@ -118,10 +117,10 @@ angular.element(document).ready(function() {
         return d.promise();
     }
 
-    function loadSnippet(b) {
+    function loadSnippet(s) {
         let val = null;
         let ok = false;
-        return loadFromPath(b.path, b.fileType, function (res) {
+        return loadFromPath(s.path, s.fileType, function (res) {
             val = res;
             ok = true;
         }, function(res) {
@@ -131,9 +130,9 @@ angular.element(document).ready(function() {
             val = res.responseText;
         }, function (res) {
             if (! ok) {
-                throw new Error(`${status}: Failed to load block ${b.name}`);
+                throw new Error(res.status + ': Failed to load snippet ' + s.name + ' at ' + s.path);
             }
-            SIREPO.SNIPPETS[b.name] = val;
+            SIREPO.SNIPPETS[s.name] = val;
         });
     }
 
