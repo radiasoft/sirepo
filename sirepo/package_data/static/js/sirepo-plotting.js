@@ -832,9 +832,9 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
         },
 
         setWatermarkPosition: function (jqueryElement, x, y) {
-            let wm = jqueryElement.find('svg.rs-watermark-icon');
-            wm.attr('x', x);
-            wm.attr('y', y);
+            jqueryElement.find('svg.rs-watermark-icon')
+                .attr('x', x)
+                .attr('y', y);
         },
 
         setupSelector: setupSelector,
@@ -1024,7 +1024,7 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
     };
 });
 
-SIREPO.app.service('plot2dService', function(appState, authState, layoutService, panelState, plotting, utilities) {
+SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
 
     const self = this;
 
@@ -2320,7 +2320,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
     };
 });
 
-SIREPO.app.directive('plot2d', function(authState, focusPointService, plotting, plot2dService) {
+SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dService) {
 
     return {
         restrict: 'A',
@@ -2396,7 +2396,7 @@ SIREPO.app.directive('plot2d', function(authState, focusPointService, plotting, 
     };
 });
 
-SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, layoutService, plotting, utilities) {
+SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2914,7 +2914,7 @@ SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, 
     };
 });
 
-SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plotting, utilities) {
+SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3153,7 +3153,7 @@ SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plo
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, authState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
