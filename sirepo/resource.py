@@ -28,22 +28,6 @@ def file_path(*paths):
     ))
 
 
-def glob_static(path):
-    """Get paths that match path
-
-    Args:
-        path (str): pattern
-
-    Returns:
-        [py.path]: paths that match pattern
-    """
-    for f in pkresource.glob(
-            os.path.join('static', path),
-            packages=sirepo.feature_config.cfg().root_packages,
-    ):
-        yield pkio.py_path(f)
-
-
 def static(*paths, relpath=False, check_input=False):
     """Absolute or relative path to resource static file
 
@@ -64,6 +48,22 @@ def static(*paths, relpath=False, check_input=False):
     if not relpath:
         p = pkio.py_path(p)
     return p
+
+
+def static_paths_for_type(file_type):
+    """Get paths of file type
+
+    Args:
+        file_type (str): The type of file (ex json)
+
+    Returns:
+        [py.path]: paths that match pattern
+    """
+    for f in pkresource.glob_files(
+            os.path.join('static', file_type, f'*.{file_type}'),
+            packages=sirepo.feature_config.cfg().root_packages,
+    ):
+        yield pkio.py_path(f)
 
 
 def template(common_filename_or_sim_type):

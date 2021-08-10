@@ -897,7 +897,7 @@ def _init():
     if pkconfig.channel_in('dev'):
         SCHEMA_COMMON.version = max([
             _timestamp(fn.mtime()) \
-            for fn in sirepo.resource.glob_static(f'json/*{JSON_SUFFIX}')
+            for fn in sirepo.resource.static_paths_for_type('json')
         ])
     else:
         SCHEMA_COMMON.version = sirepo.__version__
