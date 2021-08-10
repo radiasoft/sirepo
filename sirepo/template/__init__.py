@@ -23,8 +23,7 @@ def import_module(type_or_data):
     """
     if isinstance(type_or_data, dict):
         type_or_data = type_or_data['simulationType']
-    return sirepo.util.import_sim_module(
-        type_or_data,
+    return sirepo.util.import_submodule(
         'template.' + assert_sim_type(type_or_data),
     )
 

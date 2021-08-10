@@ -70,7 +70,7 @@ def get_class(type_or_data):
             type_or_data,
             dict,
         ) else type_or_data)
-    return sirepo.util.import_sim_module(s, 'sim_data.' + s).SimData
+    return sirepo.util.import_submodule('sim_data.' + s).SimData
 
 
 def resource_path(filename):

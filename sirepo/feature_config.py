@@ -5,52 +5,7 @@ u"""List of features available
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-# defer all imports so *_CODES is available to testing functions
-
-#: Codes that depend on other codes. [x][0] depends on [x][1]
-_DEPENDENT_CODES = [
-    ['jspec', 'elegant'],
-    ['controls', 'madx'],
-]
-
-#: Codes on prod
-PROD_FOSS_CODES = frozenset((
-    'controls',
-    'elegant',
-    'jspec',
-    'madx',
-    'ml',
-    'opal',
-    'radia',
-    'shadow',
-    'srw',
-    'synergia',
-    'warppba',
-    'warpvnd',
-    'zgoubi',
-))
-
-#: Codes on dev, alpha, and beta
-_NON_PROD_FOSS_CODES = frozenset((
-    'irad',
-    'myapp',
-    'rcscon',
-    'rs4pi',
-    'silas',
-))
-
-#: All possible open source codes
-_FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
-
-#: codes for which we default to giving the user authorization but it can be revoked
-_DEFAULT_PROPRIETARY_CODES = frozenset(('jupyterhublogin',))
-
-#: codes for which we require dynamically loaded binaries
-_PROPRIETARY_CODES = frozenset(('flash',))
-
-#: all executable codes
-VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _DEFAULT_PROPRIETARY_CODES)
-
+import sirepo.codes
 
 #: Configuration
 _cfg = None
@@ -75,16 +30,6 @@ def cfg():
     """
     global _cfg
     return _cfg or _init()
-
-
-def dynamic_sim_type_packages():
-    """Names of packages that contain the dynamic sim types"""
-    return frozenset(cfg().dynamic_sim_types.values())
-
-
-def dynamic_sim_types():
-    """Names of sim_types that live outside of Sirepo"""
-    return frozenset(cfg().dynamic_sim_types.keys())
 
 
 def for_sim_type(sim_type):
@@ -119,14 +64,15 @@ def _init():
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
         default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
-        dynamic_sim_types=(
-            '',
-            _parse_to_dict,
-            'Codes that will be loaded from outside the sirepo repo. Element at i % 2 is package name. Element at i % 1 code name.'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
+        root_packages=(
+            tuple(),
+            tuple,
+            'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
+        ),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
@@ -148,30 +94,21 @@ def _init():
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
-            PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
+            sirepo.codes.PROD_FOSS_CODES if pkconfig.channel_in('prod') else sirepo.codes.FOSS_CODES
         )
     )
     s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)
-    for v in _DEPENDENT_CODES:
+    for v in sirepo.codes.DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])
-    x = s.difference(VALID_CODES)
-    assert not x, \
-        'sim_type(s) invalid={} expected={}'.format(x, VALID_CODES)
-    # SECURITY: _cfg.dynamic_sim_types cannot be validated because their names
-    # cannot be publicly exposed.
-    s.update(_cfg.dynamic_sim_types.keys())
     _cfg.sim_types = frozenset(s)
+    if 'sirepo' not in _cfg.root_packages:
+        _cfg.root_packages = (*_cfg.root_packages, 'sirepo')
+    _check_packages(_cfg.root_packages)
     return _cfg
 
 
-def _parse_to_dict(string):
-    from pykern import pkconfig
-    from pykern.pkcollections import PKDict
-    if not string:
-        return PKDict()
-    t = pkconfig.parse_tuple(string)
-    if len(t) % 2 != 0:
-        raise AssertionError(f'expecting a matching number of keys and values: {t}')
-    i = iter(t)
-    return PKDict(zip(i, i))
+def _check_packages(packages):
+    import importlib
+    for p in packages:
+        importlib.import_module(p)

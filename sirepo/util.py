@@ -186,17 +186,20 @@ def flask_app():
     return flask.current_app or None
 
 
-def import_sim_module(sim_type, module):
-    """Import module for sim type
+def import_submodule(submodule):
+    """Import fully qualified module that contains submodule
 
-    sim_type will be used to find the root package (ex sirepo)
-    and module will be appended to it (ex sim_data.srw)
+    sirepo.feature_config.root_packages will be searched for a match.
     """
     import sirepo.feature_config
-    return importlib.import_module(
-        sirepo.feature_config.cfg().dynamic_sim_types.get(sim_type, 'sirepo') + \
-        f'.{module}' if module else '',
-    )
+    r = sirepo.feature_config.cfg().root_packages
+    for p in r:
+       try:
+        return importlib.import_module(f'{p}.{submodule}')
+       except ModuleNotFoundError:
+           pass
+    raise AssertionError(f'cannot find submodule={submodule} in root_packages={r}')
+
 
 def in_flask_request():
     import sys

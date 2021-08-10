@@ -7,6 +7,7 @@ u"""Functions for accessing resource files
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkresource
+from pykern.pkdebug import pkdp
 import os
 import sirepo.feature_config
 import sirepo.util
@@ -23,7 +24,7 @@ def filename(*paths):
     """
     return pkio.py_path(pkresource.filename(
         os.path.join(*paths),
-        additional_packages=sirepo.feature_config.dynamic_sim_type_packages(),
+        packages=sirepo.feature_config.cfg().root_packages,
     ))
 
 
@@ -38,7 +39,7 @@ def glob_static(path):
     """
     for f in pkresource.glob(
             os.path.join('static', path),
-            additional_packages=sirepo.feature_config.dynamic_sim_type_packages(),
+            packages=sirepo.feature_config.cfg().root_packages,
     ):
         yield pkio.py_path(f)
 
@@ -57,7 +58,7 @@ def static(*paths, relpath=False, check_input=False):
     p = pkresource.filename(
         sirepo.util.safe_join('static', *paths) if check_input \
         else os.path.join('static', *paths),
-        additional_packages=sirepo.feature_config.dynamic_sim_type_packages(),
+        packages=sirepo.feature_config.cfg().root_packages,
         relpath=relpath
     )
     if not relpath:
