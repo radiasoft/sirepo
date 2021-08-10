@@ -657,8 +657,6 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     _app = flask.Flask(
         __name__,
         static_folder=None,
-        # TODO(e-carlin): I don't think we use templates. Talk with rn
-        # template_folder=str(simulation_db.STATIC_FOLDER),
     )
     _app.config['PROPAGATE_EXCEPTIONS'] = True
     _app.sirepo_uwsgi = uwsgi
