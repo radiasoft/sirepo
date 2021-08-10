@@ -63,5 +63,11 @@ def setdefault(key, default=None):
 def _context():
     if sirepo.util.in_flask_request():
         import flask
-        return flask.g.get(_FLASK_G_SR_CONTEXT_KEY)
-    return _non_threaded_context
+        c = flask.g.get(_FLASK_G_SR_CONTEXT_KEY)
+        if c is None:
+            raise AssertionError('no flask.g {_FLASK_G_SR_CONTEXT_KEY}')
+        return c
+    c = _non_threaded_context
+    if c is None:
+        raise AssertionError('no _non_threaded_context')
+    return c
