@@ -71,7 +71,7 @@ class Exporter(sirepo.exporter.ExporterBase):
         """Export to file"""
         if sim.file_type == 'dmp':
             return sirepo.http_reply.gen_file_as_attachment(
-                _dmp_file(sim.id),
+                _DMP_FILE,
                 content_type='application/octet-stream',
                 filename=f'{sim.filename}.{sim.file_type}',
             )
@@ -79,9 +79,9 @@ class Exporter(sirepo.exporter.ExporterBase):
 
 
 _BEAM_AXIS_ROTATIONS = PKDict(
-    x=transform.Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
-    y=transform.Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=transform.Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
 
 _BEAM_AXIS_VECTORS = PKDict(
