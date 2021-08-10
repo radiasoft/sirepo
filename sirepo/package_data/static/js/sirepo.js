@@ -134,20 +134,7 @@ angular.element(document).ready(function() {
                 throw new Error(`${status}: Failed to load block ${b.name}`);
             }
             SIREPO.SNIPPETS[b.name] = val;
-            if (b.snippetType === 'panel') {
-                buildPanel(b.name, val);
-            }
         });
-    }
-
-    // a "panel" is a minmal directive return value for now, but can be any encapsulation of
-    // markup
-    function buildPanel(name, val) {
-        SIREPO.PANELS[name] = {
-            restrict: 'A',
-            scope: {},
-            template: val,
-        };
     }
 
     function addTag(src, name, parent, uri, attrs) {
@@ -172,7 +159,7 @@ angular.element(document).ready(function() {
     }
 
     function loadSnippets() {
-        return $.map(SIREPO.APP_SCHEMA.blocks || [], loadSnippet);
+        return $.map(SIREPO.APP_SCHEMA.snippets || [], loadSnippet);
     }
 
     $.ajax({

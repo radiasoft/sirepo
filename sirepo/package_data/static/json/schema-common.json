@@ -288,42 +288,12 @@
                 ["fixed", "Fixed"]
             ]
         },
-        "blocks": [
+        "snippets": [
             {
                 "snippetType": "default",
                 "fileType": "svg",
                 "name": "watermark",
                 "src": "radiasoft-logo.svg"
-            },
-            {
-                "snippetType": "panel",
-                "fileType": "html",
-                "name":  "heatmap",
-                "src":  "heatplot.html"
-            },
-            {
-                "snippetType": "panel",
-                "fileType": "html",
-                "name":  "parameterPlot",
-                "src":  "plot2d.html"
-            },
-            {
-                "snippetType": "panel",
-                "fileType": "html",
-                "name":  "particle",
-                "src":  "plot2d.html"
-            },
-            {
-                "snippetType": "panel",
-                "fileType": "html",
-                "name":  "plot2d",
-                "src": "plot2d.html"
-            },
-            {
-                "snippetType": "panel",
-                "fileType": "html",
-                "name":  "plot3d",
-                "src":  "plot3d.html"
             }
         ],
         "localRoutes": {

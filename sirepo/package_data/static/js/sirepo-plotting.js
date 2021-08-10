@@ -5,20 +5,9 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
-SIREPO.PLOT_DIRECTIVES = ['heatmap', 'parameterPlot', 'particle', 'plot2d', 'plot3d',];
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
-
-angular.element(document).ready(function() {
-    for (let d of SIREPO.PLOT_DIRECTIVES) {
-        SIREPO.PANELS[d].addWatermark = function(authState) {
-            if (SIREPO.authState.watermarkReports) {
-                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
-            }
-        };
-    }
-});
 
 SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
@@ -318,9 +307,9 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
             return pointsList;
         },
 
-        addWatermark: function() {
+        addWatermark: function(element) {
             if (SIREPO.authState.watermarkReports) {
-                $('svg.sr-plot').find('g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
+                $(element).find('svg.sr-plot > g.rs-watermark-group').append(SIREPO.SNIPPETS.watermark);
             }
         },
 
@@ -2403,7 +2392,7 @@ SIREPO.app.directive('plot2d', function(authState, focusPointService, plotting, 
             };
         },
         link: function(scope, element) {
-            plotting.addWatermark();
+            plotting.addWatermark(element);
             plotting.linkPlot(scope, element);
         },
     };
@@ -2921,7 +2910,7 @@ SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, 
             });
         },
         link: function link(scope, element) {
-            plotting.addWatermark();
+            plotting.addWatermark(element);
             plotting.linkPlot(scope, element);
         },
     };
@@ -3160,7 +3149,7 @@ SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plo
             };
         },
         link: function link(scope, element) {
-            plotting.addWatermark();
+            plotting.addWatermark(element);
             plotting.linkPlot(scope, element);
         },
     };
@@ -3751,7 +3740,7 @@ SIREPO.app.directive('parameterPlot', function(appState, authState, focusPointSe
             };
         },
         link: function link(scope, element) {
-            plotting.addWatermark();
+            plotting.addWatermark(element);
             plotting.linkPlot(scope, element);
         },
     };
@@ -3849,7 +3838,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
             };
         },
         link: function link(scope, element) {
-            plotting.addWatermark();
+            plotting.addWatermark(element);
             plotting.linkPlot(scope, element);
         },
     };

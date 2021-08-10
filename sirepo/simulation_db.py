@@ -258,7 +258,7 @@ def get_schema(sim_type):
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    _set_block_paths(schema)
+    _set_snippet_paths(schema)
 
     for item in [
             'appDefaults',
@@ -861,12 +861,12 @@ def _create_lib_and_examples(simulation_type, uid=None):
         save_new_example(s, uid=uid)
 
 
-def _set_block_paths(schema):
-    if 'blocks' not in schema:
-        schema.blocks = []
-    schema.blocks.extend(schema.common.blocks)
-    for b in schema.blocks:
-        b.path = _pkg_relative_path_static(b.fileType, b.src)
+def _set_snippet_paths(schema):
+    if 'snippets' not in schema:
+        schema.snippets = []
+    schema.snippets.extend(schema.common.snippets)
+    for s in schema.snippets:
+        s.path = _pkg_relative_path_static(s.fileType, s.src)
 
 
 def _files_in_schema(schema):
