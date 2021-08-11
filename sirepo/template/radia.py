@@ -45,12 +45,6 @@ _BEAM_AXIS_VECTORS = PKDict(
     z=[0, 0, 1]
 )
 
-_GAP_AXIS_MAP = PKDict(
-    x='z',
-    y='z',
-    z='y'
-)
-
 _DMP_FILE = 'geometry.dat'
 
 # Note that these column names and units are required by elegant
@@ -707,7 +701,12 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.height_dir = hd.tolist()
     v.beam_dir = bd.tolist()
     if v.magnetType == 'undulator':
-        _update_geom_from_undulator(g, data.models.hybridUndulator, data.models.simulation.beamAxis)
+        _update_geom_from_undulator(
+            g,
+            data.models.hybridUndulator,
+            data.models.simulation.beamAxis,
+            data.models.simulation.heightAxis,
+        )
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
     # read in h-m curves if applicable
@@ -767,7 +766,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 def _geom_directions(beam_axis, vert_axis):
     beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
     if not vert_axis or vert_axis == beam_axis:
-        vert_axis = _GAP_AXIS_MAP[beam_axis]
+        vert_axis = _SCHEMA.constants.heightAxisMap[beam_axis]
     vert_dir = numpy.array(_BEAM_AXIS_VECTORS[vert_axis])
 
     # we don't care about the direction of the cross product
@@ -1229,7 +1228,7 @@ def _update_group(g, members, do_replace=False):
 def _update_kickmap(km, und, beam_axis):
     km.direction = sirepo.util.to_comma_delimited_string(_BEAM_AXIS_VECTORS[beam_axis])
     km.transverseDirection = sirepo.util.to_comma_delimited_string(
-        _BEAM_AXIS_VECTORS[_GAP_AXIS_MAP[beam_axis]]
+        _BEAM_AXIS_VECTORS[_SCHEMA.constants.heightAxisMap[beam_axis]]
     )
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods

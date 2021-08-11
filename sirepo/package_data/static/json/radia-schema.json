@@ -88,6 +88,11 @@
         "getDataMethods": [
             "get_field", "get_field_integrals", "get_geom", "get_kick_map_plot", "save_field"
         ],
+        "heightAxisMap": {
+            "x": "z",
+            "y": "z",
+            "z": "y"
+        },
         "inProgressText": "Solving",
         "inputFileArgDelims": {
             "list": ",",

@@ -1210,7 +1210,6 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             }
 
             function updateSimEditor() {
-                srdbg('UPDATE ISM ED');
                 panelState.enableField(
                     'simulation',
                     'magnetType',
@@ -1227,6 +1226,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 }
             }
 
+            /*
             $scope.$on('simulation.editor.show', () => {
                 if (activeSection.getActiveSection() === 'simulations') {
 
@@ -1238,8 +1238,9 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 });
                 updateSimEditor();
             });
+            */
             $scope.$on('simulation.editor.hide', () => {
-                $scope.newSim = {};
+                srdbg('HIDE SIM ED');
             });
         }
     };
@@ -3758,10 +3759,44 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
     };
 });
 
-SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, $scope) {
+
+    let model = null;
+
+    function updateSimEditor() {
+        if (! model) {
+            return;
+        }
+        panelState.enableField(
+            $scope.modelName,
+            'magnetType',
+            activeSection.getActiveSection() === 'simulations'
+        );
+        for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            const axis = e[SIREPO.ENUM_INDEX_VALUE];
+            const isShown = axis !== model.beamAxis;
+            panelState.showEnum(
+                'simulation',
+                'heightAxis',
+                axis,
+                isShown
+            );
+            if (model.heightAxis === axis && ! isShown) {
+                model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
+            }
+
+        }
+    }
+
     $scope.watchFields = [
         ['simulation.beamAxis'], () => {
-            srdbg('CH BEAM ACIS');
+            updateSimEditor();
         },
     ];
+
+    $scope.$on(`${$scope.modelName}.editor.show`, () => {
+        model = appState.models[$scope.modelName];
+        updateSimEditor();
+    });
+
 });
