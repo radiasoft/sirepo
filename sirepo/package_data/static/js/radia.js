@@ -1339,7 +1339,8 @@ SIREPO.app.directive('coordinateSystem', function(appState, panelState, radiaSer
     let h = 64 + 2 * inset;
     let svg = new SIREPO.DOM.SVGContainer(coordSysId, w, h);
     let rotBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-rot-btn');
-    let relectBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-refl-btn');
+    let reflectHorizBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-refl-h-btn');
+    let reflectVertBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-refl-v-btn');
 
     // axes are 'x', 'y', 'z'
     return {
