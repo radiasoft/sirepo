@@ -845,9 +845,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.watchModelFields = function($scope, modelFields, callback) {
         $scope.appState = self;
         modelFields.forEach(function(f) {
+            // allows watching fields when creating a new simulation (isLoaded() returns false)
+            const isSim = self.models.simulation && self.parseModelField(f)[0] === 'simulation';
             // elegant uses '-' in modelKey
             $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
-                if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
+                if ((self.isLoaded() || isSim) && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1, true, f);
                 }

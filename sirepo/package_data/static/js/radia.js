@@ -1186,9 +1186,6 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             '</div>',
         ].join(''),
         controller: function($scope) {
-
-            $scope.newSim = {};
-
             $scope.exportDmp = function() {
                 requestSender.newWindow('exportArchive', {
                     '<simulation_id>': appState.models.simulation.simulationId,
@@ -1208,40 +1205,6 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             function isRawExample(name) {
                 return SIREPO.APP_SCHEMA.constants.rawExamples.indexOf(name) >= 0;
             }
-
-            function updateSimEditor() {
-                panelState.enableField(
-                    'simulation',
-                    'magnetType',
-                    activeSection.getActiveSection() === 'simulations'
-                );
-                for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
-                    let axis = e[SIREPO.ENUM_INDEX_VALUE];
-                    panelState.showEnum(
-                        'simulation',
-                        'heightAxis',
-                        axis,
-                        axis !== appState.models.simulation.beamAxis
-                    );
-                }
-            }
-
-            /*
-            $scope.$on('simulation.editor.show', () => {
-                if (activeSection.getActiveSection() === 'simulations') {
-
-                    $scope.newSim = appState.setModelDefaults({}, 'simulation');
-                    $scope.model = $scope.newSim;
-                }
-                $scope.$watch('newSim.beamAxis', (n, o, scope) => {
-                    srdbg('new s ch', n, o);
-                });
-                updateSimEditor();
-            });
-            */
-            $scope.$on('simulation.editor.hide', () => {
-                srdbg('HIDE SIM ED');
-            });
         }
     };
 });
