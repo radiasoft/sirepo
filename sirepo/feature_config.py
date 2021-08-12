@@ -5,7 +5,45 @@ u"""List of features available
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import sirepo.codes
+# defer all imports so *_CODES is available to testing functions
+
+#: Codes that depend on other codes. [x][0] depends on [x][1]
+_DEPENDENT_CODES = [
+        ['jspec', 'elegant'],
+        ['controls', 'madx'],
+
+]
+
+#: Codes on prod
+PROD_FOSS_CODES = frozenset((
+        'controls',
+        'elegant',
+        'jspec',
+        'madx',
+        'ml',
+        'opal',
+        'radia',
+        'shadow',
+        'srw',
+        'synergia',
+        'warppba',
+        'warpvnd',
+        'zgoubi',
+
+))
+
+#: Codes on dev, alpha, and beta
+_NON_PROD_FOSS_CODES = frozenset((
+        'irad',
+        'myapp',
+        'rcscon',
+        'rs4pi',
+        'silas',
+
+))
+
+#: All possible open source codes
+FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
 #: Configuration
 _cfg = None
@@ -94,11 +132,11 @@ def _init():
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
-            sirepo.codes.PROD_FOSS_CODES if pkconfig.channel_in('prod') else sirepo.codes.FOSS_CODES
+            PROD_FOSS_CODES if pkconfig.channel_in('prod') else FOSS_CODES
         )
     )
     s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)
-    for v in sirepo.codes.DEPENDENT_CODES:
+    for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])
     _cfg.sim_types = frozenset(s)

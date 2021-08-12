@@ -83,7 +83,7 @@ def pytest_collection_modifyitems(session, config, items):
     from pykern.pkcollections import PKDict
     import importlib
     import os
-    import sirepo.codes
+    import sirepo.feature_config
 
     s = PKDict(
         elegant='sdds',
@@ -103,7 +103,7 @@ def pytest_collection_modifyitems(session, config, items):
         if 'sbatch' in i.fspath.basename and slurm_not_installed:
             i.add_marker(pytest.mark.skip(reason="slurm not installed"))
             continue
-        c = [x for x in sirepo.codes.FOSS_CODES if x in i.name]
+        c = [x for x in sirepo.feature_config.FOSS_CODES if x in i.name]
         if not c:
             continue
         c = c[0]
@@ -273,9 +273,9 @@ def _fc(request, fc_module, new_user=False):
 
 
 def _sim_type(request):
-    import sirepo.codes
+    import sirepo.feature_config
 
-    for c in sirepo.codes.FOSS_CODES:
+    for c in sirepo.feature_config.FOSS_CODES:
         f = request.function
         n = getattr(f, 'func_name', None) or getattr(f, '__name__')
         if c in n or c in str(request.fspath.purebasename):
