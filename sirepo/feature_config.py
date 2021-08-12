@@ -105,12 +105,12 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
-        proprietary_sim_types=(set(), set, 'codes that require authorization'),
-        root_packages=(
+        package_path=(
             tuple(),
             tuple,
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
+        proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
@@ -140,9 +140,9 @@ def _init():
         if v[0] in s:
             s.add(v[1])
     _cfg.sim_types = frozenset(s)
-    if 'sirepo' not in _cfg.root_packages:
-        _cfg.root_packages = (*_cfg.root_packages, 'sirepo')
-    _check_packages(_cfg.root_packages)
+    if 'sirepo' not in _cfg.package_path:
+        _cfg.package_path = (*_cfg.package_path, 'sirepo')
+    _check_packages(_cfg.package_path)
     return _cfg
 
 

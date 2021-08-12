@@ -24,7 +24,7 @@ def file_path(*paths):
     """
     return pkio.py_path(pkresource.filename(
         os.path.join(*paths),
-        packages=sirepo.feature_config.cfg().root_packages,
+        packages=sirepo.feature_config.cfg().package_path,
     ))
 
 
@@ -42,7 +42,7 @@ def static(*paths, relpath=False, check_input=False):
     p = pkresource.filename(
         sirepo.util.safe_join('static', *paths) if check_input \
         else os.path.join('static', *paths),
-        packages=sirepo.feature_config.cfg().root_packages,
+        packages=sirepo.feature_config.cfg().package_path,
         relpath=relpath
     )
     if not relpath:
@@ -61,7 +61,7 @@ def static_paths_for_type(file_type):
     """
     for f in pkresource.glob_files(
             os.path.join('static', file_type, f'*.{file_type}'),
-            packages=sirepo.feature_config.cfg().root_packages,
+            packages=sirepo.feature_config.cfg().package_path,
     ):
         yield pkio.py_path(f)
 

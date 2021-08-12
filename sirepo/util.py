@@ -189,16 +189,16 @@ def flask_app():
 def import_submodule(submodule):
     """Import fully qualified module that contains submodule
 
-    sirepo.feature_config.root_packages will be searched for a match.
+    sirepo.feature_config.package_path will be searched for a match.
     """
     import sirepo.feature_config
-    r = sirepo.feature_config.cfg().root_packages
+    r = sirepo.feature_config.cfg().package_path
     for p in r:
        try:
         return importlib.import_module(f'{p}.{submodule}')
        except ModuleNotFoundError:
            pass
-    raise AssertionError(f'cannot find submodule={submodule} in root_packages={r}')
+    raise AssertionError(f'cannot find submodule={submodule} in package_path={r}')
 
 
 def in_flask_request():

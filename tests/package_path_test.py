@@ -27,7 +27,7 @@ def _fc():
 
     fc = srunit.flask_client(
         cfg=PKDict(
-            SIREPO_FEATURE_CONFIG_ROOT_PACKAGES='sirepo_test_root_packages',
+            SIREPO_FEATURE_CONFIG_PACKAGE_PATH='sirepo_test_package_path',
         ),
         sim_types='code1',
         no_chdir_work=True,
@@ -43,8 +43,8 @@ def _install():
     import sys
 
     with pkunit.save_chdir_work() as d:
-        pkunit.data_dir().join('sirepo_test_root_packages.tar.gz').copy(d)
-        subprocess.run('tar xzf sirepo_test_root_packages.tar.gz', shell=True)
-        with pkio.save_chdir('sirepo_test_root_packages') as d:
+        pkunit.data_dir().join('sirepo_test_package_path.tar.gz').copy(d)
+        subprocess.run('tar xzf sirepo_test_package_path.tar.gz', shell=True)
+        with pkio.save_chdir('sirepo_test_package_path') as d:
             sys.path.append(str(d))
             yield
