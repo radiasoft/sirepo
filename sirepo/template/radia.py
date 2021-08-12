@@ -357,12 +357,12 @@ def _build_cuboid(
     ):
     return _update_cuboid(
         _build_geom_obj('box', obj_name=name),
-        center or [0.0, 0.0, 0.0],
-        size or [1.0, 1.0, 1.0],
-        segments or [1, 1, 1],
+        center if center is not None else [0.0, 0.0, 0.0],
+        size if size is not None else [1.0, 1.0, 1.0],
+        segments if segments is not None else [1, 1, 1],
         material,
         matFile,
-        magnetization or [0.0, 0.0, 0.0],
+        magnetization if magnetization is not None else [0.0, 0.0, 0.0],
         rem_mag or 0.0,
         color
     )
@@ -510,9 +510,10 @@ def _build_undulator_objects(geom, und, beam_axis):
     und.poleBaseObjectId = pole.id
     mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
     geom.objects.append(mag_pole_grp)
-    magnet_cap = _build_cuboid(name='End Block')
-    geom.objects.append(magnet_cap)
-    oct_grp = _build_group([half_pole, mag_pole_grp, magnet_cap], name='Octant')
+    # empty termination group
+    term_grp = _build_group([], name='Termination')
+    geom.objects.append(term_grp)
+    oct_grp = _build_group([half_pole, mag_pole_grp, term_grp], name='Octant')
     geom.objects.append(oct_grp)
 
     return _update_geom_from_undulator(
@@ -1081,6 +1082,10 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
+def _undulator_termination_name(index, term_type):
+    return f'termination.{term_type}.{index}'
+
+
 def _update_cuboid(b, center, size, segments, material, mat_file, magnetization, rem_mag, color):
     b.center = sirepo.util.to_comma_delimited_string(center)
     b.color = color
@@ -1140,6 +1145,31 @@ def _update_geom_from_undulator(geom, und, beam_axis):
     magnet_transverse_ctr = magnet_dim_half.width / 2 - \
                             (gap_offset + magnet_dim_half.height + gap_half_height)
 
+    obj_props = PKDict(
+        pole=PKDict(
+            color=und.poleColor,
+            dim=pole_dim,
+            dim_half=pole_dim_half,
+            material=und.poleMaterial,
+            mat_file=und.poleMaterialFile,
+            mag=pole_mag,
+            rem_mag=und.poleRemanentMag,
+            segs=pole_segs,
+            transverse_ctr=pole_transverse_ctr
+        ),
+        magnet=PKDict(
+            color=und.magnetColor,
+            dim=magnet_dim,
+            dim_half=magnet_dim_half,
+            material=und.magnetMaterial,
+            mat_file=und.magnetMaterialFile,
+            mag=mag_mag,
+            rem_mag=und.magnetRemanentMag,
+            segs=mag_segs,
+            transverse_ctr=magnet_transverse_ctr
+        )
+    )
+
     pos = pole_dim_half.length / 2
     half_pole = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Half Pole'),
@@ -1166,6 +1196,7 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.magnetColor
     )
     und.magnetBaseObjectId = magnet_block.id
+    obj_props.magnet.bevels = magnet_block.get('bevels', [])
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
@@ -1180,8 +1211,8 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         und.poleColor
     )
     und.poleBaseObjectId = pole.id
-    if pole.bevels:
-        half_pole.bevels = pole.bevels.copy()
+    obj_props.pole.bevels = pole.get('bevels', [])
+    half_pole.bevels = obj_props.pole.bevels.copy()
 
     mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
     mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
@@ -1192,23 +1223,46 @@ def _update_geom_from_undulator(geom, und, beam_axis):
         )]
 
     pos = pole_dim_half.length + \
-          magnet_dim_half.length / 2 + \
-          beam_dir * und.numPeriods * und.periodLength / 2
-    magnet_cap = _update_cuboid(
-        _find_obj_by_name(geom.objects, 'End Block'),
-        magnet_transverse_ctr + pos,
-        magnet_dim_half.width + magnet_dim.height + magnet_dim_half.length,
-        mag_segs,
-        und.magnetMaterial,
-        und.magnetMaterialFile,
-        (-1) ** und.numPeriods * mag_mag,
-        und.magnetRemanentMag,
-        und.magnetColor
-    )
-    if magnet_block.bevels:
-        magnet_cap.bevels = magnet_block.bevels.copy()
+        beam_dir * (und.numPeriods * und.periodLength / 2)
 
     oct_grp = _find_obj_by_name(geom.objects, 'Octant')
+
+    # rebuild the termination group
+    geom.objects[:] = [
+        o for i, o in enumerate(geom.objects) if \
+        o.name not in [_undulator_termination_name(i, n[0]) for n in _SCHEMA.enum.TerminationType]
+    ]
+    terms = []
+    num_term_mags = 0
+    for i, t in enumerate(und.terminations):
+        l = t.length * beam_dir
+        pos += (t.airGap + l / 2) * beam_dir
+        props = obj_props[t.type]
+        o = _build_cuboid(
+            props.transverse_ctr + pos,
+            props.dim_half.width + props.dim.height + l,
+            props.segs,
+            props.material,
+            props.mat_file,
+            _ZERO if t.type == 'pole' else (-1) ** (und.numPeriods + num_term_mags) * props.mag,
+            props.rem_mag,
+            _undulator_termination_name(i, t.type),
+            props.color
+        )
+        o.bevels = props.bevels
+        terms.append(o)
+        pos += l / 2
+        if t.type == 'magnet':
+            num_term_mags += 1
+    geom.objects.extend(terms)
+    g = _find_obj_by_name(geom.objects, 'Termination')
+    if not g:
+        g = _build_group(terms, name='Termination')
+        geom.objects.append(g)
+    else:
+        _update_group(g, terms, do_replace=True)
+    _update_group(oct_grp, [g])
+
     oct_grp.transforms = [
         _build_symm_xform(width_dir, _ZERO, 'perpendicular'),
         _build_symm_xform(gap_dir, _ZERO, 'parallel'),

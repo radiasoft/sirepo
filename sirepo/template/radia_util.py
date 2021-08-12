@@ -63,31 +63,6 @@ class MPI:
         self._uti_mpi('barrier')
 
 
-def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
-
-    b = numpy.array(beam_dir)
-    g = numpy.array(gap_dir)
-    x = numpy.array(trans_dir)
-    sz = numpy.array(obj_size)
-    ctr = numpy.array(obj_ctr)
-    e = int(bevel.edge)
-    half_size = sz / 2
-    corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
-    trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]
-    gap_offset = bevel.amountGap * g * [-1, -1, 1, 1][e]
-
-    v = trans_offset - gap_offset
-    vx2 = numpy.dot(trans_offset, trans_offset)
-    vg2 = numpy.dot(gap_offset, gap_offset)
-    v2 = numpy.dot(v, v)
-
-    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
-    pt = corner + trans_offset
-
-    # object id, plane normal, point in plane - returns a new id in an array for some reason
-    return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
-
-
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'
@@ -170,6 +145,31 @@ _TRANSFORMS = PKDict(
     rotate=_apply_rotation,
     translate=_apply_translation
 )
+
+
+def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
+
+    b = numpy.array(beam_dir)
+    g = numpy.array(gap_dir)
+    x = numpy.array(trans_dir)
+    sz = numpy.array(obj_size)
+    ctr = numpy.array(obj_ctr)
+    e = int(bevel.edge)
+    half_size = sz / 2
+    corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
+    trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]
+    gap_offset = bevel.amountGap * g * [-1, -1, 1, 1][e]
+
+    v = trans_offset - gap_offset
+    vx2 = numpy.dot(trans_offset, trans_offset)
+    vg2 = numpy.dot(gap_offset, gap_offset)
+    v2 = numpy.dot(v, v)
+
+    plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
+    pt = corner + trans_offset
+
+    # object id, plane normal, point in plane - returns a new id in an array for some reason
+    return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
 
 
 def apply_color(g_id, color):

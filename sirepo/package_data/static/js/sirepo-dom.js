@@ -232,19 +232,6 @@ class UIWarning extends UIElement {
     }
 }
 
-
-// wrapper for raw html strings
-class UIHTML {
-    constructor(html) {
-        this.html = html;
-    }
-
-    toTemplate() {
-        return this.html;
-    }
-}
-
-
 // wrapper for html strings. No parsing (yet)
 class UIRawHTML {
     constructor(html) {
@@ -488,6 +475,21 @@ class SVGRect extends UIElement {
 
 }
 
+class SVGShapeButton extends UIElement {
+    constructor(id, size, onclick) {
+        super('button', id, [
+            new SIREPO.DOM.UIAttribute('data-ng-click', `${onclick}()`),
+        ]);
+        this.svg = new SIREPO.DOM.SVGContainer(`${id}-svg`, size, size);
+        this.addChild(this.svg);
+        this.shape = null;
+    }
+
+    setShape(s) {
+        this.shape = s;
+        $(`${this.svg.getIdSelector()}`).html(this.shape.toTemplate());
+    }
+}
 
 class SVGText extends UIElement {
     constructor(id, x, y, str = '') {
@@ -609,6 +611,7 @@ SIREPO.DOM = {
     SVGGroup:SVGGroup,
     SVGPath: SVGPath,
     SVGRect: SVGRect,
+    SVGShapeButton: SVGShapeButton,
     SVGTable: SVGTable,
     SVGText: SVGText,
     UIAttribute: UIAttribute,

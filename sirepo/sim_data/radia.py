@@ -34,6 +34,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+        import sirepo.util
 
         def _find_obj_by_name(obj_arr, obj_name):
             return next((x for x in obj_arr if x.name == obj_name), None)
@@ -72,8 +73,23 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Magnet Block').id
             if not dm.hybridUndulator.get('poleBaseObjectId'):
                 dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Pole').id
+            if not dm.hybridUndulator.get('terminations'):
+                dm.hybridUndulator.terminations = []
+            t = _find_obj_by_name(dm.geometryReport.objects, 'Termination')
+            if not t:
+                t = cls.model_defaults('geomGroup')
+                t.name = 'Termination'
+                dm.geometryReport.objects.append(t)
+                _find_obj_by_name(dm.geometryReport.objects, 'Octant')
+            b = _find_obj_by_name(dm.geometryReport.objects, 'End Block')
+            if b:
+                b.name = 'termination.magnet.0'
+                tt = cls.model_defaults('termination')
+                tt.length = sirepo.util.split_comma_delimited_string(b.size, float)[['x', 'y', 'z'].index(dm.simulation.beamAxis)]
+
             if not dm.simulation.get('heightAxis'):
                 dm.simulation.heightAxis = 'z'
+
         for o in dm.geometryReport.objects:
             if not o.get('bevels'):
                 o.bevels = []
