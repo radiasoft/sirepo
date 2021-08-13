@@ -701,6 +701,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.width_dir = wd.tolist()
     v.height_dir = hd.tolist()
     v.beam_dir = bd.tolist()
+    v.beam_axis = data.models.simulation.beamAxis
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(
             g,
@@ -712,6 +713,8 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     _validate_objects(v.objects)
     # read in h-m curves if applicable
     for o in v.objects:
+        if o.get('type'):
+            o.super_classes = _SCHEMA.model[o.type]._super
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
             o.get('material', None) and o.material == 'custom' and \
             o.get('materialFile', None) and o.materialFile else None

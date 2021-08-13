@@ -223,6 +223,10 @@
         }
     },
     "enum": {
+        "ArmPosition": [
+            ["0", "Top"],
+            ["1", "Bottom"]
+        ],
         "AutoManual": [
             ["auto", "Auto"],
             ["man", "Manual"]
@@ -277,10 +281,10 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
-            ["cee", "Cee"],
-            ["gamma", "Gamma"],
+            ["cee", "Extruded Cee"],
+            ["gamma", "Extruded Gamma"],
             ["racetrack", "RaceTrack"],
-            ["tee", "Tee"]
+            ["tee", "Extruded Tee"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -302,6 +306,10 @@
         "SpatialTransform": [
             ["translate", "Translate"],
             ["rotate", "Rotate"]
+        ],
+        "StemPosition": [
+            ["0", "Left"],
+            ["1", "Right"]
         ],
         "TerminationType": [
             ["magnet", "Magnet"],
@@ -444,10 +452,10 @@
             "_super": ["_", "model", "undulator"],
             "magnetBaseObjectId": ["_", "UUID", ""],
             "magnetColor": ["Color", "Color", "#00ffff"],
-            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
-            "magnetDivision": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width, Height"],
+            "magnetDivision": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
             "magnetLength": ["Thickness [mm]", "Float", 18.0, "Period length/2 - pole length"],
-            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Gap, Beam"],
+            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Vertical, Beam"],
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
             "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
@@ -455,10 +463,10 @@
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleBaseObjectId": ["_", "UUID", ""],
             "poleColor": ["Color", "Color", "#ff00ff"],
-            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Transverse, Gap"],
-            "poleDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
+            "poleDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
             "poleLength": ["Thickness [mm]", "Float", 5.0, "Length along beam axis"],
-            "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
+            "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Vertical, Beam"],
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
@@ -575,8 +583,10 @@
         },
         "stemmed": {
             "_super": ["_", "model", "extrudedPoly"],
-            "armHeight": ["Arm Height [mm]", "Float", 1.0, "Height of the stem in gap direction"],
-            "stemWidth": ["Stem Width [mm]", "Float", 1.0, "Transverse width of the stem"]
+            "armHeight": ["Arm Height [mm]", "Float", 1.0],
+            "armPosition": ["Arm Position", "ArmPosition", "0", "Position of the arm"],
+            "stemWidth": ["Stem Width [mm]", "Float", 1.0],
+            "stemPosition": ["Stem Position", "StemPosition", "0", "Position of the stem"]
         },
         "symmetryTransform": {
             "_super": ["_", "model", "transform"],
@@ -729,15 +739,14 @@
             "advanced": [
                 ["Main", [
                     "name",
-                    "type",
+                    "shapeButton",
                     "magnetization",
                     "remanentMag",
                     "material",
                     "materialFile",
                     "division",
                     "center",
-                    "size",
-                    "color"
+                    "size"
             ]],
                 ["Transforms", [
                     "transforms"
@@ -847,11 +856,21 @@
             "title": "Object Shape Editor",
             "model": "geomObject",
             "basic": [
+                "type",
                 "color",
+                "stemmed.armHeight",
+                "stemmed.armPosition",
+                "stemmed.stemWidth",
+                "stemmed.stemPosition",
                 "bevels"
             ],
             "advanced": [
+                "type",
                 "color",
+                "stemmed.armHeight",
+                "stemmed.armPosition",
+                "stemmed.stemWidth",
+                "stemmed.stemPosition",
                 "bevels"
             ]
         },

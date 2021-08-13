@@ -200,6 +200,19 @@ def dump_bin(g_id):
     return radia.UtiDmp(g_id, 'bin')
 
 
+def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, h_m_curve=None):
+    g_id = radia.ObjMltExtTri(
+        numpy.sum(numpy.array(beam_dir) * center),
+        numpy.sum(numpy.array(beam_dir) * size),
+        pts,
+        numpy.full((len(pts), 2), [1, 1]).tolist(),
+        beam_axis,
+        magnetization
+    )
+    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
+    return g_id
+
+
 # only i (?), m, h
 def field_integral(g_id, f_type, p1, p2):
     return radia.FldInt(g_id, 'inf', f_type, p1, p2)
