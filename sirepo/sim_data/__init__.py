@@ -69,7 +69,8 @@ def get_class(type_or_data):
         type_or_data['simulationType'] if isinstance(
             type_or_data,
             dict,
-        ) else type_or_data)
+        ) else type_or_data
+    )
     return sirepo.util.import_submodule('sim_data.' + s).SimData
 
 

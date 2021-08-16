@@ -41,7 +41,7 @@ def static(*paths, relpath=False, check_input=False):
     """
     p = pkresource.filename(
         sirepo.util.safe_join('static', *paths) if check_input \
-        else os.path.join('static', *paths),
+            else os.path.join('static', *paths),
         packages=sirepo.feature_config.cfg().package_path,
         relpath=relpath
     )
