@@ -82,5 +82,5 @@ def static_paths_for_type(file_type):
     )
 
 
-def template(*paths):
+def template_file_path(*paths):
     return file_path(os.path.join('template', *paths))

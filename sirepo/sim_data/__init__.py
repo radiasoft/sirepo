@@ -76,7 +76,7 @@ def get_class(type_or_data):
 
 def resource_path(filename):
     """Path to common (not specific to sim type) resource file"""
-    return sirepo.resource.template(filename)
+    return sirepo.resource.template_file_path(filename)
 
 
 def template_globals(sim_type=None):
@@ -341,7 +341,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_resource_path(cls, path):
-        return sirepo.resource.template(
+        return sirepo.resource.template_file_path(
             cls.sim_type(),
             cls._LIB_REOUSRCE_DIR,
         ).join(path)
@@ -501,7 +501,7 @@ class SimDataBase(object):
         Returns:
             py.path.local: absolute path to folder
         """
-        return sirepo.resource.template(cls.sim_type(), filename)
+        return sirepo.resource.template_file_path(cls.sim_type(), filename)
 
     @classmethod
     def schema(cls):
