@@ -542,7 +542,7 @@ class SimDataBase(object):
                 model[f] = defaults[f]
 
     @classmethod
-    def want_browser_frame_cache(cls):
+    def want_browser_frame_cache(cls, report):
         return True
 
     @classmethod

@@ -303,7 +303,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
         pass
 
     else:
-        raise Exception('Element type <{}> does not exist.'.format(elem_type))
+        raise ValueError('Element type <{}> does not exist.'.format(elem_type))
 
     return data
 
@@ -430,6 +430,9 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
                 pass
 
             title = key + str(names[key])
+
+            if not elem_type:
+                raise ValueError('Unhandled element named: {}.'.format(name))
 
             positions.append(pkcollections.Dict({
                 'id': counter,
