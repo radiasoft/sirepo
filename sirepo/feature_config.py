@@ -140,8 +140,6 @@ def _init():
         if v[0] in s:
             s.add(v[1])
     _cfg.sim_types = frozenset(s)
-    if 'sirepo' not in _cfg.package_path:
-        _cfg.package_path = (*_cfg.package_path, 'sirepo')
     _check_packages(_cfg.package_path)
     return _cfg
 

@@ -27,7 +27,7 @@ def _fc():
 
     fc = srunit.flask_client(
         cfg=PKDict(
-            SIREPO_FEATURE_CONFIG_PACKAGE_PATH='sirepo_test_package_path',
+            SIREPO_FEATURE_CONFIG_PACKAGE_PATH='sirepo_test_package_path:sirepo',
         ),
         sim_types='code1',
         no_chdir_work=True,
