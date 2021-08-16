@@ -66,10 +66,10 @@ def get_class(type_or_data):
         type: simulation data operation class
     """
     s = sirepo.template.assert_sim_type(
-        type_or_data['simulationType'] if isinstance(
+        type_or_data.simulationType if isinstance(
             type_or_data,
-            dict,
-        ) else type_or_data
+            PKDict,
+        ) else type_or_data,
     )
     return sirepo.util.import_submodule('sim_data.' + s).SimData
 
