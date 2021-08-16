@@ -240,45 +240,12 @@ def get_schema(sim_type):
     Args:
         sim_type (str): must be valid
     Returns:
-        dict: Shared schem
+        dict: Shared schema
 
     """
     t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
         else list(feature_config.cfg().sim_types)[0]
-    if t in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[t]
-    schema = read_json(sirepo.resource.static('json', f'{t}-schema.json'))
-    _merge_dicts(schema.get('appInfo', PKDict()), SCHEMA_COMMON.appInfo)
-    schema.update(SCHEMA_COMMON)
-    schema.update(
-        feature_config=feature_config.for_sim_type(t)
-    )
-    schema.feature_config = feature_config.for_sim_type(t)
-    schema.simulationType = t
-    _SCHEMA_CACHE[t] = schema
-
-    #TODO(mvk): improve merging common and local schema
-    _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
-    schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
-
-    for item in [
-            'appDefaults',
-            'appModes',
-            'constants',
-            'cookies',
-            'enum',
-            'notifications',
-            'localRoutes',
-            'model',
-            'strings',
-            'view',
-    ]:
-        if item not in schema:
-            schema[item] = PKDict()
-        _merge_dicts(schema.common[item], schema[item])
-        _merge_subclasses(schema, item)
-    srschema.validate(schema)
-    return schema
+    return _SCHEMA_CACHE[t]
 
 
 def generate_json(data, pretty=False):
@@ -884,15 +851,57 @@ def _find_user_simulation_copy(simulation_type, sid, uid=None):
 def _init():
     import sirepo.mpi
 
-    global SCHEMA_COMMON, cfg, JOB_RUN_MODE_MAP
+    global cfg, JOB_RUN_MODE_MAP
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
         sbatch_display=(None, str, 'how to display sbatch cluster to user'),
         tmp_dir=(None, pkio.py_path, 'Used by utilities (not regular config)'),
     )
-    with open(str(sirepo.resource.static('json', f'schema-common{JSON_SUFFIX}'))) as f:
-        SCHEMA_COMMON = json_load(f)
+    _init_schemas()
+    JOB_RUN_MODE_MAP = PKDict(
+        sequential='Serial',
+        parallel='{} cores (SMP)'.format(sirepo.mpi.cfg.cores),
+    )
+    if cfg.sbatch_display:
+        JOB_RUN_MODE_MAP.sbatch = cfg.sbatch_display
+
+
+def _init_schemas():
+    global SCHEMA_COMMON
+    SCHEMA_COMMON = json_load(sirepo.resource.static('json', f'schema-common{JSON_SUFFIX}'))
+    a = SCHEMA_COMMON.appInfo
+    for t in sirepo.feature_config.cfg().sim_types:
+        s = read_json(sirepo.resource.static('json', f'{t}-schema.json'))
+        _merge_dicts(s.get('appInfo', PKDict()), a)
+        s.update(SCHEMA_COMMON)
+        s.feature_config = feature_config.for_sim_type(t)
+        s.simulationType = t
+
+        #TODO(mvk): improve merging common and local schema
+        _merge_dicts(s.common.dynamicFiles, s.dynamicFiles)
+        s.dynamicModules = _files_in_schema(s.dynamicFiles)
+        for i in [
+                'appDefaults',
+                'appModes',
+                'constants',
+                'cookies',
+                'enum',
+                'notifications',
+                'localRoutes',
+                'model',
+                'strings',
+                'view',
+        ]:
+            if i not in s:
+                s[i] = PKDict()
+            _merge_dicts(s.common[i], s[i])
+            _merge_subclasses(s, i)
+        srschema.validate(s)
+        _SCHEMA_CACHE[t] = s
+    SCHEMA_COMMON.appInfo = a
+    for s in _SCHEMA_CACHE.values():
+        s.appInfo = a
     # In development, any schema update creates a new version
     if pkconfig.channel_in('dev'):
         SCHEMA_COMMON.version = max([
@@ -901,12 +910,6 @@ def _init():
         ])
     else:
         SCHEMA_COMMON.version = sirepo.__version__
-    JOB_RUN_MODE_MAP = PKDict(
-        sequential='Serial',
-        parallel='{} cores (SMP)'.format(sirepo.mpi.cfg.cores),
-    )
-    if cfg.sbatch_display:
-        JOB_RUN_MODE_MAP.sbatch = cfg.sbatch_display
 
 
 def _merge_dicts(base, derived, depth=-1):
