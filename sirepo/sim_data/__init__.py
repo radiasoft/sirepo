@@ -126,6 +126,8 @@ class SimDataBase(object):
 
     _EXE_PERMISSIONS = 0o700
 
+    _LIB_REOUSRCE_DIR = 'lib'
+
     @classmethod
     def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
@@ -338,8 +340,11 @@ class SimDataBase(object):
         return re.sub(r'^.*?-.*?\.(.+\..+)$', r'\1', basename)
 
     @classmethod
-    def lib_file_resource_dir(cls):
-        return cls._memoize(cls._resource_dir().join('lib'))
+    def lib_file_resource_path(cls, path):
+        return sirepo.resource.template(
+            cls.sim_type(),
+            cls._LIB_REOUSRCE_DIR,
+        ).join(path)
 
     @classmethod
     def lib_file_write_path(cls, basename):
@@ -496,7 +501,7 @@ class SimDataBase(object):
         Returns:
             py.path.local: absolute path to folder
         """
-        return cls._resource_dir().join(filename)
+        return sirepo.resource.template(cls.sim_type(), filename)
 
     @classmethod
     def schema(cls):
@@ -609,7 +614,7 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
 
-        p = [cls.lib_file_resource_dir().join(basename)]
+        p = [cls.lib_file_resource_path(basename)]
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
                 p = pkio.py_path(basename)
@@ -635,14 +640,18 @@ class SimDataBase(object):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        res = PKDict()
-        x = [cls.lib_file_resource_dir()]
+        res = PKDict(
+            ((f.basename, f) for f in \
+                sirepo.resource.glob_dir(cls._LIB_REOUSRCE_DIR, pat))
+        )
         if want_user_lib_dir:
             # lib_dir overwrites resource_dir
-            x.append(simulation_db.simulation_lib_dir(cls.sim_type()))
-        for d in x:
-            for f in pkio.sorted_glob(d.join(pat)):
-                res[f.basename] = f
+            res.update(
+                (f.basename, f) for f in \
+                    pkio.sorted_glob(
+                        simulation_db.simulation_lib_dir(cls.sim_type()).join(pat),
+                    )
+            )
         return res.values()
 
     @classmethod
@@ -707,10 +716,6 @@ class SimDataBase(object):
             cfg.supervisor_sim_db_file_uri + uri,
             data=pkio.read_binary(file_path),
         ).raise_for_status()
-
-    @classmethod
-    def _resource_dir(cls):
-        return cls._memoize(sirepo.resource.template(cls.sim_type()))
 
     @classmethod
     def _sim_file_basenames(cls, data):

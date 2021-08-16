@@ -28,6 +28,23 @@ def file_path(*paths):
     ))
 
 
+def glob_dir(dirname, pattern):
+    """Get matching paths in directory
+
+    Args:
+        dirname (str): Directory to search
+        patter (str): Glob pattern to filter
+
+    Returns:
+        [py.path]: paths that match pattern
+    """
+    for f in pkresource.glob_files(
+            os.path.join(dirname, pattern),
+            packages=sirepo.feature_config.cfg().package_path,
+    ):
+        yield pkio.py_path(f)
+
+
 def static(*paths, relpath=False, check_input=False):
     """Absolute or relative path to resource static file
 
@@ -59,12 +76,11 @@ def static_paths_for_type(file_type):
     Returns:
         [py.path]: paths that match pattern
     """
-    for f in pkresource.glob_files(
-            os.path.join('static', file_type, f'*.{file_type}'),
-            packages=sirepo.feature_config.cfg().package_path,
-    ):
-        yield pkio.py_path(f)
+    return glob_dir(
+        os.path.join('static', file_type),
+        f'*.{file_type}',
+    )
 
 
-def template(common_filename_or_sim_type):
-    return file_path('template', common_filename_or_sim_type)
+def template(*paths):
+    return file_path(os.path.join('template', *paths))
