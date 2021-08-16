@@ -106,7 +106,7 @@ def _init():
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
         package_path=(
-            tuple(),
+            tuple(['sirepo']),
             tuple,
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
