@@ -253,7 +253,7 @@ def random_base62(length=32):
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
 
 
-def safe_join(*paths):
+def safe_path(*paths):
     return werkzeug.utils.safe_join(*paths)
 
 
