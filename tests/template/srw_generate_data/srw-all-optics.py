@@ -13,10 +13,11 @@ import srwlpy
 import math
 import srwl_uti_smp
 
-def set_optics(v=None):
+def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
-    names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint', 'Watchpoint']
+    if not names:
+        names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint', 'Watchpoint']
     for el_name in names:
         if el_name == 'Lens':
             # Lens: lens 20.0m
@@ -490,7 +491,9 @@ def set_optics(v=None):
         elif el_name == 'Watchpoint':
             # Watchpoint: watch 34.0m
             pass
-    pp.append(v.op_fin_pp)
+    if want_final_propagation:
+        pp.append(v.op_fin_pp)
+
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -1086,7 +1089,10 @@ varParam = [
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    op = set_optics(v)
+    names = ['Lens','Lens_CRL','CRL','CRL_Zone_Plate','Zone_Plate','Zone_Plate_Fiber','Fiber','Fiber_Aperture','Aperture','Aperture_Obstacle','Obstacle','Obstacle_Mask','Mask','Mask_Sample','Sample','Sample_Planar','Planar','Planar_Circular_Cylinder','Circular_Cylinder','Circular_Cylinder_Circular_Cylinder2','Circular_Cylinder2','Circular_Cylinder2_Elliptical_Cylinder','Elliptical_Cylinder','Elliptical_Cylinder_Elliptical_Cylinder2','Elliptical_Cylinder2','Elliptical_Cylinder2_Toroid','Toroid','Toroid_Toroid2','Toroid2','Toroid2_Crystal','Crystal','Crystal_Crystal2','Crystal2','Crystal2_Grating','Grating','Grating_Watchpoint','Watchpoint']
+    op = set_optics(v, names, True)
+    v.ws = True
+    v.ws_pl = 'xy'
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True
@@ -1097,8 +1103,6 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    v.ws = True
-    v.ws_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
