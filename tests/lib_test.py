@@ -31,6 +31,7 @@ def _code(files=None):
         )
         d2 = d.copy()
         d2.pkdel('version')
+        d2.models.simulation.pkdel('lastModified')
         for k in [k for k in d2.keys() if '_SimData__' in k]:
             d2.pkdel(k)
         pkunit.file_eq(s.join('out.json'), d2)

@@ -306,7 +306,7 @@ def write_dict_to_h5(d, file_path, h5_path=None):
 
 def enum_text(schema, name, value):
     for e in schema['enum'][name]:
-        if e[0] == value:
+        if e[0] == str(value):
             return e[1]
     assert False, 'unknown {} enum value: {}'.format(name, value)
 
@@ -558,7 +558,7 @@ def sim_frame(frame_id, op):
         pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
         raise sirepo.util.convert_exception(e, display_text='Report not generated')
     r = sirepo.http_reply.gen_json(x)
-    if 'error' not in x and s.want_browser_frame_cache():
+    if 'error' not in x and s.want_browser_frame_cache(s.frameReport):
         r.headers['Cache-Control'] = 'private, max-age=31536000'
     else:
         sirepo.http_reply.headers_for_no_cache(r)

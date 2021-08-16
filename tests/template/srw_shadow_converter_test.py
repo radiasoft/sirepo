@@ -20,6 +20,7 @@ def test_convert_srw_to_shadow():
             srw = _read_json_from_data_dir(f'{name}-srw.json')
             actual = SRWShadowConverter().srw_to_shadow(srw.models)
             del actual['version']
+            actual.models.simulation.pkdel('lastModified')
             pkjson.dump_pretty(actual, f'{name}-shadow.json')
             expect = _read_json_from_data_dir(f'{name}-shadow.json')
             pkeq(expect, actual)

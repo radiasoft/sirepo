@@ -13,10 +13,11 @@ import srwlpy
 import math
 import srwl_uti_smp
 
-def set_optics(v=None):
+def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
-    names = ['S1', 'S1_HCM', 'HCM', 'HCM_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_HFM', 'HFM', 'After_HFM', 'After_HFM_CRL1', 'CRL1', 'CRL2', 'CRL2_Before_SSA', 'Before_SSA', 'SSA', 'SSA_Before_FFO', 'Before_FFO', 'AFFO', 'FFO', 'FFO_At_Sample', 'At_Sample']
+    if not names:
+        names = ['S1', 'S1_HCM', 'HCM', 'HCM_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_HFM', 'HFM', 'After_HFM', 'After_HFM_CRL1', 'CRL1', 'CRL2', 'CRL2_Before_SSA', 'Before_SSA', 'SSA', 'SSA_Before_FFO', 'Before_FFO', 'AFFO', 'FFO', 'FFO_At_Sample', 'At_Sample']
     for el_name in names:
         if el_name == 'S1':
             # S1: aperture 26.62m
@@ -226,7 +227,9 @@ def set_optics(v=None):
         elif el_name == 'At_Sample':
             # At_Sample: watch 109.018147m
             pass
-    pp.append(v.op_fin_pp)
+    if want_final_propagation:
+        pp.append(v.op_fin_pp)
+
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -629,7 +632,10 @@ def setup_magnetic_measurement_files(filename, v):
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files("magn_meas_u20_hxn.zip", v)
-    op = set_optics(v)
+    names = ['S1','S1_HCM','HCM','HCM_DCM_C1','DCM_C1','DCM_C2','DCM_C2_HFM','HFM','After_HFM','After_HFM_CRL1','CRL1','CRL2','CRL2_Before_SSA','Before_SSA','SSA','SSA_Before_FFO','Before_FFO','AFFO','FFO','FFO_At_Sample','At_Sample']
+    op = set_optics(v, names, True)
+    v.ws = True
+    v.ws_pl = 'xy'
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True
@@ -640,8 +646,6 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    v.ws = True
-    v.ws_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
