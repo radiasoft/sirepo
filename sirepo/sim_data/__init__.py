@@ -642,7 +642,8 @@ class SimDataBase(object):
 
         res = PKDict(
             ((f.basename, f) for f in \
-                sirepo.resource.glob_dir(cls._LIB_REOUSRCE_DIR, pat))
+                sirepo.resource.template_lib_paths_for_type(cls.sim_type(), pat)
+            )
         )
         if want_user_lib_dir:
             # lib_dir overwrites resource_dir

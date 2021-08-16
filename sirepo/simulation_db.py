@@ -129,7 +129,7 @@ def default_data(sim_type):
 
     return open_json_file(
         sim_type,
-        path=sirepo.sim_data.get_class(sim_type).resource_path('default-data').new(ext=JSON_SUFFIX),
+        path=sirepo.sim_data.get_class(sim_type).resource_path(f'default-data{JSON_SUFFIX}')
     )
 
 

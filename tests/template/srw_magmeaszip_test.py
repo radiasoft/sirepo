@@ -15,15 +15,15 @@ def test_srw_magnetic_measurements_zip_file():
     from sirepo.template import srw
     import sirepo.sim_data
 
-    d = sirepo.sim_data.get_class('srw').lib_file_resource_dir()
-    m = srw.MagnMeasZip(str(d.join('magnetic_measurements.zip')))
+    s = sirepo.sim_data.get_class('srw')
+    m = srw.MagnMeasZip(str(s.lib_file_resource_path('magnetic_measurements.zip')))
     assert m.index_dir == ''
     assert m.index_file == 'ivu21_srx_sum.txt'
     assert m.find_closest_gap('6.72') == 2.500648
     assert m.find_closest_gap('8.4') == 2.500648
     assert 'ivu21_srx_g6_2c.dat' in m.dat_files
 
-    m = srw.MagnMeasZip(str(d.join('magn_meas_fmx.zip')))
+    m = srw.MagnMeasZip(str(s.lib_file_resource_path('magn_meas_fmx.zip')))
     assert m.index_dir == 'magn_meas'
     assert m.index_file == 'ivu21_fmx_sum.txt'
     assert m.find_closest_gap('6.7') == 2.500384
@@ -52,7 +52,7 @@ def test_srw_validate_safe_zip():
     with pkunit.pkexcept(AssertionError):
         srw._validate_safe_zip(zip_dir + '/bad_zip_bad_types.zip', zip_dir, srw.validate_magnet_data_file)
 
-    d = sirepo.sim_data.get_class('srw').lib_file_resource_dir()
+    s = sirepo.sim_data.get_class('srw')
     # Finally, make sure the included measurement files are OK
     # We're not really extracting them so just send the test directory as target
     for f in [
@@ -63,4 +63,4 @@ def test_srw_validate_safe_zip():
         'magn_meas_u20_hxn.zip',
         'magn_meas_chx.zip'
     ]:
-        srw._validate_safe_zip(str(d.join(f)), zip_dir, srw.validate_magnet_data_file)
+        srw._validate_safe_zip(str(s.lib_file_resource_path(f)), zip_dir, srw.validate_magnet_data_file)
