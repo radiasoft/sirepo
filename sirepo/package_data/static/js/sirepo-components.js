@@ -1438,24 +1438,6 @@ SIREPO.app.directive('modelField', function(appState) {
     };
 });
 
-//TODO(pjm): remove this, old browsers won't support new javascript
-SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interval) {
-    return {
-        restrict: 'A',
-        link: function() {
-            //TODO(pjm): remove timeout hack, needed for MSIE and Edge
-            $interval(
-                function () {
-                    if (! new Detector().detect('Glyphicons Halflings')) {
-                        errorService.alertText('Font download has been disabled for this browser. Application icons will not be displayed correctly as a result. Either enable font download on the Internet Options / Security Settings menu or switch to a different browser, such as Google Chrome or Microsoft Edge.');
-                    }
-                },
-                5000,
-                1);
-        },
-    };
-});
-
 SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
     return {
         restrict: 'A',

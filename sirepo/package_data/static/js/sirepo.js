@@ -422,14 +422,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                         }
                         else {
                             lastAutoSaveData = self.clone(resp);
-                            savedModelValues.simulation.simulationSerial
-                                = lastAutoSaveData.models.simulation.simulationSerial;
-                            self.models.simulation.simulationSerial
-                                = lastAutoSaveData.models.simulation.simulationSerial;
-                            savedModelValues.simulation.name
-                                = lastAutoSaveData.models.simulation.name;
-                            self.models.simulation.name
-                                = lastAutoSaveData.models.simulation.name;
+                            ['simulationSerial', 'name', 'lastModified'].forEach(f => {
+                                savedModelValues.simulation[f] =
+                                    self.models.simulation[f] = lastAutoSaveData.models.simulation[f];
+                            });
                         }
                         if ($.isFunction(callback)) {
                             callback(resp);
@@ -510,13 +506,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             if (keys.length != Object.keys(v2).length) {
                 return false;
             }
-            var isEqual = true;
-            keys.forEach(function (k) {
+            return ! keys.some(k => {
                 if (! self.deepEquals(v1[k], v2[k])) {
-                    isEqual = false;
+                    return true;
                 }
             });
-            return isEqual;
         }
         return v1 == v2;
     };
@@ -1196,7 +1190,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         if (! appState.isLoaded()) {
             return;
         }
-        function onError(modelName) {
+        function onError() {
+            panelState.setLoading(modelName, false);
             panelState.setError(modelName, 'Report not generated');
         }
         var isHidden = panelState.isHidden(modelName);
@@ -1205,14 +1200,16 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
         var requestFunction = function() {
+            panelState.setLoading(modelName, true);
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
-                        onError(modelName);
+                        onError();
                         return;
                     }
                     var endTime = new Date().getTime();
@@ -1231,11 +1228,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     }
                 },
                 null,
-                // error handling
-                //TODO(pjm): need error wrapping on server similar to runStatus route
-                function(data) {
-                    onError(modelName);
-                }
+                onError
             );
         };
         if (isHidden) {
@@ -1550,7 +1543,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.fileNameFromText = function(text, extension) {
-        return text.replace(/(\_|\W|\s)+/g, '-') + '.' + extension;
+        return text.replace(/(\_|\W|\s)+/g, '-').replace(/-+$/, '') + '.' + extension;
     };
 
     self.findParentAttribute = function(scope, name) {
@@ -1581,7 +1574,9 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 'Simulating';
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
-        return 'Waiting';
+        return appState.isAnimationModelName(name)
+            ? 'Requesting Data'
+            : 'Waiting';
     };
 
     self.isActiveField = function(model, field) {
@@ -1680,6 +1675,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $('.' + utilities.modelFieldID(model, field)  + ' .control-label label')
             .text(text);
     };
+
+    self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
@@ -2978,11 +2975,9 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         });
     };
     self.getUserFolderPaths = function() {
-        return self.getUserFolders().map(function (item) {
-            return self.pathName(item);
-        }).sort(function(a, b) {
-            return a.localeCompare(b);
-        });
+        return self.getUserFolders()
+            .map(item => self.pathName(item))
+            .sort((a, b) => a.localeCompare(b));
     };
     self.defaultCreationFolder = function() {
         var cf = self.getUserFolderPaths().indexOf(self.getActiveFolderPath()) >= 0 ? self.getActiveFolder() : self.rootFolder();
@@ -3008,6 +3003,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 let sim = data[i].simulation;
                 item.name = sim.name;
                 item.notes = sim.notes;
+                item.lastModified = sim.lastModified;
             }
             else {
                 self.addToTree(data[i].simulation);
@@ -3046,8 +3042,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                     }
                 }
                 if (folder) {
-                    if (item.last_modified > folder.lastModified) {
-                        folder.lastModified = item.last_modified;
+                    if (! folder.lastModified || item.lastModified > folder.lastModified) {
+                        folder.lastModified = item.lastModified;
                     }
                 }
                 else {
@@ -3056,7 +3052,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                         parent: currentFolder,
                         isFolder: true,
                         children: [],
-                        lastModified: item.last_modified,
+                        lastModified: item.lastModified,
                     };
                     currentFolder.children.push(folder);
                 }
@@ -3067,7 +3063,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 parent: currentFolder,
                 name: item.name,
                 simulationId: item.simulationId,
-                lastModified: item.last_modified,
+                lastModified: item.lastModified,
                 isExample: item.isExample,
                 notes: item.notes,
             };
@@ -3518,9 +3514,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                     return;
                 }
                 self.isWaitingForList = false;
-                data.sort(function(a, b) {
-                    return a.last_modified.localeCompare(b.last_modified);
-                });
                 fileManager.updateTreeFromFileList(data);
                 checkURLForFolder();
             });

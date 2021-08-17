@@ -64,9 +64,10 @@ SIREPO.app.config(function() {
     ].join('');
 
     SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+    SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
 });
 
-SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope, $route) {
+SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope) {
     var self = {};
     self.showCalcCoherence = false;
 
@@ -147,25 +148,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     function isUserDefinedMaterial(v) {
         return v === 'User-defined';
     }
-
-    self.changeFluxReportName = function(modelField) {
-        var fieldInfo = appState.parseModelField(modelField);
-        var modelName = fieldInfo[0];
-        var fluxType = appState.enumDescription('Flux', appState.models[modelName].fluxType);
-        var title = self.getReportTitle(modelName);
-        var repName;
-        if (fluxType !== 'Flux') {
-            repName = title.replace(
-                'Flux',
-                fluxType + ' for Finite Emittance Electron Beam');
-        }
-        else {
-            repName = title;
-        }
-        //TODO(pjm): replace jquery
-        var tag = $($("div[data-model-name='" + modelName + "']").find('.sr-panel-heading')[0]);
-        tag.text(repName);
-    };
 
     self.addSummaryDataListener = function(scope) {
         scope.$on('summaryData', function(e, modelKey, info) {
@@ -276,18 +258,15 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         if (analysisModel === 'coherenceYAnimation' || analysisModel === 'coherenceXAnimation') {
             return 'multiElectronAnimation';
         }
+        if (analysisModel.indexOf('beamlineAnimation') >= 0) {
+            return 'beamlineAnimation';
+        }
         return analysisModel;
     };
 
     self.computeOnServer = function(method, args, callback) {
         args.method = method;
         requestSender.getApplicationData(args, callback);
-    };
-
-    self.disableReloadOnSearch = function() {
-        if ($route.current && $route.current.$$route) {
-            $route.current.$$route.reloadOnSearch = false;
-        }
     };
 
     self.formatFields = function(model, data, fields) {
@@ -401,11 +380,22 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return null;
     };
 
+    self.getFluxTitle = function(modelName) {
+        let res = beamlineService.getReportTitle(modelName);
+        if (appState.models[modelName].fluxType == '2') {
+            return res.replace(
+                'Spectral Flux',
+                'Spectral Flux per Unit Surface for Finite Emittance Electron Beam');
+        }
+        return res;
+    };
+
     self.getReportTitle = function(modelName, itemId) {
         if (! appState.isLoaded()) {
             return '';
         }
         if (modelName == 'multiElectronAnimation') {
+            //TODO(pjm): why not cache it on the multiElectronAnimation model?
             // multiElectronAnimation title is cached on the simulation model
             var title = appState.models.simulation.multiElectronAnimationTitle;
             if (title) {
@@ -549,13 +539,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         });
     };
 
-    $rootScope.$on('$locationChangeSuccess', function (event) {
-        // reset reloadOnSearch so that back/next browser buttons will trigger a page load
-        if ($route.current && $route.current.$$route) {
-            $route.current.$$route.reloadOnSearch = true;
-        }
-    });
-
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if (search) {
@@ -585,10 +568,9 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];
-    self.isBeamline3dEnabled = SIREPO.APP_SCHEMA.feature_config.beamline3d;
 
     function copyIntensityReportCharacteristics() {
-        var intensityReport = appState.models.initialIntensityReport;
+        var intensityReport = appState.models.beamlineAnimation0;
         if (intensityReport.copyCharacteristic == '0') {
             return;
         }
@@ -742,13 +724,8 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
 
     self.setActiveTab = function(tab) {
         if (tab != activeTab) {
-            srwService.disableReloadOnSearch();
             $location.search('tab', tab);
             activeTab = tab;
-            if (activeTab != 'single') {
-                // tab changed, cancel single-electron queue items
-                simulationQueue.cancelAllItems();
-            }
         }
     };
 
@@ -757,6 +734,8 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
             setWatchpointForPartiallyCoherentReport(item.id);
         }
     };
+
+    self.showBeamline3dTab = () => appState.models.beamline.length > 0;
 
     self.showMultiTab = function() {
         if (! appState.isLoaded()) {
@@ -791,8 +770,30 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', syncDistanceFromSourceToFirstElementPosition);
         $scope.$on('multiElectronAnimation.changed', updateMultiElectronWatchpoint);
-        $scope.$on('initialIntensityReport.changed', copyIntensityReportCharacteristics);
+        $scope.$on('beamlineAnimation0.changed', copyIntensityReportCharacteristics);
         srwService.addSummaryDataListener($scope);
+        var search = $location.search();
+        if (search) {
+            if (search.tab) {
+                self.setActiveTab(search.tab);
+            }
+        }
+
+        // special code to update initialIntensityReport and watchpointReports
+        // from beamlineAnimation models so sirepo_bluesky can continue to use those models
+        $scope.$on('modelChanged', (e, name) => {
+            let targetName;
+            if (name == 'beamlineAnimation0') {
+                targetName = 'initialIntensityReport';
+            }
+            else if (name.indexOf('beamlineAnimation') >= 0) {
+                targetName = name.replace('beamlineAnimation', 'watchpointReport');
+            }
+            if (targetName) {
+                appState.models[targetName] = appState.clone(appState.models[name]);
+                appState.saveQuietly(targetName);
+            }
+        });
     });
 
     $scope.$on('$destroy', function() {
@@ -802,22 +803,6 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
             return;
         }
         $location.search('tab', null);
-    });
-
-    $scope.$on('$routeChangeSuccess', function() {
-        var search = $location.search();
-        if (search) {
-            if (search.tab) {
-                self.setActiveTab(search.tab);
-            }
-            // old tab name in bookmarks
-            else if (search.coherence) {
-                if (search.coherence == 'partial') {
-                    self.setActiveTab('multi');
-                }
-                $location.search('coherence', null);
-            }
-        }
     });
 });
 
@@ -849,8 +834,6 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     });
 
     appState.whenModelsLoaded($scope, function() {
-        srwService.changeFluxReportName('fluxAnimation.fluxType');
-        srwService.changeFluxReportName('fluxReport.fluxType');
         srwService.addSummaryDataListener($scope);
     });
 });
@@ -954,9 +937,10 @@ var srwIntensityLimitLogic = function(panelState, srwService, $scope) {
     function updateSelected() {
         updateIntensityLimit();
         updatePlotRange();
-        panelState.showField($scope.modelName, 'fieldUnits', srwService.isGaussianBeam());
-
         var schemaModel = SIREPO.APP_SCHEMA.model[$scope.modelName];
+        if (schemaModel.fieldUnits) {
+            panelState.showField($scope.modelName, 'fieldUnits', srwService.isGaussianBeam());
+        }
         if (schemaModel.characteristic) {
             var isLimitCharacteristic = srwService.isApplicationMode('wavefront') || srwService.isGaussianBeam();
             //TODO(pjm): should not update schema
@@ -1242,15 +1226,6 @@ SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService,
     }
 
     $scope.whenSelected = updateFluxAnimation;
-    $scope.watchFields = [
-        ['fluxAnimation.fluxType', 'fluxAnimation.distanceFromSource'], srwService.changeFluxReportName,
-    ];
-});
-
-SIREPO.viewLogic('fluxReportView', function(srwService, $scope) {
-    $scope.watchFields = [
-        ['fluxReport.fluxType', 'fluxReport.distanceFromSource'], srwService.changeFluxReportName,
-    ];
 });
 
 SIREPO.viewLogic('gaussianBeamView', function(appState, panelState, srwService, $scope) {
@@ -1399,8 +1374,11 @@ SIREPO.beamlineItemLogic('sampleView', function(panelState, srwService, $scope) 
     ];
 });
 
-SIREPO.viewLogic('simulationGridView', function($scope, srwService) {
-    $scope.whenSelected = srwService.updateSimulationGridFields;
+SIREPO.viewLogic('simulationGridView', function($scope, panelState, srwService) {
+    $scope.whenSelected = () => {
+        srwService.updateSimulationGridFields();
+        panelState.showField('simulation', 'fieldUnits', srwService.isGaussianBeam());
+    };
     $scope.watchFields = [
         ['simulation.samplingMethod'], srwService.updateSimulationGridFields,
     ];
@@ -2479,7 +2457,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">',
-                  '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>',
+                  '<button data-ng-show="! isLoading()" class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>',
                 '</div>',
               '</div>',
               '<div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">',
@@ -2563,6 +2541,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return $scope.model === 'fluxAnimation'
                     && appState.isLoaded() && appState.models.fluxAnimation.method == -1;
             };
+
+            $scope.isLoading = () => panelState.isLoading($scope.simState.model);
 
             $scope.startButtonLabel = function() {
                 return stringsService.startButtonLabel();
@@ -3202,6 +3182,81 @@ SIREPO.app.directive('numberList', function(appState) {
                 }
                 return $scope.values;
             };
+        },
+    };
+});
+
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+          <div class="col-sm-3">
+            <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
+            <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
+          </div>
+          <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
+            <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
+            <div data-ng-show="simState.isStateRunning()">
+              <div class="progress">
+                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-bottom: 1em" class="clearfix"></div>
+          <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
+            <div data-watchpoint-report="" data-item-id="report.id"></div>
+          </div>
+        `,
+        controller: function($scope) {
+            $scope.reports = [];
+            $scope.simScope = $scope;
+            $scope.simComputeModel = 'beamlineAnimation';
+            $scope.$on('framesCleared', () => {
+                $scope.reports = [];
+            });
+
+            $scope.start = function() {
+                appState.models.simulation.framesCleared = false;
+                appState.saveChanges(
+                    [$scope.simState.model, 'simulation'],
+                    $scope.simState.runSimulation);
+            };
+
+            $scope.simHandleStatus = (data) => {
+                if (appState.models.simulation.framesCleared) {
+                    return;
+                }
+                if (! data.outputInfo) {
+                    return;
+                }
+                for (let i = 0; i < data.frameCount; i++) {
+                    if ($scope.reports.length != i) {
+                        continue;
+                    }
+                    let info = data.outputInfo[i];
+                    $scope.reports.push({
+                        id: info.id,
+                        modelAccess: {
+                            modelKey: info.modelKey,
+                        },
+                    });
+                    frameCache.setFrameCount(1, info.modelKey);
+                }
+                frameCache.setFrameCount(data.frameCount || 0);
+            };
+
+            $scope.simState = persistentSimulation.initSimulationState($scope);
+
+            $scope.$on('modelChanged', (e, name) => {
+                if (! appState.isReportModelName(name)) {
+                    if (frameCache.getFrameCount() > 0) {
+                        frameCache.setFrameCount(0);
+                        appState.models.simulation.framesCleared = true;
+                        appState.saveQuietly('simulation');
+                    }
+                }
+            });
         },
     };
 });

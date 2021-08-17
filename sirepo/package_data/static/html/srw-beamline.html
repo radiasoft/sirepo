@@ -13,13 +13,13 @@
       <ul class="nav nav-tabs">
         <li role="presentation" data-ng-class="{active: beamline.isActiveTab('single')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('single')"><strong>Coherent Results</strong></a></li>
         <li data-ng-if="beamline.showMultiTab()" role="presentation" data-ng-class="{active: beamline.isActiveTab('multi')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('multi')"><strong><span class="glyphicon glyphicon-option-vertical"></span> Partially Coherent Results</strong></a></li>
-        <li role="presentation" data-ng-if="beamline.isBeamline3dEnabled" data-ng-class="{active: beamline.isActiveTab('beamline3d')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('beamline3d')"><strong>3D Beamline</strong></a></li>
+        <li role="presentation" data-ng-if="beamline.showBeamline3dTab()" data-ng-class="{active: beamline.isActiveTab('beamline3d')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('beamline3d')"><strong>3D Beamline</strong></a></li>
       </ul>
       <br />
     </div>
   </div>
   <div data-ng-if="beamline.isActiveTab('single')" class="row">
-    <div data-beamline-reports=""></div>
+    <div data-beamline-animation=""></div>
   </div>
   <div data-ng-if="beamline.isActiveTab('multi')" class="row">
     <div data-column-for-aspect-ratio="multiElectronAnimation">
@@ -43,6 +43,7 @@
 <!-- modal dialogs -->
 <br>
 
+<div data-watchpoint-modal-editor="" data-item-id="0"></div>
 <div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>
 
 <div data-propagation-parameters-modal="" data-propagations="beamline.propagations" data-post-propagation="beamline.postPropagation"></div>

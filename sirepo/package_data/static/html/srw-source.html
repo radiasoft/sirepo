@@ -27,10 +27,10 @@
       <div data-report-panel="2d" data-request-priority="1" data-model-name="intensityReport" data-panel-title="{{ source.srwService.getReportTitle('intensityReport') }}"></div>
     </div>
     <div data-ng-if="source.srwService.isIdealizedUndulator()" class="sr-panel-item">
-      <div data-report-panel="2d" data-request-priority="2" data-model-name="fluxReport" data-panel-title="{{ source.srwService.getReportTitle('fluxReport') }}"></div>
+      <div data-report-panel="2d" data-request-priority="2" data-model-name="fluxReport" data-panel-title="{{ source.srwService.getFluxTitle('fluxReport') }}"></div>
     </div>
     <div data-ng-if="source.srwService.isTabulatedUndulator()" class="sr-panel-item">
-      <div data-report-panel="2d" data-request-priority="2" data-model-name="fluxAnimation" data-panel-title="{{ source.srwService.getReportTitle('fluxAnimation') }}"><div data-simulation-status-panel="fluxAnimation"></div></div>
+      <div data-report-panel="2d" data-request-priority="2" data-model-name="fluxAnimation" data-panel-title="{{ source.srwService.getFluxTitle('fluxAnimation') }}"><div data-simulation-status-panel="fluxAnimation"></div></div>
     </div>
     <div data-ng-if="source.srwService.isElectronBeam()" class="sr-panel-item">
       <div data-report-panel="3d" data-request-priority="3" data-model-name="powerDensityReport" data-panel-title="{{ source.srwService.getReportTitle('powerDensityReport') }}"></div>
