@@ -344,20 +344,10 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
     return tx
 
 
-def _build_cuboid(
-        center=None, size=None, segments=None, material=None, matFile=None,
-        magnetization=None, rem_mag=None, name=None, color=None
-    ):
+def _build_cuboid(**kwargs):
     return _update_cuboid(
-        _build_geom_obj('box', obj_name=name),
-        center if center is not None else [0.0, 0.0, 0.0],
-        size if size is not None else [1.0, 1.0, 1.0],
-        segments if segments is not None else [1, 1, 1],
-        material,
-        matFile,
-        magnetization if magnetization is not None else [0.0, 0.0, 0.0],
-        rem_mag or 0.0,
-        color
+        _build_geom_obj('box', obj_name=kwargs.get('name')),
+        **kwargs
     )
 
 
@@ -1088,16 +1078,13 @@ def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _update_cuboid(b, center, size, segments, material, mat_file, magnetization, rem_mag, color):
-    b.center = sirepo.util.to_comma_delimited_string(center)
-    b.color = color
-    b.magnetization = sirepo.util.to_comma_delimited_string(magnetization)
-    b.remanentMag = rem_mag
-    b.material = material
-    b.materialFile = mat_file
-    b.size = sirepo.util.to_comma_delimited_string(size)
-    b.division = sirepo.util.to_comma_delimited_string(segments)
-    return b
+def _update_cuboid(cuboid, **kwargs):
+    return _update_geom_obj(cuboid, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
+
+
+def _update_ell(ell, **kwargs):
+    e = _update_geom_obj(ell, **kwargs)
+    return e
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
@@ -1155,6 +1142,7 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             material=und.poleMaterial,
             mat_file=und.poleMaterialFile,
             mag=pole_mag,
+            obj_type=und.poleObjType,
             rem_mag=und.poleRemanentMag,
             segs=pole_segs,
             transverse_ctr=pole_transverse_ctr
@@ -1166,6 +1154,7 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             material=und.magnetMaterial,
             mat_file=und.magnetMaterialFile,
             mag=mag_mag,
+            obj_type=und.magnetObjType,
             rem_mag=und.magnetRemanentMag,
             segs=mag_segs,
             transverse_ctr=magnet_transverse_ctr
@@ -1175,27 +1164,27 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     pos = pole_dim_half.length / 2
     half_pole = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Half Pole'),
-        pole_transverse_ctr + pos,
-        pole_dim_half.width + pole_dim.height + pole_dim_half.length,
-        pole_segs,
-        und.poleMaterial,
-        und.poleMaterialFile,
-        pole_mag,
-        und.poleRemanentMag,
-        und.poleColor
+        center=pole_transverse_ctr + pos,
+        size=pole_dim_half.width + pole_dim.height + pole_dim_half.length,
+        segments=pole_segs,
+        magnetization=pole_mag,
+        material=obj_props.pole.material,
+        materialFile=obj_props.pole.mat_file,
+        remanentMag=obj_props.pole.rem_mag,
+        color=obj_props.pole.color
     )
 
     pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
     magnet_block = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Magnet Block'),
-        magnet_transverse_ctr + pos,
-        magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
-        mag_segs,
-        und.magnetMaterial,
-        und.magnetMaterialFile,
-        mag_mag,
-        und.magnetRemanentMag,
-        und.magnetColor
+        center=magnet_transverse_ctr + pos,
+        size=magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
+        segments=mag_segs,
+        magnetization=mag_mag,
+        material=obj_props.magnet.material,
+        materialFile=obj_props.magnet.mat_file,
+        remanentMag=obj_props.magnet.rem_mag,
+        color=obj_props.magnet.color
     )
     und.magnetBaseObjectId = magnet_block.id
     obj_props.magnet.bevels = magnet_block.get('bevels', [])
@@ -1203,14 +1192,14 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     pos += (pole_dim_half.length + magnet_dim_half.length)
     pole = _update_cuboid(
         _find_obj_by_name(geom.objects, 'Pole'),
-        pole_transverse_ctr + pos,
-        pole_dim_half.width + pole_dim.height + pole_dim.length,
-        pole_segs,
-        und.poleMaterial,
-        und.poleMaterialFile,
-        pole_mag,
-        und.poleRemanentMag,
-        und.poleColor
+        center=pole_transverse_ctr + pos,
+        size=pole_dim_half.width + pole_dim.height + pole_dim.length,
+        segments=pole_segs,
+        magnetization=pole_mag,
+        material=obj_props.pole.material,
+        materialFile=obj_props.pole.mat_file,
+        remanentMag=obj_props.pole.rem_mag,
+        color=obj_props.pole.color
     )
     und.poleBaseObjectId = pole.id
     obj_props.pole.bevels = pole.get('bevels', [])
@@ -1241,15 +1230,15 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         pos += (t.airGap + l / 2) * beam_dir
         props = obj_props[t.type]
         o = _build_cuboid(
-            props.transverse_ctr + pos,
-            props.dim_half.width + props.dim.height + l,
-            props.segs,
-            props.material,
-            props.mat_file,
-            _ZERO if t.type == 'pole' else (-1) ** (und.numPeriods + num_term_mags) * props.mag,
-            props.rem_mag,
-            _undulator_termination_name(i, t.type),
-            props.color
+            center=props.transverse_ctr + pos,
+            size=props.dim_half.width + props.dim.height + l,
+            segments=props.segs,
+            material=props.material,
+            materialFile=props.mat_file,
+            magnetization=_ZERO if t.type == 'pole' else (-1) ** (und.numPeriods + num_term_mags) * props.mag,
+            remanentMag=props.rem_mag,
+            name=_undulator_termination_name(i, t.type),
+            color=props.color
         )
         o.bevels = props.bevels
         terms.append(o)
@@ -1271,6 +1260,25 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         _build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
     ]
     return oct_grp
+
+
+def _update_geom_obj(o, delim_fields=None, **kwargs):
+    d = PKDict(center=[0.0, 0.0, 0.0], size=[1.0, 1.0, 1.0], magnetization=[0.0, 0.0, 0.0])
+    if delim_fields is not None:
+        d.update(delim_fields)
+    for k in d:
+        v = kwargs.get(k)
+        o[k] = _delim_string(val=v, default_val=d[k])
+        # remove the key from kwargs so it doesn't conflict with the update
+        if v is not None:
+            del kwargs[k]
+    o.update(kwargs)
+    return o
+
+
+def _delim_string(val=None, default_val=None):
+    d = default_val if default_val is not None else []
+    return sirepo.util.to_comma_delimited_string(val if val is not None else d)
 
 
 def _update_group(g, members, do_replace=False):

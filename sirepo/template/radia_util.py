@@ -202,9 +202,6 @@ def dump_bin(g_id):
 
 def extrude(center, size, beam_dir, gap_dir, trans_dir, beam_axis, pts, material, magnetization, rem_mag, h_m_curve=None):
     b = numpy.array(beam_dir)
-    g = numpy.array(gap_dir)
-    x = numpy.array(trans_dir)
-    p = [[numpy.sum(x * p[0]), numpy.sum(g * p[1])] for p in pts]
     g_id = radia.ObjMltExtTri(
         numpy.sum(b * center),
         numpy.sum(b * size),

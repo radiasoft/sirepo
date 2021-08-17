@@ -93,6 +93,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         for o in dm.geometryReport.objects:
             if not o.get('bevels'):
                 o.bevels = []
+            d = o.get('division')
+            if d is not None:
+                o.segments = d
+                del o['division']
         sch = cls.schema()
         for m in [m for m in dm if m in sch.model]:
             s_m = sch.model[m]

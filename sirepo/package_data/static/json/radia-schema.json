@@ -431,7 +431,7 @@
             "_super": ["_", "model", "radiaObject"],
             "bevels": ["Bevels", "BevelTable", []],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
-            "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
+            "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "id": ["_", "UUID", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
@@ -744,7 +744,7 @@
                     "remanentMag",
                     "material",
                     "materialFile",
-                    "division",
+                    "segments",
                     "center",
                     "size"
             ]],

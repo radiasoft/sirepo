@@ -152,7 +152,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return {
             width: self.axes.indexOf(sim.widthAxis),
             height: self.axes.indexOf(sim.heightAxis),
-            thickness: self.axes.indexOf(sim.beamAxis)
+            depth: self.axes.indexOf(sim.beamAxis)
         };
     };
 
@@ -3818,7 +3818,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         const c = [ctr[ai.width], ctr[ai.height]];
         const s = [size[ai.width], size[ai.height]];
         // Radia wants the points in the plane in a specific order
-        const doReverse = ai.width !== (ai.thickness + 1) % 3
+        const doReverse = ai.width !== (ai.depth + 1) % 3
 
         // start with arm top, stem left - then reflect across centroid axes as needed
         let ax1 = c[0] - s[0] / 2;
