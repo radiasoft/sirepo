@@ -65,11 +65,11 @@
                 ],
                 "stroke": "black"
             },
-            "gamma": {
+            "ell": {
                 "doClose": true,
                 "fill": "#97B6D5",
                 "points": [
-                    [0, 0], [24, 0], [24, 12], [12, 12], [12, 24], [0, 24]
+                    [0, 0], [8, 0], [8, 16], [24, 16], [24, 24], [0, 24]
                 ],
                 "stroke": "black"
             },
@@ -282,7 +282,7 @@
         "ObjectType": [
             ["box", "Cuboid"],
             ["cee", "Extruded Cee"],
-            ["gamma", "Extruded Gamma"],
+            ["ell", "Extruded L-Bend"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
         ],
@@ -411,9 +411,9 @@
             "fileName": ["File Name", "String", ""],
             "type": ["_", "PathType", "file"]
         },
-        "gamma": {
+        "ell": {
             "_super": ["_", "model", "stemmed"],
-            "type": ["_", "ObjectType", "gamma"]
+            "type": ["_", "ObjectType", "ell"]
         },
         "geometryReport": {
             "doGenerate": ["_", "Boolean", "1"],
@@ -439,7 +439,7 @@
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
-            "type": ["Type", "ObjectType", "box"],
+            "type": ["Shape Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
         "geomUndulatorGroup": {
@@ -584,7 +584,7 @@
         "stemmed": {
             "_super": ["_", "model", "extrudedPoly"],
             "armHeight": ["Arm Height [mm]", "Float", 1.0],
-            "armPosition": ["Arm Position", "ArmPosition", "0", "Position of the arm"],
+            "armPosition": ["Arm Position", "ArmPosition", "1", "Position of the arm"],
             "stemWidth": ["Stem Width [mm]", "Float", 1.0],
             "stemPosition": ["Stem Position", "StemPosition", "0", "Position of the stem"]
         },

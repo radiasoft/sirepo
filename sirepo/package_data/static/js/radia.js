@@ -46,7 +46,7 @@ SIREPO.app.config(function() {
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
         '<div data-ng-switch-when="ShapeButton" class="col-sm-7">',
-            '<div data-shape-button="" data-model-name="modelName" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName"></div>',
+            '<div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>',
         '</div>',
         '<div data-ng-switch-when="TerminationTable" class="col-sm-12">',
           '<div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
@@ -147,6 +147,15 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         }
     };
 
+    self.getAxisIndices = function() {
+        const sim = appState.models.simulation;
+        return {
+            width: self.axes.indexOf(sim.widthAxis),
+            height: self.axes.indexOf(sim.heightAxis),
+            thickness: self.axes.indexOf(sim.beamAxis)
+        };
+    };
+
     self.getObject = function(id) {
         let objs = appState.models.geometryReport.objects || [];
         for (let o of objs) {
@@ -192,6 +201,13 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         else {
             appState.saveChanges('geometryReport', callback);
         }
+    };
+
+    self.setWidthAxis = function() {
+        let sim = appState.models.simulation;
+        sim.widthAxis = self.axes.filter((a) => {
+            return a !== sim.beamAxis && a !== sim.heightAxis;
+        })[0];
     };
 
     self.setSelectedObject = function(o) {
@@ -998,10 +1014,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
             ) {
                 appState.models.geometryReport.lastModified = Date.now();
-                appState.models.simulation.widthAxis = self.axes.filter((a) => {
-                    return a !== appState.models.simulation.beamAxis &&
-                        a !== appState.models.simulation.heightAxis;
-                })[0];
+                radiaService.setWidthAxis();
                 appState.saveQuietly('simulation');
                 appState.models.kickMapReport.periodLength = appState.models.hybridUndulator.periodLength;
                 appState.saveQuietly('kickMapReport');
@@ -1132,6 +1145,9 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.simState = persistentSimulation.initSimulationState(self);
 
+    appState.watchModelFields($scope, ['simulation.beamAxis', 'simulation.heightAxis'], () => {
+        radiaService.setWidthAxis();
+    });
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('modelChanged', (e, modelName) => {
             let m = appState.models[modelName];
@@ -3661,7 +3677,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     return self;
 });
 
-SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, radiaService, utilities) {
+SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plotting, radiaService) {
 
     const inset = 1;
 
@@ -3670,7 +3686,7 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
     let h = 0;
     for (let name in SIREPO.APP_SCHEMA.constants.geomObjShapes) {
         const s = SIREPO.APP_SCHEMA.constants.geomObjShapes[name];
-        let b = ptsBounds(s.points);
+        let b = geometry.coordBounds(s.points);
         w = Math.max(w, Math.abs(b[0].max - b[0].min));
         h = Math.max(h, Math.abs(b[1].max - b[1].min));
         shapes[name] = new SIREPO.DOM.SVGPath(name, s.points, [inset, inset], s.doClose, s.stroke, s.fill);
@@ -3678,26 +3694,11 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
     let btn = new SIREPO.DOM.SVGShapeButton('sr-shape-edit-btn', (Math.max(w, h) + 2 * inset), 'editShape');
     btn.addAttribute('title', 'Click to edit');
 
-    function ptsBounds(pts) {
-        let b = [{min: Number.MAX_VALUE, max: -Number.MAX_VALUE}, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE}];
-        for (let p of pts) {
-            for (let x of ['min', 'max']) {
-                for (let i of [0, 1]) {
-                    b[i][x] = Math[x](b[i][x], p[i]);
-                }
-            }
-        }
-        return b;
-    }
-
     return {
         restrict: 'A',
         scope: {
             modelName: '=',
-            field: '=',
             fieldClass: '=',
-            parentController: '=',
-            viewName: '=',
         },
         template: [
           '<div data-ng-class="fieldClass">',
@@ -3707,41 +3708,43 @@ SIREPO.app.directive('shapeButton', function(appState, panelState, plotting, rad
         controller: function($scope, $element) {
             plotting.setupSelector($scope, $element);
 
-            $scope.loadImage = function() {
-                btn.setShape($scope.updateShape());
-            };
-
             $scope.editShape = function() {
                 panelState.showModalEditor('objectShape');
             };
 
-            $scope.updateShape = function() {
-                const obj = appState.models[$scope.modelName];
-                const size = obj.size.split(/\s*,\s*/).map((x) => {
+            function loadImage() {
+                btn.setShape(updateShape());
+            }
+
+            function updateShape() {
+                const o = appState.models[$scope.modelName];
+                const size = o.size.split(/\s*,\s*/).map((x) => {
                     return parseFloat(x);
                 });
-                let s = shapes[obj.type];
-                s.setFill(obj.color);
-                const ar = size[radiaService.axes.indexOf(appState.models.simulation.widthAxis)] /
-                    size[radiaService.axes.indexOf(appState.models.simulation.heightAxis)];
+                let s = shapes[o.type];
+                s.setFill(o.color);
+                const inds = radiaService.getAxisIndices();
+                const ar = size[inds.width] / size[inds.height];
                 s.setScales([
                     ar >= 1 ? ar : 1.0,
                     ar >= 1 ? 1.0 : ar
                 ]);
                 s.update();
                 return s;
-            };
+            }
 
             $scope.$on(`${$scope.modelName}.changed`, () => {
-               $scope.loadImage();
+               loadImage();
             });
+
+            loadImage();
         },
     };
 });
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['box', 'gamma',];
+    const availableShapes = ['box', 'ell',];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);
@@ -3781,7 +3784,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     let ctr = [];
     let modelType = null;
     let size = [];
-    let geomIndices = {};
 
     $scope.modelData = appState.models[$scope.modelName];
 
@@ -3789,9 +3791,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         [
             'geomObject.type',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
-        ], () => {
-            updateObjectEditor();
-        },
+        ], updateObjectEditor
     ];
 
     $scope.whenSelected = function() {
@@ -3802,48 +3802,51 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         ctr = $scope.modelData.center.split(/\s*,\s*/).map((x) => {
             return parseFloat(x);
         });
-
-        geomIndices = {
-            width: radiaService.axes.indexOf(appState.models.simulation.widthAxis),
-            height: radiaService.axes.indexOf(appState.models.simulation.heightAxis),
-            thickness: radiaService.axes.indexOf(appState.models.simulation.beamAxis)
-        };
         updateObjectEditor();
     };
 
     // move to server?
     function calcExtrusionPoints() {
+        $scope.modelData.points = [];
         //const mn = 'extrudedPoly';
         const mn = 'stemmed';
-        let m = appState.models[mn];
-        $scope.modelData.points = [];
-        if (panelState.isSubclass(modelType, mn)) {
-            let c = [ctr[geomIndices.width], ctr[geomIndices.height]];
-            let s = [size[geomIndices.width], size[geomIndices.height]];
-
-            // start with arm top, stem left - then reflect across centroid axes as needed
-            let ax1 = c[0] - s[0] / 2;
-            let ax2 = c[0] + s[0];
-            let ay1 = c[1] - s[1] / 2;
-            let ay2 = ay1 + m.armHeight;
-
-            let sx1 = c[0] - s[0] / 2;
-            let sx2 = sx1 + m.stemWidth;
-            let sy1 = c[1] - s[1] / 2;
-            let sy2 = sy1 + s[1];
-
-            const i = parseInt(m.stemPosition);
-            const j = parseInt(m.armPosition);
-            $scope.modelData.points = [
-                [ax1, ay1], [ax2, ay1], [ax2, ay2],
-                [sx2, ay2], [sx2, sy2], [sx1, sy2]
-            ].map( (p) => {
-                return [
-                    2 * c[0] * i + Math.pow(-1, i) *  p[0],
-                    2 * c[1] * j + Math.pow(-1, j) *  p[1],
-                ]
-            });
+        if (! panelState.isSubclass(modelType, mn)) {
+            return;
         }
+        let m = appState.models[mn];
+        const ai = radiaService.getAxisIndices();
+        const c = [ctr[ai.width], ctr[ai.height]];
+        const s = [size[ai.width], size[ai.height]];
+        // Radia wants the points in the plane in a specific order
+        const doReverse = ai.width !== (ai.thickness + 1) % 3
+
+        // start with arm top, stem left - then reflect across centroid axes as needed
+        let ax1 = c[0] - s[0] / 2;
+        let ax2 = ax1 + s[0];
+        let ay1 = c[1] + s[1] / 2;
+        let ay2 = ay1 - m.armHeight;
+
+        let sx1 = c[0] - s[0] / 2;
+        let sx2 = sx1 + m.stemWidth;
+        let sy = c[1] - s[1] / 2;
+
+        const k = [parseInt(m.stemPosition), parseInt(m.armPosition)];
+        $scope.modelData.points = [
+            [ax1, ay1], [ax2, ay1], [ax2, ay2],
+            [sx2, ay2], [sx2, sy], [sx1, sy],
+            [ax1, ay1]
+        ]
+            .map((p) => {
+                return p.map((v, i) => {
+                    return 2 * c[i] * k[i] + Math.pow(-1, k[i]) *  v;
+                });
+        })
+            .map((p) => {
+                if (doReverse) {
+                    return p.reverse();
+                }
+                return p;
+            });
     }
 
     function modelField(f) {
@@ -3929,7 +3932,7 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
     };
 });
 
-SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, $scope) {
+SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 
     let model = null;
 
@@ -3954,14 +3957,13 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             if (model.heightAxis === axis && ! isShown) {
                 model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
             }
-
         }
+        radiaService.setWidthAxis();
     }
 
     $scope.watchFields = [
-        ['simulation.beamAxis'], () => {
-            updateSimEditor();
-        },
+        ['simulation.beamAxis'], updateSimEditor,
+        ['simulation.heightAxis'], radiaService.setWidthAxis,
     ];
 
     $scope.$on(`${$scope.modelName}.editor.show`, () => {

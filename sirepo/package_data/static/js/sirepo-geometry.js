@@ -14,6 +14,7 @@ if (!Math.hypot) {
     };
 }
 
+//TODO(mvk): change from service to classes
 SIREPO.app.service('geometry', function(utilities) {
 
     var svc = this;
@@ -42,6 +43,19 @@ SIREPO.app.service('geometry', function(utilities) {
         }
         return null;
     };
+
+    this.coordBounds = function(coords) {
+        const l = coords[0].length;
+        let b = (new Array(l)).fill({min: Number.MAX_VALUE, max: -Number.MAX_VALUE});
+        for (let p of coords) {
+            for (let x of ['min', 'max']) {
+                for (let i = 0; i < l; ++i) {
+                    b[i][x] = Math[x](b[i][x], p[i]);
+                }
+            }
+        }
+        return b;
+    }
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
     this.extrema = function(points, dim, doReverse) {
