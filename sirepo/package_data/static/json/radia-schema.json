@@ -100,6 +100,13 @@
         },
         "objectScale": 0.001,
         "parameterizedMagnets": {
+            "dipole": {
+                "objectNames": {
+                    "coil": "Coil",
+                    "magnet": "Magnet",
+                    "pole": "Pole"
+                }
+            },
             "hybridUndulator": {
                 "objectNames": {
                     "halfPole": "Half Pole",
@@ -264,6 +271,7 @@
             ["v", "Vertical"]
         ],
         "MagnetType": [
+            ["dipole", "C-Bend Dipole"],
             ["freehand", "Freehand"],
             ["undulator", "Undulator"]
         ],
@@ -281,7 +289,7 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
-            ["cee", "Extruded Cee"],
+            ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
@@ -346,7 +354,7 @@
             "type": ["_", "ObjectType", "box"]
         },
         "cee": {
-            "_super": ["_", "model", "extrudedPoly"],
+            "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "cee"]
         },
         "circlePath": {
@@ -370,6 +378,25 @@
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
+        },
+        "dipole": {
+            "_super": ["_", "model", "radiaObject"],
+            "coilBaseObjectId": ["_", "UUID", ""],
+            "coilColor": ["Color", "Color", "#ff0000"],
+            "coilCurrent": ["Current [A]", "Float", -2000.0],
+            "coilRadii": ["Radii of Coil [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
+            "coilHeight": ["Coil Height [mm]", "Float", 105.0, "", 0.0],
+            "coilSides": ["Coil Side Lengths [mm]", "FloatStringArray", "62.5, 50.0", "", "Transverse, Beam"],
+            "gap": ["Gap", "Float", 1.0],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "magnetBaseObjectId": ["_", "UUID", ""],
+            "magnetColor": ["Color", "Color", "#ff00ff"],
+            "magnetDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
+            "magnetMaterial": ["Material", "MaterialType", "custom"],
+            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "magnetObjType": ["Shape", "ObjectType", "box"],
+            "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
         },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
@@ -585,8 +612,8 @@
             "_super": ["_", "model", "extrudedPoly"],
             "armHeight": ["Arm Height [mm]", "Float", 1.0],
             "armPosition": ["Arm Position", "ArmPosition", "1", "Position of the arm"],
-            "stemWidth": ["Stem Width [mm]", "Float", 1.0],
-            "stemPosition": ["Stem Position", "StemPosition", "0", "Position of the stem"]
+            "stemWidth": ["Post Width [mm]", "Float", 1.0],
+            "stemPosition": ["Post Position", "StemPosition", "0", "Position of the post"]
         },
         "symmetryTransform": {
             "_super": ["_", "model", "transform"],
@@ -665,6 +692,32 @@
                 "transforms",
                 "numCopies",
                 "alternateFields"
+            ]
+        },
+        "dipole": {
+            "title": "Dipole",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "gap"
+                ]],
+                ["Coil", [
+                    "coilRadii",
+                    "coilHeight",
+                    "coilSides",
+                    "coilCurrent",
+                    "coilColor"
+                ]],
+                ["Magnet", [
+                    "magnetSize",
+                    "magnetMaterial",
+                    "magnetMaterialFile",
+                    "magnetMagnetization",
+                    "magnetRemanentMag",
+                    "magnetColor"
+                ]],
+                ["Poles", [
+                ]]
             ]
         },
         "fieldIntegralReport": {

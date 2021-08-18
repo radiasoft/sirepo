@@ -3744,7 +3744,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['box', 'ell',];
+    const availableShapes = ['box', 'ell', 'cee'];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);
@@ -3829,24 +3829,35 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         let sx1 = c[0] - s[0] / 2;
         let sx2 = sx1 + m.stemWidth;
         let sy = c[1] - s[1] / 2;
+        let sy1 = sy + m.armHeight;
 
         const k = [parseInt(m.stemPosition), parseInt(m.armPosition)];
-        $scope.modelData.points = [
-            [ax1, ay1], [ax2, ay1], [ax2, ay2],
-            [sx2, ay2], [sx2, sy], [sx1, sy],
-            [ax1, ay1]
-        ]
-            .map((p) => {
-                return p.map((v, i) => {
-                    return 2 * c[i] * k[i] + Math.pow(-1, k[i]) *  v;
-                });
-        })
-            .map((p) => {
-                if (doReverse) {
-                    return p.reverse();
-                }
-                return p;
+        let pts = [];
+        if (modelType === 'ell') {
+            pts = [
+                [ax1, ay1], [ax2, ay1], [ax2, ay2],
+                [sx2, ay2], [sx2, sy], [sx1, sy],
+                [ax1, ay1]
+            ];
+        }
+        if (modelType === 'cee') {
+            pts = [
+                [ax1, ay1], [ax2, ay1], [ax2, ay2],
+                [sx2, ay2], [sx2, sy1], [ax2, sy1], [ax2, sy], [sx1, sy],
+                [ax1, ay1]
+            ];
+        }
+        $scope.modelData.points = pts.map((p) => {
+            return p.map((v, i) => {
+                return 2 * c[i] * k[i] + Math.pow(-1, k[i]) *  v;
             });
+        })
+        .map((p) => {
+            if (doReverse) {
+                return p.reverse();
+            }
+            return p;
+        });
     }
 
     function modelField(f) {

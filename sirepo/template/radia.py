@@ -351,6 +351,15 @@ def _build_cuboid(**kwargs):
     )
 
 
+def _build_ell(beam_axis, height_axis, **kwargs):
+    return _update_ell(
+        _build_geom_obj('ell', obj_name=kwargs.get('name')),
+        beam_axis,
+        height_axis,
+        **kwargs
+    )
+
+
 # have to include points for file type?
 def _build_field_file_pts(f_path):
     pts_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
@@ -757,15 +766,15 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     )
 
 
-def _geom_directions(beam_axis, vert_axis):
+def _geom_directions(beam_axis, height_axis):
     beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
-    if not vert_axis or vert_axis == beam_axis:
-        vert_axis = _SCHEMA.constants.heightAxisMap[beam_axis]
-    vert_dir = numpy.array(_BEAM_AXIS_VECTORS[vert_axis])
+    if not height_axis or height_axis == beam_axis:
+        height_axis = _SCHEMA.constants.heightAxisMap[beam_axis]
+    height_dir = numpy.array(_BEAM_AXIS_VECTORS[height_axis])
 
     # we don't care about the direction of the cross product
-    width_dir = abs(numpy.cross(beam_dir, vert_dir))
-    return width_dir, vert_dir, beam_dir
+    width_dir = abs(numpy.cross(beam_dir, height_dir))
+    return width_dir, height_dir, beam_dir
 
 
 def _geom_h5_path(view_type, field_type=None):
@@ -1082,9 +1091,37 @@ def _update_cuboid(cuboid, **kwargs):
     return _update_geom_obj(cuboid, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
 
 
-def _update_ell(ell, **kwargs):
-    e = _update_geom_obj(ell, **kwargs)
-    return e
+def _update_ell(ell, beam_axis, height_axis, **kwargs):
+    d = PKDict(kwargs)
+    w, h, b = _geom_directions(beam_axis, height_axis)
+    c = [numpy.sum(w * d.center), numpy.sum(h * d.center)]
+    s = [numpy.sum(w * d.size), numpy.sum(h * d.size)]
+
+    # Radia's extrusion expects points in permutation order based on the extrusion
+    # axis (x -> [y, z], y -> [z, x], z -> [x, y])
+    do_reverse = w.index(1) != (b.index(1) + 1) % 3
+
+    # start with arm top, stem left - then reflect across centroid axes as needed
+    ax1 = c[0] - s[0] / 2
+    ax2 = ax1 + s[0]
+    ay1 = c[1] + s[1] / 2
+    ay2 = ay1 - d.armHeight
+
+    sx1 = c[0] - s[0] / 2
+    sx2 = sx1 + d.stemWidth
+    sy = c[1] - s[1] / 2
+
+    k = [int(d.stemPosition), int(d.armPosition)]
+    ell.points = [
+        [ax1, ay1], [ax2, ay1], [ax2, ay2],
+        [sx2, ay2], [sx2, sy], [sx1, sy],
+        [ax1, ay1]
+    ]
+    ell.points = [[2 * c[i] * k[i] + -1**k[i] * v for (i, v) in enumerate(p)] for p in ell.points ]
+    if do_reverse:
+        ell.points.reverse()
+
+    return _update_geom_obj(ell, **kwargs)
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
