@@ -598,7 +598,7 @@
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
-            "method": ["Method", "SolveMethod", "0"],
+            "method": ["Method", "SolveMethod", "4"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "sbatchCores": ["Cores", "Integer", 1],
