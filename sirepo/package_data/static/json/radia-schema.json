@@ -469,12 +469,6 @@
             "type": ["Shape Type", "ObjectType", "cuboid"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
-        "geomUndulatorGroup": {
-            "_super": ["_", "model", "geomGroup"],
-            "baseGroup": [""],
-            "gap": ["Gap", "Float", 1.0],
-            "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
-        },
         "hybridUndulator": {
             "_super": ["_", "model", "undulator"],
             "magnetArmHeight": ["_", "Float", 1.0],
@@ -506,9 +500,6 @@
             "poleObjType": ["Shape", "ObjectType", "ell"],
             "poleStemWidth": ["_", "Float", 19.5],
             "poleStemPosition": ["_", "StemPosition", "0"]
-        },
-        "invertField": {
-            "name": ["Name", "String", "Invert Field"]
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
@@ -827,7 +818,7 @@
                     "geomObject.shapeButton",
                     "poleCrossSection",
                     "poleLength",
-                    "poleDivision",
+                    "poleSegments",
                     "poleMaterial",
                     "poleMaterialFile",
                     "poleMagnetization",
@@ -838,7 +829,7 @@
                     "magnetCrossSection",
                     "magnetLength",
                     "gapOffset",
-                    "magnetDivision",
+                    "magnetSegments",
                     "magnetMaterial",
                     "magnetMaterialFile",
                     "magnetMagnetization",
