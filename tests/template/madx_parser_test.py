@@ -47,6 +47,7 @@ def test_parse_madx_file():
             actual = madx_parser.parse_file(pkio.read_text(
                 pkunit.data_dir().join(f'{name}.madx')))
             del actual['version']
+            actual.models.simulation.pkdel('lastModified')
             outfile = f'{name}.json'
             pkjson.dump_pretty(actual, outfile)
             expect = pkjson.load_any(pkunit.data_dir().join(outfile))

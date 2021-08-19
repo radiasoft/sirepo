@@ -13,10 +13,11 @@ import srwlpy
 import math
 import srwl_uti_smp
 
-def set_optics(v=None):
+def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
-    names = ['ApM1', 'M1', 'M1_Watchpoint', 'Watchpoint', 'ApKB', 'VFM', 'VFM_HFM', 'HFM', 'HFM_Sample', 'Sample']
+    if not names:
+        names = ['ApM1', 'M1', 'M1_Watchpoint', 'Watchpoint', 'ApKB', 'VFM', 'VFM_HFM', 'HFM', 'HFM_Sample', 'Sample']
     for el_name in names:
         if el_name == 'ApM1':
             # ApM1: aperture 270.0m
@@ -132,7 +133,9 @@ def set_optics(v=None):
         elif el_name == 'Sample':
             # Sample: watch 930.0m
             pass
-    pp.append(v.op_fin_pp)
+    if want_final_propagation:
+        pp.append(v.op_fin_pp)
+
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -378,11 +381,12 @@ varParam = [
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    op = set_optics(v)
-    v.si = True
-    v.si_pl = 'xy'
+    names = ['ApM1','M1','M1_Watchpoint','Watchpoint','ApKB','VFM','VFM_HFM','HFM','HFM_Sample','Sample']
+    op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.si = True
+    v.si_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()

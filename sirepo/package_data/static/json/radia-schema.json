@@ -10,7 +10,17 @@
             "_default": [
                 {
                     "title": "Save as SDDS",
-                    "suffix": ""
+                    "suffix": "sdds"
+                }
+            ],
+            "fieldLineoutReport": [
+                {
+                    "title": "Save as CSV",
+                    "suffix": "csv"
+                },
+                {
+                    "title": "Save for SRW import",
+                    "suffix": "zip"
                 }
             ],
             "kickMapReport": [
@@ -279,6 +289,10 @@
             ["translate", "Translate"],
             ["rotate", "Rotate"]
         ],
+        "TerminationType": [
+            ["magnet", "Magnet"],
+            ["pole", "Pole"]
+        ],
         "ViewType": [
             ["objects", "Objects"],
             ["fields", "Fields"]
@@ -341,6 +355,9 @@
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
         },
+        "fieldIntegralReport": {
+            "lastCalculated": ["_", "Integer", -1]
+        },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -391,6 +408,7 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
+            "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
@@ -422,8 +440,7 @@
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleObjType": ["Shape", "ObjectType", "box"],
-            "autoTerminate": ["Auto Terminate", "Boolean", "1", "When true, the undulator is terminated with a magnet block of half thickness immediately following the final period. Otherwise the termination must be specified."]
+            "poleObjType": ["Shape", "ObjectType", "box"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
@@ -525,7 +542,7 @@
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
-            "method": ["Method", "SolveMethod", "0"],
+            "method": ["Method", "SolveMethod", "4"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "sbatchCores": ["Cores", "Integer", 1],
@@ -551,6 +568,11 @@
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "tee"]
         },
+        "termination": {
+            "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
+            "length": ["Object Length [mm]", "Float", 9.0],
+            "type": ["Object Type", "TerminationType", "magnet", ""]
+        },
         "transform": {
             "id": ["_", "UUID", ""],
             "name": ["Name", "String", "Transform"],
@@ -572,6 +594,15 @@
             "gapAxis": ["Gap Axis", "BeamAxis", "y", "Direction of the magnetic gap - must differ from the beam axis"],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
+            "terminations": ["Termination Groups", "TerminationTable",
+                [
+                    {
+                        "airGap": 0,
+                        "length": 9,
+                        "type": "magnet"
+                    }
+                ]
+            ],
             "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
         }
     },
@@ -605,6 +636,11 @@
                 "numCopies",
                 "alternateFields"
             ]
+        },
+        "fieldIntegralReport": {
+            "title": "Field Integrals (T · mm)",
+            "advanced": [],
+            "basic": []
         },
         "fieldLineoutReport": {
             "title": "Field on Path",
@@ -699,18 +735,17 @@
                     "periodLength"
                 ]],
                 ["Poles", [
-                    "poleObjType",
+                    "geomObject.shapeButton",
                     "poleCrossSection",
                     "poleLength",
                     "poleDivision",
                     "poleMaterial",
                     "poleMaterialFile",
                     "poleMagnetization",
-                    "poleRemanentMag",
-                    "poleColor"
+                    "poleRemanentMag"
                 ]],
                 ["Permanent Magnets", [
-                    "magnetObjType",
+                    "geomObject.shapeButton",
                     "magnetCrossSection",
                     "magnetLength",
                     "gapOffset",
@@ -718,8 +753,10 @@
                     "magnetMaterial",
                     "magnetMaterialFile",
                     "magnetMagnetization",
-                    "magnetRemanentMag",
-                    "magnetColor"
+                    "magnetRemanentMag"
+                ]],
+                ["Termination", [
+                    "terminations"
                 ]]
             ]
         },
@@ -791,9 +828,11 @@
             "title": "Object Shape Editor",
             "model": "geomObject",
             "basic": [
+                "color",
                 "bevels"
             ],
             "advanced": [
+                "color",
                 "bevels"
             ]
         },
@@ -898,6 +937,19 @@
                 "symmetryPoint"
             ]
         },
+        "termination": {
+            "title": "Termination",
+            "basic": [
+                "type",
+                "length",
+                "airGap"
+            ],
+            "advanced": [
+                "type",
+                "length",
+                "airGap"
+            ]
+        },
         "transform": {
             "title": "Apply Transform",
             "basic": [
@@ -938,16 +990,17 @@
                     "hybridUndulator.poleLength",
                     "hybridUndulator.poleDivision",
                     "hybridUndulator.poleMaterial",
-                    "hybridUndulator.poleMaterialFile",
-                    "hybridUndulator.poleColor"
+                    "hybridUndulator.poleMaterialFile"
                 ]],
                 ["Permanent Magnets", [
                     "hybridUndulator.magnetCrossSection",
                     "hybridUndulator.magnetDivision",
                     "hybridUndulator.magnetMaterial",
                     "hybridUndulator.magnetMaterialFile",
-                    "hybridUndulator.gapOffset",
-                    "hybridUndulator.magnetColor"
+                    "hybridUndulator.gapOffset"
+                ]],
+                ["Termination", [
+                    "terminations"
                 ]]
             ]
         }

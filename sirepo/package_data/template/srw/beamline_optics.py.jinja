@@ -29,7 +29,8 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
 {%- endmacro %}
     el = []
     pp = []
-    names = {{ names }}
+    if not names:
+        names = {{ names }}
 {% if items|length > 0 %}
     for el_name in names:
 {% endif %}
@@ -333,7 +334,8 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             pp.append(v.op_{{ item.name }}_pp)
 {% endif %}
 {% endfor %}
-{% if wantPostPropagation %}
-    pp.append(v.op_fin_pp)
-{% endif %}
+{% if items|length > 0 %}
+    if want_final_propagation:
+        pp.append(v.op_fin_pp)
+{% endif %}                
     return srwlib.SRWLOptC(el, pp)

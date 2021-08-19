@@ -222,6 +222,8 @@ def fixup_old_data(data, force=False):
             data.simulationType = 'warpvnd'
         if 'simulationSerial' not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
+        if 'lastModified' not in data.models.simulation:
+            update_last_modified(data)
         import sirepo.sim_data
         sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
         data.pkdel('fixup_old_version')
@@ -464,9 +466,6 @@ def process_simulation_list(res, path, data):
         simulationId=_sim_from_path(path)[0],
         name=sim['name'],
         folder=sim['folder'],
-        last_modified=datetime.datetime.fromtimestamp(
-            os.path.getmtime(str(path))
-        ).strftime('%Y-%m-%d %H:%M'),
         isExample=sim['isExample'] if 'isExample' in sim else False,
         simulation=sim,
     ))
@@ -691,6 +690,13 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
+
+
+def update_last_modified(data):
+    """Set simulation.lastModified to the current time in javascript format.
+    """
+    data.models.simulation.lastModified = int(datetime.datetime.utcnow().timestamp() * 1000)
+    return data
 
 
 def update_rsmanifest(data):

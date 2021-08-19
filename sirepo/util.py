@@ -21,6 +21,7 @@ import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import sys
 import threading
 import werkzeug.utils
 
@@ -41,6 +42,8 @@ THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
+
+_log_not_flask = _log_not_request = 0
 
 
 class Reply(Exception):
@@ -202,9 +205,23 @@ def import_submodule(submodule):
 
 
 def in_flask_request():
-    import sys
+    # These are globals but possibly accessed from a threaded context. That is
+    # desired so we limit logging between all threads.
+    # The number 10 below doesn't need to be exact. Just something greater than
+    # "a few" so we see logging once the app is initialized and serving requests.
+    global _log_not_flask, _log_not_request
     f = sys.modules.get('flask')
-    return f and f.request or None
+    if not f:
+        if _log_not_flask < 10:
+            _log_not_flask += 1
+            pkdlog('flask is not imported')
+        return False
+    if not f.request:
+        if _log_not_request < 10:
+            _log_not_request += 1
+            pkdlog('flask.request is False')
+        return False
+    return True
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):

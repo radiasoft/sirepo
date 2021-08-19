@@ -212,12 +212,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 }, forceRunCount ? true : false);
             }, 50 + priority * 10, 1);
         };
+
         function getCurrentPriority() {
             var current = scope.$parent;
             while (current) {
-                if (current.getRequestPriority) {
-                    return current.getRequestPriority();
-                }
                 if (current.requestPriority) {
                     return current.requestPriority;
                 }
@@ -571,16 +569,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     requestData();
                 });
 
-            scope.isLoading = function() {
-                if (scope.isAnimation) {
-                    return false;
-                }
-                return panelState.isLoading(scope.modelName);
-            };
+            scope.isLoading = () => panelState.isLoading(scope.modelName);
 
-            scope.$on('sr-window-resize', function() {
-                scope.resize();
-            });
+            scope.$on('sr-window-resize', scope.resize);
 
             // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
             $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {

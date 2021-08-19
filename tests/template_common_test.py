@@ -53,9 +53,8 @@ def test_dict_to_from_h5():
     )
     _TEST_DICT['999'] = '999'
     _TEST_DICT['998'] = 998
-    _TEST_H5_FILE = 'test.h5'
+    _TEST_H5_FILE = pkunit.work_dir().join('test.h5')
 
-    pkio.unchecked_remove(_TEST_H5_FILE)
     template_common.write_dict_to_h5(_TEST_DICT, _TEST_H5_FILE)
     d = None
     with h5py.File(_TEST_H5_FILE, 'r') as f:

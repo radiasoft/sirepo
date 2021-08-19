@@ -19,11 +19,8 @@ from sirepo import srschema
 from sirepo import uri_router
 import contextlib
 import flask
-import importlib
-import os
 import re
 import sirepo.db_upgrade
-import sirepo.events
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
@@ -463,7 +460,7 @@ def api_saveSimulationData():
     d = simulation_db.fixup_old_data(d)[0]
     if hasattr(req.template, 'prepare_for_save'):
         d = req.template.prepare_for_save(d)
-    d = simulation_db.save_simulation_json(d)
+    d = simulation_db.save_simulation_json(simulation_db.update_last_modified(d))
     return api_simulationData(
         d.simulationType,
         d.models.simulation.simulationId,

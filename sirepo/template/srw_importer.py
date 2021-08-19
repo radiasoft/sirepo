@@ -301,7 +301,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
         pass
 
     else:
-        raise Exception('Element type <{}> does not exist.'.format(elem_type))
+        raise ValueError('Element type <{}> does not exist.'.format(elem_type))
 
     return data
 
@@ -428,6 +428,9 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
                 pass
 
             title = key + str(names[key])
+
+            if not elem_type:
+                raise ValueError('Unhandled element named: {}.'.format(name))
 
             positions.append(pkcollections.Dict({
                 'id': counter,
@@ -585,7 +588,8 @@ def _parsed_dict(v, op):
     predefined_beams = sirepo.template.srw.get_predefined_beams()
 
     # Default electron beam:
-    if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and v.gbm_pen == 0):
+    if (hasattr(v, 'source_type') and v.source_type == 'u') \
+       or (hasattr(v, 'ebm_nm') and (not hasattr(v, 'gbm_pen') or v.gbm_pen == 0)):
         source_type = 'u'
         if v.ebm_nms == 'Day1':
             v.ebm_nms = 'Day 1'
@@ -605,7 +609,7 @@ def _parsed_dict(v, op):
                 'energy': _default_value('ebm_e', v, std_options, 3.0),
                 'energyDeviation': _default_value('ebm_de', v, std_options, 0.0),
                 'horizontalAlpha': _default_value('ebm_alphax', v, std_options, 0.0),
-                'horizontalBeta': _default_value('ebm_betay', v, std_options, 2.02),
+                'horizontalBeta': _default_value('ebm_betax', v, std_options, 2.02),
                 'horizontalDispersion': _default_value('ebm_etax', v, std_options, 0.0),
                 'horizontalDispersionDerivative': _default_value('ebm_etaxp', v, std_options, 0.0),
                 'horizontalEmittance': _default_value('ebm_emx', v, std_options, 9e-10) * 1e9,
@@ -616,7 +620,7 @@ def _parsed_dict(v, op):
                 'verticalAlpha': _default_value('ebm_alphay', v, std_options, 0.0),
                 'verticalBeta': _default_value('ebm_betay', v, std_options, 1.06),
                 'verticalDispersion': _default_value('ebm_etay', v, std_options, 0.0),
-                'verticalDispersionDerivative': _default_value('ebm_etaxp', v, std_options, 0.0),
+                'verticalDispersionDerivative': _default_value('ebm_etayp', v, std_options, 0.0),
                 'verticalEmittance': _default_value('ebm_emy', v, std_options, 8e-12) * 1e9,
                 'verticalPosition': v.ebm_y,
             })

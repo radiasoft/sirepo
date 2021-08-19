@@ -424,6 +424,7 @@
         }
     },
     "frameIdFields": {
+        "beamlineAnimation": ["characteristic", "polarization", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset"],
         "coherenceXAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
         "coherenceYAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
         "fluxAnimation": [],
@@ -732,8 +733,7 @@
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
+            "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -812,8 +812,8 @@
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
-            "bx": ["Horizontal Magnetic Field [T]", "Float", 0.4],
-            "by": ["Vertical Magnetic Field [T]", "Float", 0.0],
+            "bx": ["Horizontal Magnetic Field [T]", "Float", 0.0],
+            "by": ["Vertical Magnetic Field [T]", "Float", 0.4],
             "length": ["Effective Length [m]", "Float"]
         },
         "obstacle": {
@@ -916,6 +916,7 @@
         },
         "simulation": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 20],
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
@@ -1034,8 +1035,7 @@
         "watchpointReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
+            "characteristic": ["Characteristic to be Extracted", "Characteristic"]
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],
@@ -1565,7 +1565,6 @@
                     "polarization",
                     "characteristic",
                     "copyCharacteristic",
-                    "fieldUnits",
                     "notes"
                 ]]
             ]
@@ -1868,6 +1867,7 @@
                 "distanceFromSource",
                 "samplingMethod",
                 "sampleFactor",
+                "fieldUnits",
                 [
                     ["Horizontal", [
                         "horizontalPosition",
@@ -2110,7 +2110,6 @@
                     "simulation.photonEnergy",
                     "polarization",
                     "characteristic",
-                    "fieldUnits",
                     "notes"
                 ]]
             ]

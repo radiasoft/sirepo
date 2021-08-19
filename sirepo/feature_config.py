@@ -114,7 +114,6 @@ def _init():
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
-            beamline3d=b('Show 3D beamline plot'),
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
             show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
