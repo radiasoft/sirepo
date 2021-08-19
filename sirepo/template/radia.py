@@ -344,9 +344,11 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
     return tx
 
 
-def _build_cuboid(**kwargs):
+def _build_cuboid(beam_axis, height_axis, **kwargs):
     return _update_cuboid(
-        _build_geom_obj('box', obj_name=kwargs.get('name')),
+        _build_geom_obj('cuboid', obj_name=kwargs.get('name')),
+        beam_axis,
+        height_axis,
         **kwargs
     )
 
@@ -487,16 +489,16 @@ def _build_translate_clone(dist):
 
 
 def _build_undulator_objects(geom, und, beam_axis, height_axis):
-
     # arrange objects
     geom.objects = []
-    half_pole = _build_cuboid(name='Half Pole')
+    # loop through object names in schema?
+    half_pole = globals()[f'_build_{und.poleObjType}'](beam_axis, height_axis, name='Half Pole')
     geom.objects.append(half_pole)
-    magnet_block = _build_cuboid(name='Magnet Block')
+    magnet_block = globals()[f'_build_{und.magnetObjType}'](beam_axis, height_axis, name='Magnet Block')
     geom.objects.append(magnet_block)
     und.magnet = magnet_block
     und.magnetBaseObjectId = magnet_block.id
-    pole = _build_cuboid(name='Pole')
+    pole = globals()[f'_build_{und.poleObjType}'](beam_axis, height_axis, name='Pole')
     geom.objects.append(pole)
     und.pole = pole
     und.poleBaseObjectId = pole.id
@@ -1083,46 +1085,52 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
+def _obj_keys(obj_type):
+    o = PKDict()
+    _SIM_DATA.update_model_defaults(o, obj_type)
+    return o.keys()
+
+
 def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _update_cuboid(cuboid, **kwargs):
+def _update_cuboid(cuboid, beam_axis, height_axis, **kwargs):
     return _update_geom_obj(cuboid, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
 
 
 def _update_ell(ell, beam_axis, height_axis, **kwargs):
-    d = PKDict(kwargs)
+    ell = _update_geom_obj(ell, **kwargs)
     w, h, b = _geom_directions(beam_axis, height_axis)
-    c = [numpy.sum(w * d.center), numpy.sum(h * d.center)]
-    s = [numpy.sum(w * d.size), numpy.sum(h * d.size)]
-
-    # Radia's extrusion expects points in permutation order based on the extrusion
-    # axis (x -> [y, z], y -> [z, x], z -> [x, y])
-    do_reverse = w.index(1) != (b.index(1) + 1) % 3
+    ctr = sirepo.util.split_comma_delimited_string(ell.center, float)
+    sz = sirepo.util.split_comma_delimited_string(ell.size, float)
+    c = [numpy.sum(w * ctr), numpy.sum(h * ctr)]
+    s = [numpy.sum(w * sz), numpy.sum(h * sz)]
 
     # start with arm top, stem left - then reflect across centroid axes as needed
     ax1 = c[0] - s[0] / 2
     ax2 = ax1 + s[0]
     ay1 = c[1] + s[1] / 2
-    ay2 = ay1 - d.armHeight
+    ay2 = ay1 - ell.armHeight
 
     sx1 = c[0] - s[0] / 2
-    sx2 = sx1 + d.stemWidth
+    sx2 = sx1 + ell.stemWidth
     sy = c[1] - s[1] / 2
 
-    k = [int(d.stemPosition), int(d.armPosition)]
+    k = [int(ell.stemPosition), int(ell.armPosition)]
     ell.points = [
         [ax1, ay1], [ax2, ay1], [ax2, ay2],
         [sx2, ay2], [sx2, sy], [sx1, sy],
         [ax1, ay1]
     ]
-    ell.points = [[2 * c[i] * k[i] + -1**k[i] * v for (i, v) in enumerate(p)] for p in ell.points ]
-    if do_reverse:
+    ell.points = [[2 * c[i] * k[i] + -1**k[i] * v for (i, v) in enumerate(p)] for p in ell.points]
+
+    # Radia's extrusion expects points in permutation order based on the extrusion
+    # axis (x -> [y, z], y -> [z, x], z -> [x, y])
+    if w.tolist().index(1) != (b.tolist().index(1) + 1) % 3:
         ell.points.reverse()
 
-    return _update_geom_obj(ell, **kwargs)
-
+    return ell
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
 
@@ -1142,10 +1150,10 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
     )
     pole_segs = dir_matrix.dot(
-        sirepo.util.split_comma_delimited_string(und.poleDivision, int)
+        sirepo.util.split_comma_delimited_string(und.poleSegments, int)
     )
     mag_segs = dir_matrix.dot(
-        sirepo.util.split_comma_delimited_string(und.magnetDivision, int)
+        sirepo.util.split_comma_delimited_string(und.magnetSegments, int)
     )
 
     # pole and magnet dimensions, including direction
@@ -1173,6 +1181,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
 
     obj_props = PKDict(
         pole=PKDict(
+            arm_height=und.poleArmHeight,
+            arm_pos=und.poleArmPosition,
             color=und.poleColor,
             dim=pole_dim,
             dim_half=pole_dim_half,
@@ -1182,9 +1192,13 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             obj_type=und.poleObjType,
             rem_mag=und.poleRemanentMag,
             segs=pole_segs,
+            stem_width=und.poleStemWidth,
+            stem_pos=und.poleStemPosition,
             transverse_ctr=pole_transverse_ctr
         ),
         magnet=PKDict(
+            arm_height=und.magnetArmHeight,
+            arm_pos=und.magnetArmPosition,
             color=und.magnetColor,
             dim=magnet_dim,
             dim_half=magnet_dim_half,
@@ -1194,16 +1208,20 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             obj_type=und.magnetObjType,
             rem_mag=und.magnetRemanentMag,
             segs=mag_segs,
+            stem_width=und.magnetStemWidth,
+            stem_pos=und.magnetStemPosition,
             transverse_ctr=magnet_transverse_ctr
         )
     )
 
     pos = pole_dim_half.length / 2
-    half_pole = _update_cuboid(
+    half_pole = globals()[f'_update_{obj_props.pole.obj_type}'](
         _find_obj_by_name(geom.objects, 'Half Pole'),
+        beam_axis,
+        height_axis,
         center=pole_transverse_ctr + pos,
         size=pole_dim_half.width + pole_dim.height + pole_dim_half.length,
-        segments=pole_segs,
+        segments=obj_props.pole.segs,
         magnetization=pole_mag,
         material=obj_props.pole.material,
         materialFile=obj_props.pole.mat_file,
@@ -1212,11 +1230,13 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     )
 
     pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
-    magnet_block = _update_cuboid(
+    magnet_block = globals()[f'_update_{obj_props.magnet.obj_type}'](
         _find_obj_by_name(geom.objects, 'Magnet Block'),
+        beam_axis,
+        height_axis,
         center=magnet_transverse_ctr + pos,
         size=magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
-        segments=mag_segs,
+        segments=obj_props.magnet.segs,
         magnetization=mag_mag,
         material=obj_props.magnet.material,
         materialFile=obj_props.magnet.mat_file,
@@ -1227,11 +1247,13 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     obj_props.magnet.bevels = magnet_block.get('bevels', [])
 
     pos += (pole_dim_half.length + magnet_dim_half.length)
-    pole = _update_cuboid(
+    pole = globals()[f'_update_{obj_props.pole.obj_type}'](
         _find_obj_by_name(geom.objects, 'Pole'),
+        beam_axis,
+        height_axis,
         center=pole_transverse_ctr + pos,
         size=pole_dim_half.width + pole_dim.height + pole_dim.length,
-        segments=pole_segs,
+        segments=obj_props.pole.segs,
         magnetization=pole_mag,
         material=obj_props.pole.material,
         materialFile=obj_props.pole.mat_file,
@@ -1267,6 +1289,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         pos += (t.airGap + l / 2) * beam_dir
         props = obj_props[t.type]
         o = _build_cuboid(
+            beam_axis,
+            height_axis,
             center=props.transverse_ctr + pos,
             size=props.dim_half.width + props.dim.height + l,
             segments=props.segs,

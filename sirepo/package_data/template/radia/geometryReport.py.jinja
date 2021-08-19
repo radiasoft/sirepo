@@ -13,7 +13,7 @@ from sirepo.template import template_common
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 
-_MODEL_BOX = 'box'
+_MODEL_CUBOID = 'cuboid'
 _MODEL_ELL = 'ell'
 _MODEL_GROUP = 'geomGroup'
 _MODEL_GROUP_UND = 'geomUndulatorGroup'
@@ -21,8 +21,8 @@ _MODEL_OBJECT = 'geomObject'
 _MODEL_EXTRUDED = 'extrudedPoly'
 _EXTRUDED_MODELS = (_MODEL_ELL)
 _GROUP_MODELS = (_MODEL_GROUP, _MODEL_GROUP_UND)
-_OBJ_MODELS = (_MODEL_BOX, _MODEL_ELL, _MODEL_OBJECT)
-_MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
+_OBJ_MODELS = (_MODEL_CUBOID, _MODEL_ELL, _MODEL_OBJECT)
+_MODELS = (_MODEL_CUBOID, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
 
 sirepo_objs = {{ objects }}
 
@@ -33,7 +33,7 @@ def _add_object(o, radia_objs, id_map):
         ctr = sirepo.util.split_comma_delimited_string(o.center, float)
         sz = sirepo.util.split_comma_delimited_string(o.size, float)
         m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
-    if t == _MODEL_BOX:
+    if t == _MODEL_CUBOID:
         div = sirepo.util.split_comma_delimited_string(o.segments, int)
         g_id = radia_util.build_cuboid(ctr, sz, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
     if _MODEL_EXTRUDED in sc:

@@ -49,7 +49,7 @@
             }
         },
         "geomObjShapes": {
-            "box": {
+            "cuboid": {
                 "doClose": true,
                 "fill": "#97B6D5",
                 "points": [
@@ -127,9 +127,9 @@
                     {
                         "isButton": false,
                         "layoutShape": "rect",
-                        "model": "box",
+                        "model": "cuboid",
                         "title": "Cuboid",
-                        "type": "box"
+                        "type": "cuboid"
                     },
                     {
                         "layoutShape": "rect",
@@ -288,7 +288,7 @@
             ["custom", "Custom"]
         ],
         "ObjectType": [
-            ["box", "Cuboid"],
+            ["cuboid", "Cuboid"],
             ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
             ["racetrack", "RaceTrack"],
@@ -349,9 +349,9 @@
         }
     },
     "model": {
-        "box": {
+        "cuboid": {
             "_super": ["_", "model", "geomObject"],
-            "type": ["_", "ObjectType", "box"]
+            "type": ["_", "ObjectType", "cuboid"]
         },
         "cee": {
             "_super": ["_", "model", "stemmed"],
@@ -395,7 +395,7 @@
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
             "magnetMaterial": ["Material", "MaterialType", "custom"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
-            "magnetObjType": ["Shape", "ObjectType", "box"],
+            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
             "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
         },
         "extrudedPoly": {
@@ -466,7 +466,7 @@
             "material": ["Material", "MaterialType", "NdFeB"],
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
-            "type": ["Shape Type", "ObjectType", "box"],
+            "type": ["Shape Type", "ObjectType", "cuboid"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
         "geomUndulatorGroup": {
@@ -477,27 +477,35 @@
         },
         "hybridUndulator": {
             "_super": ["_", "model", "undulator"],
+            "magnetArmHeight": ["_", "Float", 1.0],
+            "magnetArmPosition": ["_", "ArmPosition", "0"],
             "magnetBaseObjectId": ["_", "UUID", ""],
             "magnetColor": ["Color", "Color", "#00ffff"],
             "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width, Height"],
-            "magnetDivision": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
+            "magnetSegments": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
             "magnetLength": ["Thickness [mm]", "Float", 18.0, "Period length/2 - pole length"],
             "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Vertical, Beam"],
             "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
             "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
             "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
-            "magnetObjType": ["Shape", "ObjectType", "box"],
+            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
+            "magnetStemWidth": ["_", "Float", 1.0],
+            "magnetStemPosition": ["_", "StemPosition", "0"],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
+            "poleArmHeight": ["_", "Float", 3.0],
+            "poleArmPosition": ["_", "ArmPosition", "1"],
             "poleBaseObjectId": ["_", "UUID", ""],
             "poleColor": ["Color", "Color", "#ff00ff"],
             "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
-            "poleDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
+            "poleSegments": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
             "poleLength": ["Thickness [mm]", "Float", 5.0, "Length along beam axis"],
             "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Vertical, Beam"],
             "poleMaterial": ["Material", "MaterialType", "custom"],
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleObjType": ["Shape", "ObjectType", "box"]
+            "poleObjType": ["Shape", "ObjectType", "ell"],
+            "poleStemWidth": ["_", "Float", 19.5],
+            "poleStemPosition": ["_", "StemPosition", "0"]
         },
         "invertField": {
             "name": ["Name", "String", "Invert Field"]
