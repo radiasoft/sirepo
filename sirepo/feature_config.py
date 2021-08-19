@@ -16,30 +16,28 @@ _DEPENDENT_CODES = [
 
 #: Codes on prod
 PROD_FOSS_CODES = frozenset((
-        'controls',
-        'elegant',
-        'jspec',
-        'madx',
-        'ml',
-        'opal',
-        'radia',
-        'shadow',
-        'srw',
-        'synergia',
-        'warppba',
-        'warpvnd',
-        'zgoubi',
-
+    'controls',
+    'elegant',
+    'jspec',
+    'madx',
+    'ml',
+    'opal',
+    'radia',
+    'shadow',
+    'srw',
+    'synergia',
+    'warppba',
+    'warpvnd',
+    'zgoubi',
 ))
 
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
-        'irad',
-        'myapp',
-        'rcscon',
-        'rs4pi',
-        'silas',
-
+    'irad',
+    'myapp',
+    'rcscon',
+    'rs4pi',
+    'silas',
 ))
 
 #: All possible open source codes

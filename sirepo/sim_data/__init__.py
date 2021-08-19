@@ -126,7 +126,7 @@ class SimDataBase(object):
 
     _EXE_PERMISSIONS = 0o700
 
-    _LIB_REOUSRCE_DIR = 'lib'
+    _LIB_RESOURCE_DIR = 'lib'
 
     @classmethod
     def compute_job_hash(cls, data):
@@ -343,7 +343,7 @@ class SimDataBase(object):
     def lib_file_resource_path(cls, path):
         return sirepo.resource.template_file_path(
             cls.sim_type(),
-            cls._LIB_REOUSRCE_DIR,
+            cls._LIB_RESOURCE_DIR,
         ).join(path)
 
     @classmethod
