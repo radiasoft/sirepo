@@ -462,11 +462,14 @@ def _get_default_drift():
     Returns:
         str: default drift propagation paramters
     """
-    return pkjson.load_any(re.search(
-        r'function defaultDriftPropagationParams.*?return\s*(\[[^\]]+\])',
-        pkio.read_text(sirepo.resource.static('js', 'srw.js')),
-        re.DOTALL,
-    ).group(1))
+    def _search_for_default_drift():
+        return re.search(
+            r'function defaultDriftPropagationParams.*?return\s*(\[[^\]]+\])',
+            pkio.read_text(sirepo.resource.static('js', 'srw.js')),
+            re.DOTALL,
+        ).group(1)
+
+    return pkjson.load_any(_search_for_default_drift())
 
 
 def _get_propagation(op):
