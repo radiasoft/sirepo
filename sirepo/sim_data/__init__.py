@@ -57,6 +57,8 @@ _FRAME_ID_KEYS = (
     'computeJobSerial',
 )
 
+_TEMPLATE_RESOURCE_DIR = 'template'
+
 def get_class(type_or_data):
     """Simulation data class
 
@@ -76,7 +78,7 @@ def get_class(type_or_data):
 
 def resource_path(filename):
     """Path to common (not specific to sim type) resource file"""
-    return sirepo.resource.template_file_path(filename)
+    return sirepo.resource.file_path(_TEMPLATE_RESOURCE_DIR, filename)
 
 
 def template_globals(sim_type=None):
@@ -123,6 +125,8 @@ class SimDataBase(object):
     WATCHPOINT_REPORT = 'watchpointReport'
 
     WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
+
+    _EXAMPLE_RESOURCE_DIR = 'examples'
 
     _EXE_PERMISSIONS = 0o700
 
@@ -194,6 +198,16 @@ class SimDataBase(object):
     @classmethod
     def delete_sim_file(cls, sim_id, basename):
         return cls._delete_sim_db_file(cls._sim_file_uri(sim_id, basename))
+
+    @classmethod
+    def example_paths(cls):
+        import sirepo.simulation_db
+        return sirepo.resource.glob_paths(
+            _TEMPLATE_RESOURCE_DIR,
+            cls.sim_type(),
+            cls._EXAMPLE_RESOURCE_DIR,
+            f'*{sirepo.simulation_db.JSON_SUFFIX}',
+        )
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -341,7 +355,8 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_resource_path(cls, path):
-        return sirepo.resource.template_file_path(
+        return sirepo.resource.file_path(
+            _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
             cls._LIB_RESOURCE_DIR,
         ).join(path)
@@ -496,12 +511,12 @@ class SimDataBase(object):
 
     @classmethod
     def resource_path(cls, filename):
-        """Static resource (package_data) files for simulation
+        """Static resource (package_data) file for simulation
 
         Returns:
-            py.path.local: absolute path to folder
+            py.path.local: absolute path to file
         """
-        return sirepo.resource.template_file_path(cls.sim_type(), filename)
+        return sirepo.resource.file_path(_TEMPLATE_RESOURCE_DIR, cls.sim_type(), filename)
 
     @classmethod
     def schema(cls):
@@ -642,7 +657,12 @@ class SimDataBase(object):
 
         res = PKDict(
             ((f.basename, f) for f in \
-                sirepo.resource.template_lib_paths_for_type(cls.sim_type(), pat)
+                sirepo.resource.glob_paths(
+                    _TEMPLATE_RESOURCE_DIR,
+                    cls.sim_type(),
+                    cls._LIB_RESOURCE_DIR,
+                    pat,
+                )
             )
         )
         if want_user_lib_dir:

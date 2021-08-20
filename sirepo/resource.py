@@ -28,6 +28,22 @@ def file_path(*paths):
     ))
 
 
+def glob_paths(*paths):
+    """Get matching paths
+
+    Args:
+        paths (str): Path components of file
+
+    Returns:
+        [py.path]: paths that match pattern
+    """
+    for f in pkresource.glob_files(
+            os.path.join(*paths),
+            packages=sirepo.feature_config.cfg().package_path,
+    ):
+        yield pkio.py_path(f)
+
+
 def static(*paths, relpath=False, check_input=False):
     """Absolute or relative path to resource static file
 
@@ -59,37 +75,4 @@ def static_paths_for_type(file_type):
     Returns:
         [py.path]: paths that match pattern
     """
-    return _glob('static', file_type, f'*.{file_type}')
-
-
-def template_file_path(*paths):
-    return file_path(os.path.join('template', *paths))
-
-
-def template_lib_paths_for_type(sim_type, file_type):
-    """Get template lib paths of file type for sim type
-
-    Args:
-        sim_type (str): The type of simulation
-        file_type (str): The type of file (ex json)
-
-    Returns:
-        [py.path]: paths that match pattern
-    """
-    return _glob('template', sim_type, 'lib', file_type)
-
-
-def _glob(*paths):
-    """Get matching paths
-
-    Args:
-        paths (str): Path components of file
-
-    Returns:
-        [py.path]: paths that match pattern
-    """
-    for f in pkresource.glob_files(
-            os.path.join(*paths),
-            packages=sirepo.feature_config.cfg().package_path,
-    ):
-        yield pkio.py_path(f)
+    return glob_paths('static', file_type, f'*.{file_type}')

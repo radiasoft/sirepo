@@ -48,8 +48,6 @@ SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 #: where users live under db_dir
 USER_ROOT_DIR = 'user'
 
-#: How to find examples in resources
-_EXAMPLE_DIR = 'examples'
 
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
@@ -145,23 +143,14 @@ def delete_user(uid):
     pkio.unchecked_remove(user_path(uid=uid))
 
 def examples(app):
-    d = None
-    try:
-        d = sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR)
-    except Exception as e:
-        if pkio.exception_is_not_found(e):
-            # Not all sim types have examples (ex jupyterhublogin)
-            return []
-        raise
-    files = pkio.walk_tree(
-        d,
-        re.escape(JSON_SUFFIX) + '$',
-    )
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
     # example data is not fixed-up to avoid performance problems when searching examples by name
     # fixup occurs during save_new_example()
-    return [open_json_file(app, path=str(f), fixup=False) for f in files]
+    return [
+        open_json_file(app, path=str(f), fixup=False) \
+            for f in sirepo.sim_data.get_class(app).example_paths()
+    ]
 
 
 def find_global_simulation(sim_type, sid, checked=False, uid=None):
