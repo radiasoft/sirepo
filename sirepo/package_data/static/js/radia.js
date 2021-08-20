@@ -434,7 +434,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.nextId = function() {
-        return appState.maxId(appState.models.geometryReport.objects, 'id') + 1;
+        // a uuid generator found on the interwebs
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
     };
 
     self.objectBounds = function() {
@@ -1920,7 +1923,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
             $scope.copyPath = function(path) {
                 let copy = appState.clone(path);
                 copy.name = newPathName(copy);
-                copy.id = nextId();
+                copy.id = radiaService.nextId();
                 $scope.paths.push(copy);
                 appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], function () {
                     $scope.editPath(copy);
@@ -1952,10 +1955,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
 
            function newPathName(path) {
                return appState.uniqueName(appState.models.fieldPaths, 'name', path.name + ' {}');
-           }
-
-           function nextId() {
-               return appState.maxId(appState.models.fieldPaths.paths, 'id');
            }
 
            appState.whenModelsLoaded($scope, function() {
@@ -2434,7 +2433,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     }
                     $scope.selectedItem = null;
                     if (! isEditing) {
-                        appState.models[modelName].id = nextId();
+                        appState.models[modelName].id = radiaService.nextId();
                         $scope.field.push(appState.models[modelName]);
                         isEditing = true;
                     }
@@ -2465,10 +2464,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
 
                 $scope.loadItems();
             });
-
-            function nextId() {
-                return appState.maxId($scope.field, 'id') + 1;
-            }
 
             $scope.$emit('drop.target.enabled', false);
         },
@@ -3805,7 +3800,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         updateObjectEditor();
     };
 
-    // move to server?
+    //TODO(mvk): move to server
     function calcExtrusionPoints() {
         $scope.modelData.points = [];
         //const mn = 'extrudedPoly';
