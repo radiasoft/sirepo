@@ -344,11 +344,9 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
     return tx
 
 
-def _build_cuboid(beam_axis, height_axis, **kwargs):
+def _build_cuboid(**kwargs):
     return _update_cuboid(
         _build_geom_obj('cuboid', obj_name=kwargs.get('name')),
-        beam_axis,
-        height_axis,
         **kwargs
     )
 
@@ -491,14 +489,24 @@ def _build_translate_clone(dist):
 def _build_undulator_objects(geom, und, beam_axis, height_axis):
     # arrange objects
     geom.objects = []
-    # loop through object names in schema?
-    half_pole = globals()[f'_build_{und.poleObjType}'](beam_axis, height_axis, name='Half Pole')
+    #TODO(mvk): proper dispatch to replace this temporary branching based on object type
+    # It's going to depend on some other changes
+    if und.poleObjType == 'ell':
+        half_pole = _build_ell(beam_axis, height_axis, name='Half Pole')
+    else:
+        half_pole = _build_cuboid(name='Half Pole')
     geom.objects.append(half_pole)
-    magnet_block = globals()[f'_build_{und.magnetObjType}'](beam_axis, height_axis, name='Magnet Block')
+    if und.magnetObjType == 'ell':
+        magnet_block = _build_ell(beam_axis, height_axis, name='Magnet Block')
+    else:
+        magnet_block = _build_cuboid(name='Magnet Block')
     geom.objects.append(magnet_block)
     und.magnet = magnet_block
     und.magnetBaseObjectId = magnet_block.id
-    pole = globals()[f'_build_{und.poleObjType}'](beam_axis, height_axis, name='Pole')
+    if und.poleObjType == 'ell':
+        pole = _build_ell(beam_axis, height_axis, name='Pole')
+    else:
+        pole = _build_cuboid(name='Pole')
     geom.objects.append(pole)
     und.pole = pole
     und.poleBaseObjectId = pole.id
@@ -711,6 +719,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
             data.models.simulation.heightAxis,
         )
     v.objects = g.get('objects', [])
+    pkdp('OBS AFTER {}', [(o.id, o.name) for o in v.objects])
     _validate_objects(v.objects)
     # read in h-m curves if applicable
     for o in v.objects:
@@ -1048,6 +1057,7 @@ def _validate_objects(objects):
     from numpy import linalg
     for o in objects:
         if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
+            pkdp('{} MAG {}', o.name, o.magnetization)
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
                 raise ValueError(
                     '{}: anisotropic material {} requires non-0 magnetization'.format(
@@ -1085,17 +1095,11 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-def _obj_keys(obj_type):
-    o = PKDict()
-    _SIM_DATA.update_model_defaults(o, obj_type)
-    return o.keys()
-
-
 def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _update_cuboid(cuboid, beam_axis, height_axis, **kwargs):
+def _update_cuboid(cuboid, **kwargs):
     return _update_geom_obj(cuboid, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
 
 
@@ -1169,15 +1173,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     )
 
     # convenient constants
-    pole_dim_half = PKDict({k:v / 2 for k, v in pole_dim.items()})
-    magnet_dim_half = PKDict({k: v / 2 for k, v in magnet_dim.items()})
     gap_half_height = gap_dir * und.gap / 2
     gap_offset = gap_dir * und.gapOffset
-
-    pole_transverse_ctr = pole_dim_half.width / 2 - \
-                          (pole_dim_half.height + gap_half_height)
-    magnet_transverse_ctr = magnet_dim_half.width / 2 - \
-                            (gap_offset + magnet_dim_half.height + gap_half_height)
 
     obj_props = PKDict(
         pole=PKDict(
@@ -1185,7 +1182,7 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             arm_pos=und.poleArmPosition,
             color=und.poleColor,
             dim=pole_dim,
-            dim_half=pole_dim_half,
+            dim_half=PKDict({k:v / 2 for k, v in pole_dim.items()}),
             material=und.poleMaterial,
             mat_file=und.poleMaterialFile,
             mag=pole_mag,
@@ -1194,14 +1191,13 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             segs=pole_segs,
             stem_width=und.poleStemWidth,
             stem_pos=und.poleStemPosition,
-            transverse_ctr=pole_transverse_ctr
         ),
         magnet=PKDict(
             arm_height=und.magnetArmHeight,
             arm_pos=und.magnetArmPosition,
             color=und.magnetColor,
             dim=magnet_dim,
-            dim_half=magnet_dim_half,
+            dim_half=PKDict({k: v / 2 for k, v in magnet_dim.items()}),
             material=und.magnetMaterial,
             mat_file=und.magnetMaterialFile,
             mag=mag_mag,
@@ -1210,56 +1206,101 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             segs=mag_segs,
             stem_width=und.magnetStemWidth,
             stem_pos=und.magnetStemPosition,
-            transverse_ctr=magnet_transverse_ctr
         )
     )
+    for k in obj_props.keys():
+        obj_props[k].transverse_ctr = obj_props[k].dim_half.width / 2 - \
+            (obj_props[k].dim_half.height + gap_half_height)
+    obj_props.magnet.transverse_ctr -= gap_offset
 
-    pos = pole_dim_half.length / 2
-    half_pole = globals()[f'_update_{obj_props.pole.obj_type}'](
-        _find_obj_by_name(geom.objects, 'Half Pole'),
-        beam_axis,
-        height_axis,
-        center=pole_transverse_ctr + pos,
-        size=pole_dim_half.width + pole_dim.height + pole_dim_half.length,
-        segments=obj_props.pole.segs,
-        magnetization=pole_mag,
-        material=obj_props.pole.material,
-        materialFile=obj_props.pole.mat_file,
-        remanentMag=obj_props.pole.rem_mag,
-        color=obj_props.pole.color
+    half_pole = _find_obj_by_name(geom.objects, 'Half Pole')
+    props = obj_props.pole
+    pos = props.dim_half.length / 2
+    half_pole = _update_geom_obj(
+        half_pole,
+        center=props.transverse_ctr + pos,
+        color=props.color,
+        magnetization=props.mag,
+        material=props.material,
+        materialFile=props.mat_file,
+        remanentMag=props.rem_mag,
+        size=props.dim_half.width + props.dim.height + props.dim_half.length,
     )
+    if props.obj_type == 'ell':
+        half_pole = _update_ell(
+            half_pole,
+            beam_axis,
+            height_axis,
+            armHeight=props.arm_height,
+            armPosition=props.arm_pos,
+            stemWidth=props.stem_width,
+            stemPosition=props.stem_pos
+        )
+    else:
+        half_pole = _update_cuboid(
+            half_pole,
+            segments=props.segs,
+        )
 
-    pos += (pole_dim_half.length / 2 + magnet_dim_half.length)
-    magnet_block = globals()[f'_update_{obj_props.magnet.obj_type}'](
-        _find_obj_by_name(geom.objects, 'Magnet Block'),
-        beam_axis,
-        height_axis,
-        center=magnet_transverse_ctr + pos,
-        size=magnet_dim_half.width + magnet_dim.height + magnet_dim.length,
-        segments=obj_props.magnet.segs,
-        magnetization=mag_mag,
-        material=obj_props.magnet.material,
-        materialFile=obj_props.magnet.mat_file,
-        remanentMag=obj_props.magnet.rem_mag,
-        color=obj_props.magnet.color
+    pos += (obj_props.pole.dim_half.length / 2 + obj_props.magnet.dim_half.length)
+    magnet_block = _find_obj_by_name(geom.objects, 'Magnet Block')
+    props = obj_props.magnet
+    magnet_block = _update_geom_obj(
+        magnet_block,
+        center=props.transverse_ctr + pos,
+        color=props.color,
+        magnetization=props.mag,
+        material=props.material,
+        materialFile=props.mat_file,
+        remanentMag=props.rem_mag,
+        size=props.dim_half.width + props.dim.height + props.dim.length,
     )
+    if props.obj_type == 'ell':
+        magnet_block = _update_ell(
+            magnet_block,
+            beam_axis,
+            height_axis,
+            armHeight=props.arm_height,
+            armPosition=props.arm_pos,
+            stemWidth=props.stem_width,
+            stemPosition=props.stem_pos
+        )
+    else:
+        magnet_block = _update_cuboid(
+            magnet_block,
+            segments = props.segs
+        )
     und.magnetBaseObjectId = magnet_block.id
     obj_props.magnet.bevels = magnet_block.get('bevels', [])
 
-    pos += (pole_dim_half.length + magnet_dim_half.length)
-    pole = globals()[f'_update_{obj_props.pole.obj_type}'](
-        _find_obj_by_name(geom.objects, 'Pole'),
-        beam_axis,
-        height_axis,
-        center=pole_transverse_ctr + pos,
-        size=pole_dim_half.width + pole_dim.height + pole_dim.length,
-        segments=obj_props.pole.segs,
-        magnetization=pole_mag,
-        material=obj_props.pole.material,
-        materialFile=obj_props.pole.mat_file,
-        remanentMag=obj_props.pole.rem_mag,
-        color=obj_props.pole.color
+    pos += (obj_props.pole.dim_half.length + obj_props.magnet.dim_half.length)
+    pole = _find_obj_by_name(geom.objects, 'Pole')
+    props = obj_props.pole
+    pole = _update_geom_obj(
+        pole,
+        center=props.transverse_ctr + pos,
+        color=props.color,
+        magnetization=props.mag,
+        material=props.material,
+        materialFile=props.mat_file,
+        remanentMag=props.rem_mag,
+        size=props.dim_half.width + props.dim.height + props.dim.length,
     )
+    if props.obj_type == 'ell':
+        pole = _update_ell(
+            pole,
+            beam_axis,
+            height_axis,
+            armHeight=props.arm_height,
+            armPosition=props.arm_pos,
+            stemWidth=props.stem_width,
+            stemPosition=props.stem_pos
+        )
+    else:
+        pole = _update_cuboid(
+            pole,
+            segments=props.segs,
+        )
     und.poleBaseObjectId = pole.id
     obj_props.pole.bevels = pole.get('bevels', [])
     half_pole.bevels = obj_props.pole.bevels.copy()
@@ -1272,35 +1313,47 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             [_build_translate_clone(beam_dir * und.periodLength / 2)]
         )]
 
-    pos = pole_dim_half.length + \
+    pos = obj_props.pole.dim_half.length + \
         beam_dir * (und.numPeriods * und.periodLength / 2)
 
     oct_grp = _find_obj_by_name(geom.objects, 'Octant')
 
     # rebuild the termination group
-    geom.objects[:] = [
-        o for i, o in enumerate(geom.objects) if \
-        o.name not in [_undulator_termination_name(i, n[0]) for n in _SCHEMA.enum.TerminationType]
-    ]
+    old_terms = []
+    for i, o in enumerate(geom.objects):
+        old_terms.extend([_undulator_termination_name(i, n[0]) for n in _SCHEMA.enum.TerminationType])
+    geom.objects[:] = [o for o in geom.objects if o.name not in old_terms]
     terms = []
     num_term_mags = 0
     for i, t in enumerate(und.terminations):
         l = t.length * beam_dir
         pos += (t.airGap + l / 2) * beam_dir
         props = obj_props[t.type]
-        o = _build_cuboid(
-            beam_axis,
-            height_axis,
+        o = _update_geom_obj(
+            _build_geom_obj(props.obj_type, _undulator_termination_name(i, t.type), props.color),
             center=props.transverse_ctr + pos,
-            size=props.dim_half.width + props.dim.height + l,
-            segments=props.segs,
             material=props.material,
             materialFile=props.mat_file,
-            magnetization=_ZERO if t.type == 'pole' else (-1) ** (und.numPeriods + num_term_mags) * props.mag,
+            magnetization=_ZERO if t.type == 'pole' else (-1) ** (
+                        und.numPeriods + num_term_mags) * props.mag,
             remanentMag=props.rem_mag,
-            name=_undulator_termination_name(i, t.type),
-            color=props.color
+            size=props.dim_half.width + props.dim.height + l,
         )
+        if props.obj_type == 'ell':
+            o = _update_ell(
+                o,
+                beam_axis,
+                height_axis,
+                armHeight=props.arm_height,
+                armPosition=props.arm_pos,
+                stemWidth=props.stem_width,
+                stemPosition=props.stem_pos
+            )
+        else:
+            o = _update_cuboid(
+                o,
+                segments=props.segs
+            )
         o.bevels = props.bevels
         terms.append(o)
         pos += l / 2
@@ -1329,6 +1382,8 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
         d.update(delim_fields)
     for k in d:
         v = kwargs.get(k)
+        if o[k] is not None and v is None:
+            continue
         o[k] = _delim_string(val=v, default_val=d[k])
         # remove the key from kwargs so it doesn't conflict with the update
         if v is not None:
