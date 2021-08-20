@@ -703,28 +703,26 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.exampleName = data.models.simulation.get('exampleName', None)
     v.is_raw = v.exampleName in _SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
-    wd, hd, bd = _geom_directions(
-        data.models.simulation.beamAxis,
-        data.models.simulation.heightAxis
-    )
+    v.beam_axis = data.models.simulation.beamAxis
+    v.height_axis = data.models.simulation.heightAxis
+    wd, hd, bd = _geom_directions(v.beam_axis, v.height_axis)
     v.width_dir = wd.tolist()
     v.height_dir = hd.tolist()
     v.beam_dir = bd.tolist()
-    v.beam_axis = data.models.simulation.beamAxis
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(
             g,
             data.models.hybridUndulator,
-            data.models.simulation.beamAxis,
-            data.models.simulation.heightAxis,
+            v.beam_axis,
+            v.height_axis,
         )
     v.objects = g.get('objects', [])
-    pkdp('OBS AFTER {}', [(o.id, o.name) for o in v.objects])
     _validate_objects(v.objects)
-    # read in h-m curves if applicable
+
     for o in v.objects:
         if o.get('type'):
             o.super_classes = _SCHEMA.model[o.type]._super
+        # read in h-m curves if applicable
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
             o.get('material', None) and o.material == 'custom' and \
             o.get('materialFile', None) and o.materialFile else None
@@ -1057,10 +1055,9 @@ def _validate_objects(objects):
     from numpy import linalg
     for o in objects:
         if 'material' in o and o.material in _SCHEMA.constants.anisotropicMaterials:
-            pkdp('{} MAG {}', o.name, o.magnetization)
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
                 raise ValueError(
-                    '{}: anisotropic material {} requires non-0 magnetization'.format(
+                    'name={}, : material={}: anisotropic material requires non-0 magnetization'.format(
                         o.name, o.material
                     )
                 )
@@ -1105,6 +1102,11 @@ def _update_cuboid(cuboid, **kwargs):
 
 def _update_ell(ell, beam_axis, height_axis, **kwargs):
     ell = _update_geom_obj(ell, **kwargs)
+    _update_ell_points(ell, beam_axis, height_axis)
+    return ell
+
+
+def _update_ell_points(ell, beam_axis, height_axis):
     w, h, b = _geom_directions(beam_axis, height_axis)
     ctr = sirepo.util.split_comma_delimited_string(ell.center, float)
     sz = sirepo.util.split_comma_delimited_string(ell.size, float)
@@ -1134,7 +1136,6 @@ def _update_ell(ell, beam_axis, height_axis, **kwargs):
     if w.tolist().index(1) != (b.tolist().index(1) + 1) % 3:
         ell.points.reverse()
 
-    return ell
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
 
@@ -1145,20 +1146,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
 
     pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(und.magnetCrossSection, float)
-
-    # put the magnetization and segmentation in the correct order
-    pole_mag = dir_matrix.dot(
-        sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
-    )
-    mag_mag = dir_matrix.dot(
-        sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
-    )
-    pole_segs = dir_matrix.dot(
-        sirepo.util.split_comma_delimited_string(und.poleSegments, int)
-    )
-    mag_segs = dir_matrix.dot(
-        sirepo.util.split_comma_delimited_string(und.magnetSegments, int)
-    )
 
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
@@ -1176,6 +1163,7 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     gap_half_height = gap_dir * und.gap / 2
     gap_offset = gap_dir * und.gapOffset
 
+    # put the magnetization and segmentation in the correct order below
     obj_props = PKDict(
         pole=PKDict(
             arm_height=und.poleArmHeight,
@@ -1185,10 +1173,14 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             dim_half=PKDict({k:v / 2 for k, v in pole_dim.items()}),
             material=und.poleMaterial,
             mat_file=und.poleMaterialFile,
-            mag=pole_mag,
+            mag=dir_matrix.dot(
+                sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
+            ),
             obj_type=und.poleObjType,
             rem_mag=und.poleRemanentMag,
-            segs=pole_segs,
+            segs=dir_matrix.dot(
+                sirepo.util.split_comma_delimited_string(und.poleSegments, int)
+            ),
             stem_width=und.poleStemWidth,
             stem_pos=und.poleStemPosition,
         ),
@@ -1200,10 +1192,14 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             dim_half=PKDict({k: v / 2 for k, v in magnet_dim.items()}),
             material=und.magnetMaterial,
             mat_file=und.magnetMaterialFile,
-            mag=mag_mag,
+            mag=dir_matrix.dot(
+                sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
+            ),
             obj_type=und.magnetObjType,
             rem_mag=und.magnetRemanentMag,
-            segs=mag_segs,
+            segs=dir_matrix.dot(
+                sirepo.util.split_comma_delimited_string(und.magnetSegments, int)
+            ),
             stem_width=und.magnetStemWidth,
             stem_pos=und.magnetStemPosition,
         )
