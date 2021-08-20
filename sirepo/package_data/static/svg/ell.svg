@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg class="sr-beamline-item-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="32" height="31.813" viewBox="0, 0, 32, 31.813">
+  <g id="Layer_1">
+    <g id="Ell">
+    <path d="M0,7.813 L9.858,8 L10.065,23.935 L24,23.935 L24,31.813 L0,31.813 L0,7.813 z" fill="#97B6D5" id="Front"/>
+    <path d="M12.093,0 L20.913,0 L9.858,8 L0,8 L12.093,0 z" fill="#526374" id="Top1"/>
+    <path d="M24,31.813 L24,23.935 L32,12.601 L32,19.813 L24,31.813 z" fill="#7581A1" id="Side1"/>
+    <path d="M21.099,12.601 L32,12.601 L24,23.935 L10.065,23.935 L21.099,12.601 z" fill="#526374" id="Top2"/>
+    <path d="M10.065,23.935 L9.858,8 L20.913,0 L21.099,12.601 L10.065,23.935 z" fill="#7581A1" id="Side2"/>
+    </g>
+  </g>
+</svg>
