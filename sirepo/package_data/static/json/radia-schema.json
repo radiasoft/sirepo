@@ -132,6 +132,13 @@
                         "type": "cuboid"
                     },
                     {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "ell",
+                        "title": "L-Bend",
+                        "type": "ell"
+                    },
+                    {
                         "layoutShape": "rect",
                         "model": "geomGroup",
                         "title": "Group",
@@ -398,6 +405,10 @@
             "magnetObjType": ["Shape", "ObjectType", "cuboid"],
             "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
         },
+        "ell": {
+            "_super": ["_", "model", "stemmed"],
+            "type": ["_", "ObjectType", "ell"]
+        },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
             "points": ["Points", "Points", []]
@@ -437,10 +448,6 @@
             "fileModel": ["File", "PtsFile", ""],
             "fileName": ["File Name", "String", ""],
             "type": ["_", "PathType", "file"]
-        },
-        "ell": {
-            "_super": ["_", "model", "stemmed"],
-            "type": ["_", "ObjectType", "ell"]
         },
         "geometryReport": {
             "doGenerate": ["_", "Boolean", "1"],
