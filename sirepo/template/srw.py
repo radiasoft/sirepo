@@ -36,8 +36,6 @@ import zipfile
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-WANT_BROWSER_FRAME_CACHE = False
-
 PARSED_DATA_ATTR = 'srwParsedData'
 
 _CANVAS_MAX_SIZE = 65535
@@ -2024,8 +2022,9 @@ def _update_report_range(report, ar2d, x_range, y_range):
     y = np.linspace(y_range[0], y_range[1], int(y_range[2]))
     xsel = ((x >= x_left) & (x <= x_right))
     ysel = ((y >= y_left) & (y <= y_right))
+    ar2d = np.compress(xsel, np.compress(ysel, ar2d, axis=0), axis=1)
     return (
-        np.compress(xsel, np.compress(ysel, ar2d, axis=0), axis=1),
+        ar2d,
         [x_left, x_right, np.shape(ar2d)[1]],
         [y_left, y_right, np.shape(ar2d)[0]],
     )
