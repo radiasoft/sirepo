@@ -23,7 +23,7 @@ def file_path(*paths):
         py.path: absolute path to resource file
     """
     return pkio.py_path(pkresource.filename(
-        os.path.join(*paths),
+        _join_paths(paths),
         packages=sirepo.feature_config.cfg().package_path,
     ))
 
@@ -38,30 +38,25 @@ def glob_paths(*paths):
         [py.path]: paths that match pattern
     """
     for f in pkresource.glob_files(
-            os.path.join(*paths),
+            _join_paths(paths),
             packages=sirepo.feature_config.cfg().package_path,
     ):
         yield pkio.py_path(f)
 
 
-def static(*paths, relpath=False):
+def static(*paths):
     """Absolute or relative path to resource static file
 
     Args:
         paths (str): Path components of file
-        relpath (bool): If True path is relative to package package_data dir
 
     Returns:
         py.path: path to file
     """
-    p = pkresource.filename(
-        os.path.join('static', *paths),
+    return pkio.py_path(pkresource.filename(
+        static_url(*paths),
         packages=sirepo.feature_config.cfg().package_path,
-        relpath=relpath
-    )
-    if not relpath:
-        p = pkio.py_path(p)
-    return p
+    ))
 
 
 def static_paths_for_type(file_type):
@@ -74,3 +69,21 @@ def static_paths_for_type(file_type):
         [py.path]: paths that match pattern
     """
     return glob_paths('static', file_type, f'*.{file_type}')
+
+
+def static_url(*paths):
+    """Get url for static file
+
+    Args:
+        paths (str): Path components of file
+
+    Returns:
+        str: url for file
+    """
+    return _join_paths(['static', *paths])
+
+
+def _join_paths(paths):
+    a = [p for p in paths if os.path.isabs(p)]
+    assert not a, f'absolute paths={a} in paths={paths}'
+    return os.path.join(*paths)

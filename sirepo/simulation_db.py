@@ -820,14 +820,13 @@ def _files_in_schema(schema):
     Returns:
         str: combined list of local and external file paths, mapped by type
     """
-    paths = PKDict()
+    paths = PKDict(css=[], js=[])
     for source, path in (('externalLibs', 'ext'), ('sirepoLibs', '')):
-        for file_type in schema[source]:
-            if file_type not in paths:
-                paths[file_type] = []
-            paths[file_type].extend(map(lambda file_name:
-                    _pkg_relative_path_static(file_type + '/' + path, file_name),
-                    schema[source][file_type]))
+        for file_type, files in schema[source].items():
+            for f in files:
+                paths[file_type].append(
+                    sirepo.resource.static_url(file_type, path, f),
+                )
     return paths
 
 
@@ -966,21 +965,6 @@ def _unnest_subclasses(schema, item, key, subclass_keys):
     assert sub_key in item_schema, util.err(sub_key, 'No such superclass')
     subclass_keys.append(sub_key)
     _unnest_subclasses(schema, item, sub_key, subclass_keys)
-
-
-def _pkg_relative_path_static(file_dir, file_name):
-    """Path to a file under /static, relative to the package_data directory
-
-    Args:
-        file_dir (str): sub-directory of package_data/static
-        file_name (str): name of the file
-
-    Returns:
-        str: full relative path of the file
-    """
-    # POSIT: static files outside of Sirepo use the same path structure relative
-    # to the static dir
-    return '/' + sirepo.resource.static(file_dir, file_name, relpath=True)
 
 
 def _random_id(parent_dir, simulation_type=None, uid=None):
