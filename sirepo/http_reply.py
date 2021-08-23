@@ -18,6 +18,7 @@ import pykern.pkinspect
 import re
 import sirepo.html
 import sirepo.http_request
+import sirepo.resource
 import sirepo.uri
 import sirepo.util
 import werkzeug.exceptions
@@ -246,7 +247,7 @@ def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
     Returns:
         Flask.Response: reply
     """
-    p = simulation_db.STATIC_FOLDER.join('{}/{}.{}'.format(ext, base, ext))
+    p = sirepo.resource.static(ext, f'{base}.{ext}')
     r = flask.Response(
         pkjinja.render_file(p, j2_ctx, strict_undefined=True),
         mimetype=MIME_TYPE[ext],

@@ -13,15 +13,16 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
-from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc
 import hashlib
-import importlib
 import inspect
 import re
 import requests
+import sirepo.const
+import sirepo.feature_config
 import sirepo.job
+import sirepo.resource
 import sirepo.template
 import sirepo.util
 
@@ -56,6 +57,8 @@ _FRAME_ID_KEYS = (
     'computeJobSerial',
 )
 
+_TEMPLATE_RESOURCE_DIR = 'template'
+
 def get_class(type_or_data):
     """Simulation data class
 
@@ -64,20 +67,18 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    return importlib.import_module(
-        '.' + sirepo.template.assert_sim_type(
-            type_or_data['simulationType'] if isinstance(
-                type_or_data,
-                dict,
-            ) else type_or_data
-        ),
-        __name__,
-    ).SimData
+    s = sirepo.template.assert_sim_type(
+        type_or_data.simulationType if isinstance(
+            type_or_data,
+            PKDict,
+        ) else type_or_data,
+    )
+    return sirepo.util.import_submodule('sim_data.' + s).SimData
 
 
-def resource_dir():
-    """root directory for template resources"""
-    return pkio.py_path(pkresource.filename('template'))
+def resource_path(filename):
+    """Path to common (not specific to sim type) resource file"""
+    return sirepo.resource.file_path(_TEMPLATE_RESOURCE_DIR, filename)
 
 
 def template_globals(sim_type=None):
@@ -125,7 +126,11 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
+    _EXAMPLE_RESOURCE_DIR = 'examples'
+
     _EXE_PERMISSIONS = 0o700
+
+    _LIB_RESOURCE_DIR = 'lib'
 
     @classmethod
     def compute_job_hash(cls, data):
@@ -193,6 +198,15 @@ class SimDataBase(object):
     @classmethod
     def delete_sim_file(cls, sim_id, basename):
         return cls._delete_sim_db_file(cls._sim_file_uri(sim_id, basename))
+
+    @classmethod
+    def example_paths(cls):
+        return sirepo.resource.glob_paths(
+            _TEMPLATE_RESOURCE_DIR,
+            cls.sim_type(),
+            cls._EXAMPLE_RESOURCE_DIR,
+            f'*{sirepo.const.JSON_SUFFIX}',
+        )
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -339,8 +353,12 @@ class SimDataBase(object):
         return re.sub(r'^.*?-.*?\.(.+\..+)$', r'\1', basename)
 
     @classmethod
-    def lib_file_resource_dir(cls):
-        return cls._memoize(cls.resource_dir().join('lib'))
+    def lib_file_resource_path(cls, path):
+        return sirepo.resource.file_path(
+            _TEMPLATE_RESOURCE_DIR,
+            cls.sim_type(),
+            cls._LIB_RESOURCE_DIR,
+        ).join(path)
 
     @classmethod
     def lib_file_write_path(cls, basename):
@@ -491,17 +509,13 @@ class SimDataBase(object):
         return cls._put_sim_db_file(file_path, cls._sim_file_uri(sim_id, basename))
 
     @classmethod
-    def resource_dir(cls):
-        return cls._memoize(resource_dir().join(cls.sim_type()))
-
-    @classmethod
     def resource_path(cls, filename):
-        """Static resource (package_data) files for simulation
+        """Static resource (package_data) file for simulation
 
         Returns:
-            py.path.local: absolute path to folder
+            py.path.local: absolute path to file
         """
-        return cls.resource_dir().join(filename)
+        return sirepo.resource.file_path(_TEMPLATE_RESOURCE_DIR, cls.sim_type(), filename)
 
     @classmethod
     def schema(cls):
@@ -614,7 +628,7 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
 
-        p = [cls.lib_file_resource_dir().join(basename)]
+        p = [cls.lib_file_resource_path(basename)]
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
                 p = pkio.py_path(basename)
@@ -640,14 +654,24 @@ class SimDataBase(object):
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        res = PKDict()
-        x = [cls.lib_file_resource_dir()]
+        res = PKDict(
+            ((f.basename, f) for f in \
+                sirepo.resource.glob_paths(
+                    _TEMPLATE_RESOURCE_DIR,
+                    cls.sim_type(),
+                    cls._LIB_RESOURCE_DIR,
+                    pat,
+                )
+            )
+        )
         if want_user_lib_dir:
             # lib_dir overwrites resource_dir
-            x.append(simulation_db.simulation_lib_dir(cls.sim_type()))
-        for d in x:
-            for f in pkio.sorted_glob(d.join(pat)):
-                res[f.basename] = f
+            res.update(
+                (f.basename, f) for f in \
+                    pkio.sorted_glob(
+                        simulation_db.simulation_lib_dir(cls.sim_type()).join(pat),
+                    )
+            )
         return res.values()
 
     @classmethod
