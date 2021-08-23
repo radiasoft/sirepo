@@ -548,10 +548,7 @@ def api_staticFile(path_info=None):
     """
     if not path_info:
         sirepo.util.raise_not_found('empty path info')
-    # SECURITY: Use check_input to verify that the path does not escape the
-    # static dir.
-    p = sirepo.resource.static(path_info, check_input=True)
-    r = None
+    p = sirepo.resource.static(sirepo.util.safe_path(path_info))
     if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):
         return http_reply.headers_for_cache(
             flask.make_response(

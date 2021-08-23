@@ -44,20 +44,18 @@ def glob_paths(*paths):
         yield pkio.py_path(f)
 
 
-def static(*paths, relpath=False, check_input=False):
+def static(*paths, relpath=False):
     """Absolute or relative path to resource static file
 
     Args:
         paths (str): Path components of file
         relpath (bool): If True path is relative to package package_data dir
-        check_input (bool): Make sure that the path given does not escape the static dir
 
     Returns:
         py.path: path to file
     """
     p = pkresource.filename(
-        sirepo.util.safe_path('static', *paths) if check_input \
-            else os.path.join('static', *paths),
+        os.path.join('static', *paths),
         packages=sirepo.feature_config.cfg().package_path,
         relpath=relpath
     )
