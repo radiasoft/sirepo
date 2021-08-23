@@ -16,10 +16,10 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc
 import hashlib
-import importlib
 import inspect
 import re
 import requests
+import sirepo.const
 import sirepo.feature_config
 import sirepo.job
 import sirepo.resource
@@ -201,12 +201,11 @@ class SimDataBase(object):
 
     @classmethod
     def example_paths(cls):
-        import sirepo.simulation_db
         return sirepo.resource.glob_paths(
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
             cls._EXAMPLE_RESOURCE_DIR,
-            f'*{sirepo.simulation_db.JSON_SUFFIX}',
+            f'*{sirepo.const.JSON_SUFFIX}',
         )
 
     @classmethod

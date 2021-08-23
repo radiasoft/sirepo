@@ -26,6 +26,7 @@ import os.path
 import random
 import re
 import sirepo.auth
+import sirepo.const
 import sirepo.job
 import sirepo.resource
 import sirepo.srdb
@@ -36,14 +37,11 @@ import time
 
 JOB_RUN_MODE_MAP = None
 
-#: Json files
-JSON_SUFFIX = '.json'
-
 #: Schema common values, e.g. version
 SCHEMA_COMMON = None
 
 #: Simulation file name is globally unique to avoid collisions with simulation output
-SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
+SIMULATION_DATA_FILE = 'sirepo-data' + sirepo.const.JSON_SUFFIX
 
 #: where users live under db_dir
 USER_ROOT_DIR = 'user'
@@ -71,7 +69,7 @@ _REL_LIB_DIR = '../' + _LIB_DIR
 _OLDEST_VERSION = '20140101.000001'
 
 #: Absolute path of rsmanifest file
-_RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + JSON_SUFFIX)
+_RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + sirepo.const.JSON_SUFFIX)
 
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = PKDict()
@@ -127,7 +125,7 @@ def default_data(sim_type):
 
     return open_json_file(
         sim_type,
-        path=sirepo.sim_data.get_class(sim_type).resource_path(f'default-data{JSON_SUFFIX}')
+        path=sirepo.sim_data.get_class(sim_type).resource_path(f'default-data{sirepo.const.JSON_SUFFIX}')
     )
 
 
@@ -275,7 +273,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
 
 
 def json_filename(filename, run_dir=None):
-    """Append JSON_SUFFIX if necessary and convert to str
+    """Append sirepo.const.JSON_SUFFIX if necessary and convert to str
 
     Args:
         filename (py.path or str): to convert
@@ -284,8 +282,8 @@ def json_filename(filename, run_dir=None):
         py.path: filename.json
     """
     filename = str(filename)
-    if not filename.endswith(JSON_SUFFIX):
-        filename += JSON_SUFFIX
+    if not filename.endswith(sirepo.const.JSON_SUFFIX):
+        filename += sirepo.const.JSON_SUFFIX
     if run_dir and not os.path.isabs(filename):
         filename = run_dir.join(filename)
     return pkio.py_path(path=filename)
@@ -464,7 +462,7 @@ def read_json(filename):
     """Read data from json file
 
     Args:
-        filename (py.path or str): will append JSON_SUFFIX if necessary
+        filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
 
     Returns:
         object: json converted to python
@@ -797,7 +795,7 @@ def write_json(filename, data):
     pretty is true.
 
     Args:
-        filename (py.path or str): will append JSON_SUFFIX if necessary
+        filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
     """
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
@@ -863,7 +861,7 @@ def _init():
 
 def _init_schemas():
     global SCHEMA_COMMON
-    SCHEMA_COMMON = json_load(sirepo.resource.static('json', f'schema-common{JSON_SUFFIX}'))
+    SCHEMA_COMMON = json_load(sirepo.resource.static('json', f'schema-common{sirepo.const.JSON_SUFFIX}'))
     a = SCHEMA_COMMON.appInfo
     for t in sirepo.feature_config.cfg().sim_types:
         s = read_json(sirepo.resource.static('json', f'{t}-schema.json'))
