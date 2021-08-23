@@ -5,7 +5,6 @@ u"""Functions for accessing resource files
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdp
 import os
@@ -22,10 +21,10 @@ def file_path(*paths):
     Returns:
         py.path: absolute path to resource file
     """
-    return pkio.py_path(pkresource.filename(
+    return pkresource.file_path(
         _join_paths(paths),
         packages=sirepo.feature_config.cfg().package_path,
-    ))
+    )
 
 
 def glob_paths(*paths):
@@ -37,11 +36,10 @@ def glob_paths(*paths):
     Returns:
         [py.path]: paths that match pattern
     """
-    for f in pkresource.glob_files(
+    return pkresource.glob_paths(
             _join_paths(paths),
             packages=sirepo.feature_config.cfg().package_path,
-    ):
-        yield pkio.py_path(f)
+    )
 
 
 def static(*paths):
@@ -53,10 +51,7 @@ def static(*paths):
     Returns:
         py.path: path to file
     """
-    return pkio.py_path(pkresource.filename(
-        static_url(*paths),
-        packages=sirepo.feature_config.cfg().package_path,
-    ))
+    return file_path(static_url(*paths))
 
 
 def static_paths_for_type(file_type):
@@ -68,7 +63,7 @@ def static_paths_for_type(file_type):
     Returns:
         [py.path]: paths that match pattern
     """
-    return glob_paths('static', file_type, f'*.{file_type}')
+    return glob_paths(static_url(file_type, f'*.{file_type}'))
 
 
 def static_url(*paths):
