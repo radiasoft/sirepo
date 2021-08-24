@@ -384,7 +384,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         import pykern.pkjson
         import sirepo.template.srw_common
 
-        f = cls.resource_path(sirepo.template.srw_common.PREDEFINED_JSON)
+        f = cls.resource_path('').join(sirepo.template.srw_common.PREDEFINED_JSON)
         if not f.check():
             assert pkconfig.channel_in('dev'), \
                 '{}: not found; call "sirepo srw create-predefined" before pip install'.format(f)

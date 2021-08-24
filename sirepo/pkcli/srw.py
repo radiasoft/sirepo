@@ -62,7 +62,7 @@ def create_predefined(out_dir=None):
         )
 
     p = srw_common.PREDEFINED_JSON
-    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path(p)
+    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path('').join(p)
     pykern.pkjson.dump_pretty(
         PKDict(
             beams=beams,
