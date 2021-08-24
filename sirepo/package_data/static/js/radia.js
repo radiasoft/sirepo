@@ -1147,9 +1147,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         $scope.$on('modelChanged', (e, modelName) => {
             let m = appState.models[modelName];
             if (modelName === 'fieldPaths') {
-                const rpt= 'fieldLineoutReport';
+                const rpt = 'fieldLineoutReport';
                 for (let r of appState.models.fieldPaths.paths) {
-                    if (r.name !== appState.models[rpt].fieldPath.name) {
+                    const currentPath = appState.models[rpt].fieldPath;
+                    if ((currentPath && ! $.isEmptyObject(currentPath)) && r.name !== currentPath.name) {
                         continue;
                     }
                     appState.models[rpt].fieldPath = r;
