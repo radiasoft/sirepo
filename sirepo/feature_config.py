@@ -9,8 +9,9 @@ from __future__ import absolute_import, division, print_function
 
 #: Codes that depend on other codes. [x][0] depends on [x][1]
 _DEPENDENT_CODES = [
-    ['jspec', 'elegant'],
-    ['controls', 'madx'],
+        ['jspec', 'elegant'],
+        ['controls', 'madx'],
+
 ]
 
 #: Codes on prod
@@ -40,17 +41,7 @@ _NON_PROD_FOSS_CODES = frozenset((
 ))
 
 #: All possible open source codes
-_FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
-
-#: codes for which we default to giving the user authorization but it can be revoked
-_DEFAULT_PROPRIETARY_CODES = frozenset(('jupyterhublogin',))
-
-#: codes for which we require dynamically loaded binaries
-_PROPRIETARY_CODES = frozenset(('flash',))
-
-#: all executable codes
-VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _DEFAULT_PROPRIETARY_CODES)
-
+FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
 #: Configuration
 _cfg = None
@@ -112,6 +103,11 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
+        package_path=(
+            tuple(['sirepo']),
+            tuple,
+            'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
+        ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
@@ -133,15 +129,19 @@ def _init():
         f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
-            PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
+            PROD_FOSS_CODES if pkconfig.channel_in('prod') else FOSS_CODES
         )
     )
     s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)
     for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])
-    x = s.difference(VALID_CODES)
-    assert not x, \
-        'sim_type(s) invalid={} expected={}'.format(x, VALID_CODES)
     _cfg.sim_types = frozenset(s)
+    _check_packages(_cfg.package_path)
     return _cfg
+
+
+def _check_packages(packages):
+    import importlib
+    for p in packages:
+        importlib.import_module(p)

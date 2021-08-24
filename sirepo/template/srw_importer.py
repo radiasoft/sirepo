@@ -11,7 +11,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
-from pykern import pkresource
 from pykern import pkrunpy
 from pykern.pkdebug import pkdlog, pkdexc, pkdp
 import ast
@@ -22,7 +21,6 @@ import re
 import srwl_bl
 import sirepo.sim_data
 
-_JS_DIR = py.path.local(pkresource.filename('static/js'))
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('srw')
 
 
@@ -464,9 +462,14 @@ def _get_default_drift():
     Returns:
         str: default drift propagation paramters
     """
-    c = pkio.read_text(_JS_DIR.join('srw.js'))
-    m = re.search(r'function defaultDriftPropagationParams.*?return\s*(\[[^\]]+\])', c, re.DOTALL)
-    return pkjson.load_any(m.group(1))
+    def _search_for_default_drift():
+        return re.search(
+            r'function defaultDriftPropagationParams.*?return\s*(\[[^\]]+\])',
+            pkio.read_text(sirepo.resource.static('js', 'srw.js')),
+            re.DOTALL,
+        ).group(1)
+
+    return pkjson.load_any(_search_for_default_drift())
 
 
 def _get_propagation(op):

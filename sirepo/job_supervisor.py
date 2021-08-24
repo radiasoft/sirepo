@@ -15,11 +15,10 @@ from sirepo import job
 import asyncio
 import contextlib
 import copy
-import datetime
-import os
 import pykern.pkio
 import sirepo.auth
 import sirepo.auth_db
+import sirepo.const
 import sirepo.http_reply
 import sirepo.sim_data
 import sirepo.simulation_db
@@ -27,7 +26,6 @@ import sirepo.srdb
 import sirepo.srtime
 import sirepo.tornado
 import sirepo.util
-import time
 import tornado.ioloop
 import tornado.locks
 
@@ -247,7 +245,7 @@ class _ComputeJob(PKDict):
             u = None
             p = sirepo.auth_db.UserRole.uids_of_paid_users()
             for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
-                    sirepo.simulation_db.JSON_SUFFIX,
+                    sirepo.const.JSON_SUFFIX,
             ))):
                 n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
                 if n in p or f.mtime() > _too_old \
@@ -353,7 +351,7 @@ class _ComputeJob(PKDict):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            computeJid + sirepo.simulation_db.JSON_SUFFIX,
+            computeJid + sirepo.const.JSON_SUFFIX,
         )
 
     def __db_init(self, req, prev_db=None):

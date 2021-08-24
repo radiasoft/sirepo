@@ -14,6 +14,7 @@ import base64
 import concurrent.futures
 import contextlib
 import hashlib
+import importlib
 import inspect
 import numconv
 import pykern.pkinspect
@@ -22,6 +23,7 @@ import pykern.pkjson
 import random
 import sys
 import threading
+import werkzeug.utils
 
 
 cfg = None
@@ -186,6 +188,22 @@ def flask_app():
 
     return flask.current_app or None
 
+
+def import_submodule(submodule):
+    """Import fully qualified module that contains submodule
+
+    sirepo.feature_config.package_path will be searched for a match.
+    """
+    import sirepo.feature_config
+    r = sirepo.feature_config.cfg().package_path
+    for p in r:
+       try:
+        return importlib.import_module(f'{p}.{submodule}')
+       except ModuleNotFoundError:
+           pass
+    raise AssertionError(f'cannot find submodule={submodule} in package_path={r}')
+
+
 def in_flask_request():
     # These are globals but possibly accessed from a threaded context. That is
     # desired so we limit logging between all threads.
@@ -250,6 +268,10 @@ def random_base62(length=32):
     """
     r = random.SystemRandom()
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
+
+
+def safe_path(*paths):
+    return werkzeug.utils.safe_join(*paths)
 
 
 def secure_filename(path):

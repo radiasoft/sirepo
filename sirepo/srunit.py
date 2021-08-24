@@ -40,7 +40,7 @@ def auth_db_session():
         yield
 
 
-def flask_client(cfg=None, sim_types=None, job_run_mode=None):
+def flask_client(cfg=None, sim_types=None, job_run_mode=None, no_chdir_work=False):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -51,6 +51,8 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     Args:
         cfg (dict): extra configuration for reset_state_for_testing
         sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES [CONFTEST_DEFAULT_CODES]
+        no_chdir_work (bool): If True do not save and chdir to the work dir.
+                              The caller is expected to do it before calling this function.
 
     Returns:
         FlaskClient: for local requests to Flask server
@@ -72,7 +74,7 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None):
         pkconfig.reset_state_for_testing(cfg)
 
         from pykern import pkunit
-        with pkunit.save_chdir_work() as wd:
+        with contextlib.nullcontext() if no_chdir_work else pkunit.save_chdir_work():
             from pykern import pkio
             setup_srdb_root(cfg=cfg)
             pkconfig.reset_state_for_testing(cfg)

@@ -45,7 +45,6 @@ def test_srw_2():
 def _t(tests):
     from sirepo.template.srw_importer import import_python
     from pykern import pkio, pkjson
-    from pykern import pkresource
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp
     import glob

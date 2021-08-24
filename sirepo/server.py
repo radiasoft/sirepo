@@ -21,6 +21,7 @@ import contextlib
 import flask
 import re
 import sirepo.db_upgrade
+import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
 import sirepo.uri
@@ -168,9 +169,9 @@ def api_exportArchive(simulation_type, simulation_id, filename):
 @api_perm.allow_visitor
 def api_favicon():
     """Routes to favicon.ico file."""
-    return flask.send_from_directory(
-        static_dir('img'),
-        'favicon.ico',
+    # SECURITY: We control the path of the file so using send_file is ok.
+    return flask.send_file(
+        str(sirepo.resource.static('img', 'favicon.ico')),
         mimetype='image/vnd.microsoft.icon',
     )
 
@@ -540,18 +541,14 @@ def api_srUnit():
 def api_staticFile(path_info=None):
     """flask.send_from_directory for static folder.
 
-    Uses safe_join which doesn't allow indexing, paths with '..',
-    or absolute paths.
-
     Args:
         path_info (str): relative path to join
     Returns:
         flask.Response: flask.send_from_directory response
     """
     if not path_info:
-        raise sirepo.util.raise_not_found('empty path info')
-    p = pkio.py_path(flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info))
-    r = None
+        sirepo.util.raise_not_found('empty path info')
+    p = sirepo.resource.static(sirepo.util.safe_path(path_info))
     if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):
         return http_reply.headers_for_cache(
             flask.make_response(
@@ -654,7 +651,6 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     _app = flask.Flask(
         __name__,
         static_folder=None,
-        template_folder=str(simulation_db.STATIC_FOLDER),
     )
     _app.config['PROPAGATE_EXCEPTIONS'] = True
     _app.sirepo_uwsgi = uwsgi
@@ -682,7 +678,8 @@ def _handle_error(error):
     except Exception:
         error_file = DEFAULT_ERROR_FILE
     return (
-        flask.send_from_directory(static_dir('html'), error_file),
+        # SECURITY: We control the path of the file so using send_file is ok.
+        flask.send_file(str(sirepo.resource.static('html', error_file))),
         status_code,
     )
 
@@ -738,10 +735,6 @@ def _source_cache_key():
     if cfg.enable_source_cache_key:
         return '?{}'.format(simulation_db.app_version())
     return ''
-
-
-def static_dir(dir_name):
-    return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
 cfg = pkconfig.init(

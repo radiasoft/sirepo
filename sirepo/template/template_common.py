@@ -18,6 +18,7 @@ import pykern.pkrunpy
 import re
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -538,11 +539,11 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     Returns:
         str: source text
     """
-    d = sirepo.sim_data.get_class(sim_type).resource_dir() if sim_type \
-        else sirepo.sim_data.resource_dir()
+    # append .jinja, because file may already have an extension
+    b = f'{name}.jinja'
     return pkjinja.render_file(
-        # append .jinja, because file may already have an extension
-        d.join(name) + '.jinja',
+        sirepo.sim_data.get_class(sim_type).resource_path(b) if sim_type \
+            else sirepo.sim_data.resource_path(b),
         v,
         jinja_env=jinja_env
     )
