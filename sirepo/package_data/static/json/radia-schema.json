@@ -300,7 +300,6 @@
             ["v", "Vertical"]
         ],
         "MagnetType": [
-            ["dipole", "C-Bend Dipole"],
             ["freehand", "Freehand"],
             ["undulator", "Undulator"]
         ],
