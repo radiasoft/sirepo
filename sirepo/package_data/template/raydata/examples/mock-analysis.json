@@ -1,0 +1,13 @@
+{
+    "models": {
+        "analysisAnimation": {
+            "notebook": "mock-analysis.ipynb"
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "Mock Analysis"
+        }
+    },
+    "simulationType": "raydata"
+}
