@@ -73,6 +73,14 @@
                 ],
                 "stroke": "black"
             },
+            "jay": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [8, 0], [8, 16], [16, 16], [16, 8], [24, 8], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
             "tee": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -137,6 +145,20 @@
                         "model": "ell",
                         "title": "L-Bend",
                         "type": "ell"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "cee",
+                        "title": "C-Bend",
+                        "type": "cee"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "jay",
+                        "title": "J-Bend",
+                        "type": "jay"
                     },
                     {
                         "layoutShape": "rect",
@@ -298,6 +320,7 @@
             ["cuboid", "Cuboid"],
             ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
+            ["jay", "Extruded J-Bend"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
         ],
@@ -507,6 +530,12 @@
             "poleObjType": ["Shape", "ObjectType", "ell"],
             "poleStemWidth": ["_", "Float", 19.5],
             "poleStemPosition": ["_", "StemPosition", "0"]
+        },
+        "jay": {
+            "_super": ["_", "model", "stemmed"],
+            "hookHeight": ["Hook Height [mm]", "Float", 1.0],
+            "hookWidth": ["Hook Width [mm]", "Float", 1.0],
+            "type": ["_", "ObjectType", "jay"]
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
@@ -914,23 +943,21 @@
         "objectShape": {
             "title": "Object Shape Editor",
             "model": "geomObject",
-            "basic": [
-                "type",
-                "color",
-                "stemmed.armHeight",
-                "stemmed.armPosition",
-                "stemmed.stemWidth",
-                "stemmed.stemPosition",
-                "bevels"
-            ],
+            "basic": [],
             "advanced": [
-                "type",
-                "color",
-                "stemmed.armHeight",
-                "stemmed.armPosition",
-                "stemmed.stemWidth",
-                "stemmed.stemPosition",
-                "bevels"
+                ["Dimensions", [
+                    "type",
+                    "color",
+                    "stemmed.armHeight",
+                    "stemmed.armPosition",
+                    "stemmed.stemWidth",
+                    "stemmed.stemPosition",
+                    "jay.hookHeight",
+                    "jay.hookWidth"
+                ]],
+                ["Modifications", [
+                    "bevels"
+                ]]
             ]
         },
         "racetrack": {

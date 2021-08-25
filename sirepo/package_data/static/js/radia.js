@@ -3739,7 +3739,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['cuboid', 'ell', 'cee'];
+    const availableShapes = ['cuboid', 'ell', 'cee', 'jay'];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);
@@ -3778,25 +3778,27 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, $scope) {
     let ctr = [];
     let modelType = null;
+    let parent = $scope.$parent;
     let size = [];
 
     $scope.modelData = appState.models[$scope.modelName];
+    size = $scope.modelData.size.split(/\s*,\s*/).map((x) => {
+        return parseFloat(x);
+    });
+    ctr = $scope.modelData.center.split(/\s*,\s*/).map((x) => {
+        return parseFloat(x);
+    });
 
     $scope.watchFields = [
         [
             'geomObject.type',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
+            'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
     ];
 
     $scope.whenSelected = function() {
         modelType = appState.models.geomObject.type;
-        size = $scope.modelData.size.split(/\s*,\s*/).map((x) => {
-            return parseFloat(x);
-        });
-        ctr = $scope.modelData.center.split(/\s*,\s*/).map((x) => {
-            return parseFloat(x);
-        });
         updateObjectEditor();
     };
 
@@ -3816,29 +3818,39 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         const doReverse = ai.width !== (ai.depth + 1) % 3
 
         // start with arm top, stem left - then reflect across centroid axes as needed
-        let ax1 = c[0] - s[0] / 2;
-        let ax2 = ax1 + s[0];
-        let ay1 = c[1] + s[1] / 2;
-        let ay2 = ay1 - m.armHeight;
+        const ax1 = c[0] - s[0] / 2;
+        const ax2 = ax1 + s[0];
+        const ay1 = c[1] + s[1] / 2;
+        const ay2 = ay1 - m.armHeight;
 
-        let sx1 = c[0] - s[0] / 2;
-        let sx2 = sx1 + m.stemWidth;
-        let sy = c[1] - s[1] / 2;
-        let sy1 = sy + m.armHeight;
+        const sx1 = c[0] - s[0] / 2;
+        const sx2 = sx1 + m.stemWidth;
+        const sy1 = c[1] - s[1] / 2;
+        const sy2 = sy1 + m.armHeight;
 
         const k = [parseInt(m.stemPosition), parseInt(m.armPosition)];
         let pts = [];
-        if (modelType === 'ell') {
-            pts = [
-                [ax1, ay1], [ax2, ay1], [ax2, ay2],
-                [sx2, ay2], [sx2, sy], [sx1, sy],
-                [ax1, ay1]
-            ];
-        }
         if (modelType === 'cee') {
             pts = [
                 [ax1, ay1], [ax2, ay1], [ax2, ay2],
-                [sx2, ay2], [sx2, sy1], [ax2, sy1], [ax2, sy], [sx1, sy],
+                [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
+                [ax1, ay1]
+            ];
+        }
+        if (modelType === 'ell') {
+            pts = [
+                [ax1, ay1], [ax2, ay1], [ax2, ay2],
+                [sx2, ay2], [sx2, sy1], [sx1, sy1],
+                [ax1, ay1]
+            ];
+        }
+        if (modelType === 'jay') {
+            const j = appState.models.jay;
+            const jx1 = c[0] + s[0] / 2 - j.hookWidth;
+            const jy1 = sy2 + j.hookHeight;
+            pts = [
+                [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
+                [sx2, ay2], [sx2, sy1], [sx1, sy1],
                 [ax1, ay1]
             ];
         }
@@ -3857,16 +3869,20 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     function modelField(f) {
         const m = appState.parseModelField(f);
-        return m ? m : [$scope.$parent.modelName, f];
+        return m ? m : [parent.modelName, f];
     }
 
 
     function updateObjectEditor() {
         modelType = appState.models.geomObject.type;
         calcExtrusionPoints();
-        $scope.$parent.advancedFields.forEach((f) => {
+        parent.activePage.items.forEach((f) => {
             const m = modelField(f);
-            panelState.showField(m[0], m[1], panelState.isSubclass(modelType, m[0]));
+            panelState.showField(
+                m[0],
+                m[1],
+                SIREPO.APP_SCHEMA.model[modelType][m[1]] || panelState.isSubclass(modelType, m[0])
+            );
         });
     }
 });
