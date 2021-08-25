@@ -16,9 +16,6 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
-        '<div data-ng-switch-when="CoordinateSystem" class="col-sm-12">',
-          '<div data-coordinate-system="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
-        '</div>',
         '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
           '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
         '</div>',
@@ -1350,39 +1347,6 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
 
                 $scope.loadItems();
             });
-
-        },
-    };
-});
-
-SIREPO.app.directive('coordinateSystem', function(appState, panelState, radiaService) {
-
-    const inset = 1;
-    const coordSysId = 'sr-coord-sys';
-
-    let w = 64 + 2 * inset;
-    let h = 64 + 2 * inset;
-    let svg = new SIREPO.DOM.SVGContainer(coordSysId, w, h);
-    let rotBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-rot-btn');
-    let reflectHorizBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-refl-h-btn');
-    let reflectVertBtn = new SIREPO.DOM.UIElement('button', 'coord-sys-refl-v-btn');
-
-    // axes are 'x', 'y', 'z'
-    return {
-        restrict: 'A',
-        scope: {
-            axes: '=',
-            field: '=',
-            fieldName: '=',
-            labels: '=',
-            model: '=',
-            modelName: '=',
-            svgObj: '=',
-        },
-        template: [
-            svg.toTemplate(),
-        ].join(''),
-        controller: function($scope, $element) {
 
         },
     };
