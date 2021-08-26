@@ -147,6 +147,7 @@ _TRANSFORMS = PKDict(
 )
 
 
+#TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
 def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
 
     b = numpy.array(beam_dir)
