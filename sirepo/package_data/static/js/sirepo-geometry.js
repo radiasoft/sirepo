@@ -55,7 +55,7 @@ SIREPO.app.service('geometry', function(utilities) {
             }
         }
         return b;
-    }
+    };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
     this.extrema = function(points, dim, doReverse) {

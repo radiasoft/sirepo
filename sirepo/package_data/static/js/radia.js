@@ -433,7 +433,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.nextId = function() {
         // a uuid generator found on the interwebs
         return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
     };
 
@@ -3779,8 +3779,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         const c = [ctr[ai.width], ctr[ai.height]];
         const s = [size[ai.width], size[ai.height]];
         // Radia wants the points in the plane in a specific order
-        const doReverse = ai.width !== (ai.depth + 1) % 3
-        srdbg('REV?', doReverse);
+        const doReverse = ai.width !== (ai.depth + 1) % 3;
 
         // start with arm top, stem left - then reflect across centroid axes as needed
         const ax1 = c[0] - s[0] / 2;
@@ -3794,7 +3793,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         const sy2 = sy1 + m.armHeight;
 
         const k = [parseInt(m.stemPosition), parseInt(m.armPosition)];
-        srdbg('K', k);
         let pts = [];
         if (modelType === 'cee') {
             pts = [
@@ -3820,20 +3818,17 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 [ax1, ay1]
             ];
         }
-        srdbg('PTS 1', pts.slice());
-        pts = pts.map((p) => {
+        $scope.modelData.points = pts.map((p) => {
             return p.map((v, i) => {
                 return 2 * c[i] * k[i] + Math.pow(-1, k[i]) *  v;
             });
-        });
-        srdbg('PTS 2', pts.slice());
-        pts = pts.map((p) => {
+        })
+        .map((p) => {
             if (doReverse) {
                 return p.reverse();
             }
             return p;
         });
-        srdbg('PTS 3', pts);
     }
 
     function modelField(f) {

@@ -352,7 +352,6 @@ def _build_cuboid(**kwargs):
 
 
 def _build_ell(beam_axis, height_axis, **kwargs):
-    pkdp('BLD ELL')
     return _update_ell(
         _build_geom_obj('ell', obj_name=kwargs.get('name')),
         beam_axis,
@@ -1284,7 +1283,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         remanentMag=props.rem_mag,
         size=props.dim_half.width + props.dim.height + props.dim.length,
     )
-    pkdp('UPDATE POLE {}', pole)
     if props.obj_type == 'ell':
         pole = _update_ell(
             pole,
