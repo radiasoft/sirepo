@@ -13,10 +13,11 @@ import srwlpy
 import math
 import srwl_uti_smp
 
-def set_optics(v=None):
+def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
-    names = ['Sample', 'Watchpoint']
+    if not names:
+        names = ['Sample', 'Watchpoint']
     for el_name in names:
         if el_name == 'Sample':
             # Sample: sample 20.0m
@@ -54,7 +55,9 @@ def set_optics(v=None):
         elif el_name == 'Watchpoint':
             # Watchpoint: watch 20.0m
             pass
-    pp.append(v.op_fin_pp)
+    if want_final_propagation:
+        pp.append(v.op_fin_pp)
+
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -301,7 +304,10 @@ varParam = [
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    op = set_optics(v)
+    names = ['Sample','Watchpoint']
+    op = set_optics(v, names, True)
+    v.ws = True
+    v.ws_pl = 'xy'
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True
@@ -312,8 +318,6 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    v.ws = True
-    v.ws_pl = 'xy'
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()

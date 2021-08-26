@@ -62,7 +62,7 @@ def create_predefined(out_dir=None):
         )
 
     p = srw_common.PREDEFINED_JSON
-    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path(p)
+    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path('').join(p)
     pykern.pkjson.dump_pretty(
         PKDict(
             beams=beams,
@@ -109,10 +109,7 @@ def run(cfg_dir):
         ))
     else:
         template_common.write_sequential_result(
-            sirepo.template.srw.extract_report_data(
-                sirepo.template.srw.get_filename_for_model(m),
-                sim_in,
-            ),
+            sirepo.template.srw.extract_report_data(sim_in),
         )
 
 
@@ -122,7 +119,11 @@ def run_background(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
-    template_common.exec_parameters_with_mpi()
+    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if sim_in.report == 'beamlineAnimation':
+        template_common.exec_parameters()
+    else:
+        template_common.exec_parameters_with_mpi()
 
 
 def _cfg_int(lower, upper):

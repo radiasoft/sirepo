@@ -9,7 +9,6 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
-from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
@@ -27,7 +26,9 @@ import os.path
 import random
 import re
 import sirepo.auth
+import sirepo.const
 import sirepo.job
+import sirepo.resource
 import sirepo.srdb
 import sirepo.template
 import time
@@ -36,26 +37,15 @@ import time
 
 JOB_RUN_MODE_MAP = None
 
-#: Json files
-JSON_SUFFIX = '.json'
-
 #: Schema common values, e.g. version
 SCHEMA_COMMON = None
 
 #: Simulation file name is globally unique to avoid collisions with simulation output
-SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
-
-#: The root of the pkresource tree (package_data)
-RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
-
-#: Where server files and static files are found
-STATIC_FOLDER = RESOURCE_FOLDER.join('static')
+SIMULATION_DATA_FILE = 'sirepo-data' + sirepo.const.JSON_SUFFIX
 
 #: where users live under db_dir
 USER_ROOT_DIR = 'user'
 
-#: How to find examples in resources
-_EXAMPLE_DIR = 'examples'
 
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
@@ -79,7 +69,7 @@ _REL_LIB_DIR = '../' + _LIB_DIR
 _OLDEST_VERSION = '20140101.000001'
 
 #: Absolute path of rsmanifest file
-_RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + JSON_SUFFIX)
+_RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + sirepo.const.JSON_SUFFIX)
 
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = PKDict()
@@ -135,7 +125,7 @@ def default_data(sim_type):
 
     return open_json_file(
         sim_type,
-        path=sirepo.sim_data.get_class(sim_type).resource_path('default-data').new(ext=JSON_SUFFIX),
+        path=sirepo.sim_data.get_class(sim_type).resource_path(f'default-data{sirepo.const.JSON_SUFFIX}')
     )
 
 
@@ -151,15 +141,14 @@ def delete_user(uid):
     pkio.unchecked_remove(user_path(uid=uid))
 
 def examples(app):
-    files = pkio.walk_tree(
-        sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR),
-        re.escape(JSON_SUFFIX) + '$',
-    )
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
     # example data is not fixed-up to avoid performance problems when searching examples by name
     # fixup occurs during save_new_example()
-    return [open_json_file(app, path=str(f), fixup=False) for f in files]
+    return [
+        open_json_file(app, path=str(f), fixup=False) \
+            for f in sirepo.sim_data.get_class(app).example_paths()
+    ]
 
 
 def find_global_simulation(sim_type, sid, checked=False, uid=None):
@@ -220,6 +209,8 @@ def fixup_old_data(data, force=False):
             data.simulationType = 'warpvnd'
         if 'simulationSerial' not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
+        if 'lastModified' not in data.models.simulation:
+            update_last_modified(data)
         import sirepo.sim_data
         sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
         data.pkdel('fixup_old_version')
@@ -238,45 +229,12 @@ def get_schema(sim_type):
     Args:
         sim_type (str): must be valid
     Returns:
-        dict: Shared schem
+        dict: Shared schema
 
     """
     t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
         else list(feature_config.cfg().sim_types)[0]
-    if t in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[t]
-    schema = read_json(
-        STATIC_FOLDER.join('json/{}-schema'.format(t)))
-    schema.update(SCHEMA_COMMON)
-    schema.update(
-        feature_config=feature_config.for_sim_type(t)
-    )
-    schema.feature_config = feature_config.for_sim_type(t)
-    schema.simulationType = t
-    _SCHEMA_CACHE[t] = schema
-
-    #TODO(mvk): improve merging common and local schema
-    _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
-    schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
-
-    for item in [
-            'appDefaults',
-            'appModes',
-            'constants',
-            'cookies',
-            'enum',
-            'notifications',
-            'localRoutes',
-            'model',
-            'strings',
-            'view',
-    ]:
-        if item not in schema:
-            schema[item] = PKDict()
-        _merge_dicts(schema.common[item], schema[item])
-        _merge_subclasses(schema, item)
-    srschema.validate(schema)
-    return schema
+    return _SCHEMA_CACHE[t]
 
 
 def generate_json(data, pretty=False):
@@ -315,7 +273,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
 
 
 def json_filename(filename, run_dir=None):
-    """Append JSON_SUFFIX if necessary and convert to str
+    """Append sirepo.const.JSON_SUFFIX if necessary and convert to str
 
     Args:
         filename (py.path or str): to convert
@@ -324,8 +282,8 @@ def json_filename(filename, run_dir=None):
         py.path: filename.json
     """
     filename = str(filename)
-    if not filename.endswith(JSON_SUFFIX):
-        filename += JSON_SUFFIX
+    if not filename.endswith(sirepo.const.JSON_SUFFIX):
+        filename += sirepo.const.JSON_SUFFIX
     if run_dir and not os.path.isabs(filename):
         filename = run_dir.join(filename)
     return pkio.py_path(path=filename)
@@ -495,9 +453,6 @@ def process_simulation_list(res, path, data):
         simulationId=_sim_from_path(path)[0],
         name=sim['name'],
         folder=sim['folder'],
-        last_modified=datetime.datetime.fromtimestamp(
-            os.path.getmtime(str(path))
-        ).strftime('%Y-%m-%d %H:%M'),
         isExample=sim['isExample'] if 'isExample' in sim else False,
         simulation=sim,
     ))
@@ -507,7 +462,7 @@ def read_json(filename):
     """Read data from json file
 
     Args:
-        filename (py.path or str): will append JSON_SUFFIX if necessary
+        filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
 
     Returns:
         object: json converted to python
@@ -674,20 +629,6 @@ def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
-def static_file_path(file_dir, file_name):
-    """Absolute path to a static file
-    For requesting static files (hence a public interface)
-
-    Args:
-        file_dir (str): directory in package_data/static
-        file_name (str): name of the file
-
-    Returns:
-        py.path: absolute path of the file
-    """
-    return STATIC_FOLDER.join(file_dir).join(file_name)
-
-
 @contextlib.contextmanager
 def tmp_dir(chdir=False, uid=None):
     """Generates new, temporary directory
@@ -736,6 +677,13 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
+
+
+def update_last_modified(data):
+    """Set simulation.lastModified to the current time in javascript format.
+    """
+    data.models.simulation.lastModified = int(datetime.datetime.utcnow().timestamp() * 1000)
+    return data
 
 
 def update_rsmanifest(data):
@@ -847,7 +795,7 @@ def write_json(filename, data):
     pretty is true.
 
     Args:
-        filename (py.path or str): will append JSON_SUFFIX if necessary
+        filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
     """
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
@@ -870,15 +818,13 @@ def _files_in_schema(schema):
     Returns:
         str: combined list of local and external file paths, mapped by type
     """
-    paths = PKDict()
+    paths = PKDict(css=[], js=[])
     for source, path in (('externalLibs', 'ext'), ('sirepoLibs', '')):
-        for file_type in schema[source]:
-            if file_type not in paths:
-                paths[file_type] = []
-            paths[file_type].extend(map(lambda file_name:
-                    _pkg_relative_path_static(file_type + '/' + path, file_name),
-                    schema[source][file_type]))
-
+        for file_type, files in schema[source].items():
+            for f in files:
+                paths[file_type].append(
+                    sirepo.resource.static_url(file_type, path, f),
+                )
     return paths
 
 
@@ -897,30 +843,65 @@ def _find_user_simulation_copy(simulation_type, sid, uid=None):
 def _init():
     import sirepo.mpi
 
-    global SCHEMA_COMMON, cfg, JOB_RUN_MODE_MAP
+    global cfg, JOB_RUN_MODE_MAP
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
         sbatch_display=(None, str, 'how to display sbatch cluster to user'),
         tmp_dir=(None, pkio.py_path, 'Used by utilities (not regular config)'),
     )
-    fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
-    with open(str(fn)) as f:
-        SCHEMA_COMMON = json_load(f)
-    # In development, any schema update creates a new version
-    if pkconfig.channel_in('dev'):
-        SCHEMA_COMMON.version = max([
-            _timestamp(pkio.py_path(fn).mtime()) \
-            for fn in glob.glob(str(STATIC_FOLDER.join('json/*{}'.format(JSON_SUFFIX))))
-        ])
-    else:
-        SCHEMA_COMMON.version = sirepo.__version__
+    _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
         sequential='Serial',
         parallel='{} cores (SMP)'.format(sirepo.mpi.cfg.cores),
     )
     if cfg.sbatch_display:
         JOB_RUN_MODE_MAP.sbatch = cfg.sbatch_display
+
+
+def _init_schemas():
+    global SCHEMA_COMMON
+    SCHEMA_COMMON = json_load(sirepo.resource.static('json', f'schema-common{sirepo.const.JSON_SUFFIX}'))
+    a = SCHEMA_COMMON.appInfo
+    for t in sirepo.feature_config.cfg().sim_types:
+        s = read_json(sirepo.resource.static('json', f'{t}-schema.json'))
+        _merge_dicts(s.get('appInfo', PKDict()), a)
+        s.update(SCHEMA_COMMON)
+        s.feature_config = feature_config.for_sim_type(t)
+        s.simulationType = t
+
+        #TODO(mvk): improve merging common and local schema
+        _merge_dicts(s.common.dynamicFiles, s.dynamicFiles)
+        s.dynamicModules = _files_in_schema(s.dynamicFiles)
+        for i in [
+                'appDefaults',
+                'appModes',
+                'constants',
+                'cookies',
+                'enum',
+                'notifications',
+                'localRoutes',
+                'model',
+                'strings',
+                'view',
+        ]:
+            if i not in s:
+                s[i] = PKDict()
+            _merge_dicts(s.common[i], s[i])
+            _merge_subclasses(s, i)
+        srschema.validate(s)
+        _SCHEMA_CACHE[t] = s
+    SCHEMA_COMMON.appInfo = a
+    for s in _SCHEMA_CACHE.values():
+        s.appInfo = a
+    # In development, any schema update creates a new version
+    if pkconfig.channel_in('dev'):
+        SCHEMA_COMMON.version = max([
+            _timestamp(fn.mtime()) \
+            for fn in sirepo.resource.static_paths_for_type('json')
+        ])
+    else:
+        SCHEMA_COMMON.version = sirepo.__version__
 
 
 def _merge_dicts(base, derived, depth=-1):
@@ -982,19 +963,6 @@ def _unnest_subclasses(schema, item, key, subclass_keys):
     assert sub_key in item_schema, util.err(sub_key, 'No such superclass')
     subclass_keys.append(sub_key)
     _unnest_subclasses(schema, item, sub_key, subclass_keys)
-
-
-def _pkg_relative_path_static(file_dir, file_name):
-    """Path to a file under /static, relative to the package_data directory
-
-    Args:
-        file_dir (str): sub-directory of package_data/static
-        file_name (str): name of the file
-
-    Returns:
-        str: full relative path of the file
-    """
-    return '/' + RESOURCE_FOLDER.bestrelpath(static_file_path(file_dir, file_name))
 
 
 def _random_id(parent_dir, simulation_type=None, uid=None):

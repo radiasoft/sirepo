@@ -18,6 +18,7 @@ import pykern.pkrunpy
 import re
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -306,7 +307,7 @@ def write_dict_to_h5(d, file_path, h5_path=None):
 
 def enum_text(schema, name, value):
     for e in schema['enum'][name]:
-        if e[0] == value:
+        if e[0] == str(value):
             return e[1]
     assert False, 'unknown {} enum value: {}'.format(name, value)
 
@@ -538,11 +539,11 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     Returns:
         str: source text
     """
-    d = sirepo.sim_data.get_class(sim_type).resource_dir() if sim_type \
-        else sirepo.sim_data.resource_dir()
+    # append .jinja, because file may already have an extension
+    b = f'{name}.jinja'
     return pkjinja.render_file(
-        # append .jinja, because file may already have an extension
-        d.join(name) + '.jinja',
+        sirepo.sim_data.get_class(sim_type).resource_path(b) if sim_type \
+            else sirepo.sim_data.resource_path(b),
         v,
         jinja_env=jinja_env
     )
@@ -558,7 +559,7 @@ def sim_frame(frame_id, op):
         pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
         raise sirepo.util.convert_exception(e, display_text='Report not generated')
     r = sirepo.http_reply.gen_json(x)
-    if 'error' not in x and s.want_browser_frame_cache():
+    if 'error' not in x and s.want_browser_frame_cache(s.frameReport):
         r.headers['Cache-Control'] = 'private, max-age=31536000'
     else:
         sirepo.http_reply.headers_for_no_cache(r)

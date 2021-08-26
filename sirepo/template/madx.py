@@ -242,7 +242,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
             betx=t.betx[0],
             bety=t.bety[0],
             alfx=t.alfx[0],
-            alfy=t.alfx[0],
+            alfy=t.alfy[0],
         )
     return res
 

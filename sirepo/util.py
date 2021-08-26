@@ -14,13 +14,16 @@ import base64
 import concurrent.futures
 import contextlib
 import hashlib
+import importlib
 import inspect
 import numconv
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import sys
 import threading
+import werkzeug.utils
 
 
 cfg = None
@@ -39,6 +42,8 @@ THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
+
+_log_not_flask = _log_not_request = 0
 
 
 class Reply(Exception):
@@ -183,10 +188,40 @@ def flask_app():
 
     return flask.current_app or None
 
+
+def import_submodule(submodule):
+    """Import fully qualified module that contains submodule
+
+    sirepo.feature_config.package_path will be searched for a match.
+    """
+    import sirepo.feature_config
+    r = sirepo.feature_config.cfg().package_path
+    for p in r:
+       try:
+        return importlib.import_module(f'{p}.{submodule}')
+       except ModuleNotFoundError:
+           pass
+    raise AssertionError(f'cannot find submodule={submodule} in package_path={r}')
+
+
 def in_flask_request():
-    import sys
+    # These are globals but possibly accessed from a threaded context. That is
+    # desired so we limit logging between all threads.
+    # The number 10 below doesn't need to be exact. Just something greater than
+    # "a few" so we see logging once the app is initialized and serving requests.
+    global _log_not_flask, _log_not_request
     f = sys.modules.get('flask')
-    return f and f.request or None
+    if not f:
+        if _log_not_flask < 10:
+            _log_not_flask += 1
+            pkdlog('flask is not imported')
+        return False
+    if not f.request:
+        if _log_not_request < 10:
+            _log_not_request += 1
+            pkdlog('flask.request is False')
+        return False
+    return True
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):
@@ -233,6 +268,10 @@ def random_base62(length=32):
     """
     r = random.SystemRandom()
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
+
+
+def safe_path(*paths):
+    return werkzeug.utils.safe_join(*paths)
 
 
 def secure_filename(path):

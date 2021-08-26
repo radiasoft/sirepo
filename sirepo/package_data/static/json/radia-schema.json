@@ -10,7 +10,17 @@
             "_default": [
                 {
                     "title": "Save as SDDS",
-                    "suffix": ""
+                    "suffix": "sdds"
+                }
+            ],
+            "fieldLineoutReport": [
+                {
+                    "title": "Save as CSV",
+                    "suffix": "csv"
+                },
+                {
+                    "title": "Save for SRW import",
+                    "suffix": "zip"
                 }
             ],
             "kickMapReport": [
@@ -44,14 +54,6 @@
                 "fill": "#97B6D5",
                 "points": [
                     [0, 0], [24, 0], [24, 24], [0, 24]
-                ],
-                "stroke": "black"
-            },
-            "cee": {
-                "doClose": true,
-                "fill": "#97B6D5",
-                "points": [
-                    [0, 0], [24, 0], [24, 8], [8, 8], [8, 16], [24, 16], [24, 24], [0, 24]
                 ],
                 "stroke": "black"
             },
@@ -263,10 +265,9 @@
         ],
         "ObjectType": [
             ["box", "Cuboid"],
-            ["cee", "Extruded Cee"],
-            ["gamma", "Extruded Gamma"],
+            ["gamma", "Gamma"],
             ["racetrack", "RaceTrack"],
-            ["tee", "Extruded Tee"]
+            ["tee", "Tee"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -323,10 +324,6 @@
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "box"]
         },
-        "cee": {
-            "_super": ["_", "model", "extrudedPoly"],
-            "type": ["_", "ObjectType", "cee"]
-        },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -381,6 +378,9 @@
             "fieldPaths": ["Path", "FieldPaths", []],
             "fieldType": ["Field", "FieldType", "B"],
             "inProgressText": ["_", "String", "Calculating"]
+        },
+        "fieldIntegralReport": {
+            "lastCalculated": ["_", "Integer", -1]
         },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
@@ -525,12 +525,6 @@
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
-        "pureUndulator": {
-            "_super": ["_", "model", "undulator"],
-            "crossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Transverse, Gap"],
-            "length": ["Thickness [mm]", "Float", 18.0, "Period length/2"],
-            "magnet": ["_", "model.geomObject", {}]
-        },
         "racetrack": {
             "_super": ["_", "model", "geomObject"],
             "axis": ["Axis", "BeamAxis", "z"],
@@ -572,7 +566,7 @@
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
-            "method": ["Method", "SolveMethod", "0"],
+            "method": ["Method", "SolveMethod", "4"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""],
             "sbatchCores": ["Cores", "Integer", 1],
@@ -583,7 +577,7 @@
         "spatialTransform": {
         },
         "stemmed": {
-            "_super": ["_", "model", "extrudedPoly"],
+            "_super": ["_", "model", "geomObject"],
             "armHeight": ["Arm Height [mm]", "Float", 1.0, "Height of the stem in gap direction"],
             "stemWidth": ["Stem Width [mm]", "Float", 1.0, "Transverse width of the stem"]
         },
@@ -601,7 +595,6 @@
         "termination": {
             "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
             "length": ["Object Length [mm]", "Float", 9.0],
-            "object": ["_", "model.geomObject", {}],
             "type": ["Object Type", "TerminationType", "magnet", ""]
         },
         "transform": {
@@ -667,6 +660,11 @@
                 "numCopies",
                 "alternateFields"
             ]
+        },
+        "fieldIntegralReport": {
+            "title": "Field Integrals (T · mm)",
+            "advanced": [],
+            "basic": []
         },
         "fieldLineoutReport": {
             "title": "Field on Path",
@@ -854,12 +852,10 @@
             "title": "Object Shape Editor",
             "model": "geomObject",
             "basic": [
-                "type",
                 "color",
                 "bevels"
             ],
             "advanced": [
-                "type",
                 "color",
                 "bevels"
             ]

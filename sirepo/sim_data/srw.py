@@ -9,7 +9,6 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import copy
 import math
 import numpy
 import re
@@ -74,6 +73,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in ('coherenceXAnimation', 'coherenceYAnimation'):
             # degree of coherence reports are calculated out of the multiElectronAnimation directory
             return 'multiElectronAnimation'
+        if 'beamlineAnimation' in analysis_model:
+            return 'beamlineAnimation'
         # SRW is different: it doesn't translate *Animation into animation
         return analysis_model
 
@@ -108,9 +109,17 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'intensityPlotsScale' in dm[m]:
                 dm[m].plotScale = dm[m].intensityPlotsScale
                 del dm[m]['intensityPlotsScale']
-        for m in dm:
+        for m in list(dm):
             if cls.is_watchpoint(m):
                 cls.update_model_defaults(dm[m], cls.WATCHPOINT_REPORT)
+                n = 'beamlineAnimation{}'.format(cls.watchpoint_id(m))
+                if n not in dm:
+                    dm[n] = dm[m]
+            if m == 'initialIntensityReport' and 'beamlineAnimation0' not in dm:
+                dm.beamlineAnimation0 = dm[m]
+                if 'fieldUnits' in dm[m]:
+                    dm.simulation.fieldUnits = dm[m].fieldUnits
+                    del dm[m]['fieldUnits']
         # move sampleFactor to simulation model
         if 'sampleFactor' in dm.initialIntensityReport:
             if 'sampleFactor' not in dm.simulation:
@@ -375,7 +384,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         import pykern.pkjson
         import sirepo.template.srw_common
 
-        f = cls.resource_path(sirepo.template.srw_common.PREDEFINED_JSON)
+        f = cls.resource_path('').join(sirepo.template.srw_common.PREDEFINED_JSON)
         if not f.check():
             assert pkconfig.channel_in('dev'), \
                 '{}: not found; call "sirepo srw create-predefined" before pip install'.format(f)
@@ -391,7 +400,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def want_browser_frame_cache(cls):
+    def want_browser_frame_cache(cls, report):
+        if 'beamlineAnimation' in report:
+            return True
         return False
 
     @classmethod
@@ -458,7 +469,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 res.append(dm.tabulatedUndulator.magneticFile)
         if cls.srw_is_arbitrary_source(dm.simulation):
             res.append(dm.arbitraryMagField.magneticFile)
-        if cls.srw_is_beamline_report(r):
+        if cls.srw_is_beamline_report(r) or r == 'beamlineAnimation':
             s = cls.schema()
             for m in dm.beamline:
                 for k, v in s.model[m.type].items():

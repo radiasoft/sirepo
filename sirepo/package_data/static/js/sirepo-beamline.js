@@ -10,25 +10,10 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
     // consider moving to "constant" section of schema
     var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
-    var browserSupportsSVGForeignObject = false;
 
     // Try to detect mobile/tablet devices using Mozilla recommendation below
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
     var isTouchscreen = /Mobi|Silk/i.test($window.navigator.userAgent);
-
-    function testSVGForeignObject() {
-        var image = new Image();
-        image.onload = function () {
-            browserSupportsSVGForeignObject = true;
-        };
-        // MS Edge will have an error unless the % is replaced with &#37;
-        // there are other SVG rendering issues with MS Edge, so it will be disabled for now
-        image.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect></rect></svg>';
-    }
-
-    self.browserSupportsSVGForeignObject = function() {
-        return browserSupportsSVGForeignObject;
-    };
 
     self.copyElement = function(item) {
         var newItem = appState.clone(item);
@@ -83,7 +68,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
                 distance = ', ' + item.position + 'm';
             }
         }
-        else if (modelName == 'initialIntensityReport') {
+        else if (modelName == 'initialIntensityReport' || (modelName == 'watchpointReport' && itemId == 0)) {
             if (savedModelValues.beamline && savedModelValues.beamline.length) {
                 distance = ', ' + savedModelValues.beamline[0].position + 'm';
             }
@@ -95,6 +80,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
                     distance = ', ' + DEFAULT_INTENSITY_DISTANCE + 'm';
                 }
             }
+            modelName = 'initialIntensityReport';
         }
         return appState.viewInfo(modelName).title + distance;
     };
@@ -125,49 +111,6 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
             return item.id;
         });
     };
-
-    self.watchpointPriorityMap = {};
-    self.addPriority = function(name, initialPriority) {
-        if(! name) {
-            return NaN;
-        }
-        // this priority has already been assigned to this watchpoint, ignore
-        if(self.watchpointPriorityMap[name] === initialPriority) {
-            return initialPriority;
-        }
-        // new priority
-        var newPriority = initialPriority;
-        if(! self.watchpointPriorityMap[name]) {
-            self.watchpointPriorityMap[name] = newPriority;
-            return newPriority;
-        }
-        // this priority already in use, change it to the first unused number
-        var priorities = Object.values(self.watchpointPriorityMap);
-        var pIndex = priorities.indexOf(initialPriority) + 1;
-        for(var i = pIndex; i < priorities.length; ++i) {
-            if(priorities[i] != newPriority) {
-                self.watchpointPriorityMap[name] = newPriority;
-                return newPriority;
-            }
-            ++newPriority;
-        }
-        self.watchpointPriorityMap[name] = newPriority;
-        return newPriority;
-    };
-    function cleanPriorityMap() {
-        var rpts = self.getWatchReports();
-        var rptsToClean = [];
-        var prioritizedReports = Object.keys(self.watchpointPriorityMap);
-        for(var prIndex = 0; prIndex < prioritizedReports.length; ++prIndex) {
-            var prName = prioritizedReports[prIndex];
-            if(rpts.indexOf(prName) < 0) {
-                rptsToClean.push(prName);
-            }
-        }
-        for(var cIndex = 0; cIndex < rptsToClean.length; ++cIndex) {
-            delete self.watchpointPriorityMap[rptsToClean[cIndex]];
-        }
-    }
 
     self.isActiveItem = function(itemType) {
         return self.activeItem && self.activeItem.type == itemType;
@@ -212,10 +155,6 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
 
     self.isTouchscreen = function() {
         return isTouchscreen;
-    };
-
-    self.isWatchpointReportModelName = function(name) {
-        return name.indexOf('watchpointReport') >= 0;
     };
 
     self.removeActiveItem = function() {
@@ -269,15 +208,8 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
     };
 
     self.watchpointReportName = function(id) {
-        return 'watchpointReport' + id;
+        return (SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX || 'watchpointReport') + id;
     };
-
-    testSVGForeignObject();
-
-    $rootScope.$on('beamline.changed', function (event) {
-        cleanPriorityMap();
-    });
-
     return self;
 });
 
@@ -442,9 +374,13 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 return isDirty;
             };
             $scope.showPNGDownloadLink = function() {
-                return appState.isLoaded() && appState.models.beamline.length
-                    && beamlineService.browserSupportsSVGForeignObject();
+                return appState.isLoaded() && appState.models.beamline.length;
             };
+
+            function isWatchpointReportModelName(name) {
+                return name.indexOf('watchpointReport') >= 0
+                    || name.indexOf('beamlineAnimation') >= 0;
+            }
 
             $scope.saveBeamlineChanges = function() {
                 // sort beamline based on position
@@ -454,7 +390,10 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 $scope.parentController.prepareToSave();
 
                 // culls and saves watchpoint models
-                var watchpoints = {};
+                var watchpoints = {
+                    // the first beamineAnimation is the initialIntensityReport equivalent
+                    beamlineAnimation0: true,
+                };
                 for (var i = 0; i < appState.models.beamline.length; i++) {
                     var item = appState.models.beamline[i];
                     if (item.type == 'watch') {
@@ -463,13 +402,13 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 }
                 var savedModelValues = appState.applicationState();
                 for (var modelName in appState.models) {
-                    if (beamlineService.isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
+                    if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
                         // deleted watchpoint, remove the report model
                         delete appState.models[modelName];
                         delete savedModelValues[modelName];
                         continue;
                     }
-                    if (beamlineService.isWatchpointReportModelName(modelName)) {
+                    if (isWatchpointReportModelName(modelName)) {
                         savedModelValues[modelName] = appState.cloneModel(modelName);
                     }
                 }
@@ -733,14 +672,11 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
               '<div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>',
             '</div>',
             '<div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
-              '<div data-watchpoint-report="" data-get-request-priority="getPriorityForItem(item, $index)" data-item-id="item.id"></div>',
+              '<div data-watchpoint-report="" data-item-id="item.id"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
-            $scope.getPriorityForItem = function(item, index) {
-                return beamlineService.addPriority(beamlineService.watchpointReportName(item.id), (index + 2) * 5);
-            };
         },
     };
 });
@@ -823,9 +759,10 @@ SIREPO.app.directive('watchpointModalEditor', function(beamlineService) {
             itemId: '=',
         },
         template: [
-            '<div data-modal-editor="" view-name="watchpointReport" data-parent-controller="parentController" data-model-data="modelAccess" data-modal-title="reportTitle()"></div>',
+            '<div data-modal-editor="" view-name="{{ modelName }}" data-parent-controller="parentController" data-model-data="modelAccess" data-modal-title="reportTitle()"></div>',
         ].join(''),
         controller: function($scope) {
+            $scope.modelName = $scope.itemId ? 'watchpointReport' : 'initialIntensityReport';
             beamlineService.setupWatchpointDirective($scope);
         },
     };
@@ -835,14 +772,14 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
     return {
         scope: {
             itemId: '=',
-            getRequestPriority: '&',
         },
         template: [
             '<div data-column-for-aspect-ratio="{{ watchpointModelName }}">',
-              '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
+              '<div data-report-panel="3d" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.modelName = $scope.itemId ? 'watchpointReport' : 'initialIntensityReport';
             beamlineService.setupWatchpointDirective($scope);
             $scope.watchpointModelName = $scope.modelAccess.modelKey;
         },

@@ -58,7 +58,7 @@ def test_srw_delete(fc):
     d = fc.sr_sim_data('Tabulated Undulator Example')
     s = sirepo.sim_data.get_class(fc.sr_sim_type)
     u = pkunit.work_dir().join('not_used_name.zip')
-    s.lib_file_resource_dir().join('magnetic_measurements.zip').copy(u)
+    s.lib_file_resource_path('magnetic_measurements.zip').copy(u)
     t = 'undulatorTable'
     d.models.tabulatedUndulator.magneticFile = u.basename
     r = fc.sr_post(
@@ -124,7 +124,7 @@ def test_srw_upload(fc):
 
     d = fc.sr_sim_data('NSLS-II CHX beamline')
     s = sirepo.sim_data.get_class(fc.sr_sim_type)
-    f = s.lib_file_resource_dir().join('mirror_1d.dat')
+    f = s.lib_file_resource_path('mirror_1d.dat')
     t = 'mirror'
     r = fc.sr_post_form(
         'uploadFile',
@@ -193,7 +193,7 @@ def test_srw_validate_file(fc):
         redirect=False,
     )
     pkre('/tif', r.mimetype)
-    f = s.lib_file_resource_dir().join('sample.tif')
+    f = s.lib_file_resource_path('sample.tif')
     r = fc.sr_post_form(
         'uploadFile',
         params=PKDict(
@@ -227,7 +227,7 @@ def test_warpvnd_import(fc):
             file_type='stl-file',
         ),
         data=PKDict(confirm='1'),
-        file=s.lib_file_resource_dir().join('stl-file.lattice_gate.stl'),
+        file=s.lib_file_resource_path('stl-file.lattice_gate.stl'),
     )
     pkeq('stl-file.lattice_gate.stl', r.filename)
     pkeq('stl-file', r.fileType)
