@@ -38,7 +38,7 @@ def _add_object(o, radia_objs, id_map):
         div = sirepo.util.split_comma_delimited_string(o.segments, int)
         g_id = radia_util.build_cuboid(ctr, sz, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
     if _MODEL_EXTRUDED_POLY in sc:
-        g_id = radia_util.extrude(ctr, sz, {{ beam_dir }}, {{ height_dir }}, {{ width_dir }}, '{{ beam_axis }}', o.points, o.material, m, o.remanentMag, h_m_curve=o.h_m_curve)
+        g_id = radia_util.extrude(ctr, sz, {{ beam_dir }}, '{{ beam_axis }}', o.points, o.material, m, o.remanentMag, h_m_curve=o.h_m_curve)
     if t in _OBJ_MODELS:
         for b in o.get('bevels', []):
             g_id = radia_util.apply_bevel(g_id, {{ beam_dir }}, {{ height_dir }}, {{ width_dir }}, ctr, sz, PKDict(b))
