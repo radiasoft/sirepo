@@ -3780,6 +3780,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         const s = [size[ai.width], size[ai.height]];
         // Radia wants the points in the plane in a specific order
         const doReverse = ai.width !== (ai.depth + 1) % 3
+        srdbg('REV?', doReverse);
 
         // start with arm top, stem left - then reflect across centroid axes as needed
         const ax1 = c[0] - s[0] / 2;
@@ -3793,6 +3794,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         const sy2 = sy1 + m.armHeight;
 
         const k = [parseInt(m.stemPosition), parseInt(m.armPosition)];
+        srdbg('K', k);
         let pts = [];
         if (modelType === 'cee') {
             pts = [
@@ -3818,17 +3820,20 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 [ax1, ay1]
             ];
         }
-        $scope.modelData.points = pts.map((p) => {
+        srdbg('PTS 1', pts.slice());
+        pts = pts.map((p) => {
             return p.map((v, i) => {
                 return 2 * c[i] * k[i] + Math.pow(-1, k[i]) *  v;
             });
-        })
-        .map((p) => {
+        });
+        srdbg('PTS 2', pts.slice());
+        pts = pts.map((p) => {
             if (doReverse) {
                 return p.reverse();
             }
             return p;
         });
+        srdbg('PTS 3', pts);
     }
 
     function modelField(f) {
@@ -3900,6 +3905,7 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
             return;
         }
         $scope.modelData[`${baseObjectName()}Color`] = o.color;
+        $scope.modelData[`${baseObjectName()}ObjType`] = o.type;
         appState.saveChanges($scope.modelName);
     });
 
