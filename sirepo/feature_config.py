@@ -9,9 +9,8 @@ from __future__ import absolute_import, division, print_function
 
 #: Codes that depend on other codes. [x][0] depends on [x][1]
 _DEPENDENT_CODES = [
-        ['jspec', 'elegant'],
-        ['controls', 'madx'],
-
+    ['jspec', 'elegant'],
+    ['controls', 'madx'],
 ]
 
 #: Codes on prod
@@ -35,6 +34,7 @@ PROD_FOSS_CODES = frozenset((
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
     'myapp',
+    'raydata',
     'rcscon',
     'rs4pi',
     'silas',

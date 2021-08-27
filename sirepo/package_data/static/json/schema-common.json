@@ -48,6 +48,10 @@
             "longName": "Radia",
             "shortName": "Radia"
         },
+        "raydata": {
+            "longName": "Raydata",
+            "shortName": "Raydata"
+        },
         "rcscon": {
             "longName": "RCSCON",
             "shortName": "RCSCON"
