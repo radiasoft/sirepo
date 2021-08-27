@@ -470,6 +470,15 @@ def _rsopt_set_params(
 ):
     vp = varParam.copy()
     {% for e in rsOptElements %}
+    {% if 'size' in e %}
+    {% for x in e.size.initial %}
+    {% if e.size.offsets[loop.index0] != 0 %}
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.position.fieldNames[loop.index0] }}')
+    if p:
+        p[2] = {{ e.title }}_position_{{ loop.index0 }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
     {% if 'position' in e %}
     {% for x in e.position.initial %}
     {% if e.position.offsets[loop.index0] != 0 %}
