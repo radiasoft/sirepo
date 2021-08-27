@@ -3811,7 +3811,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         if (modelType === 'jay') {
             const j = appState.models.jay;
             const jx1 = c[0] + s[0] / 2 - j.hookWidth;
-            const jy1 = sy2 + j.hookHeight;
+            const jy1 = ay2 - j.hookHeight;
             pts = [
                 [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
                 [sx2, ay2], [sx2, sy1], [sx1, sy1],
