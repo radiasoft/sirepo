@@ -342,7 +342,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 appState.setFieldDefaults(
                     e,
                     self.rsOptElementOffsetField(p),
-                    props[p].offsetInfo || SIREPO.APP_SCHEMA.constants.rsOptDefaultOffsetInfo[p]
+                    props[p].offsetInfo || SIREPO.APP_SCHEMA.constants.rsOptDefaultOffsetInfo[p],
+                    true
                 );
                 e[p] = {
                     fieldNames: props[p].fieldNames,

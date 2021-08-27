@@ -783,9 +783,9 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         });
     };
 
-    self.setFieldDefaults = function(model, field, fieldInfo) {
+    self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
         let defaultVal = fieldInfo[2];
-        if (! model[field]) {
+        if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
                 // for cases where the default value is an object, we must
                 // clone it or the schema itself will change as the model changes
