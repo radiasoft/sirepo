@@ -1,0 +1,19 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="visualization.simState"></div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+    <div class="col-md-6 col-xl-4" data-ng-show="visualization.simState.hasFrames()">
+      <div data-report-panel="parameter" data-model-name="parameterAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-show="visualization.simState.hasFrames()">
+      <div data-report-panel="parameter" data-model-name="particleAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-show="visualization.simState.hasFrames()">
+      <div data-report-panel="heatmap" data-model-name="fieldDistributionAnimation"></div>
+    </div>
+  </div>
+</div>

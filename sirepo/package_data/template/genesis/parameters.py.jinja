@@ -1,0 +1,14 @@
+# -*- python -*-
+import subprocess
+
+# blank line at end of file is required for genesis to
+# properly parse the file
+input_file_variables = """$newrun
+{{ variables }}
+$end
+"""
+
+with open('{{ input_filename }}', 'w') as f:
+    f.write(input_file_variables)
+
+subprocess.run(('genesis', '{{ input_filename }}'))
