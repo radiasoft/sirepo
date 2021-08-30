@@ -77,7 +77,9 @@
             ["derbenevskrinsky", "Derbenev-Skrinsky"],
             ["meshkov", "Meshkov"],
             ["unmagnetized", "Unmagnetized"],
-            ["budker", "Budker"]
+            ["budker", "Budker"],
+            ["pogorelov", "Pogorelov-Bruhwiler"],
+            ["pogorelov_warm", "Pogorelov-Bruhwiler warm electrons"]
         ],
         "ForceScaleFactor": [
             ["negative", "-1"],
@@ -105,6 +107,10 @@
         "IBSLongitudinalMethod": [
             ["nz", "Longitudinal Grid Size"],
             ["log_c", "Coulomb Logarithm"]
+        ],
+        "IBSModel": [
+            ["bm", "Bjorken-Mtingwa"],
+            ["martini", "Martini"]
         ],
         "LatticeSource": [
             ["madx", "Mad-X TFS File"],
@@ -261,7 +267,8 @@
         },
         "electronCoolingRate": {
             "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
-            "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
+            "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"],
+            "ibs_model": ["Model", "IBSModel", "martini"]
         },
         "forceTableAnimation": {
             "plot": ["Plot Type", "ForceTablePlot", "transverse"],
@@ -517,6 +524,7 @@
             "basic": [
                 ["Electron Cooling", [
                     "electronCoolingRate.sample_number",
+                    "electronCoolingRate.ibs_model",
                     "electronCoolingRate.force_formula"
                 ]],
                 ["Intrabeam Scattering", [

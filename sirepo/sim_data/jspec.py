@@ -23,6 +23,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(dm, (
             'beamEvolutionAnimation',
             'coolingRatesAnimation',
+            'electronCoolingRate',
             'forceTableAnimation',
             'particleAnimation',
             'ring',
