@@ -1198,7 +1198,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
         var requestFunction = function() {
-            panelState.setLoading(modelName, true);
+            if (SIREPO.SLOW_ANIMATION) {
+                // some apps like SRW may take a long time to process a frame
+                panelState.setLoading(modelName, true);
+            }
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',

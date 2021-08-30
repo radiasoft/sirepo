@@ -37,6 +37,7 @@ SIREPO.app.factory('jspecService', function(appState) {
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
     self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+    let isInitialized = false;
 
     function processElectronBeamShape() {
         var shape = appState.models.electronBeam.shape;
@@ -131,7 +132,11 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showModalEditor('twissReport');
     };
 
-    appState.whenModelsLoaded($scope, function() {
+    self.initUI = function() {
+        if (isInitialized) {
+            return '';
+        }
+        isInitialized = true;
         processIonBeamType();
         processElectronBeamType();
         processElectronBeamShape();
@@ -148,11 +153,12 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
         $scope.$on('sr-tabSelected', updateForceFormulas);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
-    });
+    };
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, jspecService, $scope) {
     var self = this;
+    let isInitialized = false;
     self.simScope = $scope;
     self.hasParticles = false;
     self.hasRates = false;
@@ -207,7 +213,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     }
 
-    appState.whenModelsLoaded($scope, function() {
+    self.initUI = function() {
+        if (isInitialized) {
+            return '';
+        }
+        isInitialized = true;
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
         appState.watchModelFields(
@@ -235,7 +245,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                 plotRangeService.processPlotRange(self, name);
             }
         });
-    });
+    };
 
     self.simCompletionState = function() {
         if (! self.hasParticles) {
