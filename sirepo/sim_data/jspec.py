@@ -25,6 +25,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'coolingRatesAnimation',
             'electronCoolingRate',
             'forceTableAnimation',
+            'intrabeamScatteringRate',
             'particleAnimation',
             'ring',
             'twissReport',
