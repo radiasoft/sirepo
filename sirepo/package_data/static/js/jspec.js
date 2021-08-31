@@ -37,7 +37,6 @@ SIREPO.app.factory('jspecService', function(appState) {
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
     self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-    let isInitialized = false;
 
     function processElectronBeamShape() {
         var shape = appState.models.electronBeam.shape;
@@ -132,11 +131,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showModalEditor('twissReport');
     };
 
-    self.initUI = function() {
-        if (isInitialized) {
-            return '';
-        }
-        isInitialized = true;
+    $scope.$on('sr-tabSelected', () => {
         processIonBeamType();
         processElectronBeamType();
         processElectronBeamShape();
@@ -144,21 +139,21 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         processGamma();
         processParticle();
         updateForceFormulas();
-        appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
-        appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
-        appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
-        appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
-        appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
-        appState.watchModelFields($scope, ['ionBeam.particle'], processParticle);
-        $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
-        $scope.$on('sr-tabSelected', updateForceFormulas);
-        appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
-    };
+        panelState.showEnum('electronCoolingRate', 'force_formula', 'pogorelov', false);
+    });
+    appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
+    appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
+    appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
+    appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
+    appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
+    appState.watchModelFields($scope, ['ionBeam.particle'], processParticle);
+    $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
+    $scope.$on('sr-tabSelected', updateForceFormulas);
+    appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, jspecService, $scope) {
     var self = this;
-    let isInitialized = false;
     self.simScope = $scope;
     self.hasParticles = false;
     self.hasRates = false;
@@ -213,46 +208,41 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     }
 
-    self.initUI = function() {
-        if (isInitialized) {
-            return '';
-        }
-        isInitialized = true;
-        processModel();
-        appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
-        appState.watchModelFields(
-            $scope,
-            ['simulationSettings.time', 'simulationSettings.step_number', 'simulationSettings.time_step'],
-            processTimeStep);
-        appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
-        appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
-        ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
-            appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
-                plotRangeService.processPlotRange(self, m);
-            });
-        });
-        $scope.$on('sr-tabSelected', function(evt, name) {
-            if (name == 'particleAnimation') {
-                processColorRange();
-                plotRangeService.processPlotRange(self, name);
-            }
-            else if (name == 'beamEvolutionAnimation' || name == 'coolingRatesAnimation') {
-                //TODO(pjm): plots have fixed x field 't', should set in template.jspec, see _X_FIELD
-                appState.models[name].x = 't';
-                plotRangeService.processPlotRange(self, name);
-            }
-            else if (name == 'forceTableAnimation') {
-                plotRangeService.processPlotRange(self, name);
-            }
-        });
-    };
-
     self.simCompletionState = function() {
         if (! self.hasParticles) {
             return '';
         }
         return  SIREPO.APP_SCHEMA.strings.completionState;
     };
+
+    $scope.$on('sr-tabSelected', function(evt, name) {
+        processModel();
+        if (name == 'particleAnimation') {
+            processColorRange();
+            plotRangeService.processPlotRange(self, name);
+        }
+        else if (name == 'beamEvolutionAnimation' || name == 'coolingRatesAnimation') {
+            //TODO(pjm): plots have fixed x field 't', should set in template.jspec, see _X_FIELD
+            appState.models[name].x = 't';
+            plotRangeService.processPlotRange(self, name);
+        }
+        else if (name == 'forceTableAnimation') {
+            plotRangeService.processPlotRange(self, name);
+        }
+    });
+
+    appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
+    appState.watchModelFields(
+        $scope,
+        ['simulationSettings.time', 'simulationSettings.step_number', 'simulationSettings.time_step'],
+        processTimeStep);
+    appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
+    appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
+    ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
+        appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
+            plotRangeService.processPlotRange(self, m);
+        });
+    });
 
     self.simState = persistentSimulation.initSimulationState(self);
 
