@@ -981,6 +981,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.elevation = 'front';
             $scope.is3dPreview = false;
+            $scope.isClientOnly = true;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
             $scope.objects = [];
             $scope.side = 'x';
