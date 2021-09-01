@@ -179,6 +179,13 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         self.showPathPicker(true, true);
     };
 
+    self.nextId = function() {
+        // a uuid generator found on the interwebs
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    };
+
     self.pathEditorTitle = function() {
         if (! appState.models.fieldPaths) {
             return '';
@@ -430,13 +437,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return true;
     };
 
-    self.nextId = function() {
-        // a uuid generator found on the interwebs
-        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-        );
-    };
-
     self.objectBounds = function() {
         return groupBounds();
     };
@@ -551,7 +551,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addObject(o) {
-        o.id  = self.nextId();
+        o.id  = radiaService.nextId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
         //var n = 0;
