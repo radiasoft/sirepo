@@ -1592,10 +1592,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $scope.is3dPreview = !$scope.is3dPreview;
             };
 
-            appState.whenModelsLoaded($scope, function (){
-                $scope.init();
-            });
-
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
