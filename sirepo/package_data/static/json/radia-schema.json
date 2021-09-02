@@ -40,7 +40,6 @@
             },
             "transforms": {
                 "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
-                "invertField": ["name"],
                 "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
                 "translate": ["name","distance"],
                 "rotate": ["name", "angle", "axis", "center"],
@@ -441,9 +440,6 @@
             "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "poleObjType": ["Shape", "ObjectType", "box"]
-        },
-        "invertField": {
-            "name": ["Name", "String", "Invert Field"]
         },
         "kickMapReport": {
             "beamAxis": ["_", "BeamAxis", "z", ""],
