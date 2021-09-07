@@ -1300,40 +1300,42 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('modalEditor', function(appState, panelState) {
+SIREPO.app.directive('modalDialog', function(appState, panelState) {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             viewName: '@',
+            //TODO(pjm): remove parentController everywhere
             parentController: '=',
             modalTitle: '=?',
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
         },
-        template: [
-            '<div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<div data-help-button="{{ helpTopic }}"></div>',
-                    '<div data-ng-if="::hasHelpVideo" data-video-button="{{ viewName }}"></div>',
-                    '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-model-data="modelData" data-parent-controller="parentController"></div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" id="{{ editorId }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ helpTopic }}"></div>
+                    <div data-ng-if="::hasHelpVideo" data-video-button="{{ viewName }}"></div>
+                    <span class="lead modal-title text-info">{{ modalTitle }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div data-ng-transclude=""></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
-            function hideModal() {
-                if ($scope.editorId) {
+            function hideModal(e, name) {
+                if (name == $scope.modelKey && $scope.editorId) {
                     $('#' + $scope.editorId).modal('hide');
                 }
             }
@@ -1343,7 +1345,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             }
             $scope.hasHelpVideo = viewInfo.helpVideoURL;
             $scope.helpTopic = viewInfo.title;
-            //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
+            // A view view may refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.modelKey = $scope.modelName;
             $scope.editorId = panelState.modalId($scope.viewName);
@@ -1354,18 +1356,10 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             if (! $scope.modalTitle) {
                 $scope.modalTitle = viewInfo.title;
             }
-            $scope.$on('modelChanged', function (e, name) {
-                if (name == $scope.modelKey) {
-                    hideModal();
-                }
-            });
-            $scope.$on('cancelChanges', function (e, name){
-                // too blunt? May need parent/child concept?
-                if (name === $scope.modelKey) {
-                    hideModal();
-                }
-            });
+            $scope.$on('modelChanged', hideModal);
+            $scope.$on('cancelChanges', hideModal);
         },
+        //TODO(pjm): move link items to controller?
         link: function(scope, element) {
             $(element).on('shown.bs.modal', function() {
                 $('#' + scope.editorId + ' .form-control').first().select();
@@ -1389,6 +1383,25 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                 $('.modal').modal('hide').removeData('bs.modal');
             });
         },
+    };
+
+});
+
+SIREPO.app.directive('modalEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            viewName: '@',
+            parentController: '=',
+            modalTitle: '=?',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
+        },
+        template: `
+            <div data-modal-dialog="" data-view-name="{{ viewName }}" data-parent-controller="parentController" data-modal-title="modalTitle" data-model-data="modelData">
+              <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-model-data="modelData" data-parent-controller="parentController"></div>
+            </div>
+        `,
     };
 });
 

@@ -490,6 +490,9 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.deepEquals = function(v1, v2) {
+        if (v1 === v2) {
+            return true;
+        }
         if (angular.isArray(v1) && angular.isArray(v2)) {
             if (v1.length != v2.length) {
                 return false;
