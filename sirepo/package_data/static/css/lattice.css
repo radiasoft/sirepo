@@ -74,6 +74,9 @@ div.sr-lattice-icon-disabled span {
 .sr-editor-item-hover:hover .sr-lattice-close-icon {
   visibility: visible;
 }
+.drag-enter .sr-editor-item-hover:hover .sr-lattice-close-icon {
+  visibility: hidden;
+}
 .sr-editor-item-hover .sr-lattice-close-icon:hover {
   color: #000;
 }
