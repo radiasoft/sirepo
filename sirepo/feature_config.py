@@ -118,8 +118,6 @@ def _init():
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
-        #TODO(robnagler) make this a sim_type config like srw and warpvnd
-        rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_global=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),
