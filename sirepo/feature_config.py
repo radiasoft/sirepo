@@ -85,6 +85,15 @@ def for_sim_type(sim_type):
     )
 
 
+def global_sim_cfg():
+    """Get cfg to use across all simulations. Separate from global cfg
+
+    Returns:
+        dict: global sim config
+    """
+    return cfg()['sim_global']
+
+
 def _init():
     from pykern import pkconfig
     global _cfg
@@ -111,10 +120,12 @@ def _init():
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
+        sim_global=dict(
+            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
+        ),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
-            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
             show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
             show_rsopt_ml=(pkconfig.channel_in_internal_test(), bool, 'Show "Export ML Script" menu item'),
