@@ -868,6 +868,7 @@ def _init_schemas():
         _merge_dicts(s.get('appInfo', PKDict()), a)
         s.update(SCHEMA_COMMON)
         s.feature_config = feature_config.for_sim_type(t)
+        s.feature_config.update(feature_config.sim_common())
         s.simulationType = t
 
         #TODO(mvk): improve merging common and local schema
