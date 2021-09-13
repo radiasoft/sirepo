@@ -85,13 +85,14 @@ def for_sim_type(sim_type):
     )
 
 
-def global_sim_cfg():
+def sim_common():
     """Get cfg to use across all simulations. Separate from global cfg
 
     Returns:
-        dict: global sim config
+        dict: common sim config
     """
-    return cfg()['sim_global']
+    import pykern.pkcollections
+    return pykern.pkcollections.PKDict(cfg()).sim_common
 
 
 def _init():
@@ -118,7 +119,7 @@ def _init():
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
-        sim_global=dict(
+        sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
