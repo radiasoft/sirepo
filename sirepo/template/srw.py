@@ -430,6 +430,11 @@ def get_data_file(run_dir, model, frame, **kwargs):
 def get_filename_for_model(model):
     if _SIM_DATA.is_watchpoint(model):
         model = _SIM_DATA.WATCHPOINT_REPORT
+    if model == 'beamlineAnimation0':
+        model = 'initialIntensityReport'
+    m = re.search(r'(beamlineAnimation)(\d+)', model)
+    if m:
+        return _OUTPUT_FOR_MODEL[m.group(1)].filename.format(watchpoint_id=m.group(2))
     return _OUTPUT_FOR_MODEL[model].filename
 
 
