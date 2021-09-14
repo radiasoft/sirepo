@@ -643,6 +643,24 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         }
     }
 
+    function updateWatchpointReports() {
+        // special code to update initialIntensityReport and watchpointReports
+        // from beamlineAnimation models so sirepo_bluesky can continue to use those models
+        for (let name in appState.models) {
+            let targetName;
+            if (name == 'beamlineAnimation0') {
+                targetName = 'initialIntensityReport';
+            }
+            else if (name.indexOf('beamlineAnimation') >= 0) {
+                targetName = name.replace('beamlineAnimation', 'watchpointReport');
+            }
+            if (targetName) {
+                appState.models[targetName] = appState.clone(appState.models[name]);
+                appState.saveQuietly(targetName);
+            }
+        }
+    }
+
     self.getWatchpointForPartiallyCoherentReport = function() {
          return appState.models.multiElectronAnimation.watchpointId;
     };
@@ -721,6 +739,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
             newPropagations[item.id] = appState.models.propagation[item.id];
         }
         appState.models.propagation = newPropagations;
+        updateWatchpointReports();
     };
 
     self.setActiveTab = function(tab) {
@@ -779,22 +798,6 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
                 self.setActiveTab(search.tab);
             }
         }
-
-        // special code to update initialIntensityReport and watchpointReports
-        // from beamlineAnimation models so sirepo_bluesky can continue to use those models
-        $scope.$on('modelChanged', (e, name) => {
-            let targetName;
-            if (name == 'beamlineAnimation0') {
-                targetName = 'initialIntensityReport';
-            }
-            else if (name.indexOf('beamlineAnimation') >= 0) {
-                targetName = name.replace('beamlineAnimation', 'watchpointReport');
-            }
-            if (targetName) {
-                appState.models[targetName] = appState.clone(appState.models[name]);
-                appState.saveQuietly(targetName);
-            }
-        });
     });
 
     $scope.$on('$destroy', function() {
