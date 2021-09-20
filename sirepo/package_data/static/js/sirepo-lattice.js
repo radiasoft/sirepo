@@ -80,7 +80,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             element: element,
             typeName: type == 'elements' ? 'Element' : 'Beamline',
             name: self.elementForId(element[idField]).name,
-            beamlineName: Object.keys(names).length > 1
+            beamlineName: names.length > 1
                 ? ('beamlines (' + names.join(', ') + ')')
                 : ('beamline ' + names[0]),
         };
@@ -576,7 +576,7 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     appState.whenModelsLoaded($rootScope, clearBooleanValues);
 });
 
-SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, rpnService, $document, $window) {
+SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, rpnService, $document, $rootScope, $window) {
     return {
         restrict: 'A',
         scope: {},
@@ -600,7 +600,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 '</div>',
               '</div>',
             '</div>',
-            '<div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ selectedItem.name }}</strong>?</div>',
+            '<div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>',
             '<div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">',
               '<form class="form-horizontal" autocomplete="off">',
                 '<label class="col-sm-4 control-label">Beamline Name</label>',
@@ -630,6 +630,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.latticeService = latticeService;
             $scope.beamlineItems = [];
             $scope.newBeamline = {};
             // info is needed by the rpnValue editor
@@ -654,7 +655,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             function cache(id) {
                 if (itemCache[id] === undefined) {
-                    itemCache[id] = latticeService.elementForId(id);
+                    const res = latticeService.elementForId(id);
+                    if (! res) {
+                        throw new Error('Invalid element id: ' + id);
+                    }
+                    itemCache[id] = res;
                 }
                 return itemCache[id];
             }
@@ -807,9 +812,17 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 });
             }
 
-            function updateBeamline() {
+            function reloadBeamlineItems() {
+                $scope.beamlineItems = [];
+                activeBeamline.items.forEach(
+                    (id, idx) => $scope.beamlineItems.push(newBeamlineItem(id, idx + 1)));
+            }
+
+            function updateBeamline(saveChanges) {
                 activeBeamline.items = $scope.beamlineItems.map((v) => v.id);
-                appState.saveChanges('beamlines');
+                if (saveChanges) {
+                    appState.saveChanges('beamlines');
+                }
             }
 
             $scope.beamlineName = () => activeBeamline ? activeBeamline.name : '';
@@ -881,7 +894,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 if (latticeService.isAbsolutePositioning()) {
                     activeBeamline.positions.splice(idx, 1);
                 }
-                updateBeamline();
+                updateBeamline(true);
                 latticeService.selectedItem = null;
             };
 
@@ -932,7 +945,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                     nextPosition(index, data);
                     showPopoverForItem(data);
                 }
-                updateBeamline();
+                $rootScope.$broadcast('sr-beamlineDropItem', data, $scope.beamlineItems);
+                updateBeamline(true);
                 dropHandled = true;
             };
 
@@ -958,10 +972,12 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 if (latticeService.isAbsolutePositioning()) {
                     nextPosition($scope.beamlineItems.length - 1, item);
                 }
-                updateBeamline();
+                updateBeamline(false);
                 dropHandled = false;
                 panelState.waitForUI(() => {
                     if (! dropHandled) {
+                        $rootScope.$broadcast('sr-beamlineDropItem', item, $scope.beamlineItems);
+                        updateBeamline(true);
                         showPopoverForItem(item);
                     }
                 });
@@ -1070,9 +1086,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 $scope.clearPopover();
                 activeBeamline = beamline;
                 $scope.selectItem();
-                $scope.beamlineItems = [];
-                activeBeamline.items.forEach(
-                    (id, idx) => $scope.beamlineItems.push(newBeamlineItem(id, idx + 1)));
+                reloadBeamlineItems();
                 return true;
             };
 
@@ -1122,6 +1136,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             $scope.$on(
                 'sr-beamlineItemSelected',
                 (e, beamlineIndex) => $scope.selectItem($scope.beamlineItems[beamlineIndex]));
+            $scope.$on('sr-beamlineOrderChanged', reloadBeamlineItems);
         },
         link: function(scope, element) {
             scope.element = $(element).find('.sr-lattice-editor-panel').first();
