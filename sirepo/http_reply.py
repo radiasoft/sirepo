@@ -283,6 +283,8 @@ def _as_attachment(resp, content_type, filename):
 
 def _gen_exception_error(exc):
     pkdlog('unsupported exception={} msg={}', type(exc), exc)
+    if sirepo.http_request.is_spider():
+        raise werkzeug.exceptions.InternalServerError
     return gen_redirect_for_local_route(None, route='error')
 
 
