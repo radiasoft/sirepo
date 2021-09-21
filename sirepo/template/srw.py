@@ -586,6 +586,17 @@ def new_simulation(data, new_simulation_data):
         data.models.electronBeamPosition.driftCalculationMethod = 'manual'
 
 
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=True,
+        run_dir=None,
+        **kwargs
+):
+    if success_exit:
+        return None
+    return _parse_srw_log(run_dir)
+
+
 def prepare_for_client(data):
     save = False
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
@@ -1690,6 +1701,21 @@ def _load_user_model_list(model_name):
         pkdlog('user list read failed, resetting contents: {}', f)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
+
+
+def _parse_srw_log(run_dir):
+    res = ''
+    p = run_dir.join(template_common.RUN_LOG)
+    if not p.exists():
+        return res
+    with pkio.open_text(p) as f:
+        for line in f:
+            m = re.search(r'Error: (.*)', line)
+            if m:
+                res += m.group(1) + '\n'
+    if res:
+        return res
+    return 'An unknown error occurred'
 
 
 def _process_image(data, tmp_dir):
