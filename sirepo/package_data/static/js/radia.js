@@ -3680,7 +3680,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
                 const size = o.size.split(/\s*,\s*/).map((x) => {
                     return parseFloat(x);
                 });
-                let s = shapes[o.type];
+                const s = shapes[o.type];
                 s.setFill(o.color);
                 const inds = radiaService.getAxisIndices();
                 const ar = size[inds.width] / size[inds.height];
@@ -3742,7 +3742,7 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, $scope) {
     let ctr = [];
     let modelType = null;
-    let parent = $scope.$parent;
+    const parent = $scope.$parent;
     let size = [];
 
     $scope.modelData = appState.models[$scope.modelName];
