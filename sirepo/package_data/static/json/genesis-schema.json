@@ -178,6 +178,7 @@
             ]
         },
 	"fieldDistributionAnimation": {
+            "notes": ["Notes", "Text", ""],
 	    "step": ["Step", "Integer", 0]
 	},
         "focusing": {
@@ -660,9 +661,11 @@
             ]
         },
 	"parameterAnimation": {
+            "notes": ["Notes", "Text", ""],
 	    "y": ["Y Value", "OutputParameter", "power"]
 	},
 	"particleAnimation": {
+            "notes": ["Notes", "Text", ""],
 	    "x": ["X Value", "ParticleColumn", "x"],
 	    "y": ["Y Value", "ParticleColumn", "y"]
 	},

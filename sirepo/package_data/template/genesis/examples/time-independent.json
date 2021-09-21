@@ -23,7 +23,9 @@
             "xbeam": 0.0,
             "ybeam": 0.0
         },
-	"fieldDistributionAnimation": {},
+	"fieldDistributionAnimation": {
+	    "notes": ""
+	},
         "focusing": {
             "dl": 0.0,
             "drl": 0.0,
@@ -119,9 +121,11 @@
             "rmax0sc": 0.0
         },
 	"parameterAnimation": {
+	    "notes": "",
 	    "y": "power"
 	},
 	"particleAnimation": {
+	    "notes": "",
 	    "x": "x",
 	    "y": "y"
 	},
