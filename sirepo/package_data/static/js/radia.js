@@ -208,7 +208,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.setWidthAxis = function() {
-        let sim = appState.models.simulation;
+        const sim = appState.models.simulation;
         sim.widthAxis = self.axes.filter((a) => {
             return a !== sim.beamAxis && a !== sim.heightAxis;
         })[0];
