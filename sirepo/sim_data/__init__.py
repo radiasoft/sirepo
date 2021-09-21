@@ -357,8 +357,7 @@ class SimDataBase(object):
         return sirepo.resource.file_path(
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
-            cls._LIB_RESOURCE_DIR,
-        ).join(path)
+        ).join(cls._LIB_RESOURCE_DIR, path)
 
     @classmethod
     def lib_file_write_path(cls, basename):
