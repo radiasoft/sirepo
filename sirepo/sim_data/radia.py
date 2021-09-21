@@ -91,8 +91,14 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.heightAxis = 'z'
 
         for o in dm.geometryReport.objects:
+            if o.get('model') == 'box':
+                o.model = 'cuboid'
+            if o.get('type') == 'box':
+                o.type = 'cuboid'
             if not o.get('bevels'):
                 o.bevels = []
+            if not o.get('segments'):
+                o.segments = o.get('division', '1, 1, 1')
         sch = cls.schema()
         for m in [m for m in dm if m in sch.model]:
             s_m = sch.model[m]
