@@ -720,7 +720,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     _validate_objects(v.objects)
 
     for o in v.objects:
-        if o.get('type'):
+        if 'type' in o:
             o.super_classes = _SCHEMA.model[o.type]._super
         # read in h-m curves if applicable
         o.h_m_curve = _read_h_m_file(o.materialFile) if \
