@@ -17,6 +17,7 @@ section_ion
 section_ring
         lattice = {{ latticeFilename }}
 section_ibs
+        model = {{ intrabeamScatteringRate_ibs_model }}
         nu = {{ intrabeamScatteringRate_nu }}
         nv = {{ intrabeamScatteringRate_nv }}
 {% if intrabeamScatteringRate_longitudinalMethod == 'nz' %}

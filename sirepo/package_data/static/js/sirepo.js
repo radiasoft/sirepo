@@ -133,6 +133,10 @@ angular.element(document).ready(function() {
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA) {
                 srlog("schema load failed: ", err);
+                if (err.match(/forbidden/i)) {
+                    window.location.href = "/forbidden";
+                    return;
+                }
             }
         },
         method: 'POST',
@@ -490,6 +494,9 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.deepEquals = function(v1, v2) {
+        if (v1 === v2) {
+            return true;
+        }
         if (angular.isArray(v1) && angular.isArray(v2)) {
             if (v1.length != v2.length) {
                 return false;
@@ -839,9 +846,11 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.watchModelFields = function($scope, modelFields, callback) {
         $scope.appState = self;
         modelFields.forEach(function(f) {
+            // allows watching fields when creating a new simulation (isLoaded() returns false)
+            const isSim = self.models.simulation && self.parseModelField(f)[0] === 'simulation';
             // elegant uses '-' in modelKey
             $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
-                if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
+                if ((self.isLoaded() || isSim) && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1, true, f);
                 }
@@ -1198,7 +1207,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
         var requestFunction = function() {
-            panelState.setLoading(modelName, true);
+            if (SIREPO.SLOW_ANIMATION) {
+                // some apps like SRW may take a long time to process a frame
+                panelState.setLoading(modelName, true);
+            }
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',

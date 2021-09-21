@@ -387,8 +387,6 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 appState.models.beamline.sort(function(a, b) {
                     return parseFloat(a.position) - parseFloat(b.position);
                 });
-                $scope.parentController.prepareToSave();
-
                 // culls and saves watchpoint models
                 var watchpoints = {
                     // the first beamineAnimation is the initialIntensityReport equivalent
@@ -412,6 +410,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                         savedModelValues[modelName] = appState.cloneModel(modelName);
                     }
                 }
+                $scope.parentController.prepareToSave();
                 appState.saveChanges($scope.beamlineModels);
             };
         },

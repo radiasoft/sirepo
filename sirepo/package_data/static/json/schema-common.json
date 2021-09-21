@@ -48,6 +48,10 @@
             "longName": "Radia",
             "shortName": "Radia"
         },
+        "raydata": {
+            "longName": "Raydata",
+            "shortName": "Raydata"
+        },
         "rcscon": {
             "longName": "RCSCON",
             "shortName": "RCSCON"
@@ -126,6 +130,7 @@
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
+        "forbidden": "/forbidden",
         "getApplicationData": "/get-application-data/?<filename>",
         "homePage": "/en/*<path_info>",
         "importArchive": "/import-archive",

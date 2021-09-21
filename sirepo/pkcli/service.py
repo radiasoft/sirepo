@@ -122,25 +122,6 @@ def jupyterhub():
 
     sirepo.server.init()
     with pkio.save_chdir(_run_dir().join('jupyterhub').ensure(dir=True)) as d:
-        # POSIT: Same kernel env as in container-beamsim-jupyter/build.sh
-        subprocess.run('''
-where=( $(python -m ipykernel install --display-name 'Python 3' --name 'py3' --user) )
-perl -pi -e '
-        sub _e {
-            return join(
-                qq{,\n},
-                map(
-                    $ENV{$_} ? qq{  "$_": "$ENV{$_}"} : (),
-                    qw(LD_LIBRARY_PATH PKG_CONFIG_PATH PYENV_VERSION PYTHONPATH),
-                ),
-            );
-        }
-        s/^\{/{\n "env": {\n@{[_e()]}\n },/
-    ' "${where[-1]}"/kernel.json''',
-            # SECURITY: Ok since this is dev and we aren't taking
-            # input from a user.
-            shell=True,
-        )
         pksubprocess.check_call_with_signals((
             'jupyter',
             'serverextension',

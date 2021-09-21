@@ -176,6 +176,11 @@ def api_favicon():
     )
 
 
+@api_perm.allow_visitor
+def api_forbidden():
+    sirepo.util.raise_forbidden('app forced forbidden')
+
+
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
     #TODO(pjm): simulation_id is an unused argument

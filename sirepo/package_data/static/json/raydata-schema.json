@@ -1,0 +1,43 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "analysis"
+        }
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "raydata.js"
+            ]
+        }
+    },
+    "localRoutes": {
+        "analysis": {
+            "route": "/analysis/:simulationId",
+            "config": {
+                "controller": "AnalysisController as analysis",
+                "templateUrl": "/static/html/raydata-analysis.html"
+          }
+        }
+    },
+    "model": {
+        "analysisAnimation": {},
+        "simulationStatus": {}
+    },
+    "strings": {
+        "completionState": "",
+        "simulationDataType": "notebook",
+        "simulationDataTypePlural": "notebooks",
+        "typeOfSimulation": "analysis"
+    },
+    "view": {
+        "analysisAnimation": {
+            "title": "Analysis",
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Analysis Status",
+            "advanced": []
+        }
+    }
+}

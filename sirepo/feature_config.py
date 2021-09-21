@@ -9,9 +9,8 @@ from __future__ import absolute_import, division, print_function
 
 #: Codes that depend on other codes. [x][0] depends on [x][1]
 _DEPENDENT_CODES = [
-        ['jspec', 'elegant'],
-        ['controls', 'madx'],
-
+    ['jspec', 'elegant'],
+    ['controls', 'madx'],
 ]
 
 #: Codes on prod
@@ -35,6 +34,7 @@ PROD_FOSS_CODES = frozenset((
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
     'myapp',
+    'raydata',
     'rcscon',
     'rs4pi',
     'silas',
@@ -85,6 +85,16 @@ def for_sim_type(sim_type):
     )
 
 
+def sim_common():
+    """Get cfg to use across all simulations. Separate from global cfg
+
+    Returns:
+        dict: common sim config
+    """
+    import pykern.pkcollections
+    return pykern.pkcollections.PKDict(cfg()).sim_common
+
+
 def _init():
     from pykern import pkconfig
     global _cfg
@@ -109,12 +119,12 @@ def _init():
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
-        #TODO(robnagler) make this a sim_type config like srw and warpvnd
-        rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
+        sim_common=dict(
+            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
+        ),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
-            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
             show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
             show_rsopt_ml=(pkconfig.channel_in_internal_test(), bool, 'Show "Export ML Script" menu item'),

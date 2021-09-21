@@ -1,0 +1,10 @@
+# -*- python -*-
+from pykern import pksubprocess
+
+pksubprocess.check_call_with_signals((
+    'papermill',
+    # POSIT: same kernel isntalled by rscode-ipykernel
+    '--kernel=py3',
+    '{{ input_name }}',
+    '{{ output_name }}',
+))
