@@ -23,7 +23,7 @@ def test_error_for_bots():
     r = fc.post(uri, json=d)
     pkeq(200, r.status_code)
 
-    r = fc.post(uri, environ_base={'HTTP_USER_AGENT': f'I AM A BOT'}, json=d)
+    r = fc.post(uri, environ_base={'HTTP_USER_AGENT': 'SPIDER'}, json=d)
     pkeq(500, r.status_code)
 
 
