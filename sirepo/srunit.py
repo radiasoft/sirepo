@@ -619,8 +619,25 @@ class _TestClient(flask.testing.FlaskClient):
                 r.status_code,
                 '<snip-file>' if 'download-data-file' in u else r.data,
             )
+            # Emulate code in sirepo.js to deal with redirects
             if r.status_code == 200 and r.mimetype == 'text/html':
-                return r
+                m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(r.data))
+                if m:
+                    if m.group(1).endswith('#/error'):
+                        raise sirepo.util.Error(
+                            PKDict(error='server error uri={}'.format(m.group(1))),
+                        )
+                    if kwargs.get('redirect', True):
+                        # Execute the redirect
+                        return self.__req(
+                            m.group(1),
+                            None,
+                            None,
+                            self.get,
+                            raw_response,
+                            __redirects=redirects,
+                        )
+                    return flask.redirect(m.group(1))
             if r.status_code in (301, 302, 303, 305, 307, 308):
                 if kwargs.get('redirect', True):
                     # Execute the redirect
