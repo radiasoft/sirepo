@@ -9,6 +9,24 @@ import pytest
 pytest.importorskip('srwl_bl')
 
 
+def test_error_for_bots():
+    from pykern.pkunit import pkeq, pkexcept, pkre
+    from sirepo import srunit
+    from sirepo import uri_router
+    import werkzeug
+
+    fc = srunit.flask_client()
+
+    #Replace this uri with one that will generate an unhandled exception
+    uri = '/radia'
+
+    r = fc.get(uri)
+    pkeq(200, r.status_code)
+
+    r = fc.get(uri, environ_base={'HTTP_USER_AGENT': f'I AM A BOT'})
+    pkeq(500, r.status_code)
+
+
 def test_not_found():
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
