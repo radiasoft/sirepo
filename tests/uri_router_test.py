@@ -11,19 +11,19 @@ pytest.importorskip('srwl_bl')
 
 def test_error_for_bots():
     from pykern.pkunit import pkeq, pkexcept, pkre
+    from pykern.pkcollections import PKDict
     from sirepo import srunit
-    from sirepo import uri_router
-    import werkzeug
 
     fc = srunit.flask_client()
+    fc.sr_login_as_guest()
 
-    #Replace this uri with one that will generate an unhandled exception
-    uri = '/radia'
+    uri = '/get-application-data'
+    d = PKDict(simulationType='srw', method='NO SUCH METHOD')
 
-    r = fc.get(uri)
+    r = fc.post(uri, json=d)
     pkeq(200, r.status_code)
 
-    r = fc.get(uri, environ_base={'HTTP_USER_AGENT': f'I AM A BOT'})
+    r = fc.post(uri, environ_base={'HTTP_USER_AGENT': f'I AM A BOT'}, json=d)
     pkeq(500, r.status_code)
 
 
