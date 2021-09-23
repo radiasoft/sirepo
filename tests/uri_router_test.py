@@ -10,8 +10,10 @@ pytest.importorskip('srwl_bl')
 
 
 def test_error_for_bots():
-    from pykern.pkunit import pkeq, pkexcept, pkre
+    from pykern import pkcompat
     from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq, pkexcept, pkok, pkre
+    from sirepo import http_request
     from sirepo import srunit
 
     fc = srunit.flask_client()
@@ -20,10 +22,23 @@ def test_error_for_bots():
     uri = '/get-application-data'
     d = PKDict(simulationType='srw', method='NO SUCH METHOD')
 
-    r = fc.post(uri, json=d)
+    # "Real" browsers get redirected to an error page with a 200 status
+    r = fc.post(
+        uri,
+        environ_base=PKDict(HTTP_USER_AGENT=http_request.USER_AGENT_MOZILLA),
+        json=d
+    )
     pkeq(200, r.status_code)
+    pkok(
+        '/srw#/error' in pkcompat.from_bytes(r.data),
+        'Unknown data method should redirect to error page'
+    )
 
-    r = fc.post(uri, environ_base={'HTTP_USER_AGENT': 'SPIDER'}, json=d)
+    r = fc.post(
+        uri,
+        environ_base=PKDict(HTTP_USER_AGENT=http_request.USER_AGENT_PYTHON),
+        json=d
+    )
     pkeq(500, r.status_code)
 
 

@@ -15,6 +15,10 @@ import sirepo.srcontext
 import sirepo.srschema
 import user_agents
 
+USER_AGENT_MOZILLA = 'Mozilla/5.0'
+USER_AGENT_PYTHON = 'python-requests/2.26.0'
+_BOTS = (USER_AGENT_PYTHON,)
+
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
 _POST_ATTR = 'sirepo_http_request_post'
@@ -27,7 +31,8 @@ def init(**imports):
 
 
 def is_spider():
-    return user_agents.parse(flask.request.headers.get('User-Agent')).is_bot
+    a = flask.request.headers.get('User-Agent')
+    return user_agents.parse(a).is_bot or a in _BOTS
 
 
 def parse_json():
