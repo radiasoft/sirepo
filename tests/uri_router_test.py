@@ -29,10 +29,7 @@ def test_error_for_bots():
         json=d
     )
     pkeq(200, r.status_code)
-    pkok(
-        '/srw#/error' in pkcompat.from_bytes(r.data),
-        'Unknown data method should redirect to error page'
-    )
+    pkre('/error', r.data)
 
     r = fc.post(
         uri,
