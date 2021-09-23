@@ -3,6 +3,12 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.app.config(function() {
+    SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((t) => {
+	return `<div data-ng-switch-when="${t}Metadata" data-metadata-table="" data-type="${t}"></div>`;
+    }).join('');
+});
+
 SIREPO.app.factory('raydataService', function(appState) {
     const self = {};
     appState.setAppService(self);
@@ -23,15 +29,20 @@ SIREPO.app.controller('AnalysisController', function(appState, frameCache, persi
     return self;
 });
 
+SIREPO.app.controller('MetadataController', function(appState, frameCache, persistentSimulation, $scope) {
+    const self = this;
+    return self;
+});
+
 SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
         scope: {
             nav: '=appFooter',
         },
-        template: [
+        template: `
             '<div data-common-footer="nav"></div>'
-        ].join(''),
+        `
     };
 });
 
@@ -41,10 +52,81 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 	scope: {
             nav: '=appHeader',
 	},
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav"></div>',
-	].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+		<div data-ng-if="nav.isLoaded()" data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'metadata\')}"><a data-ng-href="{{ nav.sectionURL(\'metadata\') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a data-ng-href="{{ nav.sectionURL(\'analysis\') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+	    </div>
+        `
+    };
+});
+
+
+SIREPO.app.directive('metadataTable', function() {
+    return {
+        restrict: 'A',
+        scope: {
+	    type: '@'
+	},
+        template: `
+            <div data-ng-if="data">
+              <div>
+                <table class="table">
+                  <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                    <th></th>
+                    <th></th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr data-ng-repeat="(k, v) in data">
+                    <td>{{ k }}</td>
+                    <td id="metadata-table-{{ k }}" class="raydata-overflow-text">{{ v }}</td>
+                    <td><button class="glyphicon glyphicon-plus" data-ng-if="isOverflown(k)" data-ng-click="toggleExpanded(k)"></span></td>
+                    <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[k]" data-ng-click="toggleExpanded(k)"></span></td>
+                  </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+        `,
+        controller: function(appState, requestSender, $sce, $scope) {
+	    $scope.data = null;
+	    $scope.expanded = {};
+
+	    $scope.isOverflown = function(key) {
+		// Id's may be malformed (spaces) so use this jquery syntax
+		// to cover them
+		const e = $(`[id='metadata-table-${key}']`);
+		return e.prop('clientWidth') < e.prop('scrollWidth');
+	    };
+
+	    $scope.toggleExpanded = function(key) {
+		const e = $(`[id='metadata-table-${key}']`);
+		if (!(key in $scope.expanded)) {
+		    $scope.expanded[key] = false;
+		}
+		$scope.expanded[key] = ! $scope.expanded[key];
+		e.toggleClass('raydata-overflow-text');
+	    };
+
+	    requestSender.statelessCompute(
+		appState,
+		{
+		    method: $scope.type + '_metadata'
+		},
+		(data) => {
+		    $scope.data = data.data;
+		}
+	    );
+        },
     };
 });
