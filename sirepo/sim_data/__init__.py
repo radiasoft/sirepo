@@ -628,7 +628,12 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
 
-        p = [cls.lib_file_resource_path(basename)]
+        p = []
+        try:
+            p.append(cls.lib_file_resource_path(basename))
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
         if cfg.lib_file_uri:
             if basename in cfg.lib_file_list:
                 p = pkio.py_path(basename)
