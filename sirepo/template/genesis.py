@@ -149,20 +149,17 @@ def sim_frame_particleAnimation(frame_args):
     )
     x = _get_col(frame_args.x)
     y = _get_col(frame_args.y)
-    return template_common.parameter_plot(
-        b[-1, x[0], :].tolist(),
-        [PKDict(
-            field=y[1],
-            label=y[1],
-            points=b[-1, y[0], :].tolist(),
-            style='scatter',
-        )],
-        PKDict(),
+    return template_common.heatmap(
+        [
+            b[-1, x[0], :].tolist(),
+            b[-1, y[0], :].tolist(),
+        ],
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
         PKDict(
             title=f'Particles',
             x_label=x[1],
             y_label=y[1],
-        )
+        ),
     )
 
 

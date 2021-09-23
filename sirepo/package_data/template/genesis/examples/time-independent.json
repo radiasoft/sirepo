@@ -125,9 +125,10 @@
 	    "y": "power"
 	},
 	"particleAnimation": {
+	    "histogramBins": 200,
 	    "notes": "",
-	    "x": "x",
-	    "y": "y"
+	    "x": "psi",
+	    "y": "gamma"
 	},
         "particleLoading": {
             "iall": 0,

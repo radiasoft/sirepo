@@ -665,9 +665,10 @@
 	    "y": ["Y Value", "OutputParameter", "power"]
 	},
 	"particleAnimation": {
+	    "histogramBins": ["Histogram Bins", "Integer", 200],
             "notes": ["Notes", "Text", ""],
-	    "x": ["X Value", "ParticleColumn", "x"],
-	    "y": ["Y Value", "ParticleColumn", "y"]
+	    "x": ["X Value", "ParticleColumn", "psi"],
+	    "y": ["Y Value", "ParticleColumn", "gamma"]
 	},
         "particleLoading": {
             "iall": [
@@ -1196,6 +1197,7 @@
 	"particleAnimation": {
             "title": "Particle Distribution",
             "advanced": [
+		"histogramBins",
 		"x",
 		"y"
             ]
