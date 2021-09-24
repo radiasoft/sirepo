@@ -364,13 +364,15 @@ def export_rsopt_config(data, filename):
     v = _rsopt_jinja_context(data.models.exportRsOpt)
 
     fz = pkio.py_path(filename)
-    f = re.sub(r'[^\w\.]+', '-', fz.purebasename).strip('-')
+    f = re.sub(r'[^\w.]+', '-', fz.purebasename).strip('-')
     v.runDir = f'{f}_scan'
     v.fileBase = f
     tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
     for t in tf:
         v[f'{t}FileName'] = tf[t].file
     v.outFileName = f'{f}.out'
+    v.readmeFileName = 'README.txt'
+    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
 
     # do this in a second loop so v is fully updated
     # note that the rsopt context is regenerated in python_source_for_model()
@@ -378,6 +380,7 @@ def export_rsopt_config(data, filename):
         tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
+    template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
 
     with zipfile.ZipFile(
         fz,
