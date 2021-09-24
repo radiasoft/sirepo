@@ -15,8 +15,6 @@ import sirepo.srcontext
 import sirepo.srschema
 import user_agents
 
-_BOTS = ('python-requests',)
-
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
 _POST_ATTR = 'sirepo_http_request_post'
@@ -30,7 +28,11 @@ def init(**imports):
 
 def is_spider():
     a = flask.request.headers.get('User-Agent')
-    return user_agents.parse(a).is_bot or any([a in b or b in a for b in _BOTS])
+    if 'python-requests' in a:
+        # user_agents doesn't see Python's requests module as a bot.
+        # The package robot_detection does see it, but we don't want to introduce another dependency.
+        return True
+    return user_agents.parse(a).is_bot
 
 
 def parse_json():
