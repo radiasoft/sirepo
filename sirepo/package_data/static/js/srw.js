@@ -19,7 +19,7 @@ SIREPO.app.config(function() {
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-12">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+            '<div data-srw-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="UndulatorList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
@@ -351,7 +351,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     offsets: [],
                 };
                 for (let f of props[p].fieldNames || []) {
-                    e[p].initial.push(item[f] || 0.0);
+                    e[p].initial.push(item[f] ? parseFloat(item[f]) : 0.0);
                 }
             }
         }
@@ -3145,51 +3145,51 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
 });
 
 
-//SIREPO.app.directive('numberList', function(appState) {
-//    return {
-//        restrict: 'A',
-//        scope: {
-//            field: '=',
-//            model: '=',
-//            info: '<',
-//            type: '@',
-//            count: '@',
-//        },
-//        template: [
-//            '<div class="row" data-ng-repeat="defaultSelection in parseValues() track by $index">',
-//            '<div class="col-sm-5 text-right control-label">',
-//                '<label>{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
-//            '</div>',
-//            '<div class="col-sm-7">',
-//                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
-//            '</div>',
-//            '</div>',
-//        ].join(''),
-//        controller: function($scope, $element) {
-//            let lastModel = null;
-//            // NOTE: does not appear to like 'model.field' format
-//            $scope.values = null;
-//            $scope.numberType = $scope.type.toLowerCase();
-//            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
-//            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
-//            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
-//            $scope.didChange = function() {
-//                $scope.field = $scope.values.join(', ');
-//            };
-//            $scope.parseValues = function() {
-//               // values were sticking around when the model changed
-//                if (! lastModel || lastModel !== $scope.model) {
-//                    lastModel = $scope.model;
-//                    $scope.values = null;
-//                }
-//                if ($scope.field && ! $scope.values) {
-//                    $scope.values = $scope.field.split(/\s*,\s*/);
-//                }
-//                return $scope.values;
-//            };
-//        },
-//    };
-//});
+SIREPO.app.directive('srwNumberList', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            info: '<',
+            type: '@',
+            count: '@',
+        },
+        template: [
+            '<div class="row" data-ng-repeat="defaultSelection in parseValues() track by $index">',
+            '<div class="col-sm-5 text-right control-label">',
+                '<label>{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+            '</div>',
+            '<div class="col-sm-7">',
+                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            let lastModel = null;
+            // NOTE: does not appear to like 'model.field' format
+            $scope.values = null;
+            $scope.numberType = $scope.type.toLowerCase();
+            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
+            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+               // values were sticking around when the model changed
+                if (! lastModel || lastModel !== $scope.model) {
+                    lastModel = $scope.model;
+                    $scope.values = null;
+                }
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
+            };
+        },
+    };
+});
 
 SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
     return {

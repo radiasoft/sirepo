@@ -373,6 +373,7 @@ def export_rsopt_config(data, filename):
     v.outFileName = f'{f}.out'
     v.readmeFileName = 'README.txt'
     v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
+    v.hasLibFiles = len(v.libFiles) > 0
 
     # do this in a second loop so v is fully updated
     # note that the rsopt context is regenerated in python_source_for_model()
@@ -380,7 +381,7 @@ def export_rsopt_config(data, filename):
         tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
-    template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
+    readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
 
     with zipfile.ZipFile(
         fz,
@@ -390,6 +391,7 @@ def export_rsopt_config(data, filename):
     ) as z:
         for t in tf:
             z.writestr(tf[t].file, tf[t].content)
+        z.writestr(v.readmeFileName, readme)
         for d in _SIM_DATA.lib_files_for_export(data):
             z.write(d, d.basename)
     return fz
