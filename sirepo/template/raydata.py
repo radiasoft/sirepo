@@ -15,6 +15,7 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+# The metadata fields are from bluesky. Some have spaces while others don't.
 _ANALYSIS_METADATA = (
     'analysis',
     'auto_pipeline',
@@ -83,9 +84,9 @@ def _generate_parameters_file(data):
     )
 
 
-def _metadata(type):
+def _metadata(category):
     res = PKDict()
-    for k in type:
+    for k in category:
         res[
             ' '.join(k.split('_'))
         ] = databroker.catalog[_BROKER_NAME][_SCAN_UID].metadata['start'][k]
