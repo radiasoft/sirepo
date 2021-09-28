@@ -3,9 +3,9 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.config(function() {
+SIREPO.app.config(() => {
     SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((t) => {
-	return `<div data-ng-switch-when="${t}Metadata" data-metadata-table="" data-type="${t}"></div>`;
+	return `<div data-ng-switch-when="${t}Metadata" data-metadata-table="" data-type="${t}" class="sr-plot" data-model-name="{{ modelKey }}"></div>`;
     }).join('');
 });
 
@@ -72,6 +72,7 @@ SIREPO.app.directive('metadataTable', function() {
     return {
         restrict: 'A',
         scope: {
+	    modelName: '@',
 	    type: '@'
 	},
         template: `
@@ -98,7 +99,7 @@ SIREPO.app.directive('metadataTable', function() {
               </div>
             </div>
 	`,
-	controller: function(appState, requestSender, $sce, $scope) {
+	controller: function(appState, panelState, requestSender, $scope) {
 	    $scope.data = null;
 	    $scope.expanded = {};
 
@@ -141,7 +142,8 @@ SIREPO.app.directive('metadataTable', function() {
 		},
 		(data) => {
 		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
-		}
+		},
+		() => panelState.reportNotGenerated($scope.modelName)
 	    );
         },
     };
