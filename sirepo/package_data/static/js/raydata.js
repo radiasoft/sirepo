@@ -91,7 +91,7 @@ SIREPO.app.directive('metadataTable', function() {
                   <tr data-ng-repeat="(_, v) in data">
                     <td>{{ v[0] }}</td>
                     <td id="{{ elementId(v[0]) }}" class="raydata-overflow-text">{{ v[1] }}</td>
-                    <td><button class="glyphicon glyphicon-plus" data-ng-if="isOverflown(v[0])" data-ng-click="toggleExpanded(v[0])"></span></td>
+                    <td><button class="glyphicon glyphicon-plus" data-ng-if="wouldOverflow(v[0])" data-ng-click="toggleExpanded(v[0])"></span></td>
                     <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[v[0]]" data-ng-click="toggleExpanded(v[0])"></span></td>
                   </tr>
                   </tbody>
@@ -120,7 +120,7 @@ SIREPO.app.directive('metadataTable', function() {
 		throw new Error(`No key=${key} in data=${$scope.data}`);
 	    }
 
-	    $scope.isOverflown = function(key) {
+	    $scope.wouldOverflow = function(key) {
 		const e = elementForKey(key)
 		return e.prop('clientWidth') < e.prop('scrollWidth');
 	    };
@@ -135,6 +135,7 @@ SIREPO.app.directive('metadataTable', function() {
 		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
+	    srdbg(`ppppppppppppppp `, panelState);
 	    requestSender.statelessCompute(
 		appState,
 		{
