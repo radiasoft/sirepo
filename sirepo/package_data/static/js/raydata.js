@@ -87,11 +87,11 @@ SIREPO.app.directive('metadataTable', function() {
                   </tr>
                   </thead>
                   <tbody>
-                  <tr data-ng-repeat="(k, v) in data">
-                    <td>{{ k }}</td>
-                    <td id="metadata-table-{{ k }}" class="raydata-overflow-text">{{ v }}</td>
-                    <td><button class="glyphicon glyphicon-plus" data-ng-if="isOverflown(k)" data-ng-click="toggleExpanded(k)"></span></td>
-                    <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[k]" data-ng-click="toggleExpanded(k)"></span></td>
+                  <tr data-ng-repeat="(_, v) in data">
+                    <td>{{ v[0] }}</td>
+                    <td id="{{ elementId(v[0]) }}" class="raydata-overflow-text">{{ v[1] }}</td>
+                    <td><button class="glyphicon glyphicon-plus" data-ng-if="isOverflown(v[0])" data-ng-click="toggleExpanded(v[0])"></span></td>
+                    <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[v[0]]" data-ng-click="toggleExpanded(v[0])"></span></td>
                   </tr>
                   </tbody>
                 </table>
@@ -102,20 +102,34 @@ SIREPO.app.directive('metadataTable', function() {
 	    $scope.data = null;
 	    $scope.expanded = {};
 
+	    function elementForKey(key) {
+		return $('#' + $scope.elementId(key));
+	    }
+
+	    $scope.elementId = function(key) {
+		return 'metadata-table-' + $scope.type + '-' + $scope.indexOfKey(key);
+	    }
+
+	    $scope.indexOfKey = function(key) {
+		for (let i in $scope.data) {
+		    if ($scope.data[i][0] === key) {
+			return i;
+		    }
+		}
+		throw new Error(`No key=${key} in data=${$scope.data}`);
+	    }
+
 	    $scope.isOverflown = function(key) {
-		// Id's may be malformed (spaces) so use this jquery syntax
-		// to cover them
-		const e = $(`[id='metadata-table-${key}']`);
+		const e = elementForKey(key)
 		return e.prop('clientWidth') < e.prop('scrollWidth');
 	    };
 
 	    $scope.toggleExpanded = function(key) {
-		const e = $(`[id='metadata-table-${key}']`);
 		if (!(key in $scope.expanded)) {
 		    $scope.expanded[key] = false;
 		}
 		$scope.expanded[key] = ! $scope.expanded[key];
-		e.toggleClass('raydata-overflow-text');
+		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
 	    requestSender.statelessCompute(
@@ -124,7 +138,7 @@ SIREPO.app.directive('metadataTable', function() {
 		    method: $scope.type + '_metadata'
 		},
 		(data) => {
-		    $scope.data = data.data;
+		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
 		}
 	    );
         },
