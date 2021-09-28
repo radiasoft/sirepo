@@ -571,7 +571,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
             scope.isLoading = () => panelState.isLoading(scope.modelName);
 
-            scope.$on('sr-window-resize', scope.resize);
+            // scope.resize is not defined until later
+            scope.$on('sr-window-resize', () => scope.resize());
 
             // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
             $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
