@@ -45,6 +45,9 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         't-p': 'Longitudinal',
         'z-zp': 'Longitudinal',
         'z-pz': 'Longitudinal',
+        'xp': "X'",
+        'yp': "Y'",
+        'zp': "Z'",
     };
 
     function elementNameInvalidMsg(newName) {
@@ -155,7 +158,12 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             return '';
         }
         var key = bunch.x + '-' + bunch.y;
-        return (plotTitle[key] || (bunch.x + ' / ' + bunch.y)) + ' Phase Space';
+        let res = plotTitle[key];
+        if (! res) {
+            res = (plotTitle[bunch.x] || bunch.x) + ' / '
+                + (plotTitle[bunch.y] || bunch.y);
+        }
+        return res + ' Phase Space';
     };
 
     self.commandModelName = function(type) {
