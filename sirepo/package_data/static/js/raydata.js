@@ -97,8 +97,8 @@ SIREPO.app.directive('metadataTable', function() {
                 </table>
               </div>
             </div>
-        `,
-        controller: function(appState, requestSender, $sce, $scope) {
+	`,
+	controller: function(appState, requestSender, $sce, $scope) {
 	    $scope.data = null;
 	    $scope.expanded = {};
 
