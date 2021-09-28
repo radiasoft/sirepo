@@ -125,10 +125,12 @@ SIREPO.app.directive('metadataTable', function() {
 	    };
 
 	    $scope.toggleExpanded = function(key) {
-		if (!(key in $scope.expanded)) {
-		    $scope.expanded[key] = false;
+		if ( key in $scope.expanded ) {
+		    $scope.expanded[key] = ! $scope.expanded[key];
 		}
-		$scope.expanded[key] = ! $scope.expanded[key];
+		else {
+		    $scope.expanded[key] = true;
+		}
 		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
