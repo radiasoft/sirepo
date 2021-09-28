@@ -16,6 +16,10 @@
             "longName": "FLASH",
             "shortName": "FLASH"
         },
+        "genesis": {
+            "longName": "Genesis",
+            "shortName": "Genesis"
+        },
         "hellweg": {
             "longName": "Hellweg",
             "shortName": "Hellweg"
