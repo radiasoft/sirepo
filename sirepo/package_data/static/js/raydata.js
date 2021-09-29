@@ -76,27 +76,25 @@ SIREPO.app.directive('metadataTable', function() {
 	    modelName: '@'
 	},
         template: `
-            <div data-ng-if="data">
-              <div>
-                <table class="table">
-                  <thead>
-                  <tr>
-                    <th>Field</th>
-                    <th>Value</th>
-                    <th></th>
-                    <th></th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr data-ng-repeat="(_, v) in data">
-                    <td>{{ v[0] }}</td>
-                    <td id="{{ elementId(v[0]) }}" class="raydata-overflow-text">{{ v[1] }}</td>
-                    <td><button class="glyphicon glyphicon-plus" data-ng-if="wouldOverflow(v[0])" data-ng-click="toggleExpanded(v[0])"></span></td>
-                    <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[v[0]]" data-ng-click="toggleExpanded(v[0])"></span></td>
-                  </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="table-responsive"  data-ng-if="data">
+              <table class="table">
+                <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Value</th>
+                  <th></th>
+                  <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr data-ng-repeat="(_, v) in data">
+                  <td>{{ v[0] }}</td>
+                  <td id="{{ elementId(v[0]) }}" class="raydata-overflow-text">{{ v[1] }}</td>
+                  <td><button class="glyphicon glyphicon-plus" data-ng-if="wouldOverflow(v[0])" data-ng-click="toggleExpanded(v[0])"></span></td>
+                  <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[v[0]]" data-ng-click="toggleExpanded(v[0])"></span></td>
+                </tr>
+                </tbody>
+              </table>
             </div>
 	`,
 	controller: function(appState, panelState, requestSender, $scope) {
