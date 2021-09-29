@@ -2279,21 +2279,43 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         );
     };
 
-    self.statelessCompute = function(appState, data, successCallback, errorCallback) {
+    self.statelessCompute = function(appState, data, successCallback, options) {
+	const onError = (data) => {
+	    srlog('statelessCompute error: ', data.error);
+	    setPanelState('error');
+	};
+
+	const setPanelState = (method) => {
+	    if (! options) {
+		return;
+	    }
+	    const p = options.panelStateHandle;
+	    const m = options.modelName;
+	    if (! (p && m)) {
+		return;
+	    }
+	    return {
+		error: () => p.reportNotGenerated(m),
+		loading: () => p.setLoading(m, true),
+		loadingDone: () => p.setLoading(m, false)
+	    }[method]();
+	};
+
+	setPanelState('loading');
         data.simulationId = appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
         self.sendRequest(
 	    'statelessCompute',
 	    (data) => {
 		if (data.state === 'error') {
-		    srlog('statelessCompute error: ', data.error)
-		    errorCallback();
+		    onError(data);
 		    return;
 		}
+		setPanelState('loadingDone');
 		successCallback(data);
 	    },
 	    data,
-	    errorCallback
+	    onError
 	);
     };
 

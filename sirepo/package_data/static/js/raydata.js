@@ -145,7 +145,10 @@ SIREPO.app.directive('metadataTable', function() {
 		(data) => {
 		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
 		},
-		() => panelState.reportNotGenerated($scope.modelName)
+		{
+		    modelName: $scope.modelName,
+		    panelStateHandle: panelState,
+		}
 	    );
         },
     };
