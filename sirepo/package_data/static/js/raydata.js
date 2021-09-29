@@ -4,8 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
-    SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((t) => {
-	return `<div data-ng-switch-when="${t}Metadata" data-metadata-table="" data-type="${t}" class="sr-plot" data-model-name="{{ modelKey }}"></div>`;
+    SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((c) => {
+	return `<div data-ng-switch-when="${c}Metadata" data-metadata-table="" data-category="${c}" class="sr-plot" data-model-name="{{ modelKey }}"></div>`;
     }).join('');
 });
 
@@ -72,8 +72,8 @@ SIREPO.app.directive('metadataTable', function() {
     return {
         restrict: 'A',
         scope: {
-	    modelName: '@',
-	    type: '@'
+	    category: '@',
+	    modelName: '@'
 	},
         template: `
             <div data-ng-if="data">
@@ -108,7 +108,7 @@ SIREPO.app.directive('metadataTable', function() {
 	    }
 
 	    $scope.elementId = function(key) {
-		return 'metadata-table-' + $scope.type + '-' + $scope.indexOfKey(key);
+		return 'metadata-table-' + $scope.category + '-' + $scope.indexOfKey(key);
 	    }
 
 	    $scope.indexOfKey = function(key) {
@@ -120,6 +120,7 @@ SIREPO.app.directive('metadataTable', function() {
 		throw new Error(`No key=${key} in data=${$scope.data}`);
 	    }
 
+	    // TODO(e-carlin): when expaneded it overflow the plot box
 	    $scope.wouldOverflow = function(key) {
 		const e = elementForKey(key)
 		return e.prop('clientWidth') < e.prop('scrollWidth');
@@ -135,11 +136,11 @@ SIREPO.app.directive('metadataTable', function() {
 		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
-	    srdbg(`ppppppppppppppp `, panelState);
 	    requestSender.statelessCompute(
 		appState,
 		{
-		    method: $scope.type + '_metadata'
+		    method: 'metadata',
+		    category: $scope.category
 		},
 		(data) => {
 		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);

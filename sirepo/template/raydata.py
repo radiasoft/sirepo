@@ -15,14 +15,6 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-# The metadata fields are from bluesky. Some have spaces while others don't.
-_ANALYSIS_METADATA = (
-    'analysis',
-    'auto_pipeline',
-    'detectors',
-    'number of images',
-)
-
 # TODO(e-carlin): from user
 _BROKER_NAME = 'chx'
 
@@ -31,21 +23,31 @@ _SCAN_UID = 'bdcce1f3-7317-4775-bc26-ece8f0612758'
 
 _OUTPUT_FILE = 'out.ipynb'
 
-_GENERAL_METADATA = (
-    'beamline_id',
-    'cycle',
-    'data path',
-    'owner',
-    'time',
-    'uid',
-)
 
-_PLAN_METADATA = (
-    'plan_args',
-    'plan_name',
-    'plan_type',
-    'scan_id',
-    'sequence id',
+
+# The metadata fields are from bluesky. Some have spaces while others don't.
+_METDATA = PKDict(
+    analysis=(
+        'analysis',
+        'auto_pipeline',
+        'detectors',
+        'number of images',
+    ),
+    general= (
+        'beamline_id',
+        'cycle',
+        'data path',
+        'owner',
+        'time',
+        'uid',
+    ),
+    plan= (
+        'plan_args',
+        'plan_name',
+        'plan_type',
+        'scan_id',
+        'sequence id',
+    ),
 )
 
 
@@ -55,16 +57,8 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(percentComplete=100, frameCount=1)
 
 
-def stateless_compute_analysis_metadata(data):
-    return PKDict(data=_metadata(_ANALYSIS_METADATA))
-
-
-def stateless_compute_general_metadata(data):
-    return PKDict(data=_metadata(_GENERAL_METADATA))
-
-
-def stateless_compute_plan_metadata(data):
-    return PKDict(data=_metadata(_PLAN_METADATA))
+def stateless_compute_metadata(data):
+    return PKDict(data=_metadata(data))
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -84,9 +78,9 @@ def _generate_parameters_file(data):
     )
 
 
-def _metadata(category):
+def _metadata(data):
     res = PKDict()
-    for k in category:
+    for k in _METDATA[data.category]:
         res[
             ' '.join(k.split('_'))
         ] = databroker.catalog[_BROKER_NAME][_SCAN_UID].metadata['start'][k]
