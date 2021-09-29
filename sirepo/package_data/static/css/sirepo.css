@@ -338,7 +338,6 @@
       display: none;
     }
     .sr-panel-loading .sr-panel-wait {
-      position: absolute;
       color: white;
       display: block;
       z-index: 1000;
