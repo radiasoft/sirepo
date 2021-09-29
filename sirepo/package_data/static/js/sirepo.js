@@ -1198,8 +1198,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return;
         }
         function onError() {
-            panelState.setLoading(modelName, false);
-            panelState.setError(modelName, 'Report not generated');
+	    panelState.reportNotGenerated(modelName);
         }
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
@@ -1651,6 +1650,11 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         requestSender.newWindow('pythonSource', args);
     };
+
+    self.reportNotGenerated = function(modelName) {
+	self.setLoading(modelName, false);
+	self.setError(modelName, 'Report not generated');
+    }
 
     self.requestData = function(name, callback, forceRun, errorCallback) {
         if (! appState.isLoaded()) {
@@ -2275,10 +2279,44 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         );
     };
 
-    self.statelessCompute = function(appState, data, callback) {
+    self.statelessCompute = function(appState, data, successCallback, options) {
+	const onError = (data) => {
+	    srlog('statelessCompute error: ', data.error);
+	    setPanelState('error');
+	};
+
+	const setPanelState = (method) => {
+	    if (! options) {
+		return;
+	    }
+	    const p = options.panelStateHandle;
+	    const m = options.modelName;
+	    if (! (p && m)) {
+		return;
+	    }
+	    return {
+		error: () => p.reportNotGenerated(m),
+		loading: () => p.setLoading(m, true),
+		loadingDone: () => p.setLoading(m, false)
+	    }[method]();
+	};
+
+	setPanelState('loading');
         data.simulationId = appState.models.simulation.simulationId;
         data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-        self.sendRequest('statelessCompute', callback, data);
+        self.sendRequest(
+	    'statelessCompute',
+	    (data) => {
+		if (data.state === 'error') {
+		    onError(data);
+		    return;
+		}
+		setPanelState('loadingDone');
+		successCallback(data);
+	    },
+	    data,
+	    onError
+	);
     };
 
     $rootScope.$on('$routeChangeStart', checkCookieRedirect);

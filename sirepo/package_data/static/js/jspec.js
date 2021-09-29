@@ -293,7 +293,6 @@ SIREPO.app.directive('appHeader', function() {
     };
 });
 
-
 SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
     return {
         restrict: 'A',
@@ -322,12 +321,7 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports
-            var noOp = function() {};
-            $scope.clearData = noOp;
-            $scope.destroy = noOp;
-            $scope.init = noOp;
-            $scope.resize = noOp;
+	    plotting.setTextOnlyReport($scope);
             $scope.load = function(json) {
                 $scope.rates = json.rate;
             };
