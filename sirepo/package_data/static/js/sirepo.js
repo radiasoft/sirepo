@@ -1654,7 +1654,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.reportNotGenerated = function(modelName) {
 	self.setLoading(modelName, false);
 	self.setError(modelName, 'Report not generated');
-    }
+    };
 
     self.requestData = function(name, callback, forceRun, errorCallback) {
         if (! appState.isLoaded()) {
@@ -1799,6 +1799,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             windowResize();
         }
     };
+
+    self.triggerResize = windowResize;
 
     self.waitForUI = function(callback) {
         // groups callbacks within one $timeout()
@@ -2694,6 +2696,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.getPercentComplete = function() {
+            if (state.percentComplete) {
+                return state.percentComplete;
+            }
             if (state.isInitializing() || state.isStatePending()) {
                 return 100;
             }

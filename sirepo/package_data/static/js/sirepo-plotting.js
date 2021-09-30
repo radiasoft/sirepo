@@ -1451,7 +1451,7 @@ SIREPO.app.service('focusPointService', function(plotting) {
 
 });
 
-SIREPO.app.service('layoutService', function(plotting, utilities) {
+SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
     var svc = this;
 
     svc.parseLabelAndUnits = function(label) {
@@ -1567,7 +1567,11 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 if (canvasSize.scaleFunction) {
                     w += 2;
                 }
-                margin[orientation] = (w + 6) * (fontSize / 2);
+                const newMargin = (w + 6) * (fontSize / 2);
+                if (newMargin != margin[orientation]) {
+                    margin[orientation] = newMargin;
+                    panelState.triggerResize();
+                }
             }
             self.svgAxis.ticks(tickCount);
             self.tickCount = tickCount;

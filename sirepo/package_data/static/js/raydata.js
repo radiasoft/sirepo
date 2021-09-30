@@ -107,7 +107,7 @@ SIREPO.app.directive('metadataTable', function() {
 
 	    $scope.elementId = function(key) {
 		return 'metadata-table-' + $scope.category + '-' + $scope.indexOfKey(key);
-	    }
+	    };
 
 	    $scope.indexOfKey = function(key) {
 		for (let i in $scope.data) {
@@ -116,11 +116,11 @@ SIREPO.app.directive('metadataTable', function() {
 		    }
 		}
 		throw new Error(`No key=${key} in data=${$scope.data}`);
-	    }
+	    };
 
 	    // TODO(e-carlin): when expaneded it overflow the plot box
 	    $scope.wouldOverflow = function(key) {
-		const e = elementForKey(key)
+		const e = elementForKey(key);
 		return e.prop('clientWidth') < e.prop('scrollWidth');
 	    };
 
