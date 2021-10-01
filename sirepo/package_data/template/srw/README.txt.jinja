@@ -1,0 +1,14 @@
+These files facilitate the generation and use of input data for machine learning for SRW. They include:
+
+{{ shFileName }}: a shell script that generates input data
+{{ pyFileName }}: a python script that runs SRW using the generated data
+{{ ymlFileName }}: a YML configuration file for rsopt
+{{ readmeFileName }}: this README
+
+{% if hasLibFiles %}
+Also included are auxiliary files required for the specific SRW simulation:
+{{ libFiles }}
+{% endif %}
+
+To generate the data, run 'bash {{ shFileName }}'. This stores the data in the numpy file
+
