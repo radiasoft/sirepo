@@ -4278,6 +4278,14 @@ SIREPO.app.service('utilities', function($window, $interval) {
         });
     };
 
+    this.splitCommaDelimitedString = function(str, parser=null) {
+        let a = str.split(/\s*,\s*/);
+        if (! parser) {
+            return a;
+        }
+        return a.map(x => parser(x));
+    };
+
     this.camelToKebabCase = function(v) {
         if (v.toUpperCase() == v) {
             return v.toLowerCase();
