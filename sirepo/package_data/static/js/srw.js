@@ -19,7 +19,7 @@ SIREPO.app.config(function() {
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-12">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+            '<div data-srw-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="UndulatorList">',
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
@@ -3144,7 +3144,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
     };
 });
 
-SIREPO.app.directive('numberList', function(appState) {
+SIREPO.app.directive('srwNumberList', function(appState) {
     return {
         restrict: 'A',
         scope: {
