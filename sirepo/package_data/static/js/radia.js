@@ -3349,6 +3349,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                displayVals = getDisplayVals();
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
                 sceneData = data;
@@ -3393,13 +3394,15 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer() {
-                displayVals = getDisplayVals();
+                const c = didDisplayValsChange();
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
-                $rootScope.$broadcast('vtk.showLoader');
+                if (c) {
+                    $rootScope.$broadcast('vtk.showLoader');
+                }
                 panelState.clear('geometryReport');
-                panelState.requestData('geometryReport', setupSceneData, true);
+                panelState.requestData('geometryReport', setupSceneData, c);
             }
 
             $scope.eventHandlers = {

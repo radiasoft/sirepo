@@ -40,7 +40,6 @@
             },
             "transforms": {
                 "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
-                "invertField": ["name"],
                 "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
                 "translate": ["name","distance"],
                 "rotate": ["name", "angle", "axis", "center"],
