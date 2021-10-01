@@ -338,7 +338,6 @@
       display: none;
     }
     .sr-panel-loading .sr-panel-wait {
-      position: absolute;
       color: white;
       display: block;
       z-index: 1000;
@@ -916,12 +915,13 @@ ul.sr-nav-sidebar-root {
 
 .sr-item-selected {
   background-color: blue;
-  box-shadow: 0 0 10px gray;
+  box-shadow: 4px 4px 10px gray;
   cursor: move;
   -moz-user-select: none;
   -webkit-user-select: none;
   user-select: none;
   border-color: blue;
+  margin-top: -4px;
 }
 .sr-badge-icon {
   -moz-user-select: none;
@@ -931,6 +931,11 @@ ul.sr-nav-sidebar-root {
 }
 .sr-badge-icon span {
   cursor: move;
+  display: block;
+  width: 100%;
+}
+.sr-badge-icon span.dragging {
+  display: inline;
 }
 
 .sr-item-text {

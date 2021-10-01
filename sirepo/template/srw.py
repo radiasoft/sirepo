@@ -430,6 +430,11 @@ def get_data_file(run_dir, model, frame, **kwargs):
 def get_filename_for_model(model):
     if _SIM_DATA.is_watchpoint(model):
         model = _SIM_DATA.WATCHPOINT_REPORT
+    if model == 'beamlineAnimation0':
+        model = 'initialIntensityReport'
+    m = re.search(r'(beamlineAnimation)(\d+)', model)
+    if m:
+        return _OUTPUT_FOR_MODEL[m.group(1)].filename.format(watchpoint_id=m.group(2))
     return _OUTPUT_FOR_MODEL[model].filename
 
 
@@ -579,6 +584,17 @@ def new_simulation(data, new_simulation_data):
     elif _SIM_DATA.srw_is_tabulated_undulator_source(sim):
         data.models.undulator.length = compute_undulator_length(data.models.tabulatedUndulator).length
         data.models.electronBeamPosition.driftCalculationMethod = 'manual'
+
+
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=True,
+        run_dir=None,
+        **kwargs
+):
+    if success_exit:
+        return None
+    return _parse_srw_log(run_dir)
 
 
 def prepare_for_client(data):
@@ -1685,6 +1701,21 @@ def _load_user_model_list(model_name):
         pkdlog('user list read failed, resetting contents: {}', f)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
+
+
+def _parse_srw_log(run_dir):
+    res = ''
+    p = run_dir.join(template_common.RUN_LOG)
+    if not p.exists():
+        return res
+    with pkio.open_text(p) as f:
+        for line in f:
+            m = re.search(r'Error: (.*)', line)
+            if m:
+                res += m.group(1) + '\n'
+    if res:
+        return res
+    return 'An unknown error occurred'
 
 
 def _process_image(data, tmp_dir):

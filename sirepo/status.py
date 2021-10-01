@@ -23,8 +23,6 @@ import time
 #: basic auth "app" initilized in `init_apis`
 _basic_auth = None
 
-_MAX_CALLS = 10
-
 _SLEEP = 1
 
 _SIM_TYPE = 'srw'
@@ -79,7 +77,7 @@ def _run_tests():
     r = None
     try:
         resp = uri_router.call_api('runSimulation', data=d)
-        for _ in range(_MAX_CALLS):
+        for _ in range(cfg.max_calls):
             r = simulation_db.json_load(resp.data)
             pkdlog('resp={}', r)
             if r.state == 'error':
@@ -94,7 +92,7 @@ def _run_tests():
             resp = uri_router.call_api('runStatus', data=d)
             time.sleep(_SLEEP)
         raise RuntimeError(
-            'simulation timed out: seconds={} resp='.format(_MAX_CALLS * _SLEEP, r),
+            'simulation timed out: seconds={} resp='.format(cfg.max_calls * _SLEEP, r),
         )
     finally:
         try:
@@ -109,3 +107,8 @@ def _validate_auth_state():
     assert m, pkdformat('no authState in response={}', r)
     assert pkjson.load_any(m.group(1)).isLoggedIn, \
         pkdformat('expecting isLoggedIn={}', m.group(1))
+
+
+cfg = pkconfig.init(
+    max_calls=(15, int, '1 second calls'),
+)

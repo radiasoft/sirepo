@@ -16,6 +16,10 @@
             "longName": "FLASH",
             "shortName": "FLASH"
         },
+        "genesis": {
+            "longName": "Genesis",
+            "shortName": "Genesis"
+        },
         "hellweg": {
             "longName": "Hellweg",
             "shortName": "Hellweg"
@@ -130,6 +134,7 @@
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
+        "forbidden": "/forbidden",
         "getApplicationData": "/get-application-data/?<filename>",
         "homePage": "/en/*<path_info>",
         "importArchive": "/import-archive",

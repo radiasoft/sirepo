@@ -147,6 +147,7 @@ _TRANSFORMS = PKDict(
 )
 
 
+#TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
 def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
 
     b = numpy.array(beam_dir)
@@ -198,6 +199,20 @@ def dump(g_id):
 
 def dump_bin(g_id):
     return radia.UtiDmp(g_id, 'bin')
+
+
+def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, h_m_curve=None):
+    b = numpy.array(beam_dir)
+    g_id = radia.ObjMltExtTri(
+        numpy.sum(b * center),
+        numpy.sum(b * size),
+        pts,
+        numpy.full((len(pts), 2), [1, 1]).tolist(),
+        beam_axis,
+        magnetization
+    )
+    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
+    return g_id
 
 
 # only i (?), m, h
