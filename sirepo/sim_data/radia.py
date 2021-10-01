@@ -13,6 +13,16 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    ANALYSIS_ONLY_FIELDS = frozenset((
+        'alpha',
+        'bgColor',
+        'color',
+        'colorMap',
+        'name',
+        'notes',
+        'scaling',
+    ))
+
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = cls._non_analysis_fields(data, r) + []

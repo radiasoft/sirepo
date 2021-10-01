@@ -3666,7 +3666,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
-            '<div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="simState.isStopped() && simState.getFrameCount() > 0">',
+            '<div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || errorMessage()">',
               '<a data-ng-href="{{ logFileURL() }}" target="_blank">View {{ ::appName }} log</a>',
             '</div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',

@@ -3144,7 +3144,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
     };
 });
 
-
 SIREPO.app.directive('srwNumberList', function(appState) {
     return {
         restrict: 'A',

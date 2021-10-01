@@ -571,7 +571,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
             scope.isLoading = () => panelState.isLoading(scope.modelName);
 
-            scope.$on('sr-window-resize', scope.resize);
+            // scope.resize is not defined until later
+            scope.$on('sr-window-resize', () => scope.resize());
 
             // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
             $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
@@ -1450,7 +1451,7 @@ SIREPO.app.service('focusPointService', function(plotting) {
 
 });
 
-SIREPO.app.service('layoutService', function(plotting, utilities) {
+SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
     var svc = this;
 
     svc.parseLabelAndUnits = function(label) {
@@ -1566,7 +1567,11 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 if (canvasSize.scaleFunction) {
                     w += 2;
                 }
-                margin[orientation] = (w + 6) * (fontSize / 2);
+                const newMargin = (w + 6) * (fontSize / 2);
+                if (newMargin != margin[orientation]) {
+                    margin[orientation] = newMargin;
+                    panelState.triggerResize();
+                }
             }
             self.svgAxis.ticks(tickCount);
             self.tickCount = tickCount;
