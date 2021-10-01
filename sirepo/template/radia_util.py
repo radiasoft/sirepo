@@ -148,11 +148,11 @@ _TRANSFORMS = PKDict(
 
 
 #TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
-def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
+def apply_bevel(g_id, obj_ctr, obj_size, bevel):
 
-    b = numpy.array(beam_dir)
-    g = numpy.array(gap_dir)
-    x = numpy.array(trans_dir)
+    b = numpy.array(bevel.cutDir)
+    g = numpy.array(bevel.heightDir)
+    x = numpy.array(bevel.widthDir)
     sz = numpy.array(obj_size)
     ctr = numpy.array(obj_ctr)
     e = int(bevel.edge)
@@ -191,6 +191,11 @@ def build_cuboid(center, size, material, magnetization, rem_mag, segments, h_m_c
 
 def build_container(g_ids):
     return radia.ObjCnt(g_ids)
+
+
+def build_racetrack(center=[0, 0, 0], size=[1, 1, 1], radii=[1, 2], sides=[1, 1], height=1, axis='x', calc='a', num_segs=3, curr_density=-1.0):
+    g_id = radia.ObjRaceTrk(center, radii, sides, height, num_segs, curr_density, calc, axis)
+    return g_id
 
 
 def dump(g_id):

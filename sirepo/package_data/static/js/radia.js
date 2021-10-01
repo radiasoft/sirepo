@@ -54,7 +54,7 @@ SIREPO.app.config(function() {
     ].join('');
 });
 
-SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender, utilities, validationService) {
+SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
     var self = {};
 
     // why is this here? - answer: for getting frames
@@ -125,6 +125,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return d;
     };
 
+    self.calcWidthAxis = (depthAxis, heightAxis) => {
+        return self.axes.filter((a) => {
+            return a !== depthAxis && a !== heightAxis;
+        })[0];
+    };
+
     self.createPathModel = function(type) {
         var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
         var model = {
@@ -150,6 +156,14 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             width: self.axes.indexOf(sim.widthAxis),
             height: self.axes.indexOf(sim.heightAxis),
             depth: self.axes.indexOf(sim.beamAxis)
+        };
+    };
+
+    self.getGeomDirections = function (depthAxis, heightAxis) {
+        return {
+            depth: geometry.basisVectors[depthAxis],
+            height: geometry.basisVectors[heightAxis],
+            width: geometry.basisVectors[self.calcWidthAxis(depthAxis, heightAxis)],
         };
     };
 
@@ -179,7 +193,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         self.showPathPicker(true, true);
     };
 
-    self.nextId = function() {
+    self.generateId = function() {
         // a uuid generator found on the interwebs
         return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
             (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
@@ -209,9 +223,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     self.setWidthAxis = function() {
         const sim = appState.models.simulation;
-        sim.widthAxis = self.axes.filter((a) => {
-            return a !== sim.beamAxis && a !== sim.heightAxis;
-        })[0];
+        sim.widthAxis = self.calcWidthAxis(sim.beamAxis, sim.heightAxis);
     };
 
     self.setSelectedObject = function(o) {
@@ -308,6 +320,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomObject',
         'geomGroup',
         'hybridUndulator',
+        'racetrack',
         'radiaObject',
         'simulation',
         'undulator',
@@ -551,7 +564,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addObject(o) {
-        o.id  = radiaService.nextId();
+        o.id  = radiaService.generateId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
         //var n = 0;
@@ -1030,6 +1043,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         self.selectedObject = null;
                     }
                 }
+                if (o.type === 'racetrack') {
+                    // calculate the size
+                    let s = [0, 0, 0];
+                    const sides = utilities.splitCommaDelimitedString(o.sides, parseFloat);
+                    const i = geometry.basis.indexOf(o.axis);
+                    s[i] = o.height;
+                    for (let j of [0, 1]) {
+                        s[(i + j + 1) % 3] = sides[j];
+                    }
+                    o.size = s.join(', ');
+                    appState.saveQuietly('racetrack');
+                }
                 if (o.materialFile) {
                     o.hmFileName = o.materialFile.name;
                     radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
@@ -1254,6 +1279,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
               '</colgroup>',
               '<thead>',
                 '<tr>',
+                  '<th>Cut Axis</th>',
                   '<th>Edge Index</th>',
                   '<th>Gap Dist</th>',
                   '<th>Transverse Dist</th>',
@@ -1264,6 +1290,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             '<tr>',
             '</tr>',
                 '<tr data-ng-repeat="item in loadItems()">',
+                    '<td>{{ item.cutAxis }}</td>',
                     '<td>{{ item.edge }}</td>',
                     '<td>{{ item.amountGap }}mm</td>',
                     '<td>{{ item.amountTrans }}mm</td>',
@@ -1330,8 +1357,17 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
                         return;
                     }
                     $scope.selectedItem = null;
+                    let m = appState.models[modelName];
+                    const d = m.cutAxis;
+                    const h = SIREPO.APP_SCHEMA.constants.heightAxisMap[d];
+                    const w = radiaService.calcWidthAxis(d, h);
+                    const dirs = radiaService.getGeomDirections(d, h, w);
+                    m.cutDir = dirs.depth;
+                    m.heightDir = dirs.height;
+                    m.widthDir = dirs.width;
+                    appState.saveQuietly(modelName);
                     if (! isEditing) {
-                        $scope.field.push(appState.models[modelName]);
+                        $scope.field.push(m);
                         isEditing = true;
                     }
                     radiaService.saveGeometry(true, false,() => {
@@ -1888,7 +1924,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
             $scope.copyPath = function(path) {
                 let copy = appState.clone(path);
                 copy.name = newPathName(copy);
-                copy.id = radiaService.nextId();
+                copy.id = radiaService.generateId();
                 $scope.paths.push(copy);
                 appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], function () {
                     $scope.editPath(copy);
@@ -2039,50 +2075,6 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
                });
             });
 
-        },
-    };
-});
-
-
-SIREPO.app.directive('numberList', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            model: '=',
-            info: '<',
-            type: '@',
-            count: '@',
-        },
-        template: [
-            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-                '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
-                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
-            '</div>'
-        ].join(''),
-        controller: function($scope, $element) {
-
-            let lastModel = null;
-            // NOTE: does not appear to like 'model.field' format
-            $scope.values = null;
-            $scope.numberType = $scope.type.toLowerCase();
-            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
-            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
-            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
-            $scope.didChange = function() {
-                $scope.field = $scope.values.join(', ');
-            };
-            $scope.parseValues = function() {
-                // values were sticking around when the model changed
-                if (! lastModel || lastModel !== $scope.model) {
-                    lastModel = $scope.model;
-                    $scope.values = null;
-                }
-                if ($scope.field && ! $scope.values) {
-                    $scope.values = $scope.field.split(/\s*,\s*/);
-                }
-                return $scope.values;
-            };
         },
     };
 });
@@ -2398,7 +2390,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     }
                     $scope.selectedItem = null;
                     if (! isEditing) {
-                        appState.models[modelName].id = radiaService.nextId();
+                        appState.models[modelName].id = radiaService.generateId();
                         $scope.field.push(appState.models[modelName]);
                         isEditing = true;
                     }

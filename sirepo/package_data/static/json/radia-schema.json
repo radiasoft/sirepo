@@ -173,23 +173,14 @@
                 "canDrag": false,
                 "contents": [
                     {
-                        "isButton": true,
-                        "isInactive": true,
+                        "isButton": false,
                         "layoutShape": "rect",
                         "model": "racetrack",
                         "title": "Racetrack",
                         "type": "racetrack"
-                    },
-                    {
-                        "isButton": true,
-                        "isInactive": true,
-                        "layoutShape": "rect",
-                        "model": "undulatorGroup",
-                        "title": "Quick Undulator",
-                        "type": "undulatorGroup"
                     }
                 ],
-                "name": "In Progress"
+                "name": "Field Sources"
             },
             {
                 "canDrag": true,
@@ -277,6 +268,11 @@
             ["1", "Top Right"],
             ["2", "Bottom Right"],
             ["3", "Bottom Left"]
+        ],
+        "DipoleType": [
+            ["c", "C-Bend"],
+            ["generic", "Generic"],
+            ["h", "H-Bend"]
         ],
         "DivisionType": [
             ["cyl", "Cylindrical"],
@@ -411,6 +407,47 @@
         },
         "dipole": {
             "_super": ["_", "model", "radiaObject"],
+            "dipoleType": ["generic"],
+            "coilBaseObjectId": ["_", "UUID", ""],
+            "coilColor": ["Color", "Color", "#ff0000"],
+            "coilCurrent": ["Current [A]", "Float", -2000.0],
+            "coilRadii": ["Radii of Coil [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
+            "coilHeight": ["Coil Height [mm]", "Float", 105.0, "", 0.0],
+            "coilSides": ["Coil Side Lengths [mm]", "FloatStringArray", "62.5, 50.0", "", "Transverse, Beam"],
+            "gap": ["Gap", "Float", 1.0],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "magnetBaseObjectId": ["_", "UUID", ""],
+            "magnetColor": ["Color", "Color", "#ff00ff"],
+            "magnetDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
+            "magnetMaterial": ["Material", "MaterialType", "custom"],
+            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
+            "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
+        },
+        "dipoleC": {
+            "_super": ["_", "model", "dipole"],
+            "dipoleType": ["c"],
+            "coilBaseObjectId": ["_", "UUID", ""],
+            "coilColor": ["Color", "Color", "#ff0000"],
+            "coilCurrent": ["Current [A]", "Float", -2000.0],
+            "coilRadii": ["Radii of Coil [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
+            "coilHeight": ["Coil Height [mm]", "Float", 105.0, "", 0.0],
+            "coilSides": ["Coil Side Lengths [mm]", "FloatStringArray", "62.5, 50.0", "", "Transverse, Beam"],
+            "gap": ["Gap", "Float", 1.0],
+            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
+            "magnetBaseObjectId": ["_", "UUID", ""],
+            "magnetColor": ["Color", "Color", "#ff00ff"],
+            "magnetDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
+            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
+            "magnetMaterial": ["Material", "MaterialType", "custom"],
+            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
+            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
+            "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
+        },
+        "dipoleH": {
+            "_super": ["_", "model", "dipole"],
+            "dipoleType": ["h"],
             "coilBaseObjectId": ["_", "UUID", ""],
             "coilColor": ["Color", "Color", "#ff0000"],
             "coilCurrent": ["Current [A]", "Float", -2000.0],
@@ -585,21 +622,30 @@
             "name": ["Name", "String", ""]
         },
         "objectBevel": {
-            "amountGap": ["Cut Distance in Gap Direction (mm)", "Float", 1.0],
-            "amountTrans": ["Cut Distance in Transverse Direction (mm)", "Float", 1.0],
-            "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"]
+            "amountVert": ["Cut Distance in Vertical Direction (mm)", "Float", 1.0],
+            "amountHoriz": ["Cut Distance in Horizontal Direction (mm)", "Float", 1.0],
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
+            "cutDir": ["", "Array", [0, 0, 1]],
+            "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
+            "heightDir": ["", "Array", [0, 1, 0]],
+            "widthDir": ["", "Array", [1, 0, 0]]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
         "racetrack": {
-            "_super": ["_", "model", "geomObject"],
-            "axis": ["Axis", "BeamAxis", "z"],
+            "_super": ["_", "model", "radiaObject"],
+            "axis": ["Axis", "BeamAxis", "y"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
-            "fieldCalc": ["Field Calculation", "AutoManual", "man", ""],
-            "numSegments": ["Number of Corner Segments", "Integer", 1, "", 0],
-            "rInner": ["Inner Radius", "Float", 6.0],
-            "rOuter": ["Outer Radius", "Float", 10.0],
+            "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
+            "height": ["Height", "Float", 105.0, "", "Size along axis"],
+            "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
+            "planeAxis1": ["_", "BeamAxis", "z"],
+            "planeAxis2": ["_", "BeamAxis", "x"],
+            "radii": ["Radii", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
+            "sides": ["Straight Sides", "FloatStringArray", "50.0, 100.0", "", "{planeAxis1} size (mm),  {planeAxis2} size (mm)"],
+            "size": ["_", "FloatStringArray", "1.0, 1.0, 105.0"],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -930,14 +976,16 @@
         "objectBevel": {
             "title": "Bevel",
             "basic": [
+                "cutAxis",
                 "edge",
-                "amountGap",
-                "amountTrans"
+                "amountVert",
+                "amountHoriz"
             ],
             "advanced": [
+                "cutAxis",
                 "edge",
-                "amountGap",
-                "amountTrans"
+                "amountVert",
+                "amountHoriz"
             ]
         },
         "objectShape": {
@@ -966,9 +1014,9 @@
                 "name",
                 "axis",
                 "center",
-                "size",
-                "rInner",
-                "rOuter",
+                "sides",
+                "height",
+                "radii",
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",
@@ -979,9 +1027,9 @@
                 "name",
                 "axis",
                 "center",
-                "size",
-                "rInner",
-                "rOuter",
+                "sides",
+                "height",
+                "radii",
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",
