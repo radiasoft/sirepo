@@ -1,11 +1,14 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "analysis"
+            "localRoute": "metadata"
         }
     },
     "dynamicFiles": {
         "sirepoLibs": {
+            "css": [
+                "raydata.css"
+            ],
             "js": [
                 "raydata.js"
             ]
@@ -18,10 +21,26 @@
                 "controller": "AnalysisController as analysis",
                 "templateUrl": "/static/html/raydata-analysis.html"
           }
+        },
+        "metadata": {
+            "route": "/metadata/:simulationId",
+            "config": {
+                "controller": "MetadataController as metadata",
+                "templateUrl": "/static/html/raydata-metadata.html"
+          }
         }
     },
     "model": {
         "analysisAnimation": {},
+        "analysisMetadataReport": {
+            "notes": ["Notes", "Text", ""]
+	},
+        "generalMetadataReport": {
+            "notes": ["Notes", "Text", ""]
+	},
+        "planMetadataReport": {
+            "notes": ["Notes", "Text", ""]
+	},
         "simulationStatus": {}
     },
     "strings": {
@@ -34,6 +53,24 @@
         "analysisAnimation": {
             "title": "Analysis",
             "advanced": []
+        },
+        "analysisMetadataReport": {
+            "title": "Analysis",
+            "advanced": [
+		"notes"
+	    ]
+        },
+        "generalMetadataReport": {
+            "title": "General",
+            "advanced": [
+		"notes"
+	    ]
+        },
+        "planMetadataReport": {
+            "title": "Plan",
+            "advanced": [
+		"notes"
+	    ]
         },
         "simulationStatus": {
             "title": "Analysis Status",

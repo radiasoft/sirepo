@@ -3,6 +3,15 @@
         "analysisAnimation": {
             "notebook": "mock-analysis.ipynb"
         },
+        "analysisMetadataReport": {
+	    "notes": ""
+	},
+        "generalMetadataReport": {
+	    "notes": ""
+	},
+        "planMetadataReport": {
+	    "notes": ""
+	},
         "simulation": {
             "folder": "/Examples",
             "isExample": true,

@@ -1,0 +1,9 @@
+<div class="container-fluid">
+  <div class="row">
+    <div data-ng-repeat="t in ['general', 'plan', 'analysis']">
+      <div class="col-md-6 col-xl-4">
+        <div data-report-panel="{{ t }}Metadata" data-model-name="{{ t }}MetadataReport"></div>
+      </div>
+    </div>
+  </div>
+</div>
