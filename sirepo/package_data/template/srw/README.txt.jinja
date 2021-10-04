@@ -10,5 +10,28 @@ Also included are auxiliary files required for the specific SRW simulation:
 {{ libFiles }}
 {% endif %}
 
-To generate the data, run 'bash {{ shFileName }}'. This stores the data in the numpy file
+To generate the data, run 'bash {{ shFileName }}'. This stores the data in the numpy file <>.npy
+
+To then run SRW with that data, run 'python {{ pyFileName }} rsopt_run <>.npy'. Please note:
+    - rsopt does the job of running SRW with the stored input data
+    - If the machine running SRW has N cores, rsopt will execute in parallel on N - 1 cores
+    - SRW will run {{ totalSamples }} times; use caution
+
+
+The final consolidated output data for use in ML is in two numpy files under the datasets folder. Each is an array
+with {{ totalSamples }} entries, one for each run.  
+    - beam_intensities_<>.npy: propagated single-e intensity distribution vs horizontal and vertical position
+    - parameters_<>.npy: the inputs used for each run
+
+
+Intermediate output is also available:
+
+data_files/res_int_pr_se_[n].dat:
+    propagated single-e intensity distribution vs horizontal and vertical position
+
+beams/beam_[n].npy:
+    same information as in data_files, but in numpy format
+
+parameters/values_[n].npy:
+    The
 

@@ -1897,6 +1897,7 @@ def _rsopt_jinja_context(model):
         rsOptElements=_process_rsopt_elements(model.elements),
         rsOptParams=_RSOPT_PARAMS,
         scanType=model.scanType,
+        totalSamples=model.totalSamples,
     )
 
 
