@@ -1567,11 +1567,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                 if (canvasSize.scaleFunction) {
                     w += 2;
                 }
-                const newMargin = (w + 6) * (fontSize / 2);
-                if (newMargin != margin[orientation]) {
-                    margin[orientation] = newMargin;
-                    panelState.triggerResize();
-                }
+                margin[orientation] = (w + 6) * (fontSize / 2);
             }
             self.svgAxis.ticks(tickCount);
             self.tickCount = tickCount;
