@@ -1800,8 +1800,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     };
 
-    self.triggerResize = windowResize;
-
     self.waitForUI = function(callback) {
         // groups callbacks within one $timeout()
         if (waitForUICallbacks) {
