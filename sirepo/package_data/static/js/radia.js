@@ -3398,7 +3398,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
-                if (c) {
+                if (c || ! initDone) {
                     $rootScope.$broadcast('vtk.showLoader');
                 }
                 panelState.clear('geometryReport');
@@ -3449,9 +3449,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('fieldPaths.changed', function () {
                 if (! $scope.model.fieldPoints) {
                     $scope.model.fieldPoints = [];
-                }
-                if (! appState.models.fieldPaths.paths || ! appState.models.fieldPaths.paths.length) {
-                    return;
                 }
                 updateViewer();
             });
