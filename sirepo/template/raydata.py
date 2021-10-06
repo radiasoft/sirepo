@@ -17,12 +17,17 @@ import os
 import re
 import sirepo.sim_data
 import sirepo.util
+import zipfile
 
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 # TODO(e-carlin): from user
 _BROKER_NAME = 'chx'
+
+# POSIT: Matches mask_path in
+# https://github.com/radiasoft/raydata/blob/main/AnalysisNotebooks/XPCS_SAXS/XPCS_SAXS.ipynb
+_MASK_PATH = 'masks'
 
 # TODO(e-carlin): from user
 _SCAN_UID = 'bdcce1f3-7317-4775-bc26-ece8f0612758'
@@ -99,6 +104,14 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+    m = data.models.inputFiles.mask
+    if m:
+        # SECURITY: extractall protects against malicious filenames
+        zipfile.ZipFile(run_dir.join(_SIM_DATA.lib_file_name_with_model_field(
+            'inputFiles',
+            'mask',
+            m,
+        ))).extractall(path=_MASK_PATH)
 
 
 def _generate_parameters_file(data):

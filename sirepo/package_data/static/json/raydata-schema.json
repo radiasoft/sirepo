@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "metadata"
+            "localRoute": "dataSource"
         }
     },
     "dynamicFiles": {
@@ -33,6 +33,13 @@
                 "controller": "MetadataController as metadata",
                 "templateUrl": "/static/html/raydata-metadata.html"
           }
+        },
+        "dataSource": {
+            "route": "/data-source/:simulationId",
+            "config": {
+                "controller": "DataSourceController as dataSource",
+                "templateUrl": "/static/html/raydata-data-source.html"
+          }
         }
     },
     "model": {
@@ -42,6 +49,9 @@
         "generalMetadataReport": {
             "notes": ["Notes", "Text", ""]
 	},
+        "inputFiles": {
+            "mask": ["Mask ZIP", "InputFile"]
+        },
         "planMetadataReport": {
             "notes": ["Notes", "Text", ""]
 	},
@@ -65,6 +75,13 @@
             "advanced": [
 		"notes"
 	    ]
+        },
+        "inputFiles": {
+            "title": "Input Files",
+            "basic": [
+                "mask"
+            ],
+            "advanced": []
         },
         "planMetadataReport": {
             "title": "Plan",
