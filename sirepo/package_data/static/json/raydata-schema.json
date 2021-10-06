@@ -14,6 +14,11 @@
             ]
         }
     },
+    "frameIdFields": {
+	"animation": [
+	    "filename"
+	]
+    },
     "localRoutes": {
         "analysis": {
             "route": "/analysis/:simulationId",
@@ -31,7 +36,6 @@
         }
     },
     "model": {
-        "analysisAnimation": {},
         "analysisMetadataReport": {
             "notes": ["Notes", "Text", ""]
 	},
@@ -50,10 +54,6 @@
         "typeOfSimulation": "analysis"
     },
     "view": {
-        "analysisAnimation": {
-            "title": "Analysis",
-            "advanced": []
-        },
         "analysisMetadataReport": {
             "title": "Analysis",
             "advanced": [

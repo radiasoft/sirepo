@@ -20,6 +20,7 @@ import numconv
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
+import re
 import random
 import sys
 import threading
@@ -37,11 +38,14 @@ AUTH_HEADER = 'Authorization'
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
+INVALID_PYTHON_IDENTIFIER = re.compile(r'\W|^(?=\d)', re.IGNORECASE)
+
 #: Lock for operations across Sirepo (flask)
 THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
+
 
 _log_not_flask = _log_not_request = 0
 
@@ -271,7 +275,10 @@ def random_base62(length=32):
 
 
 def safe_path(*paths):
-    return werkzeug.utils.safe_join(*paths)
+    p = werkzeug.utils.safe_join(*paths)
+    assert p is not None, \
+        f'could not join in a safe manner paths={paths}'
+    return p
 
 
 def secure_filename(path):
@@ -287,7 +294,6 @@ def setattr_imports(imports):
 
 
 def split_comma_delimited_string(s, f_type):
-    import re
     return [f_type(x) for x in re.split(r'\s*,\s*', s)]
 
 

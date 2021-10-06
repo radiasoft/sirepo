@@ -5,5 +5,9 @@
         <div data-sim-status-panel="analysis.simState"></div>
       </div>
     </div>
+    <div class="clearfix"></div>
+    <div class="col-md-6 col-xl-4" data-ng-repeat="m in analysis.pngOutputFiles" data-ng-if="analysis.simState.hasFrames()">
+      <div data-report-panel="pngImage" data-model-name="{{ m }}" data-panel-title="{{ appState.models[m].filename }}"></div>
+    </div>
   </div>
 </div>
