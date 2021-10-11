@@ -153,6 +153,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         });
         scope.$on('modelsLoaded', requestData);
         scope.$on('framesLoaded', function(event, oldFrameCount) {
+            if (! frameCache.getSimulationStatus(scope.modelName).computeJobSerial) {
+                // if there are multiple different sourced frame-based animations on the same page,
+                // then one may be ready before the rest. Check that the serial job is available
+                // before loading the data. Ex. SRW source page with fluxAnimation and coherentModesAnimation
+                return;
+            }
             if (scope.prevFrameIndex < 0 || oldFrameCount === 0) {
                 scope.defaultFrame();
             }
