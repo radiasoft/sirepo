@@ -328,13 +328,12 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         let els = appState.models.exportRsOpt.elements;
         for (let item of items) {
             let e = self.findRSOptElement(item.id);
-            if (! e) {
-                e = appState.setModelDefaults({}, optElModel);
-                els.push(e);
+            if (e) {
+                continue;
             }
-            else {
-                e = appState.setModelDefaults(e, optElModel);
-            }
+            e = appState.setModelDefaults({}, optElModel);
+            els.push(e);
+
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
@@ -343,7 +342,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 appState.setFieldDefaults(
                     e,
                     self.rsOptElementOffsetField(p),
-                    props[p].offsetInfo || SIREPO.APP_SCHEMA.constants.rsOptDefaultOffsetInfo[p]
+                    props[p].offsetInfo || SIREPO.APP_SCHEMA.constants.rsOptDefaultOffsetInfo[p],
+                    true
                 );
                 e[p] = {
                     fieldNames: props[p].fieldNames,
@@ -1929,6 +1929,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
 
             $scope.$on('exportRsOpt.editor.show', () => {
+                updateElements();
                 // set form dirty so user does not have to change anything to export
                 $scope.form.$setDirty();
             });
