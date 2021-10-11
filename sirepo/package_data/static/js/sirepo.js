@@ -1261,7 +1261,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
     self.getFrameCount = function(modelKey) {
         if (modelKey in frameCountByModelKey) {
-            var s = appState.models.simulationStatus[appState.appService.computeModel(modelKey)];
+            var s = self.getSimulationStatus(modelKey);
             if (! (s && s.computeJobHash)
             ) {
                 // cannot request frames without computeJobHash
@@ -1270,6 +1270,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return frameCountByModelKey[modelKey];
         }
         return masterFrameCount;
+    };
+
+    self.getSimulationStatus = (modelKey) => {
+        return appState.models.simulationStatus[appState.appService.computeModel(modelKey)];
     };
 
     self.setCurrentFrame = function(modelName, currentFrame) {

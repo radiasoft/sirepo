@@ -404,6 +404,10 @@
             ["1", "1 - Horizontal Position"],
             ["2", "2 - Vertical Position"],
             ["3", "3 - Horizontal and Vertical Position"]
+        ],
+        "WavefrontSource": [
+            ["source", "Calculate from beam source"],
+            ["cmd", "Use coherent mode decomposition file"]
         ]
     },
     "dynamicFiles": {
@@ -427,6 +431,7 @@
         "beamlineAnimation": ["characteristic", "polarization", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset"],
         "coherenceXAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
         "coherenceYAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "coherentModesAnimation": ["characteristic", "polarization", "plotModesStart", "plotModesEnd", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset", "plotModesStart", "plotModesEnd"],
         "fluxAnimation": [],
         "multiElectronAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"]
     },
@@ -504,6 +509,34 @@
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
+        },
+        "coherentModesAnimation": {
+            "_super": ["_", "model", "_INTENSITY_REPORT"],
+            "characteristic": ["Characteristic to be Extracted", "Characteristic", "0"],
+            "distanceFromSource": ["Distance From Source [m]", "Float"],
+            "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
+            "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
+            "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
+            "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
+            "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
+            "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"],
+            "precision": ["Relative Precision", "Float", 0.01],
+            "sampleFactor": ["Sampling Factor", "Float"],
+            "samplingMethod": ["Sampling Method", "SamplingMethod"],
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
+            "verticalPosition": ["Vertical Center Position [mm]", "Float"],
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
+            "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
+            "numberOfCoherentModes": ["Number of Coherent Modes", "Integer", 100, "Number of modes to calculated for coherent mode decomposition"],
+            "plotModesStart": ["Plot Modes Start", "Integer", 1, "", 1],
+            "plotModesEnd": ["Plot Modes End", "Integer", 100, "", 1],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -802,6 +835,8 @@
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""],
+            "wavefrontSource": ["Initial Wavefront", "WavefrontSource", "source"],
+            "coherentModesFile": ["Coherent Modes File", "InputFile", ""],
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
@@ -1167,6 +1202,46 @@
                 ["Other", [
                     "colorMap",
                     "aspectRatio"
+                ]]
+            ]
+        },
+        "coherentModesAnimation": {
+            "_super": ["_", "view", "_INTENSITY_REPORT"],
+            "title": "Coherent Modes",
+            "basic": [],
+            "advanced": [
+                ["Main", [
+                    "distanceFromSource",
+                    "photonEnergy",
+                    "polarization",
+                    "characteristic",
+                    "samplingMethod",
+                    "sampleFactor",
+                    [
+                        ["Horizontal", [
+                            "horizontalPosition",
+                            "horizontalRange",
+                            "horizontalPointCount"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition",
+                            "verticalRange",
+                            "verticalPointCount"
+                        ]]
+                    ],
+                    "notes"
+                ]],
+                ["Modes", [
+                    "numberOfMacroElectrons",
+                    "numberOfCoherentModes",
+                    "plotModesStart",
+                    "plotModesEnd"
+                ]],
+                ["Accuracy", [
+                    "method",
+                    "precision",
+                    "initialPosition",
+                    "finalPosition"
                 ]]
             ]
         },
@@ -1698,6 +1773,8 @@
             "advanced": [
                 ["Main", [
                     "watchpointId",
+                    "wavefrontSource",
+                    "coherentModesFile",
                     "simulation.photonEnergy",
                     "stokesParameter",
                     "numberOfMacroElectrons",

@@ -61,12 +61,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         'Young\'s Double Slit Experiment': '/Wavefront Propagation',
     })
 
-    SRW_FILE_TYPE_EXTENSIONS = PKDict(
-        mirror=['dat', 'txt'],
-        sample=['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
-        undulatorTable=['zip'],
-        arbitraryField=['dat', 'txt'],
-    )
+    SRW_FILE_TYPE_EXTENSIONS = PKDict({
+        'mirror': ['dat', 'txt'],
+        'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
+        'undulatorTable': ['zip'],
+        'arbitraryField': ['dat', 'txt'],
+        'multiElectronAnimation-coherentModesFile': ['h5'],
+    })
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
@@ -89,6 +90,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'brillianceReport',
             'coherenceXAnimation',
             'coherenceYAnimation',
+            'coherentModesAnimation',
             'electronBeamPosition',
             'fluxAnimation',
             'fluxReport',
@@ -247,6 +249,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm.multipole.by = dm.multipole.field if dm.multipole.distribution == 'n' else 0
             del dm.multipole['distribution']
             del dm.multipole['field']
+        if 'distanceFromSource' not in dm.coherentModesAnimation:
+            cs = cls.schema().model.coherentModesAnimation
+            si = dm.sourceIntensityReport
+            for f in cs:
+                if f not in dm.coherentModesAnimation and f in si:
+                    dm.coherentModesAnimation[f] = si[f]
         cls._organize_example(data)
 
     @classmethod
@@ -464,6 +472,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         r = data.get('report')
         if r == 'mirrorReport':
             res.append(dm.mirrorReport.heightProfileFile)
+        elif r == 'multiElectronAnimation' and dm[r].wavefrontSource == 'cmd':
+            if dm[r].coherentModesFile:
+                res.append(dm[r].coherentModesFile)
         if cls.srw_uses_tabulated_zipfile(data):
             if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
                 res.append(dm.tabulatedUndulator.magneticFile)
