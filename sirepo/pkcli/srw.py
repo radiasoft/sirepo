@@ -124,12 +124,7 @@ def run_background(cfg_dir):
         template_common.exec_parameters()
     else:
         template_common.exec_parameters_with_mpi()
-
-
-def _cfg_int(lower, upper):
-    def wrapper(value):
-        v = int(value)
-        assert lower <= v <= upper, \
-            'value must be from {} to {}'.format(lower, upper)
-        return v
-    return wrapper
+    if sim_in.report == 'coherentModesAnimation':
+        # this sim creates _really_ large intermediate files which should get removed
+        for p in pkio.sorted_glob('*_mi.h5'):
+            p.remove()

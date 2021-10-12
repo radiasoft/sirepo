@@ -178,7 +178,7 @@ varParam = [
     ['sm_prec', 'f', {{fluxReport_precision}}, 'relative precision for spectrum vs photon energy calculation in case of arbitrary input magnetic field (nominal value is 0.01)'],
     ['sm_nm', 'i', {{fluxReport_numberOfMacroElectrons}}, 'number of macro-electrons for calculation of spectrum in case of arbitrary input magnetic field'],
     ['sm_na', 'i', 5, 'number of macro-electrons to average on each node at parallel (MPI-based) calculation of spectrum in case of arbitrary input magnetic field'],
-    ['sm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons) for intermediate intensity at calculation of multi-electron spectrum in case of arbitrary input magnetic field'],
+    ['sm_ns', 'i', {{multiElectronNumberOfIterations or 5}}, 'saving periodicity (in terms of macro-electrons) for intermediate intensity at calculation of multi-electron spectrum in case of arbitrary input magnetic field'],
     ['sm_type', 'i', {{fluxReport_fluxType}}, 'calculate flux (=1) or flux per unit surface (=2)'],
     ['sm_pol', 'i', {{fluxReport_polarization}}, 'polarization component to extract after calculation of multi-e flux or intensity: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
     ['sm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
@@ -233,8 +233,8 @@ varParam = [
 
     ['wm_nm', 'i', {{multiElectronAnimation_numberOfMacroElectrons}}, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
     ['wm_na', 'i', 5, 'number of macro-electrons (coherent wavefronts) to average on each node for parallel (MPI-based) calculation of multi-electron wavefront propagation'],
-    ['wm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
-    ['wm_ch', 'i', {% if multiElectronAnimation_calcCoherence == '1' %}41{% else %}0{% endif %}, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y; 40- intensity(s0), mutual intensity cuts and degree of coherence vs X & Y'],
+    ['wm_ns', 'i', {{multiElectronNumberOfIterations or 5}}, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
+    ['wm_ch', 'i', {{multiElectronCharacteristic or 0}}, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y; 40- intensity(s0), mutual intensity cuts and degree of coherence vs X & Y'],
     ['wm_ap', 'i', {{multiElectronAnimation_stokesParameter}}, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
     ['wm_x0', 'f', {{multiElectronAnimation_horizontalPosition}}, 'horizontal center position for mutual intensity cut calculation'],
     ['wm_y0', 'f', {{multiElectronAnimation_verticalPosition}}, 'vertical center position for mutual intensity cut calculation'],
@@ -242,9 +242,19 @@ varParam = [
     ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
     ['wm_am', 'i', {{multiElectronAnimation_integrationMethod}}, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', '{{multiElectronAnimationFilename}}', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
+    ['wm_ff', 's', '{{multiElectronFileFormat or 'ascii'}}', 'format of file name for saving propagated multi-e intensity distribution vs horizontal and vertical position (ascii and hdf5 supported)'],
+
+    ['wm_nmm', 'i', {{mpiMasterCount or 1}}, 'number of MPI masters to use'],
+    ['wm_ncm', 'i', {{coherentModesAnimation_numberOfCoherentModes}}, 'number of Coherent Modes to calculate'],
+    ['wm_acm', 's', 'SP', 'coherent mode decomposition algorithm to be used (supported algorithms are: "SP" for SciPy, "SPS" for SciPy Sparse, "PM" for Primme, based on names of software packages)'],
+    ['wm_nop', '', '', 'switch forcing to do calculations ignoring any optics defined (by set_optics function)', 'store_true'],
+
+    ['wm_fnmi', 's', '', 'file name of input cross-spectral density / mutual intensity; if this file name is supplied, the initial cross-spectral density (for such operations as coherent mode decomposition) will not be calculated, but rathre it will be taken from that file.'],
+    ['wm_fncm', 's', '{{coherentModesFile}}', 'file name of input coherent modes; if this file name is supplied, the eventual partially-coherent radiation propagation simulation will be done based on propagation of the coherent modes from that file.'],
+
     ['wm_fbk', '', '{{sbatchBackup}}', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
 
-    #to add options
+    # Optics parameters
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
     {% if beamline3DReport %}
     ['op_fno', 's', '{{beamline3DReportFilename}}', 'file name for saving orientations of optical elements in the lab frame'],
@@ -470,6 +480,15 @@ def _rsopt_set_params(
 ):
     vp = varParam.copy()
     {% for e in rsOptElements %}
+    {% if 'size' in e %}
+    {% for x in e.size.initial %}
+    {% if e.size.offsets[loop.index0] != 0 %}
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.position.fieldNames[loop.index0] }}')
+    if p:
+        p[2] = {{ e.title }}_position_{{ loop.index0 }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
     {% if 'position' in e %}
     {% for x in e.position.initial %}
     {% if e.position.offsets[loop.index0] != 0 %}
