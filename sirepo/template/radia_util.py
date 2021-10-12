@@ -158,16 +158,16 @@ def apply_bevel(g_id, obj_ctr, obj_size, bevel):
     e = int(bevel.edge)
     half_size = sz / 2
     corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
-    trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]
-    gap_offset = bevel.amountGap * g * [-1, -1, 1, 1][e]
+    w_offset = bevel.amountHoriz * x * [1, -1, -1, 1][e]
+    h_offset = bevel.amountVert * g * [-1, -1, 1, 1][e]
 
-    v = trans_offset - gap_offset
-    vx2 = numpy.dot(trans_offset, trans_offset)
-    vg2 = numpy.dot(gap_offset, gap_offset)
+    v = w_offset - h_offset
+    vx2 = numpy.dot(w_offset, w_offset)
+    vg2 = numpy.dot(h_offset, h_offset)
     v2 = numpy.dot(v, v)
 
     plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
-    pt = corner + trans_offset
+    pt = corner + w_offset
 
     # object id, plane normal, point in plane - returns a new id in an array for some reason
     return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
