@@ -8,6 +8,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.appDefaultSimulationValues.simulation.heightAxis = 'y';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
+    SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'basic';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
@@ -3856,6 +3857,19 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 });
 
 
+SIREPO.viewLogic('dipoleView', function(appState, panelState, radiaService, $scope) {
+
+    $scope.modelData = appState.models[$scope.modelName].pole;
+    srdbg('DIPOLE', $scope.modelData);
+    return {
+        getBaseObject: function() {
+            srdbg('GET DIPOLE');
+            return $scope.modelData;
+        },
+    };
+
+});
+
 SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
 
     $scope.watchFields = [
@@ -3916,6 +3930,10 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
 
     let model = null;
 
+    function isNew() {
+        return activeSection.getActiveSection() === 'simulations';
+    }
+
     function updateSimEditor() {
         if (! model) {
             return;
@@ -3923,7 +3941,17 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         panelState.enableField(
             $scope.modelName,
             'magnetType',
-            activeSection.getActiveSection() === 'simulations'
+            isNew()
+        );
+        panelState.showField(
+            $scope.modelName,
+            'dipoleType',
+            model.magnetType === 'dipole'
+        )
+        panelState.enableField(
+            $scope.modelName,
+            'dipoleType',
+            isNew() && model.magnetType === 'dipole'
         );
         for (let e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
             const axis = e[SIREPO.ENUM_INDEX_VALUE];
@@ -3942,7 +3970,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
     }
 
     $scope.watchFields = [
-        ['simulation.beamAxis'], updateSimEditor,
+        ['simulation.beamAxis', 'simulation.magnetType'], updateSimEditor,
         ['simulation.heightAxis'], radiaService.setWidthAxis,
     ];
 

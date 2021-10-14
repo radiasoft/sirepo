@@ -726,11 +726,23 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             }
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
-            $scope.info = $scope.customInfo || appState.modelInfo($scope.modelName)[$scope.field];
+
+            let m = $scope.modelName;
+            let mInfo = appState.modelInfo(m);
+            let f = $scope.field;
+
+            const x = appState.parseModelField($scope.field);
+            if (x && x.length === 2) {
+                // should be of the form 'model.<other model name>'
+                m = mInfo[x[0]][SIREPO.INFO_INDEX_TYPE].split('.')[1];
+                f = x[1];
+                mInfo = appState.modelInfo(m);
+            }
+            $scope.info = $scope.customInfo || mInfo[f];
             if (! $scope.info) {
                 throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
             }
-            $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
+            $scope.fieldProps = appState.fieldProperties(m, f);
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
@@ -1428,16 +1440,36 @@ SIREPO.app.directive('modelField', function(appState) {
             var field = $scope.field;
             var modelField = appState.parseModelField(field);
 
+            let obj = null;
             if (modelField) {
                 modelName = modelField[0];
                 field = modelField[1];
+                //const x = appState.parseModelField(field);
+                //if (x.length === 2) {
+                //    obj = x[0];
+                //    field = x[1];
+                //}
             }
+
+            // allow views to have fields like <model1>.<field 1>.<field 2> where field 1 should have a "type" that is
+            // another model, and field 2 is a field of that model, e.g.
+            //  "view": ["model1.field1.field2", ...]
+            //  "model1: {"field1": ["_", "model.model2", {}]
+            //  "model2" {"field2": ["Regular Field", "FieldType, ...]
+            //if (modelName === '_self') {
+            //    modelName = $scope.modelName;
+            //    let m = appState.parseModelField(field);
+            //    //modelName = SIREPO.APP_SCHEMA.model[$scope.modelName][m[0]][SIREPO.INFO_INDEX_TYPE];
+            //    //srdbg('SELF m', m, 'name', SIREPO.APP_SCHEMA.model[$scope.modelName][m[0]]);
+            //    //modelName = modelName.split('.')[1];
+            //    field = m[1];
+            //}
 
             $scope.modelForField = function() {
                 if ($scope.modelData && ! modelField) {
                     return $scope.modelData.getData();
                 }
-                return appState.models[modelName];
+                return obj ? appState.models[modelName][obj] : appState.models[modelName];
             };
 
             $scope.modelNameForField = function() {

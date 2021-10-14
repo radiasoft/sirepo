@@ -45,6 +45,12 @@ _BEAM_AXIS_VECTORS = PKDict(
     z=[0, 0, 1]
 )
 
+_DIPOLE_NOTES = PKDict(
+    basic='Simple dipole with permanent magnets',
+    c='C-bend dipole with a single coil',
+    h='H-bend dipole with two coils'
+)
+
 _DMP_FILE = 'geometry.dat'
 
 # Note that these column names and units are required by elegant
@@ -298,7 +304,9 @@ def new_simulation(data, new_simulation_data):
     beam_axis = new_simulation_data.beamAxis
     height_axis = new_simulation_data.heightAxis
     #TODO(mvk): dict of magnet types to builder methods
-    if new_simulation_data.get('magnetType', 'freehand') == 'undulator':
+    pkdp('NEW SIM {}', new_simulation_data)
+    t = new_simulation_data.get('magnetType', 'freehand')
+    if  t == 'undulator':
         _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, beam_axis, height_axis)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
@@ -306,6 +314,14 @@ def new_simulation(data, new_simulation_data):
         ))
         data.models.simulation.enableKickMaps = '1'
         _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, beam_axis)
+    if t == 'dipole':
+        d = data.models.dipole
+        data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
+        _build_dipole_objects(data.models.geometryReport, data.models.dipole, beam_axis, height_axis)
+        #data.models.fieldPaths.paths.append(_build_field_axis(
+        #    (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
+        #    beam_axis
+        #))
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -348,6 +364,22 @@ def _build_cuboid(**kwargs):
     return _update_cuboid(
         _build_geom_obj('cuboid', obj_name=kwargs.get('name')),
         **kwargs
+    )
+
+
+def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
+    # arrange objects
+    geom.objects = []
+    geom.objects.append(dipole.pole)
+    #if dipole.dipoleType in ['c', 'h']:
+    #    geom.objects.append(dipole.magnet)
+    #    geom.objects.append(dipole.coil)
+
+    return _update_geom_from_dipole(
+        geom,
+        _build_geom_obj('dipole', obj_name=geom.name),
+        beam_axis,
+        height_axis
     )
 
 
@@ -716,6 +748,13 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
             v.beam_axis,
             v.height_axis,
         )
+    if v.magnetType == 'dipole':
+        _update_geom_from_dipole(
+            g,
+            data.models.dipole,
+            v.beam_axis,
+            v.height_axis,
+        )
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
 
@@ -775,6 +814,8 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     )
 
 
+# "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
+# along the remaining axis
 def _geom_directions(beam_axis, height_axis):
     beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
     if not height_axis or height_axis == beam_axis:
@@ -1136,6 +1177,19 @@ def _update_ell_points(ell, beam_axis, height_axis):
     if w.tolist().index(1) != (b.tolist().index(1) + 1) % 3:
         for p in ell.points:
             p.reverse()
+
+
+def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
+
+    pole = dipole.pole
+    width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
+    sz = sirepo.util.split_comma_delimited_string(dipole.pole.size, float)
+    pkdp('DP SZ {} GAP {} NEW CTR {}', sz, dipole.gap, sz * height_dir + dipole.gap * height_dir)
+
+    return _update_geom_obj(
+        pole,
+        center=sz * height_dir + dipole.gap * height_dir,
+    )
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):

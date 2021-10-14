@@ -269,8 +269,8 @@
             ["3", "Bottom Left"]
         ],
         "DipoleType": [
+            ["basic", "Basic"],
             ["c", "C-Bend"],
-            ["generic", "Generic"],
             ["h", "H-Bend"]
         ],
         "DivisionType": [
@@ -295,7 +295,7 @@
             ["v", "Vertical"]
         ],
         "MagnetType": [
-            ["dipole", "C-Bend Dipole"],
+            ["dipole", "Dipole"],
             ["freehand", "Freehand"],
             ["undulator", "Undulator"]
         ],
@@ -406,47 +406,39 @@
         },
         "dipole": {
             "_super": ["_", "model", "radiaObject"],
-            "dipoleType": ["generic"],
-            "coilBaseObjectId": ["_", "UUID", ""],
-            "coilColor": ["Color", "Color", "#ff0000"],
-            "coilCurrent": ["Current [A]", "Float", -2000.0],
-            "coilRadii": ["Radii of Coil [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
-            "coilHeight": ["Coil Height [mm]", "Float", 105.0, "", 0.0],
-            "coilSides": ["Coil Side Lengths [mm]", "FloatStringArray", "62.5, 50.0", "", "Transverse, Beam"],
+            "dipoleType": ["_", "DipoleType", "basic"],
             "gap": ["Gap", "Float", 1.0],
-            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
-            "magnetBaseObjectId": ["_", "UUID", ""],
-            "magnetColor": ["Color", "Color", "#ff00ff"],
-            "magnetDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
-            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
-            "magnetMaterial": ["Material", "MaterialType", "custom"],
-            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
-            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
-            "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
+            "pole": ["Pole", "model.geomObject", {
+                "bevels": [],
+                "center": "0.0, 0.0, 1.0",
+                "segments": "2, 2, 2",
+                "magnetization": "0.0, 0.0, 1.0",
+                "remanentMag": 1.0,
+                "material": "NdFeB",
+                "type": "cuboid",
+                "transforms": [
+                    {
+                        "_super": "transform",
+                        "color": null,
+                        "model": "symmetryTransform",
+                        "object": "",
+                        "symmetryPlane": "0,0,1",
+                        "symmetryPoint": "0,0,0",
+                        "symmetryType": "parallel"
+                    }
+                ],
+                "size": "5.0, 5.0, 5.0"
+            }]
         },
         "dipoleC": {
             "_super": ["_", "model", "dipole"],
-            "dipoleType": ["c"],
-            "coilBaseObjectId": ["_", "UUID", ""],
-            "coilColor": ["Color", "Color", "#ff0000"],
-            "coilCurrent": ["Current [A]", "Float", -2000.0],
-            "coilRadii": ["Radii of Coil [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
-            "coilHeight": ["Coil Height [mm]", "Float", 105.0, "", 0.0],
-            "coilSides": ["Coil Side Lengths [mm]", "FloatStringArray", "62.5, 50.0", "", "Transverse, Beam"],
-            "gap": ["Gap", "Float", 1.0],
-            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
-            "magnetBaseObjectId": ["_", "UUID", ""],
-            "magnetColor": ["Color", "Color", "#ff00ff"],
-            "magnetDivision": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Gap, Beam"],
-            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Gap, Beam"],
-            "magnetMaterial": ["Material", "MaterialType", "custom"],
-            "magnetMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
-            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
-            "magnetSize": ["Magnet Size [mm]", "FloatStringArray", "150.0, 200.0, 40.0", "", "Transverse, Gap, Beam"]
+            "coil": ["Coil", "model.racetrack", {}],
+            "magnet": ["Magnet", "model.geomObject", {}],
+            "dipoleType": ["_", "DipoleType", "c"]
         },
         "dipoleH": {
             "_super": ["_", "model", "dipole"],
-            "dipoleType": ["h"],
+            "dipoleType": ["_", "DipoleType", "h"],
             "coilBaseObjectId": ["_", "UUID", ""],
             "coilColor": ["Color", "Color", "#ff0000"],
             "coilCurrent": ["Current [A]", "Float", -2000.0],
@@ -669,6 +661,7 @@
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
+            "dipoleType": ["Dipole Type", "DipoleType", "c"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
             "heightAxis": ["Height Axis", "BeamAxis", "y", "Height is measured along this axis. For undulators the gap is usually defined in this direction"],
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
@@ -775,6 +768,56 @@
             ]
         },
         "dipole": {
+            "title": "Basic Dipole",
+            "advanced": [],
+            "basic": [
+                ["Poles", [
+                    "dipole.pole.magnetization",
+                    "dipole.pole.remanentMag",
+                    "dipole.pole.material",
+                    "dipole.pole.materialFile",
+                    "dipole.pole.segments",
+                    "dipole.pole.size",
+                    "gap"
+                ]]
+            ]
+        },
+        "dipoleC": {
+            "title": "C-Bend Dipole",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "gap"
+                ]],
+                ["Coil", [
+                    "coilRadii",
+                    "coilHeight",
+                    "coilSides",
+                    "coilCurrent",
+                    "coilColor"
+                ]],
+                ["Magnet", [
+                    "magnetSize",
+                    "magnetMaterial",
+                    "magnetMaterialFile",
+                    "magnetMagnetization",
+                    "magnetRemanentMag",
+                    "magnetColor"
+                ]],
+                ["Pole", [
+                    "_self.pole.name",
+                    "_self.pole.shapeButton",
+                    "_self.pole.magnetization",
+                    "_self.pole.remanentMag",
+                    "_self.pole.material",
+                    "_self.pole.materialFile",
+                    "_self.pole.segments",
+                    "_self.pole.center",
+                    "_self.pole.size"
+                ]]
+            ]
+        },
+        "dipoleH": {
             "title": "Dipole",
             "advanced": [],
             "basic": [
@@ -796,7 +839,16 @@
                     "magnetRemanentMag",
                     "magnetColor"
                 ]],
-                ["Poles", [
+                ["Pole", [
+                    "_self.pole.name",
+                    "_self.pole.shapeButton",
+                    "_self.pole.magnetization",
+                    "_self.pole.remanentMag",
+                    "_self.pole.material",
+                    "_self.pole.materialFile",
+                    "_self.pole.segments",
+                    "_self.pole.center",
+                    "_self.pole.size"
                 ]]
             ]
         },
@@ -1082,6 +1134,7 @@
                 "name",
                 "folder",
                 "magnetType",
+                "dipoleType",
                 "beamAxis",
                 "heightAxis"
             ]

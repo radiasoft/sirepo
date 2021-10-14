@@ -59,7 +59,7 @@ def _add_object(o, radia_objs, id_map):
             g_id,
             [c / 255.0 for c in tuple(int(o.color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))]
         )
-    if o.model in _GROUP_MODELS:
+    if t in _GROUP_MODELS:
         grp = []
         for obj_id in o.members:
             obj = [mobj for mobj in sirepo_objs if mobj['id'] == obj_id][0]
@@ -93,7 +93,7 @@ def _build_radia_geom():
 {% else %}
     for obj in sirepo_objs:
         o = PKDict(obj)
-        if o.model not in _MODELS or o.id in id_map.values():
+        if o.type not in _MODELS or o.id in id_map.values():
             continue
         o_id = _add_object(o, radia_objs, id_map)
         id_map[o_id] = o.id

@@ -847,7 +847,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // allows watching fields when creating a new simulation (isLoaded() returns false)
-            const isSim = self.models.simulation && self.parseModelField(f)[0] === 'simulation';
+            const isSim = self.parseModelField(f)[0] === 'simulation';
             // elegant uses '-' in modelKey
             $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
                 if ((self.isLoaded() || isSim) && newValue !== null && newValue !== undefined && newValue !== oldValue) {
