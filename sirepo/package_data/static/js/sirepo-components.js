@@ -1411,7 +1411,7 @@ SIREPO.app.directive('modelField', function(appState) {
         scope: {
             field: '=modelField',
             modelName: '=',
-            customInfo: '=',
+            customInfo: '=?',
             customLabel: '=',
             labelSize: '@',
             fieldSize: '@',
@@ -1420,53 +1420,47 @@ SIREPO.app.directive('modelField', function(appState) {
             form: '=',
             viewName: '=',
         },
-        template: [
-            '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>',
-        ].join(''),
+        template: `
+            <div data-field-editor="getModelInfo('fieldName')" data-form="form" data-model-name="getModelInfo('modelNameForField')" data-model="getModelInfo('modelForField')" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>
+        `,
         controller: function($scope) {
             var modelName = $scope.modelName;
             var field = $scope.field;
             var modelField = appState.parseModelField(field);
 
-            let obj = null;
             if (modelField) {
                 modelName = modelField[0];
                 field = modelField[1];
-                const x = appState.parseModelField(field);
-                if (x && x.length === 2) {
-                    obj = x[0];
-                    field = x[1];
+            }
+            let model = null;
+
+            function update() {
+                model = appState.models[modelName];
+                if (modelField) {
+                    const x = appState.parseModelField(field);
+                    if (x && x.length === 2) {
+                        const objField = x[0];
+                        field = x[1];
+                        model = model[objField];
+                        const t = SIREPO.APP_SCHEMA.model[$scope.modelName][objField][SIREPO.INFO_INDEX_TYPE];
+                        modelName = t.split('.')[1];
+                        $scope.customInfo = appState.modelInfo(modelName)[field];
+                    }
                 }
             }
 
-            //const x = appState.parseModelField($scope.field);
-            //if (x && x.length === 2) {
-            //    // should be of the form 'model.<other model name>'
-            //    objField = x[0];
-            //    m = mInfo[objField][SIREPO.INFO_INDEX_TYPE].split('.')[1];
-            //    f = x[1];
-            //    mInfo = appState.modelInfo(m);
-            //}
-
-            // allow views to have fields like <model1>.<field 1>.<field 2> where field 1 should have a "type" that is
-            // another model, and field 2 is a field of that model, e.g.
-            //  "view": ["model1.field1.field2", ...]
-            //  "model1: {"field1": ["_", "model.model2", {}]
-            //  "model2" {"field2": ["Regular Field", "FieldType, ...]
-            //if (modelName === '_self') {
-            //    modelName = $scope.modelName;
-            //    let m = appState.parseModelField(field);
-            //    //modelName = SIREPO.APP_SCHEMA.model[$scope.modelName][m[0]][SIREPO.INFO_INDEX_TYPE];
-            //    //srdbg('SELF m', m, 'name', SIREPO.APP_SCHEMA.model[$scope.modelName][m[0]]);
-            //    //modelName = modelName.split('.')[1];
-            //    field = m[1];
-            //}
+            $scope.getModelInfo = function(infoType) {
+                if (! model) {
+                    update();
+                }
+                return $scope[infoType]();
+            }
 
             $scope.modelForField = function() {
                 if ($scope.modelData && ! modelField) {
                     return $scope.modelData.getData();
                 }
-                return obj ? appState.models[modelName][obj] : appState.models[modelName];
+                return model;
             };
 
             $scope.modelNameForField = function() {

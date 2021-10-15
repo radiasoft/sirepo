@@ -9,6 +9,8 @@
       </div>
   <div class="col-md-12" data-ng-if="src.showParams()">
     <div data-ng-if="src.getMagnetType() === 'undulator'" data-basic-editor-panel="" data-view-name="hybridUndulator" data-parent-controller="src" data-panel-title="Undulator"></div>
-    <div data-ng-if="src.getMagnetType() === 'dipole'" data-basic-editor-panel="" data-view-name="dipole" data-parent-controller="src" data-panel-title="Dipole"></div>
+    <div data-ng-if="src.getMagnetType() === 'dipole' && src.getDipoleType() === 'basic'" data-basic-editor-panel="" data-view-name="dipole" data-parent-controller="src" data-panel-title="Basic Dipole"></div>
+    <div data-ng-if="src.getMagnetType() === 'dipole' && src.getDipoleType() === 'c'" data-basic-editor-panel="" data-view-name="dipoleC" data-parent-controller="src" data-panel-title="C-Bend Dipole"></div>
+    <div data-ng-if="src.getMagnetType() === 'dipole' && src.getDipoleType() === 'h'" data-basic-editor-panel="" data-view-name="dipoleH" data-parent-controller="src" data-panel-title="H-Bend Dipole"></div>
   </div>
 </div>

@@ -315,13 +315,10 @@ def new_simulation(data, new_simulation_data):
         data.models.simulation.enableKickMaps = '1'
         _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, beam_axis)
     if t == 'dipole':
-        d = data.models.dipole
+        dt = {'basic': 'dipole', 'c': 'dipoleC', 'h': 'dipoleH'}
+        d = data.models[dt[new_simulation_data.dipoleType]]
         data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
-        _build_dipole_objects(data.models.geometryReport, data.models.dipole, beam_axis, height_axis)
-        #data.models.fieldPaths.paths.append(_build_field_axis(
-        #    (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
-        #    beam_axis
-        #))
+        _build_dipole_objects(data.models.geometryReport, d, beam_axis, height_axis)
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -368,16 +365,14 @@ def _build_cuboid(**kwargs):
 
 
 def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
-    # arrange objects
-    geom.objects = []
     geom.objects.append(dipole.pole)
-    #if dipole.dipoleType in ['c', 'h']:
-    #    geom.objects.append(dipole.magnet)
-    #    geom.objects.append(dipole.coil)
+    if dipole.dipoleType in ['c', 'h']:
+        geom.objects.append(dipole.magnet)
+        geom.objects.append(dipole.coil)
 
     return _update_geom_from_dipole(
         geom,
-        _build_geom_obj('dipole', obj_name=geom.name),
+        dipole,
         beam_axis,
         height_axis
     )
@@ -614,6 +609,11 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
             summaryData=PKDict(),
         ),
     )
+
+
+def _find_obj_by_id(obj_arr, obj_id):
+    a = [o for o in obj_arr if o.id == obj_id]
+    return a[0] if a else None
 
 
 def _find_obj_by_name(obj_arr, obj_name):
@@ -1181,15 +1181,23 @@ def _update_ell_points(ell, beam_axis, height_axis):
 
 def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
 
-    pole = dipole.pole
+    p = dipole.pole
     width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
-    sz = sirepo.util.split_comma_delimited_string(dipole.pole.size, float)
-    pkdp('DP SZ {} GAP {} NEW CTR {}', sz, dipole.gap, sz * height_dir + dipole.gap * height_dir)
-
-    return _update_geom_obj(
-        pole,
-        center=sz * height_dir + dipole.gap * height_dir,
+    sz = sirepo.util.split_comma_delimited_string(p.size, float)
+    _update_geom_obj(
+        _find_obj_by_id(geom.objects, p.id),
+        center=sz * height_dir / 2 + dipole.gap * height_dir,
     )
+
+    if dipole.dipoleType in ['c', 'h']:
+        m = dipole.magnet
+        _update_geom_obj(
+            _find_obj_by_id(geom.objects, m.id)
+        )
+        c = dipole.coil
+        _update_geom_obj(
+            _find_obj_by_id(geom.objects, c.id)
+        )
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
@@ -1433,9 +1441,10 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
         d.update(delim_fields)
     for k in d:
         v = kwargs.get(k)
-        if o[k] is not None and v is None:
+        if k in o and v is None:
             continue
         o[k] = _delim_string(val=v, default_val=d[k])
+        pkdp('UPDATED {} TO {}', k, o[k])
         # remove the key from kwargs so it doesn't conflict with the update
         if v is not None:
             del kwargs[k]

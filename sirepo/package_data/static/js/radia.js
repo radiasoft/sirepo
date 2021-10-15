@@ -421,6 +421,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.modelsLoaded && appState.models.simulation.magnetType !== 'freehand';
     };
 
+    self.getDipoleType = function() {
+        if (self.getMagnetType() !== 'dipole') {
+            return null;
+        }
+        return appState.models.simulation.dipoleType;
+    };
+
     self.getMagnetType = function() {
         return appState.models.simulation.magnetType;
     };
@@ -3859,14 +3866,92 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
 SIREPO.viewLogic('dipoleView', function(appState, panelState, radiaService, $scope) {
 
-    $scope.modelData = appState.models[$scope.modelName].pole;
-    srdbg('DIPOLE', $scope.modelData);
-    return {
-        getBaseObject: function() {
-            srdbg('GET DIPOLE');
-            return $scope.modelData;
-        },
+    $scope.modelData = appState.models.dipole.pole;
+
+    $scope.$on('dipole.changed', () => {
+        let o = radiaService.getObject($scope.modelData.id);
+        for (let x in appState.models.dipole.pole) {
+        //    srdbg('set', x);
+            if (x in o) {
+        //        srdbg('to', appState.models.dipole.pole[x]);
+                o[x] = appState.models.dipole.pole[x];
+            }
+        }
+        appState.saveChanges('geometryReport');
+    });
+
+    $scope.$on('geomObject.changed', () => {
+        const o = radiaService.getObject($scope.modelData.id);
+        if (! o || appState.models.geomObject.id != o.id) {
+            return;
+        }
+        $scope.modelData.color = o.color;
+        $scope.modelData.type= o.type;
+        appState.saveChanges('dipole');
+    });
+
+    $scope.whenSelected = function() {
+        const o = radiaService.getObject($scope.modelData.id);
+        if (! o) {
+            return;
+        }
+        appState.models.geomObject = o;
+        //appState.saveChanges('geomObject');
+        appState.saveQuietly('geomObject');
     };
+});
+
+SIREPO.viewLogic('dipoleCView', function(appState, panelState, radiaService, $scope) {
+
+    srdbg('DIPOLE C');
+    const models = {
+        'Coil': appState.models.dipoleC.coil,
+        'Poles': appState.models.dipoleC.pole,
+        'Magnet': appState.models.dipoleC.magnet
+    };
+
+    //$scope.modelData = activeModel();  //appState.models.dipoleC;
+    $scope.modelData = appState.models.dipoleC.coil;
+
+    $scope.$on('dipoleC.changed', () => {
+        //let o = radiaService.getObject($scope.modelData.id);
+        //for (let x in appState.models.dipoleC.pole) {
+        //    srdbg('set', x);
+        //    if (x in o) {
+        //        srdbg('to', appState.models.dipole.pole[x]);
+        //        o[x] = appState.models.dipoleC.pole[x];
+        //    }
+        //}
+        appState.saveChanges('geometryReport');
+    });
+
+    $scope.$on('geomObject.changed', () => {
+        const o = getObj();
+        if (! o || appState.models.geomObject.id != o.id) {
+            return;
+        }
+        $scope.modelData.color = o.color;
+        //$scope.modelData.type= o.type;
+        appState.saveChanges('dipoleC');
+    });
+
+    $scope.whenSelected = function() {
+        const o = getObj();
+        srdbg('SELCTED, SET GEOMOBJ', o);
+        if (! o) {
+            return;
+        }
+        appState.models.geomObject = o;
+        appState.saveQuietly('geomObject');
+    };
+
+    function activeModel() {
+        return models[$scope.$parent.activePage.name];
+    }
+
+    function getObj() {
+        return radiaService.getObject(activeModel().id);
+    }
 
 });
 
