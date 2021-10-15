@@ -1957,7 +1957,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     return;
                 }
                 var plot3dCanvas = $scope.panel.find('canvas')[0];
-                var svg = $scope.panel.find('svg')[0];
+                var svg = $($scope.panel).find('svg.sr-plot')[0];
                 if (! svg || $(svg).is(':hidden')) {
                     return;
                 }
@@ -1965,7 +1965,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             };
 
             $scope.hasData = function() {
-                if (! $scope.panel.find('svg')[0]) {
+                if (! $($scope.panel).find('svg.sr-plot')[0]) {
                     return;
                 }
                 if (appState.isLoaded()) {
@@ -1998,7 +1998,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     return;
                 }
 
-                var svg = $scope.panel.find('svg')[0];
+                var svg = $($scope.panel).find('svg.sr-plot')[0];
                 var el = $($element).closest('div[data-report-panel] > .panel')[0];
 
                 if(! utilities.isFullscreen()) {
