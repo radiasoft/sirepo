@@ -560,7 +560,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
             scope.$on('$destroy', function() {
                 scope.destroy();
-                $(d3.select(scope.element).select('svg').node()).off();
+                $(d3.select(scope.element).select('svg.sr-plot').node()).off();
                 scope.element = null;
             });
 
@@ -581,7 +581,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.$on('sr-window-resize', () => scope.resize());
 
             // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
-            $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
+            $(d3.select(scope.element).select('svg.sr-plot').node()).on('touchstart touchmove', function(event) {
                 event.preventDefault();
                 event.stopPropagation();
             });
@@ -1029,7 +1029,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
 
         function init() {
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-            $scope.select('svg').attr('height', plotting.initialHeight($scope));
+            $scope.select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
             $.each($scope.axes, function(dim, axis) {
                 axis.init();
                 axis.grid = axis.createAxis();
@@ -1055,7 +1055,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 }
                 $scope.width = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
                 $scope.height = $scope.aspectRatio * $scope.width;
-                $scope.select('svg')
+                $scope.select('svg.sr-plot')
                     .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                     .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
                 $scope.axes.x.scale.range([0, $scope.width]);
@@ -1133,9 +1133,8 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
 
         $scope.updatePlot = function(json) {
             $scope.dataCleared = false;
-            $.each($scope.axes, function(dim, axis) {
-                axis.parseLabelAndUnits(json[dim + '_label']);
-                $scope.select('.' + dim + '-axis-label').text(json[dim + '_label']);
+            $.each($scope.axes, (dim, axis) => {
+                axis.updateLabel(json[dim + '_label'] || '', $scope.select);
             });
             $scope.select('.main-title').text(json.title);
             $scope.select('.sub-title').text(json.subtitle);
@@ -1460,12 +1459,22 @@ SIREPO.app.service('focusPointService', function(plotting) {
 SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
     var svc = this;
 
-    svc.parseLabelAndUnits = function(label) {
-        var units = '';
-        var match = label.match(/\[(.*?)\]/);
+    svc.formatUnits = (units, isFixed) => {
+        if (! units) {
+            return '';
+        }
+        return isFixed
+            ? `(${units})`
+            : `[${units}]`;
+    };
+
+    svc.parseLabelAndUnits = function(label, isFixedUnits) {
+        const re = isFixedUnits ? /\((.*?)\)/ : /\[(.*?)\]/;
+        let units = '';
+        let match = label.match(re);
         if (match) {
             units = match[1];
-            label = label.replace(/\s*\[.*?\]/, '');
+            label = label.replace(re, '').trim();
         }
         return {
             label: label,
@@ -1598,9 +1607,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             if (! base) {
                 base = 0;
             }
-            return self.preserveUnits ?
-                d3.formatPrefix(1, 0) :
-                d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
+            return d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
         }
 
         function formatScale(v, scaleFunction) {
@@ -1654,12 +1661,9 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                 });
         };
 
-        self.labDimension = dimension;
-
         self.init = function() {
             self.scale = d3.scale.linear();
             self.svgAxis = self.createAxis();
-            self.preserveUnits = false;
         };
 
         self.parseLabelAndUnits = function(label) {
@@ -1667,6 +1671,11 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             self.units = lu.units;
             self.unitSymbol = '';
             self.label = lu.label;
+        };
+
+        self.updateLabel = (label, select) => {
+            self.parseLabelAndUnits(label);
+            select(`.${dimension}-axis-label`).text(label);
         };
 
         function baseLabel() {
@@ -1689,7 +1698,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                     formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit, fontSize);
                     select('.' + dimension + '-axis-label').text(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
-                        + ' [' + formatInfo.unit.symbol + self.units + ']');
+                        + ' ' + svc.formatUnits(formatInfo.unit.symbol + self.units));
                 }
                 else {
                     formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, null, fontSize);
@@ -2731,7 +2740,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
 
             $scope.init = function() {
                 document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-                select('svg').attr('height', plotting.initialHeight($scope));
+                select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
                 axes.x.init();
                 axes.y.init();
                 axes.bottomY.init();
@@ -2792,10 +2801,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
-                axes.x.parseLabelAndUnits(json.x_label);
-                select('.x-axis-label').text(json.x_label);
-                axes.y.parseLabelAndUnits(json.y_label);
-                select('.y-axis-label').text(json.y_label);
+                axes.x.updateLabel(json.x_label, select);
+                axes.y.updateLabel(json.y_label, select);
                 select('.z-axis-label').text(json.z_label);
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
@@ -2849,7 +2856,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         .parent().parent().find('.sr-panel-heading').text();
                 var heading, points;
                 if (axisName == 'x' || axisName == 'y') {
-                    var axisText = axes[axisName].label + ' [' + axes[axisName].units + ']';
+                    var axisText = axes[axisName].label + ' ' + layoutService.formatUnits(axes[axisName].units);
                     heading = [axisText, select('.z-axis-label').text()];
                     title += ' - ' + axisText;
                     var keys = Object.keys(lineOuts[axisName]);
@@ -3039,7 +3046,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
 
             $scope.init = function() {
-                select('svg').attr('height', plotting.initialHeight($scope));
+                select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
                 $.each(axes, function(dim, axis) {
                     axis.init();
                 });
@@ -3080,8 +3087,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 select('.sub-title').text(json.subtitle);
                 $.each(axes, function(dim, axis) {
                     axis.values = plotting.linearlySpacedArray(json[dim + '_range'][0], json[dim + '_range'][1], json[dim + '_range'][2]);
-                    axis.parseLabelAndUnits(json[dim + '_label']);
-                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                    axis.updateLabel(json[dim + '_label'], select);
                     axis.scale.domain(getRange(axis.values));
                 });
                 cacheCanvas.width = axes.x.values.length;
@@ -3133,6 +3139,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var plotLabels = [];
             var childPlots = {};
             var scaleFunction;
+            let dynamicYLabel = false;
 
             // for built-in d3 symbols - the units are *pixels squared*
             var symbolSize = 144.0;
@@ -3282,7 +3289,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function isPlotVisible(pIndex) {
-                return parseFloat(plotPath(pIndex).style('opacity')) < 1;
+                return parseFloat(plotPath(pIndex).style('opacity')) == 1;
             }
 
             function modulateRGBA(start, end, steps, reverse) {
@@ -3351,7 +3358,59 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function togglePlot(pIndex) {
-                setPlotVisible(pIndex, isPlotVisible(pIndex));
+                setPlotVisible(pIndex, ! isPlotVisible(pIndex));
+                updateYLabel();
+            }
+
+            function updateYLabel() {
+                // combine labels from all selected plots, use common units if possible
+                if (! dynamicYLabel) {
+                    return;
+                }
+                function addUnits(labels, units) {
+                    let isFixedUnits = false;
+                    let hasCommonUnits = true;
+                    labels.forEach((label, idx) => {
+                        let lu = layoutService.parseLabelAndUnits(label);
+                        if (! lu.units) {
+                            lu = layoutService.parseLabelAndUnits(label, true);
+                            isFixedUnits = true;
+                        }
+                        labels[idx] = lu.label;
+                        units.push(lu.units);
+                        if (units[0] != units[idx]) {
+                            hasCommonUnits = false;
+                        }
+                    });
+                    return hasCommonUnits
+                        ? layoutService.formatUnits(units[0], isFixedUnits)
+                        : '';
+                }
+                const maxLabelSize = 45;
+                const labels = plotLabels.filter((l, idx) => isPlotVisible(idx));
+                if (! labels.length) {
+                    return;
+                }
+                const units = [];
+                const yUnits = addUnits(labels, units);
+                let yLabel = '';
+                labels.forEach((l, idx) => {
+                    if (yLabel) {
+                        yLabel += ', ';
+                    }
+                    yLabel += l;
+                    if (! yUnits && units[idx]) {
+                        yLabel += ' ' + layoutService.formatUnits(units[idx], true);
+                    }
+                });
+                if (yLabel.length > maxLabelSize) {
+                    yLabel = yUnits;
+                }
+                else if (yUnits) {
+                    yLabel += ' ' + yUnits;
+                }
+                $scope.axes.y.updateLabel(yLabel, $scope.select);
+                $scope.resize();
             }
 
             function vIcon(pIndex) {
@@ -3431,6 +3490,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     // only use aspectRatio from server for parameterPlot for now, not from model like heatplots
                     $scope.aspectRatio = json.aspectRatio;
                 }
+                dynamicYLabel = json.dynamicYLabel || false;
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
                     {
@@ -3460,7 +3520,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 $scope.axes.x.domain = xdom;
                 $scope.axes.x.scale.domain(xdom);
-                $scope.axes.x.preserveUnits = json.preserve_units;
                 scaleFunction = plotting.scaleFunction($scope.modelName);
                 $scope.axes.y.domain = plotting.ensureDomain([json.y_range[0], json.y_range[1]], scaleFunction);
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
@@ -3601,6 +3660,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     includeDomain(ip, true);
                     setPlotVisible(ip, true);
                 });
+                updateYLabel();
             };
 
             $scope.recalculateYDomain = function() {
@@ -3754,14 +3814,14 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
                         allPoints.push(points);
                     }
                     // absorbed/reflected legend
-                    $scope.select('svg')
+                    $scope.select('svg.sr-plot')
                         .append('circle').attr('class', 'line-absorbed').attr('r', 5).attr('cx', 8).attr('cy', 10);
-                    $scope.select('svg')
+                    $scope.select('svg.sr-plot')
                         .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16)
                         .text('Absorbed');
-                    $scope.select('svg')
+                    $scope.select('svg.sr-plot')
                         .append('circle').attr('class', 'line-reflected').attr('r', 5).attr('cx', 8).attr('cy', 30);
-                    $scope.select('svg')
+                    $scope.select('svg.sr-plot')
                         .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
                         .text('Lost');
                 }
