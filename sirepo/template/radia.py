@@ -359,7 +359,7 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
 
 def _build_cuboid(**kwargs):
     return _update_cuboid(
-        _build_geom_obj('cuboid', obj_name=kwargs.get('name')),
+        _build_geom_obj('cuboid', None, None, obj_name=kwargs.get('name')),
         **kwargs
     )
 
@@ -369,6 +369,11 @@ def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
     if dipole.dipoleType in ['c', 'h']:
         geom.objects.append(dipole.magnet)
         geom.objects.append(dipole.coil)
+        pkdp('UPDATE DGRP {}', dipole.corePoleGroup)
+        g = _update_group(dipole.corePoleGroup, [dipole.magnet, dipole.pole], do_replace=True)
+        geom.objects.append(g)
+        pkdp('UPDATE DGRP {}', dipole.magnetCoilGroup)
+        geom.objects.append(_update_group(dipole.magnetCoilGroup, [g, dipole.pole], do_replace=True))
 
     return _update_geom_from_dipole(
         geom,
@@ -749,9 +754,10 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
             v.height_axis,
         )
     if v.magnetType == 'dipole':
+        v.dipoleType = data.models.simulation.dipoleType
         _update_geom_from_dipole(
             g,
-            data.models.dipole,
+            data.models['dipole' + {'basic': '', 'c': 'C', 'h': 'H'}[v.dipoleType]],
             v.beam_axis,
             v.height_axis,
         )
@@ -1137,8 +1143,36 @@ def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _update_cuboid(cuboid, **kwargs):
-    return _update_geom_obj(cuboid, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
+def _update_cee(o, beam_axis, height_axis, **kwargs):
+    o = _update_geom_obj(o, **kwargs)
+    _update_cee_points(o, beam_axis, height_axis)
+    return o
+
+
+def _update_cee_points(cee, beam_axis, height_axis):
+    w, h, b, c, s = _stemmed_geometry(cee, beam_axis, height_axis)
+
+    # start with arm top, stem left - then reflect across centroid axes as needed
+    ax1 = c[0] - s[0] / 2
+    ax2 = ax1 + s[0]
+    ay1 = c[1] + s[1] / 2
+    ay2 = ay1 - cee.armHeight
+
+    sx1 = c[0] - s[0] / 2
+    sx2 = sx1 + cee.stemWidth
+    sy1 = c[1] - s[1] / 2
+    sy2 = sy1 + cee.armHeight
+
+    cee.points = [
+        [ax1, ay1], [ax2, ay1], [ax2, ay2],
+        [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
+        [ax1, ay1]
+    ]
+    _update_extrusion_points(cee.points, c, [int(cee.stemPosition), int(cee.armPosition)], w, b)
+
+
+def _update_cuboid(o, _, __, **kwargs):
+    return _update_geom_obj(o, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
 
 
 def _update_ell(ell, beam_axis, height_axis, **kwargs):
@@ -1147,12 +1181,15 @@ def _update_ell(ell, beam_axis, height_axis, **kwargs):
     return ell
 
 
-def _update_ell_points(ell, beam_axis, height_axis):
+def _stemmed_geometry(o, beam_axis, height_axis):
     w, h, b = _geom_directions(beam_axis, height_axis)
-    ctr = sirepo.util.split_comma_delimited_string(ell.center, float)
-    sz = sirepo.util.split_comma_delimited_string(ell.size, float)
-    c = [numpy.sum(w * ctr), numpy.sum(h * ctr)]
-    s = [numpy.sum(w * sz), numpy.sum(h * sz)]
+    ctr = sirepo.util.split_comma_delimited_string(o.center, float)
+    sz = sirepo.util.split_comma_delimited_string(o.size, float)
+    return w, h, b, [numpy.sum(w * ctr), numpy.sum(h * ctr)], [numpy.sum(w * sz), numpy.sum(h * sz)]
+
+
+def _update_ell_points(ell, beam_axis, height_axis):
+    w, h, b, c, s = _stemmed_geometry(ell, beam_axis, height_axis)
 
     # start with arm top, stem left - then reflect across centroid axes as needed
     ax1 = c[0] - s[0] / 2
@@ -1162,42 +1199,71 @@ def _update_ell_points(ell, beam_axis, height_axis):
 
     sx1 = c[0] - s[0] / 2
     sx2 = sx1 + ell.stemWidth
-    sy = c[1] - s[1] / 2
+    sy1 = c[1] - s[1] / 2
 
-    k = [int(ell.stemPosition), int(ell.armPosition)]
     ell.points = [
         [ax1, ay1], [ax2, ay1], [ax2, ay2],
-        [sx2, ay2], [sx2, sy], [sx1, sy],
+        [sx2, ay2], [sx2, sy1], [sx1, sy1],
         [ax1, ay1]
     ]
-    ell.points = [[2 * c[i] * k[i] + -1**k[i] * v for (i, v) in enumerate(p)] for p in ell.points]
+    _update_extrusion_points(ell.points, c, [int(ell.stemPosition), int(ell.armPosition)], w, b)
+
+
+def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
+    points = [
+        [2 * ctr[i] * stem_indices[i] + -1**stem_indices[i] * v for (i, v) in enumerate(p)] \
+        for p in points
+    ]
 
     # Radia's extrusion expects points in permutation order based on the extrusion
     # axis (x -> [y, z], y -> [z, x], z -> [x, y])
-    if w.tolist().index(1) != (b.tolist().index(1) + 1) % 3:
-        for p in ell.points:
+    if width_dir.tolist().index(1) != (length_dir.tolist().index(1) + 1) % 3:
+        for p in points:
             p.reverse()
 
 
 def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
 
+    for o in [x for x in geom.objects if 'type' in x]:
+        globals()[f'_update_{o.type}'](o, beam_axis, height_axis)
+
     p = dipole.pole
     width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
-    sz = sirepo.util.split_comma_delimited_string(p.size, float)
-    _update_geom_obj(
-        _find_obj_by_id(geom.objects, p.id),
-        center=sz * height_dir / 2 + dipole.gap * height_dir,
-    )
+    pole_sz = sirepo.util.split_comma_delimited_string(p.size, float)
 
-    if dipole.dipoleType in ['c', 'h']:
-        m = dipole.magnet
-        _update_geom_obj(
-            _find_obj_by_id(geom.objects, m.id)
+    if dipole.dipoleType == 'basic':
+        return _update_geom_obj(
+            _find_obj_by_id(geom.objects, p.id),
+            center=pole_sz * height_dir / 2 + dipole.gap * height_dir
         )
-        c = dipole.coil
+
+    m = dipole.magnet
+    c = dipole.coil
+
+    mag_sz = sirepo.util.split_comma_delimited_string(m.size, float)
+    if dipole.dipoleType == 'c':
+        pole_sz = pole_sz * length_dir + \
+                  dipole.poleWidth * width_dir + \
+                  (mag_sz * height_dir / 2 - m.armHeight * height_dir - dipole.gap * height_dir / 2)
         _update_geom_obj(
-            _find_obj_by_id(geom.objects, c.id)
+            _find_obj_by_id(geom.objects, p.id),
+            center=pole_sz * height_dir / 2 + dipole.gap * height_dir / 2,
+            size=pole_sz
         )
+        _update_geom_obj(
+            _find_obj_by_id(geom.objects, m.id),
+            center=mag_sz * width_dir / 2 - pole_sz * width_dir / 2
+        )
+        _update_geom_obj(
+            _find_obj_by_id(geom.objects, c.id),
+            center=mag_sz * width_dir / 2 - m.stemWidth * width_dir / 2- pole_sz * width_dir / 2
+        )
+    #if dipole.dipoleType == 'h':
+    #    ctr = sz * height_dir / 2 + dipole.gap * height_dir
+
+    return _find_obj_by_id(geom.objects, dipole.magnetCoilGroup.id)
+
+
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
@@ -1298,6 +1364,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     else:
         half_pole = _update_cuboid(
             half_pole,
+            None,
+            None,
             segments=props.segs,
         )
 
@@ -1327,6 +1395,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     else:
         magnet_block = _update_cuboid(
             magnet_block,
+            None,
+            None,
             segments = props.segs
         )
     und.magnetBaseObjectId = magnet_block.id
@@ -1358,6 +1428,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     else:
         pole = _update_cuboid(
             pole,
+            None,
+            None,
             segments=props.segs,
         )
     und.poleBaseObjectId = pole.id
@@ -1411,6 +1483,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         else:
             o = _update_cuboid(
                 o,
+                None,
+                None,
                 segments=props.segs
             )
         o.bevels = props.bevels
@@ -1444,12 +1518,15 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
         if k in o and v is None:
             continue
         o[k] = _delim_string(val=v, default_val=d[k])
-        pkdp('UPDATED {} TO {}', k, o[k])
         # remove the key from kwargs so it doesn't conflict with the update
         if v is not None:
             del kwargs[k]
     o.update(kwargs)
     return o
+
+
+def _update_racetrack(o, _, __, **kwargs):
+    return _update_geom_obj(o)
 
 
 def _delim_string(val=None, default_val=None):

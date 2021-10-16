@@ -94,7 +94,7 @@ def _build_radia_geom():
 {% else %}
     for obj in sirepo_objs:
         o = PKDict(obj)
-        if o.model not in _MODELS or o.id in id_map.values():
+        if o.id in id_map.values():
             continue
         o_id = _add_object(o, radia_objs, id_map)
         id_map[o_id] = o.id

@@ -3937,7 +3937,6 @@ SIREPO.viewLogic('dipoleCView', function(appState, panelState, radiaService, $sc
 
     $scope.whenSelected = function() {
         const o = getObj();
-        srdbg('SELCTED, SET GEOMOBJ', o);
         if (! o) {
             return;
         }

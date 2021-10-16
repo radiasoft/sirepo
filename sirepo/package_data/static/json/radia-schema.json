@@ -435,11 +435,12 @@
             "_super": ["_", "model", "dipole"],
             "coil": ["Coil", "model.racetrack", {
                 "axis": "z",
-                "center": "0.0, 20.0, 0.0",
+                "center": "0.0, 131.25, 0.0",
                 "color": "#ff0000",
                 "currentDensity": 1.0,
                 "fieldCalc": "auto",
                 "height": 105.0,
+                "name": "coil",
                 "numSegments": 3,
                 "planeAxis1": "x",
                 "planeAxis2": "y",
@@ -449,36 +450,48 @@
                 "type": "racetrack"
             }],
             "magnet": ["Magnet", "model.geomObject", {
-                "armHeight": 1.0,
+                "armHeight": 50.0,
                 "armPosition": "1",
-                "center": "0.0, 0.0, 0.0",
+                "center": "0.0, 71.25, 0.0",
                 "color": "#0000ff",
                 "magnetization": "0.0, 0.0, 0.0",
+                "name": "core",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "cee",
-                "size": "10.0, 10.0, 10.0",
-                "stemWidth": 1.0,
+                "size": "50.0, 182.5, 210.0",
+                "stemWidth": 62.5,
                 "stemPosition": "0"
             }],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
-                "center": "0.0, 0.0, 1.0",
+                "center": "0.0, 0.0, 30.0",
                 "color": "#0000ff",
                 "segments": "4, 4, 4",
                 "magnetization": "0.0, 0.0, 1.0",
+                "name": "pole",
                 "remanentMag": 1.0,
                 "material": "Xc06",
                 "type": "cuboid",
-                "size": "5.0, 5.0, 5.0"
+                "size": "50.0, 40.0, 50.0"
             }],
+            "corePoleGroup": ["_", "model.geomGroup", {
+                "name": "core + pole"
+            }],
+            "magnetCoilGroup": ["_", "model.geomGroup", {
+                "name": "magnet + coil"
+            }],
+            "poleWidth": ["Width", "Float", 50.0],
+            "gap": ["Gap", "Float", 10.0],
             "dipoleType": ["_", "DipoleType", "c"]
         },
         "dipoleH": {
-            "_super": ["_", "model", "dipole"],
+            "_super": ["_", "model", "dipoleC"],
             "coil": ["Coil", "model.racetrack", {}],
             "magnet": ["Magnet", "model.geomObject", {}],
-            "dipoleType": ["_", "DipoleType", "h"]
+            "dipoleType": ["_", "DipoleType", "h"],
+            "corePoleGroup": ["_", "model.geomGroup", {}],
+            "magnetCoilGroup": ["_", "model.geomGroup", {}]
         },
         "ell": {
             "_super": ["_", "model", "stemmed"],
@@ -535,7 +548,8 @@
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
             "layoutShape":  ["_", "String", "rect"],
-            "members": ["_", "Group", []]
+            "members": ["_", "Group", []],
+            "model": ["_", "String", "geomGroup"]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
