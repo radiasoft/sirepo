@@ -43,18 +43,19 @@
         }
     },
     "model": {
-        "analysisMetadataReport": {
+        "analysisMetadata": {
             "notes": ["Notes", "Text", ""]
 	},
-        "generalMetadataReport": {
+        "generalMetadata": {
             "notes": ["Notes", "Text", ""]
 	},
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
-        "planMetadataReport": {
+        "planMetadata": {
             "notes": ["Notes", "Text", ""]
 	},
+	"scans": {},
         "simulationStatus": {}
     },
     "strings": {
@@ -64,13 +65,13 @@
         "typeOfSimulation": "analysis"
     },
     "view": {
-        "analysisMetadataReport": {
+        "analysisMetadata": {
             "title": "Analysis",
             "advanced": [
 		"notes"
 	    ]
         },
-        "generalMetadataReport": {
+        "generalMetadata": {
             "title": "General",
             "advanced": [
 		"notes"
@@ -83,11 +84,16 @@
             ],
             "advanced": []
         },
-        "planMetadataReport": {
+        "planMetadata": {
             "title": "Plan",
             "advanced": [
 		"notes"
 	    ]
+        },
+        "scans": {
+            "title": "Scans",
+            "basic": [],
+            "advanced": []
         },
         "simulationStatus": {
             "title": "Analysis Status",

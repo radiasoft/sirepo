@@ -3,17 +3,23 @@
         "analysisAnimation": {
             "notebook": "mock-analysis.ipynb"
         },
-        "analysisMetadataReport": {
+        "analysisMetadata": {
 	    "notes": ""
 	},
-        "generalMetadataReport": {
+        "generalMetadata": {
 	    "notes": ""
 	},
         "inputFiles": {
             "mask": null
         },
-        "planMetadataReport": {
+        "planMetadata": {
 	    "notes": ""
+	},
+        "scans": {
+	    "searchStartTime": null,
+	    "searchStopTime": null,
+	    "selected": {},
+	    "visualizationId": null
 	},
         "simulation": {
             "folder": "/Examples",

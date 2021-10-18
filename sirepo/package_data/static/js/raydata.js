@@ -11,15 +11,46 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState) {
+SIREPO.app.factory('raydataService', function(appState, simulationDataCache, timeService) {
     const self = {};
     let id = 0;
+
+    self.addScanInfoTableColsToCache = (cols) => {
+	simulationDataCache.scanInfoTableCols = cols;
+	return cols;
+    };
+
+    self.addScanToCache = (scan) => {
+	if (!simulationDataCache.scans) {
+	    simulationDataCache.scans = {};
+	}
+	simulationDataCache.scans[scan.uid] = scan;
+    };
+
     self.computeModel = function(analysisModel) {
         return 'animation';
     };
 
+    self.getScanField = (scan, field) => {
+	if (['start', 'stop'].includes(field)) {
+	    return timeService.unixTimeToDateString(scan[field]);
+	}
+	return scan[field];
+    };
+
+    self.getScanInfoTableHeader = (cols) => {
+	return cols.length > 0 ? ['select'].concat(cols) : [];
+    };
+
     self.nextId = () => {
 	return ++id;
+    };
+
+    self.removeScanFromCache = (scan) => {
+	if (!simulationDataCache.scans) {
+	    return;
+	}
+	delete simulationDataCache.scans[scan.uid];
     };
 
     appState.setAppService(self);
@@ -66,8 +97,19 @@ SIREPO.app.controller('DataSourceController', function() {
     return self;
 });
 
-SIREPO.app.controller('MetadataController', function() {
+SIREPO.app.controller('MetadataController', function(appState) {
     const self = this;
+
+    self.haveVisualizationId = () => {
+	return appState.models.scans.visualizationId;
+    };
+
+    self.metadataTableArgs = (category) => {
+	return {
+	    category: category
+	};
+    };
+
     return self;
 });
 
@@ -109,11 +151,10 @@ SIREPO.app.directive('metadataTable', function() {
     return {
         restrict: 'A',
         scope: {
-	    category: '@',
-	    modelName: '@'
+	    args: '='
 	},
         template: `
-            <div class="table-responsive"  data-ng-if="data">
+            <div class="table-responsive" data-ng-if="data">
               <table class="table">
                 <thead>
                 <tr>
@@ -135,18 +176,36 @@ SIREPO.app.directive('metadataTable', function() {
             </div>
 	`,
 	controller: function(appState, panelState, requestSender, $scope) {
-	    $scope.data = null;
 	    $scope.expanded = {};
 
-	    function elementForKey(key) {
+	    const elementForKey = (key) => {
 		return $('#' + $scope.elementId(key));
-	    }
-
-	    $scope.elementId = function(key) {
-		return 'metadata-table-' + $scope.category + '-' + $scope.indexOfKey(key);
 	    };
 
-	    $scope.indexOfKey = function(key) {
+	    const getMetadata = () => {
+		const u = appState.models.scans.visualizationId;
+		if (! u) {
+		    $scope.data = null;
+		    return;
+		}
+		requestSender.statelessCompute(
+		    appState,
+		    {
+			method: 'metadata',
+			category: $scope.args.category,
+			uid: u
+		    },
+		    (data) => {
+			$scope.data = Object.entries(data.data).map(([k, v]) => [k, v]);
+		    },
+		    {
+			modelName: $scope.args.modelKey,
+			panelStateHandle: panelState,
+		    }
+		);
+	    };
+
+	    const indexOfKey = (key) => {
 		for (let i in $scope.data) {
 		    if ($scope.data[i][0] === key) {
 			return i;
@@ -155,7 +214,11 @@ SIREPO.app.directive('metadataTable', function() {
 		throw new Error(`No key=${key} in data=${$scope.data}`);
 	    };
 
-	    // TODO(e-carlin): when expaneded it overflow the plot box
+	    $scope.elementId = function(key) {
+		return 'metadata-table-' + $scope.args.category + '-' + indexOfKey(key);
+	    };
+
+
 	    $scope.wouldOverflow = function(key) {
 		const e = elementForKey(key);
 		return e.prop('clientWidth') < e.prop('scrollWidth');
@@ -171,20 +234,14 @@ SIREPO.app.directive('metadataTable', function() {
 		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
-	    requestSender.statelessCompute(
-		appState,
-		{
-		    method: 'metadata',
-		    category: $scope.category
-		},
-		(data) => {
-		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
-		},
-		{
-		    modelName: $scope.modelName,
-		    panelStateHandle: panelState,
-		}
+	    // Cannot use appState.watchModelFields because it does
+	    // not update when values are null which visualizationId
+	    // will be set to when no scan is checked
+            $scope.$watch(
+		() => appState.models.scans.visualizationId,
+		getMetadata
 	    );
+	    appState.whenModelsLoaded($scope, getMetadata);
         },
     };
 });
@@ -206,6 +263,220 @@ SIREPO.app.directive('pngImage', function(plotting) {
 	},
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('scanSelector', function(panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+	    args: '='
+	},
+        template: `
+	    <div>
+	      <form name="searchForm">
+	        <div class="form-group col-xs-4 row">
+	          <label>Start</label>
+	          <input type="datetime-local" class="form-control" ng-model="searchStartTime" required >
+	        </div>
+		<div class="clearfix"></div>
+	        <div class="form-group col-xs-4 row">
+	          <label>Stop</label>
+	          <input type="datetime-local" class="form-control" ng-model="searchStopTime" required >
+	        </div>
+		<div class="clearfix"></div>
+                <button type="submit" class="btn btn-primary" data-ng-show="showSearchButton()" data-ng-click="search()">Search</button>
+	      </form>
+              <table class="table table-striped table-hover col-sm-4">
+                <thead>
+                  <tr>
+                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="s in scans">
+                  <tr>
+                    <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="selectOrDeselect(s)"/></td>
+                    <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+	    </div>
+        `,
+        controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope) {
+	    let cols = [];
+	    const startOrStop = ['Start', 'Stop'];
+	    $scope.scans = [];
+
+	    const searchStartOrStopTimeKey = (startOrStop) => {
+		return `search${startOrStop}Time`;
+	    };
+
+	    startOrStop.forEach((x) => {
+		const k = searchStartOrStopTimeKey(x);
+		$scope[k] = appState.models.scans[k] ? timeService.unixTimeToDate(appState.models.scans[k]) : null;
+	    });
+
+	    $scope.getHeader = () => raydataService.getScanInfoTableHeader(cols);
+
+	    $scope.getScanField = raydataService.getScanField;
+
+
+	    $scope.search = () => {
+		for (let i = 0; i < startOrStop.length; i++) {
+		    const k = searchStartOrStopTimeKey(startOrStop[i]);
+		    if ($scope[k]) {
+			appState.models.scans[k] = timeService.getUnixTime($scope[k]);
+		    }
+		    if (!appState.models.scans[k]) {
+			return;
+		    }
+		}
+		$scope.searchForm.$setPristine();
+		requestSender.statelessCompute(
+		    appState,
+		    {
+			method: 'scans',
+			searchStartTime: appState.models.scans[
+			    searchStartOrStopTimeKey(startOrStop[0])
+			],
+			searchStopTime: appState.models.scans[
+			    searchStartOrStopTimeKey(startOrStop[1])
+			],
+		    },
+		    (json) => {
+			$scope.scans = [];
+			json.data.scans.forEach((s) => {
+			    s.selected = s.uid in appState.models.scans.selected;
+			    $scope.scans.push(s);
+			});
+			// Remove scans that were selected but are not in the new search results
+			Object.keys(appState.models.scans.selected).forEach((u) => {
+			    if ($scope.scans.some((e) => e.uid === u)) {
+				return;
+			    }
+			    if (appState.models.scans.visualizationId === u) {
+				appState.models.scans.visualizationId = null;
+			    }
+			    delete appState.models.scans.selected[u];
+			});
+			cols = raydataService.addScanInfoTableColsToCache(json.data.cols);
+			appState.saveChanges('scans');
+		    },
+		    {
+			modelName: $scope.args.modelKey,
+			panelStateHandle: panelState,
+			onError: (data) => {
+			    errorService.alertText(data.error);
+			    panelState.setLoading($scope.args.modelKey, false);
+			}
+		    }
+		);
+	    };
+
+	    $scope.showSearchButton = () => {
+		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
+	    };
+
+	    $scope.selectOrDeselect = (scan) => {
+		scan.selected = !scan.selected;
+		if (scan.selected) {
+		    appState.models.scans.selected[scan.uid] = true;
+		    raydataService.addScanToCache(scan);
+		} else {
+		    if (appState.models.scans.visualizationId == scan.uid) {
+			appState.models.scans.visualizationId = null;
+		    }
+		    delete appState.models.scans.selected[scan.uid];
+		    raydataService.removeScanFromCache(scan, appState);
+		}
+		appState.saveChanges('scans');
+	    };
+	    appState.whenModelsLoaded($scope, () => $scope.search());
+        },
+    };
+});
+
+SIREPO.app.directive('visualizationScanSelector', function() {
+    return {
+        restrict: 'A',
+        scope: {
+	    args: '='
+	},
+        template: `
+	    <div data-ng-if="!haveScans()">
+            No scans selected. Visit the <a href data-ng-click="redirectToDataSource()"><span class="glyphicon glyphicon-picture"></span> Data Source</a> tab to select scans.
+	    </div>
+	    <div data-ng-if="haveScans()">
+              <table class="table table-striped table-hover col-sm-4">
+                <thead>
+                  <tr>
+                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="s in scans">
+                  <tr>
+                    <td><input type="checkbox" data-ng-checked="isVisualizationId(s)" data-ng-click="selectOrDeselect(s)"/></td>
+                    <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+	    </div>
+        `,
+        controller: function(appState, panelState, raydataService, requestSender, simulationDataCache, $scope) {
+	    let cols = [];
+
+	    const getScanInfo = () => {
+		const s = appState.models.scans.selected;
+		if (Object.keys(s).every((e) => e in (simulationDataCache.scans || {}))) {
+		    $scope.scans = Object.keys(s).map((u) => simulationDataCache.scans[u]).sort((a, b) => {
+			return a.start > b.start ? 1 : -1;
+		    });
+		    cols = simulationDataCache.scanInfoTableCols;
+		    return;
+		}
+		requestSender.statelessCompute(
+		    appState,
+		    {
+			method: 'scan_info',
+			scans: s,
+		    },
+		    (json) => {
+			$scope.scans = json.data.scans;
+			$scope.scans.forEach(raydataService.addScanToCache);
+			cols = raydataService.addScanInfoTableColsToCache(json.data.cols);
+		    },
+		    {
+			modelName: $scope.args.modelKey,
+			panelStateHandle: panelState,
+		    }
+		);
+	    };
+
+	    $scope.getHeader = () => raydataService.getScanInfoTableHeader(cols);
+
+	    $scope.getScanField = raydataService.getScanField;
+
+	    $scope.haveScans = () => {
+		return ! $.isEmptyObject(appState.models.scans.selected);
+	    };
+
+	    $scope.isVisualizationId = (scan) => {
+		return appState.models.scans.visualizationId === scan.uid;
+	    };
+
+	    $scope.redirectToDataSource = () => requestSender.localRedirect(
+		'dataSource',
+		{':simulationId': appState.models.simulation.simulationId}
+	    );
+
+	    $scope.selectOrDeselect = (scan) => {
+		appState.models.scans.visualizationId = appState.models.scans.visualizationId === scan.uid ? null : scan.uid;
+		appState.saveChanges('scans');
+	    };
+
+	    appState.watchModelFields($scope, ['scans.selected'], getScanInfo);
+	    getScanInfo();
         },
     };
 });
