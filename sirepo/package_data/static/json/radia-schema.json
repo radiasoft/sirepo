@@ -269,9 +269,9 @@
             ["3", "Bottom Left"]
         ],
         "DipoleType": [
-            ["basic", "Basic"],
-            ["c", "C-Bend"],
-            ["h", "H-Bend"]
+            ["dipoleBasic", "Basic"],
+            ["dipoleC", "C-Bend"],
+            ["dipoleH", "H-Bend"]
         ],
         "DivisionType": [
             ["cyl", "Cylindrical"],
@@ -404,9 +404,9 @@
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
             "transforms": ["", "TransformTable", [], ""]
         },
-        "dipole": {
+        "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
-            "dipoleType": ["_", "DipoleType", "basic"],
+            "dipoleType": ["_", "DipoleType", "dipoleBasic"],
             "gap": ["Gap", "Float", 1.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
@@ -432,7 +432,7 @@
             }]
         },
         "dipoleC": {
-            "_super": ["_", "model", "dipole"],
+            "_super": ["_", "model", "dipoleBasic"],
             "coil": ["Coil", "model.racetrack", {
                 "axis": "z",
                 "center": "0.0, 131.25, 0.0",
@@ -461,7 +461,7 @@
                 "type": "cee",
                 "size": "50.0, 182.5, 210.0",
                 "stemWidth": 62.5,
-                "stemPosition": "0"
+                "stemPosition": "1"
             }],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
@@ -483,13 +483,13 @@
             }],
             "poleWidth": ["Width", "Float", 50.0],
             "gap": ["Gap", "Float", 10.0],
-            "dipoleType": ["_", "DipoleType", "c"]
+            "dipoleType": ["_", "DipoleType", "dipoleC"]
         },
         "dipoleH": {
             "_super": ["_", "model", "dipoleC"],
             "coil": ["Coil", "model.racetrack", {}],
             "magnet": ["Magnet", "model.geomObject", {}],
-            "dipoleType": ["_", "DipoleType", "h"],
+            "dipoleType": ["_", "DipoleType", "dipoleH"],
             "corePoleGroup": ["_", "model.geomGroup", {}],
             "magnetCoilGroup": ["_", "model.geomGroup", {}]
         },
@@ -700,7 +700,7 @@
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
-            "dipoleType": ["Dipole Type", "DipoleType", "c"],
+            "dipoleType": ["Dipole Type", "DipoleType", "dipoleC"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
             "heightAxis": ["Height Axis", "BeamAxis", "y", "Height is measured along this axis. For undulators the gap is usually defined in this direction"],
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
@@ -806,18 +806,18 @@
                 "alternateFields"
             ]
         },
-        "dipole": {
+        "dipoleBasic": {
             "title": "Basic Dipole",
             "advanced": [],
             "basic": [
-                ["Poles", [
-                    "dipole.pole.shapeButton",
-                    "dipole.pole.magnetization",
-                    "dipole.pole.remanentMag",
-                    "dipole.pole.material",
-                    "dipole.pole.materialFile",
-                    "dipole.pole.segments",
-                    "dipole.pole.size",
+                ["Pole", [
+                    "dipoleBasic.pole.shapeButton",
+                    "dipoleBasic.pole.magnetization",
+                    "dipoleBasic.pole.remanentMag",
+                    "dipoleBasic.pole.material",
+                    "dipoleBasic.pole.materialFile",
+                    "dipoleBasic.pole.segments",
+                    "dipoleBasic.pole.size",
                     "gap"
                 ]]
             ]

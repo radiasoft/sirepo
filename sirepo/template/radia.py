@@ -46,9 +46,9 @@ _BEAM_AXIS_VECTORS = PKDict(
 )
 
 _DIPOLE_NOTES = PKDict(
-    basic='Simple dipole with permanent magnets',
-    c='C-bend dipole with a single coil',
-    h='H-bend dipole with two coils'
+    dipoleBasic='Simple dipole with permanent magnets',
+    dipoleC='C-bend dipole with a single coil',
+    dipoleH='H-bend dipole with two coils'
 )
 
 _DMP_FILE = 'geometry.dat'
@@ -315,8 +315,7 @@ def new_simulation(data, new_simulation_data):
         data.models.simulation.enableKickMaps = '1'
         _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, beam_axis)
     if t == 'dipole':
-        dt = {'basic': 'dipole', 'c': 'dipoleC', 'h': 'dipoleH'}
-        d = data.models[dt[new_simulation_data.dipoleType]]
+        d = data.models[new_simulation_data.dipoleType]
         data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
         _build_dipole_objects(data.models.geometryReport, d, beam_axis, height_axis)
 
@@ -757,7 +756,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         v.dipoleType = data.models.simulation.dipoleType
         _update_geom_from_dipole(
             g,
-            data.models['dipole' + {'basic': '', 'c': 'C', 'h': 'H'}[v.dipoleType]],
+            data.models[v.dipoleType],
             v.beam_axis,
             v.height_axis,
         )
@@ -1231,7 +1230,7 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
     width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
     pole_sz = sirepo.util.split_comma_delimited_string(p.size, float)
 
-    if dipole.dipoleType == 'basic':
+    if dipole.dipoleType == 'dipoleBasic':
         return _update_geom_obj(
             _find_obj_by_id(geom.objects, p.id),
             center=pole_sz * height_dir / 2 + dipole.gap * height_dir
@@ -1241,7 +1240,7 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
     c = dipole.coil
 
     mag_sz = sirepo.util.split_comma_delimited_string(m.size, float)
-    if dipole.dipoleType == 'c':
+    if dipole.dipoleType == 'dipoleC':
         pole_sz = pole_sz * length_dir + \
                   dipole.poleWidth * width_dir + \
                   (mag_sz * height_dir / 2 - m.armHeight * height_dir - dipole.gap * height_dir / 2)
@@ -1258,7 +1257,7 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
             _find_obj_by_id(geom.objects, c.id),
             center=mag_sz * width_dir / 2 - m.stemWidth * width_dir / 2- pole_sz * width_dir / 2
         )
-    #if dipole.dipoleType == 'h':
+    #if dipole.dipoleType == 'dipoleH':
     #    ctr = sz * height_dir / 2 + dipole.gap * height_dir
 
     return _find_obj_by_id(geom.objects, dipole.magnetCoilGroup.id)

@@ -3637,7 +3637,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     return self;
 });
 
-SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plotting, radiaService) {
+SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plotting, radiaService, utilities) {
 
     const inset = 1;
 
@@ -3678,10 +3678,8 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
             function updateShape() {
                 const o = appState.models[$scope.modelName];
-                const size = o.size.split(/\s*,\s*/).map((x) => {
-                    return parseFloat(x);
-                });
-                const s = shapes[o.type];
+                const size = utilities.splitCommaDelimitedString(o.size, parseFloat);
+                const s = shapes[o.type] || shapes.cuboid;
                 s.setFill(o.color);
                 const inds = radiaService.getAxisIndices();
                 const ar = size[inds.width] / size[inds.height];
@@ -3694,7 +3692,7 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
             }
 
             $scope.$on(`${$scope.modelName}.changed`, () => {
-               loadImage();
+                loadImage();
             });
 
             loadImage();
@@ -3740,19 +3738,11 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, $scope) {
+SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, utilities, $scope) {
     let ctr = [];
     let modelType = null;
     const parent = $scope.$parent;
     let size = [];
-
-    $scope.modelData = appState.models[$scope.modelName];
-    size = $scope.modelData.size.split(/\s*,\s*/).map((x) => {
-        return parseFloat(x);
-    });
-    ctr = $scope.modelData.center.split(/\s*,\s*/).map((x) => {
-        return parseFloat(x);
-    });
 
     $scope.watchFields = [
         [
@@ -3764,6 +3754,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     $scope.whenSelected = function() {
         modelType = appState.models.geomObject.type;
+        $scope.modelData = appState.models[$scope.modelName];
         updateObjectEditor();
     };
 
@@ -3777,6 +3768,8 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         }
         let m = appState.models[mn];
         const ai = radiaService.getAxisIndices();
+        size = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
+        ctr = utilities.splitCommaDelimitedString($scope.modelData.center, parseFloat);
         const c = [ctr[ai.width], ctr[ai.height]];
         const s = [size[ai.width], size[ai.height]];
         // Radia wants the points in the plane in a specific order
@@ -3837,17 +3830,21 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         return m ? m : [parent.modelName, f];
     }
 
-
     function updateObjectEditor() {
         modelType = appState.models.geomObject.type;
         calcExtrusionPoints();
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
+            let hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
             panelState.showField(
                 m[0],
                 m[1],
-                SIREPO.APP_SCHEMA.model[modelType][m[1]] || panelState.isSubclass(modelType, m[0])
+                hasField || panelState.isSubclass(modelType, m[0])
             );
+            if (hasField) {
+                srdbg('SET', `${m[0]}.${[m[1]]}`, 'FROM', $scope.modelData[m[1]],  'TO',  appState.models[m[0]][m[1]]);
+                //appState.models[m[0]][m[1]] = $scope.modelData[m[1]];
+            }
         });
     }
 });
@@ -3863,8 +3860,61 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 });
 
+for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
+    SIREPO.viewLogic(d[0] + 'View', function(appState, panelState, radiaService, $scope) {
+        let models = {};
+        for (let p of $scope.$parent.advancedFields) {
+            models[p[0]] = appState.models[$scope.modelName][p[0].toLowerCase()];
+        }
 
-SIREPO.viewLogic('dipoleView', function(appState, panelState, radiaService, $scope) {
+        $scope.$on(`${$scope.modelName}.changed`, () => {
+            srdbg(`${$scope.modelName}.changed`);
+            let o = getObjFromGeomRpt();
+            const m = activeModel();
+            for (let x of Object.keys(o).filter(k => {
+                return k in m;
+            })) {
+                srdbg('will save', x, o[x], 'over', m[x]);
+                m[x] = o[x];
+            }
+            srdbg(appState.models.geometryReport);
+            appState.saveChanges('geometryReport');
+        });
+
+        $scope.$on('geomObject.changed', () => {
+            const o = getObjFromGeomRpt();
+            srdbg('GEOM OBJ CH', appState.models.geomObject, 'VS', o);
+            if (! o || appState.models.geomObject.id !== o.id) {
+                return;
+            }
+            //$scope.modelData.color = o.color;
+            //$scope.modelData.type= o.type;
+            appState.saveChanges($scope.modelName);
+        });
+
+        $scope.whenSelected = function() {
+            const o = getObjFromGeomRpt();
+            if (! o) {
+                return;
+            }
+            $scope.modelData = activeModel();
+            appState.models.geomObject = o;
+            appState.saveChanges('geomObject');
+        };
+
+        function activeModel() {
+            return models[$scope.$parent.activePage.name];
+        }
+
+        function getObjFromGeomRpt() {
+            return radiaService.getObject(activeModel().id);
+        }
+
+    });
+}
+
+/*
+SIREPO.viewLogic('dipoleBasicView', function(appState, panelState, radiaService, $scope) {
 
     $scope.modelData = appState.models.dipole.pole;
 
@@ -3896,64 +3946,61 @@ SIREPO.viewLogic('dipoleView', function(appState, panelState, radiaService, $sco
             return;
         }
         appState.models.geomObject = o;
-        //appState.saveChanges('geomObject');
-        appState.saveQuietly('geomObject');
+        appState.saveChanges('geomObject');
     };
 });
-
+*/
+/*
 SIREPO.viewLogic('dipoleCView', function(appState, panelState, radiaService, $scope) {
 
-    srdbg('DIPOLE C');
     const models = {
-        'Coil': appState.models.dipoleC.coil,
-        'Poles': appState.models.dipoleC.pole,
-        'Magnet': appState.models.dipoleC.magnet
+        'Coil': appState.models[$scope.modelName].coil,
+        'Pole': appState.models[$scope.modelName].pole,
+        'Magnet': appState.models[$scope.modelName].magnet,
     };
 
-    //$scope.modelData = activeModel();  //appState.models.dipoleC;
-    $scope.modelData = appState.models.dipoleC.coil;
-
-    $scope.$on('dipoleC.changed', () => {
-        //let o = radiaService.getObject($scope.modelData.id);
-        //for (let x in appState.models.dipoleC.pole) {
-        //    srdbg('set', x);
-        //    if (x in o) {
-        //        srdbg('to', appState.models.dipole.pole[x]);
-        //        o[x] = appState.models.dipoleC.pole[x];
-        //    }
-        //}
+    $scope.$on(`${$scope.modelName}.changed`, () => {
+        let o = getObjFromGeomRpt();
+        const m = activeModel();
+        for (let x in m) {
+            if (x in o) {
+                o[x] = m[x];
+            }
+        }
         appState.saveChanges('geometryReport');
     });
 
     $scope.$on('geomObject.changed', () => {
-        const o = getObj();
-        if (! o || appState.models.geomObject.id != o.id) {
+        const o = getObjFromGeomRpt();
+        srdbg('GEOM OBJ CH', appState.models.geomObject, 'VS', o);
+        if (! o || appState.models.geomObject.id !== o.id) {
             return;
         }
-        $scope.modelData.color = o.color;
+        //$scope.modelData.color = o.color;
         //$scope.modelData.type= o.type;
         appState.saveChanges('dipoleC');
     });
 
     $scope.whenSelected = function() {
-        const o = getObj();
+        const o = getObjFromGeomRpt();
         if (! o) {
             return;
         }
+        $scope.modelData = activeModel();
         appState.models.geomObject = o;
-        appState.saveQuietly('geomObject');
+        appState.saveChanges('geomObject');
     };
 
     function activeModel() {
         return models[$scope.$parent.activePage.name];
     }
 
-    function getObj() {
+    function getObjFromGeomRpt() {
         return radiaService.getObject(activeModel().id);
     }
 
 });
-
+*/
 SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
 
     $scope.watchFields = [
@@ -4010,6 +4057,7 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
     };
 });
 
+
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 
     let model = null;
@@ -4058,9 +4106,18 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         ['simulation.heightAxis'], radiaService.setWidthAxis,
     ];
 
-    $scope.$on(`${$scope.modelName}.editor.show`, () => {
+    $scope.whenSelected = function() {
+        srdbg('SIM SHEN SEL');
         model = appState.models[$scope.modelName];
+        srdbg('EDIT', model);
+        //$scope.modelData = model;
         updateSimEditor();
-    });
+    }
+
+    //$scope.$on(`${$scope.modelName}.editor.show`, () => {
+    //    model = appState.models[$scope.modelName];
+    //    srdbg('EDIT', model);
+    //    updateSimEditor();
+    //});
 
 });
