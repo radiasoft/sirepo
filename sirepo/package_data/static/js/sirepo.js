@@ -1420,26 +1420,33 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         // iterate the view definition and build a {modelName => [field, ...]} map.
         // may be a string field, [tab-name, [cols]], or [[col-header, [cols]], [col-header, [cols]]]
         if (typeof(field) == 'string') {
-            var modelField = appState.parseModelField(field);
+            let modelField = appState.parseModelField(field);
             if (! modelField) {
                 modelField = [primaryModelName, field];
             }
-            if (! names[modelField[0]]) {
-                names[modelField[0]] = [];
+            // handle compound fields of the form <modelName>.<fieldName>
+            // since a top-level model can have a number of these, put the field names
+            // in a Set (order does not matter)
+            const x = appState.parseModelField(modelField[1]);
+            if (x && x.length === 2) {
+                const t = SIREPO.APP_SCHEMA.model[modelField[0]][x[0]][SIREPO.INFO_INDEX_TYPE];
+                modelField = [t.split('.')[1], x[1]];
             }
-            names[modelField[0]].push(modelField[1]);
+            if (! names[modelField[0]]) {
+                names[modelField[0]] = new Set();
+            }
+            names[modelField[0]].add(modelField[1]);
         }
         else {
-            var i;
             // [name, [cols]]
             if (typeof(field[0]) == 'string') {
-                for (i = 0; i < field[1].length; i++) {
+                for (let i = 0; i < field[1].length; i++) {
                     iterateFields(primaryModelName, field[1][i], names);
                 }
             }
             // [[name, [cols]], [name, [cols]], ...]
             else {
-                for (i = 0; i < field.length; i++) {
+                for (let i = 0; i < field.length; i++) {
                     iterateFields(primaryModelName, field[i], names);
                 }
             }
@@ -1572,7 +1579,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.getFieldsByModel = function(primaryModelName, fields) {
         var names = {};
-        names[primaryModelName] = [];
+        names[primaryModelName] = new Set();
         for (var i = 0; i < fields.length; i++) {
             iterateFields(primaryModelName, fields[i], names);
         }

@@ -1424,18 +1424,17 @@ SIREPO.app.directive('modelField', function(appState) {
             <div data-field-editor="getModelInfo('fieldName')" data-form="form" data-model-name="getModelInfo('modelNameForField')" data-model="getModelInfo('modelForField')" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>
         `,
         controller: function($scope) {
-            var modelName = $scope.modelName;
-            var field = $scope.field;
-            var modelField = appState.parseModelField(field);
+            let modelName = $scope.modelName;
+            let field = $scope.field;
+            let modelField = appState.parseModelField(field);
 
             if (modelField) {
                 modelName = modelField[0];
                 field = modelField[1];
             }
-            let model = null;
+            let model = appState.models[modelName];
 
             function update() {
-                model = appState.models[modelName];
                 if (modelField) {
                     const x = appState.parseModelField(field);
                     if (x && x.length === 2) {
@@ -1450,9 +1449,7 @@ SIREPO.app.directive('modelField', function(appState) {
             }
 
             $scope.getModelInfo = function(infoType) {
-                if (! model) {
-                    update();
-                }
+                update();
                 return $scope[infoType]();
             }
 
