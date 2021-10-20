@@ -3754,6 +3754,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     $scope.whenSelected = function() {
         modelType = appState.models.geomObject.type;
+        srdbg($scope.modelName, 'OBJ SHAPE WHEN SEL', modelType);
         $scope.modelData = appState.models[$scope.modelName];
         updateObjectEditor();
     };
@@ -3841,10 +3842,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 m[1],
                 hasField || panelState.isSubclass(modelType, m[0])
             );
-            if (hasField) {
-                srdbg('SET', `${m[0]}.${[m[1]]}`, 'FROM', $scope.modelData[m[1]],  'TO',  appState.models[m[0]][m[1]]);
-                //appState.models[m[0]][m[1]] = $scope.modelData[m[1]];
-            }
         });
     }
 });
@@ -3864,46 +3861,133 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
     SIREPO.viewLogic(d[0] + 'View', function(appState, panelState, radiaService, $scope) {
         let models = {};
         for (let p of $scope.$parent.advancedFields) {
-            models[p[0]] = appState.models[$scope.modelName][p[0].toLowerCase()];
+            models[p[0]] = {
+                objName: p[0].toLowerCase(),
+                obj: appState.models[$scope.modelName][p[0].toLowerCase()],
+            };
         }
+        srdbg(d[0], 'MODELS', models);
+
+        //$scope.$on('modelChanged', (e, d) => {
+        //    srdbg('MC', d);
+        //});
 
         $scope.$on(`${$scope.modelName}.changed`, () => {
             srdbg(`${$scope.modelName}.changed`);
             let o = getObjFromGeomRpt();
             const m = activeModel();
+            for (let i = 0; i < appState.models.geometryReport.objects; ++i) {
+                if (appState.models.geometryReport.objects.id === o.id) {
+                    appState.models.geometryReport.objects[i] = m;
+                    break;
+                }
+            }
+            /*
             for (let x of Object.keys(o).filter(k => {
                 return k in m;
             })) {
                 srdbg('will save', x, o[x], 'over', m[x]);
                 m[x] = o[x];
             }
-            srdbg(appState.models.geometryReport);
+            */
+            /*
+            for (let x of Object.keys(m).filter(k => {
+                return k in o;
+            })) {
+                srdbg('will save', x, m[x], 'over', o[x]);
+                o[x] = m[x];
+            }
+            */
+
+            //appState.saveChanges('geomObject');
+            //srdbg(appState.models.geometryReport);
             appState.saveChanges('geometryReport');
         });
 
-        $scope.$on('geomObject.changed', () => {
-            const o = getObjFromGeomRpt();
-            srdbg('GEOM OBJ CH', appState.models.geomObject, 'VS', o);
-            if (! o || appState.models.geomObject.id !== o.id) {
-                return;
-            }
-            //$scope.modelData.color = o.color;
-            //$scope.modelData.type= o.type;
-            appState.saveChanges($scope.modelName);
-        });
+        //$scope.$on('racetrack.changed', () => {
+        //    const o = getObjFromGeomRpt();
+        //    srdbg('RACETRACK CH', appState.models.racetrack, 'VS', o);
+        //});
+
+        //$scope.$on('geomObject.changed', () => {
+        //    const o = getObjFromGeomRpt();
+        //    srdbg('GEOM OBJ CH', appState.models.geomObject, 'VS', o);
+        //    if (! o || appState.models.geomObject.id !== o.id) {
+        //        return;
+        //    }
+            //srdbg(appState.models.geometryReport);
+            //appState.saveChanges('geometryReport');
+            //appState.saveChanges($scope.modelName);
+        //});
 
         $scope.whenSelected = function() {
             const o = getObjFromGeomRpt();
             if (! o) {
                 return;
             }
-            $scope.modelData = activeModel();
-            appState.models.geomObject = o;
-            appState.saveChanges('geomObject');
+            appState.models[$scope.modelName][activeObjName()] = o;
+            // the first two slots are the label (usually '_') and 'model'
+            const supers = SIREPO.APP_SCHEMA.model[o.type]._super.slice(2);
+            let editObjs = new Set();
+            srdbg('ACTIVE OBJ', o, 'SUPERS', supers);
+            for (let f in o) {
+                if (f === '_super') {
+                    continue;
+                }
+                let found = false;
+                let last = null;
+                for (let s of supers) {
+                    srdbg('CHECK', f, s);
+                    if (f in SIREPO.APP_SCHEMA.model[s]) {
+                        found = true;
+                    }
+                    else {
+                        if (found) {
+                            srdbg('FOUND', f, 'IN', last, SIREPO.APP_SCHEMA.model[last]);
+                            appState.models[last][f] = o[f];
+                            editObjs.add(last);
+                            break;
+                        }
+                    }
+                    last = s;
+                }
+                if (found && ! editObjs.has(last)) {
+                    srdbg('NEED TO ADD?', f, last, ! editObjs.has(last));
+                    appState.models[last][f] = o[f];
+                    editObjs.add(last);
+                }
+            }
+            //appState.models[o.type] = o;
+            //$scope.modelData = activeModel();
+
+            //let editObjs = new Set();
+            /*
+            let m = null;
+            for (let i of $scope.$parent.activePage.items) {
+                const [mn, objM, objF] = i.split('.');
+                if (mn !== $scope.modelName || objF === null || m in editObjs) {
+                    continue;
+                }
+                const [theWordModel, mm] = SIREPO.APP_SCHEMA.model[$scope.modelName][objM][SIREPO.INFO_INDEX_TYPE].split('.');
+                srdbg('OMF', theWordModel, mm, objF);
+                appState.models[mm] = o;
+                editObjs.add(mm);
+                m = mm;
+            }
+
+             */
+            srdbg('ALSO SAVE', editObjs);
+            appState.saveChanges([$scope.modelName, ...Array.from(editObjs)]);
+            //srdbg('ALSO SAVE', o.type);
+            //appState.saveChanges([$scope.modelName, o.type]);
         };
 
         function activeModel() {
-            return models[$scope.$parent.activePage.name];
+            return models[$scope.$parent.activePage.name].obj;
+        }
+
+        function activeObjName() {
+            return models[$scope.$parent.activePage.name].objName;
         }
 
         function getObjFromGeomRpt() {
@@ -3913,94 +3997,6 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
     });
 }
 
-/*
-SIREPO.viewLogic('dipoleBasicView', function(appState, panelState, radiaService, $scope) {
-
-    $scope.modelData = appState.models.dipole.pole;
-
-    $scope.$on('dipole.changed', () => {
-        let o = radiaService.getObject($scope.modelData.id);
-        for (let x in appState.models.dipole.pole) {
-        //    srdbg('set', x);
-            if (x in o) {
-        //        srdbg('to', appState.models.dipole.pole[x]);
-                o[x] = appState.models.dipole.pole[x];
-            }
-        }
-        appState.saveChanges('geometryReport');
-    });
-
-    $scope.$on('geomObject.changed', () => {
-        const o = radiaService.getObject($scope.modelData.id);
-        if (! o || appState.models.geomObject.id != o.id) {
-            return;
-        }
-        $scope.modelData.color = o.color;
-        $scope.modelData.type= o.type;
-        appState.saveChanges('dipole');
-    });
-
-    $scope.whenSelected = function() {
-        const o = radiaService.getObject($scope.modelData.id);
-        if (! o) {
-            return;
-        }
-        appState.models.geomObject = o;
-        appState.saveChanges('geomObject');
-    };
-});
-*/
-/*
-SIREPO.viewLogic('dipoleCView', function(appState, panelState, radiaService, $scope) {
-
-    const models = {
-        'Coil': appState.models[$scope.modelName].coil,
-        'Pole': appState.models[$scope.modelName].pole,
-        'Magnet': appState.models[$scope.modelName].magnet,
-    };
-
-    $scope.$on(`${$scope.modelName}.changed`, () => {
-        let o = getObjFromGeomRpt();
-        const m = activeModel();
-        for (let x in m) {
-            if (x in o) {
-                o[x] = m[x];
-            }
-        }
-        appState.saveChanges('geometryReport');
-    });
-
-    $scope.$on('geomObject.changed', () => {
-        const o = getObjFromGeomRpt();
-        srdbg('GEOM OBJ CH', appState.models.geomObject, 'VS', o);
-        if (! o || appState.models.geomObject.id !== o.id) {
-            return;
-        }
-        //$scope.modelData.color = o.color;
-        //$scope.modelData.type= o.type;
-        appState.saveChanges('dipoleC');
-    });
-
-    $scope.whenSelected = function() {
-        const o = getObjFromGeomRpt();
-        if (! o) {
-            return;
-        }
-        $scope.modelData = activeModel();
-        appState.models.geomObject = o;
-        appState.saveChanges('geomObject');
-    };
-
-    function activeModel() {
-        return models[$scope.$parent.activePage.name];
-    }
-
-    function getObjFromGeomRpt() {
-        return radiaService.getObject(activeModel().id);
-    }
-
-});
-*/
 SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
 
     $scope.watchFields = [
@@ -4107,9 +4103,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
     ];
 
     $scope.whenSelected = function() {
-        srdbg('SIM SHEN SEL');
         model = appState.models[$scope.modelName];
-        srdbg('EDIT', model);
         //$scope.modelData = model;
         updateSimEditor();
     }

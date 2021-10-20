@@ -407,7 +407,7 @@
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
             "dipoleType": ["_", "DipoleType", "dipoleBasic"],
-            "gap": ["Gap", "Float", 1.0],
+            "gap": ["Gap", "Float", 1.0, "", 0.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
                 "center": "0.0, 0.0, 1.0",
@@ -842,7 +842,7 @@
                     "dipoleC.magnet.remanentMag"
                 ]],
                 ["Pole", [
-                    "dipoleC.pole.color",
+                    "dipoleC.pole.shapeButton",
                     "dipoleC.pole.magnetization",
                     "dipoleC.pole.remanentMag",
                     "dipoleC.pole.material",
