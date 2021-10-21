@@ -374,14 +374,15 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (! self.isLoaded()) {
             return false;
         }
-        var models = self.models;
-        for (var m in fieldsByModel) {
+        let models = self.models;
+        for (let m in fieldsByModel) {
             if (models[m]) {
                 if (! savedModelValues[m]) {
                     return true;
                 }
-                for (var i = 0; i < fieldsByModel[m].length; i++) {
-                    var f = fieldsByModel[m][i];
+                const a = Array.from(fieldsByModel[m]);
+                for (let i = 0; i < a.length; i++) {
+                    const f = a[i];
                     if (! self.deepEquals(models[m][f], savedModelValues[m][f])) {
                         return true;
                     }

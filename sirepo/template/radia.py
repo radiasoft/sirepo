@@ -1209,7 +1209,7 @@ def _update_ell_points(ell, beam_axis, height_axis):
 
 
 def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
-    points = [
+    pts = [
         [2 * ctr[i] * stem_indices[i] + -1**stem_indices[i] * v for (i, v) in enumerate(p)] \
         for p in points
     ]
@@ -1217,7 +1217,7 @@ def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
     # Radia's extrusion expects points in permutation order based on the extrusion
     # axis (x -> [y, z], y -> [z, x], z -> [x, y])
     if width_dir.tolist().index(1) != (length_dir.tolist().index(1) + 1) % 3:
-        for p in points:
+        for p in pts:
             p.reverse()
 
 
