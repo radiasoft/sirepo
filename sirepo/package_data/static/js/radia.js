@@ -3868,10 +3868,6 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         }
         srdbg(d[0], 'MODELS', models);
 
-        //$scope.$on('modelChanged', (e, d) => {
-        //    srdbg('MC', d);
-        //});
-
         $scope.$on(`${$scope.modelName}.changed`, () => {
             srdbg(`${$scope.modelName}.changed`);
             let o = getObjFromGeomRpt();
@@ -3882,43 +3878,8 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
                     break;
                 }
             }
-            /*
-            for (let x of Object.keys(o).filter(k => {
-                return k in m;
-            })) {
-                srdbg('will save', x, o[x], 'over', m[x]);
-                m[x] = o[x];
-            }
-            */
-            /*
-            for (let x of Object.keys(m).filter(k => {
-                return k in o;
-            })) {
-                srdbg('will save', x, m[x], 'over', o[x]);
-                o[x] = m[x];
-            }
-            */
-
-            //appState.saveChanges('geomObject');
-            //srdbg(appState.models.geometryReport);
             appState.saveChanges('geometryReport');
         });
-
-        //$scope.$on('racetrack.changed', () => {
-        //    const o = getObjFromGeomRpt();
-        //    srdbg('RACETRACK CH', appState.models.racetrack, 'VS', o);
-        //});
-
-        //$scope.$on('geomObject.changed', () => {
-        //    const o = getObjFromGeomRpt();
-        //    srdbg('GEOM OBJ CH', appState.models.geomObject, 'VS', o);
-        //    if (! o || appState.models.geomObject.id !== o.id) {
-        //        return;
-        //    }
-            //srdbg(appState.models.geometryReport);
-            //appState.saveChanges('geometryReport');
-            //appState.saveChanges($scope.modelName);
-        //});
 
         $scope.whenSelected = function() {
             const o = getObjFromGeomRpt();
@@ -3928,58 +3889,32 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
             appState.models[$scope.modelName][activeObjName()] = o;
             // the first two slots are the label (usually '_') and 'model'
             const supers = SIREPO.APP_SCHEMA.model[o.type]._super.slice(2);
-            let editObjs = new Set();
+            let editObjs = [];
             srdbg('ACTIVE OBJ', o, 'SUPERS', supers);
             for (let f in o) {
                 if (f === '_super') {
                     continue;
                 }
                 let found = false;
-                let last = null;
                 for (let s of supers) {
-                    srdbg('CHECK', f, s);
+                    // set the field value in all subclasses
                     if (f in SIREPO.APP_SCHEMA.model[s]) {
+                        appState.models[s][f] = o[f];
+                        if (! editObjs.includes(s)) {
+                            editObjs.push(s);
+                        }
                         found = true;
                     }
                     else {
+                        // higher superclasses do not contain this field, we're done
                         if (found) {
-                            srdbg('FOUND', f, 'IN', last, SIREPO.APP_SCHEMA.model[last]);
-                            appState.models[last][f] = o[f];
-                            editObjs.add(last);
                             break;
                         }
                     }
-                    last = s;
-                }
-                if (found && ! editObjs.has(last)) {
-                    srdbg('NEED TO ADD?', f, last, ! editObjs.has(last));
-                    appState.models[last][f] = o[f];
-                    editObjs.add(last);
                 }
             }
-            //appState.models[o.type] = o;
-            //$scope.modelData = activeModel();
-
-            //let editObjs = new Set();
-            /*
-            let m = null;
-            for (let i of $scope.$parent.activePage.items) {
-                const [mn, objM, objF] = i.split('.');
-                if (mn !== $scope.modelName || objF === null || m in editObjs) {
-                    continue;
-                }
-                const [theWordModel, mm] = SIREPO.APP_SCHEMA.model[$scope.modelName][objM][SIREPO.INFO_INDEX_TYPE].split('.');
-                srdbg('OMF', theWordModel, mm, objF);
-                appState.models[mm] = o;
-                editObjs.add(mm);
-                m = mm;
-            }
-
-             */
             srdbg('ALSO SAVE', editObjs);
             appState.saveChanges([$scope.modelName, ...Array.from(editObjs)]);
-            //srdbg('ALSO SAVE', o.type);
-            //appState.saveChanges([$scope.modelName, o.type]);
         };
 
         function activeModel() {
