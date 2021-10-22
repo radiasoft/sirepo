@@ -3136,7 +3136,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
             var includeForDomain = [];
-            var plotLabels = [];
             var childPlots = {};
             var scaleFunction;
             let dynamicYLabel = false;
@@ -3166,9 +3165,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return pts;
             }
 
-            function buildSymbols(plots, d3Selection, size, type) {
+            function buildSymbols(d3Selection, size, type) {
                 var symbols = [];
-                plots
+                $scope.axes.y.plots
                     .map(function (plot) {
                         return plot.symbol;
                     })
@@ -3211,8 +3210,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
-            function createLegend(plots) {
-                plotLabels.length = 0;
+            function createLegend() {
+                const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
                 if (plots.length == 1) {
@@ -3221,14 +3220,13 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var itemWidth;
                 var count = 0;
 
-                buildSymbols(plots, legend, legendSymbolSize, 'legend');
+                buildSymbols(legend, legendSymbolSize, 'legend');
 
                 plots.forEach(function(plot, i) {
                     if (! plot.label) {
                         return;
                     }
-                    plotLabels.push(plot.label);
-                    var item = legend.append('g').attr('class', 'sr-plot-legend-item').attr('index', i);
+                    var item = legend.append('g').attr('class', 'sr-plot-legend-item').attr('data-sr-index', i);
                     item.append('text')
                         .attr('class', 'focus-text-popup glyphicon plot-visibility')
                         .attr('x', 8)
@@ -3267,6 +3265,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     count++;
                 });
                 return count;
+            }
+
+            function getPlotLabels() {
+                return $scope.axes.y.plots.map(plot => plot.label);
             }
 
             function includeDomain(pIndex, doInclude) {
@@ -3318,7 +3320,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function plotPath(pIndex) {
-                var sel = '.plot-viewport .param-plot[index=\'' + pIndex + '\']';
+                var sel = '.plot-viewport .param-plot[data-sr-index=\'' + pIndex + '\']';
                 return d3.selectAll(selectAll(sel)[0]);
             }
 
@@ -3382,12 +3384,18 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             hasCommonUnits = false;
                         }
                     });
+                    if (hasCommonUnits) {
+                        const plotLabels = getPlotLabels();
+                        for (let i in $scope.axes.y.plots) {
+                            vIconLabel(i).text(plotLabels[i].replace(/\[.*?\]/, ''));
+                        }
+                    }
                     return hasCommonUnits
                         ? layoutService.formatUnits(units[0], isFixedUnits)
                         : '';
                 }
                 const maxLabelSize = 45;
-                const labels = plotLabels.filter((l, idx) => isPlotVisible(idx));
+                const labels = getPlotLabels().filter((l, idx) => isPlotVisible(idx));
                 if (! labels.length) {
                     return;
                 }
@@ -3414,7 +3422,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function vIcon(pIndex) {
-                return $scope.select('.sr-plot-legend .sr-plot-legend-item[index=\'' + pIndex + '\'] .plot-visibility');
+                return $scope.select('.sr-plot-legend .sr-plot-legend-item[data-sr-index=\'' + pIndex + '\'] .plot-visibility');
+            }
+
+            function vIconLabel(pIndex) {
+                return $scope.select('.sr-plot-legend .sr-plot-legend-item[data-sr-index=\'' + pIndex + '\'] .focus-text');
             }
 
             function vIconText(isVisible) {
@@ -3438,6 +3450,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             $scope.formatFocusPointData = function(fp) {
+                const plotLabels = getPlotLabels();
                 var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
                 var lu = {};
                 if (yLabel) {
@@ -3531,9 +3544,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 $scope.hasSymbols = false;
 
                 $scope.axes.y.plots = plots;
-                var legendCount = createLegend(plots);
+                const legendCount = createLegend();
 
-                buildSymbols(plots, viewport, symbolSize, 'data');
+                buildSymbols(viewport, symbolSize, 'data');
 
                 plots.forEach(function(plot, ip) {
                     var color = plotting.colorsFromHexString(plot.color, 1.0);
@@ -3563,7 +3576,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             sym = d3.svg.symbol().size(symbolSize).type(plot.symbol);
                             viewport.append('g')
                             .attr('class', 'param-plot')
-                            .attr('index', ip)
+                            .attr('data-sr-index', ip)
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
@@ -3579,7 +3592,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         else {
                             viewport.append('g')
                             .attr('class', 'param-plot')
-                            .attr('index', ip)
+                            .attr('data-sr-index', ip)
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
@@ -3595,7 +3608,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         var plotColorMod = modulateRGBA(color, endColor, plots.length, reverseMod);
                         var p = viewport.append('path')
                             .attr('class', 'param-plot line line-color')
-                            .attr('index', ip)
+                            .attr('data-sr-index', ip)
                             .style('stroke', rgbaToCSS(plotColorMod[ip]))
                             .style('stroke-width', strokeWidth)
                             .datum(plot.points);
@@ -3604,7 +3617,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         }
                         if (plot.symbol) {
                             viewport.append('g')
-                                .attr('index', ip)
+                                .attr('data-sr-index', ip)
                                 .attr('data-color', rgbaToCSS(plotColorMod[ip]))
                                 .attr('class', 'param-plot').selectAll('.data-point')
                                 .data(plot.points)
@@ -3711,7 +3724,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 $scope.select('.plot-viewport').selectAll('.line')
                     .each(function (d) {
-                        var ip = parseInt(d3.select(this).attr('index'));
+                        var ip = parseInt(d3.select(this).attr('data-sr-index'));
                         d3.select(this).attr('d', $scope.plotGraphLine(ip));
                     });
 
