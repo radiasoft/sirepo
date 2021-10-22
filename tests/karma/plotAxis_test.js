@@ -42,4 +42,18 @@ describe('plotting: plotAxis', function() {
         values = tickValues('', [-0.0005, -0], {width: 497, height: 284}, 'y', 'left');
         expect(values).toEqual(['-5e-4', '-4e-4', '-3e-4', '-2e-4', '-1e-4', '0']);
     }));
+    it('should format units', inject(function(layoutService) {
+        expect(layoutService.formatUnits('m')).toEqual('[m]');
+        expect(layoutService.formatUnits('m', true)).toEqual('(m)');
+    }));
+    it('should parse units', inject(function(layoutService) {
+        expect(layoutService.parseLabelAndUnits('x [m]')).toEqual({
+            label: 'x',
+            units: 'm',
+        });
+        expect(layoutService.parseLabelAndUnits('x (m)', true)).toEqual({
+            label: 'x',
+            units: 'm',
+        });
+    }));
 });

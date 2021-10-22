@@ -790,9 +790,9 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         });
     };
 
-    self.setFieldDefaults = function(model, field, fieldInfo) {
+    self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
         let defaultVal = fieldInfo[2];
-        if (! model[field]) {
+        if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
                 // for cases where the default value is an object, we must
                 // clone it or the schema itself will change as the model changes
@@ -1261,7 +1261,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
     self.getFrameCount = function(modelKey) {
         if (modelKey in frameCountByModelKey) {
-            var s = appState.models.simulationStatus[appState.appService.computeModel(modelKey)];
+            var s = self.getSimulationStatus(modelKey);
             if (! (s && s.computeJobHash)
             ) {
                 // cannot request frames without computeJobHash
@@ -1270,6 +1270,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return frameCountByModelKey[modelKey];
         }
         return masterFrameCount;
+    };
+
+    self.getSimulationStatus = (modelKey) => {
+        return appState.models.simulationStatus[appState.appService.computeModel(modelKey)];
     };
 
     self.setCurrentFrame = function(modelName, currentFrame) {
@@ -1799,8 +1803,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             windowResize();
         }
     };
-
-    self.triggerResize = windowResize;
 
     self.waitForUI = function(callback) {
         // groups callbacks within one $timeout()

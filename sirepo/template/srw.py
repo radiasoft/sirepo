@@ -14,6 +14,7 @@ from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
+import array
 import copy
 import glob
 import math
@@ -54,6 +55,14 @@ _OUTPUT_FOR_MODEL = PKDict(
         dimensions=3,
         labels=['(Y1 + Y2) / 2', '(Y1 - Y2) / 2', 'Degree of Coherence'],
         units=['m', 'm', ''],
+    ),
+    coherentModesAnimation=PKDict(
+        title='E={photonEnergy} eV Modes {plotModesStart} - {plotModesEnd}',
+        basename='res_csd',
+        filename='res_csd_cm.h5',
+        dimensions=3,
+        labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
+        units=['m', 'm', '{intensity_units}'],
     ),
     fluxReport=PKDict(
         title='Flux through Finite Aperture',
@@ -215,18 +224,14 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == 'beamlineAnimation':
         return _beamline_animation_percent_complete(run_dir, res)
+    status = PKDict(
+        progress=0,
+        particle_number=0,
+        total_num_of_particles=0,
+    )
     filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
-        status = PKDict(
-            progress=100,
-            particle_number=0,
-            total_num_of_particles=0,
-        )
-        status_files = pkio.sorted_glob(run_dir.join(_LOG_DIR, 'srwl_*.json'))
-        if status_files:  # Read the status file if SRW produces the multi-e logs
-            progress_file = pkio.py_path(status_files[-1])
-            if progress_file.exists():
-                status = simulation_db.read_json(progress_file)
+        status.progress = 100
         t = int(filename.mtime())
         if not is_running and report == 'fluxAnimation':
             # let the client know which flux method was used for the output
@@ -239,10 +244,17 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=t + 1,
             frameIndex=t,
             lastUpdateTime=t,
-            percentComplete=status.progress,
-            particleNumber=status.particle_number,
-            particleCount=status.total_num_of_particles,
         ))
+    status_files = pkio.sorted_glob(run_dir.join(_LOG_DIR, 'srwl_*.json'))
+    if status_files:  # Read the status file if SRW produces the multi-e logs
+        progress_file = pkio.py_path(status_files[-1])
+        if progress_file.exists():
+            status = simulation_db.read_json(progress_file)
+            res.update(PKDict(
+                percentComplete=status.progress,
+                particleNumber=status.particle_number,
+                particleCount=status.total_num_of_particles,
+            ))
     return res
 
 
@@ -283,29 +295,38 @@ def compute_undulator_length(model):
     return PKDict()
 
 
-def copy_related_files(data, source_path, target_path):
-    # copy results and log for the long-running simulations
-    for d in ('fluxAnimation', 'multiElectronAnimation'):
-        source_dir = pkio.py_path(source_path).join(d)
-        if source_dir.exists():
-            target_dir = pkio.py_path(target_path).join(d)
-            pkio.mkdir_parent(str(target_dir))
-            for f in glob.glob(str(source_dir.join('*'))):
-                name = os.path.basename(f)
-                if re.search(r'^res.*\.dat$', name) or re.search(r'\.json$', name):
-                    pkio.py_path(f).copy(target_dir)
-            source_log_dir = source_dir.join(_LOG_DIR)
-            if source_log_dir.exists():
-                target_log_dir = target_dir.join(_LOG_DIR)
-                pkio.mkdir_parent(str(target_log_dir))
-                for f in glob.glob(str(source_log_dir.join('*.json'))):
-                    pkio.py_path(f).copy(target_log_dir)
-
-
 def clean_run_dir(run_dir):
     zip_dir = run_dir.join(_TABULATED_UNDULATOR_DATA_DIR)
     if zip_dir.exists():
         zip_dir.remove()
+
+
+def _extract_coherent_modes(model, out_info):
+    out_file = 'combined-modes.dat'
+    wfr = srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
+    if model.plotModesEnd > len(wfr):
+        model.plotModesEnd = len(wfr)
+    if model.plotModesStart > model.plotModesEnd:
+        model.plotModesStart = model.plotModesEnd
+    if model.plotModesStart == model.plotModesEnd:
+        out_info.title = 'E={photonEnergy} eV Mode {plotModesStart}'
+    mesh = wfr[0].mesh
+    arI = array.array('f', [0] * mesh.nx * mesh.ny)
+    for i in range(model.plotModesStart, model.plotModesEnd + 1):
+        srwlib.srwl.CalcIntFromElecField(
+            arI,
+            wfr[i - 1],
+            int(model.polarization),
+            int(model.characteristic),
+            3, mesh.eStart, 0, 0, [2])
+    srwlib.srwl_uti_save_intens_ascii(
+        arI,
+        mesh,
+        out_file,
+        _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'],
+        _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'],
+    )
+    return out_file
 
 
 def extract_report_data(sim_in):
@@ -321,6 +342,8 @@ def extract_report_data(sim_in):
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ('coherenceXAnimation', 'coherenceYAnimation'):
         _fix_file_header(out.filename)
+    if r == 'coherentModesAnimation':
+        out.filename = _extract_coherent_modes(dm[r], out)
     _update_report_labels(out, PKDict(
         photonEnergy=dm.simulation.photonEnergy,
         sourcePhotonEnergy=dm.sourceIntensityReport.photonEnergy,
@@ -330,6 +353,8 @@ def extract_report_data(sim_in):
         flux_label=_flux_label(dm[r]),
         flux_units=_flux_units(dm[r]),
         watchpoint_id=dm[r].get('id', 0),
+        plotModesStart=dm[r].get('plotModesStart', ''),
+        plotModesEnd=dm[r].get('plotModesEnd', ''),
     ))
     if out.units[1] == 'm':
         out.units[1] = '[m]'
@@ -447,6 +472,20 @@ def get_predefined_beams():
     return _SIM_DATA.srw_predefined().beams
 
 
+def _copy_frame_args_into_model(frame_args, name):
+    m = frame_args.sim_in.models[frame_args.frameReport]
+    m_schema = _SCHEMA.model[name]
+    for f in frame_args:
+        if f in m and f in m_schema:
+            m[f] = frame_args[f]
+            if m_schema[f][1] == 'Float':
+                m[f] = re.sub(r'\s', '+', m[f])
+                m[f] = float(m[f])
+            elif m_schema[f][1] == 'Integer':
+                m[f] = int(m[f])
+    return m
+
+
 def sim_frame(frame_args):
     r = frame_args.frameReport
     frame_args.sim_in.report = r
@@ -458,19 +497,14 @@ def sim_frame(frame_args):
             m.rotateReshape = frame_args.rotateReshape
         else:
             m.rotateAngle = 0
+    elif r == 'coherentModesAnimation':
+        _copy_frame_args_into_model(frame_args, r)
     elif 'beamlineAnimation' in r:
         wid = int(re.search(r'.*?(\d+)$', r)[1])
         fn = _wavefront_pickle_filename(wid)
         with open(fn, 'rb') as f:
             wfr = pickle.load(f)
-        m = frame_args.sim_in.models[r]
-        w_schema = _SCHEMA.model.watchpointReport
-        for f in frame_args:
-            if f in m and f in w_schema:
-                m[f] = frame_args[f]
-                if w_schema[f][1] == 'Float':
-                    m[f] = re.sub(r'\s', '+', m[f])
-                    m[f] = float(m[f])
+        m = _copy_frame_args_into_model(frame_args, 'watchpointReport')
         if wid:
             m.id = wid
             frame_args.sim_in.report = 'beamlineAnimation'
@@ -866,11 +900,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _trim(_generate_parameters_file(data, run_dir=run_dir))
     )
-
-
-def _add_report_filenames(v):
-    for k in _OUTPUT_FOR_MODEL:
-        v['{}Filename'.format(k)] = _OUTPUT_FOR_MODEL[k].filename
 
 
 def _beamline_animation_percent_complete(run_dir, res):
@@ -1570,20 +1599,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.python_file = run_dir.join('user_python.py')
         pkio.write_text(v.python_file, dm.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
-    if 'Animation' in report:
-        if report in dm and 'jobRunMode' in dm[report]:
-            if dm[report].jobRunMode == 'sbatch':
-                v.sbatchBackup = '1'
-    v.beamlineOptics, v.beamlineOpticsParameters, beamline_info = _generate_beamline_optics(report, data)
-    v.beamlineFirstElementPosition = _get_first_element_position(report, data)
-    # 1: auto-undulator 2: auto-wiggler
-    v.energyCalculationMethod = 1 if _SIM_DATA.srw_is_undulator_source(dm.simulation) else 2
-    v[report] = 1
-    _add_report_filenames(v)
-    v.setupMagneticMeasurementFiles = plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data)
-    v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
-    if run_dir and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        _set_magnetic_measurement_parameters(run_dir, v)
+    _set_parameters(v, data, plot_reports, run_dir)
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
 
 
@@ -1653,11 +1669,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         content.append('v.tr = True')
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
-    if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
-        content.append(
-            # Number of "iterations" per save is best set to num processes
-            'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
-        )
     content.append('srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)')
     return '\n'.join([f'    {x}' for x in content] + [''] + ([] if for_rsopt \
         else ['main()', '']))
@@ -1964,6 +1975,40 @@ def _set_magnetic_measurement_parameters(run_dir, v):
     v.magneticMeasurementsIndexFile = mmz.index_file
 
 
+def _set_parameters(v, data, plot_reports, run_dir):
+    report = data.report
+    dm = data.models
+    v.beamlineOptics, v.beamlineOpticsParameters, beamline_info = _generate_beamline_optics(report, data)
+    v.beamlineFirstElementPosition = _get_first_element_position(report, data)
+    # 1: auto-undulator 2: auto-wiggler
+    v.energyCalculationMethod = 1 if _SIM_DATA.srw_is_undulator_source(dm.simulation) else 2
+    v[report] = 1
+    for k in _OUTPUT_FOR_MODEL:
+        v['{}Filename'.format(k)] = _OUTPUT_FOR_MODEL[k].filename
+    v.setupMagneticMeasurementFiles = plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data)
+    v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
+    if run_dir and _SIM_DATA.srw_uses_tabulated_zipfile(data):
+        _set_magnetic_measurement_parameters(run_dir, v)
+    if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
+        if report in dm and dm[report].get('jobRunMode', '') == 'sbatch':
+            v.sbatchBackup = '1'
+        # Number of "iterations" per save is best set to num processes
+        v.multiElectronNumberOfIterations = sirepo.mpi.cfg.cores
+        if report == 'multiElectronAnimation':
+            if dm.multiElectronAnimation.calcCoherence == '1':
+                v.multiElectronCharacteristic = 41
+            if dm.multiElectronAnimation.wavefrontSource == 'cmd':
+                if not dm.multiElectronAnimation.coherentModesFile:
+                    raise AssertionError('No Coherent Modes File selected')
+                v.coherentModesFile = dm.multiElectronAnimation.coherentModesFile
+        elif report == 'coherentModesAnimation':
+            v.multiElectronAnimation = 1
+            v.multiElectronCharacteristic = 61
+            v.mpiMasterCount = max(2, int(sirepo.mpi.cfg.cores / 4))
+            v.multiElectronFileFormat = 'h5'
+            v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
+
+
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
 
@@ -2030,6 +2075,9 @@ def _update_models_for_report(report, models):
         models.initialIntensityReport = models[report].copy()
     if report == 'sourceIntensityReport':
         models.simulation.update(models.sourceIntensityReport)
+    elif report == 'coherentModesAnimation':
+        models.simulation.update(models.coherentModesAnimation)
+        models.multiElectronAnimation.numberOfMacroElectrons = models.coherentModesAnimation.numberOfMacroElectrons
     if report == 'multiElectronAnimation' and models.multiElectronAnimation.photonEnergyBandWidth > 0:
         models.multiElectronAnimation.photonEnergyIntegration = 1
         half_width = float(models.multiElectronAnimation.photonEnergyBandWidth) / 2.0
@@ -2044,10 +2092,7 @@ def _update_models_for_report(report, models):
 def _update_report_labels(out, vals):
 
     def _template_text(text):
-        for f in vals:
-            if '{' + f + '}' in text:
-                text = text.format(**{f: vals[f]})
-        return text
+        return text.format(**vals)
 
     for f in ('title', 'subtitle', 'units', 'labels', 'filename'):
         if f not in out:

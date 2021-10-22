@@ -520,6 +520,7 @@ def sim_frame_plotAnimation(frame_args):
         plots,
         PKDict(),
         PKDict(
+            dynamicYLabel=True,
             title='',
             y_label='',
             x_label=res.x.label,
@@ -554,6 +555,7 @@ def sim_frame_plot2Animation(frame_args):
             p.points = p.points[:len(x.points)]
     return template_common.parameter_plot(x.points, plots, {}, {
         'title': '',
+        'dynamicYLabel': True,
         'y_label': '',
         'x_label': x.label,
     })
