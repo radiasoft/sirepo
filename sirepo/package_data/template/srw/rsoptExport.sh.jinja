@@ -1,11 +1,27 @@
 #!/bin/bash
-echo "NOTE: remove files from {{ runDir }} first"
+if [ -d "{{ runDir }}" ] && [ -n "$(ls -A {{ runDir }})" ]; then
+   echo "Cleaning run directory {{ runDir }}..."
+   rm {{ runDir }}/{{ pyFileName }}
+   rm {{ runDir }}/run_parallel_python.py
+fi
+echo "Generating data..."
 SECONDS=0
 rsopt sample configuration "{{ ymlFileName }}" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
-    echo "Completed scan in $SECONDS sec"
-    echo "NOTE: python {{ pyFileName }} rsopt_run" `tail -1 "{{ outFileName }}" | cut -d: -f2`.npy "to run SRW with generated data"
+    echo "Completed generation in $SECONDS sec"
+    run_py="python {{ pyFileName }} rsopt_run `tail -1 {{ outFileName }} | cut -d: -f2`.npy"
+    read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
+    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        echo "Running SRW..."
+        $($run_py)
+        echo "SRW output is in:"
+        for file in datasets/*; do
+            echo "$file"
+        done
+    else
+        echo "NOTE: $run_py to run SRW with generated data"
+    fi
 else
     echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"
     exit 99

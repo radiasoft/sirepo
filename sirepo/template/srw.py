@@ -1887,15 +1887,27 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
+def _rsopt_res_file_infix(elements, params):
+    s = ''
+    for e in elements:
+        for p in [p for p in params if p in e]:
+            for i, x in enumerate(e[p].fieldNames):
+                if e[p].offsets[i] != 0:
+                    s += f'{e.title}_{p}_{x}_'
+    return s
+
+
 def _rsopt_jinja_context(model):
     import multiprocessing
+    e = _process_rsopt_elements(model.elements)
     return PKDict(
         forRSOpt=True,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
-        rsOptElements=_process_rsopt_elements(model.elements),
+        rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
+        rsOptResFileInfix=_rsopt_res_file_infix(e, _RSOPT_PARAMS),
         scanType=model.scanType,
         totalSamples=model.totalSamples,
     )
