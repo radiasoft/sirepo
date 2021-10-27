@@ -8,7 +8,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.enableKickMaps = '0';
     SIREPO.appDefaultSimulationValues.simulation.heightAxis = 'y';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
-    SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'basic';
+    SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'dipoleBasic';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
@@ -4095,10 +4095,9 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         updateSimEditor();
     }
 
-    //$scope.$on(`${$scope.modelName}.editor.show`, () => {
-    //    model = appState.models[$scope.modelName];
-    //    srdbg('EDIT', model);
-    //    updateSimEditor();
-    //});
+    $scope.$on(`${$scope.modelName}.editor.show`, () => {
+        model = appState.models[$scope.modelName];
+        updateSimEditor();
+    });
 
 });

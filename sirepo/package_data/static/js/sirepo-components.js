@@ -1432,9 +1432,12 @@ SIREPO.app.directive('modelField', function(appState) {
                 modelName = modelField[0];
                 field = modelField[1];
             }
-            let model = appState.models[modelName];
+            let model = null;
 
             function update() {
+                if (! model) {
+                    model = appState.models[modelName];
+                }
                 if (modelField) {
                     const x = appState.parseModelField(field);
                     if (x && x.length === 2) {

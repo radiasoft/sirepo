@@ -745,6 +745,13 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.width_dir = wd.tolist()
     v.height_dir = hd.tolist()
     v.beam_dir = bd.tolist()
+    if v.magnetType == 'freehand':
+        _update_geom_from_freehand(
+            g,
+            None,
+            v.beam_axis,
+            v.height_axis,
+        )
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(
             g,
@@ -1223,8 +1230,7 @@ def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
 
 def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
 
-    for o in [x for x in geom.objects if 'type' in x]:
-        globals()[f'_update_{o.type}'](o, beam_axis, height_axis)
+    _update_geom_objects(geom.objects, beam_axis, height_axis)
 
     p = dipole.pole
     width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
@@ -1263,6 +1269,8 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
     return _find_obj_by_id(geom.objects, dipole.magnetCoilGroup.id)
 
 
+def _update_geom_from_freehand(geom, base_model, beam_axis, height_axis):
+    _update_geom_objects(geom.objects, beam_axis, height_axis)
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
@@ -1506,6 +1514,11 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         _build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
     ]
     return oct_grp
+
+
+def _update_geom_objects(objects, beam_axis, height_axis):
+    for o in [x for x in objects if 'type' in x]:
+        globals()[f'_update_{o.type}'](o, beam_axis, height_axis)
 
 
 def _update_geom_obj(o, delim_fields=None, **kwargs):
