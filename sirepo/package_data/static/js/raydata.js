@@ -42,9 +42,11 @@ SIREPO.app.factory('raydataService', function(appState, simulationDataCache, tim
 	return cols.length > 0 ? ['select'].concat(cols) : [];
     };
 
-    self.nextId = () => {
-	return ++id;
+
+    self.nextPngImageId = () => {
+	return 'raydata-png-image-' + ++id;
     };
+
 
     self.removeScanFromCache = (scan) => {
 	if (!simulationDataCache.scans) {
@@ -52,6 +54,10 @@ SIREPO.app.factory('raydataService', function(appState, simulationDataCache, tim
 	}
 	delete simulationDataCache.scans[scan.uid];
     };
+
+    self.setPngDataUrl = (element, png) => {
+	element.src = 'data:image/png;base64,' + png;
+    }
 
     appState.setAppService(self);
     return self;
@@ -67,18 +73,18 @@ SIREPO.app.controller('AnalysisController', function(appState, frameCache, panel
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
-	if (Object.keys(data.pngOutputFiles || []).length > 0) {
+	if ((data.pngOutputFiles || []).length > 0) {
 	    const f = [];
-	    Object.entries(data.pngOutputFiles).forEach(([k, v]) => {
-		if (self.pngOutputFiles.includes(k)) {
+	    data.pngOutputFiles.forEach((e) => {
+		if (self.pngOutputFiles.includes(e.name)) {
 		    return;
 		}
-		appState.models[k] = {
-		    filename: v
+		appState.models[e.name] = {
+		    filename: e.filename
 		};
-		f.push(k);
-		if (! panelState.isHidden(k)) {
-		    panelState.toggleHidden(k);
+		f.push(e.name);
+		if (! panelState.isHidden(e.name)) {
+		    panelState.toggleHidden(e.name);
 		}
 	    });
 	    appState.saveChanges(f, () => self.pngOutputFiles.push(...f));
@@ -255,10 +261,10 @@ SIREPO.app.directive('pngImage', function(plotting) {
         template: `<img class="img-responsive" id="{{ id }}" />`,
 	controller: function(raydataService, $scope) {
             plotting.setTextOnlyReport($scope);
-	    $scope.id = 'raydata-png-image-' + raydataService.nextId();
+	    $scope.id = raydataService.nextPngImageId();
 
             $scope.load = (json) => {
-		$('#' + $scope.id)[0].src = 'data:image/png;base64,' + json.image;
+		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image)
             };
 	},
         link: function link(scope, element) {
