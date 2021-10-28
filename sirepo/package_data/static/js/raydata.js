@@ -36,18 +36,18 @@ SIREPO.app.controller('AnalysisController', function(appState, frameCache, panel
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
-	if (Object.keys(data.pngOutputFiles || []).length > 0) {
+	if ((data.pngOutputFiles || []).length > 0) {
 	    const f = [];
-	    Object.entries(data.pngOutputFiles).forEach(([k, v]) => {
-		if (self.pngOutputFiles.includes(k)) {
+	    data.pngOutputFiles.forEach((e) => {
+		if (self.pngOutputFiles.includes(e.name)) {
 		    return;
 		}
-		appState.models[k] = {
-		    filename: v
+		appState.models[e.name] = {
+		    filename: e.filename
 		};
-		f.push(k);
-		if (! panelState.isHidden(k)) {
-		    panelState.toggleHidden(k);
+		f.push(e.name);
+		if (! panelState.isHidden(e.name)) {
+		    panelState.toggleHidden(e.name);
 		}
 	    });
 	    appState.saveChanges(f, () => self.pngOutputFiles.push(...f));
