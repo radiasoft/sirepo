@@ -1421,7 +1421,7 @@ SIREPO.app.directive('modelField', function(appState) {
             viewName: '=',
         },
         template: `
-            <div data-field-editor="getModelInfo('fieldName')" data-form="form" data-model-name="getModelInfo('modelNameForField')" data-model="getModelInfo('modelForField')" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>
+            <div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>
         `,
         controller: function($scope) {
             let modelName = $scope.modelName;
@@ -1429,38 +1429,24 @@ SIREPO.app.directive('modelField', function(appState) {
             let modelField = appState.parseModelField(field);
 
             if (modelField) {
-                modelName = modelField[0];
+                [modelName, field] = modelField;
+            }
+
+            // if this is a compound field (<field 1>.<field 2>), change the model info to reflect that
+            const m = appState.parseModelField(field);
+            if (m) {
+                modelField = m;
                 field = modelField[1];
-            }
-            let model = null;
-
-            function update() {
-                if (! model) {
-                    model = appState.models[modelName];
-                }
-                if (modelField) {
-                    const x = appState.parseModelField(field);
-                    if (x && x.length === 2) {
-                        const objField = x[0];
-                        field = x[1];
-                        model = model[objField];
-                        const t = SIREPO.APP_SCHEMA.model[$scope.modelName][objField][SIREPO.INFO_INDEX_TYPE];
-                        modelName = t.split('.')[1];
-                        $scope.customInfo = appState.modelInfo(modelName)[field];
-                    }
-                }
-            }
-
-            $scope.getModelInfo = function(infoType) {
-                update();
-                return $scope[infoType]();
+                const t = SIREPO.APP_SCHEMA.model[$scope.modelName][modelField[0]][SIREPO.INFO_INDEX_TYPE];
+                modelName = t.split('.')[1];
+                $scope.customInfo = appState.modelInfo(modelName)[field];
             }
 
             $scope.modelForField = function() {
                 if ($scope.modelData && ! modelField) {
                     return $scope.modelData.getData();
                 }
-                return model;
+                return appState.models[modelName];
             };
 
             $scope.modelNameForField = function() {
