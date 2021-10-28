@@ -365,14 +365,12 @@ def _build_cuboid(**kwargs):
 
 def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
     geom.objects.append(dipole.pole)
-    if dipole.dipoleType in ['c', 'h']:
+    if dipole.dipoleType in ['dipoleC', 'dipoleH']:
         geom.objects.append(dipole.magnet)
         geom.objects.append(dipole.coil)
-        pkdp('UPDATE DGRP {}', dipole.corePoleGroup)
         g = _update_group(dipole.corePoleGroup, [dipole.magnet, dipole.pole], do_replace=True)
         geom.objects.append(g)
-        pkdp('UPDATE DGRP {}', dipole.magnetCoilGroup)
-        geom.objects.append(_update_group(dipole.magnetCoilGroup, [g, dipole.pole], do_replace=True))
+        geom.objects.append(_update_group(dipole.magnetCoilGroup, [g, dipole.coil], do_replace=True))
 
     return _update_geom_from_dipole(
         geom,

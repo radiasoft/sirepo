@@ -3868,36 +3868,13 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         }
 
         $scope.$on('cancelChanges', (e, d) => {
-            srdbg('CANCEL', d, 'CHGECK', editedModels);
-            //if (editedModels.includes(d)) {
-                resetSuperClasses();
-            //}
+            //srdbg('CANCEL', d);
         });
         $scope.$on('modelChanged', (e, d) => {
-            if (editedModels.includes(d)) {
-                const o = getObjFromGeomRpt();
-                if (! o) {
-                    return;
-                }
-                for (let f in appState.models[d]) {
-                    if (f in o) {
-                        o[f] = appState.models[d][f];
-                    }
-                }
-                appState.saveChanges($scope.modelName);
-            }
+            //srdbg('MODEL CH', d);
         });
 
         $scope.$on(`${$scope.modelName}.changed`, () => {
-            //srdbg(`${$scope.modelName}.changed`);
-            let o = getObjFromGeomRpt();
-            const m = activeModel();
-            for (let i = 0; i < appState.models.geometryReport.objects; ++i) {
-                if (appState.models.geometryReport.objects.id === o.id) {
-                    appState.models.geometryReport.objects[i] = m;
-                    break;
-                }
-            }
             appState.saveChanges('geometryReport');
         });
 
@@ -3906,33 +3883,11 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
             if (! o) {
                 return;
             }
+            // set the object in the dipole model to the equivalent object in the report
+            // also set the base model and its superclasses
+            srdbg('active', activeObjName(), o.type, o);
             appState.models[$scope.modelName][activeObjName()] = o;
-            // the first two slots are the label (usually '_') and 'model'
-            const supers = SIREPO.APP_SCHEMA.model[o.type]._super.slice(2);
-            editedModels = [];
-            for (let f in o) {
-                if (f === '_super') {
-                    continue;
-                }
-                let found = false;
-                for (let s of supers) {
-                    // set the field value in all subclasses
-                    if (f in SIREPO.APP_SCHEMA.model[s]) {
-                        appState.models[s][f] = o[f];
-                        if (! editedModels.includes(s)) {
-                            editedModels.push(s);
-                        }
-                        found = true;
-                    }
-                    else {
-                        // higher superclasses do not contain this field, we're done
-                        if (found) {
-                            break;
-                        }
-                    }
-                }
-            }
-            appState.saveChanges([$scope.modelName, ...editedModels]);
+            appState.saveChanges([$scope.modelName, o.type, ...updateModelAndSuperClasses(o)]);
         };
 
         function activeModel() {
@@ -3947,38 +3902,14 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
             return radiaService.getObject(activeModel().id);
         }
 
-        function resetSuperClasses() {
-            const o = getObjFromGeomRpt();
-            if (! o) {
-                return;
+        // update models so that editors see the correct values
+        // for now assign the entire object
+        function updateModelAndSuperClasses(o) {
+            const s = [o.type, ...appState.superClasses(o.type)];
+            for (let c of s) {
+                appState.models[c] = o;
             }
-            appState.models[$scope.modelName][activeObjName()] = o;
-            // the first two slots are the label (usually '_') and 'model'
-            const supers = SIREPO.APP_SCHEMA.model[o.type]._super.slice(2);
-            editedModels = [];
-            for (let f in o) {
-                if (f === '_super') {
-                    continue;
-                }
-                let found = false;
-                for (let s of supers) {
-                    // set the field value in all subclasses
-                    if (f in SIREPO.APP_SCHEMA.model[s]) {
-                        appState.models[s][f] = o[f];
-                        if (! editedModels.includes(s)) {
-                            editedModels.push(s);
-                        }
-                        found = true;
-                    }
-                    else {
-                        // higher superclasses do not contain this field, we're done
-                        if (found) {
-                            break;
-                        }
-                    }
-                }
-            }
-            appState.saveChanges([$scope.modelName, ...editedModels]);
+            return s;
         }
 
     });
