@@ -630,6 +630,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
+    self.isSubclass = function(model1, model2) {
+        return this.superClasses(model1).includes(model2);
+    };
+
     self.listSimulations = function(op, search) {
         requestSender.sendRequest(
             'listSimulations',
@@ -1631,14 +1635,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.isRunning = function(name) {
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
-    };
-
-    self.isSubclass = function(model1, model2) {
-        const m1 = SIREPO.APP_SCHEMA.model[model1];
-        if (! m1._super) {
-            return false;
-        }
-        return m1._super.indexOf(model2) >= 0;
     };
 
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {

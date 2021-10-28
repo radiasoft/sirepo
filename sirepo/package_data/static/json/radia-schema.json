@@ -407,7 +407,7 @@
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
             "dipoleType": ["_", "DipoleType", "dipoleBasic"],
-            "gap": ["Gap", "Float", 1.0, "", 0.0],
+            "gap": ["Gap [mm]", "Float", 1.0, "", 0.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
                 "center": "0.0, 0.0, 1.0",
@@ -445,7 +445,7 @@
                 "planeAxis1": "x",
                 "planeAxis2": "y",
                 "radii": "5.0, 40.0",
-                "sides": "50.0, 100.0",
+                "sides": "50.0, 62.5",
                 "size": "1.0, 1.0, 105.0",
                 "type": "racetrack"
             }],
@@ -472,6 +472,17 @@
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "Xc06",
+                "transforms": [
+                    {
+                        "_super": "transform",
+                        "color": null,
+                        "model": "symmetryTransform",
+                        "object": "",
+                        "symmetryPlane": "0,0,1",
+                        "symmetryPoint": "0,0,0",
+                        "symmetryType": "parallel"
+                    }
+                ],
                 "type": "cuboid",
                 "size": "50.0, 40.0, 50.0"
             }],
@@ -482,7 +493,7 @@
                 "name": "magnet + coil"
             }],
             "poleWidth": ["Width", "Float", 50.0],
-            "gap": ["Gap", "Float", 10.0],
+            "gap": ["Gap", "Float", 10.0, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleC"]
         },
         "dipoleH": {
@@ -674,7 +685,7 @@
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
             "radii": ["Radii", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
-            "sides": ["Straight Sides", "FloatStringArray", "50.0, 100.0", "", "width (mm), length (mm)"],
+            "sides": ["Straight Sides", "FloatStringArray", "50.0, 62.5", "", "width (mm), length (mm)"],
             "size": ["_", "FloatStringArray", "1.0, 1.0, 105.0"],
             "type": ["_", "ObjectType", "racetrack"]
         },
@@ -848,8 +859,7 @@
                     "dipoleC.pole.material",
                     "dipoleC.pole.materialFile",
                     "dipoleC.pole.segments",
-                    "dipoleC.pole.center",
-                    "dipoleC.pole.size",
+                    "poleWidth",
                     "gap"
                 ]]
             ]

@@ -1172,7 +1172,7 @@ def _update_cee_points(cee, beam_axis, height_axis):
         [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
         [ax1, ay1]
     ]
-    _update_extrusion_points(cee.points, c, [int(cee.stemPosition), int(cee.armPosition)], w, b)
+    cee.points = _update_extrusion_points(cee.points, c, [int(cee.stemPosition), int(cee.armPosition)], w, b)
 
 
 def _update_cuboid(o, _, __, **kwargs):
@@ -1210,12 +1210,14 @@ def _update_ell_points(ell, beam_axis, height_axis):
         [sx2, ay2], [sx2, sy1], [sx1, sy1],
         [ax1, ay1]
     ]
-    _update_extrusion_points(ell.points, c, [int(ell.stemPosition), int(ell.armPosition)], w, b)
+    ell.points = _update_extrusion_points(
+        ell.points, c, [int(ell.stemPosition), int(ell.armPosition)], w, b
+    )
 
 
 def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
     pts = [
-        [2 * ctr[i] * stem_indices[i] + -1**stem_indices[i] * v for (i, v) in enumerate(p)] \
+        [2 * ctr[i] * stem_indices[i] + (-1)**stem_indices[i] * v for (i, v) in enumerate(p)] \
         for p in points
     ]
 
@@ -1225,6 +1227,8 @@ def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
         for p in pts:
             p.reverse()
 
+    return pts
+
 
 def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
 
@@ -1233,6 +1237,9 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
     p = dipole.pole
     width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
     pole_sz = sirepo.util.split_comma_delimited_string(p.size, float)
+
+    # the poles always straddle the origin
+    p.transforms = [_build_symm_xform(height_dir, _ZERO, 'parallel')]
 
     if dipole.dipoleType == 'dipoleBasic':
         return _update_geom_obj(
@@ -1245,21 +1252,25 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
 
     mag_sz = sirepo.util.split_comma_delimited_string(m.size, float)
     if dipole.dipoleType == 'dipoleC':
-        pole_sz = pole_sz * length_dir + \
+        # resize the poles to fit between the arms (minus gap)
+        pole_sz = mag_sz * length_dir + \
                   dipole.poleWidth * width_dir + \
-                  (mag_sz * height_dir / 2 - m.armHeight * height_dir - dipole.gap * height_dir / 2)
+                  mag_sz * height_dir / 2 - m.armHeight * height_dir - dipole.gap * height_dir / 2
+        pkdp('MAG SZ {} NEW POLE SZ {}', mag_sz, pole_sz)
         _update_geom_obj(
             _find_obj_by_id(geom.objects, p.id),
             center=pole_sz * height_dir / 2 + dipole.gap * height_dir / 2,
-            size=pole_sz
+            size=pole_sz,
+            transforms=p.transforms
         )
+        mag_ctr = mag_sz * width_dir / 2 - pole_sz * width_dir / 2
         _update_geom_obj(
             _find_obj_by_id(geom.objects, m.id),
-            center=mag_sz * width_dir / 2 - pole_sz * width_dir / 2
+            center=mag_ctr
         )
         _update_geom_obj(
             _find_obj_by_id(geom.objects, c.id),
-            center=mag_sz * width_dir / 2 - m.stemWidth * width_dir / 2- pole_sz * width_dir / 2
+            center=mag_ctr + mag_sz * width_dir / 2 - m.stemWidth * width_dir / 2
         )
     #if dipole.dipoleType == 'dipoleH':
     #    ctr = sz * height_dir / 2 + dipole.gap * height_dir

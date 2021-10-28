@@ -253,6 +253,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             });
     };
 
+    // update models so that editors see the correct values
+    // for now assign the entire object
+    self.updateModelAndSuperClasses = (modelName, model) => {
+        const s = [modelName, ...appState.superClasses(modelName)];
+        for (let c of s) {
+            appState.models[c] = model;
+        }
+        return s;
+    }
+
     self.upload = function(inputFile) {
         upload(inputFile);
     };
@@ -3755,6 +3765,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     $scope.whenSelected = function() {
         modelType = appState.models.geomObject.type;
         $scope.modelData = appState.models[$scope.modelName];
+        radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
         updateObjectEditor();
     };
 
@@ -3763,7 +3774,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         $scope.modelData.points = [];
         //const mn = 'extrudedPoly';
         const mn = 'stemmed';
-        if (! panelState.isSubclass(modelType, mn)) {
+        if (! appState.isSubclass(modelType, mn)) {
             return;
         }
         let m = appState.models[mn];
@@ -3839,7 +3850,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             panelState.showField(
                 m[0],
                 m[1],
-                hasField || panelState.isSubclass(modelType, m[0])
+                hasField || appState.isSubclass(modelType, m[0])
             );
         });
     }
@@ -3885,9 +3896,9 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
             }
             // set the object in the dipole model to the equivalent object in the report
             // also set the base model and its superclasses
-            srdbg('active', activeObjName(), o.type, o);
+            //srdbg('active', activeObjName(), o.type, o);
             appState.models[$scope.modelName][activeObjName()] = o;
-            appState.saveChanges([$scope.modelName, o.type, ...updateModelAndSuperClasses(o)]);
+            appState.saveChanges([$scope.modelName, ...radiaService.updateModelAndSuperClasses(o.type, o)]);
         };
 
         function activeModel() {
@@ -3900,16 +3911,6 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
 
         function getObjFromGeomRpt() {
             return radiaService.getObject(activeModel().id);
-        }
-
-        // update models so that editors see the correct values
-        // for now assign the entire object
-        function updateModelAndSuperClasses(o) {
-            const s = [o.type, ...appState.superClasses(o.type)];
-            for (let c of s) {
-                appState.models[c] = o;
-            }
-            return s;
         }
 
     });
