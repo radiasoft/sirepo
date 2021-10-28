@@ -812,6 +812,16 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return model;
     };
 
+    self.superClasses = (modelName) => {
+        const m = SIREPO.APP_SCHEMA.model[modelName];
+        const f = '_super';
+        if (! m || ! f in m) {
+            return [];
+        }
+        // the first two slots are the label (usually '_') and 'model'
+        return m[f].slice(2);
+    };
+
     self.uniqueName = function(items, idField, template) {
         // find a unique name comparing against a list of items
         // template has {} replaced with a counter, ex. "my name (copy {})"
