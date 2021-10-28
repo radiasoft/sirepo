@@ -18,9 +18,13 @@ SIREPO.app.factory('raydataService', function(appState) {
         return 'animation';
     };
 
-    self.nextId = () => {
-	return ++id;
+    self.nextPngImageId = () => {
+	return 'raydata-png-image-' + ++id;
     };
+
+    self.setPngDataUrl = (element, png) => {
+	element.src = 'data:image/png;base64,' + png;
+    }
 
     appState.setAppService(self);
     return self;
@@ -191,10 +195,10 @@ SIREPO.app.directive('pngImage', function(plotting) {
         template: `<img class="img-responsive" id="{{ id }}" />`,
 	controller: function(raydataService, $scope) {
             plotting.setTextOnlyReport($scope);
-	    $scope.id = 'raydata-png-image-' + raydataService.nextId();
+	    $scope.id = raydataService.nextPngImageId();
 
             $scope.load = (json) => {
-		$('#' + $scope.id)[0].src = 'data:image/png;base64,' + json.image;
+		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image)
             };
 	},
         link: function link(scope, element) {
