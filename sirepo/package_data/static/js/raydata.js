@@ -19,12 +19,12 @@ SIREPO.app.factory('raydataService', function(appState) {
     };
 
     self.nextPngImageId = () => {
-	return 'raydata-png-image-' + ++id;
+	return 'raydata-png-image-' + (++id);
     };
 
     self.setPngDataUrl = (element, png) => {
 	element.src = 'data:image/png;base64,' + png;
-    }
+    };
 
     appState.setAppService(self);
     return self;
@@ -198,7 +198,7 @@ SIREPO.app.directive('pngImage', function(plotting) {
 	    $scope.id = raydataService.nextPngImageId();
 
             $scope.load = (json) => {
-		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image)
+		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image);
             };
 	},
         link: function link(scope, element) {
