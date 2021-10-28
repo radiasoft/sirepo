@@ -34,6 +34,9 @@ SERVER_SRTIME_URI = '/job-api-srtime'
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/job-api-request'
 
+#: path supervisor registers to receive runMulti requests from server
+SERVER_RUN_MULTI_URI = '/job-api-run-multi-request'
+
 #: path supervisor registers to receive pings from server
 SERVER_PING_URI = '/job-api-ping'
 

@@ -109,6 +109,7 @@
     "route": {
         "adjustTime": "/adjust-time/?<days>",
         "admJobs": "/adm-jobs",
+        "analysisJob": "/analysis-job",
         "authBlueskyLogin": "/auth-bluesky-login",
         "authCompleteRegistration": "/auth-complete-registration",
         "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
@@ -152,6 +153,7 @@
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
         "runCancel": "/run-cancel",
+        "runMulti": "/run-multi",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveSimulationData": "/save-simulation",

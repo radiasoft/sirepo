@@ -120,6 +120,9 @@ def _init():
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
+        raydata=dict(
+            data_dir=('raydata', str, 'dir to store raydata output under sirepo.srdb.root')
+        ),
         sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),

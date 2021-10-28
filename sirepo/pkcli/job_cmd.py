@@ -16,6 +16,7 @@ from sirepo.template import template_common
 import contextlib
 import re
 import requests
+import sirepo.sim_data
 import sirepo.template
 import sirepo.util
 import subprocess
@@ -65,7 +66,7 @@ class _AbruptSocketCloseError(Exception):
 
 def _background_percent_complete(msg, template, is_running):
     return template.background_percent_complete(
-        msg.data.report,
+        sirepo.sim_data.get_class(msg.simulationType).parse_model(msg.data),
         msg.runDir,
         is_running,
     ).pksetdefault(
@@ -116,6 +117,10 @@ def _do_compute(msg, template):
             template,
             msg.runDir,
         )
+
+
+def _do_analysis_job(msg, template):
+    return _dispatch_compute(msg)
 
 
 def _do_download_data_file(msg, template):
@@ -249,7 +254,6 @@ def _do_stateful_compute(msg, template):
 
 def _do_stateless_compute(msg, template):
     return _dispatch_compute(msg)
-
 
 def _maybe_parse_user_alert(exception, error=None):
     e = error or str(exception)

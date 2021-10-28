@@ -1,11 +1,28 @@
 # -*- python -*-
-from pykern import pksubprocess
+import os
+import papermill
+from pykern import pkio
+from pykern.pkdebug import pkdlog, pkdexc
 
-pksubprocess.check_call_with_signals((
-    'papermill',
-    # POSIT: same kernel isntalled by rscode-ipykernel
-    '--kernel=py3',
-    '--log-output',
-    '{{ input_name }}',
-    '{{ output_name }}',
-))
+def _main():
+    try:
+       os.makedirs('{{ scan_dir }}')
+    except FileExistsError:
+        return
+    # TODO(e-carlin): this save_chdir will have a path that doesn't
+    # make sense on user's machine when user downloads parameters.py
+    # (could expose our paths too)
+    with pkio.save_chdir('{{ scan_dir }}'):
+        try:
+            papermill.execute_notebook(
+                input_path='{{ input_name }}',
+                kernel_name='py3',
+                log_output=True,
+                output_path='{{ output_name }}',
+                parameters=dict(uid='{{ scan_uid }}'),
+            )
+        except Exception:
+            pkdlog('Error running uid={} error={}', '{{ scan_uid }}', pkdexc())
+            raise
+
+_main()

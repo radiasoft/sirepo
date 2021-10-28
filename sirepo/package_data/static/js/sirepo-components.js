@@ -625,7 +625,7 @@ SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
               </div>
             </div>
         `,
-        controller: function(simulationDataCache, $scope) {
+        controller: function($scope) {
 	    $scope.panelState = panelState;
 	    $scope.panelHeading = () => {
 		return appState.viewInfo($scope.modelKey).title;
@@ -828,7 +828,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('loadingSpinner', function(appState, panelState) {
+SIREPO.app.directive('loadingSpinner', function() {
     return {
         restrict: 'A',
         scope: {
@@ -1256,6 +1256,44 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                 $(element).off();
                 $(element).detach();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('headerTooltip', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            tipText: '=headerTooltip',
+        },
+        template: [
+            '<span data-ng-class="className()"></span>',
+        ],
+        controller: function link($scope, $element) {
+	    $scope.className = function() {
+		return 'glyphicon sr-info-pointer glyphicon-' + ({
+		    canceled: 'ban-circle',
+		    completed: 'ok',
+		    error: 'exclamation-sign',
+		    missing: 'question-sign',
+		    pending: 'hourglass',
+		    running: 'transfer'
+		}[$scope.tipText] || 'info-sign');
+	    };
+
+            $scope.$on('$destroy', function() {
+                $($element).tooltip('destroy');
+            });
+
+	    $scope.$watch('tipText', () => {
+		$($element).tooltip().attr('data-original-title', $scope.tipText);
+	    });
+
+	    $($element).tooltip({
+		title: $scope.tipText,
+		html: true,
+		placement: 'bottom',
+	    });
         },
     };
 });

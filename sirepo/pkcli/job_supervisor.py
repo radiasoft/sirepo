@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+import asyncio
 import functools
 import signal
 import sirepo.events
@@ -43,6 +44,7 @@ def default_command():
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
+            (sirepo.job.SERVER_RUN_MULTI_URI, _ServerReqRunMulti),
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
@@ -138,12 +140,42 @@ class _ServerReq(_JsonPostRequestHandler):
         pass
 
     async def post(self):
-        await _incoming(self.request.body, self)
+        self.write(await _incoming(self.request.body, self))
 
     def sr_on_exception(self):
         self.send_error()
         self.on_connection_close()
 
+class _ServerSrtime(_JsonPostRequestHandler):
+
+    def post(self):
+        assert pkconfig.channel_in_internal_test(), \
+            'You can only adjust time in internal test'
+        sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
+        self.write(PKDict())
+
+
+class _ServerReqRunMulti(_ServerReq):
+
+    async def post(self):
+        b = pkjson.load_any(self.request.body)
+        futures = []
+        for m in b.data:
+            i = functools.partial(
+                _incoming,
+                m.pkupdate(serverSecret=b.serverSecret, api=m.data.api),
+                self,
+            )
+            if m.data.get('awaitReply'):
+                futures.append(i())
+                continue
+            tornado.ioloop.IOLoop.current().add_callback(i)
+        r = PKDict()
+        if futures:
+            r.pkupdate(
+                data=await asyncio.gather(*futures, return_exceptions=True),
+            )
+        self.write(r)
 
 
 async def _incoming(content, handler):
@@ -157,7 +189,7 @@ async def _incoming(content, handler):
                 handler.sr_class,
                 c,
             )
-        await handler.sr_class(handler=handler, content=c).receive()
+        return await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
         pkdlog(
             'exception={} handler={} content={}',
@@ -170,15 +202,6 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog('sr_on_exception: exception={}', e)
-
-
-class _ServerSrtime(_JsonPostRequestHandler):
-
-    def post(self):
-        assert pkconfig.channel_in_internal_test(), \
-            'You can only adjust time in internal test'
-        sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
-        self.write(PKDict())
 
 
 def _sigterm(signum, frame):

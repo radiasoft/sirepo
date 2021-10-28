@@ -267,7 +267,7 @@ class DockerDriver(job_driver.DriverBase):
             #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
                 v = pkio.py_path(v)
-                # pyenv and src shouldn't be writable, only rundir
+                # read-only
                 _res(v, v + ':ro')
         # SECURITY: Must only mount the user's directory
         _res(self._user_dir, self._user_dir)

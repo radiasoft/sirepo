@@ -11,89 +11,121 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState, simulationDataCache, timeService) {
+SIREPO.app.factory('raydataService', function(appState, requestSender, simulationDataCache, timeService) {
     const self = {};
     let id = 0;
 
-    self.addScanInfoTableColsToCache = (cols) => {
-	simulationDataCache.scanInfoTableCols = cols;
-	return cols;
+    self.computeModel = function(scanUuid) {
+	return 'animation' + scanUuid;
     };
 
-    self.addScanToCache = (scan) => {
-	if (!simulationDataCache.scans) {
-	    simulationDataCache.scans = {};
-	}
-	simulationDataCache.scans[scan.uid] = scan;
-    };
-
-    self.computeModel = function(analysisModel) {
-        return 'animation';
-    };
-
-    self.getScanField = (scan, field) => {
+    self.getScanField = function(scan, field) {
 	if (['start', 'stop'].includes(field)) {
 	    return timeService.unixTimeToDateString(scan[field]);
 	}
 	return scan[field];
     };
 
-    self.getScanInfoTableHeader = (cols) => {
-	return cols.length > 0 ? ['select'].concat(cols) : [];
+    self.getScanInfoTableHeader = function(firstColHeading, cols) {
+	return cols.length > 0 ? [firstColHeading].concat(cols) : [];
     };
 
+    self.getScansInfo = function(scanUuids, successCallback, options) {
+	function maybeGetOnlyOneScan(scans) {
+	    return s ? scans[0] : scans;
+	}
 
-    self.nextPngImageId = () => {
+	let s = false;
+	if (typeof scanUuids === 'string') {
+	    scanUuids = [scanUuids];
+	    s = true;
+	} else if (! Array.isArray(scanUuids)) {
+	    scanUuids = Object.keys(scanUuids);
+	}
+	if (scanUuids.every((e) => {
+	    // POSIT: If start is present so are the other fields we need
+	    return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
+	})) {
+	    successCallback(
+		maybeGetOnlyOneScan(
+		    scanUuids.map((u) => simulationDataCache.scans[u]
+		).sort((a, b) => a.start > b.start ? 1 : -1)),
+		simulationDataCache.scanInfoTableCols
+	    );
+	    return;
+	}
+	requestSender.sendStatelessCompute(
+	    appState,
+	    (json) => {
+		successCallback(
+		    maybeGetOnlyOneScan(self.updateScansInCache(json.data.scans)),
+		    self.updateScanInfoTableColsInCache(json.data.cols)
+		);
+	    },
+	    {
+		method: 'scan_info',
+		scans: scanUuids,
+	    },
+	    options
+	);
+    };
+
+    self.nextPngImageId = function() {
 	return 'raydata-png-image-' + (++id);
     };
 
+    self.parseComputeModel = function(computeModel) {
+	const p = computeModel.split('animation');
+	if (p.length !== 2) {
+	    throw new Error(`cannot parse computeModel=${computeModel}`);
+	}
+	return p[1];
+    };
 
-    self.removeScanFromCache = (scan) => {
+    self.removeScanFromCache = function(scan) {
 	if (!simulationDataCache.scans) {
 	    return;
 	}
 	delete simulationDataCache.scans[scan.uid];
     };
 
-    self.setPngDataUrl = (element, png) => {
+
+    self.setPngDataUrl = function (element, png) {
 	element.src = 'data:image/png;base64,' + png;
+    };
+
+    self.updateScanInfoTableColsInCache = function(cols) {
+	simulationDataCache.scanInfoTableCols = cols;
+	return cols;
+    };
+
+    self.updateScansInCache = function(scans) {
+	if (!simulationDataCache.scans) {
+	    simulationDataCache.scans = {};
+	}
+	return scans.map((s) => {
+	    if (!s.uid) {
+		if (!s.computeModel) {
+		    throw new Error(`scan=${JSON.stringify(s)} must have uid or computeModel.`);
+		}
+		s.uid = self.parseComputeModel(s.computeModel);
+	    }
+	    simulationDataCache.scans[s.uid] = angular.extend(
+		simulationDataCache.scans[s.uid] || {},
+		s
+	    );
+	    return simulationDataCache.scans[s.uid];
+	});
     };
 
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function(appState, frameCache, panelState, persistentSimulation, raydataService, $scope) {
+SIREPO.app.controller('AnalysisController', function($scope) {
     const self = this;
-    self.appState = appState;
+    self.modelKey = 'analysisStatus';
     self.simScope = $scope;
-    self.pngOutputFiles = [];
-
-    self.simHandleStatus = function (data) {
-        if (data.frameCount) {
-            frameCache.setFrameCount(data.frameCount);
-        }
-	if ((data.pngOutputFiles || []).length > 0) {
-	    const f = [];
-	    data.pngOutputFiles.forEach((e) => {
-		if (self.pngOutputFiles.includes(e.name)) {
-		    return;
-		}
-		appState.models[e.name] = {
-		    filename: e.filename
-		};
-		f.push(e.name);
-		if (! panelState.isHidden(e.name)) {
-		    panelState.toggleHidden(e.name);
-		}
-	    });
-	    appState.saveChanges(f, () => self.pngOutputFiles.push(...f));
-	} else {
-	    self.pngOutputFiles = [];
-	}
-    };
-
-    self.simState = persistentSimulation.initSimulationState(self);
     return self;
 });
 
@@ -106,14 +138,244 @@ SIREPO.app.controller('DataSourceController', function() {
 SIREPO.app.controller('MetadataController', function(appState) {
     const self = this;
 
-    self.haveVisualizationId = () => {
+    self.haveVisualizationId = function() {
 	return appState.models.scans.visualizationId;
     };
 
-    self.metadataTableArgs = (category) => {
+    self.metadataTableArgs = function(category) {
 	return {
 	    category: category
 	};
+    };
+
+    return self;
+});
+
+SIREPO.app.directive('analysisStatusPanel', function() {
+    return {
+        restrict: 'A',
+        scope: {
+	    args: '='
+	},
+        template: `
+	    <div>
+              <table class="table table-striped table-hover col-sm-4">
+                <thead>
+                  <tr>
+                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="s in scans">
+                  <tr data-ng-click="enableModalClick(s) && showAnalysisOutputModal(s)">
+                    <td><span data-header-tooltip="s.state"></span></td>
+                    <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div>
+	        <!-- "overflow: visible" because bootstrap css was defaulting to hidden  -->
+                <div class="progress" data-ng-attr-style="overflow: visible" data-ng-if="showProgressBar">
+                  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ percentComplete }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ percentComplete || 100 }}%"></div>
+                </div>
+	      </div>
+              <div class="col-sm-6 pull-right">
+                <button class="btn btn-default" data-ng-if="showStartButton()" data-ng-click="start()">{{ startButtonLabel() }}</button>
+              </div>
+              <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                      <span class="lead modal-title text-info">Output for scan {{ selectedScan.suid }}</span>
+                    </div>
+                    <div class="modal-body">
+		      <span data-loading-spinner data-sentinel="images">
+                        <div class="container-fluid">
+                          <div class="row">
+                            <div class="col-sm-12">
+	      	        	  <div data-ng-repeat="i in images">
+                                <div class="panel panel-info">
+                                  <div class="panel-heading"><span class="sr-panel-heading">{{ i.filename }}</span></div>
+                                    <div class="panel-body">
+	      	        		  <div data-png-image="" data-image="{{ i.image }}"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <br />
+                          <div class="row">
+                            <div class="col-sm-offset-6 col-sm-3">
+                              <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                            </div>
+                          </div>
+                        </div>
+		      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+	    </div>
+        `,
+	controller: function(appState, panelState, raydataService, requestSender, runMulti, stringsService, $interval, $rootScope, $scope) {
+	    let cols = [];
+	    let runStatusInterval = null;
+	    $scope.images = [];
+	    $scope.percentComplete = 0;
+	    $scope.scans = [];
+	    $scope.selectedScan = null;
+	    $scope.showProgressBar = false;
+
+	    function getSelectedScans() {
+		return Object.keys(appState.models.scans.selected).map(s => {
+		    return {
+			models: appState.models,
+			computeModel: raydataService.computeModel(s),
+			simulationType: SIREPO.APP_SCHEMA.simulationType,
+			simulationId: appState.models.simulation.simulationId
+		    };
+		});
+	    }
+
+	    function handleResult() {
+		if (runStatusInterval) {
+		    $interval.cancel(runStatusInterval);
+		    runStatusInterval = null;
+		}
+		$scope.showProgressBar = false;
+	    }
+
+	    function runningPending(scans) {
+		return scans.filter(
+		    (s) => ['running', 'pending'].includes(s.state)
+		).length;
+	    }
+
+	    function runStatus(showLoadingSpinner) {
+		const c = {
+		    onError: () => {
+			handleResult();
+			panelState.maybeSetState($scope.args.modelKey, 'error');
+		    }
+		};
+		if (showLoadingSpinner) {
+		    c.modelName = $scope.args.modelKey;
+		}
+		runMulti.status(
+		    getSelectedScans(),
+		    (data) => {
+			raydataService.updateScansInCache(data.data);
+			raydataService.getScansInfo(
+			    appState.models.scans.selected,
+			    (scans, colz) => {
+				cols = colz;
+				$scope.scans = scans;
+				const r = runningPending(scans);
+				if (r === 0) {
+				    handleResult();
+				    return;
+				}
+				$scope.showProgressBar = true;
+				$scope.percentComplete = ((scans.length - r) / scans.length) * 100;
+				startRunStatusInterval();
+			    },
+			    c
+			);
+		    },
+		    c
+		);
+	    }
+
+	    function startRunStatusInterval() {
+		if (runStatusInterval) {
+		    return;
+		}
+		// TODO(e-carlin): where should we get the interval time from?
+		// normally we get from nextRequest
+		runStatusInterval = $interval(() => runStatus(false), 500);
+	    }
+
+	    $scope.enableModalClick = function(scan) {
+		return ['completed', 'running'].includes(scan.state);
+	    };
+
+	    $scope.getHeader = function() {
+		return raydataService.getScanInfoTableHeader(
+		    'status',
+		    cols
+		);
+	    };
+
+	    $scope.getScanField = raydataService.getScanField;
+
+	    $scope.showAnalysisOutputModal = function(scan) {
+		$scope.selectedScan = scan;
+                var el = $('#sr-analysis-output');
+                el.modal('show');
+                el.on('hidden.bs.modal', function() {
+                    el.off();
+                });
+
+		requestSender.sendAnalysisJob(
+		    appState,
+		    (data) => $scope.images = data.data,
+		    {
+			computeModel: $scope.selectedScan.computeModel,
+			method: 'output_files'
+		    }
+		);
+	    };
+
+	    $scope.showStartButton = function() {
+		return $scope.scans.some((s) => s.state === 'missing');
+	    };
+
+	    $scope.start = function() {
+		runMulti.simulation(getSelectedScans(), {modelName: $scope.args.modelKey});
+		startRunStatusInterval();
+	    };
+
+            $scope.startButtonLabel = stringsService.startButtonLabel;
+
+	    $rootScope.$on('$routeChangeSuccess', handleResult);
+	    runStatus(true);
+	}
+    };
+});
+
+
+SIREPO.app.factory('runMulti', function(panelState, requestSender) {
+    const self = {};
+
+    function sendRunMulti(api, successCallback, data, awaitReply, options) {
+	panelState.maybeSetState(options.modelName, 'loading');
+	requestSender.sendRequest(
+	    'runMulti',
+	    (data) => {
+		panelState.maybeSetState(options.modelName, 'loadingDone');
+		successCallback(data);
+	    },
+	    data.map((m) => {
+		m.awaitReply = awaitReply;
+		m.api = api;
+		return m;
+	    }),
+	    () => {
+		if (options.onError) {
+		    options.onError();
+		}
+		panelState.maybeSetState(options.modelName, 'error');
+	    }
+	);
+    }
+
+    self.simulation = function(data, options) {
+	sendRunMulti('runSimulation', () => {}, data, false, options);
+    };
+
+    self.status = function(data, successCallback, options) {
+	sendRunMulti('runStatus', successCallback, data, true, options);
     };
 
     return self;
@@ -131,7 +393,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(appState) {
     return {
 	restrict: 'A',
 	scope: {
@@ -151,9 +413,39 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 	    </div>
         `,
 	controller: function($scope) {
-	    $scope.haveScans = () => {
+	    $scope.haveScans = function() {
 		return ! $.isEmptyObject(appState.models.scans.selected);
 	    };
+	}
+    };
+});
+
+SIREPO.app.directive('htmlAsString', function() {
+    return {
+        restrict: 'A',
+        scope: {
+	    html: '<',
+	    changeEvent: '@',
+	},
+        template: `
+            <element-to-replace></element-to-replace>
+        `,
+	controller: function($compile, $element, $timeout, $scope) {
+	    let currentElement = $element;
+	    function compile() {
+		$compile($scope.html)($scope , function(compiledContent){
+		    const r = angular.element(compiledContent);
+		    currentElement.replaceWith(r);
+		    currentElement = r;
+		});
+	    }
+	    $scope.$on($scope.changeEvent, function(){
+		// Need to wait one digest cycle before compile. The
+		// new html is available on scope in the cycle after
+		// the changEvent is emitted.
+		$timeout(compile, 0);
+	    });
+	    compile();
 	}
     };
 });
@@ -186,14 +478,14 @@ SIREPO.app.directive('metadataTable', function() {
               </table>
             </div>
 	`,
-	controller: function(appState, panelState, requestSender, $scope) {
+	controller: function(appState, requestSender, $scope) {
 	    $scope.expanded = {};
 
-	    const elementForKey = (key) => {
+	    function elementForKey(key) {
 		return $('#' + $scope.elementId(key));
-	    };
+	    }
 
-	    const getMetadata = () => {
+	    function getMetadata(){
 		const u = appState.models.scans.visualizationId;
 		if (! u) {
 		    $scope.data = null;
@@ -211,19 +503,18 @@ SIREPO.app.directive('metadataTable', function() {
 		    },
 		    {
 			modelName: $scope.args.modelKey,
-			panelStateHandle: panelState,
 		    }
 		);
-	    };
+	    }
 
-	    const indexOfKey = (key) => {
+	    function indexOfKey(key) {
 		for (let i in $scope.data) {
 		    if ($scope.data[i][0] === key) {
 			return i;
 		    }
 		}
 		throw new Error(`No key=${key} in data=${$scope.data}`);
-	    };
+	    }
 
 	    $scope.elementId = function(key) {
 		return 'metadata-table-' + $scope.args.category + '-' + indexOfKey(key);
@@ -261,24 +552,17 @@ SIREPO.app.directive('pngImage', function(plotting) {
     return {
         restrict: 'A',
         scope: {
-	    modelName: '@'
+	    image: '@'
 	},
         template: `<img class="img-responsive" id="{{ id }}" />`,
-	controller: function(raydataService, $scope) {
-            plotting.setTextOnlyReport($scope);
+	controller: function(raydataService, $element, $scope, $timeout) {
 	    $scope.id = raydataService.nextPngImageId();
-
-            $scope.load = (json) => {
-		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image);
-            };
-	},
-        link: function link(scope, element) {
-            plotting.linkPlot(scope, element);
-        },
+	    $timeout(raydataService.setPngDataUrl($element.children()[0], $scope.image), 0);
+	}
     };
 });
 
-SIREPO.app.directive('scanSelector', function(panelState) {
+SIREPO.app.directive('scanSelector', function() {
     return {
         restrict: 'A',
         scope: {
@@ -319,21 +603,23 @@ SIREPO.app.directive('scanSelector', function(panelState) {
 	    const startOrStop = ['Start', 'Stop'];
 	    $scope.scans = [];
 
-	    const searchStartOrStopTimeKey = (startOrStop) => {
+	    function searchStartOrStopTimeKey(startOrStop) {
 		return `search${startOrStop}Time`;
-	    };
+	    }
 
 	    startOrStop.forEach((x) => {
 		const k = searchStartOrStopTimeKey(x);
 		$scope[k] = appState.models.scans[k] ? timeService.unixTimeToDate(appState.models.scans[k]) : null;
 	    });
 
-	    $scope.getHeader = () => raydataService.getScanInfoTableHeader(cols);
+	    $scope.getHeader = function() {
+		return raydataService.getScanInfoTableHeader('select', cols);
+	    };
 
 	    $scope.getScanField = raydataService.getScanField;
 
 
-	    $scope.search = () => {
+	    $scope.search = function() {
 		for (let i = 0; i < startOrStop.length; i++) {
 		    const k = searchStartOrStopTimeKey(startOrStop[i]);
 		    if ($scope[k]) {
@@ -362,7 +648,7 @@ SIREPO.app.directive('scanSelector', function(panelState) {
 			    }
 			    delete appState.models.scans.selected[u];
 			});
-			cols = raydataService.addScanInfoTableColsToCache(json.data.cols);
+			cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
 			appState.saveChanges('scans');
 		    },
 		    {
@@ -376,7 +662,6 @@ SIREPO.app.directive('scanSelector', function(panelState) {
 		    },
 		    {
 			modelName: $scope.args.modelKey,
-			panelStateHandle: panelState,
 			onError: (data) => {
 			    errorService.alertText(data.error);
 			    panelState.setLoading($scope.args.modelKey, false);
@@ -385,15 +670,15 @@ SIREPO.app.directive('scanSelector', function(panelState) {
 		);
 	    };
 
-	    $scope.showSearchButton = () => {
+	    $scope.showSearchButton = function() {
 		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
 	    };
 
-	    $scope.selectOrDeselect = (scan) => {
+	    $scope.selectOrDeselect = function(scan) {
 		scan.selected = !scan.selected;
 		if (scan.selected) {
 		    appState.models.scans.selected[scan.uid] = true;
-		    raydataService.addScanToCache(scan);
+		    raydataService.updateScansInCache([scan]);
 		} else {
 		    if (appState.models.scans.visualizationId == scan.uid) {
 			appState.models.scans.visualizationId = null;
@@ -434,48 +719,31 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 	      </form>
 	    </div>
         `,
-        controller: function(appState, panelState, raydataService, requestSender, simulationDataCache, $scope) {
+        controller: function(appState, raydataService, requestSender, simulationDataCache, $scope) {
 	    $scope.appState = appState;
             $scope.modelName = 'scans';
             $scope.fields = ['visualizationId'];
 
 	    let cols = [];
 
-	    const getScanInfo = () => {
-		const s = appState.models.scans.selected;
-		if (Object.keys(s).every((e) => e in (simulationDataCache.scans || {}))) {
-		    $scope.scans = Object.keys(s).map((u) => simulationDataCache.scans[u]).sort((a, b) => {
-			return a.start > b.start ? 1 : -1;
-		    });
-		    cols = simulationDataCache.scanInfoTableCols;
-		    return;
-		}
-		requestSender.sendStatelessCompute(
-		    appState,
-		    (json) => {
-			$scope.scans = json.data.scans;
-			$scope.scans.forEach(raydataService.addScanToCache);
-			cols = raydataService.addScanInfoTableColsToCache(json.data.cols);
-		    },
-		    {
-			method: 'scan_info',
-			scans: s,
+	    function getScanInfo() {
+		raydataService.getScansInfo(
+		    appState.models.scans.selected,
+		    (scans, colz) => {
+			$scope.scans = scans;
+			cols = colz;
 		    },
 		    {
 			modelName: $scope.args.modelKey,
-			panelStateHandle: panelState,
 		    }
 		);
+	    }
+
+	    $scope.getHeader = function() {
+		return raydataService.getScanInfoTableHeader('select', cols);
 	    };
 
-	    $scope.getHeader = () => raydataService.getScanInfoTableHeader(cols);
-
 	    $scope.getScanField = raydataService.getScanField;
-
-	    $scope.redirectToDataSource = () => requestSender.localRedirect(
-		'dataSource',
-		{':simulationId': appState.models.simulation.simulationId}
-	    );
 
 	    appState.watchModelFields($scope, ['scans.selected'], getScanInfo);
 	    getScanInfo();

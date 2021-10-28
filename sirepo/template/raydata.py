@@ -14,7 +14,10 @@ import databroker
 import databroker.queries
 import glob
 import os
+import sirepo.feature_config
 import sirepo.sim_data
+import sirepo.simulation_db
+import sirepo.srdb
 import sirepo.util
 
 
@@ -32,11 +35,7 @@ _MAX_NUM_SCANS = 1000
 
 _NON_DISPLAY_SCAN_FIELDS = ('uid')
 
-# TODO(e-carlin): from user
-_RUN_UID = 'bdcce1f3-7317-4775-bc26-ece8f0612758'
-
 _OUTPUT_FILE = 'out.ipynb'
-
 
 # The metadata fields are from bluesky. Some have spaces while others don't.
 _METDATA = PKDict(
@@ -63,38 +62,29 @@ _METDATA = PKDict(
     ),
 )
 
+def analysis_job_output_files(data):
+    def _filename_and_image(path):
+        return PKDict(
+            filename=path.basename,
+            image=pkcompat.from_bytes(
+                base64.b64encode(
+                    pkio.read_binary(path),
+                ),
+            )
+        )
+
+    def _paths():
+        d = _dir_for_scan_uuid(_parse_scan_uuid(data))
+        for f in sorted(glob.glob(str(d.join('*.png'))), key=os.path.getmtime):
+            yield pkio.py_path(f)
+
+    return PKDict(data=list(map(_filename_and_image, _paths())))
+
 
 def background_percent_complete(report, run_dir, is_running):
-    def _png_filenames():
-        return [
-            pkio.py_path(f).basename for f in sorted(
-                glob.glob(str(run_dir.join('*.png'))),
-                key=os.path.getmtime
-            )
-        ]
-
-    def _sanitized_name(filename):
-        return sirepo.util.sanitize_string(filename) + 'Animation'
-
-    res = PKDict(
-        pngOutputFiles=[
-            PKDict(name=_sanitized_name(f), filename=f) for f in _png_filenames()
-        ],
-    )
-    res.pkupdate(frameCount=len(res.pngOutputFiles))
     if is_running:
-        return res.pkupdate(percentComplete=0)
-    return res.pkupdate(percentComplete=100)
-
-
-def sim_frame(frame_args):
-    return PKDict(image=pkcompat.from_bytes(
-        base64.b64encode(
-            pkio.read_binary(
-                sirepo.util.safe_path(frame_args.run_dir, frame_args.filename),
-            ),
-        ),
-    ))
+        return PKDict(percentComplete=0)
+    return PKDict(percentComplete=100)
 
 
 def stateless_compute_metadata(data):
@@ -123,7 +113,7 @@ def stateless_compute_scans(data):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir),
     )
     m = data.models.inputFiles.mask
     if m:
@@ -141,12 +131,23 @@ def _catalog():
     return databroker.catalog[_CATALOG_NAME]
 
 
-def _generate_parameters_file(data):
+def _dir_for_scan_uuid(scan_uuid):
+    return pkio.py_path(sirepo.util.safe_path(
+        sirepo.srdb.root(),
+        sirepo.feature_config.for_sim_type(SIM_TYPE).data_dir,
+        scan_uuid,
+    ))
+
+
+def _generate_parameters_file(data, run_dir):
+    s = _parse_scan_uuid(data)
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            input_name=data.models.analysisAnimation.notebook,
+            input_name=str(run_dir.join(data.models.analysisAnimation.notebook)),
             output_name=_OUTPUT_FILE,
+            scan_dir=_dir_for_scan_uuid(s),
+            scan_uuid=s,
         ),
     )
 
@@ -160,13 +161,13 @@ def _metadata(data):
     return res
 
 
-def _scan_info(uid, metadata=None):
+def _scan_info(scan_uuid, metadata=None):
     m = metadata
     if not m:
-        m =  _catalog()[uid].metadata
+        m =  _catalog()[scan_uuid].metadata
     return PKDict(
-        uid=uid,
-        suid=_suid(uid),
+        uid=scan_uuid,
+        suid=_suid(scan_uuid),
         owner=m['start']['owner'],
         start=m['start']['time'],
         stop=m['stop']['time'],
@@ -182,5 +183,8 @@ def _scan_info_result(scans):
     ))
 
 
-def _suid(uid):
-    return uid.split('-')[0]
+def _parse_scan_uuid(data):
+    return data.computeModel.split('animation')[1]
+
+def _suid(scan_uuid):
+    return scan_uuid.split('-')[0]

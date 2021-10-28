@@ -70,9 +70,7 @@ def call_api(func_or_name, kwargs=None, data=None):
             # Any (GET) uri will have simulation_type in uri if it is application
             # specific.
             s = sirepo.http_request.set_sim_type(kwargs.get('simulation_type'))
-        f = func_or_name if callable(func_or_name) \
-            else _api_to_route[func_or_name].func
-        sirepo.api_auth.check_api_call(f)
+        f = check_api_call(func_or_name)
         try:
             if data:
                 p = sirepo.http_request.set_post(data)
@@ -93,6 +91,18 @@ def call_api(func_or_name, kwargs=None, data=None):
     sirepo.cookie.save_to_cookie(r)
     sirepo.events.emit('end_api_call', PKDict(resp=r))
     return r
+
+
+def check_api_call(func_or_name):
+    """Check if API is callable by current user (proper credentials)
+
+    Args:
+        func_or_name (function or str): API to check
+    """
+    f = func_or_name if callable(func_or_name) \
+        else _api_to_route[func_or_name].func
+    sirepo.api_auth.check_api_call(f)
+    return f
 
 
 def init(app, simulation_db):
