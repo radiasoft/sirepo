@@ -79,9 +79,9 @@ def background_percent_complete(report, run_dir, is_running):
         return sirepo.util.INVALID_PYTHON_IDENTIFIER.sub('_', filename) + 'Animation'
 
     res = PKDict(
-        pngOutputFiles=PKDict(
-            {_sanitized_name(f): f for f in _png_filenames()},
-        )
+        pngOutputFiles=[
+            PKDict(name=_sanitized_name(f), filename=f) for f in _png_filenames()
+        ],
     )
     res.pkupdate(frameCount=len(res.pngOutputFiles))
     if is_running:
@@ -90,9 +90,13 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def sim_frame(frame_args):
-    return PKDict(image=pkcompat.from_bytes(base64.b64encode(pkio.read_binary(
-        sirepo.util.safe_path(frame_args.run_dir, _RESULTS_DIR, frame_args.filename),
-    ))))
+    return PKDict(image=pkcompat.from_bytes(
+        base64.b64encode(
+            pkio.read_binary(
+                sirepo.util.safe_path(frame_args.run_dir, _RESULTS_DIR, frame_args.filename),
+            ),
+        ),
+    ))
 
 
 def stateless_compute_metadata(data):
