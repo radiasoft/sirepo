@@ -2014,7 +2014,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var windowHeight = $($window).height();
                 var maxHeightFactor = utilities.isFullscreen() ? 1.5 : 2.5;
                 if ($scope.height > windowHeight / maxHeightFactor) {
-                    $scope.height = windowHeight / maxHeightFactor;
+                    $scope.height = windowHeight / maxHeightFactor + $scope.margin;
                 }
 
                 if (svgBounds) {
@@ -2023,18 +2023,18 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (w === 0 || h === 0) {
                         return;
                     }
-                    var scaleWidth = ($scope.width - $scope.margin) / w;
-                    var scaleHeight = ($scope.height - $scope.margin) / h;
+                    var scaleWidth = ($scope.width - $scope.margin * 2) / w;
+                    var scaleHeight = ($scope.height - $scope.margin * 2) / h;
                     var scale = 1;
                     var xOffset = 0;
                     var yOffset = 0;
                     if (scaleWidth < scaleHeight) {
                         scale = scaleWidth;
-                        yOffset = ($scope.height - h * scale) / 2;
+                        yOffset = ($scope.height - $scope.margin * 2 - h * scale) / 2;
                     }
                     else {
                         scale = scaleHeight;
-                        xOffset = ($scope.width - w * scale) / 2;
+                        xOffset = ($scope.width - $scope.margin * 2 - w * scale) / 2;
                     }
                     $scope.xScale = scale;
                     $scope.yScale = scale;

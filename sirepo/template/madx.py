@@ -274,6 +274,8 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if frame == _SCHEMA.constants.logFileFrameId:
+        return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         if model == 'twissFromParticlesAnimation':
@@ -502,7 +504,14 @@ def _add_marker_and_observe(data):
         beam = data.models.beamlines[0]
         markers = PKDict()
         m = LatticeUtil.max_id(data)
-        for i, v in enumerate(beam['items'].copy()):
+        el_map = PKDict()
+        for el in data.models.elements:
+            el_map[el._id] = el
+        items_copy = beam['items'].copy()
+        for i, v in enumerate(items_copy):
+            el = el_map[items_copy[i]]
+            if not el.get('l', 0):
+                continue
             m += 1
             beam['items'].insert(
                 (i * 2) + 1,
@@ -929,6 +938,9 @@ def _parse_madx_log(run_dir):
         for line in f:
             if re.search(r'^\++ (error|warning):', line, re.IGNORECASE):
                 line = re.sub(r'^\++ ', '', line)
+                res += line + "\n"
+            elif re.search(r'^\+.*? fatal:', line, re.IGNORECASE):
+                line = re.sub(r'^.*? ', '', line)
                 res += line + "\n"
     return res
 

@@ -185,19 +185,24 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, commandService, madxService, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, commandService, madxService, frameCache, panelState, persistentSimulation, requestSender, $scope) {
     var self = this;
-    self.simScope = $scope;
     self.appState = appState;
-    self.panelState = panelState;
-    self.outputFiles = [];
+    self.errorMessage = '';
     self.outputFileMap = {};
+    self.outputFiles = [];
+    self.panelState = panelState;
+    self.simScope = $scope;
 
     function cleanFilename(fn) {
         return fn.replace(/\.(?:tfs)/g, '');
     }
 
     self.simHandleStatus = function(data) {
+        self.errorMessage = data.error;
+        if (data.error) {
+            data.frameCount = 0;
+        }
         if (data.frameCount && data.outputInfo) {
             frameCache.setFrameCount(1);
             loadElementReports(data.outputInfo);
@@ -283,6 +288,18 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     }
 
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = function() {
+        return self.errorMessage;
+    };
+    self.simState.logFileURL = function() {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': SIREPO.APP_SCHEMA.constants.logFileFrameId,
+        });
+    };
+
 });
 
 SIREPO.app.directive('appFooter', function() {
