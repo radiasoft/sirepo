@@ -6,25 +6,60 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(() => {
     SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((c) => {
 	return `<div data-ng-switch-when="${c}Metadata" data-metadata-table="" data-category="${c}" class="sr-plot" data-model-name="{{ modelKey }}"></div>`;
-    }).join('');
+    }).join('') + `
+        <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+    `;
 });
 
 SIREPO.app.factory('raydataService', function(appState) {
     const self = {};
+    let id = 0;
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    self.nextPngImageId = () => {
+	return 'raydata-png-image-' + (++id);
+    };
+
+    self.setPngDataUrl = (element, png) => {
+	element.src = 'data:image/png;base64,' + png;
+    };
+
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('AnalysisController', function(appState, frameCache, panelState, persistentSimulation, raydataService, $scope) {
     const self = this;
     self.appState = appState;
     self.simScope = $scope;
-    self.simComputeModel = 'analysisAnimation';
+    self.pngOutputFiles = [];
+
     self.simHandleStatus = function (data) {
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
+	if ((data.pngOutputFiles || []).length > 0) {
+	    const f = [];
+	    data.pngOutputFiles.forEach((e) => {
+		if (self.pngOutputFiles.includes(e.name)) {
+		    return;
+		}
+		appState.models[e.name] = {
+		    filename: e.filename
+		};
+		f.push(e.name);
+		if (! panelState.isHidden(e.name)) {
+		    panelState.toggleHidden(e.name);
+		}
+	    });
+	    appState.saveChanges(f, () => self.pngOutputFiles.push(...f));
+	} else {
+	    self.pngOutputFiles = [];
+	}
     };
+
     self.simState = persistentSimulation.initSimulationState(self);
     return self;
 });
@@ -41,7 +76,7 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: `
-            '<div data-common-footer="nav"></div>'
+            <div data-common-footer="nav"></div>
         `
     };
 });
@@ -66,7 +101,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         `
     };
 });
-
 
 SIREPO.app.directive('metadataTable', function() {
     return {
@@ -148,6 +182,27 @@ SIREPO.app.directive('metadataTable', function() {
 		    panelStateHandle: panelState,
 		}
 	    );
+        },
+    };
+});
+
+SIREPO.app.directive('pngImage', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+	    modelName: '@'
+	},
+        template: `<img class="img-responsive" id="{{ id }}" />`,
+	controller: function(raydataService, $scope) {
+            plotting.setTextOnlyReport($scope);
+	    $scope.id = raydataService.nextPngImageId();
+
+            $scope.load = (json) => {
+		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image);
+            };
+	},
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });
