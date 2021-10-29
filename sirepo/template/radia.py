@@ -304,7 +304,6 @@ def new_simulation(data, new_simulation_data):
     beam_axis = new_simulation_data.beamAxis
     height_axis = new_simulation_data.heightAxis
     #TODO(mvk): dict of magnet types to builder methods
-    pkdp('NEW SIM {}', new_simulation_data)
     t = new_simulation_data.get('magnetType', 'freehand')
     if  t == 'undulator':
         _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, beam_axis, height_axis)
@@ -1256,7 +1255,6 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
         pole_sz = mag_sz * length_dir + \
                   dipole.poleWidth * width_dir + \
                   mag_sz * height_dir / 2 - m.armHeight * height_dir - dipole.gap * height_dir / 2
-        pkdp('MAG SZ {} NEW POLE SZ {}', mag_sz, pole_sz)
         _update_geom_obj(
             _find_obj_by_id(geom.objects, p.id),
             center=pole_sz * height_dir / 2 + dipole.gap * height_dir / 2,

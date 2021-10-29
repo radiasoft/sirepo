@@ -3883,22 +3883,24 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         });
         $scope.$on('modelChanged', (e, d) => {
             //srdbg('MODEL CH', d);
+            if (d === 'geomObject' && appState.models.geomObject.id === activeModel().id) {
+                //srdbg('OBJ CH, SAVE DIPOLE');
+                appState.models[$scope.modelName][activeObjName()] = appState.models.geomObject;
+                appState.saveChanges($scope.modelName);
+            }
         });
 
         $scope.$on(`${$scope.modelName}.changed`, () => {
-            appState.saveChanges('geometryReport');
+            //appState.saveChanges('geometryReport');
         });
 
         $scope.whenSelected = function() {
             const o = getObjFromGeomRpt();
-            if (! o) {
-                return;
-            }
             // set the object in the dipole model to the equivalent object in the report
             // also set the base model and its superclasses
-            //srdbg('active', activeObjName(), o.type, o);
             appState.models[$scope.modelName][activeObjName()] = o;
-            appState.saveChanges([$scope.modelName, ...radiaService.updateModelAndSuperClasses(o.type, o)]);
+            editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
+            appState.saveChanges([$scope.modelName, ...editedModels]);
         };
 
         function activeModel() {
