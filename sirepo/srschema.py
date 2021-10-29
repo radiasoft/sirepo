@@ -213,7 +213,7 @@ def _validate_model_name(model_name):
         model_name (str): name to validate
     """
 
-    if  util.INVALID_PYTHON_IDENTIFIER.search(model_name):
+    if not util.is_python_identifier(model_name):
         raise AssertionError(util.err(model_name, 'model name must be a Python identifier'))
 
 
