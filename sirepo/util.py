@@ -38,14 +38,16 @@ AUTH_HEADER = 'Authorization'
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = 'Bearer'
 
-INVALID_PYTHON_IDENTIFIER = re.compile(r'\W|^(?=\d)', re.IGNORECASE)
-
 #: Lock for operations across Sirepo (flask)
 THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
 
+# See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
+# for reasoning on why define both
+_INVALID_PYTHON_IDENTIFIER = re.compile(r'\W|^(?=\d)', re.IGNORECASE)
+_VALID_PYTHON_IDENTIFIER = re.compile(r'^[a-z_]\w*$', re.IGNORECASE)
 
 _log_not_flask = _log_not_request = 0
 
@@ -228,6 +230,10 @@ def in_flask_request():
     return True
 
 
+def is_python_identifier(name):
+    return _VALID_PYTHON_IDENTIFIER.search(name)
+
+
 def json_dump(obj, path=None, pretty=False, **kwargs):
     """Formats as json as string, and writing atomically to disk
 
@@ -279,6 +285,23 @@ def safe_path(*paths):
     assert p is not None, \
         f'could not join in a safe manner paths={paths}'
     return p
+
+
+def sanitize_string(string):
+    """Remove special characters from string
+
+    This results in a string the is a valid python identifier.
+    This string can also be used as a css id because valid
+    python identifiers are also valid css ids.
+
+    Args:
+      string (str): The string to sanatize
+    Returns:
+      (str): A string with special characters replaced
+    """
+    if is_python_identifier(string):
+        return string
+    return _INVALID_PYTHON_IDENTIFIER.sub('_', string)
 
 
 def secure_filename(path):

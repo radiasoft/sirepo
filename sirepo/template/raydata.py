@@ -71,7 +71,7 @@ def background_percent_complete(report, run_dir, is_running):
         ]
 
     def _sanitized_name(filename):
-        return sirepo.util.INVALID_PYTHON_IDENTIFIER.sub('_', filename) + 'Animation'
+        return sirepo.util.sanitize_string(filename) + 'Animation'
 
     res = PKDict(
         pngOutputFiles=[
