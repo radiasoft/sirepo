@@ -14,10 +14,8 @@ import base64
 import databroker
 import glob
 import os
-import re
 import sirepo.sim_data
 import sirepo.util
-import zipfile
 
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -110,12 +108,14 @@ def write_parameters(data, run_dir, is_parallel):
     )
     m = data.models.inputFiles.mask
     if m:
-        # SECURITY: extractall protects against malicious filenames
-        zipfile.ZipFile(run_dir.join(_SIM_DATA.lib_file_name_with_model_field(
-            'inputFiles',
-            'mask',
-            m,
-        ))).extractall(path=_MASK_PATH)
+        d = run_dir.join(_MASK_PATH)
+        pkio.mkdir_parent(d)
+        for f, b in sirepo.util.read_zip(pkio.py_path(_SIM_DATA.lib_file_name_with_model_field(
+                'inputFiles',
+                'mask',
+                m,
+        ))):
+            d.join(f).write_binary(b)
 
 
 def _generate_parameters_file(data):
