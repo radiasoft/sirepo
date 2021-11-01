@@ -49,6 +49,7 @@ def import_file(text, unit_test_mode=False):
 
 
 def is_zip_file(path):
+    # TODO(e-carlin): use zipfile.is_zip_file
     return re.search(r'\.zip$', str(path), re.IGNORECASE)
 
 

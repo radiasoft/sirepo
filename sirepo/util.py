@@ -22,9 +22,11 @@ import pykern.pkio
 import pykern.pkjson
 import re
 import random
+import six
 import sys
 import threading
 import werkzeug.utils
+import zipfile
 
 
 cfg = None
@@ -278,6 +280,29 @@ def random_base62(length=32):
     """
     r = random.SystemRandom()
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
+
+
+def read_zip(path_or_bytes):
+    """Read the contents of a zip archive.
+
+    Protects against malicious filenames (ex ../../filename)
+
+    Args:
+      path_or_bytes (py.path or str or bytes): The path to the archive or it's contents
+
+    Returns:
+       (py.path, bytes): The basename of the file, the contents of the file
+    """
+    p = path_or_bytes
+    if isinstance(p, bytes):
+        p = six.BytesIO(p)
+    with zipfile.ZipFile(p, 'r') as z:
+        for i in z.infolist():
+            if i.is_dir():
+                continue
+            # SECURITY: Use only basename of file to prevent against
+            # malicious files (ex ../../filename)
+            yield pykern.pkio.py_path(i.filename).basename, z.read(i)
 
 
 def safe_path(*paths):

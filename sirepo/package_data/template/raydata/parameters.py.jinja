@@ -5,6 +5,7 @@ pksubprocess.check_call_with_signals((
     'papermill',
     # POSIT: same kernel isntalled by rscode-ipykernel
     '--kernel=py3',
+    '--log-output',
     '{{ input_name }}',
     '{{ output_name }}',
 ))
