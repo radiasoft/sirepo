@@ -291,7 +291,7 @@ def read_zip(path_or_bytes):
       path_or_bytes (py.path or str or bytes): The path to the archive or it's contents
 
     Returns:
-       (str, bytes): The basename of the file, the contents of the file
+       (py.path, bytes): The basename of the file, the contents of the file
     """
     p = path_or_bytes
     if isinstance(p, bytes):
