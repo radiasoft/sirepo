@@ -199,9 +199,13 @@ def fixup_old_data(data, force=False, path=None):
         return int(m * 1000)
 
     try:
-        pkdc("{} force= {}, version= {} (SCHEMA_COMMON.version={})",
-             data.get('models', {}).get('simulation', {}).get('simulationId', None), force,
-             data.get('version', None), SCHEMA_COMMON.version)
+        pkdc(
+            "sid={} force={}, version={} SCHEMA_COMMON.version={}",
+            data.pkunchecked_nested_get('models.simulation.simulationId'),
+            force,
+            data.get('version'),
+            SCHEMA_COMMON.version,
+        )
         if not force and 'version' in data and data.version == SCHEMA_COMMON.version:
             return data, False
         try:
@@ -528,7 +532,10 @@ def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False
     """
     if fixup:
         data = fixup_old_data(data)[0]
-        if modified:
+        # we cannot change the logged in user so we need to
+        # not run these fixups here, or we'll get recursion as
+        # prepare_for_save may ask for the logged in user
+        if modified and not uid:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, 'prepare_for_save'):
                 data = t.prepare_for_save(data)
