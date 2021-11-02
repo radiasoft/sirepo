@@ -186,6 +186,18 @@ def fixup_old_data(data, force=False, path=None):
         dict: upgraded `data`
         bool: True if data changed
     """
+    def _last_modified(data, path):
+        if not path:
+            return srtime.utc_now_as_milliseconds()
+        m = path.mtime()
+        for p in pkio.sorted_glob(
+            # POSIT: same format as simulation_run_dir
+            json_filename(template_common.INPUT_BASE_NAME, run_dir=path.dirpath().join('*')),
+        ):
+            if p.mtime() < m:
+                m = p.mtime()
+        return int(m * 1000)
+
     try:
         pkdc("{} force= {}, version= {} (SCHEMA_COMMON.version={})",
              data.get('models', {}).get('simulation', {}).get('simulationId', None), force,
@@ -261,12 +273,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
     sim_dir = simulation_dir(simulation_type, uid=uid)
     for p in pkio.sorted_glob(sim_dir.join('*', SIMULATION_DATA_FILE)):
         try:
-            data = open_json_file(simulation_type, p, fixup=False, uid=uid)
-            data, changed = fixup_old_data(data)
-            # save changes to avoid re-applying fixups on each iteration
-            if changed:
-                #TODO(pjm): validate_name may causes infinite recursion, need better fixup of list prior to iteration
-                save_simulation_json(data, do_validate=False, uid=uid, fixup=False)
+            data = open_json_file(simulation_type, p, fixup=True, uid=uid, save=True)
             if search and not _search_data(data, search):
                 continue
             op(res, p, data)
@@ -488,7 +495,7 @@ def read_simulation_json(sim_type, *args, **kwargs):
     Returns:
         data (dict): simulation data
     """
-    return open_json_file(sim_type, fixup=False, save=True, mtime_rv=m, *args, **kwargs)
+    return open_json_file(sim_type, fixup=True, save=True, *args, **kwargs)
 
 
 def save_new_example(data, uid=None):
@@ -915,21 +922,6 @@ def _init_schemas():
         ])
     else:
         SCHEMA_COMMON.version = sirepo.__version__
-
-
-def _last_modified(data, path):
-    """Set simulation.lastModified
-    """
-    if not path:
-        return srtime.utc_now_as_milliseconds()
-    m = path.mtime()
-    for p in pkio.sorted_glob(
-        # POSIT: same format as simulation_run_dir
-        json_filename(template_common.INPUT_BASE_NAME, run_dir=path.dirpath().join('*')),
-    ):
-        if p.mtime() < m:
-            m = p.mtime()
-    return int(m * 1000)
 
 
 def _merge_dicts(base, derived, depth=-1):
