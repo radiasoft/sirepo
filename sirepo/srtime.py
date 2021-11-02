@@ -115,3 +115,11 @@ def utc_now_as_float():
     if _timedelta is None:
         return time.time()
     return to_timestamp(utc_now())
+
+def utc_now_as_milliseconds():
+    """Adjusted POSIX time as milliseconds
+
+    Returns:
+        int: adjusted `time.time` as milliseconds
+    """
+    return int(utc_now_as_float() * 1000)

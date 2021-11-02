@@ -39,8 +39,9 @@ def fixup_package_data_json():
         d = sirepo.simulation_db.fixup_old_data(d, force=True)[0]
         pykern.pkcollections.unchecked_del(
             d.models.simulation,
-            'simulationSerial',
+            'lastModified',
             'simulationId',
+            'simulationSerial',
         )
         d.pkdel('version')
         d.models.pkdel('simulationStatus')
