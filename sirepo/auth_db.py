@@ -76,10 +76,10 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
                 ],
                 stderr=subprocess.STDOUT,
             )
-            l = sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid)
-            # See git.radiasoft.org/ops/issues/645
-            assert l.check(), \
-                'app dir for sim_type={sim_type} but no lib_dir={l}'
+            # lib_dir may not exist: git.radiasoft.org/ops/issues/645
+            l = pykern.pkio.mkdir_parent(
+                sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid),
+            )
             e = [f.basename for f in pykern.pkio.sorted_glob(l.join('*'))]
             for f in sim_data_class.proprietary_code_lib_file_basenames():
                 if force or f not in e:
