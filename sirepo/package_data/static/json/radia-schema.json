@@ -348,6 +348,10 @@
             ["magnet", "Magnet"],
             ["pole", "Pole"]
         ],
+        "UndulatorType": [
+            ["undulatorBasic", "Basic"],
+            ["undulatorHybrid", "Hybrid"]
+        ],
         "ViewType": [
             ["objects", "Objects"],
             ["fields", "Fields"]
@@ -472,17 +476,6 @@
                 "name": "pole",
                 "remanentMag": 1.0,
                 "material": "Xc06",
-                "transforms": [
-                    {
-                        "_super": "transform",
-                        "color": null,
-                        "model": "symmetryTransform",
-                        "object": "",
-                        "symmetryPlane": "0,0,1",
-                        "symmetryPoint": "0,0,0",
-                        "symmetryType": "parallel"
-                    }
-                ],
                 "type": "cuboid",
                 "size": "50.0, 40.0, 50.0"
             }],
@@ -492,17 +485,82 @@
             "magnetCoilGroup": ["_", "model.geomGroup", {
                 "name": "magnet + coil"
             }],
-            "poleWidth": ["Width", "Float", 50.0],
+            "poleWidth": ["Width", "Float", 50.0, "", 0.0],
             "gap": ["Gap", "Float", 10.0, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleC"]
         },
         "dipoleH": {
             "_super": ["_", "model", "dipoleC"],
-            "coil": ["Coil", "model.racetrack", {}],
-            "magnet": ["Magnet", "model.geomObject", {}],
-            "dipoleType": ["_", "DipoleType", "dipoleH"],
-            "corePoleGroup": ["_", "model.geomGroup", {}],
-            "magnetCoilGroup": ["_", "model.geomGroup", {}]
+            "coil": ["Coil", "model.racetrack", {
+                "axis": "z",
+                "center": "0.0, 0.0, 1.5",
+                "color": "#33e69a",
+                "currentDensity": -10000.0,
+                "fieldCalc": "auto",
+                "height": 1.0,
+                "name": "coil",
+                "numSegments": 3,
+                "planeAxis1": "x",
+                "planeAxis2": "y",
+                "radii": "0.1, 0.4",
+                "sides": "10.05, 10.05",
+                "size": "10.05, 10.05, 1.0",
+                "type": "racetrack"
+            }],
+            "magnet": ["Magnet", "model.geomObject", {
+                "armHeight": 1.5,
+                "armPosition": "0",
+                "center": "0.0, 4.0, 3.75",
+                "color": "#0066cd",
+                "magnetization": "0.0, 0.0, 0.0",
+                "name": "core",
+                "remanentMag": 1.0,
+                "material": "Xc06",
+                "type": "ell",
+                "size": "10.0, 8.0, 3.75",
+                "stemWidth": 1.5,
+                "stemPosition": "1",
+                "transforms": []
+            }],
+            "pole": ["Pole", "model.geomObject", {
+                "bevels": [
+                    {
+                        "amountHoriz": 0.5,
+                        "amountVert": 0.5,
+                        "cutAxis": "x",
+                        "edge": "2",
+                        "cutDir": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "heightDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "widthDir": [
+                            0,
+                            1,
+                            0
+                        ]
+                    }
+                ],
+                "center": "0.0, 2.5, 1.5",
+                "color": "#0066cd",
+                "magnetization": "0.0, 0.0, 1.0",
+                "material": "Xc06",
+                "name": "pole",
+                "remanentMag": 1.0,
+                "segments": "4, 4, 4",
+                "size": "10.0, 5.0, 1.5",
+                "transforms": [],
+                "type": "cuboid"
+            }],
+            "magnetSize": ["Size [mm]", "FloatStringArray", "10.0, 16.0, 7.5", "", "Length, Width, Height"],
+            "poleWidth": ["Width", "Float", 10.0, "", 0.0],
+            "gap": ["Gap", "Float", 1.5, "", 0.0],
+            "dipoleType": ["_", "DipoleType", "dipoleH"]
         },
         "ell": {
             "_super": ["_", "model", "stemmed"],
@@ -607,7 +665,8 @@
             "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "poleObjType": ["Shape", "ObjectType", "ell"],
             "poleStemWidth": ["_", "Float", 19.5],
-            "poleStemPosition": ["_", "StemPosition", "0"]
+            "poleStemPosition": ["_", "StemPosition", "0"],
+            "undulatorType": ["_", "UndulatorType", "undulatorHybrid"]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
@@ -783,7 +842,8 @@
                     }
                 ]
             ],
-            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"]
+            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"],
+            "undulatorType": ["_", "UndulatorType", "undulatorBasic"]
         }
     },
     "strings": {
@@ -869,29 +929,28 @@
             "advanced": [],
             "basic": [
                 ["Coil", [
+                    "dipoleH.coil.color",
                     "dipoleH.coil.radii",
                     "dipoleH.coil.height",
                     "dipoleH.coil.sides",
-                    "dipoleH.coil.currentDensity",
-                    "dipoleH.coil.color"
+                    "dipoleH.coil.currentDensity"
                 ]],
                 ["Magnet", [
-                    "dipoleH.magnet.size",
+                    "dipoleH.magnet.color",
+                    "magnetSize",
                     "dipoleH.magnet.material",
                     "dipoleH.magnet.materialFile",
                     "dipoleH.magnet.magnetization",
-                    "dipoleH.magnet.remanentMag",
-                    "dipoleH.magnet.color"
+                    "dipoleH.magnet.remanentMag"
                 ]],
                 ["Pole", [
                     "dipoleH.pole.shapeButton",
+                    "poleWidth",
                     "dipoleH.pole.magnetization",
                     "dipoleH.pole.remanentMag",
                     "dipoleH.pole.material",
                     "dipoleH.pole.materialFile",
                     "dipoleH.pole.segments",
-                    "dipoleH.pole.center",
-                    "dipoleH.pole.size",
                     "gap"
                 ]]
             ]
