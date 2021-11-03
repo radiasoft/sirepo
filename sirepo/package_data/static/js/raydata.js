@@ -64,7 +64,13 @@ SIREPO.app.controller('AnalysisController', function(appState, frameCache, panel
     return self;
 });
 
-SIREPO.app.controller('MetadataController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('DataSourceController', function() {
+    // TODO(e-carlin): only let certain files to be uploaded
+    const self = this;
+    return self;
+});
+
+SIREPO.app.controller('MetadataController', function() {
     const self = this;
     return self;
 });
@@ -93,8 +99,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
 		<div data-ng-if="nav.isLoaded()" data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'metadata\')}"><a data-ng-href="{{ nav.sectionURL(\'metadata\') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a data-ng-href="{{ nav.sectionURL(\'analysis\') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('metadata')}"><a data-ng-href="{{ nav.sectionURL('metadata') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
                 </div>
               </app-header-right-sim-loaded>
 	    </div>
