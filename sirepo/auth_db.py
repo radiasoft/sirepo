@@ -53,8 +53,6 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
       force (bool): Overwrite existing lib files with the same name as new ones
       sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
-    import contextlib
-    import py
     import pykern.pkconfig
     import pykern.pkio
     import sirepo.feature_config
@@ -78,7 +76,10 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
                 ],
                 stderr=subprocess.STDOUT,
             )
-            l = sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid)
+            # lib_dir may not exist: git.radiasoft.org/ops/issues/645
+            l = pykern.pkio.mkdir_parent(
+                sirepo.simulation_db.simulation_lib_dir(sim_type, uid=uid),
+            )
             e = [f.basename for f in pykern.pkio.sorted_glob(l.join('*'))]
             for f in sim_data_class.proprietary_code_lib_file_basenames():
                 if force or f not in e:

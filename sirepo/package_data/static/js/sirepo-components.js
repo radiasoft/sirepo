@@ -720,6 +720,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
                 '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
               '</div>',
+              '<div data-ng-switch-when="ModelArray" class="col-sm-12">',
+                '<div data-model-array="" data-model-name="modelName" data-model="model" data-field="field"></div>',
+              '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -3195,6 +3198,78 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getJobs();
 
+        },
+    };
+});
+
+
+SIREPO.app.directive('modelArray', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div class="row">
+              <div class="col-sm-11"><div class="row">
+                <div data-ng-if="fields.length < 4" class="col-sm-3"></div>
+                <div class="col-sm-3 text-center" data-ng-repeat="heading in headings track by $index">
+<div data-label-with-tooltip="" data-label="{{ heading[0] }}" data-tooltip="{{ heading[3] }}"></div>
+                </div></div>
+              </div>
+            </div>
+            <div class="form-group form-group-sm" data-ng-show="showRow($index)" data-ng-repeat="m in modelArray() track by $index">
+              <div class="col-sm-11"><div class="row">
+                <div data-ng-if="fields.length < 4" class="col-sm-3"></div>
+                <div class="col-sm-3" data-ng-repeat="f in fields track by $index">
+                  <input data-string-to-number="" data-ng-model="m[f]" class="form-control" style="text-align: right" data-lpignore="true" />
+                </div>
+              </div></div>
+              <div class="col-sm-1"><button style="margin-left: -15px; margin-top: 5px" data-ng-show="! isEmpty($index)" data-ng-click="deleteRow(idx)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div>
+            </div>
+        `,
+        controller: function(appState, $scope) {
+            const mView = SIREPO.APP_SCHEMA.view[$scope.field];
+            $scope.fields = mView.advanced;
+            $scope.headings = SIREPO.APP_SCHEMA.model[$scope.field];
+
+            function initArray() {
+                for (let i = 0; i < mView.maxRows; i++) {
+                    model(i);
+                }
+            }
+
+            function model(idx) {
+                if (! $scope.modelArray()[idx]) {
+                    $scope.modelArray()[idx] = {};
+                }
+                return $scope.modelArray()[idx];
+            }
+
+            $scope.deleteRow = idx => {
+                $scope.modelArray().splice(idx, 1);
+                initArray();
+            };
+
+            $scope.isEmpty = idx => {
+                const m = model(idx);
+                return ! $scope.fields.some(f => angular.isNumber(m[f]));
+            };
+
+            $scope.modelArray = () => {
+                if (! $scope.model) {
+                    return;
+                }
+                if (! $scope.model[$scope.field]) {
+                    $scope.model[$scope.field] = [];
+                    initArray();
+                }
+                return $scope.model[$scope.field];
+            };
+
+            $scope.showRow = idx => (idx == 0) || ! $scope.isEmpty(idx - 1);
         },
     };
 });
