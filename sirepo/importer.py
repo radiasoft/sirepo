@@ -47,9 +47,12 @@ def read_json(text, sim_type=None):
     """
     from sirepo import simulation_db
 
-    # attempt to decode the input as json first, if invalid try python
+    # attempt to decode the input as json first, if valid try python
     # fixup data in case new structures are need for lib_file ops below
-    data = simulation_db.fixup_old_data(simulation_db.json_load(text))[0]
+    # need to verify_app_directory here, because this may be the
+    # first point we know sim_type.
+    data = simulation_db.json_load(text)
+    data = simulation_db.fixup_old_data(data)[0]
     assert not sim_type or data.simulationType == sim_type, \
         'simulationType={} invalid, expecting={}'.format(
             data.simulationType,

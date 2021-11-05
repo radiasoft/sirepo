@@ -142,6 +142,7 @@ def delete_user(uid):
     assert uid is not None
     pkio.unchecked_remove(user_path(uid=uid))
 
+
 def examples(app):
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
@@ -535,7 +536,7 @@ def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False
         # we cannot change the logged in user so we need to
         # not run these fixups here, or we'll get recursion as
         # prepare_for_save may ask for the logged in user
-        if modified and not uid:
+        if modified:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, 'prepare_for_save'):
                 data = t.prepare_for_save(data)
@@ -613,6 +614,8 @@ def simulation_dir(simulation_type, sid=None, uid=None):
     """
     p = user_path(uid) if uid else logged_in_user_path()
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
+    if not d.exists():
+        _create_lib_and_examples(p, d.basename)
     if not sid:
         return d
     return d.join(assert_sid(sid))
@@ -636,6 +639,7 @@ def simulation_lib_dir(simulation_type, uid=None):
     Return:
         py.path: directory name
     """
+    # POSIT: _create_lib_and_examples
     return simulation_dir(simulation_type, uid=uid).join(_LIB_DIR)
 
 
@@ -729,13 +733,7 @@ def user_create():
     Returns:
         str: New user id
     """
-    uid = _random_id(user_path())['id']
-    for simulation_type in feature_config.cfg().sim_types:
-        _create_lib_and_examples(
-            simulation_type,
-            uid=uid,
-        )
-    return uid
+    return _random_id(user_path())['id']
 
 
 def user_path(uid=None, check=False):
@@ -805,18 +803,6 @@ def validate_serial(req_data):
         )
 
 
-def verify_app_directory(simulation_type, uid=None):
-    """Ensure the app directory is present. If not, create it and add example files.
-
-    Args:
-        uid (str): user id
-    """
-    d = simulation_dir(simulation_type, uid=uid)
-    if d.exists():
-        return
-    _create_lib_and_examples(simulation_type, uid=uid)
-
-
 def write_json(filename, data):
     """Write data as json to filename
 
@@ -828,10 +814,13 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def _create_lib_and_examples(simulation_type, uid=None):
-    pkio.mkdir_parent(simulation_lib_dir(simulation_type, uid=uid))
-    for s in examples(simulation_type):
-        save_new_example(s, uid=uid)
+def _create_lib_and_examples(user_dir, sim_type):
+    # POSIT: simulation_lib_dir
+    pkio.mkdir_parent(user_dir.join(sim_type).join(_LIB_DIR))
+    # POSIT: user_dir structure
+    u = user_dir.basename
+    for s in examples(sim_type):
+        save_new_example(s, uid=u)
 
 
 def _files_in_schema(schema):

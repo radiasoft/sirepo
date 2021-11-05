@@ -65,7 +65,6 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
 
     def _add(proprietary_code_dir, sim_type, sim_data_class):
         p = proprietary_code_dir.join(sim_data_class.proprietary_code_tarball())
-        sirepo.simulation_db.verify_app_directory(sim_type, uid=uid)
         with sirepo.simulation_db.tmp_dir(chdir=True, uid=uid) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
