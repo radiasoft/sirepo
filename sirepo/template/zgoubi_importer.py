@@ -22,7 +22,7 @@ import zipfile
 
 MODEL_UNITS = None
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('zgoubi')
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('zgoubi')
 _UNIT_TEST_MODE = False
 
 
@@ -40,7 +40,7 @@ def import_file(text, unit_test_mode=False):
         data.models.simulation.warnings = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
-    LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
+    LatticeUtil(data, SCHEMA).sort_elements_and_beamlines()
     if 'missingFiles' in info and info.missingFiles:
         data.error = 'Missing data files'
         data.missingFiles = info.missingFiles
@@ -455,8 +455,8 @@ def _validate_field(model, field, model_info):
         model[field] = int(model[field])
     elif field_type == 'FileNameArray':
         return _validate_file_names(model, model[field])
-    elif field_type in _SCHEMA.enum:
-        for v in _SCHEMA.enum[field_type]:
+    elif field_type in SCHEMA.enum:
+        for v in SCHEMA.enum[field_type]:
             if v[0] == model[field]:
                 return
         pkdlog('invalid enum value, {}.{} {}: {}', model.type, field, field_type, model[field])
@@ -502,9 +502,9 @@ def _validate_file_names(model, file_names):
 
 
 def _validate_model(model_type, model, missing_files):
-    assert model_type in _SCHEMA.model, \
+    assert model_type in SCHEMA.model, \
         'element type missing from schema: {}'.format(model_type)
-    model_info = _SCHEMA.model[model_type]
+    model_info = SCHEMA.model[model_type]
     if 'name' in model_info and 'name' not in model:
         model.name = ''
     MODEL_UNITS.scale_from_native(model_type, model)

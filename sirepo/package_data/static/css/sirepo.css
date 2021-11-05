@@ -984,6 +984,13 @@ li.sr-model-list-item > a {
   height: 20px;
 }
 
+.sr-loading-spinner {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    z-index: 100;
+}
+
 .sr-page-load {
     display: none;
     position: absolute;

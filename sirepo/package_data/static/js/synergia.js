@@ -62,16 +62,16 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     var self = this;
 
     function calculateBunchParameters() {
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'calculate_bunch_parameters',
-                bunch: appState.clone(appState.models.bunch),
-            },
             function(data) {
                 if (data.bunch && appState.isLoaded()) {
                     appState.models.bunch = data.bunch;
                 }
+            },
+            {
+                method: 'calculate_bunch_parameters',
+                bunch: appState.clone(appState.models.bunch),
             }
         );
     }

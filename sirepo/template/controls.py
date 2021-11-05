@@ -17,7 +17,7 @@ import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.madx
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 
 
@@ -33,29 +33,30 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         elementValues=_read_summary_line(
             run_dir,
-            _SCHEMA.constants.maxBPMPoints,
+            SCHEMA.constants.maxBPMPoints,
         )
     )
 
 
-def get_application_data(data, **kwargs):
-    if data.method == 'get_madx_sim_list':
-        res = []
-        for f in pkio.sorted_glob(
-            _SIM_DATA.controls_madx_dir().join(
-                '*',
-                sirepo.simulation_db.SIMULATION_DATA_FILE,
-            ),
-        ):
-            m = sirepo.simulation_db.read_json(f).models
-            res.append(PKDict(
-                name=m.simulation.name,
-                simulationId=m.simulation.simulationId,
-                invalidMsg=None if _has_kickers(m) else 'No beamlines' if not _has_beamline(m) else 'No kickers'
-            ))
-        return PKDict(simList=res)
-    elif data.method == 'get_external_lattice':
-        return _get_external_lattice(data.simulationId)
+def stateful_compute_get_madx_sim_list(data):
+    res = []
+    for f in pkio.sorted_glob(
+        _SIM_DATA.controls_madx_dir().join(
+            '*',
+            sirepo.simulation_db.SIMULATION_DATA_FILE,
+        ),
+    ):
+        m = sirepo.simulation_db.read_json(f).models
+        res.append(PKDict(
+            name=m.simulation.name,
+            simulationId=m.simulation.simulationId,
+            invalidMsg=None if _has_kickers(m) else 'No beamlines' if not _has_beamline(m) else 'No kickers'
+        ))
+    return PKDict(simList=res)
+
+
+def stateful_compute_get_external_lattice(data):
+    return _get_external_lattice(data.simulationId)
 
 
 def python_source_for_model(data, model):

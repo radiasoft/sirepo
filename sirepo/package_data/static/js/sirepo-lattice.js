@@ -487,12 +487,8 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             callback(appState.models.rpnCache[value]);
             return;
         }
-        requestSender.getApplicationData(
-            {
-                method: 'rpn_value',
-                value: value,
-                variables: appState.models.rpnVariables,
-            },
+        requestSender.sendRpn(
+            appState,
             function(data) {
                 if (! data.error) {
                     if (appState.isLoaded()) {
@@ -500,7 +496,12 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
                     }
                 }
                 callback(data.result, data.error);
-            });
+            },
+            {
+                method: 'rpn_value',
+                value: value,
+            }
+	);
     };
 
     self.getRpnBooleanForField = function(model, field) {
@@ -567,17 +568,18 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         if (! recomputeRequired) {
             return;
         }
-        requestSender.getApplicationData(
-            {
-                method: 'recompute_rpn_cache_values',
-                cache: appState.models.rpnCache,
-                variables: appState.models.rpnVariables,
-            },
+        requestSender.sendRpn(
+            appState,
             function(data) {
                 if (appState.isLoaded() && data.cache) {
                     appState.models.rpnCache = data.cache;
                 }
-            });
+            },
+            {
+                method: 'recompute_rpn_cache_values',
+                cache: appState.models.rpnCache,
+            },
+        );
     };
 
     $rootScope.$on('rpnVariables.changed', clearBooleanValues);
@@ -2769,7 +2771,9 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                                 '<td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="var"></div></td>',
                                 '<td><div class="col-sm-12" data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>',
                                 '<td style="vertical-align: middle">',
-                                  '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
+                                  ' <div data-disable-after-click="">',
+                                    '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
+                                  '</div>',
                                 '</td>',
                               '</tr>',
                               '<tr>',
@@ -2844,12 +2848,11 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
 
             $scope.deleteVar = function(idx) {
                 var v = appState.models.rpnVariables[idx];
-                requestSender.getApplicationData(
+                requestSender.sendRpn(
+                    appState,
                     {
                         method: 'validate_rpn_delete',
                         name: v.name,
-                        variables: appState.models.rpnVariables,
-                        simulationId: appState.models.simulation.simulationId,
                     },
                     function(data) {
                         latticeService.deleteVarWarning = '';

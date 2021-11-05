@@ -21,7 +21,7 @@ import re
 import srwl_bl
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('srw')
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('srw')
 
 
 class SRWParser(object):

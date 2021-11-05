@@ -78,6 +78,8 @@ _PTC_TRACK_COMMAND = 'ptc_track'
 
 _PTC_TRACKLINE_COMMAND = 'ptc_trackline'
 
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+
 _PTC_OBSERVE_TWISS_COLS = [
     'W',
     'alphax',
@@ -119,7 +121,6 @@ _PTC_OBSERVE_TWISS_COLS = [
     # 'zz',
 ]
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _TFS_FILE_EXTENSION = 'tfs'
 
@@ -184,7 +185,7 @@ def eval_code_var(data):
     cv = code_var(data.models.rpnVariables)
 
     def _model(model, name):
-        schema = _SCHEMA.model[name]
+        schema = SCHEMA.model[name]
 
         k = x = v = None
         try:
@@ -207,7 +208,7 @@ def eval_code_var(data):
     for x in  data.models.rpnVariables:
         x.value = cv.eval_var_with_assert(x.value)
     for k, v in data.models.items():
-        if k in _SCHEMA.model:
+        if k in SCHEMA.model:
             _model(v, k)
     for x in ('elements', 'commands'):
         for m in data.models[x]:
@@ -250,7 +251,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
 def generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     _add_marker_and_observe(data)
-    util = LatticeUtil(data, _SCHEMA)
+    util = LatticeUtil(data, SCHEMA)
     filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
@@ -268,13 +269,8 @@ def generate_parameters_file(data):
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
-def get_application_data(data, **kwargs):
-    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
-        return data
-
-
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    if frame == _SCHEMA.constants.logFileFrameId:
+    if frame == SCHEMA.constants.logFileFrameId:
         return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -314,7 +310,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
 
 
 def prepare_for_client(data):
-    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
 
@@ -551,7 +547,7 @@ def _add_marker_and_observe(data):
 
 
 def _build_filename_map(data):
-    return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
+    return _build_filename_map_from_util(LatticeUtil(data, SCHEMA))
 
 
 def _build_filename_map_from_util(util):
@@ -982,11 +978,11 @@ def _update_beam_energy(data):
     beam = _first_beam_command(data)
     bunch = data.models.bunch
     if bunch.beamDefinition != 'other':
-        for e in _SCHEMA.enum.BeamDefinition:
+        for e in SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
     if bunch.longitudinalMethod == '1':
-        beam.sigt = _SCHEMA.model.command_beam.sigt[2]
-        beam.sige = _SCHEMA.model.command_beam.sige[2]
+        beam.sigt = SCHEMA.model.command_beam.sigt[2]
+        beam.sige = SCHEMA.model.command_beam.sige[2]
     if bunch.longitudinalMethod == '2':
-        beam.et = _SCHEMA.model.command_beam.et[2]
+        beam.et = SCHEMA.model.command_beam.et[2]

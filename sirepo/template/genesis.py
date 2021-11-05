@@ -16,7 +16,7 @@ import sirepo.sim_data
 import sirepo.simulation_db
 
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 _INPUT_VARIABLE_MODELS = (
@@ -134,17 +134,17 @@ def sim_frame_parameterAnimation(frame_args):
 def sim_frame_particleAnimation(frame_args):
     def _get_col(col_key):
         # POSIT: ParticleColumn keys are in same order as columns in output
-        for i, c in enumerate(_SCHEMA.enum.ParticleColumn):
+        for i, c in enumerate(SCHEMA.enum.ParticleColumn):
             if c[0] == col_key:
               return i, c[1]
         raise AssertionError(
-            f'No column={_SCHEMA.enum.ParticleColumn} with key={col_key}',
+            f'No column={SCHEMA.enum.ParticleColumn} with key={col_key}',
         )
     n = frame_args.sim_in.models.electronBeam.npart
     d = np.fromfile(_PARTICLE_OUTPUT_FILENAME , dtype=np.float64)
     b = d.reshape(
-        int(len(d) / len(_SCHEMA.enum.ParticleColumn) / n),
-        len(_SCHEMA.enum.ParticleColumn),
+        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
+        len(SCHEMA.enum.ParticleColumn),
         n,
     )
     x = _get_col(frame_args.x)
@@ -182,7 +182,7 @@ def _generate_parameters_file(data):
     r= ''
     for m in _INPUT_VARIABLE_MODELS:
         for f, v in data.models[m].items():
-            s = _SCHEMA.model[m][f]
+            s = SCHEMA.model[m][f]
             if s[1] == 'String':
                 v = f"'{v}'"
             r += f'{s[0]} = {v}\n'
