@@ -1,12 +1,13 @@
 # -*- python -*-
+from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
+from pykern import pkjson
+from pykern.pkcollections import PKDict
+from sirepo.template import transfer_mat_bl
+from srxraylib.sources import srfunc
+import Shadow
 import math
 import numpy
-import Shadow
-from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
-from srxraylib.sources import srfunc
-from sirepo.template import transfer_mat_bl
-from pykern.pkcollections import PKDict
-from pykern import pkjson
+import re
 
 {% if zonePlateMethods %}
 {{zonePlateMethods}}
@@ -75,7 +76,34 @@ def calculate_stats(pos, oe):
     ))
     return pos
 
+def process_stats():
+    def compute_angx(x, z, xz, scale=1):
+        x = numpy.array(x)
+        z = numpy.array(z)
+        xz = numpy.array(xz)
+        return ((1/2) * numpy.arctan(2 * scale * xz / (x ** 2 - z ** 2))).tolist()
+
+    def rotated_values(stats, field):
+        if field == 'sigmaxz':
+            return [-v.sigma_mx[0][2] if v.isRotated else v.sigma_mx[0][2] for v in stats]
+        if field == 'sigmaxpzp':
+            return [-v.sigma_mx[1][3] if v.isRotated else v.sigma_mx[1][3] for v in stats]
+        if re.search('z', field):
+            f = re.sub('z', 'x', field)
+        else:
+            f = re.sub('x', 'z', field)
+        return [v[f] if v.isRotated else v[field] for v in stats]
+
+    res = PKDict(
+        s=[v.s for v in beam_stats],
+    )
+    for f in ('sigmax', 'sigdix', 'sigmaz', 'sigdiz', 'sigmaxz', 'sigmaxpzp', 'x', 'xp', 'z', 'zp'):
+        res[f] = rotated_values(beam_stats, f)
+    res.angxz = compute_angx(res.sigmax, res.sigmaz, res.sigmaxz, scale=1e-4)
+    res.angxpzp = compute_angx(res.sigdix, res.sigdiz, res.sigmaxpzp)
+    return res
+
 pos = calculate_stats(0, None)
 {{beamlineOptics}}
 
-pkjson.dump_pretty(beam_stats, filename='{{beamStatsFile}}')
+pkjson.dump_pretty(process_stats(), filename='{{beamStatsFile}}')
