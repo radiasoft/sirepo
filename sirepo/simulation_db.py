@@ -231,11 +231,9 @@ def fixup_old_data(data, force=False, path=None):
         if 'simulationSerial' not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
         if 'lastModified' not in data.models.simulation:
-            data.models.simulation.lastModified = 0
+            data.models.simulation.lastModified = _last_modified(data, path)
         from sirepo import sim_data
         sim_data.get_class(data.simulationType).fixup_old_data(data)
-        if 'lastModified' not in data.models.simulation:
-            data.models.simulation.lastModified = _last_modified(data, path)
         data.pkdel('fixup_old_version')
         return data, True
     except Exception as e:
@@ -278,7 +276,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
     sim_dir = simulation_dir(simulation_type, uid=uid)
     for p in pkio.sorted_glob(sim_dir.join('*', SIMULATION_DATA_FILE)):
         try:
-            data = open_json_file(simulation_type, p, fixup=True, uid=uid, save=True)
+            data = open_json_file(simulation_type, path=p, fixup=True, uid=uid, save=True)
             if search and not _search_data(data, search):
                 continue
             op(res, p, data)
@@ -398,7 +396,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=Fal
         )
     data = None
     try:
-        with open(path) as f:
+        with path.open() as f:
             data = json_load(f)
         # ensure the simulationId matches the path
         if sid:
