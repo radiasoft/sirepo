@@ -116,6 +116,7 @@ def utc_now_as_float():
         return time.time()
     return to_timestamp(utc_now())
 
+
 def utc_now_as_milliseconds():
     """Adjusted POSIX time as milliseconds
 
