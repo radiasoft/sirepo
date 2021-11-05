@@ -190,13 +190,15 @@ def fixup_old_data(data, force=False, path=None):
     def _last_modified(data, path):
         if not path:
             return srtime.utc_now_as_milliseconds()
-        m = path.mtime()
+        m = 0.
         for p in pkio.sorted_glob(
             # POSIT: same format as simulation_run_dir
             json_filename(template_common.INPUT_BASE_NAME, run_dir=path.dirpath().join('*')),
         ):
-            if p.mtime() < m:
+            if p.mtime() > m:
                 m = p.mtime()
+        if m <= 0.:
+            m = path.mtime()
         return int(m * 1000)
 
     try:
