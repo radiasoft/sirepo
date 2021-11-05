@@ -27,7 +27,12 @@ def init(**imports):
 
 
 def is_spider():
-    return user_agents.parse(flask.request.headers.get('User-Agent')).is_bot
+    a = flask.request.headers.get('User-Agent')
+    if 'python-requests' in a:
+        # user_agents doesn't see Python's requests module as a bot.
+        # The package robot_detection does see it, but we don't want to introduce another dependency.
+        return True
+    return user_agents.parse(a).is_bot
 
 
 def parse_json():
