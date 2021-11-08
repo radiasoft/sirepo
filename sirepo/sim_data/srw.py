@@ -392,6 +392,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         import pykern.pkjson
         import sirepo.template.srw_common
 
+        # TODO(e-carlin): git.radiasoft.org/sirepo/issues/3941
         f = cls.resource_path('').join(sirepo.template.srw_common.PREDEFINED_JSON)
         if not f.check():
             assert pkconfig.channel_in('dev'), \

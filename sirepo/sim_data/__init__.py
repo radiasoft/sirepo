@@ -358,7 +358,8 @@ class SimDataBase(object):
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
             cls._LIB_RESOURCE_DIR,
-        ).join(path)
+            path,
+        )
 
     @classmethod
     def lib_file_write_path(cls, basename):
@@ -628,26 +629,28 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename, data=None):
         import sirepo.simulation_db
 
-        p = []
-        try:
-            p.append(cls.lib_file_resource_path(basename))
-        except Exception as e:
-            if not pkio.exception_is_not_found(e):
-                raise
         if cfg.lib_file_uri:
+            # In agent
             if basename in cfg.lib_file_list:
+                # User generated lib file
                 p = pkio.py_path(basename)
                 r = _request('GET', cfg.lib_file_uri + basename)
                 r.raise_for_status()
                 p.write_binary(r.content)
                 return p
         elif not cfg.lib_file_resource_only:
-            p.append(
-                sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
-            )
-        for f in p:
+            # Command line utility or server
+            f = sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
             if f.check(file=True):
                 return f
+        try:
+            # Lib file distributed with build
+            f = cls.lib_file_resource_path(basename)
+            if f.check(file=True):
+                return f
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
         return None
 
     @classmethod
