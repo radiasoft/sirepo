@@ -19,7 +19,7 @@ def test_last_modified(fc):
         simulation_db.write_json(data_path, data)
         trigger.setmtime(time)
         data = fc.sr_sim_data()
-        pkunit.pkeq(t * 1000, data.models.simulation.lastModified)
+        pkunit.pkeq(time * 1000, data.models.simulation.lastModified)
         return data
 
     d = fc.sr_sim_data()
