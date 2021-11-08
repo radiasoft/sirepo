@@ -483,9 +483,9 @@ def _rsopt_set_params(
     {% if 'size' in e %}
     {% for x in e.size.initial %}
     {% if e.size.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.position.fieldNames[loop.index0] }}')
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.size.fieldNames[loop.index0] }}')
     if p:
-        p[2] = {{ e.title }}_position_{{ loop.index0 }}
+        p[2] = {{ e.title }}_size_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
     {% endif %}
