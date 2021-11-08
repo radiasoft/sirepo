@@ -480,25 +480,19 @@ def _rsopt_set_params(
 ):
     vp = varParam.copy()
     {% for e in rsOptElements %}
-    {% if 'size' in e %}
-    {% for x in e.size.initial %}
-    {% if e.size.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.size.fieldNames[loop.index0] }}')
+    {% for p in rsOptParamsNoRot %}
+    {% if p in e %}
+    {% for x in e[p].initial %}
+    {% if e[p].offsets[loop.index0] != 0 %}
+    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e[p].fieldNames[loop.index0] }}')
     if p:
-        p[2] = {{ e.title }}_size_{{ loop.index0 }}
+        p[2] = {{ e.title }}_{{ p }}_{{ loop.index0 }}
     {% endif %}
     {% endfor %}
     {% endif %}
-    {% if 'position' in e %}
-    {% for x in e.position.initial %}
-    {% if e.position.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.position.fieldNames[loop.index0] }}')
-    if p:
-        p[2] = {{ e.title }}_position_{{ loop.index0 }}
-    {% endif %}
     {% endfor %}
-    {% endif %}
     {% if 'rotation' in e %}
+# Rotations require special handling
     {% if e.rotation.offsets[0] != 0 or e.rotation.offsets[1] != 0 or e.rotation.offsets[2] != 0 %}
     a = [0.0, 0.0, 0.0]
     {% for t in e.rotation.initial %}
@@ -513,15 +507,6 @@ def _rsopt_set_params(
         t[2] = n[{{ loop.index0 }}]
     {% endfor %}
     {% endif %}
-    {% endif %}
-    {% if 'radius' in e %}
-    {% for x in e.radius.initial %}
-    {% if e.radius.offsets[loop.index0] != 0 %}
-    p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e.radius.fieldNames[loop.index0] }}')
-    if p:
-        p[2] = {{ e.title }}_radius_{{ loop.index0 }}
-    {% endif %}
-    {% endfor %}
     {% endif %}
     {% endfor %}
     return vp

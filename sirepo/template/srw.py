@@ -143,6 +143,7 @@ _RSOPT_PARAMS = {
     i for sublist in [v for v in [list(SCHEMA.constants.rsOptElements[k].keys()) for
         k in SCHEMA.constants.rsOptElements]] for i in sublist
 }
+_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != 'rotation']
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
@@ -1942,6 +1943,7 @@ def _rsopt_jinja_context(model):
         numSamples=int(model.numSamples),
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
+        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
         rsOptResFileInfix=_rsopt_res_file_infix(e, _RSOPT_PARAMS),
         scanType=model.scanType,
         totalSamples=model.totalSamples,
