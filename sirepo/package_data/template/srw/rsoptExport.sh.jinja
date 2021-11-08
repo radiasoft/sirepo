@@ -10,15 +10,13 @@ rsopt sample configuration "{{ ymlFileName }}" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
     echo "Completed generation in $SECONDS sec"
-    run_py="python {{ pyFileName }} rsopt_run `tail -1 {{ outFileName }} | cut -d: -f2`.npy"
+    run_py="python '{{ pyFileName }}' rsopt_run '$(tail -1 {{ outFileName }} | cut -d: -f2).npy'"
     read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
-    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-        echo "Running SRW..."
-        $($run_py)
-        echo "SRW output is in:"
-        for file in datasets/*; do
-            echo "$file"
-        done
+    if [[ $confirm == [yY] ]]; then
+        echo Running SRW...
+        eval "$run_py"
+        echo SRW output is in:
+        ls -d1 datasets/*
     else
         echo "NOTE: $run_py to run SRW with generated data"
     fi
