@@ -902,7 +902,9 @@ def _init_schemas():
             for fn in sirepo.resource.static_paths_for_type('json')
         ])
     else:
-        SCHEMA_COMMON.version = sirepo.__version__
+        SCHEMA_COMMON.version = max([
+            m.__version__ for m in sirepo.resource.root_modules()
+        ])
 
 
 def _merge_dicts(base, derived, depth=-1):
