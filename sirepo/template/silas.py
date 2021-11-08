@@ -19,7 +19,7 @@ import numpy as np
 import re
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = 'crystal.csv'
 _SUMMARY_CSV_FILE = 'wavefront.csv'

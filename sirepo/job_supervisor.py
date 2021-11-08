@@ -15,7 +15,9 @@ from sirepo import job
 import asyncio
 import contextlib
 import copy
+import inspect
 import pykern.pkio
+import re
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.const
@@ -748,12 +750,11 @@ class _ComputeJob(PKDict):
             jobCmd='get_simulation_frame'
         )
 
+    async def _receive_api_statefulCompute(self, req):
+        return await self._send_simulation_compute(req)
+
     async def _receive_api_statelessCompute(self, req):
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd='stateless_compute'
-        )
+        return await self._send_simulation_compute(req)
 
     def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.
@@ -834,6 +835,16 @@ class _ComputeJob(PKDict):
                 )
         finally:
             op.destroy(cancel=False)
+
+    async def _send_simulation_compute(self, req):
+        f = inspect.currentframe().f_back.f_code.co_name
+        m = re.search(f'^_receive_api_([a-z]+)Compute$', f)
+        assert m, f'unrecognized caller function={f}'
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd=f'{m.group(1)}_compute',
+        )
 
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)

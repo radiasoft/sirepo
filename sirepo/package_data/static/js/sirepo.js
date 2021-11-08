@@ -2004,6 +2004,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
+    function sendWithSimulationFields(url, appState, successCallback, data, errorCallback) {
+        data.simulationId = data.simulationId || appState.models.simulation.simulationId;
+        data.simulationType = SIREPO.APP_SCHEMA.simulationType;
+        self.sendRequest(url, successCallback, data, errorCallback);
+    }
+
     // Started from serializeValue in angular, but need more specialization.
     // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
     function serializeValue(v, param) {
@@ -2319,7 +2325,16 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         );
     };
 
-    self.statelessCompute = function(appState, data, successCallback, options) {
+    self.sendRpn = function(appState, callback, data) {
+        data.variables = appState.models.rpnVariables;
+        self.sendStatefulCompute(appState, callback, data);
+    };
+
+    self.sendStatefulCompute = function(appState, callback, data) {
+        sendWithSimulationFields('statefulCompute', appState, callback, data);
+    };
+
+    self.sendStatelessCompute = function(appState, successCallback, data, options) {
 	const onError = (data) => {
 	    srlog('statelessCompute error: ', data.error);
 	    if (options.onError) {
@@ -2346,10 +2361,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 	};
 
 	setPanelState('loading');
-        data.simulationId = appState.models.simulation.simulationId;
-        data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-        self.sendRequest(
+	sendWithSimulationFields(
 	    'statelessCompute',
+	    appState,
 	    (data) => {
 		if (data.state === 'error') {
 		    onError(data);

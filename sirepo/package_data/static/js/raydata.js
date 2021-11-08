@@ -194,15 +194,15 @@ SIREPO.app.directive('metadataTable', function() {
 		    $scope.data = null;
 		    return;
 		}
-		requestSender.statelessCompute(
+		requestSender.sendStatelessCompute(
 		    appState,
+		    (data) => {
+			$scope.data = Object.entries(data.data).map(([k, v]) => [k, v]);
+		    },
 		    {
 			method: 'metadata',
 			category: $scope.args.category,
 			uid: u
-		    },
-		    (data) => {
-			$scope.data = Object.entries(data.data).map(([k, v]) => [k, v]);
 		    },
 		    {
 			modelName: $scope.args.modelKey,
@@ -339,17 +339,8 @@ SIREPO.app.directive('scanSelector', function(panelState) {
 		    }
 		}
 		$scope.searchForm.$setPristine();
-		requestSender.statelessCompute(
+		requestSender.sendStatelessCompute(
 		    appState,
-		    {
-			method: 'scans',
-			searchStartTime: appState.models.scans[
-			    searchStartOrStopTimeKey(startOrStop[0])
-			],
-			searchStopTime: appState.models.scans[
-			    searchStartOrStopTimeKey(startOrStop[1])
-			],
-		    },
 		    (json) => {
 			$scope.scans = [];
 			json.data.scans.forEach((s) => {
@@ -368,6 +359,15 @@ SIREPO.app.directive('scanSelector', function(panelState) {
 			});
 			cols = raydataService.addScanInfoTableColsToCache(json.data.cols);
 			appState.saveChanges('scans');
+		    },
+		    {
+			method: 'scans',
+			searchStartTime: appState.models.scans[
+			    searchStartOrStopTimeKey(startOrStop[0])
+			],
+			searchStopTime: appState.models.scans[
+			    searchStartOrStopTimeKey(startOrStop[1])
+			],
 		    },
 		    {
 			modelName: $scope.args.modelKey,
@@ -441,16 +441,16 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 		    cols = simulationDataCache.scanInfoTableCols;
 		    return;
 		}
-		requestSender.statelessCompute(
+		requestSender.sendStatelessCompute(
 		    appState,
-		    {
-			method: 'scan_info',
-			scans: s,
-		    },
 		    (json) => {
 			$scope.scans = json.data.scans;
 			$scope.scans.forEach(raydataService.addScanToCache);
 			cols = raydataService.addScanInfoTableColsToCache(json.data.cols);
+		    },
+		    {
+			method: 'scan_info',
+			scans: s,
 		    },
 		    {
 			modelName: $scope.args.modelKey,

@@ -420,7 +420,7 @@ SIREPO.app.directive('confirmationModal', function() {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope, $element, $rootScope) {
             $scope.formCtl = null;
             $scope.clicked = function() {
                 if ($scope.okClicked() !== false) {
@@ -445,6 +445,10 @@ SIREPO.app.directive('confirmationModal', function() {
 
             $($element).on('shown.bs.modal', function() {
                 $($element).find('.form-control').first().select();
+            });
+
+            $($element).on('hidden.bs.modal', function() {
+                $rootScope.$broadcast('sr-clearDisableAfterClick');
             });
         },
     };
@@ -494,7 +498,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
     };
 });
 
-SIREPO.app.directive('disableAfterClick', function(appState, panelState) {
+SIREPO.app.directive('disableAfterClick', function() {
     return {
         restrict: 'A',
         transclude: true,
@@ -518,7 +522,6 @@ SIREPO.app.directive('disableAfterClick', function(appState, panelState) {
             });
         },
     };
-
 });
 
 SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
@@ -822,6 +825,22 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 $($element).find('input').off('focus').off('blur');
             });
         },
+    };
+});
+
+SIREPO.app.directive('loadingSpinner', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            sentinel: '<',
+        },
+        transclude: true,
+        template: [
+            '<div data-ng-if="!sentinel" class="sr-loading-spinner">',
+                '<img src="/static/img/sirepo_animated.gif" />',
+            '</div>',
+            '<ng-transclude data-ng-if="sentinel"></ng-transclude>'
+        ].join(''),
     };
 });
 
@@ -4314,11 +4333,13 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
             route: '@',
         },
         template: [
-            '<div style="white-space: nowrap">',
-              '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>',
-              ' ',
-              '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-            '</div>',
+            '<span data-loading-spinner data-sentinel="simList">',
+              '<div style="white-space: nowrap">',
+                '<select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>',
+                ' ',
+                '<button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+              '</div>',
+            '</span>',
         ].join(''),
         controller: function($scope) {
             $scope.simList = null;
@@ -4340,17 +4361,19 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                 }
             };
             appState.whenModelsLoaded($scope, function() {
-                requestSender.getApplicationData(
-                    {
-                        method: 'get_' + $scope.code + '_sim_list'
-                    },
+                requestSender.sendStatefulCompute(
+                    appState,
                     function(data) {
                         if (appState.isLoaded() && data.simList) {
                             $scope.simList = data.simList.sort(function(a, b) {
                                 return a.name.localeCompare(b.name);
                             });
                         }
-                    });
+                    },
+                    {
+                        method: 'get_' + $scope.code + '_sim_list'
+                    }
+		);
             });
         },
     };
