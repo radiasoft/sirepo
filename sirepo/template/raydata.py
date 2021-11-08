@@ -12,7 +12,6 @@ from sirepo.template import template_common
 import base64
 import databroker
 import databroker.queries
-import getpass
 import glob
 import os
 import sirepo.sim_data
@@ -36,12 +35,7 @@ _NON_DISPLAY_SCAN_FIELDS = ('uid')
 # TODO(e-carlin): from user
 _RUN_UID = 'bdcce1f3-7317-4775-bc26-ece8f0612758'
 
-# POSIT: Matches data_dir in
-# https://github.com/radiasoft/raydata/blob/main/AnalysisNotebooks/XPCS_SAXS/XPCS_SAXS.ipynb
-_RESULTS_DIR = '2021_1/' + getpass.getuser() + '/Results/' + _RUN_UID.split('-')[0] + '/'
-
 _OUTPUT_FILE = 'out.ipynb'
-
 
 
 # The metadata fields are from bluesky. Some have spaces while others don't.
@@ -74,7 +68,7 @@ def background_percent_complete(report, run_dir, is_running):
     def _png_filenames():
         return [
             pkio.py_path(f).basename for f in sorted(
-                glob.glob(str(run_dir.join(_RESULTS_DIR, '*.png'))),
+                glob.glob(str(run_dir.join('*.png'))),
                 key=os.path.getmtime
             )
         ]
@@ -97,7 +91,7 @@ def sim_frame(frame_args):
     return PKDict(image=pkcompat.from_bytes(
         base64.b64encode(
             pkio.read_binary(
-                sirepo.util.safe_path(frame_args.run_dir, _RESULTS_DIR, frame_args.filename),
+                sirepo.util.safe_path(frame_args.run_dir, frame_args.filename),
             ),
         ),
     ))
