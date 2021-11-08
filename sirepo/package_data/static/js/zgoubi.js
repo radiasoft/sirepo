@@ -721,11 +721,8 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                 var tosca = getTosca();
                 if (tosca) {
                     //TODO(pjm): error message if zip file required and regular file supplied
-                    requestSender.getApplicationData(
-                        {
-                            method: 'tosca_info',
-                            tosca: tosca,
-                        },
+                    requestSender.sendStatefulCompute(
+                        appState,
                         function(data) {
                             if (appState.isLoaded() && data.toscaInfo) {
                                 if (data.toscaInfo.magnetFile != tosca.magnetFile) {
@@ -738,7 +735,12 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                                     tosca.fileNames = [tosca.allFileNames[0]];
                                 }
                             }
-                        });
+                        },
+                        {
+                            method: 'tosca_info',
+                            tosca: tosca,
+                        }
+		    );
                     updateMagnetFiles(tosca);
                 }
             }

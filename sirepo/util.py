@@ -20,10 +20,13 @@ import numconv
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
+import re
 import random
+import six
 import sys
 import threading
 import werkzeug.utils
+import zipfile
 
 
 cfg = None
@@ -42,6 +45,11 @@ THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
+
+# See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
+# for reasoning on why define both
+_INVALID_PYTHON_IDENTIFIER = re.compile(r'\W|^(?=\d)', re.IGNORECASE)
+_VALID_PYTHON_IDENTIFIER = re.compile(r'^[a-z_]\w*$', re.IGNORECASE)
 
 _log_not_flask = _log_not_request = 0
 
@@ -224,6 +232,10 @@ def in_flask_request():
     return True
 
 
+def is_python_identifier(name):
+    return _VALID_PYTHON_IDENTIFIER.search(name)
+
+
 def json_dump(obj, path=None, pretty=False, **kwargs):
     """Formats as json as string, and writing atomically to disk
 
@@ -270,8 +282,51 @@ def random_base62(length=32):
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
 
 
+def read_zip(path_or_bytes):
+    """Read the contents of a zip archive.
+
+    Protects against malicious filenames (ex ../../filename)
+
+    Args:
+      path_or_bytes (py.path or str or bytes): The path to the archive or it's contents
+
+    Returns:
+       (py.path, bytes): The basename of the file, the contents of the file
+    """
+    p = path_or_bytes
+    if isinstance(p, bytes):
+        p = six.BytesIO(p)
+    with zipfile.ZipFile(p, 'r') as z:
+        for i in z.infolist():
+            if i.is_dir():
+                continue
+            # SECURITY: Use only basename of file to prevent against
+            # malicious files (ex ../../filename)
+            yield pykern.pkio.py_path(i.filename).basename, z.read(i)
+
+
 def safe_path(*paths):
-    return werkzeug.utils.safe_join(*paths)
+    p = werkzeug.utils.safe_join(*paths)
+    assert p is not None, \
+        f'could not join in a safe manner paths={paths}'
+    return p
+
+
+def sanitize_string(string):
+    """Remove special characters from string
+
+    This results in a string the is a valid python identifier.
+    This string can also be used as a css id because valid
+    python identifiers are also valid css ids.
+
+    Args:
+      string (str): The string to sanatize
+    Returns:
+      (str): A string with special characters replaced
+    """
+    if is_python_identifier(string):
+        return string
+    return _INVALID_PYTHON_IDENTIFIER.sub('_', string)
 
 
 def secure_filename(path):
@@ -287,7 +342,6 @@ def setattr_imports(imports):
 
 
 def split_comma_delimited_string(s, f_type):
-    import re
     return [f_type(x) for x in re.split(r'\s*,\s*', s)]
 
 

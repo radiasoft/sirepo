@@ -6,30 +6,71 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(() => {
     SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((c) => {
 	return `<div data-ng-switch-when="${c}Metadata" data-metadata-table="" data-category="${c}" class="sr-plot" data-model-name="{{ modelKey }}"></div>`;
-    }).join('');
+    }).join('') + `
+        <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+    `;
 });
 
 SIREPO.app.factory('raydataService', function(appState) {
     const self = {};
+    let id = 0;
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    self.nextPngImageId = () => {
+	return 'raydata-png-image-' + (++id);
+    };
+
+    self.setPngDataUrl = (element, png) => {
+	element.src = 'data:image/png;base64,' + png;
+    };
+
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('AnalysisController', function(appState, frameCache, panelState, persistentSimulation, raydataService, $scope) {
     const self = this;
     self.appState = appState;
     self.simScope = $scope;
-    self.simComputeModel = 'analysisAnimation';
+    self.pngOutputFiles = [];
+
     self.simHandleStatus = function (data) {
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
+	if ((data.pngOutputFiles || []).length > 0) {
+	    const f = [];
+	    data.pngOutputFiles.forEach((e) => {
+		if (self.pngOutputFiles.includes(e.name)) {
+		    return;
+		}
+		appState.models[e.name] = {
+		    filename: e.filename
+		};
+		f.push(e.name);
+		if (! panelState.isHidden(e.name)) {
+		    panelState.toggleHidden(e.name);
+		}
+	    });
+	    appState.saveChanges(f, () => self.pngOutputFiles.push(...f));
+	} else {
+	    self.pngOutputFiles = [];
+	}
     };
+
     self.simState = persistentSimulation.initSimulationState(self);
     return self;
 });
 
-SIREPO.app.controller('MetadataController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('DataSourceController', function() {
+    // TODO(e-carlin): only let certain files to be uploaded
+    const self = this;
+    return self;
+});
+
+SIREPO.app.controller('MetadataController', function() {
     const self = this;
     return self;
 });
@@ -41,7 +82,7 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: `
-            '<div data-common-footer="nav"></div>'
+            <div data-common-footer="nav"></div>
         `
     };
 });
@@ -58,15 +99,15 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
 		<div data-ng-if="nav.isLoaded()" data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'metadata\')}"><a data-ng-href="{{ nav.sectionURL(\'metadata\') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a data-ng-href="{{ nav.sectionURL(\'analysis\') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('metadata')}"><a data-ng-href="{{ nav.sectionURL('metadata') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
                 </div>
               </app-header-right-sim-loaded>
 	    </div>
         `
     };
 });
-
 
 SIREPO.app.directive('metadataTable', function() {
     return {
@@ -134,20 +175,41 @@ SIREPO.app.directive('metadataTable', function() {
 		elementForKey(key).toggleClass('raydata-overflow-text');
 	    };
 
-	    requestSender.statelessCompute(
+	    requestSender.sendStatelessCompute(
 		appState,
+		(data) => {
+		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
+		},
 		{
 		    method: 'metadata',
 		    category: $scope.category
-		},
-		(data) => {
-		    $scope.data  = Object.entries(data.data).map(([k, v]) => [k, v]);
 		},
 		{
 		    modelName: $scope.modelName,
 		    panelStateHandle: panelState,
 		}
 	    );
+        },
+    };
+});
+
+SIREPO.app.directive('pngImage', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+	    modelName: '@'
+	},
+        template: `<img class="img-responsive" id="{{ id }}" />`,
+	controller: function(raydataService, $scope) {
+            plotting.setTextOnlyReport($scope);
+	    $scope.id = raydataService.nextPngImageId();
+
+            $scope.load = (json) => {
+		raydataService.setPngDataUrl($('#' + $scope.id)[0], json.image);
+            };
+	},
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });

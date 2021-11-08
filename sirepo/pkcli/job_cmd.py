@@ -77,6 +77,12 @@ def _background_percent_complete(msg, template, is_running):
     )
 
 
+def _dispatch_compute(msg):
+    try:
+        return getattr(template_common, f'{msg.jobCmd}_dispatch')(msg.data)
+    except Exception as e:
+        return _maybe_parse_user_alert(e)
+
 def _do_cancel(msg, template):
     if hasattr(template, 'remove_last_frame'):
         template.remove_last_frame(msg.runDir)
@@ -237,12 +243,12 @@ def _do_sequential_result(msg, template):
         r = template_common.read_sequential_result(msg.runDir)
     return r
 
+def _do_stateful_compute(msg, template):
+    return _dispatch_compute(msg)
+
 
 def _do_stateless_compute(msg, template):
-    try:
-        return template_common.stateless_compute_dispatch(msg.data)
-    except Exception as e:
-        return _maybe_parse_user_alert(e)
+    return _dispatch_compute(msg)
 
 
 def _maybe_parse_user_alert(exception, error=None):

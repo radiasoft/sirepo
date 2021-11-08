@@ -98,16 +98,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         if (! (self.isIdealizedUndulator() || self.isTabulatedUndulator())) {
             return;
         }
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'process_undulator_definition',
-                undulator_definition: undulatorDefinition,
-                undulator_parameter: appState.models.undulator[deflectingParameter],
-                amplitude: appState.models.undulator[amplitude],
-                undulator_period: appState.models.undulator.period / 1000,
-                methodSignature: 'process_undulator_definition' + deflectingParameter,
-            },
             function(data) {
                 if (! appState.isLoaded()) {
                     return;
@@ -135,7 +127,15 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                             Math.pow(undulator.verticalDeflectingParameter, 2)
                     ),
                     8);
-            }
+            },
+	    {
+		    method: 'process_undulator_definition',
+		    undulator_definition: undulatorDefinition,
+		    undulator_parameter: appState.models.undulator[deflectingParameter],
+		    amplitude: appState.models.undulator[amplitude],
+		    undulator_period: appState.models.undulator.period / 1000,
+		    methodSignature: 'process_undulator_definition' + deflectingParameter,
+	    }
         );
     }
 
@@ -175,17 +175,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.computeBeamParameters = function() {
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'process_beam_parameters',
-                source_type: appState.models.simulation.sourceType,
-                undulator_type: appState.models.tabulatedUndulator.undulatorType,
-                undulator_period: appState.models.undulator.period / 1000,
-                undulator_length: appState.models.undulator.length,
-                ebeam: appState.clone(appState.models.electronBeam),
-                ebeam_position: appState.clone(appState.models.electronBeamPosition),
-            },
             function(data) {
                 if (! appState.isLoaded()) {
                     return;
@@ -195,23 +186,32 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     ebeam[f] = data[f];
                 });
                 appState.models.electronBeamPosition.drift = data.drift;
+            },
+            {
+                method: 'process_beam_parameters',
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                undulator_period: appState.models.undulator.period / 1000,
+                undulator_length: appState.models.undulator.length,
+                ebeam: appState.clone(appState.models.electronBeam),
+                ebeam_position: appState.clone(appState.models.electronBeamPosition),
             }
         );
     };
 
     self.computeDeltaAttenCharacteristics = function(item) {
         self.updateMaterialFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'compute_delta_atten_characteristics',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-            },
             function(data) {
                 ['refractiveIndex', 'attenuationLength'].forEach(function(f) {
                     item[f] = self.formatMaterial(data[f]);
                 });
+            },
+            {
+                method: 'compute_delta_atten_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
             }
         );
     };
@@ -220,15 +220,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         // fiber or zonePlate items
         var prefixes = attenuationPrefixes(item);
         self.updateDualFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'compute_dual_characteristics',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-                prefix1: prefixes[0],
-                prefix2: prefixes[1],
-            },
             function(data) {
                 [
                     prefixes[0] + 'RefractiveIndex',
@@ -238,21 +231,30 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 ].forEach(function(f) {
                     item[f] = self.formatMaterial(data[f]);
                 });
-            });
+            },
+            {
+                method: 'compute_dual_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+                prefix1: prefixes[0],
+                prefix2: prefixes[1],
+            }
+	);
     };
 
     self.computeFields = function(method, item, fields) {
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: method,
-                optical_element: item,
-            },
             function(data) {
                 fields.forEach(function(f) {
                     item[f] = data[f];
                 });
-            });
+            },
+            {
+                method: method,
+                optical_element: item,
+            }
+	);
     };
 
     self.computeModel = function(analysisModel) {
@@ -263,11 +265,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             return 'beamlineAnimation';
         }
         return analysisModel;
-    };
-
-    self.computeOnServer = function(method, args, callback) {
-        args.method = method;
-        requestSender.getApplicationData(args, callback);
     };
 
     self.formatFields = function(model, data, fields) {
@@ -439,13 +436,15 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.loadModelList = function(modelName, callback, sig) {
-        return self.computeOnServer(
-            'model_list',
+        return requestSender.sendStatefulCompute(
+            appState,
+            callback,
             {
-                model_name: modelName,
+                method: 'model_list',
                 methodSignature: 'model_list ' + modelName + (sig || ''),
-            },
-            callback);
+                model_name: modelName,
+            }
+	);
     };
 
     self.setShowCalcCoherence = function(isShown) {
@@ -885,10 +884,9 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             }
 
             $scope.openShadowSimulation = function() {
-                srwService.computeOnServer(
-                    'create_shadow_simulation',
-                    appState.models,
-                    createNewSim);
+                const d = appState.models;
+                d.method = 'create_shadow_simulation';
+                requestSender.sendStatefulCompute(appState, createNewSim, d);
             };
         },
     };
@@ -1036,13 +1034,8 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender
 
     function computeCRLCharacteristics(item) {
         updateCRLFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'compute_crl_characteristics',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-            },
             function(data) {
                 srwService.formatFields(item, data, {
                     refractiveIndex: 'formatMaterial',
@@ -1050,7 +1043,13 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender
                     focalDistance: 'formatFloat4',
                     absoluteFocusPosition: 'formatFloat4',
                 });
-            });
+            },
+            {
+                method: 'compute_crl_characteristics',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            }
+	);
     }
 
     function updateCRLFields(item) {
@@ -1086,16 +1085,17 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
 
     function computeCrystalOrientation(item) {
         updateCrystalOrientationFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
+            function(data) {
+                srwService.formatOrientationFields(item, data);
+            },
             {
                 method: 'compute_crystal_orientation',
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
-            },
-            function(data) {
-                srwService.formatOrientationFields(item, data);
-            });
+            }
+	);
     }
 
     function updateCrystal(item) {
@@ -1312,19 +1312,20 @@ SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSe
 
     function computePGMValue(item) {
         updateGratingFields(item);
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'compute_PGM_value',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-            },
             function(data) {
                  ['energyAvg', 'cff', 'grazingAngle', 'orientation'].forEach(function(f) {
                      item[f] = data[f];
                  });
                 srwService.formatOrientationFields(item, data);
-            });
+            },
+            {
+                method: 'compute_PGM_value',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            }
+	);
     }
 
     function updateGratingFields(item) {
@@ -1412,21 +1413,22 @@ SIREPO.viewLogic('simulationGridView', function($scope, panelState, srwService) 
     ];
 });
 
-SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, srwService, $scope) {
+SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, requestSender, srwService, $scope) {
     if ($scope.fieldDef == 'basic') {
         return;
     }
 
     function computeUndulatorLength() {
-        srwService.computeOnServer(
-            'compute_undulator_length',
-            {
-                tabulated_undulator: appState.models.tabulatedUndulator,
-            },
+        requestSender.sendStatefulCompute(
+            appState,
             function(data) {
                 if (appState.isLoaded() && data.length) {
                     appState.models.undulator.length = data.length;
                 }
+            },
+            {
+                method: 'compute_undulator_length',
+                tabulated_undulator: appState.models.tabulatedUndulator,
             }
         );
     }
@@ -2032,7 +2034,7 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
               '</ul>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, requestSender) {
 
             function addNewModel(model) {
                 model.id = appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
@@ -2069,13 +2071,15 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
             $scope.deleteItem = function(item, $event) {
                 $event.stopPropagation();
                 $event.preventDefault();
-                srwService.computeOnServer(
-                    'delete_user_models',
+                requestSender.sendStatefulCompute(
+                    appState,
+                    $scope.loadModelList,
                     {
                         electron_beam: $scope.isElectronBeam() ? item : null,
+                        method: 'delete_user_models',
                         tabulated_undulator: $scope.isTabulatedUndulator() ? item : null,
-                    },
-                    $scope.loadModelList);
+                    }
+                );
             };
             $scope.isElectronBeam = function() {
                 return $scope.modelName == 'electronBeam';

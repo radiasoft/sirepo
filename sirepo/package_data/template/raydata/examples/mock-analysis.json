@@ -9,6 +9,9 @@
         "generalMetadataReport": {
 	    "notes": ""
 	},
+        "inputFiles": {
+            "mask": null
+        },
         "planMetadataReport": {
 	    "notes": ""
 	},

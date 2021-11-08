@@ -194,18 +194,22 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function dataFileChanged() {
-        requestSender.getApplicationData({
-            method: 'get_external_lattice',
-            simulationId: appState.models.dataFile.madxSirepo
-        }, data => {
-            appState.models.externalLattice = data.externalLattice;
-            appState.models.optimizerSettings = data.optimizerSettings;
-            $.extend(appState.models.command_twiss, findExternalCommand('twiss'));
-            $.extend(appState.models.command_beam, findExternalCommand('beam'));
-            appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice', 'optimizerSettings']);
-            computeCurrent();
-            appState.saveChanges('externalLattice');
-        });
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                appState.models.externalLattice = data.externalLattice;
+                appState.models.optimizerSettings = data.optimizerSettings;
+                $.extend(appState.models.command_twiss, findExternalCommand('twiss'));
+                $.extend(appState.models.command_beam, findExternalCommand('beam'));
+                appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice', 'optimizerSettings']);
+                computeCurrent();
+                appState.saveChanges('externalLattice');
+            },
+            {
+                method: 'get_external_lattice',
+                simulationId: appState.models.dataFile.madxSirepo
+            }
+        );
     }
 
     function elementForId(id) {

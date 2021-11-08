@@ -8,21 +8,6 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-def test_elegant(fc):
-    from pykern.pkcollections import PKDict
-    from pykern import pkunit
-
-    r = fc.sr_post(
-        'getApplicationData',
-        PKDict(
-            simulationType='elegant',
-            method='get_beam_input_type',
-            input_file='bunchFile-sourceFile.forward-beam-output.sdds',
-        ),
-    )
-    pkunit.pkre('elegant', r.input_type)
-
-
 def test_srw_processed_image(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail
