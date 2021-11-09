@@ -394,7 +394,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         try:
             f = cls.resource_path(srw_common.PREDEFINED_JSON)
-        except FileNotFoundError:
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
             assert pkconfig.channel_in('dev'), \
                 f'{srw_common.PREDEFINED_JSON}: not found; call "sirepo srw create-predefined" before pip install'
             from sirepo.pkcli import srw
