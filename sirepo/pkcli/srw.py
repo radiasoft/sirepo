@@ -61,8 +61,20 @@ def create_predefined(out_dir=None):
             want_user_lib_dir=False,
         )
 
-    p = srw_common.PREDEFINED_JSON
-    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path('').join(p)
+    def p(out_dir):
+        b = srw_common.PREDEFINED_JSON
+        if out_dir:
+            return pkio.py_path(out_dir).join(b)
+        from sirepo.template import template_common
+        # Assume a good location for PREDEFINED_JSON is the same dir
+        # as PARAMETERS_PYTHON_FILE.jinja.
+        return sim_data.resource_path(
+            template_common.jinja_filename(
+                template_common.PARAMETERS_PYTHON_FILE,
+            ),
+        ).dirpath(b)
+
+    n = p(out_dir)
     pykern.pkjson.dump_pretty(
         PKDict(
             beams=beams,
@@ -70,9 +82,9 @@ def create_predefined(out_dir=None):
             mirrors=f('mirror'),
             sample_images=f('sample'),
         ),
-        filename=p,
+        filename=n,
     )
-    return 'Created {}'.format(p)
+    return 'Created {}'.format(n)
 
 
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
