@@ -26,8 +26,8 @@ Please note:
 
 The final consolidated output data for use in ML is in two numpy files under the "datasets" folder. Each is an array
 with {{ totalSamples }} entries, one for each run.  
-    - beam_intensities_{{ rsOptResFileInfix }}{{ totalSamples }}_runs.npy: propagated single-e intensity distribution vs horizontal and vertical position
-    - parameters_{{ rsOptResFileInfix }}{{ totalSamples }}_runs.npy: the inputs used for each run
+    - beam_intensities.npy: propagated single-electron intensity distribution vs horizontal and vertical position
+    - parameters.npy: the inputs used for each run
 
 
 Intermediate output is also available (note the files may be re-used by workers):

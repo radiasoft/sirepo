@@ -428,23 +428,9 @@ def _rsopt_run(filename):
     beams_all = numpy.concatenate(beam_arrays, axis=0)
     params_all = numpy.concatenate(task_arrays, axis=0)
 
-    save_str = ''.join([
-    {% for e in rsOptElements %}
-    {% for p in rsOptParams %}
-    {% if p in e %}
-    {% for x in e[p].initial %}
-    {% if e[p].offsets[loop.index0] != 0 %}
-        '{{ e.title }}_{{ p }}_{{ e[p].fieldNames[loop.index0] }}_',
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% endfor %}
-    {% endfor %}
-    ])
-
     ###### actual input and output files used for ML
-    numpy.save(f'{_DATASET_DIR}/beam_intensities_{save_str}{n_runs}_runs.npy', beams_all)
-    numpy.save(f'{_DATASET_DIR}/parameters_{save_str}{n_runs}_runs.npy', params_all)
+    numpy.save(f'{_DATASET_DIR}/beam_intensities.npy', beams_all)
+    numpy.save(f'{_DATASET_DIR}/parameters.npy', params_all)
 
 
 def _rsopt_run_set(param_arr, start, end, proc_num):
