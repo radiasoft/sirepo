@@ -1062,8 +1062,6 @@ def _compute_PGM_value(model):
         if model.computeParametersFrom == '1': model.grazingAngle = None
         elif model.computeParametersFrom == '2': model.cff = None
 
-    pkdc("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
-           model.grazingAngle, np.fabs(model.nvz)-np.fabs(np.sin(model.grazingAngle/1000)), model.cff)
     return model
 
 def _compute_grating_orientation(model):
