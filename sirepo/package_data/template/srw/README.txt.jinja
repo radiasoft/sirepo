@@ -10,8 +10,16 @@ Also included are auxiliary files required for the specific SRW simulation:
 {{ libFiles }}
 {% endif %}
 
-To generate the data, run 'bash {{ shFileName }}'. This stores the data in the numpy file H_sample_{{ fileBase }}_history_length={{ totalSamples }}_evals={{ totalSamples }}_workers={{ numWorkers }}.npy
-The script will prompt you to then run SRW with that data. To do so later, run 'python {{ pyFileName }} rsopt_run H_sample_{{ fileBase }}_history_length={{ totalSamples }}_evals={{ totalSamples }}_workers={{ numWorkers }}.npy'. Please note:
+To generate the data, run
+    'bash {{ shFileName }}'.
+
+This stores the data in the numpy file
+    H_sample_{{ fileBase }}_history_length={{ totalSamples }}_evals={{ totalSamples }}_workers={{ numWorkers }}.npy
+
+The script will prompt you to then run SRW with that data. To do so later, run
+    'python {{ pyFileName }} rsopt_run H_sample_{{ fileBase }}_history_length={{ totalSamples }}_evals={{ totalSamples }}_workers={{ numWorkers }}.npy'.
+
+Please note:
     - rsopt does the job of running SRW with the stored input data
     - If the machine running SRW has N cores, rsopt will attempt execute in parallel on N - 1 cores
     - SRW will run {{ totalSamples }} times; use caution
