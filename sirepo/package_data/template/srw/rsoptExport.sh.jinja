@@ -1,8 +1,8 @@
 #!/bin/bash
 if [ -d "{{ runDir }}" ] && [ -n "$(ls -A {{ runDir }})" ]; then
-   echo "Cleaning run directory {{ runDir }}..."
-   rm {{ runDir }}/{{ pyFileName }}
-   rm {{ runDir }}/run_parallel_python.py
+    for f in '{{ pyFileName }}' run_parallel_python.py; do
+        rm -f "{{ runDir }}/$f"
+    done
 fi
 run_rsopt="rsopt sample configuration '{{ ymlFileName }}'"
 echo Running $run_rsopt...
