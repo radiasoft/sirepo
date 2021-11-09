@@ -3262,7 +3262,7 @@ SIREPO.app.directive('srwNumberList', function(appState) {
                 $scope.field = $scope.values.join(', ');
             };
             $scope.parseValues = function() {
-               // values were sticking around when the model changed
+                // values were sticking around when the model changed
                 if (! lastModel || lastModel !== $scope.model) {
                     lastModel = $scope.model;
                     $scope.values = null;
