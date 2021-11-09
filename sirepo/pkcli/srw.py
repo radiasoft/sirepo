@@ -36,7 +36,6 @@ def create_predefined(out_dir=None):
         b = srw_common.PREDEFINED_JSON
         if out_dir:
             return pkio.py_path(out_dir).join(b)
-        from sirepo.template import template_common
         # Assume a good location for PREDEFINED_JSON is the same dir
         # as PARAMETERS_PYTHON_FILE.jinja.
         return sim_data.resource_path(
