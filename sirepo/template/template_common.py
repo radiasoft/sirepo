@@ -452,6 +452,7 @@ def histogram_bins(nbins):
 
 
 def jinja_filename(filename):
+    # append .jinja, because file may already have an extension
     return filename + '.jinja'
 
 
@@ -543,7 +544,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     Returns:
         str: source text
     """
-    # append .jinja, because file may already have an extension
     b = jinja_filename(name)
     return pkjinja.render_file(
         sirepo.sim_data.get_class(sim_type).resource_path(b) if sim_type \
