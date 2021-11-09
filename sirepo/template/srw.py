@@ -1926,10 +1926,11 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
 def _rsopt_res_file_infix(elements, params):
     s = ''
     for e in elements:
-        for p in [p for p in params if p in e]:
-            for i, x in enumerate(e[p].fieldNames):
-                if e[p].offsets[i] != 0:
-                    s += f'{e.title}_{p}_{x}_'
+        for p in params:
+            if p in e:
+                for i, x in enumerate(e[p].fieldNames):
+                    if e[p].offsets[i] != 0:
+                        s += f'{e.title}_{p}_{x}_'
     return s
 
 
