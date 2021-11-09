@@ -10,7 +10,15 @@ rsopt sample configuration "{{ ymlFileName }}" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
     echo "Completed generation in $SECONDS sec"
-    run_py="python '{{ pyFileName }}' rsopt_run '$(tail -1 {{ outFileName }} | cut -d: -f2).npy'"
+    last="$(tail -1 {{ outFileName }} ).npy"
+    f_regex=H_sample.*
+    if [[ $last =~ $f_regex ]]; then
+        f="${BASH_REMATCH}"
+    else
+        echo ERROR: rsopt failed to write data
+        exit 98
+    fi
+    run_py="python '{{ pyFileName }}' rsopt_run $f"
     read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
     if [[ $confirm == [yY] ]]; then
         echo Running SRW...
