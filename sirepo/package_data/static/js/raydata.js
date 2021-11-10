@@ -414,22 +414,29 @@ SIREPO.app.directive('visualizationScanSelector', function() {
             No scans selected. Visit the <a href data-ng-click="redirectToDataSource()"><span class="glyphicon glyphicon-picture"></span> Data Source</a> tab to select scans.
 	    </div>
 	    <div data-ng-if="haveScans()">
-              <table class="table table-striped table-hover col-sm-4">
-                <thead>
-                  <tr>
-                    <th data-ng-repeat="h in getHeader()">{{ h }}</th>
-                  </tr>
-                </thead>
-                <tbody ng-repeat="s in scans">
-                  <tr>
-                    <td><input type="checkbox" data-ng-checked="isVisualizationId(s)" data-ng-click="selectOrDeselect(s)"/></td>
-                    <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+	      <form name="form">
+                <table class="table table-striped table-hover col-sm-4">
+                  <thead>
+                    <tr>
+                      <th data-ng-repeat="h in getHeader()">{{ h }}</th>
+                    </tr>
+                  </thead>
+                  <tbody ng-repeat="s in scans">
+                    <tr>
+                      <td><input type="radio" data-ng-model="appState. models.scans.visualizationId" data-ng-value="s.uid"/></td>
+                      <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+	      </form>
 	    </div>
         `,
         controller: function(appState, panelState, raydataService, requestSender, simulationDataCache, $scope) {
+	    $scope.appState = appState;
+            $scope.modelName = 'scans';
+            $scope.fields = ['visualizationId'];
+
 	    let cols = [];
 
 	    const getScanInfo = () => {
@@ -467,19 +474,10 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 		return ! $.isEmptyObject(appState.models.scans.selected);
 	    };
 
-	    $scope.isVisualizationId = (scan) => {
-		return appState.models.scans.visualizationId === scan.uid;
-	    };
-
 	    $scope.redirectToDataSource = () => requestSender.localRedirect(
 		'dataSource',
 		{':simulationId': appState.models.simulation.simulationId}
 	    );
-
-	    $scope.selectOrDeselect = (scan) => {
-		appState.models.scans.visualizationId = appState.models.scans.visualizationId === scan.uid ? null : scan.uid;
-		appState.saveChanges('scans');
-	    };
 
 	    appState.watchModelFields($scope, ['scans.selected'], getScanInfo);
 	    getScanInfo();
