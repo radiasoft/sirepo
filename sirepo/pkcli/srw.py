@@ -25,6 +25,25 @@ def create_predefined(out_dir=None):
     import srwl_uti_src
     import pykern.pkjson
 
+    def lib_file_path(file_type):
+        return sim_data.srw_lib_file_paths_for_type(
+            file_type,
+            lambda f: PKDict(fileName=f.basename),
+            want_user_lib_dir=False,
+        )
+
+    def predefined_json_path(out_dir):
+        b = srw_common.PREDEFINED_JSON
+        if out_dir:
+            return pkio.py_path(out_dir).join(b)
+        # Assume a good location for PREDEFINED_JSON is the same dir
+        # as PARAMETERS_PYTHON_FILE.jinja.
+        return sim_data.resource_path(
+            template_common.jinja_filename(
+                template_common.PARAMETERS_PYTHON_FILE,
+            ),
+        ).dirpath(b)
+
     sim_data = sirepo.sim_data.get_class('srw')
     beams = []
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
@@ -54,25 +73,17 @@ def create_predefined(out_dir=None):
             )),
         )
 
-    def f(file_type):
-        return sim_data.srw_lib_file_paths_for_type(
-            file_type,
-            lambda f: PKDict(fileName=f.basename),
-            want_user_lib_dir=False,
-        )
-
-    p = srw_common.PREDEFINED_JSON
-    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path('').join(p)
+    n = predefined_json_path(out_dir)
     pykern.pkjson.dump_pretty(
         PKDict(
             beams=beams,
-            magnetic_measurements=f('undulatorTable'),
-            mirrors=f('mirror'),
-            sample_images=f('sample'),
+            magnetic_measurements=lib_file_path('undulatorTable'),
+            mirrors=lib_file_path('mirror'),
+            sample_images=lib_file_path('sample'),
         ),
-        filename=p,
+        filename=n,
     )
-    return 'Created {}'.format(p)
+    return 'Created {}'.format(n)
 
 
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):

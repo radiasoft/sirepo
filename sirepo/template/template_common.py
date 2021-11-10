@@ -451,6 +451,11 @@ def histogram_bins(nbins):
     return nbins
 
 
+def jinja_filename(filename):
+    # append .jinja, because file may already have an extension
+    return filename + '.jinja'
+
+
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = PKDict(
         x_points=x,
@@ -539,8 +544,7 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     Returns:
         str: source text
     """
-    # append .jinja, because file may already have an extension
-    b = f'{name}.jinja'
+    b = jinja_filename(name)
     return pkjinja.render_file(
         sirepo.sim_data.get_class(sim_type).resource_path(b) if sim_type \
             else sirepo.sim_data.resource_path(b),

@@ -578,8 +578,7 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             {
                 method: 'recompute_rpn_cache_values',
                 cache: appState.models.rpnCache,
-            },
-        );
+            });
     };
 
     $rootScope.$on('rpnVariables.changed', clearBooleanValues);

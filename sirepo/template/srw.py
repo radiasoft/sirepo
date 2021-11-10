@@ -592,7 +592,7 @@ def import_file(req, tmp_dir, **kwargs):
             )
         r = r.get(PARSED_DATA_ATTR)
         r.models.simulation.simulationId = i
-        r = simulation_db.save_simulation_json(r, do_validate=True)
+        r = simulation_db.save_simulation_json(r, do_validate=True, fixup=True)
     except Exception:
         #TODO(robnagler) need to clean up simulations except in dev
         raise
@@ -659,7 +659,7 @@ def prepare_for_client(data):
                 save = True
     if save:
         pkdc("save simulation json with sim_data_template_fixup={}", data.get('sim_data_template_fixup', None))
-        simulation_db.save_simulation_json(data)
+        simulation_db.save_simulation_json(data, fixup=True)
     return data
 
 
@@ -1062,8 +1062,6 @@ def _compute_PGM_value(model):
         if model.computeParametersFrom == '1': model.grazingAngle = None
         elif model.computeParametersFrom == '2': model.cff = None
 
-    pkdc("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
-           model.grazingAngle, np.fabs(model.nvz)-np.fabs(np.sin(model.grazingAngle/1000)), model.cff)
     return model
 
 def _compute_grating_orientation(model):

@@ -208,7 +208,10 @@ def import_submodule(submodule):
        try:
         return importlib.import_module(f'{p}.{submodule}')
        except ModuleNotFoundError:
+           s = pkdexc()
            pass
+    # gives more debugging info (perhaps more confusion)
+    pkdc(s)
     raise AssertionError(f'cannot find submodule={submodule} in package_path={r}')
 
 
