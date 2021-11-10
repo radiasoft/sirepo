@@ -144,12 +144,17 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               <app-header-right-sim-loaded>
 		<div data-ng-if="nav.isLoaded()" data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('metadata')}"><a data-ng-href="{{ nav.sectionURL('metadata') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-if="haveScans()" data-ng-class="{active: nav.isActive('metadata')}"><a data-ng-href="{{ nav.sectionURL('metadata') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
+                  <li class="sim-section" data-ng-if="haveScans()" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
                 </div>
               </app-header-right-sim-loaded>
 	    </div>
-        `
+        `,
+	controller: function($scope) {
+	    $scope.haveScans = () => {
+		return ! $.isEmptyObject(appState.models.scans.selected);
+	    };
+	}
     };
 });
 
@@ -410,10 +415,7 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 	    args: '='
 	},
         template: `
-	    <div data-ng-if="!haveScans()">
-            No scans selected. Visit the <a href data-ng-click="redirectToDataSource()"><span class="glyphicon glyphicon-picture"></span> Data Source</a> tab to select scans.
-	    </div>
-	    <div data-ng-if="haveScans()">
+	    <div>
 	      <form name="form">
                 <table class="table table-striped table-hover col-sm-4">
                   <thead>
@@ -469,10 +471,6 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 	    $scope.getHeader = () => raydataService.getScanInfoTableHeader(cols);
 
 	    $scope.getScanField = raydataService.getScanField;
-
-	    $scope.haveScans = () => {
-		return ! $.isEmptyObject(appState.models.scans.selected);
-	    };
 
 	    $scope.redirectToDataSource = () => requestSender.localRedirect(
 		'dataSource',
