@@ -607,6 +607,49 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
     };
 });
 
+SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+	    childArgs: '&',
+	    modelKey: '@',
+	},
+        template: `
+            <div class="panel panel-info">
+              <div class="panel-heading clearfix" data-panel-heading="{{ panelHeading() }}" data-model-key="modelKey"></div>
+	      <div data-show-loading-and-error="">
+	        <div data-ng-show="showTranscludedElement()">
+		  <transcluded-element></transcluded-element>
+	        </div>
+              </div>
+            </div>
+        `,
+        controller: function(simulationDataCache, $scope) {
+	    $scope.panelState = panelState;
+	    $scope.panelHeading = () => {
+		return appState.viewInfo($scope.modelKey).title;
+	    };
+
+	    $scope.showTranscludedElement = () => {
+		return ! (panelState.isLoading($scope.modelKey) || panelState.getError($scope.modelKey));
+	    };
+	},
+	link: function(scope, element, attrs, ctrls, transclude){
+	    transclude(scope, function(clonedContent, transcludeScope){
+		transcludeScope.args = {
+		    modelKey: scope.modelKey
+		};
+		const c =  scope.childArgs();
+		if (c) {
+		    $.extend(transcludeScope.args, c);
+		}
+		element.find('transcluded-element').replaceWith(clonedContent);
+	    });
+	}
+    };
+});
+
 SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelState, utilities) {
     return {
         restrict: 'A',
@@ -1588,6 +1631,26 @@ SIREPO.app.directive('safePath', function() {
     };
 });
 
+SIREPO.app.directive('showLoadingAndError', function(panelState) {
+    return {
+	transclude: true,
+	template: `
+            <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+              <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
+              <div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>
+              <div data-ng-transclude=""></div>
+            </div>
+	`,
+        controller: function($scope, $element) {
+            $scope.panelState = panelState;
+            $scope.hasTransclude = function() {
+                var el = $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)');
+                return el.children().first().length > 0;
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('simplePanel', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -2065,9 +2128,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-            '<div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
-              '<div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>',
-              '<div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>',
+	    '<div data-show-loading-and-error="">',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
                 '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
@@ -2085,10 +2146,6 @@ SIREPO.app.directive('reportContent', function(panelState) {
         ].join(''),
         controller: function($scope, $element) {
             $scope.panelState = panelState;
-            $scope.hasTransclude = function() {
-                var el = $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)');
-                return el.children().first().length > 0;
-            };
         },
     };
 });
