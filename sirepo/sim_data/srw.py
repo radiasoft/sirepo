@@ -390,14 +390,18 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def srw_predefined(cls):
         import pykern.pkjson
-        import sirepo.template.srw_common
+        from sirepo.template import srw_common
 
-        f = cls.resource_path('').join(sirepo.template.srw_common.PREDEFINED_JSON)
-        if not f.check():
+        try:
+            f = cls.resource_path(srw_common.PREDEFINED_JSON)
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
             assert pkconfig.channel_in('dev'), \
-                '{}: not found; call "sirepo srw create-predefined" before pip install'.format(f)
-            import sirepo.pkcli.srw
-            sirepo.pkcli.srw.create_predefined()
+                f'{srw_common.PREDEFINED_JSON}: not found; call "sirepo srw create-predefined" before pip install'
+            from sirepo.pkcli import srw
+            srw.create_predefined()
+            f = cls.resource_path(srw_common.PREDEFINED_JSON)
         return cls._memoize(pykern.pkjson.load_any(f))
 
     @classmethod

@@ -56,7 +56,6 @@ _app = None
 @api_perm.require_user
 def api_copyNonSessionSimulation():
     req = http_request.parse_post(id=True, template=True)
-    simulation_db.verify_app_directory(req.type)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
             req.type,
@@ -462,10 +461,7 @@ def api_saveSimulationData():
     req = http_request.parse_post(id=True, template=True)
     d = req.req_data
     simulation_db.validate_serial(d)
-    d = simulation_db.fixup_old_data(d)[0]
-    if hasattr(req.template, 'prepare_for_save'):
-        d = req.template.prepare_for_save(d)
-    d = simulation_db.save_simulation_json(simulation_db.update_last_modified(d))
+    d = simulation_db.save_simulation_json(d, fixup=True, modified=True)
     return api_simulationData(
         d.simulationType,
         d.models.simulation.simulationId,
@@ -497,7 +493,6 @@ def api_simulationData(simulation_type, simulation_id, pretty=False, section=Non
 @api_perm.require_user
 def api_listSimulations():
     req = http_request.parse_post()
-    simulation_db.verify_app_directory(req.type)
     return http_reply.gen_json(
         sorted(
             simulation_db.iterate_simulation_datafiles(
@@ -596,7 +591,7 @@ def api_updateFolder():
             r.models.simulation.folder = n + f[len():]
         else:
             continue
-        simulation_db.save_simulation_json(r)
+        simulation_db.save_simulation_json(r, fixup=False)
     return http_reply.gen_json_ok()
 
 

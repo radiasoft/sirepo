@@ -311,7 +311,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -645,6 +645,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
         }
+	simulationDataCache.clear();
         self.clearModels();
         var routeObj = {
             routeName: 'simulationData',
@@ -969,6 +970,18 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
     return self;
 });
 
+SIREPO.app.factory('simulationDataCache', function ($rootScope){
+    const self = {};
+    self.clear = () => {
+	for (let k in self) {
+	    if (k !== 'clear') {
+		delete self[k];
+	    }
+	}
+    };
+    return self;
+});
+
 SIREPO.app.factory('stringsService', function() {
     function ucfirst(str) {
         return str.charAt(0).toUpperCase() + str.slice(1);
@@ -1007,6 +1020,29 @@ SIREPO.app.factory('stringsService', function() {
     };
 });
 
+SIREPO.app.factory('timeService', function() {
+    const UNIX_TIMESTAMP_SCALE = 1000;
+    const self = {};
+
+    self.getUnixTime = (date) => {
+	return date.getTime() / UNIX_TIMESTAMP_SCALE;
+    };
+
+    self.unixTimeToDate = (unixTime) => {
+	return new Date(unixTime * UNIX_TIMESTAMP_SCALE);
+    };
+
+    self.unixTimeToDateString = (unixTime) => {
+	return self.unixTimeToDate(unixTime).toLocaleString(
+	    'en-US',
+	    {
+		timeZoneName: 'short'
+	    }
+	);
+    };
+
+    return self;
+});
 
 // manages validators for ngModels and provides other validation services
 SIREPO.app.service('validationService', function(utilities) {
@@ -2301,6 +2337,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     self.sendStatelessCompute = function(appState, successCallback, data, options) {
 	const onError = (data) => {
 	    srlog('statelessCompute error: ', data.error);
+	    if (options.onError) {
+		options.onError(data);
+		return;
+	    }
 	    setPanelState('error');
 	};
 

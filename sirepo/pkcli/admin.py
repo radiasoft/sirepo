@@ -55,7 +55,6 @@ def create_examples():
         with sirepo.auth_db.session_and_lock(), \
              auth.set_user_outside_of_http_request(uid):
             for sim_type in feature_config.cfg().sim_types:
-                simulation_db.verify_app_directory(sim_type)
                 names = [x.name for x in simulation_db.iterate_simulation_datafiles(
                     sim_type, simulation_db.process_simulation_list, {
                         'simulation.isExample': True,

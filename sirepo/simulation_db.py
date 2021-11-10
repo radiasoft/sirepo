@@ -13,6 +13,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
 from sirepo import srschema
+from sirepo import srtime
 from sirepo import util
 from sirepo.template import template_common
 import contextlib
@@ -27,7 +28,6 @@ import random
 import re
 import sirepo.auth
 import sirepo.const
-import sirepo.job
 import sirepo.resource
 import sirepo.srdb
 import sirepo.template
@@ -45,7 +45,6 @@ SIMULATION_DATA_FILE = 'sirepo-data' + sirepo.const.JSON_SUFFIX
 
 #: where users live under db_dir
 USER_ROOT_DIR = 'user'
-
 
 #: Valid characters in ID
 _ID_CHARS = numconv.BASE62
@@ -121,11 +120,14 @@ def default_data(sim_type):
     Returns:
         dict: simulation data
     """
-    import sirepo.sim_data
-
+    from sirepo import sim_data
     return open_json_file(
         sim_type,
-        path=sirepo.sim_data.get_class(sim_type).resource_path(f'default-data{sirepo.const.JSON_SUFFIX}')
+        path=sim_data.get_class(
+            sim_type,
+        ).resource_path(
+            f'default-data{sirepo.const.JSON_SUFFIX}',
+        ),
     )
 
 
@@ -140,14 +142,16 @@ def delete_user(uid):
     assert uid is not None
     pkio.unchecked_remove(user_path(uid=uid))
 
+
 def examples(app):
     #TODO(robnagler) Need to update examples statically before build
     # and assert on build
     # example data is not fixed-up to avoid performance problems when searching examples by name
     # fixup occurs during save_new_example()
+    from sirepo import sim_data
     return [
-        open_json_file(app, path=str(f), fixup=False) \
-            for f in sirepo.sim_data.get_class(app).example_paths()
+        open_json_file(app, path=f, fixup=False) \
+            for f in sim_data.get_class(app).example_paths()
     ]
 
 
@@ -171,21 +175,40 @@ def find_global_simulation(sim_type, sid, checked=False, uid=None):
     )
 
 
-def fixup_old_data(data, force=False):
+def fixup_old_data(data, force=False, path=None):
     """Upgrade data to latest schema and updates version.
 
     Args:
         data (dict): to be updated (destructively)
         force (bool): force validation
+        path (py.path): simulation path, only in a few cases [None]
 
     Returns:
         dict: upgraded `data`
         bool: True if data changed
     """
+    def _last_modified(data, path):
+        if not path:
+            return srtime.utc_now_as_milliseconds()
+        m = 0.
+        for p in pkio.sorted_glob(
+            # POSIT: same format as simulation_run_dir
+            json_filename(template_common.INPUT_BASE_NAME, run_dir=path.dirpath().join('*')),
+        ):
+            if p.mtime() > m:
+                m = p.mtime()
+        if m <= 0.:
+            m = path.mtime()
+        return int(m * 1000)
+
     try:
-        pkdc("{} force= {}, version= {} (SCHEMA_COMMON.version={})",
-             data.get('models', {}).get('simulation', {}).get('simulationId', None), force,
-             data.get('version', None), SCHEMA_COMMON.version)
+        pkdc(
+            "sid={} force={}, version={} SCHEMA_COMMON.version={}",
+            data.pkunchecked_nested_get('models.simulation.simulationId'),
+            force,
+            data.get('version'),
+            SCHEMA_COMMON.version,
+        )
         if not force and 'version' in data and data.version == SCHEMA_COMMON.version:
             return data, False
         try:
@@ -210,9 +233,9 @@ def fixup_old_data(data, force=False):
         if 'simulationSerial' not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
         if 'lastModified' not in data.models.simulation:
-            update_last_modified(data)
-        import sirepo.sim_data
-        sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
+            data.models.simulation.lastModified = _last_modified(data, path)
+        from sirepo import sim_data
+        sim_data.get_class(data.simulationType).fixup_old_data(data)
         data.pkdel('fixup_old_version')
         return data, True
     except Exception as e:
@@ -253,22 +276,14 @@ def generate_json(data, pretty=False):
 def iterate_simulation_datafiles(simulation_type, op, search=None, uid=None):
     res = []
     sim_dir = simulation_dir(simulation_type, uid=uid)
-    for path in glob.glob(
-        str(sim_dir.join('*', SIMULATION_DATA_FILE)),
-    ):
-        path = pkio.py_path(path=path)
+    for p in pkio.sorted_glob(sim_dir.join('*', SIMULATION_DATA_FILE)):
         try:
-            data = open_json_file(simulation_type, path, fixup=False, uid=uid)
-            data, changed = fixup_old_data(data)
-            # save changes to avoid re-applying fixups on each iteration
-            if changed:
-                #TODO(pjm): validate_name may causes infinite recursion, need better fixup of list prior to iteration
-                save_simulation_json(data, do_validate=False, uid=uid)
+            data = open_json_file(simulation_type, path=p, fixup=True, uid=uid, save=True)
             if search and not _search_data(data, search):
                 continue
-            op(res, path, data)
+            op(res, p, data)
         except ValueError as e:
-            pkdlog('{}: error: {}', path, e)
+            pkdlog('{}: error: {}', p, e)
     return res
 
 
@@ -342,15 +357,16 @@ def move_user_simulations(from_uid, to_uid):
             os.rename(dir_path, new_dir_path)
 
 
-def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None):
+def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None, save=False):
     """Read a db file and return result
 
     Args:
         sim_type (str): simulation type (app)
         path (py.path.local): where to read the file
         sid (str): simulation id
+        fixup (bool): run fixup_old_data [True]
         uid (uid): user id
-
+        save (bool): save_simulation_json if data changed [False]
     Returns:
         dict: data
 
@@ -359,7 +375,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None):
     """
     if not path:
         path = sim_data_file(sim_type, sid, uid=uid)
-    if not os.path.isfile(str(path)):
+    if not path.exists():
         global_sid = None
         if sid:
             #TODO(robnagler) workflow should be in server.py,
@@ -382,15 +398,20 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, uid=None):
         )
     data = None
     try:
-        with open(str(path)) as f:
+        with path.open() as f:
             data = json_load(f)
-            # ensure the simulationId matches the path
-            if sid:
-                data.models.simulation.simulationId = _sim_from_path(path)[0]
+        # ensure the simulationId matches the path
+        if sid:
+            data.models.simulation.simulationId = _sim_from_path(path)[0]
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
-    return fixup_old_data(data)[0] if fixup else data
+    if not fixup:
+        return data
+    d, c = fixup_old_data(data, path=path)
+    if c and save:
+        return save_simulation_json(d, fixup=False, do_validate=False, uid=uid)
+    return d
 
 
 def parse_sim_ser(data):
@@ -424,10 +445,10 @@ def prepare_simulation(data, run_dir):
     Returns:
         list, py.path: pkcli command, simulation directory
     """
-    import sirepo.sim_data
+    from sirepo import sim_data
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
-    s = sirepo.sim_data.get_class(sim_type)
+    s = sim_data.get_class(sim_type)
     s.support_files_to_run_dir(data, run_dir)
     update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
@@ -479,33 +500,46 @@ def read_simulation_json(sim_type, *args, **kwargs):
     Returns:
         data (dict): simulation data
     """
-    data = open_json_file(sim_type, fixup=False, *args, **kwargs)
-    new, changed = fixup_old_data(data)
-    if changed:
-        return save_simulation_json(new)
-    return data
+    return open_json_file(sim_type, fixup=True, save=True, *args, **kwargs)
 
 
 def save_new_example(data, uid=None):
     data.models.simulation.isExample = True
-    return save_new_simulation(fixup_old_data(data)[0], do_validate=False, uid=uid)
+    return save_new_simulation(data, do_validate=False, uid=uid)
 
 
 def save_new_simulation(data, do_validate=True, uid=None):
     d = simulation_dir(data.simulationType, uid=uid)
     sid = _random_id(d, data.simulationType, uid=uid).id
     data.models.simulation.simulationId = sid
-    return save_simulation_json(data, do_validate=do_validate, uid=uid)
+    return save_simulation_json(
+        data,
+        do_validate=do_validate,
+        uid=uid,
+        fixup=True,
+        modified=True,
+    )
 
 
-def save_simulation_json(data, do_validate=True, uid=None):
+def save_simulation_json(data, fixup, do_validate=True, uid=None, modified=False):
     """Prepare data and save to json db
 
     Args:
         data (dict): what to write (contains simulationId)
-        uid (str): user id
+        fixup (bool): whether to run fixup_old_data
+        uid (str): user id [None]
+        do_validate (bool): call srschema.validate_name [True]
+        modified (bool): call prepare_for_save and update lastModified [False]
     """
-    data = fixup_old_data(data)[0]
+    if fixup:
+        data = fixup_old_data(data)[0]
+        # we cannot change the logged in user so we need to
+        # not run these fixups here, or we'll get recursion as
+        # prepare_for_save may ask for the logged in user
+        if modified:
+            t = sirepo.template.import_module(data.simulationType)
+            if hasattr(t, 'prepare_for_save'):
+                data = t.prepare_for_save(data)
     # old implementation value
     data.pkdel('computeJobHash')
     s = data.models.simulation
@@ -537,6 +571,8 @@ def save_simulation_json(data, do_validate=True, uid=None):
         # Do not write simulationStatus or computeJobCacheKey
         d = copy.deepcopy(data)
         pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobCacheKey')
+        if modified:
+            d.models.simulation.lastModified = srtime.utc_now_as_milliseconds()
         write_json(fn, d)
     return data
 
@@ -578,6 +614,8 @@ def simulation_dir(simulation_type, sid=None, uid=None):
     """
     p = user_path(uid) if uid else logged_in_user_path()
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
+    if not d.exists():
+        _create_lib_and_examples(p, d.basename)
     if not sid:
         return d
     return d.join(assert_sid(sid))
@@ -601,6 +639,7 @@ def simulation_lib_dir(simulation_type, uid=None):
     Return:
         py.path: directory name
     """
+    # POSIT: _create_lib_and_examples
     return simulation_dir(simulation_type, uid=uid).join(_LIB_DIR)
 
 
@@ -614,9 +653,9 @@ def simulation_run_dir(req_or_data, remove_dir=False):
     Returns:
         py.path: directory to run
     """
-    import sirepo.sim_data
+    from sirepo import sim_data
     t = req_or_data.simulationType
-    s = sirepo.sim_data.get_class(t)
+    s = sim_data.get_class(t)
     d = simulation_dir(
         t,
         s.parse_sid(req_or_data),
@@ -679,13 +718,6 @@ def uid_from_dir_name(dir_name):
     return m.group(1)
 
 
-def update_last_modified(data):
-    """Set simulation.lastModified to the current time in javascript format.
-    """
-    data.models.simulation.lastModified = int(datetime.datetime.utcnow().timestamp() * 1000)
-    return data
-
-
 def update_rsmanifest(data):
     try:
         data.rsmanifest = read_json(_RSMANIFEST_PATH)
@@ -701,13 +733,7 @@ def user_create():
     Returns:
         str: New user id
     """
-    uid = _random_id(user_path())['id']
-    for simulation_type in feature_config.cfg().sim_types:
-        _create_lib_and_examples(
-            simulation_type,
-            uid=uid,
-        )
-    return uid
+    return _random_id(user_path())['id']
 
 
 def user_path(uid=None, check=False):
@@ -729,12 +755,12 @@ def user_path(uid=None, check=False):
 
 
 def validate_sim_db_file_path(path, uid):
-    import sirepo.job
+    from sirepo import job
 
     assert re.search(
         re.compile(
             r'^{}/{}/{}/({})/{}/[a-zA-Z0-9-_\.]{{1,128}}$'.format(
-                sirepo.job.SIM_DB_FILE_URI,
+                job.SIM_DB_FILE_URI,
                 USER_ROOT_DIR,
                 uid,
                 '|'.join(feature_config.cfg().sim_types),
@@ -777,18 +803,6 @@ def validate_serial(req_data):
         )
 
 
-def verify_app_directory(simulation_type, uid=None):
-    """Ensure the app directory is present. If not, create it and add example files.
-
-    Args:
-        uid (str): user id
-    """
-    d = simulation_dir(simulation_type, uid=uid)
-    if d.exists():
-        return
-    _create_lib_and_examples(simulation_type, uid=uid)
-
-
 def write_json(filename, data):
     """Write data as json to filename
 
@@ -800,12 +814,13 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def _create_lib_and_examples(simulation_type, uid=None):
-    import sirepo.sim_data
-
-    pkio.mkdir_parent(simulation_lib_dir(simulation_type, uid=uid))
-    for s in examples(simulation_type):
-        save_new_example(s, uid=uid)
+def _create_lib_and_examples(user_dir, sim_type):
+    # POSIT: simulation_lib_dir
+    pkio.mkdir_parent(user_dir.join(sim_type).join(_LIB_DIR))
+    # POSIT: user_dir structure
+    u = user_dir.basename
+    for s in examples(sim_type):
+        save_new_example(s, uid=u)
 
 
 def _files_in_schema(schema):
@@ -841,7 +856,7 @@ def _find_user_simulation_copy(simulation_type, sid, uid=None):
 
 
 def _init():
-    import sirepo.mpi
+    from sirepo import mpi
 
     global cfg, JOB_RUN_MODE_MAP
     cfg = pkconfig.init(
@@ -853,7 +868,7 @@ def _init():
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
         sequential='Serial',
-        parallel='{} cores (SMP)'.format(sirepo.mpi.cfg.cores),
+        parallel='{} cores (SMP)'.format(mpi.cfg.cores),
     )
     if cfg.sbatch_display:
         JOB_RUN_MODE_MAP.sbatch = cfg.sbatch_display
@@ -902,7 +917,9 @@ def _init_schemas():
             for fn in sirepo.resource.static_paths_for_type('json')
         ])
     else:
-        SCHEMA_COMMON.version = sirepo.__version__
+        SCHEMA_COMMON.version = max([
+            m.__version__ for m in sirepo.resource.root_modules()
+        ])
 
 
 def _merge_dicts(base, derived, depth=-1):
