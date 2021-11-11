@@ -9,15 +9,7 @@ echo Running $run_rsopt...
 eval "$run_rsopt" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
-    last="$(tail -1 {{ outFileName }} ).npy"
-    f_regex=H_sample.*
-    if [[ $last =~ $f_regex ]]; then
-        f="${BASH_REMATCH}"
-    else
-        echo ERROR: rsopt failed to write data
-        exit 98
-    fi
-    run_py="python '{{ pyFileName }}' rsopt_run $f"
+    run_py="python '{{ pyFileName }}' rsopt_run '{{ fileBase }}.npy'"
     read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
     if [[ $confirm == [yY] ]]; then
         echo Running SRW...

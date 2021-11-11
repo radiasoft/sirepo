@@ -14,10 +14,10 @@ To generate the data, run
     'bash {{ shFileName }}'.
 
 This stores the data in the numpy file
-    H_sample_{{ fileBase }}_history_length={{ totalSamples }}_evals={{ totalSamples }}_workers={{ numWorkers }}.npy
+    {{ fileBase }}.npy
 
 The script will prompt you to then run SRW with that data. To do so later, run
-    'python {{ pyFileName }} rsopt_run H_sample_{{ fileBase }}_history_length={{ totalSamples }}_evals={{ totalSamples }}_workers={{ numWorkers }}.npy'.
+    'python {{ pyFileName }} rsopt_run {{ fileBase }}npy'
 
 Please note:
     - rsopt does the job of running SRW with the stored input data

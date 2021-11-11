@@ -1932,6 +1932,7 @@ def _rsopt_jinja_context(model):
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
+        rsOptOutFileName='scan_results',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
     )
