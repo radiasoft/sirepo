@@ -1047,6 +1047,8 @@ def _format_rpn_value(value, is_command=False):
         value = code_variable.CodeVar.infix_to_postfix(value)
         if is_command:
             return '({})'.format(value)
+    if value:
+        value = re.sub(r'(\d)\.0+$', r'\1', str(value))
     return value
 
 
