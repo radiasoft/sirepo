@@ -6,7 +6,7 @@
 "DC": DRIF,l=0.75
 "DD": DRIF,l=0.25
 "DE": DRIF,l=0.53
-"DEX": DRIF,l=1.0
+"DEX": DRIF,l=1
 "DEX3": DRIF,l=0.3333333
 "DG": DRIF,l=0.61
 "DSE": DRIF,l=0.225

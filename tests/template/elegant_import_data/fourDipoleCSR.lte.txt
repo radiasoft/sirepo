@@ -5,7 +5,7 @@
 "B4": CSRCSBEND,angle=0.146607657167524,bins=500,e1=0.146607657167524,l=0.200718260855179,n_kicks=100,output_file="B4.output_file.sdds",output_interval=4,sg_halfwidth=1
 "L1": CSRDRIFT,dz=0.01,l=0.758132998376353,use_stupakov=1
 "L2": CSRDRIFT,dz=0.01,l=0.5,use_stupakov=1
-"L3": CSRDRIFT,dz=0.01,l=1.0,use_stupakov=1
+"L3": CSRDRIFT,dz=0.01,l=1,use_stupakov=1
 "PF": PFILTER,deltalimit=0.005
 "LINA10": RFCA,change_p0=1,freq=2856e6,l=0.3,phase="90 28 -",volt="48e6 10 /"
 "LINB10": RFCA,change_p0=1,freq=2856e6,l=0.3,phase="90 6 +",volt="48e6 10 /"

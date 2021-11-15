@@ -4,14 +4,14 @@ execution_mode = 'serial'
 lattice_file = """
 % pi 180 / sto degrad
 % 180 pi / sto raddeg
-% 1.0 sto sr_alpha_x
-% 1.0 sto sr_alpha_y
-% 10.0 sto sr_beta_x
-% 10.0 sto sr_beta_y
+% 1 sto sr_alpha_x
+% 1 sto sr_alpha_y
+% 10 sto sr_beta_x
+% 10 sto sr_beta_y
 % 0.0 sto sr_dp_s_coupling
 % 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
 % 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
-% 5000.0 sto sr_n_particles_per_bunch
+% 5000 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
 "BM": CSBEND,angle=0.78539816,e1=0.39269908,e2=0.39269908,l=1.8
@@ -60,10 +60,10 @@ elegant_file = """
 &end
 
 &bunched_beam
-  alpha_x = 1.0,
-  alpha_y = 1.0,
-  beta_x = 10.0,
-  beta_y = 10.0,
+  alpha_x = 1,
+  alpha_y = 1,
+  beta_x = 10,
+  beta_y = 10,
   distribution_cutoff[0] = 3, 3, 3,
   emit_x = 4.6e-08,
   emit_y = 4.6e-08,

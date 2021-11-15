@@ -11,7 +11,7 @@ lattice_file = """
 % -0.0 sto sr_dp_s_coupling
 % 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
 % 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
-% 1000.0 sto sr_n_particles_per_bunch
+% 1000 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
 "B1": CSBEND,angle="36 pi * 180 /",l=2.54948
@@ -47,7 +47,7 @@ elegant_file = """
   centroid = "run_setup.centroid.sdds",
   lattice = "elegant.lte",
   output = "run_setup.output.sdds",
-  p_central_mev = 797.0,
+  p_central_mev = 797,
   parameters = "run_setup.parameters.sdds",
   sigma = "run_setup.sigma.sdds",
 &end

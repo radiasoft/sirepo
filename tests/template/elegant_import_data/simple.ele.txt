@@ -6,7 +6,7 @@
 &run_setup
   semaphore_file = run_setup.semaphore,
   lattice = "simple.ele.lte",
-  p_central = 85.0,
+  p_central = 85,
   use_beamline = "bl",
 &end
 
