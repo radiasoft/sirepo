@@ -783,7 +783,7 @@ class _Generate(sirepo.lib.GenerateBase):
             if info[1] == 'RPNValue':
                 field = f'bunch_{f}'
                 v[field] = _format_rpn_value(v[field], is_command=True)
-        v.bunch_p_central_mev = self._cv.eval_var_with_assert(v.bunch_p_central_mev)
+        v.bunch_p_central_mev = self._cv.eval_var_with_assert(d.models.bunch.p_central_mev)
         longitudinal_method = int(d.models.bunch.longitudinalMethod)
         # sigma s, sigma dp, dp s coupling
         if longitudinal_method == 1:
