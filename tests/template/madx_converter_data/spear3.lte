@@ -4,14 +4,14 @@ execution_mode = 'serial'
 lattice_file = """
 % pi 180 / sto degrad
 % 180 pi / sto raddeg
-% 1.0 sto sr_alpha_x
-% 1.0 sto sr_alpha_y
-% 10.0 sto sr_beta_x
-% 10.0 sto sr_beta_y
+% 1 sto sr_alpha_x
+% 1 sto sr_alpha_y
+% 10 sto sr_beta_x
+% 10 sto sr_beta_y
 % 0.0 sto sr_dp_s_coupling
 % 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
 % 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
-% 10000.0 sto sr_n_particles_per_bunch
+% 10000 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
 "B34": CSBEND,angle=0.138599675893667,e1=0.069299837946834,e2=0.069299837946834,k1=-0.33,k2=0.1415,l=1.08837093518965
@@ -61,9 +61,9 @@ lattice_file = """
 "QFY": QUAD,k1=1.317793654731,l=0.5
 "QFZ": QUAD,k1=1.41081398507,l=0.34
 "SD": SEXT,k2=-36.3607602054839,l=0.25
-"SDI": SEXT,k2=-10.0,l=0.21
+"SDI": SEXT,k2=-10,l=0.21
 "SF": SEXT,k2=29.6547246115592,l=0.21
-"SFI": SEXT,k2=9.0,l=0.21
+"SFI": SEXT,k2=9,l=0.21
 "VCOR": VKICK,l=0.1
 "HVCOR": LINE=("HCOR","VCOR")
 "HCEL1": LINE=("DC1","QF","DC2","HVCOR","BPM","DC2","QD","DC3","BEND","DC4","SD","DC5","BPM","HVCOR","DC5","SF","DC6","BPM","QFC")
@@ -89,7 +89,7 @@ elegant_file = """
   centroid = "run_setup.centroid.sdds",
   lattice = "elegant.lte",
   output = "run_setup.output.sdds",
-  p_central_mev = 3000.0,
+  p_central_mev = 3000,
   parameters = "run_setup.parameters.sdds",
   sigma = "run_setup.sigma.sdds",
 &end
@@ -103,10 +103,10 @@ elegant_file = """
 &end
 
 &bunched_beam
-  alpha_x = 1.0,
-  alpha_y = 1.0,
-  beta_x = 10.0,
-  beta_y = 10.0,
+  alpha_x = 1,
+  alpha_y = 1,
+  beta_x = 10,
+  beta_y = 10,
   distribution_cutoff[0] = 3, 3, 3,
   emit_x = 4.6e-08,
   emit_y = 4.6e-08,
