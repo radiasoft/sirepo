@@ -1563,6 +1563,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             // adjust position by z and x offsets
                             adjustPosition(pos, item.dz, item.dx);
                             newAngle = - latticeService.radiansToDegrees(Math.atan(Math.sqrt(Math.pow(rpnValue(item.dxp), 2))));
+                            pos.radius = 0;
                         }
                         else if (picType == 'mirror') {
                             if ('theta' in item) {
