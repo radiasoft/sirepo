@@ -745,6 +745,7 @@ class _Generate(sirepo.lib.GenerateBase):
         self._filename_map = None
         self._schema = SCHEMA
         self._update_output_filenames = update_output_filenames
+        self._cv = code_var(data.models.rpnVariables)
         if validate:
             self._validate_data()
 
@@ -782,6 +783,7 @@ class _Generate(sirepo.lib.GenerateBase):
             if info[1] == 'RPNValue':
                 field = f'bunch_{f}'
                 v[field] = _format_rpn_value(v[field], is_command=True)
+        v.bunch_p_central_mev = self._cv.eval_var_with_assert(v.bunch_p_central_mev)
         longitudinal_method = int(d.models.bunch.longitudinalMethod)
         # sigma s, sigma dp, dp s coupling
         if longitudinal_method == 1:
@@ -855,7 +857,12 @@ class _Generate(sirepo.lib.GenerateBase):
         if el_type.endswith('StringArray'):
             return ['{}[0]'.format(field), value]
         if el_type == 'RPNValue':
-            value = _format_rpn_value(value, is_command=LatticeUtil.is_command(model))
+            if LatticeUtil.is_command(model) and model._type == 'run_setup':
+                # run_setup RPN values need to be evaluated because the lattice contains
+                # the variables and the lattice is not loaded until after run_setup has executed
+                value = _format_rpn_value(self._cv.eval_var_with_assert(value))
+            else:
+                value = _format_rpn_value(value, is_command=LatticeUtil.is_command(model))
         elif el_type == 'OutputFile':
             value = state.filename_map[LatticeUtil.file_id(model._id, state.field_index)]
         elif el_type.startswith('InputFile'):
