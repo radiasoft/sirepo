@@ -2745,10 +2745,10 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                     '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">Variables</span>',
                   '</div>',
-                  '<div class="modal-body" style="max-height: 80vh; overflow-y: auto;">',
+                  '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<form name="form" class="form-horizontal" autocomplete="off">',
-                        '<div class="form-group form-group-sm">',
+                        '<div class="form-group form-group-sm" style="max-height: 75vh; overflow-y: auto;">',
                           '<table class="table table-striped table-condensed">',
                             '<colgroup>',
                               '<col style="width: 25%">',
@@ -2849,10 +2849,6 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                 var v = appState.models.rpnVariables[idx];
                 requestSender.sendRpn(
                     appState,
-                    {
-                        method: 'validate_rpn_delete',
-                        name: v.name,
-                    },
                     function(data) {
                         latticeService.deleteVarWarning = '';
                         if (! appState.isLoaded()) {
@@ -2865,6 +2861,10 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         else if (v == appState.models.rpnVariables[idx]) {
                             appState.models.rpnVariables.splice(idx, 1);
                         }
+                    },
+                    {
+                        method: 'validate_rpn_delete',
+                        name: v.name,
                     });
             };
 
