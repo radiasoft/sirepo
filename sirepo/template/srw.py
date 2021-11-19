@@ -143,6 +143,7 @@ _RSOPT_PARAMS = {
     i for sublist in [v for v in [list(SCHEMA.constants.rsOptElements[k].keys()) for
         k in SCHEMA.constants.rsOptElements]] for i in sublist
 }
+_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != 'rotation']
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
@@ -388,13 +389,16 @@ def export_rsopt_config(data, filename):
     v = _rsopt_jinja_context(data.models.exportRsOpt)
 
     fz = pkio.py_path(filename)
-    f = re.sub(r'[^\w\.]+', '-', fz.purebasename).strip('-')
+    f = re.sub(r'[^\w.]+', '-', fz.purebasename).strip('-')
     v.runDir = f'{f}_scan'
     v.fileBase = f
     tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
     for t in tf:
         v[f'{t}FileName'] = tf[t].file
     v.outFileName = f'{f}.out'
+    v.readmeFileName = 'README.txt'
+    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
+    v.hasLibFiles = len(v.libFiles) > 0
 
     # do this in a second loop so v is fully updated
     # note that the rsopt context is regenerated in python_source_for_model()
@@ -402,6 +406,7 @@ def export_rsopt_config(data, filename):
         tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
+    readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
 
     with zipfile.ZipFile(
         fz,
@@ -411,6 +416,7 @@ def export_rsopt_config(data, filename):
     ) as z:
         for t in tf:
             z.writestr(tf[t].file, tf[t].content)
+        z.writestr(v.readmeFileName, readme)
         for d in _SIM_DATA.lib_files_for_export(data):
             z.write(d, d.basename)
     return fz
@@ -1917,14 +1923,18 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
 
 def _rsopt_jinja_context(model):
     import multiprocessing
+    e = _process_rsopt_elements(model.elements)
     return PKDict(
         forRSOpt=True,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
-        rsOptElements=_process_rsopt_elements(model.elements),
+        rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
+        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
+        rsOptOutFileName='scan_results',
         scanType=model.scanType,
+        totalSamples=model.totalSamples,
     )
 
 

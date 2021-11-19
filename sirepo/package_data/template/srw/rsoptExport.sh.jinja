@@ -1,11 +1,25 @@
 #!/bin/bash
-echo "NOTE: remove files from {{ runDir }} first"
-SECONDS=0
-rsopt sample configuration "{{ ymlFileName }}" > "{{ outFileName }}" 2>&1
+if [ -d "{{ runDir }}" ] && [ -n "$(ls -A {{ runDir }})" ]; then
+    for f in '{{ pyFileName }}' run_parallel_python.py; do
+        rm -f "{{ runDir }}/$f"
+    done
+fi
+run_rsopt="rsopt sample configuration '{{ ymlFileName }}'"
+echo Running $run_rsopt...
+eval "$run_rsopt" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
-    echo "Completed scan in $SECONDS sec"
-    echo "NOTE: python {{ pyFileName }} rsopt_run" `tail -1 "{{ outFileName }}" | cut -d: -f2`.npy "to run SRW with generated data"
+    run_py="python '{{ pyFileName }}' rsopt_run '{{ fileBase }}.npy'"
+    read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
+    if [[ $confirm == [yY] ]]; then
+        echo Running SRW...
+        eval "$run_py"
+        echo Propagated single electron intensities are in datasets/beam_intensities.npy
+        echo Corresponding parameter values are in datasets/parameters.npy
+    else
+        echo "NOTE: to run SRW with generated data, use
+        $run_py"
+    fi
 else
     echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"
     exit 99

@@ -348,7 +348,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     offsets: [],
                 };
                 for (let f of props[p].fieldNames || []) {
-                    e[p].initial.push(item[f] || 0.0);
+                    e[p].initial.push(item[f] ? parseFloat(item[f]) : 0.0);
                 }
             }
         }
