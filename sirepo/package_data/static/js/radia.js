@@ -1298,9 +1298,9 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
               '<thead>',
                 '<tr>',
                   '<th>Cut Axis</th>',
-                  '<th>Edge Index</th>',
-                  '<th>Gap Dist</th>',
-                  '<th>Transverse Dist</th>',
+                  '<th>Cut Edge</th>',
+                  '<th>Vertical Distance From Corner</th>',
+                  '<th>Horizontal Distance From Corner</th>',
                   '<th></th>',
                 '</tr>',
               '</thead>',
@@ -1309,7 +1309,7 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             '</tr>',
                 '<tr data-ng-repeat="item in loadItems()">',
                     '<td>{{ item.cutAxis }}</td>',
-                    '<td>{{ item.edge }}</td>',
+                    '<td>{{ bevelEdge(item.edge) }}</td>',
                     '<td>{{ item.amountVert }}mm</td>',
                     '<td>{{ item.amountHoriz }}mm</td>',
                   '<td style="text-align: right">',
@@ -1341,6 +1341,15 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             $scope.addItem = function() {
                 let b = appState.setModelDefaults({}, itemModel);
                 $scope.editItem(b, true);
+            };
+
+            $scope.bevelEdge = (index) => {
+                for (let e of SIREPO.APP_SCHEMA.enum.BevelEdge) {
+                    if (e[SIREPO.ENUM_INDEX_VALUE] === index) {
+                        return e[SIREPO.ENUM_INDEX_LABEL];
+                    }
+                }
+                return '';
             };
 
             $scope.deleteItem = function(item) {
