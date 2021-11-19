@@ -389,6 +389,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         radiaService.saveGeometry(true, false);
     };
 
+    self.dipoleTitle = () => {
+        return ({
+            dipoleBasic: 'Basic',
+            dipoleC: 'C-Bend',
+            dipoleH: 'H-Bend',
+        }[self.getDipoleType()] || '') + ' Dipole';
+    };
+
     function removeFromGroup(o) {
         const gId = o.groupId;
         if (gId !== 0 && (! gId || gId === '')) {
