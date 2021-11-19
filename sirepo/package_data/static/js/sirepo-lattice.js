@@ -487,12 +487,8 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             callback(appState.models.rpnCache[value]);
             return;
         }
-        requestSender.getApplicationData(
-            {
-                method: 'rpn_value',
-                value: value,
-                variables: appState.models.rpnVariables,
-            },
+        requestSender.sendRpn(
+            appState,
             function(data) {
                 if (! data.error) {
                     if (appState.isLoaded()) {
@@ -500,7 +496,12 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
                     }
                 }
                 callback(data.result, data.error);
-            });
+            },
+            {
+                method: 'rpn_value',
+                value: value,
+            }
+	);
     };
 
     self.getRpnBooleanForField = function(model, field) {
@@ -567,16 +568,16 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         if (! recomputeRequired) {
             return;
         }
-        requestSender.getApplicationData(
-            {
-                method: 'recompute_rpn_cache_values',
-                cache: appState.models.rpnCache,
-                variables: appState.models.rpnVariables,
-            },
+        requestSender.sendRpn(
+            appState,
             function(data) {
                 if (appState.isLoaded() && data.cache) {
                     appState.models.rpnCache = data.cache;
                 }
+            },
+            {
+                method: 'recompute_rpn_cache_values',
+                cache: appState.models.rpnCache,
             });
     };
 
@@ -1562,6 +1563,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             // adjust position by z and x offsets
                             adjustPosition(pos, item.dz, item.dx);
                             newAngle = - latticeService.radiansToDegrees(Math.atan(Math.sqrt(Math.pow(rpnValue(item.dxp), 2))));
+                            pos.radius = 0;
                         }
                         else if (picType == 'mirror') {
                             if ('theta' in item) {
@@ -2744,10 +2746,10 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                     '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">Variables</span>',
                   '</div>',
-                  '<div class="modal-body" style="max-height: 80vh; overflow-y: auto;">',
+                  '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<form name="form" class="form-horizontal" autocomplete="off">',
-                        '<div class="form-group form-group-sm">',
+                        '<div class="form-group form-group-sm" style="max-height: 75vh; overflow-y: auto;">',
                           '<table class="table table-striped table-condensed">',
                             '<colgroup>',
                               '<col style="width: 25%">',
@@ -2769,7 +2771,9 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                                 '<td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="var"></div></td>',
                                 '<td><div class="col-sm-12" data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>',
                                 '<td style="vertical-align: middle">',
-                                  '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
+                                  ' <div data-disable-after-click="">',
+                                    '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
+                                  '</div>',
                                 '</td>',
                               '</tr>',
                               '<tr>',
@@ -2844,13 +2848,8 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
 
             $scope.deleteVar = function(idx) {
                 var v = appState.models.rpnVariables[idx];
-                requestSender.getApplicationData(
-                    {
-                        method: 'validate_rpn_delete',
-                        name: v.name,
-                        variables: appState.models.rpnVariables,
-                        simulationId: appState.models.simulation.simulationId,
-                    },
+                requestSender.sendRpn(
+                    appState,
                     function(data) {
                         latticeService.deleteVarWarning = '';
                         if (! appState.isLoaded()) {
@@ -2863,6 +2862,10 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         else if (v == appState.models.rpnVariables[idx]) {
                             appState.models.rpnVariables.splice(idx, 1);
                         }
+                    },
+                    {
+                        method: 'validate_rpn_delete',
+                        name: v.name,
                     });
             };
 

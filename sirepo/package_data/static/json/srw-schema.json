@@ -749,7 +749,7 @@
             "energyAvg": ["Photon energy [eV] to orient grating for", "Float", 1000],
             "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
             "rollAngle": ["Roll Angle [rad]", "Float", 0],
-            "diffractionOrder": ["Diffraction Order", "Float", 1],
+            "diffractionOrder": ["Diffraction Order", "Float", 1, "", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 350.0],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0],
             "grooveDensity2": ["a₂ [lines/mm³]", "Float", 0],

@@ -524,14 +524,8 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
 
     function calculateBunchParameters() {
         updateParticle();
-        requestSender.statelessCompute(
+        requestSender.sendStatelessCompute(
             appState,
-            {
-                method: 'calculate_bunch_parameters',
-                bunch: appState.clone(appState.models.bunch),
-                command_beam: appState.clone(appState.models.command_beam),
-                variables: appState.clone(appState.models.rpnVariables),
-            },
             function(data) {
                 if (data.command_beam && appState.isLoaded()) {
                     var beam = data.command_beam;
@@ -547,7 +541,14 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
                     });
                     appState.models.command_beam = beam;
                 }
-            });
+            },
+            {
+                method: 'calculate_bunch_parameters',
+                bunch: appState.clone(appState.models.bunch),
+                command_beam: appState.clone(appState.models.command_beam),
+                variables: appState.clone(appState.models.rpnVariables),
+            }
+	);
     }
 
     function updateLongitudinalMethod() {

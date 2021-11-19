@@ -451,6 +451,11 @@ def histogram_bins(nbins):
     return nbins
 
 
+def jinja_filename(filename):
+    # append .jinja, because file may already have an extension
+    return filename + '.jinja'
+
+
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = PKDict(
         x_points=x,
@@ -539,8 +544,7 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     Returns:
         str: source text
     """
-    # append .jinja, because file may already have an extension
-    b = f'{name}.jinja'
+    b = jinja_filename(name)
     return pkjinja.render_file(
         sirepo.sim_data.get_class(sim_type).resource_path(b) if sim_type \
             else sirepo.sim_data.resource_path(b),
@@ -585,13 +589,25 @@ def sim_frame_dispatch(frame_args):
     return res
 
 
-def stateless_compute_dispatch(data):
-    m = data.method
-    assert re.search(r'^\w{1,35}$', m), \
-        f'method={m} not a valid python function name or too long'
+def stateful_compute_dispatch(data):
+    t = sirepo.template.import_module(data.simulationType)
+    m = _validate_method(t, data)
+    if re.search(r'(?:^rpn|_rpn)_', m):
+        assert getattr(t, 'code_var')(data.variables).get_application_data(
+            data, getattr(t, 'SCHEMA'), getattr(t, 'CODE_VAR_IGNORE_ARRAY_VALUES', True)
+        ), f'unexpected false return data={data}'
+        return data
     return getattr(
-        sirepo.template.import_module(data.simulationType),
-        f'stateless_compute_{m}',
+        t,
+        f'stateful_compute_{m}',
+    )(data)
+
+
+def stateless_compute_dispatch(data):
+    t = sirepo.template.import_module(data.simulationType)
+    return getattr(
+        t,
+        f'stateless_compute_{_validate_method(t, data)}',
     )(data)
 
 
@@ -740,3 +756,10 @@ def _plot_range(report, axis):
     half_size = float(report['{}Size'.format(axis)]) / 2.0
     midpoint = float(report['{}Offset'.format(axis)])
     return [midpoint - half_size, midpoint + half_size]
+
+
+def _validate_method(template, data):
+    m = data.method
+    assert re.search(r'^\w{1,35}$', m), \
+        f'method={m} not a valid python function name or too long'
+    return m

@@ -7,6 +7,7 @@ u"""Functions for accessing resource files
 from __future__ import absolute_import, division, print_function
 from pykern import pkresource
 from pykern.pkdebug import pkdp
+import importlib
 import os
 import sirepo.feature_config
 import sirepo.util
@@ -40,6 +41,15 @@ def glob_paths(*paths):
             _join_paths(paths),
             packages=sirepo.feature_config.cfg().package_path,
     )
+
+
+def root_modules():
+    """Get all root modules in package_path
+
+    Returns:
+        [module]: root modules
+    """
+    return [importlib.import_module(p) for p in sirepo.feature_config.cfg().package_path]
 
 
 def static(*paths):

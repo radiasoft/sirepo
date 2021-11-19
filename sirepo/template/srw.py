@@ -16,7 +16,6 @@ from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
 import copy
-import glob
 import math
 import numpy as np
 import os
@@ -35,7 +34,7 @@ import uti_io
 import uti_plot_com
 import zipfile
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 PARSED_DATA_ATTR = 'srwParsedData'
 
@@ -141,8 +140,8 @@ _LOG_DIR = '__srwl_logs__'
 _JSON_MESSAGE_EXPANSION = 20
 
 _RSOPT_PARAMS = {
-    i for sublist in [v for v in [list(_SCHEMA.constants.rsOptElements[k].keys()) for
-        k in _SCHEMA.constants.rsOptElements]] for i in sublist
+    i for sublist in [v for v in [list(SCHEMA.constants.rsOptElements[k].keys()) for
+        k in SCHEMA.constants.rsOptElements]] for i in sublist
 }
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
@@ -469,7 +468,7 @@ def get_predefined_beams():
 
 def _copy_frame_args_into_model(frame_args, name):
     m = frame_args.sim_in.models[frame_args.frameReport]
-    m_schema = _SCHEMA.model[name]
+    m_schema = SCHEMA.model[name]
     for f in frame_args:
         if f in m and f in m_schema:
             m[f] = frame_args[f]
@@ -593,7 +592,7 @@ def import_file(req, tmp_dir, **kwargs):
             )
         r = r.get(PARSED_DATA_ATTR)
         r.models.simulation.simulationId = i
-        r = simulation_db.save_simulation_json(r, do_validate=True)
+        r = simulation_db.save_simulation_json(r, do_validate=True, fixup=True)
     except Exception:
         #TODO(robnagler) need to clean up simulations except in dev
         raise
@@ -660,7 +659,7 @@ def prepare_for_client(data):
                 save = True
     if save:
         pkdc("save simulation json with sim_data_template_fixup={}", data.get('sim_data_template_fixup', None))
-        simulation_db.save_simulation_json(data)
+        simulation_db.save_simulation_json(data, fixup=True)
     return data
 
 
@@ -726,6 +725,31 @@ def python_source_for_model(data, model, plot_reports=True):
     data.report = re.sub('beamlineAnimation0', 'initialIntensityReport', data.report)
     data.report = re.sub('beamlineAnimation', 'watchpointReport', data.report)
     return _generate_parameters_file(data, plot_reports=plot_reports)
+
+
+def stateful_compute_compute_undulator_length(data):
+    return compute_undulator_length(data['tabulated_undulator'])
+
+
+def stateful_compute_create_shadow_simulation(data):
+    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    return SRWShadowConverter().srw_to_shadow(data)
+
+
+def stateful_compute_delete_user_models(data):
+    return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
+
+
+def stateful_compute_model_list(data):
+    res = []
+    model_name = data['model_name']
+    if model_name == 'electronBeam':
+        res.extend(get_predefined_beams())
+    res.extend(_load_user_model_list(model_name))
+    if model_name == 'electronBeam':
+        for beam in res:
+            srw_common.process_beam_parameters(beam)
+    return PKDict(modelList=res)
 
 
 def stateless_compute_compute_PGM_value(data):
@@ -1038,8 +1062,6 @@ def _compute_PGM_value(model):
         if model.computeParametersFrom == '1': model.grazingAngle = None
         elif model.computeParametersFrom == '2': model.cff = None
 
-    pkdc("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
-           model.grazingAngle, np.fabs(model.nvz)-np.fabs(np.sin(model.grazingAngle/1000)), model.cff)
     return model
 
 def _compute_grating_orientation(model):
@@ -1226,7 +1248,7 @@ def _delete_user_models(electron_beam, tabulated_undulator):
 
 def _enum_text(name, model, field):
     if field in model:
-        return template_common.enum_text(_SCHEMA, name, model[field])
+        return template_common.enum_text(SCHEMA, name, model[field])
     return ''
 
 
@@ -1317,7 +1339,7 @@ def _extract_brilliance_report(model, filename):
 def _extract_trajectory_report(model, filename):
     data, _, _, _, _ = uti_plot_com.file_load(filename, multicolumn_data=True)
     available_axes = PKDict()
-    for s in _SCHEMA.enum.TrajectoryPlotAxis:
+    for s in SCHEMA.enum.TrajectoryPlotAxis:
         available_axes[s[0]] = s[1]
     x_points = data[model.plotAxisX]['data']
     plots = []
@@ -1572,7 +1594,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # do this before validation or arrays get turned into strings
     if report == 'rsoptExport':
         rsopt_ctx = _rsopt_jinja_context(dm.exportRsOpt)
-    _validate_data(data, _SCHEMA)
+    _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
     res, v = template_common.generate_parameters_file(data)
@@ -1699,7 +1721,7 @@ def _intensity_units(sim_in):
             i = sim_in.models[sim_in.report].fieldUnits
         else:
             i = sim_in.models.simulation.fieldUnits
-        return _SCHEMA.enum.FieldUnits[int(i)][1]
+        return SCHEMA.enum.FieldUnits[int(i)][1]
     return 'ph/s/.1%bw/mm^2'
 
 

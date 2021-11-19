@@ -19,7 +19,7 @@ import sirepo.sim_data
 
 yt = None
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _FLASH_PAR_FILE = 'flash.par'
 
@@ -108,8 +108,8 @@ def background_percent_complete(report, run_dir, is_running):
 
 def generate_config_file(run_dir, data):
 
-    field_order = _SCHEMA.constants.flashDirectives.fieldOrder
-    labels = _SCHEMA.constants.flashDirectives.labels
+    field_order = SCHEMA.constants.flashDirectives.fieldOrder
+    labels = SCHEMA.constants.flashDirectives.labels
 
     def _config_element_text(e, indent=0):
         l = ''
@@ -183,12 +183,12 @@ def setup_command(data):
             for e in v:
                 c.append(f'--with-unit={e}')
             continue
-        t = _SCHEMA.model.setupArguments[k][1]
+        t = SCHEMA.model.setupArguments[k][1]
         if t == 'SetupArgumentDimension':
             # always include the setup dimension
             c.append(f'-{v}d')
             continue
-        if v == _SCHEMA.model.setupArguments[k][2]:
+        if v == SCHEMA.model.setupArguments[k][2]:
             continue
         if t == 'Boolean':
             v == '1' and c.append(f'-{k}')
@@ -209,7 +209,7 @@ def setup_command(data):
            c.append(f'{k}={v}')
         else:
             raise AssertionError(f'type={t} not supported')
-    t = _SCHEMA.constants.flashAppName
+    t = SCHEMA.constants.flashAppName
     return [
         './setup',
         t,

@@ -11,7 +11,7 @@
   final = "%s.fin",
   lattice = "PClinac_TESSA_LSC.lte",
   magnets = "%s.mag",
-  p_central = 85.0,
+  p_central = 85,
   parameters = "%s.param",
   sigma = "%s.sig",
   use_beamline = "LTOMATCH",
@@ -64,14 +64,14 @@
   item = "PHASE",
   name = "L4CELL*",
   type = "RF*",
-  value = 95.0,
+  value = 95,
 &end
 
 &alter_elements
   item = "PHASE",
   name = "L5CELL*",
   type = "RF*",
-  value = 95.0,
+  value = 95,
 &end
 
 &alter_elements
@@ -94,14 +94,14 @@
   item = "LSC",
   name = "*",
   type = "RF*",
-  value = 1.0,
+  value = 1,
 &end
 
 &alter_elements
   item = "N_KICKS",
   name = "*",
   type = "RF*",
-  value = 5.0,
+  value = 5,
 &end
 
 &twiss_output
@@ -127,9 +127,9 @@
 &end
 
 &vary_element
-  final = 65.0,
+  final = 65,
   index_limit = 20,
-  initial = 60.0,
+  initial = 60,
   item = "PHASE",
   name = "L2CELL2",
 &end

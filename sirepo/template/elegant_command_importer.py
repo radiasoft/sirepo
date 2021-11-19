@@ -16,11 +16,11 @@ import re
 import sirepo.sim_data
 
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals('elegant')
 
 
 p = lattice.LatticeParser.COMMAND_PREFIX
-_TYPES = set([n[len(p):] for n in _SCHEMA['model'] if n.startswith(p)])
+_TYPES = set([n[len(p):] for n in SCHEMA['model'] if n.startswith(p)])
 del p
 
 
@@ -43,7 +43,7 @@ def import_file(text, update_filenames=True):
         # convert macro variables into rpnVariables
         n = lattice.LatticeUtil.model_name_for_data(cmd)
         for field in cmd:
-            el_schema = _SCHEMA.model[n].get(field)
+            el_schema = SCHEMA.model[n].get(field)
             if el_schema and el_schema[1] == 'RPNValue':
                 m = re.search(r'^<(\w+)>$', str(cmd[field]))
                 if m:

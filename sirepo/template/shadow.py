@@ -14,7 +14,7 @@ from sirepo.template.template_common import ModelUnits
 import re
 import sirepo.sim_data
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 BEAM_STATS_FILE = 'beam_stats.json'
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
@@ -170,8 +170,8 @@ def _divide_drifts(beamline, count):
 
 
 def _eq(item, field, *values):
-    t = _SCHEMA.model[item.type][field][1]
-    for v, n in _SCHEMA.enum[t]:
+    t = SCHEMA.model[item.type][field][1]
+    for v, n in SCHEMA.enum[t]:
         if item[field] == v:
             return n in values
     raise AssertionError(
@@ -547,7 +547,7 @@ def _generate_mirror(item):
 
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
-    _validate_data(data, _SCHEMA)
+    _validate_data(data, SCHEMA)
     _scale_units(data)
     v = template_common.flatten_data(data.models, PKDict())
     r = data.report

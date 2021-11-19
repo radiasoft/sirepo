@@ -198,11 +198,8 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
 
     function updateBeamInputType(cmd) {
         // detemine the input file type (elegant or spiffe)
-        requestSender.getApplicationData(
-            {
-                method: 'get_beam_input_type',
-                input_file: 'bunchFile-sourceFile.' + cmd.input,
-            },
+        requestSender.sendStatefulCompute(
+            appState,
             function(data) {
                 if (appState.isLoaded() && data.input_type) {
                     cmd.input_type = data.input_type;
@@ -212,7 +209,12 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
                     }
                     appState.saveQuietly('commands');
                 }
-            });
+            },
+            {
+                method: 'get_beam_input_type',
+                input_file: 'bunchFile-sourceFile.' + cmd.input,
+            }
+	);
     }
 
     function updateBunchFromCommand(bunch, cmd) {
