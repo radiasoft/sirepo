@@ -3787,73 +3787,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         updateObjectEditor();
     };
 
-    //TODO(mvk): move to server
-    function calcExtrusionPoints() {
-        $scope.modelData.points = [];
-        //const mn = 'extrudedPoly';
-        const mn = 'stemmed';
-        if (! appState.isSubclass(modelType, mn)) {
-            return;
-        }
-        let m = appState.models[mn];
-        const ai = radiaService.getAxisIndices();
-        size = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
-        ctr = utilities.splitCommaDelimitedString($scope.modelData.center, parseFloat);
-        const c = [ctr[ai.width], ctr[ai.height]];
-        const s = [size[ai.width], size[ai.height]];
-        // Radia wants the points in the plane in a specific order
-        const doReverse = ai.width !== (ai.depth + 1) % 3;
-
-        // start with arm top, stem left - then reflect across centroid axes as needed
-        const ax1 = c[0] - s[0] / 2;
-        const ax2 = ax1 + s[0];
-        const ay1 = c[1] + s[1] / 2;
-        const ay2 = ay1 - m.armHeight;
-
-        const sx1 = c[0] - s[0] / 2;
-        const sx2 = sx1 + m.stemWidth;
-        const sy1 = c[1] - s[1] / 2;
-        const sy2 = sy1 + m.armHeight;
-
-        const k = [parseInt(m.stemPosition), parseInt(m.armPosition)];
-        let pts = [];
-        if (modelType === 'cee') {
-            pts = [
-                [ax1, ay1], [ax2, ay1], [ax2, ay2],
-                [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
-                [ax1, ay1]
-            ];
-        }
-        if (modelType === 'ell') {
-            pts = [
-                [ax1, ay1], [ax2, ay1], [ax2, ay2],
-                [sx2, ay2], [sx2, sy1], [sx1, sy1],
-                [ax1, ay1]
-            ];
-        }
-        if (modelType === 'jay') {
-            const j = appState.models.jay;
-            const jx1 = c[0] + s[0] / 2 - j.hookWidth;
-            const jy1 = ay2 - j.hookHeight;
-            pts = [
-                [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
-                [sx2, ay2], [sx2, sy1], [sx1, sy1],
-                [ax1, ay1]
-            ];
-        }
-        $scope.modelData.points = pts.map((p) => {
-            return p.map((v, i) => {
-                return 2 * c[i] * k[i] + Math.pow(-1, k[i]) *  v;
-            });
-        })
-        .map((p) => {
-            if (doReverse) {
-                return p.reverse();
-            }
-            return p;
-        });
-    }
-
     function modelField(f) {
         const m = appState.parseModelField(f);
         return m ? m : [parent.modelName, f];
@@ -3861,7 +3794,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     function updateObjectEditor() {
         modelType = appState.models.geomObject.type;
-        //calcExtrusionPoints();
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
             let hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;

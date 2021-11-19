@@ -379,15 +379,6 @@ def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
     )
 
 
-def _build_ell(beam_axis, height_axis, **kwargs):
-    return _update_ell(
-        _build_geom_obj('ell', obj_name=kwargs.get('name')),
-        beam_axis,
-        height_axis,
-        **kwargs
-    )
-
-
 # have to include points for file type?
 def _build_field_file_pts(f_path):
     pts_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
@@ -519,22 +510,13 @@ def _build_undulator_objects(geom, und, beam_axis, height_axis):
     geom.objects = []
     #TODO(mvk): proper dispatch to replace this temporary branching based on object type
     # It's going to depend on some other changes
-    if und.poleObjType == 'ell':
-        half_pole = _build_ell(beam_axis, height_axis, name='Half Pole')
-    else:
-        half_pole = _build_cuboid(name='Half Pole')
+    half_pole = _build_obj(und.poleObjType, beam_axis, height_axis, name='Half Pole')
     geom.objects.append(half_pole)
-    if und.magnetObjType == 'ell':
-        magnet_block = _build_ell(beam_axis, height_axis, name='Magnet Block')
-    else:
-        magnet_block = _build_cuboid(name='Magnet Block')
+    magnet_block = _build_obj(und.magnetObjType, beam_axis, height_axis, name='Magnet Block')
     geom.objects.append(magnet_block)
     und.magnet = magnet_block
     und.magnetBaseObjectId = magnet_block.id
-    if und.poleObjType == 'ell':
-        pole = _build_ell(beam_axis, height_axis, name='Pole')
-    else:
-        pole = _build_cuboid(name='Pole')
+    pole = _build_obj(und.poleObjType, beam_axis, height_axis, name='Pole')
     geom.objects.append(pole)
     und.pole = pole
     und.poleBaseObjectId = pole.id
@@ -566,12 +548,26 @@ def _build_field_axis(length, beam_axis):
     return f
 
 
+def _build_obj(obj_type, beam_axis, height_axis, **kwargs):
+    return globals()[f'_update_{obj_type}'](
+        _build_geom_obj(obj_type, obj_name=kwargs.get('name')),
+        beam_axis,
+        height_axis,
+        **kwargs
+    )
+
+
 # deep copy of an object, but with a new id
 def _copy_geom_obj(o):
     import copy
     o_copy = copy.deepcopy(o)
     o_copy.id = str(uuid.uuid4())
     return o_copy
+
+
+def _delim_string(val=None, default_val=None):
+    d = default_val if default_val is not None else []
+    return sirepo.util.to_comma_delimited_string(val if val is not None else d)
 
 
 _FIELD_PT_BUILDERS = {
@@ -1101,18 +1097,6 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
     return path
 
 
-def _validate_objects(objects):
-    from numpy import linalg
-    for o in objects:
-        if 'material' in o and o.material in SCHEMA.constants.anisotropicMaterials:
-            if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
-                raise ValueError(
-                    'name={}, : material={}: anisotropic material requires non-0 magnetization'.format(
-                        o.name, o.material
-                    )
-                )
-
-
 def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     s = _get_sdds(_KICK_MAP_COLS, _KICK_MAP_UNITS)
     s.setDescription(f'Kick Map for {name}', 'x(m), y(m), h(T2m2), v(T2m2)')
@@ -1142,48 +1126,6 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-def _undulator_termination_name(index, term_type):
-    return f'termination.{term_type}.{index}'
-
-
-def _update_cee(o, beam_axis, height_axis, **kwargs):
-    o = _update_geom_obj(o, **kwargs)
-    _update_cee_points(o, beam_axis, height_axis)
-    return o
-
-
-def _update_cee_points(cee, beam_axis, height_axis):
-    w, h, b, c, s = _stemmed_geometry(cee, beam_axis, height_axis)
-
-    # start with arm top, stem left - then reflect across centroid axes as needed
-    ax1 = c[0] - s[0] / 2
-    ax2 = ax1 + s[0]
-    ay1 = c[1] + s[1] / 2
-    ay2 = ay1 - cee.armHeight
-
-    sx1 = c[0] - s[0] / 2
-    sx2 = sx1 + cee.stemWidth
-    sy1 = c[1] - s[1] / 2
-    sy2 = sy1 + cee.armHeight
-
-    cee.points = [
-        [ax1, ay1], [ax2, ay1], [ax2, ay2],
-        [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
-        [ax1, ay1]
-    ]
-    cee.points = _update_extrusion_points(cee.points, c, [int(cee.stemPosition), int(cee.armPosition)], w, b)
-
-
-def _update_cuboid(o, _, __, **kwargs):
-    return _update_geom_obj(o, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
-
-
-def _update_ell(ell, beam_axis, height_axis, **kwargs):
-    ell = _update_geom_obj(ell, **kwargs)
-    _update_ell_points(ell, beam_axis, height_axis)
-    return ell
-
-
 def _stemmed_geometry(o, beam_axis, height_axis):
     w, h, b = _geom_directions(beam_axis, height_axis)
     ctr = sirepo.util.split_comma_delimited_string(o.center, float)
@@ -1191,27 +1133,81 @@ def _stemmed_geometry(o, beam_axis, height_axis):
     return w, h, b, [numpy.sum(w * ctr), numpy.sum(h * ctr)], [numpy.sum(w * sz), numpy.sum(h * sz)]
 
 
-def _update_ell_points(ell, beam_axis, height_axis):
-    w, h, b, c, s = _stemmed_geometry(ell, beam_axis, height_axis)
+def _undulator_termination_name(index, term_type):
+    return f'termination.{term_type}.{index}'
 
-    # start with arm top, stem left - then reflect across centroid axes as needed
-    ax1 = c[0] - s[0] / 2
-    ax2 = ax1 + s[0]
-    ay1 = c[1] + s[1] / 2
-    ay2 = ay1 - ell.armHeight
 
-    sx1 = c[0] - s[0] / 2
-    sx2 = sx1 + ell.stemWidth
-    sy1 = c[1] - s[1] / 2
+def _update_cee(o, beam_axis, height_axis, **kwargs):
+    return _update_cee_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
 
-    ell.points = [
-        [ax1, ay1], [ax2, ay1], [ax2, ay2],
-        [sx2, ay2], [sx2, sy1], [sx1, sy1],
-        [ax1, ay1]
-    ]
-    ell.points = _update_extrusion_points(
-        ell.points, c, [int(ell.stemPosition), int(ell.armPosition)], w, b
+
+def _update_cee_points(o, beam_axis, height_axis):
+    g = _update_stemmed_points(o, beam_axis, height_axis)
+    w, h, b, c, s = g.geom
+    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
+
+    sy2 = sy1 + o.armHeight
+
+    o.points = _update_extrusion_points(
+        [
+            [ax1, ay1], [ax2, ay1], [ax2, ay2],
+            [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
+            [ax1, ay1]
+        ],
+        c,
+        [int(o.stemPosition), int(o.armPosition)],
+        w,
+        b
     )
+    return o
+
+
+def _update_cuboid(o, _, __, **kwargs):
+    return _update_geom_obj(o, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
+
+
+def _update_ell(o, beam_axis, height_axis, **kwargs):
+    return _update_ell_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
+
+
+def _update_ell_points(o, beam_axis, height_axis):
+    g = _update_stemmed_points(o, beam_axis, height_axis)
+    w, h, b, c, s = g.geom
+    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
+
+    o.points = _update_extrusion_points(
+        [
+            [ax1, ay1], [ax2, ay1], [ax2, ay2],
+            [sx2, ay2], [sx2, sy1], [sx1, sy1],
+            [ax1, ay1]
+        ],
+        c,
+        [int(o.stemPosition), int(o.armPosition)],
+        w,
+        b
+    )
+    return o
+
+
+def _update_jay_points(o, beam_axis, height_axis):
+    g = _update_stemmed_points(o, beam_axis, height_axis)
+    w, h, b, c, s = g.geom
+    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
+    jx1 = c[0] + s[0] / 2 - o.hookWidth
+    jy1 = ay2 - o.hookHeight
+
+    o.points = _update_extrusion_points(
+        [
+            [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
+            [sx2, ay2], [sx2, sy1], [sx1, sy1],
+            [ax1, ay1]
+        ],
+        c,
+        [int(o.stemPosition), int(o.armPosition)],
+        w,
+        b
+    )
+    return o
 
 
 def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
@@ -1268,10 +1264,7 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
             size=pole_sz,
             transforms=[_build_symm_xform(height_dir, _ZERO, 'parallel')]
         )
-        _update_geom_obj(
-            m_obj,
-            center=mag_ctr
-        )
+        _update_geom_obj(m_obj, center=mag_ctr)
         _update_geom_obj(
             c_obj,
             center=mag_ctr + mag_sz * width_dir / 2 - m.stemWidth * width_dir / 2
@@ -1285,11 +1278,7 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
         pole_ctr = pole_sz * height_dir / 2 + dipole.gap * height_dir / 2 + \
             pole_sz * length_dir / 2 + \
             pole_sz * width_dir / 2
-        _update_geom_obj(
-            p_obj,
-            center=pole_ctr,
-            size=pole_sz
-        )
+        _update_geom_obj(p_obj, center=pole_ctr, size=pole_sz)
         _update_geom_obj(
             _find_obj_by_id(geom.objects, m.id),
             center=mag_sz / 2 - mag_sz * length_dir / 2
@@ -1442,7 +1431,7 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
             magnet_block,
             None,
             None,
-            segments = props.segs
+            segments=props.segs
         )
     und.magnetBaseObjectId = magnet_block.id
     obj_props.magnet.bevels = magnet_block.get('bevels', [])
@@ -1575,13 +1564,32 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
     return o
 
 
+def _update_jay(o, beam_axis, height_axis, **kwargs):
+    return _update_jay_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
+
+
 def _update_racetrack(o, _, __, **kwargs):
     return _update_geom_obj(o)
 
 
-def _delim_string(val=None, default_val=None):
-    d = default_val if default_val is not None else []
-    return sirepo.util.to_comma_delimited_string(val if val is not None else d)
+def _update_stemmed_points(o, beam_axis, height_axis):
+    w, h, b, c, s = _stemmed_geometry(o, beam_axis, height_axis)
+
+    # start with arm top, stem left - then reflect across centroid axes as needed
+    ax1 = c[0] - s[0] / 2
+    ax2 = ax1 + s[0]
+    ay1 = c[1] + s[1] / 2
+    ay2 = ay1 - o.armHeight
+
+    sx1 = c[0] - s[0] / 2
+    sx2 = sx1 + o.stemWidth
+    sy1 = c[1] - s[1] / 2
+
+    return PKDict(
+        geom=(w, h, b, c, s),
+        indices=[int(o.stemPosition), int(o.armPosition)],
+        points=(ax1, ax2, ay1, ay2, sx1, sx2, sy1),
+    )
 
 
 def _update_group(g, members, do_replace=False):
@@ -1601,6 +1609,18 @@ def _update_kickmap(km, und, beam_axis):
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods
     km.periodLength = und.periodLength
+
+
+def _validate_objects(objects):
+    from numpy import linalg
+    for o in objects:
+        if 'material' in o and o.material in SCHEMA.constants.anisotropicMaterials:
+            if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
+                raise ValueError(
+                    'name={}, : material={}: anisotropic material requires non-0 magnetization'.format(
+                        o.name, o.material
+                    )
+                )
 
 
 _H5_PATH_ID_MAP = _geom_h5_path('idMap')
