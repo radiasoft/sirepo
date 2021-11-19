@@ -1898,6 +1898,7 @@ SIREPO.app.directive('numberList', function() {
         scope: {
             field: '=',
             info: '<',
+            model: '<',
             type: '@',
             count: '@',
         },
@@ -1908,6 +1909,7 @@ SIREPO.app.directive('numberList', function() {
             '</div>'
         ].join(''),
         controller: function($scope) {
+            let lastModel = null;
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
             //TODO(pjm): share implementation with enumList
@@ -1916,6 +1918,11 @@ SIREPO.app.directive('numberList', function() {
                 $scope.field = $scope.values.join(', ');
             };
             $scope.parseValues = function() {
+                // the model can change - reset the values in that case
+                if (! lastModel || lastModel !== $scope.model) {
+                    lastModel = $scope.model;
+                    $scope.values = null;
+                }
                 if ($scope.field && ! $scope.values) {
                     $scope.values = $scope.field.split(/\s*,\s*/);
                 }
