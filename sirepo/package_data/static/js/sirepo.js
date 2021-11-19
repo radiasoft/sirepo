@@ -820,7 +820,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.superClasses = (modelName) => {
         const m = SIREPO.APP_SCHEMA.model[modelName];
         const f = '_super';
-        if (! m || ! f in m) {
+        if (! m || ! m[f]) {
             return [];
         }
         // the first two slots are the label (usually '_') and 'model'

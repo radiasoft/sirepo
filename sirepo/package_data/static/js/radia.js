@@ -261,7 +261,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             appState.models[c] = model;
         }
         return s;
-    }
+    };
 
     self.upload = function(inputFile) {
         upload(inputFile);
@@ -3996,7 +3996,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             $scope.modelName,
             'dipoleType',
             model.magnetType === 'dipole'
-        )
+        );
         panelState.enableField(
             $scope.modelName,
             'dipoleType',
@@ -4027,7 +4027,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         model = appState.models[$scope.modelName];
         //$scope.modelData = model;
         updateSimEditor();
-    }
+    };
 
     $scope.$on(`${$scope.modelName}.editor.show`, () => {
         model = appState.models[$scope.modelName];
