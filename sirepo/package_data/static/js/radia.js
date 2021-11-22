@@ -3767,10 +3767,8 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
 });
 
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, utilities, $scope) {
-    let ctr = [];
     let modelType = null;
     const parent = $scope.$parent;
-    let size = [];
 
     $scope.watchFields = [
         [
@@ -3829,19 +3827,18 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         }
 
         $scope.$on('cancelChanges', (e, d) => {
-            //srdbg('CANCEL', d);
-        });
-        $scope.$on('modelChanged', (e, d) => {
-            //srdbg('MODEL CH', d);
-            if (d === 'geomObject' && appState.models.geomObject.id === activeModel().id) {
-                //srdbg('OBJ CH, SAVE DIPOLE');
-                appState.models[$scope.modelName][activeObjName()] = appState.models.geomObject;
-                appState.saveChanges($scope.modelName);
+            // geometryReport is not part of the superclass chain and needs to be handled
+            // separately
+            if (d !== 'geometryReport') {
+                appState.cancelChanges('geometryReport');
             }
         });
 
-        $scope.$on(`${$scope.modelName}.changed`, () => {
-            //appState.saveChanges('geometryReport');
+        $scope.$on('modelChanged', (e, d) => {
+            if (d === 'geomObject' && appState.models.geomObject.id === activeModel().id) {
+                appState.models[$scope.modelName][activeObjName()] = appState.models.geomObject;
+                appState.saveChanges($scope.modelName);
+            }
         });
 
         $scope.whenSelected = function() {
