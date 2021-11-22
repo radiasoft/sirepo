@@ -1073,7 +1073,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     // calculate the size
                     let s = [0, 0, 0];
                     const sides = utilities.splitCommaDelimitedString(o.sides, parseFloat);
-                    const radii = utilities.splitCommaDelimitedString(o.radii, parseFloat)
+                    const radii = utilities.splitCommaDelimitedString(o.radii, parseFloat);
                     const i = geometry.basis.indexOf(o.axis);
                     s[i] = o.height;
                     for (let j of [0, 1]) {
