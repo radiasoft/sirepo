@@ -768,7 +768,7 @@
         },
         "simulation": {
             "distanceFromSource": 20,
-            "documentationUrl": "https://www.bnl.gov/ps/beamlines/beamline.php?r=11-ID",
+            "documentationUrl": "https://www.bnl.gov/nsls2/beamlines/beamline.php?r=11-ID",
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II CHX beamline",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
