@@ -82,9 +82,7 @@ def analysis_job_output_files(data):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    if is_running:
-        return PKDict(percentComplete=0)
-    return PKDict(percentComplete=100)
+    return PKDict(percentComplete=0 if is_running else 100)
 
 
 def stateless_compute_metadata(data):
