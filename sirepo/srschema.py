@@ -233,6 +233,9 @@ def _validate_number(val, sch_field_info):
     # used for other purposes, so we return rather than fail for non-numeric values
     except ValueError:
         return
+    # ignore object-valued fields
+    except TypeError:
+        return
     if fv < fmin:
         raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
     if len(sch_field_info) > 5:
