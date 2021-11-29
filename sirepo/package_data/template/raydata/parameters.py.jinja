@@ -6,7 +6,11 @@ from pykern.pkdebug import pkdlog, pkdexc
 
 def _main():
     try:
-       os.makedirs('{{ scan_dir }}')
+        # Creating the directory acts as a lock. If we are able to
+        # create the dir then we get the "lock". If the dir already
+        # exists then another agent has it locked or the analysis is
+        # completed.
+        os.makedirs('{{ scan_dir }}')
     except FileExistsError:
         return
     # TODO(e-carlin): this save_chdir will have a path that doesn't
