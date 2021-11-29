@@ -142,7 +142,7 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            input_name=str(run_dir.join(data.models.analysisAnimation.notebook)),
+            input_name=run_dir.join(data.models.analysisAnimation.notebook),
             output_name=_OUTPUT_FILE,
             scan_dir=_dir_for_scan_uuid(s),
             scan_uuid=s,
