@@ -255,6 +255,7 @@ def _do_stateful_compute(msg, template):
 def _do_stateless_compute(msg, template):
     return _dispatch_compute(msg)
 
+
 def _maybe_parse_user_alert(exception, error=None):
     e = error or str(exception)
     if isinstance(exception, sirepo.util.UserAlert):
