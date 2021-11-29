@@ -291,9 +291,9 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		if (runStatusInterval) {
 		    return;
 		}
-		// TODO(e-carlin): where should we get the interval time from?
-		// normally we get from nextRequest
-		runStatusInterval = $interval(() => runStatus(false), 500);
+		// POSIT: 2000 ms is the nextRequestSeconds interval
+		// the supervisor uses.
+		runStatusInterval = $interval(() => runStatus(false), 2000);
 	    }
 
 	    $scope.enableModalClick = function(scan) {
