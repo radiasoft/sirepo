@@ -78,7 +78,7 @@ def analysis_job_output_files(data):
         for f in sorted(glob.glob(str(d.join('*.png'))), key=os.path.getmtime):
             yield pkio.py_path(f)
 
-    return PKDict(data=list(map(_filename_and_image, _paths())))
+    return PKDict(data=[_filename_and_image(p) for p in _paths()])
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -92,7 +92,7 @@ def stateless_compute_metadata(data):
 
 
 def stateless_compute_scan_info(data):
-    return _scan_info_result(list(map(_scan_info, data.scans)))
+    return _scan_info_result([_scan_info(s) for s in data.scans])
 
 
 def stateless_compute_scans(data):
