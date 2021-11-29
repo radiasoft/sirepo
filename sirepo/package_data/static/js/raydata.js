@@ -420,36 +420,6 @@ SIREPO.app.directive('appHeader', function(appState) {
     };
 });
 
-SIREPO.app.directive('htmlAsString', function() {
-    return {
-        restrict: 'A',
-        scope: {
-	    html: '<',
-	    changeEvent: '@',
-	},
-        template: `
-            <element-to-replace></element-to-replace>
-        `,
-	controller: function($compile, $element, $timeout, $scope) {
-	    let currentElement = $element;
-	    function compile() {
-		$compile($scope.html)($scope , function(compiledContent){
-		    const r = angular.element(compiledContent);
-		    currentElement.replaceWith(r);
-		    currentElement = r;
-		});
-	    }
-	    $scope.$on($scope.changeEvent, function(){
-		// Need to wait one digest cycle before compile. The
-		// new html is available on scope in the cycle after
-		// the changEvent is emitted.
-		$timeout(compile, 0);
-	    });
-	    compile();
-	}
-    };
-});
-
 SIREPO.app.directive('metadataTable', function() {
     return {
         restrict: 'A',
@@ -555,9 +525,9 @@ SIREPO.app.directive('pngImage', function(plotting) {
 	    image: '@'
 	},
         template: `<img class="img-responsive" id="{{ id }}" />`,
-	controller: function(raydataService, $element, $scope, $timeout) {
+	controller: function(raydataService, $element, $scope) {
 	    $scope.id = raydataService.nextPngImageId();
-	    $timeout(raydataService.setPngDataUrl($element.children()[0], $scope.image), 0);
+	    raydataService.setPngDataUrl($element.children()[0], $scope.image);
 	}
     };
 });
