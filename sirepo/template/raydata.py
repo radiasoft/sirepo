@@ -75,7 +75,7 @@ def analysis_job_output_files(data):
 
     def _paths():
         d = _dir_for_scan_uuid(_parse_scan_uuid(data))
-        for f in sorted(glob.glob(str(d.join('*.png'))), key=os.path.getmtime):
+        for f in pkio.sorted_glob(d.join('*.png'), key='mtime'):
             yield pkio.py_path(f)
 
     return PKDict(data=[_filename_and_image(p) for p in _paths()])
