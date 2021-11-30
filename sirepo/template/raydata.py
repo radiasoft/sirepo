@@ -131,8 +131,7 @@ def _catalog():
 
 def _dir_for_scan_uuid(scan_uuid):
     return pkio.py_path(sirepo.util.safe_path(
-        sirepo.srdb.root(),
-        sirepo.feature_config.for_sim_type(SIM_TYPE).data_dir,
+        str(sirepo.feature_config.for_sim_type(SIM_TYPE).data_dir),
         scan_uuid,
     ))
 
