@@ -11,6 +11,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import asyncio
+import copy
 import functools
 import signal
 import sirepo.events
@@ -158,11 +159,22 @@ class _ServerSrtime(_JsonPostRequestHandler):
 class _ServerReqRunMulti(_ServerReq):
 
     async def post(self):
+        async def _await_reply(content, handler):
+            r = copy.deepcopy(content.data)
+            del r['models']
+            return PKDict(
+                # OPTIMIZATION: return just a few details of the
+                # reuqest (ex computeModel) so we know which request
+                # the response is for. But, not the whole thing which
+                # may be a lot (all of models) and is not used
+                request=r,
+                response=await _incoming(content, handler),
+            )
         b = pkjson.load_any(self.request.body)
         futures = []
         for m in b.data:
             i = functools.partial(
-                _incoming,
+                _await_reply,
                 m.pkupdate(serverSecret=b.serverSecret, api=m.data.api),
                 self,
             )

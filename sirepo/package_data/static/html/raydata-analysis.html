@@ -2,9 +2,14 @@
   <div class="row">
     <div class="clearfix"></div>
     <div class="col-md-8 col-xl-6">
-        <div data-loading-and-error-panel="" data-model-key="{{ analysis.modelKey }}">
-      <div data-analysis-status-panel="" data-args="args"></div>
-        </div>
+      <div data-loading-and-error-panel="" data-model-key="{{ analysis.modelKey }}">
+        <div data-analysis-status-panel="" data-args="args"></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="simulationStatus">
+        <div data-sim-status-panel="analysis.simState" data-start-function="analysis.startSimulation()"></div>
+      </div>
     </div>
   </div>
 </div>

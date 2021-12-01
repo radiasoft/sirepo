@@ -58,14 +58,19 @@
         "planMetadata": {
             "notes": ["Notes", "Text", ""]
 	},
+	"pollBlueskyForScansAnimation": {
+	    "minutes": ["Minutes to poll for", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
+	},
 	"scans": {},
-        "simulationStatus": {}
+        "simulationStatus": {
+            "notes": ["Notes", "Text", ""]
+	}
     },
     "strings": {
         "completionState": "",
         "simulationDataType": "notebook",
         "simulationDataTypePlural": "notebooks",
-        "typeOfSimulation": "analysis"
+        "typeOfSimulation": "poll"
     },
     "view": {
         "analysisMetadata": {
@@ -105,8 +110,13 @@
             "advanced": []
         },
         "simulationStatus": {
-            "title": "Analysis Status",
-            "advanced": []
+            "title": "Poll For New Scans",
+            "advanced": [
+		"notes"
+	    ],
+	    "basic": [
+                "pollBlueskyForScansAnimation.minutes"
+	    ]
         }
     }
 }
