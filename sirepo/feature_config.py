@@ -107,10 +107,6 @@ def _init():
             msg,
         )
 
-    def _raydata_data_dir(path):
-        from sirepo import srdb
-        return srdb.root().join(path)
-
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
@@ -126,7 +122,7 @@ def _init():
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         raydata=dict(
             # POSIT: Included in sirepo.job_driver.docker.cfg.aux_volumes
-            data_dir=(None, _raydata_data_dir, 'dir to store raydata output under sirepo.srdb.root')
+            data_dir=(None, pkio.py_path, 'abspath of dir to store raydata analysis output')
         ),
         sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
