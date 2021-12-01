@@ -24,11 +24,7 @@ import sirepo.util
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 # TODO(e-carlin): from user
-_CATALOG_NAME = 'chxmulti'
-
-# POSIT: Matches mask_path in
-# https://github.com/radiasoft/raydata/blob/main/AnalysisNotebooks/XPCS_SAXS/XPCS_SAXS.ipynb
-_MASK_PATH = 'masks'
+_CATALOG_NAME = 'chx'
 
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
@@ -113,16 +109,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir),
     )
-    m = data.models.inputFiles.mask
-    if m:
-        d = run_dir.join(_MASK_PATH)
-        pkio.mkdir_parent(d)
-        for f, b in sirepo.util.read_zip(pkio.py_path(_SIM_DATA.lib_file_name_with_model_field(
-                'inputFiles',
-                'mask',
-                m,
-        ))):
-            d.join(f).write_binary(b)
 
 
 def _catalog():
@@ -138,10 +124,16 @@ def _dir_for_scan_uuid(scan_uuid):
 
 def _generate_parameters_file(data, run_dir):
     s = _parse_scan_uuid(data)
+    m = run_dir.join(_SIM_DATA.lib_file_name_with_model_field(
+                'inputFiles',
+                'mask',
+                data.models.inputFiles.mask,
+        )) if data.models.inputFiles.mask else None
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
             input_name=run_dir.join(data.models.analysisAnimation.notebook),
+            mask_path=m,
             output_name=_OUTPUT_FILE,
             scan_dir=_dir_for_scan_uuid(s),
             scan_uuid=s,

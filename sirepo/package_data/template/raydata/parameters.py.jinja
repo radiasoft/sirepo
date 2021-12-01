@@ -4,6 +4,11 @@ import papermill
 from pykern import pkio
 from pykern.pkdebug import pkdlog, pkdexc
 
+# POSIT: Matches mask_path in
+# https://github.com/radiasoft/raydata/blob/main/AnalysisNotebooks/XPCS_SAXS/XPCS_SAXS.ipynb
+_MASK_DIR = 'masks'
+
+
 def _main():
     try:
         # Creating the directory acts as a lock. If we are able to
@@ -17,13 +22,19 @@ def _main():
     # make sense on user's machine when user downloads parameters.py
     # (could expose our paths too)
     with pkio.save_chdir('{{ scan_dir }}'):
+        if '{{ mask_path }}':
+            import sirepo.util
+            d = pkio.py_path(_MASK_DIR)
+            pkio.mkdir_parent(d)
+            for f, b in sirepo.util.read_zip('{{ mask_path }}'):
+                d.join(f).write_binary(b)
         try:
             papermill.execute_notebook(
                 input_path='{{ input_name }}',
                 kernel_name='py3',
                 log_output=True,
                 output_path='{{ output_name }}',
-                parameters=dict(uid='{{ scan_uid }}'),
+                parameters=dict(uid='{{ scan_uuid }}'),
             )
         except Exception:
             pkdlog('Error running uid={} error={}', '{{ scan_uid }}', pkdexc())
