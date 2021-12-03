@@ -46,6 +46,9 @@
         "analysisMetadata": {
             "notes": ["Notes", "Text", ""]
 	},
+        "analysisStatus": {
+            "notes": ["Notes", "Text", ""]
+	},
         "generalMetadata": {
             "notes": ["Notes", "Text", ""]
 	},
@@ -67,6 +70,12 @@
     "view": {
         "analysisMetadata": {
             "title": "Analysis",
+            "advanced": [
+		"notes"
+	    ]
+        },
+        "analysisStatus": {
+            "title": "Analysis Status",
             "advanced": [
 		"notes"
 	    ]

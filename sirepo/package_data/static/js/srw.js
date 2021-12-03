@@ -1670,28 +1670,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
     };
 });
 
-SIREPO.app.directive('headerTooltip', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            tipText: '=headerTooltip',
-        },
-        template: [
-            '<span class="glyphicon glyphicon-info-sign sr-info-pointer"></span>',
-        ],
-        link: function link(scope, element) {
-            $(element).tooltip({
-                title: scope.tipText,
-                html: true,
-                placement: 'bottom',
-            });
-            scope.$on('$destroy', function() {
-                $(element).tooltip('destroy');
-            });
-        },
-    };
-});
-
 //TODO(pjm): refactor and generalize with mirrorUpload
 SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload, requestSender, simulationQueue) {
     return {

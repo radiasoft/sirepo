@@ -83,6 +83,7 @@ class DockerDriver(job_driver.DriverBase):
                 int,
                 'how long to wait for agent start',
             ),
+            aux_volumes=(tuple(), tuple, 'Additional volumes mounted in the container (ex. raydata)'),
             constrain_resources=(True, bool, 'apply --cpus and --memory constraints'),
             dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
@@ -259,18 +260,21 @@ class DockerDriver(job_driver.DriverBase):
 
     def _volumes(self):
         res = []
-        def _res(src, tgt):
-            res.append('--volume={}:{}'.format(src, tgt))
+        def _res(vol, mode=None):
+            t = s = pkio.py_path(vol)
+            if mode:
+                t += f':{mode}'
+            res.append('--volume={}:{}'.format(s, t))
 
         if self.cfg.dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
             #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
-                v = pkio.py_path(v)
-                # pyenv and src shouldn't be writable, only rundir
-                _res(v, v + ':ro')
+                _res(v, mode='ro')
+            for v in self.cfg.aux_volumes:
+                _res(v)
         # SECURITY: Must only mount the user's directory
-        _res(self._user_dir, self._user_dir)
+        _res(self._user_dir)
         return tuple(res)
 
 

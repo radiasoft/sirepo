@@ -218,6 +218,14 @@ class ParticleEnergy():
         cls.__set_from_beta(particle, energy)
 
 
+def analysis_job_dispatch(data):
+    t = sirepo.template.import_module(data.simulationType)
+    return getattr(
+        t,
+        f'analysis_job_{_validate_method(t, data)}',
+    )(data)
+
+
 def compute_field_range(args, compute_range):
     """ Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to
