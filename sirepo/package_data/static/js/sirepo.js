@@ -1398,7 +1398,7 @@ SIREPO.app.factory('authService', function(authState, requestSender, stringsServ
  *     return self;
  * });
  * */
-SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, validationService, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -2355,21 +2355,23 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     };
 
     self.sendStatelessCompute = function(appState, successCallback, data, options) {
-	// TODO(e-carlin): This is a hack to get around dependency
-	// cycle. Comment out and use normal dependency injection (add
-	// 'panelState' to parameter list of 'requestSender') to see
-	// the cycle.
-	const panelState = $injector.get('panelState');
+	const maybeSetPanelState = (state) => {
+	    if (! options.panelState) {
+		return;
+	    }
+	    options.panelState.maybeSetState(options.modelName, state);
+	};
+
 	const onError = (data) => {
 	    srlog('statelessCompute error: ', data.error);
 	    if (options.onError) {
 		options.onError(data);
 		return;
 	    }
-	    panelState.maybeSetState(options.modelName, 'error');
+	    maybeSetPanelState('error');
 	};
 
-	panelState.maybeSetState(options.modelName, 'loading');
+	maybeSetPanelState('loading');
 	sendWithSimulationFields(
 	    'statelessCompute',
 	    appState,
@@ -2378,7 +2380,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 		    onError(data);
 		    return;
 		}
-		panelState.maybeSetState(options.modelName, 'loadingDone');
+		maybeSetPanelState('loadingDone');
 		successCallback(data);
 	    },
 	    data,

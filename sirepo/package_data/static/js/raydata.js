@@ -261,6 +261,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		};
 		if (showLoadingSpinner) {
 		    c.modelName = $scope.args.modelKey;
+		    c.panelState = panelState;
 		}
 		runMulti.status(
 		    getSelectedScans(),
@@ -448,7 +449,7 @@ SIREPO.app.directive('metadataTable', function() {
               </table>
             </div>
 	`,
-	controller: function(appState, requestSender, $scope) {
+	controller: function(appState, panelState, requestSender, $scope) {
 	    $scope.expanded = {};
 
 	    function elementForKey(key) {
@@ -473,6 +474,7 @@ SIREPO.app.directive('metadataTable', function() {
 		    },
 		    {
 			modelName: $scope.args.modelKey,
+			panelState: panelState,
 		    }
 		);
 	    }
@@ -635,7 +637,8 @@ SIREPO.app.directive('scanSelector', function() {
 			onError: (data) => {
 			    errorService.alertText(data.error);
 			    panelState.setLoading($scope.args.modelKey, false);
-			}
+			},
+			panelState: panelState,
 		    }
 		);
 	    };
@@ -689,7 +692,7 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 	      </form>
 	    </div>
         `,
-        controller: function(appState, raydataService, requestSender, simulationDataCache, $scope) {
+        controller: function(appState, panelState, raydataService, $scope) {
 	    $scope.appState = appState;
             $scope.modelName = 'scans';
             $scope.fields = ['visualizationId'];
@@ -705,6 +708,7 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 		    },
 		    {
 			modelName: $scope.args.modelKey,
+			panelState: panelState,
 		    }
 		);
 	    }
