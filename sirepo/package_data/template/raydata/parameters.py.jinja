@@ -17,6 +17,8 @@ def _main():
         # completed.
         os.makedirs('{{ scan_dir }}')
     except FileExistsError:
+        # TODO(e-carlin): It would be better to get the actual state
+        # of the job (ex running, error) and report that back.
         return
     # TODO(e-carlin): this save_chdir will have a path that doesn't
     # make sense on user's machine when user downloads parameters.py
