@@ -14,8 +14,13 @@ then
     if [[ $confirm == [yY] ]]; then
         echo Running SRW...
         eval "$run_py"
-        echo Propagated single electron intensities are in datasets/beam_intensities.npy
-        echo Corresponding parameter values are in datasets/parameters.npy
+        if [ $? -eq 0 ]
+        then
+            echo Propagated single electron intensities are in datasets/beam_intensities.npy
+            echo Corresponding parameter values are in datasets/parameters.npy
+        else
+            echo "ERROR: SRW failed with return code $?"
+        fi
     else
         echo "NOTE: to run SRW with generated data, use
         $run_py"
