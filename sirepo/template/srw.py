@@ -1597,10 +1597,10 @@ def _generate_beamline_optics(report, data):
 
 def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     report = data.report
-    for_rsopt = report == 'rsoptExport'
+    is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
     # do this before validation or arrays get turned into strings
-    if for_rsopt:
+    if is_for_rsopt:
         rsopt_ctx = _rsopt_jinja_context(dm.exportRsOpt)
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
@@ -1609,7 +1609,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == 't' and dm.tabulatedUndulator.undulatorType == 'u_i':
         v.rs_type = 'u'
-    if for_rsopt:
+    if is_for_rsopt:
         v.update(rsopt_ctx)
     # rsopt uses this as a lookup param so want it in one place
     v.ws_fni_desc = 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'
@@ -1630,14 +1630,14 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 
 def _generate_srw_main(data, plot_reports, beamline_info):
     report = data.report
-    for_rsopt = report == 'rsoptExport'
+    is_for_rsopt = _is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
-    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or for_rsopt
-    vp_var = 'vp' if for_rsopt else 'varParam'
+    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
+    vp_var = 'vp' if is_for_rsopt else 'varParam'
     content = [
         f'v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})',
     ]
-    if (plot_reports or for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
+    if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data.models.tabulatedUndulator.magneticFile))
     if report == 'beamlineAnimation':
         content.append("v.si_fn = ''")
@@ -1695,7 +1695,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
     content.append('srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)')
-    return '\n'.join([f'    {x}' for x in content] + [''] + ([] if for_rsopt \
+    return '\n'.join([f'    {x}' for x in content] + [''] + ([] if is_for_rsopt \
         else ['main()', '']))
 
 
@@ -1731,6 +1731,10 @@ def _intensity_units(sim_in):
             i = sim_in.models.simulation.fieldUnits
         return SCHEMA.enum.FieldUnits[int(i)][1]
     return 'ph/s/.1%bw/mm^2'
+
+
+def _is_for_rsopt(report):
+    return report == 'rsoptExport'
 
 
 def _load_user_model_list(model_name):
@@ -1994,7 +1998,7 @@ def _set_magnetic_measurement_parameters(run_dir, v):
 
 def _set_parameters(v, data, plot_reports, run_dir):
     report = data.report
-    for_rsopt = report == 'rsoptExport'
+    is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
     v.beamlineOptics, v.beamlineOpticsParameters, beamline_info = _generate_beamline_optics(report, data)
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
@@ -2003,9 +2007,9 @@ def _set_parameters(v, data, plot_reports, run_dir):
     v[report] = 1
     for k in _OUTPUT_FOR_MODEL:
         v['{}Filename'.format(k)] = _OUTPUT_FOR_MODEL[k].filename
-    v.setupMagneticMeasurementFiles = (plot_reports or for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
+    v.setupMagneticMeasurementFiles = (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
-    if (run_dir or for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
+    if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or '', v)
     if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
         if report in dm and dm[report].get('jobRunMode', '') == 'sbatch':

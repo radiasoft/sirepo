@@ -13,9 +13,7 @@ then
     read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
     if [[ $confirm == [yY] ]]; then
         echo Running SRW...
-        eval "$run_py"
-        if [ $? -eq 0 ]
-        then
+        if eval "$run_py"; then
             echo Propagated single electron intensities are in datasets/beam_intensities.npy
             echo Corresponding parameter values are in datasets/parameters.npy
         else
