@@ -26,6 +26,7 @@ options:
   software: mesh_scan
   {% elif scanType == 'random' %}
   software: lh_scan
+  seed: {{ randomSeed }}
   nworkers: {{ numWorkers }}
   batch_size: {{ numSamples }}
   {% endif %}

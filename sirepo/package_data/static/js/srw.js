@@ -36,6 +36,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
+        '<div data-ng-switch-when="RandomSeed" class="col-sm-3">',
+          '<div data-random-seed="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-field-class="fieldClass" data-view-name="viewName"></div>',
+        '</div>',
         '<div data-ng-switch-when="RSOptElements" class="col-sm-12">',
           '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-field-class="fieldClass"></div>',
         '</div>',
@@ -1801,6 +1804,43 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('randomSeed', function(appState, panelState, requestSender, srwService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            form: '=',
+            model: '=',
+            modelName: '=',
+            viewName: '=',
+        },
+        template: `
+            <input data-string-to-number="integer" data-ng-model="model[field]" data-min="min" data-max="max" class="form-control" style="text-align: right" data-lpignore="true" required/>
+            <button class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
+            <button class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
+        `,
+        controller: function($scope) {
+            $scope.min = 0;
+
+            // this is the max seed that libensemble can use
+            $scope.max = Math.pow(2, 32) - 1;
+
+            $scope.setSeedRandom = () => {
+                $scope.model[$scope.field] = Math.floor(Math.random() * $scope.max);
+            };
+
+            $scope.setSeedTime = () => {
+                $scope.model[$scope.field] = (new Date()).getTime() % $scope.max;
+            };
+
+            if (! $scope.model[$scope.field] && $scope.model[$scope.field] !== 0) {
+                $scope.setSeedTime();
+            }
+        },
+    };
+});
+
+
 SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService) {
     return {
         restrict: 'A',
@@ -1931,6 +1971,9 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 }
             }
 
+            function showRandomSeeed() {
+                panelState.showField('exportRsOpt', 'randomSeed', $scope.model.scanType === 'random');
+            }
 
             $scope.$on('exportRsOpt.editor.show', () => {
                 updateElements();
@@ -1944,6 +1987,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 panelState.enableField('exportRsOpt', 'totalSamples', false);
                 appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
                 appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
+                appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {

@@ -651,7 +651,7 @@
             "numCores": ["Number of Cores", "Integer", 4],
             "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
             "numWorkers": ["Number of Workers", "Integer", 1],
-            "randomSeed": ["Random Seed", "RandomSeed", null, "Explicit seed for random numbers"],
+            "randomSeed": ["Random Seed", "RandomSeed", null, "Explicit seed for random numbers. Leave empty to allow server to decide the seed."],
             "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly. Random takes a random sample for each parameter."],
             "totalSamples": ["Total Samples", "Integer", 100, "Grid: &lt;number of samples&gt;^&lt;number of params&gt;. Random: &lt;number of samples&gt;", 1]
         },
@@ -1755,7 +1755,8 @@
                 "elements",
                 "scanType",
                 "numSamples",
-                "totalSamples"
+                "totalSamples",
+                "randomSeed"
             ]
         },
         "multipole": {
