@@ -4,6 +4,13 @@ if [ -d "{{ runDir }}" ] && [ -n "$(ls -A {{ runDir }})" ]; then
         rm -f "{{ runDir }}/$f"
     done
 fi
+{% for d in ['beams', 'data_files', 'datasets', 'parameters'] %}
+if [ -d "{{ d }}" ]; then
+    for f in {{ d }}/*; do
+        rm -f "$f"
+    done
+fi
+{% endfor %}
 run_rsopt="rsopt sample configuration '{{ ymlFileName }}'"
 echo Running $run_rsopt...
 eval "$run_rsopt" > "{{ outFileName }}" 2>&1
