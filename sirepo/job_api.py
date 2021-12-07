@@ -22,6 +22,7 @@ import sirepo.http_request
 import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
+import sirepo.uri_router
 import sirepo.util
 
 
@@ -33,7 +34,7 @@ def adjust_supervisor_srtime(days):
     return _request(
         api_name='not used',
         _request_content=PKDict(days=days),
-        _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_SRTIME_URI,
+        _request_uri=_supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
     )
 
 
@@ -46,6 +47,11 @@ def api_admJobs():
     return _request(
         _request_content=PKDict(**sirepo.http_request.parse_post()),
     )
+
+
+@api_perm.require_user
+def api_analysisJob():
+    return _request()
 
 
 @api_perm.require_user
@@ -98,7 +104,7 @@ def api_jobSupervisorPing():
         k = sirepo.job.unique_key()
         r = _request(
             _request_content=PKDict(ping=k),
-            _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_PING_URI,
+            _request_uri=_supervisor_uri(sirepo.job.SERVER_PING_URI),
         )
         if r.get('state') != 'ok':
             return r
@@ -136,6 +142,29 @@ def api_runCancel():
         pkdlog('ignoring exception={} stack={}', e, pkdexc())
     # Always true from the client's perspective
     return sirepo.http_reply.gen_json({'state': 'canceled'})
+
+
+@api_perm.require_user
+def api_runMulti():
+    def _api(api):
+        # SECURITY: Make sure we have permission to call API
+        a = sirepo.uri_router.check_api_call(api).__name__
+        # SECURITY: Only allow these two API's for now. Certain API's
+        # (ex api_admJobs) have more security checks in the method (ex
+        # check_user_has_role) in the Flask server that could be
+        # circumvented since we don't call the Falsk server method.
+        assert a in ('api_runSimulation', 'api_runStatus')
+        return a
+
+    r = []
+    for m in sirepo.http_request.parse_json():
+        c = _request_content(PKDict(req_data=m))
+        c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
+        r.append(c)
+    return _request(
+        _request_content=PKDict(data=r),
+        _request_uri=_supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
+    )
 
 
 @api_perm.require_user
@@ -206,7 +235,7 @@ def _request(**kwargs):
                 '{}: max frame search depth reached'.format(f.f_code)
             )
     k = PKDict(kwargs)
-    u = k.pkdel('_request_uri') or cfg.supervisor_uri + sirepo.job.SERVER_URI
+    u = k.pkdel('_request_uri') or _supervisor_uri(sirepo.job.SERVER_URI)
     c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
     c.pkupdate(
         api=get_api_name(),
@@ -292,6 +321,10 @@ def _run_mode(request_content):
         )
     request_content.jobRunMode = j
     return _validate_and_add_sbatch_fields(request_content, m)
+
+
+def _supervisor_uri(path):
+    return cfg.supervisor_uri + path
 
 
 def _validate_and_add_sbatch_fields(request_content, compute_model):

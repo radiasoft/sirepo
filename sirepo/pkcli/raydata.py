@@ -10,7 +10,6 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
-import sirepo.simulation_db
 import sys
 
 

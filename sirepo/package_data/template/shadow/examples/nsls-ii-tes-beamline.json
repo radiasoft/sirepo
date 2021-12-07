@@ -11,14 +11,14 @@
         "beamline": [
             {
                 "horizontalOffset": 0,
-                "horizontalSize": 30,
+                "horizontalSize": 25,
                 "id": 1,
-                "position": 10.5,
+                "position": 10,
                 "shape": "0",
                 "title": "Aperture",
                 "type": "aperture",
                 "verticalOffset": 0,
-                "verticalSize": 0.5
+                "verticalSize": 4
             },
             {
                 "_super": "_MISALIGNED_ELEMENT",
@@ -222,12 +222,6 @@
                 "type": "emptyElement"
             },
             {
-                "id": 6,
-                "position": 26.57,
-                "title": "Watchpoint",
-                "type": "watch"
-            },
-            {
                 "_super": "_MISALIGNED_ELEMENT",
                 "alpha": 0,
                 "axmaj": 0,
@@ -252,7 +246,7 @@
                 "halfLengthY2": 480,
                 "halfWidthX1": 40,
                 "halfWidthX2": 40,
-                "id": 7,
+                "id": 6,
                 "internalOutlineMajorAxis": 0,
                 "internalOutlineMinorAxis": 0,
                 "mlayerBilayerNumber": 70,
@@ -290,27 +284,9 @@
                 "z_rot": 0
             },
             {
-                "id": 8,
-                "position": 26.57,
-                "title": "Watchpoint",
-                "type": "watch"
-            },
-            {
-                "id": 9,
-                "position": 51.242,
-                "title": "Fluorescent Screen",
-                "type": "watch"
-            },
-            {
-                "id": 10,
-                "position": 53.142,
-                "title": "Watchpoint",
-                "type": "watch"
-            },
-            {
                 "horizontalOffset": 0,
                 "horizontalSize": 0.2,
-                "id": 11,
+                "id": 7,
                 "position": 53.142,
                 "shape": "0",
                 "title": "SSA",
@@ -319,7 +295,7 @@
                 "verticalSize": 0.2
             },
             {
-                "id": 12,
+                "id": 8,
                 "position": 53.142,
                 "title": "W8",
                 "type": "watch"
@@ -349,7 +325,7 @@
                 "halfLengthY2": 160,
                 "halfWidthX1": 10,
                 "halfWidthX2": 10,
-                "id": 13,
+                "id": 9,
                 "internalOutlineMajorAxis": 0,
                 "internalOutlineMinorAxis": 0,
                 "mlayerBilayerNumber": 70,
@@ -388,7 +364,7 @@
             },
             {
                 "alpha": "270",
-                "id": 14,
+                "id": 10,
                 "position": 56.715,
                 "title": "Reset Orientation",
                 "type": "emptyElement"
@@ -418,7 +394,7 @@
                 "halfLengthY2": 90,
                 "halfWidthX1": 10,
                 "halfWidthX2": 10,
-                "id": 15,
+                "id": 11,
                 "internalOutlineMajorAxis": 0,
                 "internalOutlineMinorAxis": 0,
                 "mlayerBilayerNumber": 70,
@@ -456,7 +432,7 @@
                 "z_rot": 0
             },
             {
-                "id": 16,
+                "id": 12,
                 "position": 57.142,
                 "title": "W9",
                 "type": "watch"
@@ -531,7 +507,7 @@
             "_super": "_INTENSITY_REPORT",
             "aspectRatio": "1",
             "colorMap": "viridis",
-            "distanceFromSource": 10.5,
+            "distanceFromSource": 10,
             "histogramBins": 100,
             "horizontalOffset": 0,
             "horizontalSize": 10,
@@ -544,12 +520,12 @@
             "y": "3"
         },
         "rayFilter": {
-            "distance": 10.5,
+            "distance": 10,
             "f_bound_sour": "2",
-            "x1": -15,
-            "x2": 15,
-            "z1": -0.25,
-            "z2": 0.25
+            "x1": -10,
+            "x2": 10,
+            "z1": -1.5,
+            "z2": 1.5
         },
         "simulation": {
             "documentationUrl": "",
@@ -599,21 +575,6 @@
             "etap_y": 0,
             "number_of_bunches": 1
         },
-        "watchpointReport10": {
-            "_super": "_INTENSITY_REPORT",
-            "aspectRatio": "1",
-            "colorMap": "grayscale",
-            "histogramBins": 100,
-            "horizontalOffset": 0,
-            "horizontalSize": 10,
-            "notes": "",
-            "overrideSize": "0",
-            "verticalOffset": 0,
-            "verticalSize": 10,
-            "weight": "22",
-            "x": "1",
-            "y": "3"
-        },
         "watchpointReport12": {
             "_super": "_INTENSITY_REPORT",
             "aspectRatio": "1",
@@ -629,52 +590,7 @@
             "x": "1",
             "y": "3"
         },
-        "watchpointReport16": {
-            "_super": "_INTENSITY_REPORT",
-            "aspectRatio": "1",
-            "colorMap": "grayscale",
-            "histogramBins": 100,
-            "horizontalOffset": 0,
-            "horizontalSize": 10,
-            "notes": "",
-            "overrideSize": "0",
-            "verticalOffset": 0,
-            "verticalSize": 10,
-            "weight": "22",
-            "x": "1",
-            "y": "3"
-        },
-        "watchpointReport6": {
-            "_super": "_INTENSITY_REPORT",
-            "aspectRatio": "1",
-            "colorMap": "grayscale",
-            "histogramBins": 100,
-            "horizontalOffset": 0,
-            "horizontalSize": 10,
-            "notes": "",
-            "overrideSize": "0",
-            "verticalOffset": 0,
-            "verticalSize": 10,
-            "weight": "22",
-            "x": "1",
-            "y": "3"
-        },
         "watchpointReport8": {
-            "_super": "_INTENSITY_REPORT",
-            "aspectRatio": "1",
-            "colorMap": "grayscale",
-            "histogramBins": 100,
-            "horizontalOffset": 0,
-            "horizontalSize": 10,
-            "notes": "",
-            "overrideSize": "0",
-            "verticalOffset": 0,
-            "verticalSize": 10,
-            "weight": "22",
-            "x": "1",
-            "y": "3"
-        },
-        "watchpointReport9": {
             "_super": "_INTENSITY_REPORT",
             "aspectRatio": "1",
             "colorMap": "grayscale",

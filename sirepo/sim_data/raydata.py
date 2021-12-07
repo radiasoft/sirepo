@@ -20,6 +20,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return []
 
     @classmethod
+    def _compute_model(cls, analysis_model, resp):
+        return analysis_model
+
+    @classmethod
     def _lib_file_basenames(cls, data):
         def _input_files():
             for k, v in data.models.inputFiles.items():

@@ -985,6 +985,10 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
     return self;
 });
 
+/*
+Cache for data not on models (never sent to the server) that can be used
+within a single simulation (sid).
+*/
 SIREPO.app.factory('simulationDataCache', function ($rootScope){
     const self = {};
     self.clear = () => {
@@ -1409,7 +1413,7 @@ SIREPO.app.factory('authService', function(authState, requestSender, stringsServ
  *     return self;
  * });
  * */
-SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, validationService, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -1687,6 +1691,18 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         requestSender.newWindow('exportJupyterNotebook', args);
     };
 
+    self.maybeSetState = function(model, state) {
+	if (!model) {
+	    return;
+	}
+	const d = {
+	    error: () => self.reportNotGenerated(model),
+	    loading: () => self.setLoading(model, true),
+	    loadingDone: () => self.setLoading(model, false)
+	};
+	return d[state]();
+    };
+
     self.modalId = function(name) {
         return 'sr-' + name + '-editor';
     };
@@ -1877,7 +1893,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, $http, $location, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2212,6 +2228,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         });
     };
 
+    self.sendAnalysisJob = function(appState, callback, data) {
+        sendWithSimulationFields('analysisJob', appState, callback, data);
+    };
+
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback) {
             errorCallback = logError;
@@ -2349,32 +2369,23 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     };
 
     self.sendStatelessCompute = function(appState, successCallback, data, options) {
+	const maybeSetPanelState = (state) => {
+	    if (! options.panelState) {
+		return;
+	    }
+	    options.panelState.maybeSetState(options.modelName, state);
+	};
+
 	const onError = (data) => {
 	    srlog('statelessCompute error: ', data.error);
 	    if (options.onError) {
 		options.onError(data);
 		return;
 	    }
-	    setPanelState('error');
+	    maybeSetPanelState('error');
 	};
 
-	const setPanelState = (method) => {
-	    if (! options) {
-		return;
-	    }
-	    const p = options.panelStateHandle;
-	    const m = options.modelName;
-	    if (! (p && m)) {
-		return;
-	    }
-	    return {
-		error: () => p.reportNotGenerated(m),
-		loading: () => p.setLoading(m, true),
-		loadingDone: () => p.setLoading(m, false)
-	    }[method]();
-	};
-
-	setPanelState('loading');
+	maybeSetPanelState('loading');
 	sendWithSimulationFields(
 	    'statelessCompute',
 	    appState,
@@ -2383,7 +2394,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 		    onError(data);
 		    return;
 		}
-		setPanelState('loadingDone');
+		maybeSetPanelState('loadingDone');
 		successCallback(data);
 	    },
 	    data,

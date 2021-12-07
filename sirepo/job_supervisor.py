@@ -57,7 +57,6 @@ _HISTORY_FIELDS = frozenset((
 _PARALLEL_STATUS_FIELDS = frozenset((
     'computeJobHash',
     'computeJobStart',
-    'computeModel',
     'elapsedTime',
     'frameCount',
     'lastUpdateTime',
@@ -93,7 +92,7 @@ class ServerReq(PKDict):
             'no secret in message content={}'.format(self.content)
         assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match content={}'.format(self.content)
-        self.handler.write(await _ComputeJob.receive(self))
+        return await _ComputeJob.receive(self)
 
 
 class SlotProxy(PKDict):
@@ -534,6 +533,13 @@ class _ComputeJob(PKDict):
     async def _receive_api_admJobs(cls, req):
         return cls._get_running_pending_jobs()
 
+    async def _receive_api_analysisJob(self, req):
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='analysis_job',
+        )
+
     async def _receive_api_downloadDataFile(self, req):
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
@@ -880,6 +886,7 @@ class _ComputeJob(PKDict):
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
                 r.computeJobSerial = self.db.computeJobSerial
+                r.computeModel  = self.db.computeModel
                 r.elapsedTime = self.elapsed_time()
             if self._is_running_pending():
                 c = req.content
