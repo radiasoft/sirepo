@@ -414,10 +414,11 @@ class SimDataBase(object):
     @classmethod
     def model_defaults(cls, name):
         """Returns a set of default model values from the schema."""
+        import copy
         res = PKDict()
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
-                res[f] = d[2]
+                res[f] = copy.deepcopy(d[2])
                 if d[1] == 'UUID' and not res[f]:
                     res[f] = str(uuid.uuid4())
         return res
