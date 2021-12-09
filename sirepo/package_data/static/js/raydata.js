@@ -34,34 +34,39 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
     };
 
     self.getScansInfo = function(successCallback, options) {
-	const s = Object.keys(appState.models.scans.selected);
-	if (s.every((e) => {
-	    // POSIT: If start is present so are the other fields we need
-	    return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
-	})) {
-	    successCallback(
-		s.map(
-		    (u) => simulationDataCache.scans[u]
-		).sort((a, b) => a.start > b.start ? 1 : -1),
-		simulationDataCache.scanInfoTableCols
-	    );
-	    return;
-	}
-
-	requestSender.sendStatelessCompute(
-	    appState,
-	    (json) => {
+	function helper(successcallback, options, recursionDepth) {
+	    const s = Object.keys(appState.models.scans.selected);
+	    if (s.every((e) => {
+		// POSIT: If start is present so are the other fields we need
+		return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
+	    })) {
 		successCallback(
-		    self.updateScansInCache(json.data.scans),
-		    self.updateScanInfoTableColsInCache(json.data.cols)
+		    s.map(
+			u => simulationDataCache.scans[u]
+		    ).sort((a, b) => a.start - b.start),
+		    simulationDataCache.scanInfoTableCols
 		);
-	    },
-	    {
-		method: 'scan_info',
-		scans: s,
-	    },
-	    options
-	);
+		return;
+	    }
+
+	    if (recursionDepth > 0) {
+		throw new Error(`infinite recursion detected scans=${JSON.stringify(s)} cache=${JSON.stringify(simulationDataCache.scans)}`);
+	    }
+	    requestSender.sendStatelessCompute(
+		appState,
+		(json) => {
+		    self.updateScansInCache(json.data.scans);
+		    self.updateScanInfoTableColsInCache(json.data.cols);
+		    self.getScansInfo(successCallback, options, recursionDepth + 1);
+		},
+		{
+		    method: 'scan_info',
+		    scans: s,
+		},
+		options
+	    );
+	}
+	helper(successCallback, options, 0);
     };
 
     self.getScansRequestPayload = function(scanUuids) {
