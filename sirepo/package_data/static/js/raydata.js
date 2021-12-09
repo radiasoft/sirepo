@@ -16,7 +16,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
     let id = 0;
 
     function removeScanFromCache(scan) {
-	if (!simulationDataCache.scans) {
+	if (! simulationDataCache.scans) {
 	    return;
 	}
 	delete simulationDataCache.scans[scan.uid];
@@ -75,7 +75,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 		models: appState.models,
 		report: s,
 		simulationType: SIREPO.APP_SCHEMA.simulationType,
-		simulationId: appState.models.simulation.simulationId
+		simulationId: appState.models.simulation.simulationId,
 	    };
 	});
     };
@@ -92,7 +92,8 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	if (scan.selected) {
 	    appState.models.scans.selected[scan.uid] = true;
 	    self.updateScansInCache([scan]);
-	} else {
+	}
+	else {
 	    if (appState.models.scans.visualizationId == scan.uid) {
 		appState.models.scans.visualizationId = null;
 	    }
@@ -383,7 +384,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		    {
 			method: 'output_files',
 			models: appState.models,
-			report: $scope.selectedScan.uid
+			report: $scope.selectedScan.uid,
 		    }
 		);
 	    };
