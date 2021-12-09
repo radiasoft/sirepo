@@ -425,6 +425,7 @@ class SimDataBase(object):
         Args:
             name (str): model name
         """
+        import copy
         res = PKDict()
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
@@ -432,9 +433,9 @@ class SimDataBase(object):
                 if len(m) > 1 and m[0] == 'model' and m[1] in cls.schema().model:
                     res[f] = cls.model_defaults(m[1])
                     for ff, dd in d[2].items():
-                        res[f][ff] = d[2][ff]
+                        res[f][ff] = copy.deepcopy(d[2][ff])
                     continue
-                res[f] = d[2]
+                res[f] = copy.deepcopy(d[2])
                 if d[1] == 'UUID' and not res[f]:
                     res[f] = str(uuid.uuid4())
         return res
