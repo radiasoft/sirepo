@@ -133,7 +133,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _dir_for_scan_uuid(scan_uuid):
-    return sirepo.feature_config.cfg().raydata_data_dir.join(
+    return sirepo.feature_config.for_sim_type(SIM_TYPE).data_dir.join(
         sirepo.util.safe_path(scan_uuid),
     )
 

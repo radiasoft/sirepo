@@ -120,9 +120,9 @@ def _init():
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
-        # SECURITY: This path should not be exposed to the user so do
-        # not put it inside of a raydata configuration dict
-        raydata_data_dir=(None, pkio.py_path, 'abspath of dir to store raydata analysis output'),
+        raydata=dict(
+            data_dir=(None, pkio.py_path, 'abspath of dir to store raydata analysis output'),
+        ),
         sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),
@@ -152,8 +152,8 @@ def _init():
             s.add(v[1])
     _cfg.sim_types = frozenset(s)
     if 'raydata' in _cfg.sim_types:
-        assert _cfg.raydata_data_dir, \
-            'raydata is a sim type but no cfg.raydata_data_dir (also check job_driver.cfg.aux_volumes)'
+        assert _cfg.raydata.data_dir, \
+            'raydata is a sim type but no cfg.raydata.data_dir (also check job_driver.cfg.aux_volumes)'
     _check_packages(_cfg.package_path)
     return _cfg
 
