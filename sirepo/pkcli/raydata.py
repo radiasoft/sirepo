@@ -9,14 +9,6 @@ from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
 
 
-def run(cfg_dir):
-    _run()
-    template_common.write_sequential_result(PKDict())
-
-def run_background(cfg_dir):
-    _run()
-
-
 def create_scans(num_scans, delay=True):
     from sirepo.template import raydata
     import bluesky
@@ -31,7 +23,6 @@ def create_scans(num_scans, delay=True):
     d = databroker.Broker.named(raydata.catalog().name)
     RE = bluesky.RunEngine({})
     RE.subscribe(d.insert)
-    b = set(raydata.catalog())
     for i in range(num_scans):
         RE(bluesky.plans.count(
             [ophyd.sim.det1, ophyd.sim.det2],
@@ -42,10 +33,17 @@ def create_scans(num_scans, delay=True):
                 'sequence id': i,
             },
         ))
-        a = set(raydata.catalog())
-        b = a
         if delay:
             time.sleep(2)
+
+
+def run(cfg_dir):
+    _run()
+    template_common.write_sequential_result(PKDict())
+
+def run_background(cfg_dir):
+    _run()
+
 
 def _run():
     template_common.exec_parameters()
