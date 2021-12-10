@@ -82,15 +82,14 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	});
     };
 
-    self.nextPngImageId = function() {
-	return 'raydata-png-image-' + (++id);
-    };
-
-    self.toggleScanSelection = function(scan) {
+    self.maybeToggleScanSelection = function(scan, selected) {
 	if (! ('selected' in scan)) {
 	    scan.selected = false;
 	}
 	scan.selected = !scan.selected;
+	if (selected !== undefined) {
+	    scan.selected = selected;
+	}
 	if (scan.selected) {
 	    appState.models.scans.selected[scan.uid] = true;
 	    self.updateScansInCache([scan]);
@@ -103,6 +102,10 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	    removeScanFromCache(scan, appState);
 	}
 	appState.saveChanges('scans');
+    };
+
+    self.nextPngImageId = function() {
+	return 'raydata-png-image-' + (++id);
     };
 
     self.setPngDataUrl = function (element, png) {
@@ -171,10 +174,7 @@ SIREPO.app.controller('AnalysisController', function(appState, persistentSimulat
 	}
 	const u = [];
 	data.scans.forEach((s) => {
-	    if (appState.models.scans.selected[s.uid]) {
-		return;
-	    }
-	    raydataService.toggleScanSelection(s);
+	    raydataService.maybeToggleScanSelection(s, true);
 	    u.push(s.uid);
 	});
 	if (u.length > 0) {
@@ -726,7 +726,7 @@ SIREPO.app.directive('scanSelector', function() {
 		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
 	    };
 
-	    $scope.toggleScanSelection = raydataService.toggleScanSelection;
+	    $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
 	    appState.whenModelsLoaded($scope, () => $scope.search());
         },
     };
