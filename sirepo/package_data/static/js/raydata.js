@@ -34,7 +34,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
     };
 
     self.getScansInfo = function(successCallback, options) {
-	function helper(successcallback, options, recursionDepth) {
+	function helper(successcallback, options) {
 	    const s = Object.keys(appState.models.scans.selected);
 	    if (s.every((e) => {
 		// POSIT: If start is present so are the other fields we need
@@ -49,7 +49,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 		return;
 	    }
 
-	    if (recursionDepth > 0) {
+	    if (haveRecursed) {
 		throw new Error(`infinite recursion detected scans=${JSON.stringify(s)} cache=${JSON.stringify(simulationDataCache.scans)}`);
 	    }
 	    requestSender.sendStatelessCompute(
@@ -57,7 +57,8 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 		(json) => {
 		    self.updateScansInCache(json.data.scans);
 		    self.updateScanInfoTableColsInCache(json.data.cols);
-		    self.getScansInfo(successCallback, options, recursionDepth + 1);
+		    haveRecursed = true;
+		    self.getScansInfo(successCallback, options);
 		},
 		{
 		    method: 'scan_info',
@@ -66,7 +67,8 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 		options
 	    );
 	}
-	helper(successCallback, options, 0);
+	let haveRecursed = false;
+	helper(successCallback, options);
     };
 
     self.getScansRequestPayload = function(scanUuids) {
