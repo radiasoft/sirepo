@@ -183,7 +183,7 @@ SIREPO.app.controller('AnalysisController', function(appState, persistentSimulat
     };
 
     self.startSimulation = () => {
-	appState.models.pollBlueskyForScansAnimation.start = timeService.getCurrentUnixTime();
+	appState.models.pollBlueskyForScansAnimation.start = timeService.unixTimeNow();
 	appState.saveChanges('pollBlueskyForScansAnimation', self.simState.runSimulation);
     };
 
@@ -674,7 +674,7 @@ SIREPO.app.directive('scanSelector', function() {
 		for (let i = 0; i < startOrStop.length; i++) {
 		    const k = searchStartOrStopTimeKey(startOrStop[i]);
 		    if ($scope[k]) {
-			appState.models.scans[k] = timeService.getUnixTime($scope[k]);
+			appState.models.scans[k] = timeService.unixTime($scope[k]);
 		    }
 		    if (!appState.models.scans[k]) {
 			return;

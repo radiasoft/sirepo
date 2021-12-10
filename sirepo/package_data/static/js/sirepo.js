@@ -1028,12 +1028,12 @@ SIREPO.app.factory('timeService', function() {
     const UNIX_TIMESTAMP_SCALE = 1000;
     const self = {};
 
-    self.getCurrentUnixTime = () => {
-	return self.getUnixTime(new Date());
+    self.unixTime = (date) => {
+	return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
     };
 
-    self.getUnixTime = (date) => {
-	return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
+    self.unixTimeNow = () => {
+	return self.unixTime(new Date());
     };
 
     self.unixTimeToDate = (unixTime) => {
