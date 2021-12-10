@@ -86,7 +86,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	return 'raydata-png-image-' + (++id);
     };
 
-    self.selectOrDeselectScan = function(scan) {
+    self.toggleScanSelection = function(scan) {
 	if (! ('selected' in scan)) {
 	    scan.selected = false;
 	}
@@ -166,7 +166,7 @@ SIREPO.app.controller('AnalysisController', function(appState, persistentSimulat
 	    if (appState.models.scans.selected[s.uid]) {
 		return;
 	    }
-	    raydataService.selectOrDeselectScan(s);
+	    raydataService.toggleScanSelection(s);
 	    u.push(s.uid);
 	});
 	if (u.length > 0) {
@@ -634,7 +634,7 @@ SIREPO.app.directive('scanSelector', function() {
                 </thead>
                 <tbody ng-repeat="s in scans">
                   <tr>
-                    <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="selectOrDeselect(s)"/></td>
+                    <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
                     <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
                   </tr>
                 </tbody>
@@ -718,7 +718,7 @@ SIREPO.app.directive('scanSelector', function() {
 		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
 	    };
 
-	    $scope.selectOrDeselect = raydataService.selectOrDeselectScan;
+	    $scope.toggleScanSelection = raydataService.toggleScanSelection;
 	    appState.whenModelsLoaded($scope, () => $scope.search());
         },
     };
