@@ -399,7 +399,8 @@ def export_rsopt_config(data, filename):
     v.readmeFileName = 'README.txt'
     v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
     v.hasLibFiles = len(v.libFiles) > 0
-    v.randomSeed = data.models.exportRsOpt.randomSeed
+    v.randomSeed = data.models.exportRsOpt.randomSeed if \
+        data.models.exportRsOpt.randomSeed is not None else ''
 
     # do this in a second loop so v is fully updated
     # note that the rsopt context is regenerated in python_source_for_model()
