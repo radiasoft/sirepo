@@ -13,7 +13,6 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
-import asyncio
 import asyncssh
 import datetime
 import errno

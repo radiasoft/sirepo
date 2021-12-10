@@ -5,14 +5,11 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
-import collections
-import os
 import sirepo.mpi
 import sirepo.srdb
 import subprocess
