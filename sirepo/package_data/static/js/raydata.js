@@ -129,7 +129,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	return scans.map((s) => {
 	    simulationDataCache.scans[s.uid] = angular.extend(
 		simulationDataCache.scans[s.uid] || {},
-		s.response || s
+		s
 	    );
 	    return simulationDataCache.scans[s.uid];
 	});
