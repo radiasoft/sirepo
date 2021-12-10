@@ -83,13 +83,16 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
     };
 
     self.maybeToggleScanSelection = function(scan, selected) {
-	if (! ('selected' in scan)) {
-	    scan.selected = false;
-	}
-	scan.selected = !scan.selected;
 	if (selected !== undefined) {
 	    scan.selected = selected;
 	}
+	else if ('selected' in scan) {
+	    scan.selected = !scan.selected;
+	}
+	else {
+	    scan.selected = true;
+	}
+
 	if (scan.selected) {
 	    appState.models.scans.selected[scan.uid] = true;
 	    self.updateScansInCache([scan]);
