@@ -153,7 +153,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	    s.response.uid = s.request.report;
 	    return self.updateScansInCache([s.response])[0];
 	});
-    }
+    };
 
     appState.setAppService(self);
     return self;
