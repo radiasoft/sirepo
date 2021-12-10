@@ -3842,7 +3842,6 @@ for (let d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         });
 
         $scope.whenSelected = function() {
-            srdbg(SIREPO.APP_SCHEMA.model);
             const o = getObjFromGeomRpt();
             // set the object in the dipole model to the equivalent object in the report
             // also set the base model and its superclasses
