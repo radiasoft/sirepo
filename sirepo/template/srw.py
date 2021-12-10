@@ -1674,26 +1674,35 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("v.ws_pl = 'xy'")
     else:
         content.append('op = None')
-    if (run_all and source_type != 'g') or report == 'intensityReport':
-        content.append('v.ss = True')
-        if plot_reports:
-            content.append("v.ss_pl = 'e'")
-    if (run_all and source_type not in ('g', 'm')) or report in 'fluxReport':
-        content.append('v.sm = True')
-        if plot_reports:
-            content.append("v.sm_pl = 'e'")
-    if (run_all and source_type != 'g') or report == 'powerDensityReport':
-        content.append('v.pw = True')
-        if plot_reports:
-            content.append("v.pw_pl = 'xy'")
-    if run_all or report in ['initialIntensityReport', 'sourceIntensityReport']:
-        content.append('v.si = True')
-        if plot_reports:
-            content.append("v.si_pl = 'xy'")
-    if (run_all and source_type != 'g') or report == 'trajectoryReport':
-        content.append('v.tr = True')
-        if plot_reports:
-            content.append("v.tr_pl = 'xz'")
+    if is_for_rsopt:
+        content.extend([
+            'v.ss = False',
+            'v.sm = False',
+            'v.pw = False',
+            'v.si = False',
+            'v.tr = False'
+        ])
+    else:
+        if (run_all and source_type != 'g') or report == 'intensityReport':
+            content.append('v.ss = True')
+            if plot_reports:
+                content.append("v.ss_pl = 'e'")
+        if (run_all and source_type not in ('g', 'm')) or report in 'fluxReport':
+            content.append('v.sm = True')
+            if plot_reports:
+                content.append("v.sm_pl = 'e'")
+        if (run_all and source_type != 'g') or report == 'powerDensityReport':
+            content.append('v.pw = True')
+            if plot_reports:
+                content.append("v.pw_pl = 'xy'")
+        if run_all or report in ['initialIntensityReport', 'sourceIntensityReport']:
+            content.append('v.si = True')
+            if plot_reports:
+                content.append("v.si_pl = 'xy'")
+        if (run_all and source_type != 'g') or report == 'trajectoryReport':
+            content.append('v.tr = True')
+            if plot_reports:
+                content.append("v.tr_pl = 'xz'")
     content.append('srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)')
     return '\n'.join([f'    {x}' for x in content] + [''] + ([] if is_for_rsopt \
         else ['main()', '']))
