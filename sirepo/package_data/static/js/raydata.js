@@ -127,12 +127,6 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	    simulationDataCache.scans = {};
 	}
 	return scans.map((s) => {
-	    // Requests with awaitReply (ex runStatus). Will have a
-	    // request and a response part of the body so we know
-	    // which response goes which with request
-	    if ('request' in s) {
-		s.uid = s.request.report;
-	    }
 	    simulationDataCache.scans[s.uid] = angular.extend(
 		simulationDataCache.scans[s.uid] || {},
 		s.response || s
@@ -140,6 +134,20 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	    return simulationDataCache.scans[s.uid];
 	});
     };
+
+    self.updateScansInCacheFromRunMulti = function(reply) {
+	return reply.map(s => {
+	    // runMulti replies have a 'request' and 'response' field
+	    // for each of the individual requests. This allows one to
+	    // map the request to the specific response in cases where
+	    // the response contains no identifying information. For
+	    // example, runStatus may return just the state and
+	    // lastUpdateTime which doesn't contain any info to know
+	    // which scan (uid) this is the status for.
+	    s.response.uid = s.request.report;
+	    return self.updateScansInCache([s.response])[0];
+	});
+    }
 
     appState.setAppService(self);
     return self;
@@ -334,7 +342,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		runMulti.status(
 		    raydataService.getScansRequestPayload(),
 		    (data) => {
-			raydataService.updateScansInCache(data.data);
+			raydataService.updateScansInCacheFromRunMulti(data.data);
 			raydataService.getScansInfo(
 			    handleGetScansInfo,
 			    c
