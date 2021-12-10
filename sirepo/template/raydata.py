@@ -143,7 +143,7 @@ def _generate_parameters_file(data, run_dir):
     if data.get('report') == 'pollBlueskyForScansAnimation':
         return template_common.render_jinja(
             SIM_TYPE,
-            PKDict(time=data.models.pollBlueskyForScansAnimation.minutes * 60),
+            PKDict(poll_secs=data.models.pollBlueskyForScansAnimation.minutes * 60),
             'poll_bluesky.py'
         )
     s = _parse_scan_uuid(data)
