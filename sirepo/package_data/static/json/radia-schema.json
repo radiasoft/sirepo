@@ -468,7 +468,92 @@
                 "stemPosition": "1"
             }],
             "pole": ["Pole", "model.geomObject", {
-                "bevels": [],
+                "bevels": [
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "x",
+                        "cutDir": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "edge": "2",
+                        "heightDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "widthDir": [
+                            0,
+                            1,
+                            0
+                        ]
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "x",
+                        "cutDir": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "edge": "3",
+                        "heightDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "widthDir": [
+                            0,
+                            1,
+                            0
+                        ]
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "y",
+                        "cutDir": [
+                            0,
+                            1,
+                            0
+                        ],
+                        "edge": "2",
+                        "heightDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "widthDir": [
+                            1,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "amountHoriz": 8,
+                        "amountVert": 8,
+                        "cutAxis": "y",
+                        "cutDir": [
+                            0,
+                            1,
+                            0
+                        ],
+                        "edge": "3",
+                        "heightDir": [
+                            0,
+                            0,
+                            1
+                        ],
+                        "widthDir": [
+                            1,
+                            0,
+                            0
+                        ]
+                    }
+                ],
                 "center": "0.0, 0.0, 30.0",
                 "color": "#0000ff",
                 "segments": "4, 4, 4",
