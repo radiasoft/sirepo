@@ -1615,7 +1615,7 @@ def _update_kickmap(km, und, beam_axis):
 
 
 def _validate_objects(objects):
-    from numpy import linalg
+    import numpy.linalg
     for o in objects:
         if 'material' in o and o.material in SCHEMA.constants.anisotropicMaterials:
             if numpy.linalg.norm(sirepo.util.split_comma_delimited_string(o.magnetization, float)) == 0:
