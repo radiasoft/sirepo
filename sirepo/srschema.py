@@ -230,11 +230,9 @@ def _validate_number(val, sch_field_info):
         fv = float(val)
         fmin = float(sch_field_info[4])
     # Currently the values in enum arrays at the indices below are sometimes
-    # used for other purposes, so we return rather than fail for non-numeric values
-    except ValueError:
-        return
-    # ignore object-valued fields
-    except TypeError:
+    # used for other purposes, so we return rather than fail for non-numeric values.
+    # Also ignore object-valued fields
+    except (ValueError, TypeError):
         return
     if fv < fmin:
         raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
