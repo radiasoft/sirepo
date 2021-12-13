@@ -11,13 +11,16 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState, requestSender, simulationDataCache, timeService) {
+SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti, simulationDataCache, timeService, $rootScope) {
     const self = {};
     let id = 0;
 
-    self.computeModel = function(scanUuid) {
-	return 'animation' + scanUuid;
-    };
+    function removeScanFromCache(scan) {
+	if (! simulationDataCache.scans) {
+	    return;
+	}
+	delete simulationDataCache.scans[scan.uid];
+    }
 
     self.getScanField = function(scan, field) {
 	if (['start', 'stop'].includes(field)) {
@@ -30,68 +33,94 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, simulatio
 	return cols.length > 0 ? [firstColHeading].concat(cols) : [];
     };
 
-    self.getScansInfo = function(scanUuids, successCallback, options) {
-	function maybeGetOnlyOneScan(scans) {
-	    return s ? scans[0] : scans;
+    self.getScansInfo = function(successCallback, options) {
+	function helper(successcallback, options) {
+	    const s = Object.keys(appState.models.scans.selected);
+	    if (s.every((e) => {
+		// POSIT: If start is present so are the other fields we need
+		return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
+	    })) {
+		successCallback(
+		    s.map(
+			u => simulationDataCache.scans[u]
+		    ).sort((a, b) => a.start - b.start),
+		    simulationDataCache.scanInfoTableCols
+		);
+		return;
+	    }
+
+	    if (haveRecursed) {
+		throw new Error(`infinite recursion detected scans=${JSON.stringify(s)} cache=${JSON.stringify(simulationDataCache.scans)}`);
+	    }
+	    requestSender.sendStatelessCompute(
+		appState,
+		(json) => {
+		    self.updateScansInCache(json.data.scans);
+		    self.updateScanInfoTableColsInCache(json.data.cols);
+		    haveRecursed = true;
+		    self.getScansInfo(successCallback, options);
+		},
+		{
+		    method: 'scan_info',
+		    scans: s,
+		},
+		options
+	    );
+	}
+	let haveRecursed = false;
+	helper(successCallback, options);
+    };
+
+    self.getScansRequestPayload = function(scanUuids) {
+	return (scanUuids || Object.keys(appState.models.scans.selected)).map(s => {
+	    return {
+		models: appState.models,
+		report: s,
+		simulationType: SIREPO.APP_SCHEMA.simulationType,
+		simulationId: appState.models.simulation.simulationId,
+	    };
+	});
+    };
+
+    self.maybeToggleScanSelection = function(scan, selected) {
+	if (selected !== undefined) {
+	    scan.selected = selected;
+	}
+	else if ('selected' in scan) {
+	    scan.selected = !scan.selected;
+	}
+	else {
+	    scan.selected = true;
 	}
 
-	let s = false;
-	if (typeof scanUuids === 'string') {
-	    scanUuids = [scanUuids];
-	    s = true;
-	} else if (! Array.isArray(scanUuids)) {
-	    scanUuids = Object.keys(scanUuids);
+	if (scan.selected) {
+	    appState.models.scans.selected[scan.uid] = true;
+	    self.updateScansInCache([scan]);
 	}
-	if (scanUuids.every((e) => {
-	    // POSIT: If start is present so are the other fields we need
-	    return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
-	})) {
-	    successCallback(
-		maybeGetOnlyOneScan(
-		    scanUuids.map((u) => simulationDataCache.scans[u]
-		).sort((a, b) => a.start > b.start ? 1 : -1)),
-		simulationDataCache.scanInfoTableCols
-	    );
-	    return;
+	else {
+	    if (appState.models.scans.visualizationId == scan.uid) {
+		appState.models.scans.visualizationId = null;
+	    }
+	    delete appState.models.scans.selected[scan.uid];
+	    removeScanFromCache(scan, appState);
 	}
-	requestSender.sendStatelessCompute(
-	    appState,
-	    (json) => {
-		successCallback(
-		    maybeGetOnlyOneScan(self.updateScansInCache(json.data.scans)),
-		    self.updateScanInfoTableColsInCache(json.data.cols)
-		);
-	    },
-	    {
-		method: 'scan_info',
-		scans: scanUuids,
-	    },
-	    options
-	);
+	appState.saveChanges('scans');
     };
 
     self.nextPngImageId = function() {
 	return 'raydata-png-image-' + (++id);
     };
 
-    self.parseComputeModel = function(computeModel) {
-	const p = computeModel.split('animation');
-	if (p.length !== 2) {
-	    throw new Error(`cannot parse computeModel=${computeModel}`);
-	}
-	return p[1];
-    };
-
-    self.removeScanFromCache = function(scan) {
-	if (!simulationDataCache.scans) {
-	    return;
-	}
-	delete simulationDataCache.scans[scan.uid];
-    };
-
-
     self.setPngDataUrl = function (element, png) {
 	element.src = 'data:image/png;base64,' + png;
+    };
+
+    self.startAnalysis = function(modelKey, scanUuids) {
+	runMulti.simulation(
+	    self.getScansRequestPayload(scanUuids),
+	    {modelName: modelKey}
+	);
+	$rootScope.$broadcast('runMultiSimulationStarted');
     };
 
     self.updateScanInfoTableColsInCache = function(cols) {
@@ -104,12 +133,6 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, simulatio
 	    simulationDataCache.scans = {};
 	}
 	return scans.map((s) => {
-	    if (!s.uid) {
-		if (!s.computeModel) {
-		    throw new Error(`scan=${JSON.stringify(s)} must have uid or computeModel.`);
-		}
-		s.uid = self.parseComputeModel(s.computeModel);
-	    }
 	    simulationDataCache.scans[s.uid] = angular.extend(
 		simulationDataCache.scans[s.uid] || {},
 		s
@@ -118,14 +141,55 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, simulatio
 	});
     };
 
+    self.updateScansInCacheFromRunMulti = function(reply) {
+	return reply.map(s => {
+	    // runMulti replies have a 'request' and 'response' field
+	    // for each of the individual requests. This allows one to
+	    // map the request to the specific response in cases where
+	    // the response contains no identifying information. For
+	    // example, runStatus may return just the state and
+	    // lastUpdateTime which doesn't contain any info to know
+	    // which scan (uid) this is the status for.
+	    s.response.uid = s.request.report;
+	    return self.updateScansInCache([s.response])[0];
+	});
+    };
+
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function($scope) {
+SIREPO.app.controller('AnalysisController', function(appState, persistentSimulation, raydataService, timeService, $scope) {
     const self = this;
     self.modelKey = 'analysisStatus';
     self.simScope = $scope;
+
+    self.simComputeModel = 'pollBlueskyForScansAnimation';
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    self.simHandleStatus = function(data) {
+	// When not running we don't want to update the scans.
+	// There may be scans that the user has removed but are
+	// still being sent from the backend (in parallelStatus).
+	if (data.state !== 'running' || ! data.scans) {
+	    return;
+	}
+	const u = [];
+	data.scans.forEach((s) => {
+	    raydataService.maybeToggleScanSelection(s, true);
+	    u.push(s.uid);
+	});
+	if (u.length > 0) {
+	    raydataService.startAnalysis(null, u);
+	}
+    };
+
+    self.startSimulation = () => {
+	appState.models.pollBlueskyForScansAnimation.start = timeService.unixTimeNow();
+	appState.saveChanges('pollBlueskyForScansAnimation', self.simState.runSimulation);
+    };
+
     return self;
 });
 
@@ -179,7 +243,9 @@ SIREPO.app.directive('analysisStatusPanel', function() {
                 </div>
 	      </div>
               <div class="col-sm-6 pull-right">
-                <button class="btn btn-default" data-ng-if="showStartButton()" data-ng-click="start()">{{ startButtonLabel() }}</button>
+                <div data-disable-after-click="">
+                  <button class="btn btn-default" data-ng-if="showStartButton()" data-ng-click="start()">{{ startButtonLabel }}</button>
+                </div>
               </div>
               <div class="modal fade" id="sr-analysis-output" tabindex="-1" role="dialog">
                 <div class="modal-dialog modal-lg">
@@ -231,7 +297,7 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		return Object.keys(appState.models.scans.selected).map(s => {
 		    return {
 			models: appState.models,
-			computeModel: raydataService.computeModel(s),
+			report: s,
 			simulationType: SIREPO.APP_SCHEMA.simulationType,
 			simulationId: appState.models.simulation.simulationId
 		    };
@@ -244,6 +310,19 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		    runStatusInterval = null;
 		}
 		$scope.showProgressBar = false;
+	    }
+
+	    function handleGetScansInfo(scans, colz) {
+		cols = colz;
+		$scope.scans = scans;
+		const r = runningPending(scans);
+		if (r === 0) {
+		    handleResult();
+		    return;
+		}
+		$scope.showProgressBar = true;
+		$scope.percentComplete = ((scans.length - r) / scans.length) * 100;
+		startRunStatusInterval();
 	    }
 
 	    function runningPending(scans) {
@@ -264,23 +343,11 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		    c.panelState = panelState;
 		}
 		runMulti.status(
-		    getSelectedScans(),
+		    raydataService.getScansRequestPayload(),
 		    (data) => {
-			raydataService.updateScansInCache(data.data);
+			raydataService.updateScansInCacheFromRunMulti(data.data);
 			raydataService.getScansInfo(
-			    appState.models.scans.selected,
-			    (scans, colz) => {
-				cols = colz;
-				$scope.scans = scans;
-				const r = runningPending(scans);
-				if (r === 0) {
-				    handleResult();
-				    return;
-				}
-				$scope.showProgressBar = true;
-				$scope.percentComplete = ((scans.length - r) / scans.length) * 100;
-				startRunStatusInterval();
-			    },
+			    handleGetScansInfo,
 			    c
 			);
 		    },
@@ -296,6 +363,12 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		// the supervisor uses.
 		runStatusInterval = $interval(() => runStatus(false), 2000);
 	    }
+
+	    $rootScope.$on('runMultiSimulationStarted', () => {
+		startRunStatusInterval();
+	    });
+
+	    $rootScope.$on('$routeChangeSuccess', handleResult);
 
 	    $scope.enableModalClick = function(scan) {
 		return ['completed', 'running'].includes(scan.state);
@@ -322,25 +395,34 @@ SIREPO.app.directive('analysisStatusPanel', function() {
 		    appState,
 		    (data) => $scope.images = data.data,
 		    {
-			computeModel: $scope.selectedScan.computeModel,
-			method: 'output_files'
+			method: 'output_files',
+			models: appState.models,
+			report: $scope.selectedScan.uid,
 		    }
 		);
 	    };
 
 	    $scope.showStartButton = function() {
-		return $scope.scans.some((s) => s.state === 'missing');
+		// When we are polling there may be some scans that
+		// are missing (user has selected them from search)
+		// but we don't want to show the start button because
+		// we are running analysis from polling. Use
+		// showProgressBar to cover this case.
+		return ! $scope.showProgressBar && $scope.scans.some((s) => s.state === 'missing');
 	    };
 
 	    $scope.start = function() {
-		runMulti.simulation(getSelectedScans(), {modelName: $scope.args.modelKey});
-		startRunStatusInterval();
+		raydataService.startAnalysis($scope.args.modelKey);
 	    };
 
-            $scope.startButtonLabel = stringsService.startButtonLabel;
+            $scope.startButtonLabel = 'Start New Analysis';
 
-	    $rootScope.$on('$routeChangeSuccess', handleResult);
-	    runStatus(true);
+            appState.whenModelsLoaded($scope, () => {
+		$scope.$on('scans.changed', () => {
+		    raydataService.getScansInfo(handleGetScansInfo);
+		});
+		runStatus(true);
+            });
 	}
     };
 });
@@ -563,7 +645,7 @@ SIREPO.app.directive('scanSelector', function() {
                 </thead>
                 <tbody ng-repeat="s in scans">
                   <tr>
-                    <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="selectOrDeselect(s)"/></td>
+                    <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
                     <td data-ng-repeat="c in getHeader().slice(1)">{{ getScanField(s, c) }}</td>
                   </tr>
                 </tbody>
@@ -595,7 +677,7 @@ SIREPO.app.directive('scanSelector', function() {
 		for (let i = 0; i < startOrStop.length; i++) {
 		    const k = searchStartOrStopTimeKey(startOrStop[i]);
 		    if ($scope[k]) {
-			appState.models.scans[k] = timeService.getUnixTime($scope[k]);
+			appState.models.scans[k] = timeService.unixTime($scope[k]);
 		    }
 		    if (!appState.models.scans[k]) {
 			return;
@@ -647,20 +729,7 @@ SIREPO.app.directive('scanSelector', function() {
 		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
 	    };
 
-	    $scope.selectOrDeselect = function(scan) {
-		scan.selected = !scan.selected;
-		if (scan.selected) {
-		    appState.models.scans.selected[scan.uid] = true;
-		    raydataService.updateScansInCache([scan]);
-		} else {
-		    if (appState.models.scans.visualizationId == scan.uid) {
-			appState.models.scans.visualizationId = null;
-		    }
-		    delete appState.models.scans.selected[scan.uid];
-		    raydataService.removeScanFromCache(scan, appState);
-		}
-		appState.saveChanges('scans');
-	    };
+	    $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
 	    appState.whenModelsLoaded($scope, () => $scope.search());
         },
     };
@@ -701,7 +770,6 @@ SIREPO.app.directive('visualizationScanSelector', function() {
 
 	    function getScanInfo() {
 		raydataService.getScansInfo(
-		    appState.models.scans.selected,
 		    (scans, colz) => {
 			$scope.scans = scans;
 			cols = colz;

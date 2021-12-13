@@ -121,8 +121,7 @@ def _init():
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         raydata=dict(
-            # POSIT: Included in sirepo.job_driver.docker.cfg.aux_volumes
-            data_dir=(None, pkio.py_path, 'abspath of dir to store raydata analysis output')
+            data_dir=(None, pkio.py_path, 'abspath of dir to store raydata analysis output'),
         ),
         sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),

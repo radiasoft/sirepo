@@ -12,8 +12,6 @@ from sirepo.template import template_common
 import base64
 import databroker
 import databroker.queries
-import glob
-import os
 import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.simulation_db
@@ -58,6 +56,8 @@ _METDATA = PKDict(
     ),
 )
 
+_BLUESKY_POLL_TIME_FILE = 'bluesky-poll-time.txt'
+
 def analysis_job_output_files(data):
     def _filename_and_image(path):
         return PKDict(
@@ -78,7 +78,28 @@ def analysis_job_output_files(data):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    return PKDict(percentComplete=0 if is_running else 100)
+    r = PKDict(percentComplete=0 if is_running else 100)
+    if report != 'pollBlueskyForScansAnimation':
+        return r
+    try:
+        t = float(pkio.read_text(run_dir.join(_BLUESKY_POLL_TIME_FILE)).strip())
+    except Exception as e:
+        if not pkio.exception_is_not_found(e):
+            raise
+        t = sirepo.simulation_db.read_json(
+            run_dir.join(template_common.INPUT_BASE_NAME),
+        ).models.pollBlueskyForScansAnimation.start
+
+    s = []
+    for k, v in catalog().search({'time': {'$gte': t}}).items():
+        t = max(t, v.metadata['start']['time'])
+        s.append(_scan_info(k, metadata=v.metadata))
+    pkio.atomic_write(run_dir.join(_BLUESKY_POLL_TIME_FILE), t)
+    return r.pkupdate(**_scan_info_result(s).data)
+
+
+def catalog():
+    return databroker.catalog[_CATALOG_NAME]
 
 
 def stateless_compute_metadata(data):
@@ -91,7 +112,7 @@ def stateless_compute_scan_info(data):
 
 def stateless_compute_scans(data):
     s = []
-    for i, v in enumerate(_catalog().search(databroker.queries.TimeRange(
+    for i, v in enumerate(catalog().search(databroker.queries.TimeRange(
             since=data.searchStartTime,
             until=data.searchStopTime,
             timezone='utc',
@@ -111,10 +132,6 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _catalog():
-    return databroker.catalog[_CATALOG_NAME]
-
-
 def _dir_for_scan_uuid(scan_uuid):
     return sirepo.feature_config.for_sim_type(SIM_TYPE).data_dir.join(
         sirepo.util.safe_path(scan_uuid),
@@ -123,12 +140,18 @@ def _dir_for_scan_uuid(scan_uuid):
 
 
 def _generate_parameters_file(data, run_dir):
+    if data.get('report') == 'pollBlueskyForScansAnimation':
+        return template_common.render_jinja(
+            SIM_TYPE,
+            PKDict(poll_secs=data.models.pollBlueskyForScansAnimation.minutes * 60),
+            'poll_bluesky.py'
+        )
     s = _parse_scan_uuid(data)
     m = run_dir.join(_SIM_DATA.lib_file_name_with_model_field(
                 'inputFiles',
                 'mask',
                 data.models.inputFiles.mask,
-        )) if data.models.inputFiles.mask else None
+        )) if data.models.inputFiles.mask else ''
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
@@ -146,14 +169,14 @@ def _metadata(data):
     for k in _METDATA[data.category]:
         res[
             ' '.join(k.split('_'))
-        ] = _catalog()[data.uid].metadata['start'][k]
+        ] = catalog()[data.uid].metadata['start'][k]
     return res
 
 
 def _scan_info(scan_uuid, metadata=None):
     m = metadata
     if not m:
-        m =  _catalog()[scan_uuid].metadata
+        m =  catalog()[scan_uuid].metadata
     return PKDict(
         uid=scan_uuid,
         suid=_suid(scan_uuid),
@@ -173,7 +196,7 @@ def _scan_info_result(scans):
 
 
 def _parse_scan_uuid(data):
-    return data.computeModel.split('animation')[1]
+    return data.report
 
 def _suid(scan_uuid):
     return scan_uuid.split('-')[0]

@@ -291,7 +291,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
     try:
         return _success_exit() if success_exit else _failure_exit()
     except Exception as e:
-        return PKDict(state=sirepo.job.ERROR, error=e, stack=pkdexc())
+        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
 def _mtime_or_now(path):

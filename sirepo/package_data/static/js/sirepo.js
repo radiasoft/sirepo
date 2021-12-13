@@ -1028,8 +1028,12 @@ SIREPO.app.factory('timeService', function() {
     const UNIX_TIMESTAMP_SCALE = 1000;
     const self = {};
 
-    self.getUnixTime = (date) => {
-	return date.getTime() / UNIX_TIMESTAMP_SCALE;
+    self.unixTime = (date) => {
+	return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
+    };
+
+    self.unixTimeNow = () => {
+	return self.unixTime(new Date());
     };
 
     self.unixTimeToDate = (unixTime) => {
@@ -2354,7 +2358,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         sendWithSimulationFields('statefulCompute', appState, callback, data);
     };
 
-    self.sendStatelessCompute = function(appState, successCallback, data, options) {
+    self.sendStatelessCompute = function(appState, successCallback, data, options={}) {
 	const maybeSetPanelState = (state) => {
 	    if (! options.panelState) {
 		return;

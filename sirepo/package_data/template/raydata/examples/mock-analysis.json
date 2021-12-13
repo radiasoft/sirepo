@@ -15,6 +15,9 @@
         "planMetadata": {
 	    "notes": ""
 	},
+	"pollBlueskyForScansAnimation": {
+	    "minutes": 1
+	},
         "scans": {
 	    "searchStartTime": null,
 	    "searchStopTime": null,

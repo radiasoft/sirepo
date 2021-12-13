@@ -4,11 +4,10 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
+from pykern import pkconfig, pkinspect, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
-import asyncio
 import importlib
 import pykern.pkio
 import re
@@ -19,7 +18,6 @@ import sirepo.simulation_db
 import sirepo.srcontext
 import sirepo.srdb
 import sirepo.tornado
-import time
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
