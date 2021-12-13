@@ -11,6 +11,7 @@ from __future__ import division
 
 from pykern import pkcollections
 from pykern import pkcompat
+from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -549,7 +550,8 @@ def _build_field_axis(length, beam_axis):
 
 
 def _build_obj(obj_type, beam_axis, height_axis, **kwargs):
-    return globals()[f'_update_{obj_type}'](
+    u = '_update_'
+    return pkinspect.module_functions(u)[f'{u}{obj_type}'](
         _build_geom_obj(obj_type, obj_name=kwargs.get('name')),
         beam_axis,
         height_axis,
@@ -1544,8 +1546,9 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
 
 
 def _update_geom_objects(objects, beam_axis, height_axis):
+    u = '_update_'
     for o in [x for x in objects if 'type' in x]:
-        globals()[f'_update_{o.type}'](o, beam_axis, height_axis)
+        pkinspect.module_functions(u)[f'{u}{o.type}'](o, beam_axis, height_axis)
 
 
 def _update_geom_obj(o, delim_fields=None, **kwargs):
