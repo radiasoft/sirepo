@@ -380,9 +380,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                 if (! savedModelValues[m]) {
                     return true;
                 }
-                const a = Array.from(fieldsByModel[m]);
-                for (let i = 0; i < a.length; i++) {
-                    const f = a[i];
+                for (const f of Array.from(fieldsByModel[m])) {
                     if (! self.deepEquals(models[m][f], savedModelValues[m][f])) {
                         return true;
                     }
