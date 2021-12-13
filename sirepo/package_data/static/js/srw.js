@@ -1804,7 +1804,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService) {
+SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1885,6 +1885,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 $scope.model.totalSamples = numParams === 0 ? 0 :
                     ($scope.model.scanType === 'random' ? $scope.model.numSamples :
                     Math.pow($scope.model.numSamples, numParams));
+                updateFormValid(numParams);
             };
 
             function updateElements() {
@@ -1899,6 +1900,16 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                     };
                 }
                 updateParams();
+            }
+
+            function updateFormValid(numParams) {
+                validationService.validateField(
+                    'exportRsOpt',
+                    'totalSamples',
+                    'input',
+                    numParams > 0,
+                    'select at least one element and vary at least one parameter'
+                );
             }
 
             function updateParams() {
