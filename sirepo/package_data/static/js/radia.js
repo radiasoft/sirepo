@@ -3972,7 +3972,6 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
 
     $scope.whenSelected = function() {
         model = appState.models[$scope.modelName];
-        //$scope.modelData = model;
         updateSimEditor();
     };
 
