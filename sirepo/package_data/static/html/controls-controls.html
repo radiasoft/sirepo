@@ -1,9 +1,9 @@
-<div class="container-fluid" data-ng-if="! controls.hasMadxLattice()">
+<div class="container-fluid" data-ng-if="! controls.controlsService.hasMadxLattice()">
   <div class="col-md-6 col-xl-4">
     <div data-basic-editor-panel="" data-view-name="dataFile"></div>
   </div>
 </div>
-<div class="container-fluid" data-ng-if="controls.hasMadxLattice()">
+<div class="container-fluid" data-ng-if="controls.controlsService.hasMadxLattice()">
   <div class="row">
     <div class="col-sm-12">
       <div data-simple-panel="beamline">
@@ -37,4 +37,10 @@
     </div>
   </div>
   {{ controls.init() }}
+</div>
+
+<div data-modal-dialog="" data-view-name="beamline">
+  <div class="row"><div class="col-sm-12">
+    <div element-pv-fields="" data-model-name="beamline"></div>
+  </div></div>
 </div>

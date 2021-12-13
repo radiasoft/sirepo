@@ -20,6 +20,11 @@ import sirepo.template.madx
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 
+_DEVICE_SERVER_PROPERTY_IDS = PKDict(
+    HKICKER=PKDict(kick='propForHKick'),
+    KICKER=PKDict(hkick='propForHKick', vkick='propForVKick'),
+    VKICKER=PKDict(kick='propForHKick'),
+)
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
@@ -144,12 +149,23 @@ def _generate_madx(v, data):
     def _format_header(el_id, field):
         return f'el_{el_id}.{field}'
 
-    def _set_opt(el, field, kicker):
-        count = len(kicker.kick)
-        kicker.kick.append(el[field])
-        el[field] = '{' + f'sr_opt{count}' + '}'
-        kicker.header.append(_format_header(el._id, field))
+    def _handle_kicker(element):
+        fields = ('hkick', 'vkick')
+        if element.type in ('HKICKER', 'VKICKER'):
+            fields = ('kick',)
+        for f in fields:
+            count = len(kicker.kick)
+            kicker.kick.append(el[f])
+            n = '{' + f'sr_opt{count}' + '}'
+            el[f] = n
+            kicker.header.append(_format_header(el._id, f))
+            v.devices.append(PKDict(
+                sr_opt=n,
+                deviceName=el.deviceName,
+                propId=_DEVICE_SERVER_PROPERTY_IDS[element.type][f]
+            ))
 
+    v.devices = []
     kicker = PKDict(
         header=[],
         kick=[],
@@ -159,11 +175,8 @@ def _generate_madx(v, data):
     element_map = PKDict({e._id: e for e in madx.elements})
     for el_id in madx.beamlines[0]['items']:
         el = element_map[el_id]
-        if el.type == 'KICKER':
-            _set_opt(el, 'hkick', kicker)
-            _set_opt(el, 'vkick', kicker)
-        elif el.type in ('HKICKER', 'VKICKER'):
-            _set_opt(el, 'kick', kicker)
+        if el.type in ('KICKER', 'HKICKER', 'VKICKER'):
+            _handle_kicker(el)
         elif el.type == 'MONITOR':
             header += [_format_header(el._id, x) for x in ('x', 'y')]
         elif el.type == 'HMONITOR':

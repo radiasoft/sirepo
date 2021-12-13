@@ -109,7 +109,8 @@
         },
         "initialMonitorPositionsReport": {},
         "optimizerSettings": {
-            "method": ["Optimization Method", "OptimizationMethod", "nmead"]
+            "method": ["Optimization Method", "OptimizationMethod", "nmead"],
+	    "updateBeamline": ["Update Beamline", "Boolean", "0", "If true will call DeviceServer to update physical beamline with optimized simulated positions"]
         },
         "optimizerTarget": {
             "x": ["X [m]", "Float", 0.0],
@@ -120,10 +121,14 @@
             "name": ["Name", "ValidatedString"],
             "current_kick": ["Current [A]", "AmpField", 0.0],
             "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PX$"],
-            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""],
+            "deviceName": ["Device", "String", ""],
+            "pv1": ["PV Horizontal Current", "String", ""]
         },
         "HMONITOR": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "deviceName": ["Device", "String", ""],
+            "pv1": ["PV Horizontal Position", "String", ""]
         },
         "KICKER": {
             "name": ["Name", "ValidatedString"],
@@ -131,25 +136,38 @@
             "current_vkick": ["Vertical Current [A]", "AmpField", 0.0],
             "hkick": ["HKICK", "Float", 0.0, "The horizontal momentum change $\\delta PX$"],
             "vkick": ["VKICK", "Float", 0.0, "The vertical momentum change $\\delta PY$"],
-            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""],
+            "deviceName": ["Device", "String", ""],
+            "pv1": ["PV Horizontal Current", "String", ""],
+            "pv2": ["PV Vertical Current", "String", ""]
         },
         "MONITOR": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "deviceName": ["Device", "String", ""],
+            "deviceName": ["Device", "String", ""],
+            "pv1": ["PV Horizontal Position", "String", ""],
+            "pv2": ["PV Vertical Position", "String", ""]
         },
         "QUADRUPOLE": {
             "name": ["Name", "ValidatedString"],
             "current_k1": ["Current [A]", "AmpField", 0.0],
             "k1": ["K1 [$\\bf m^{-2}$]", "Float", 0.0, "The normal quadrupole coefficient"],
-            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""],
+            "deviceName": ["Device", "String", ""],
+            "pv1": ["PV Current", "String", ""]
         },
         "VKICKER": {
             "name": ["Name", "ValidatedString"],
             "current_kick": ["Current [A]", "AmpField", 0.0],
             "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PY$"],
-            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""],
+            "deviceName": ["Device", "String", ""],
+            "pv2": ["PV Vertical Current", "String", ""]
         },
         "VMONITOR": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "deviceName": ["Device", "String", ""],
+            "pv2": ["PV Vertical Position", "String", ""]
         }
     },
     "strings": {
@@ -158,7 +176,9 @@
     "view": {
         "beamline": {
             "title": "Beamline",
-            "advanced": []
+            "advanced": [
+                "name"
+            ]
         },
         "command_beam": {
             "title": "Beam Settings",

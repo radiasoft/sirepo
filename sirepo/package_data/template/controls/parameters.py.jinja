@@ -108,8 +108,33 @@ def update_and_run_simulation(correctors):
 with open('{{ summaryCSV }}', 'w') as f:
     f.write('{}\n'.format('{{ summaryCSVHeader }}'))
 
+# TODO(e-carlin): sort
+def _nmead_update_beamline():
+    devices = {{ devices }}
+
+    class DeviceServer:
+        @classmethod
+        def get_value(cls, element):
+            assert element['deviceName'] and element['propId']
+            # TODO(e-carlin): use fields to request from actual server
+            return 2
+
+        @classmethod
+        def set_value(cls, element, value):
+            assert element['deviceName'] and element['propId'] and value
+            print(f'setting {element} to {value}')
+
+    res = _optimize_nelder_mead(len(devices))
+    for i, r in enumerate(res['result']):
+        DeviceServer.set_value(devices[i], r)
+
+
 {% if optimizerSettings_method == 'nmead' %}
+    {% if optimizerSettings_updateBeamline %}
+res = _nmead_update_beamline()
+    {% else %}
 res = _optimize_nelder_mead({{ correctorCount }})
+    {% endif %}
 {% elif optimizerSettings_method == 'polyfit' %}
 res = _optimize_polyfit({{ correctorCount }})
 {% elif optimizerSettings_method == 'runOnce' %}
