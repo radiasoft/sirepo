@@ -1145,7 +1145,7 @@ def _update_cee(o, beam_axis, height_axis, **kwargs):
 
 def _update_cee_points(o, beam_axis, height_axis):
     g = _update_stemmed_points(o, beam_axis, height_axis)
-    w, h, b, c, s = g.geom
+    w, _, b, c, _ = g.geom
     ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
 
     sy2 = sy1 + o.armHeight
