@@ -3934,6 +3934,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         if (! model) {
             return;
         }
+        const isDipole = model.magnetType === 'dipole';
         panelState.enableField(
             $scope.modelName,
             'magnetType',
@@ -3942,12 +3943,23 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         panelState.showField(
             $scope.modelName,
             'dipoleType',
-            model.magnetType === 'dipole'
+            isDipole
         );
         panelState.enableField(
             $scope.modelName,
             'dipoleType',
-            isNew() && model.magnetType === 'dipole'
+            isNew() && isDipole
+        );
+        //TODO(mvk): setting the beamAxis/heightAxis to anything other than x/z for dipoles causes
+        // the magnet to be built incorrectly. For now set those values and disable the fields
+        if (model.magnetType === 'dipole') {
+            model.beamAxis = 'x';
+            model.heightAxis = 'z';
+        }
+        panelState.enableField(
+            $scope.modelName,
+            'beamAxis',
+            isNew() && ! isDipole
         );
         for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
             const axis = e[SIREPO.ENUM_INDEX_VALUE];
@@ -3962,6 +3974,11 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
                 model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
             }
         }
+        panelState.enableField(
+            $scope.modelName,
+            'heightAxis',
+            isNew() && ! isDipole
+        );
         radiaService.setWidthAxis();
     }
 
