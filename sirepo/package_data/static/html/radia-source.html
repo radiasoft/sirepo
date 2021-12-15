@@ -9,5 +9,6 @@
       </div>
   <div class="col-md-12" data-ng-if="src.showParams()">
     <div data-ng-if="src.getMagnetType() === 'undulator'" data-basic-editor-panel="" data-view-name="hybridUndulator" data-parent-controller="src" data-panel-title="Undulator"></div>
+    <div data-ng-if="src.getMagnetType() === 'dipole'" data-basic-editor-panel="" data-view-name="{{ src.getDipoleType()}}" data-parent-controller="src" data-panel-title="{{ src.dipoleTitle() }}"></div>
   </div>
 </div>

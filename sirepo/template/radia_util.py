@@ -148,26 +148,26 @@ _TRANSFORMS = PKDict(
 
 
 #TODO(mvk): simplify input params with dict/kwargs, clarify the edge-indexed arrays
-def apply_bevel(g_id, beam_dir, gap_dir, trans_dir, obj_ctr, obj_size, bevel):
+def apply_bevel(g_id, obj_ctr, obj_size, bevel):
 
-    b = numpy.array(beam_dir)
-    g = numpy.array(gap_dir)
-    x = numpy.array(trans_dir)
+    b = numpy.array(bevel.cutDir)
+    g = numpy.array(bevel.heightDir)
+    x = numpy.array(bevel.widthDir)
     sz = numpy.array(obj_size)
     ctr = numpy.array(obj_ctr)
     e = int(bevel.edge)
     half_size = sz / 2
     corner = ctr + half_size * [-x + g + b, x + g + b, x - g + b, -x - g + b][e]
-    trans_offset = bevel.amountTrans * x * [1, -1, -1, 1][e]
-    gap_offset = bevel.amountGap * g * [-1, -1, 1, 1][e]
+    w_offset = bevel.amountHoriz * x * [1, -1, -1, 1][e]
+    h_offset = bevel.amountVert * g * [-1, -1, 1, 1][e]
 
-    v = trans_offset - gap_offset
-    vx2 = numpy.dot(trans_offset, trans_offset)
-    vg2 = numpy.dot(gap_offset, gap_offset)
+    v = w_offset - h_offset
+    vx2 = numpy.dot(w_offset, w_offset)
+    vg2 = numpy.dot(h_offset, h_offset)
     v2 = numpy.dot(v, v)
 
     plane = x * [-1, 1, 1, -1][e] * numpy.sqrt(vg2 / v2) + g * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
-    pt = corner + trans_offset
+    pt = corner + w_offset
 
     # object id, plane normal, point in plane - returns a new id in an array for some reason
     return radia.ObjCutMag(g_id, pt.tolist(), plane.tolist())[0]
@@ -191,6 +191,11 @@ def build_cuboid(center, size, material, magnetization, rem_mag, segments, h_m_c
 
 def build_container(g_ids):
     return radia.ObjCnt(g_ids)
+
+
+def build_racetrack(center=[0, 0, 0], size=[1, 1, 1], radii=[1, 2], sides=[1, 1], height=1, axis='x', calc='a', num_segs=3, curr_density=-1.0):
+    g_id = radia.ObjRaceTrk(center, radii, sides, height, num_segs, curr_density, calc, axis)
+    return g_id
 
 
 def dump(g_id):

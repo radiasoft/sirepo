@@ -374,14 +374,13 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (! self.isLoaded()) {
             return false;
         }
-        var models = self.models;
-        for (var m in fieldsByModel) {
+        let models = self.models;
+        for (let m in fieldsByModel) {
             if (models[m]) {
                 if (! savedModelValues[m]) {
                     return true;
                 }
-                for (var i = 0; i < fieldsByModel[m].length; i++) {
-                    var f = fieldsByModel[m][i];
+                for (const f of Array.from(fieldsByModel[m])) {
                     if (! self.deepEquals(models[m][f], savedModelValues[m][f])) {
                         return true;
                     }
@@ -629,6 +628,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
+    self.isSubclass = function(model1, model2) {
+        return this.superClasses(model1).includes(model2);
+    };
+
     self.listSimulations = function(op, search) {
         requestSender.sendRequest(
             'listSimulations',
@@ -812,6 +815,16 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return model;
     };
 
+    self.superClasses = (modelName) => {
+        const m = SIREPO.APP_SCHEMA.model[modelName];
+        const f = '_super';
+        if (! m || ! m[f]) {
+            return [];
+        }
+        // the first two slots are the label (usually '_') and 'model'
+        return m[f].slice(2);
+    };
+
     self.uniqueName = function(items, idField, template) {
         // find a unique name comparing against a list of items
         // template has {} replaced with a counter, ex. "my name (copy {})"
@@ -848,7 +861,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // allows watching fields when creating a new simulation (isLoaded() returns false)
-            const isSim = self.models.simulation && self.parseModelField(f)[0] === 'simulation';
+            const isSim = self.parseModelField(f)[0] === 'simulation';
             // elegant uses '-' in modelKey
             $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
                 if ((self.isLoaded() || isSim) && newValue !== null && newValue !== undefined && newValue !== oldValue) {
@@ -1464,26 +1477,33 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         // iterate the view definition and build a {modelName => [field, ...]} map.
         // may be a string field, [tab-name, [cols]], or [[col-header, [cols]], [col-header, [cols]]]
         if (typeof(field) == 'string') {
-            var modelField = appState.parseModelField(field);
+            let modelField = appState.parseModelField(field);
             if (! modelField) {
                 modelField = [primaryModelName, field];
             }
-            if (! names[modelField[0]]) {
-                names[modelField[0]] = [];
+            // handle compound fields of the form <modelName>.<fieldName>
+            // since a top-level model can have a number of these, put the field names
+            // in a Set (order does not matter)
+            const x = appState.parseModelField(modelField[1]);
+            if (x && x.length === 2) {
+                const t = SIREPO.APP_SCHEMA.model[modelField[0]][x[0]][SIREPO.INFO_INDEX_TYPE];
+                modelField = [t.split('.')[1], x[1]];
             }
-            names[modelField[0]].push(modelField[1]);
+            if (! names[modelField[0]]) {
+                names[modelField[0]] = new Set();
+            }
+            names[modelField[0]].add(modelField[1]);
         }
         else {
-            var i;
             // [name, [cols]]
             if (typeof(field[0]) == 'string') {
-                for (i = 0; i < field[1].length; i++) {
+                for (let i = 0; i < field[1].length; i++) {
                     iterateFields(primaryModelName, field[1][i], names);
                 }
             }
             // [[name, [cols]], [name, [cols]], ...]
             else {
-                for (i = 0; i < field.length; i++) {
+                for (let i = 0; i < field.length; i++) {
                     iterateFields(primaryModelName, field[i], names);
                 }
             }
@@ -1616,7 +1636,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.getFieldsByModel = function(primaryModelName, fields) {
         var names = {};
-        names[primaryModelName] = [];
+        names[primaryModelName] = new Set();
         for (var i = 0; i < fields.length; i++) {
             iterateFields(primaryModelName, fields[i], names);
         }
@@ -1657,14 +1677,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.isRunning = function(name) {
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
-    };
-
-    self.isSubclass = function(model1, model2) {
-        const m1 = SIREPO.APP_SCHEMA.model[model1];
-        if (! m1._super) {
-            return false;
-        }
-        return m1._super.indexOf(model2) >= 0;
     };
 
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
