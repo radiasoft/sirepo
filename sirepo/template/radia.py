@@ -95,9 +95,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def create_archive(sim):
+    from sirepo import http_reply
     if sim.filename.endswith('dat'):
         return sirepo.http_reply.gen_file_as_attachment(
-            _DMP_FILE,
+            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
             content_type='application/octet-stream',
             filename=sim.filename,
         )
