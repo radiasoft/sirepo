@@ -1,11 +1,19 @@
 #!/bin/bash
-{% for d in [runDir, 'beams', 'data_files', 'datasets', 'parameters'] %}
-if [ -d "{{ d }}" ]; then
-    rm -rf --preserve-root "{{ d }}"
-fi
-{% endfor %}
+while getopts "?" arg; do
+  case $arg in
+    "?" | *)
+      echo usage: bash '{{ shFileName }}'
+      exit 0
+      ;;
+  esac
+done
+set -euo pipefail
+run_dir=rsopt-srw-$(date +%Y%m%d%H%M%S)
+mkdir $run_dir
+cp {'{{ymlFileName }}','{{ pyFileName }}',{{ libFiles }}} $run_dir
+cd $run_dir
 run_rsopt="rsopt sample configuration '{{ ymlFileName }}'"
-echo Running $run_rsopt...
+echo Running $run_rsopt in "$(pwd)"...
 eval "$run_rsopt" > "{{ outFileName }}" 2>&1
 if [ $? -eq 0 ]
 then
@@ -19,7 +27,8 @@ then
             echo "ERROR: SRW failed with return code $?"
         fi
     else
-        echo "NOTE: to run SRW with generated data, use
+        echo "NOTE: to run SRW with generated data:
+        cd $run_dir
         $run_py"
     fi
 else
