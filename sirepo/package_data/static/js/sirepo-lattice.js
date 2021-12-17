@@ -588,7 +588,9 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
 SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelState, rpnService, $document, $rootScope, $window) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            shiftClickHandler: '&?',
+        },
         template: [
             '<div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
               '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
@@ -709,7 +711,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             }
 
             function itemName(id) {
-                return cache(id).name;
+                let res = cache(id).name;
+                if (latticeService.isReversed(id)) {
+                    return '-' + res;
+                }
+                return res;
             }
 
             function modelId(el) {
@@ -788,6 +794,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             }
 
             function showModifyBeamlinePopover(item) {
+                $scope.clearPopover();
                 showPopover(item, 'modifyBeamline');
             }
 
@@ -1057,12 +1064,15 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 let item = latticeService.selectedItem;
                 item.id = -item.id;
                 item.name = itemName(item.id);
-                updateBeamline();
+                updateBeamline(true);
             };
 
             $scope.selectItem = (item, $event) => {
                 if ($event && $event.shiftKey && latticeService.selectedItem && (item != latticeService.selectedItem)) {
-                    if (! latticeService.isAbsolutePositioning()) {
+                    if ($scope.shiftClickHandler) {
+                        $scope.shiftClickHandler()(latticeService.selectedItem, item);
+                    }
+                    else if (! latticeService.isAbsolutePositioning()) {
                         lastSelectedItem = item;
                         $scope.newBeamline = latticeService.getNextBeamline();
                         $('#sr-beamline-from-elements-dialog').modal('show');
