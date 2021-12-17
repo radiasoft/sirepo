@@ -1,14 +1,7 @@
 #!/bin/bash
-if [ -d "{{ runDir }}" ] && [ -n "$(ls -A {{ runDir }})" ]; then
-    for f in '{{ pyFileName }}' run_parallel_python.py; do
-        rm -f "{{ runDir }}/$f"
-    done
-fi
-{% for d in ['beams', 'data_files', 'datasets', 'parameters'] %}
+{% for d in [runDir, 'beams', 'data_files', 'datasets', 'parameters'] %}
 if [ -d "{{ d }}" ]; then
-    for f in {{ d }}/*; do
-        rm -f "$f"
-    done
+    rm -rf --preserve-root "{{ d }}"
 fi
 {% endfor %}
 run_rsopt="rsopt sample configuration '{{ ymlFileName }}'"
