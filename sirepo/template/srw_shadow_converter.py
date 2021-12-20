@@ -250,7 +250,7 @@ class SRWShadowConverter():
         return harmonic, round(su._EMIN, 2), round(su._MAXANGLE * 1e6, 4)
 
     def __crl_to_shadow(self, item):
-        return self.__copy_item(item, PKDict(
+        res = self.__copy_item(item, PKDict(
             type='crl',
             attenuationCoefficient=1e-2 / float(item.attenuationLength),
             fcyl='0',
@@ -260,6 +260,10 @@ class SRWShadowConverter():
             pilingThickness=0,
             refractionIndex=1 - float(item.refractiveIndex),
         ))
+        if item.focalPlane in ('1', '2'):
+            res.fcyl = '1'
+            res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
+        return res
 
     def __crystal_to_shadow(self, item):
         material_map = PKDict({
