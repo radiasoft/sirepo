@@ -6,7 +6,7 @@ fi
 set -euo pipefail
 run_dir=rsopt-srw-$(date +%Y%m%d%H%M%S)
 mkdir "$run_dir"
-cp {'{{ymlFileName }}','{{ pyFileName }}',{{ libFiles }}} "$run_dir"
+cp '{{ymlFileName }}' '{{ pyFileName }}' {% for f in libFiles %}'{{ f }}' {% endfor %} "$run_dir"
 cd "$run_dir"
 run_rsopt=( rsopt sample configuration '{{ ymlFileName }}' )
 echo "Running $run_rsopt"

@@ -397,7 +397,7 @@ def export_rsopt_config(data, filename):
         v[f'{t}FileName'] = tf[t].file
     v.outFileName = f'{f}.out'
     v.readmeFileName = 'README.txt'
-    v.libFiles = ','.join([f"'{f.basename}'" for f in _SIM_DATA.lib_files_for_export(data)])
+    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
     v.hasLibFiles = len(v.libFiles) > 0
     v.randomSeed = data.models.exportRsOpt.randomSeed if \
         data.models.exportRsOpt.randomSeed is not None else ''
