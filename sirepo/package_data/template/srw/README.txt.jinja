@@ -13,7 +13,7 @@ Also included are auxiliary files required for the specific SRW simulation:
 To generate the data, run
     'bash {{ shFileName }}'.
 
-This stores the data in the numpy file
+This creates a new directory based on the current time and stores the data in the numpy file
     {{ fileBase }}.npy
 
 The script will prompt you to then run SRW with that data. To do so later, run
@@ -24,13 +24,15 @@ Please note:
     - If the machine running SRW has N cores, rsopt will attempt execute in parallel on N - 1 cores
     - SRW will run {{ totalSamples }} times; use caution
 
-The final consolidated output data for use in ML is in two numpy files under the "datasets" folder. Each is an array
-with {{ totalSamples }} entries, one for each run.  
-    - beam_intensities.npy: propagated single-electron intensity distribution vs horizontal and vertical position
-    - parameters.npy: the inputs used for each run
+The final consolidated input and output data for use in ML is in the hdf5 file "results.h5" under the "datasets" folder.
+It has the following structure:
+    - "/params": the parameters in the format <element name>_<param name>, e.g.
+        "Aperture_horizontalSize"
+    - "/paramVals": array of size {{ totalSamples }} containing the parameter values for each run
+    - "/beamIntensities": array of size {{ totalSamples }} containing the propagated single-electron intensity
+        distribution vs horizontal and vertical position for each run
 
-
-Intermediate output is also available (note the files may be re-used by workers):
+Intermediate output is also available:
 
 data_files/res_int_pr_se_[n].dat:
     propagated single-e intensity distribution vs horizontal and vertical position

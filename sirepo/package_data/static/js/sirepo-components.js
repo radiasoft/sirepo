@@ -544,6 +544,37 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('randomSeed', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            form: '=',
+            max: '=',
+            model: '=',
+            modelName: '=',
+            viewName: '=',
+        },
+        template: `
+            <div class="col-sm-3">
+              <input data-string-to-number="integer" data-ng-model="model[field]" data-min="0" data-max="max" class="form-control" style="text-align: right" data-lpignore="true"/>
+            </div>
+            <button class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
+            <button class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
+        `,
+        controller: function($scope) {
+
+            $scope.setSeedRandom = () => {
+                $scope.model[$scope.field] = Math.floor(Math.random() * $scope.max - 1);
+            };
+
+            $scope.setSeedTime = () => {
+                $scope.model[$scope.field] = (new Date()).getTime() % $scope.max;
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate) {
     return {
         restrict: 'A',
@@ -564,6 +595,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate
                         // evaluate angular text first if {{ }} is present
                         if (/\{\{.*?\}\}/.test(res)) {
                             $scope.appState = appState;
+                            $scope.SIREPO = SIREPO;
                             res = $interpolate(res)($scope);
                         }
                         if (mathRendering.textContainsMath(res)) {

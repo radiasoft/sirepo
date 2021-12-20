@@ -36,6 +36,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
           '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
         '</div>',
+        '<div data-ng-switch-when="RandomSeed" class="col-sm-7">',
+          '<div data-random-seed="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-max="info[5]" data-view-name="viewName"></div>',
+        '</div>',
         '<div data-ng-switch-when="RSOptElements" class="col-sm-12">',
           '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-field-class="fieldClass"></div>',
         '</div>',
@@ -1801,7 +1804,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService) {
+SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1882,6 +1885,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 $scope.model.totalSamples = numParams === 0 ? 0 :
                     ($scope.model.scanType === 'random' ? $scope.model.numSamples :
                     Math.pow($scope.model.numSamples, numParams));
+                updateFormValid(numParams);
             };
 
             function updateElements() {
@@ -1896,6 +1900,16 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                     };
                 }
                 updateParams();
+            }
+
+            function updateFormValid(numParams) {
+                validationService.validateField(
+                    'exportRsOpt',
+                    'totalSamples',
+                    'input',
+                    numParams > 0,
+                    'select at least one element and vary at least one parameter'
+                );
             }
 
             function updateParams() {
@@ -1931,6 +1945,9 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 }
             }
 
+            function showRandomSeeed() {
+                panelState.showField('exportRsOpt', 'randomSeed', $scope.model.scanType === 'random');
+            }
 
             $scope.$on('exportRsOpt.editor.show', () => {
                 updateElements();
@@ -1944,6 +1961,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 panelState.enableField('exportRsOpt', 'totalSamples', false);
                 appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
                 appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
+                appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {

@@ -7,7 +7,7 @@ codes:
         {% if p in e %}
         {% for x in e[p].initial %}
         {% if e[p].offsets[loop.index0] != 0 %}
-        {{ e.title }}_{{ p }}_{{ loop.index0 }}:
+        {{ e.title }}_{{ e[p].fieldNames[loop.index0] }}:
           min: {{ x - e[p].offsets[loop.index0] / 2.0 }}
           max: {{ x + e[p].offsets[loop.index0] / 2.0 }}
           samples: {{ numSamples }}
@@ -26,10 +26,10 @@ options:
   software: mesh_scan
   {% elif scanType == 'random' %}
   software: lh_scan
+  seed: {{ randomSeed }}
   nworkers: {{ numWorkers }}
   batch_size: {{ numSamples }}
   {% endif %}
-  run_dir: {{ runDir }}
   output_file: {{ fileBase }}
   sim_dirs_make: False
 

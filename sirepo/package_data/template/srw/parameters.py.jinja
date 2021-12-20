@@ -1,16 +1,16 @@
-{%- macro rsOptFuctionSignature() %}
-{% for e in rsOptElements %}
-{% for p in rsOptParams %}
-{% if p in e %}
-{% for x in e[p].initial %}
-{% if e[p].offsets[loop.index0] != 0 %}
-    {{ e.title }}_{{ p }}_{{ loop.index0 }},
-{% endif %}
-{% endfor %}
-{% endif %}
-{% endfor %}
-{% endfor %}
-{% endmacro -%}
+{%- macro rsOptFuctionSignature(addQuotes) -%}
+{%- for e in rsOptElements -%}
+{%- for p in rsOptParams -%}
+{%- if p in e -%}
+{%- for x in e[p].initial -%}
+{%- if e[p].offsets[loop.index0] != 0 -%}
+    {% if addQuotes %}'{% endif %}{{ e.title }}_{{ e[p].fieldNames[loop.index0] }}{% if addQuotes %}'{% endif %},
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- endmacro -%}
 
 #!/usr/bin/env python
 import os
@@ -39,9 +39,7 @@ from pykern.pkdebug import pkdlog
 import numpy
 
 # This function is required by rsopt to generate data but is a noop otherwise
-def set_rsopt_params_dummy(
-{{ rsOptFuctionSignature() }}
-):
+def set_rsopt_params_dummy({{ rsOptFuctionSignature() }}):
     return 0
 {% endif %}
 
@@ -377,6 +375,8 @@ def _read_srw_file(filename):
 
 def _rsopt_run(filename):
     from pykern import pkio
+    from sirepo.template import template_common
+    import h5py
     import multiprocessing
     import time
 
@@ -428,10 +428,15 @@ def _rsopt_run(filename):
     beams_all = numpy.concatenate(beam_arrays, axis=0)
     params_all = numpy.concatenate(task_arrays, axis=0)
 
-    ###### actual input and output files used for ML
-    numpy.save(f'{_DATASET_DIR}/beam_intensities.npy', beams_all)
-    numpy.save(f'{_DATASET_DIR}/parameters.npy', params_all)
-
+    ###### consolidated input and output file used for ML
+    template_common.write_dict_to_h5(
+        {
+            'params': [{{ rsOptFuctionSignature(true) }}],
+            'paramVals': params_all.tolist(),
+            'beamIntensities': beams_all.tolist(),
+        },
+        f'{_DATASET_DIR}/results.h5'
+    )
 
 def _rsopt_run_set(param_arr, start, end, proc_num):
     pkdlog(f'Process {proc_num} to complete {end - start} tasks')
@@ -461,9 +466,7 @@ def _rsopt_run_single(param_vals, proc_num, task_num):
 
 
 # This function actually sets the data
-def _rsopt_set_params(
-{{ rsOptFuctionSignature() }}
-):
+def _rsopt_set_params({{ rsOptFuctionSignature() }}):
     vp = varParam.copy()
     {% for e in rsOptElements %}
     {% for p in rsOptParamsNoRot %}
@@ -472,7 +475,7 @@ def _rsopt_set_params(
     {% if e[p].offsets[loop.index0] != 0 %}
     p = _get_beamline_param(vp, 'op_{{ e.title }}', '{{ e[p].fieldNames[loop.index0] }}')
     if p:
-        p[2] = {{ e.title }}_{{ p }}_{{ loop.index0 }}
+        p[2] = {{ e.title }}_{{ e[p].fieldNames[loop.index0] }}
     {% endif %}
     {% endfor %}
     {% endif %}
@@ -483,7 +486,7 @@ def _rsopt_set_params(
     a = [0.0, 0.0, 0.0]
     {% for t in e.rotation.initial %}
     {% if e.rotation.offsets[loop.index0] != 0 %}
-    a[{{ loop.index0 }}] = {{ e.title }}_rotation_{{ loop.index0 }}
+    a[{{ loop.index0 }}] = {{ e.title }}_{{ e[p].fieldNames[loop.index0] }}
     {% endif %}
     {% endfor %}
     n = _apply_rotation(a, {{ e.rotation.initial }})
