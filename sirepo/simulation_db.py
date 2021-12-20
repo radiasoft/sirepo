@@ -904,7 +904,8 @@ def _init_schemas():
             if i not in s:
                 s[i] = PKDict()
             _merge_dicts(s.common[i], s[i])
-        _merge_subclasses(s, 'model')
+        _merge_subclasses(s, 'model', extend_arrays=False)
+        _merge_subclasses(s, 'view', extend_arrays=True)
         srschema.validate(s)
         _SCHEMA_CACHE[t] = s
     SCHEMA_COMMON.appInfo = a
@@ -954,14 +955,14 @@ def _merge_dicts(base, derived, depth=-1, extend_arrays=True):
             pass
 
 
-def _merge_subclasses(schema, item):
+def _merge_subclasses(schema, item, extend_arrays=True):
     for m in schema[item]:
         item_schema = schema[item]
         model = item_schema[m]
         subclasses = []
         _unnest_subclasses(schema, item, m, subclasses)
         for s in subclasses:
-            _merge_dicts(item_schema[s], model, extend_arrays=False)
+            _merge_dicts(item_schema[s], model, extend_arrays=extend_arrays)
         # _super is a special case
         if subclasses:
             _extend_no_dupes(model[_SCHEMA_SUPERCLASS_FIELD], subclasses)
