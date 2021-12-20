@@ -904,7 +904,7 @@ def _init_schemas():
             if i not in s:
                 s[i] = PKDict()
             _merge_dicts(s.common[i], s[i])
-        _merge_subclasses(s, 'model')
+            _merge_subclasses(s, i)
         srschema.validate(s)
         _SCHEMA_CACHE[t] = s
     SCHEMA_COMMON.appInfo = a
