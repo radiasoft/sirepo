@@ -15,11 +15,11 @@ echo "Entering $PWD"
 "${run_rsopt[@]}" > '{{ outFileName }}' 2>&1
 if [ $? -eq 0 ]
 then
-    run_py="python '{{ pyFileName }}' rsopt_run '{{ fileBase }}.npy'"
+    run_py=( python '{{ pyFileName }}' rsopt_run '{{ fileBase }}.npy' )
     read -p "Continue? (** will run SRW {{ totalSamples }} times **)? (Y/N): " confirm
     if [[ $confirm == [yY] ]]; then
         echo Running SRW...
-        if eval "$run_py"; then
+        if "${run_py[@]}"; then
             echo Results are in datasets/results.h5
         else
             echo "ERROR: SRW failed with return code $?"
