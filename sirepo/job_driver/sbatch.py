@@ -154,10 +154,9 @@ disown
             p = pkio.py_path(self._local_user_dir).join('agent-sbatch', self.cfg.host)
             pkio.mkdir_parent(p)
             f = p.join(f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log')
-            d = PKDict(stdout=stdout, stderr=stderr)
-            pkjson.dump_pretty(d, f)
+            r = pkjson.dump_pretty(PKDict(stdout=stdout, stderr=stderr, filename=f), f)
             if pkconfig.channel_in('dev'):
-                pkdlog(d.pkupdate(filename=f))
+                pkdlog(r)
 
         async def get_agent_log(connection, before_start=True):
             try:
