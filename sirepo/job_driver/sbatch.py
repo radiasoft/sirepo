@@ -153,19 +153,30 @@ disown
         def write_to_log(stdout, stderr, filename):
             p = pkio.py_path(self._local_user_dir).join('agent-sbatch', self.cfg.host)
             pkio.mkdir_parent(p)
-            pkjson.dump_pretty(
-                PKDict(stdout=stdout, stderr=stderr),
-                p.join(f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'),
-            )
+            f = p.join(f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log')
+            d = PKDict(stdout=stdout, stderr=stderr)
+            pkjson.dump_pretty(d, f)
+            if pkconfig.channel_in('dev'):
+                pkdlog(d.pkupdate(filename=f))
 
-        async def get_agent_log(connection):
-            await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
-            async with connection.create_process(
-                f'/bin/cat {agent_start_dir}/{log_file}'
-            ) as p:
-                o, e = await p.communicate()
-                write_to_log(o, e, 'remote')
-
+        async def get_agent_log(connection, before_start=True):
+            try:
+                if not before_start:
+                    await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
+                async with connection.create_process(
+                    f'/bin/cat {agent_start_dir}/{log_file}'
+                ) as p:
+                    o, e = await p.communicate()
+                    write_to_log(o, e, f"remote-{'before' if before_start else 'after'}-start")
+            except sirepo.util.ASYNC_CANCELED_ERROR:
+                raise
+            except Exception as e:
+                pkdlog(
+                    '{} e={} stack={}',
+                    self,
+                    e,
+                    pkdexc(),
+                )
         try:
             async with asyncssh.connect(
                 self.cfg.host,
@@ -174,6 +185,7 @@ disown
                 known_hosts=self._KNOWN_HOSTS,
             ) as c:
                 async with c.create_process('/bin/bash --noprofile --norc -l') as p:
+                    await get_agent_log(c, before_start=True)
                     o, e = await p.communicate(input=script)
                     if o or e:
                         write_to_log(o, e, 'start')
@@ -181,18 +193,7 @@ disown
                     host=self.cfg.host,
                     username=self._creds.username,
                 )
-
-                try:
-                    await get_agent_log(c)
-                except sirepo.util.ASYNC_CANCELED_ERROR:
-                    raise
-                except Exception as e:
-                    pkdlog(
-                        '{} e={} stack={}',
-                        self,
-                        e,
-                        pkdexc(),
-                    )
+                await get_agent_log(c, before_start=False)
         except asyncssh.misc.PermissionDenied:
             pkdlog('{}', pkdexc())
             self._srdb_root = None
