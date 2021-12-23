@@ -86,6 +86,11 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
+def _apply_segments(g_id, segments):
+    if segments and any([s > 1 for s in segments]):
+        radia.ObjDivMag(g_id, segments)
+
+
 def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
     xf = radia.TrfTrsl(distance)
     if alternate_fields:
@@ -183,8 +188,7 @@ def apply_transform(g_id, xform):
 
 def build_cuboid(center, size, material, magnetization, rem_mag, segments, h_m_curve=None):
     g_id = radia.ObjRecMag(center, size, magnetization)
-    if segments and any([s > 1 for s in segments]):
-        radia.ObjDivMag(g_id, segments)
+    _apply_segments(g_id, segments)
     radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
     return g_id
 
@@ -206,7 +210,7 @@ def dump_bin(g_id):
     return radia.UtiDmp(g_id, 'bin')
 
 
-def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, h_m_curve=None):
+def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, segments, h_m_curve=None):
     b = numpy.array(beam_dir)
     g_id = radia.ObjMltExtTri(
         numpy.sum(b * center),
@@ -216,6 +220,7 @@ def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem
         beam_axis,
         magnetization
     )
+    _apply_segments(g_id, segments)
     radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
     return g_id
 

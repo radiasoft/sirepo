@@ -34,16 +34,18 @@ import uuid
 
 _AXES = ['x', 'y', 'z']
 
+_AXES_UNIT = [1, 1, 1]
+
 _BEAM_AXIS_ROTATIONS = PKDict(
     x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
 )
 
 _BEAM_AXIS_VECTORS = PKDict(
-    x=[1, 0, 0],
-    y=[0, 1, 0],
-    z=[0, 0, 1]
+    x=numpy.array([1, 0, 0]),
+    y=numpy.array([0, 1, 0]),
+    z=numpy.array([0, 0, 1]),
 )
 
 _DIPOLE_NOTES = PKDict(
@@ -539,7 +541,7 @@ def _build_undulator_objects(geom, und, beam_axis, height_axis):
 
 
 def _build_field_axis(length, beam_axis):
-    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    beam_dir = _BEAM_AXIS_VECTORS[beam_axis]
     f = PKDict(
         begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
         end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
@@ -825,10 +827,10 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
 # along the remaining axis
 def _geom_directions(beam_axis, height_axis):
-    beam_dir = numpy.array(_BEAM_AXIS_VECTORS[beam_axis])
+    beam_dir = _BEAM_AXIS_VECTORS[beam_axis]
     if not height_axis or height_axis == beam_axis:
         height_axis = SCHEMA.constants.heightAxisMap[beam_axis]
-    height_dir = numpy.array(_BEAM_AXIS_VECTORS[height_axis])
+    height_dir = _BEAM_AXIS_VECTORS[height_axis]
 
     # we don't care about the direction of the cross product
     width_dir = abs(numpy.cross(beam_dir, height_dir))
@@ -1170,6 +1172,9 @@ def _update_cuboid(o, _, __, **kwargs):
 
 
 def _update_ell(o, beam_axis, height_axis, **kwargs):
+    o.segments = sirepo.util.to_comma_delimited_string(
+        _AXES_UNIT + _BEAM_AXIS_VECTORS[o.extrusionAxis] * (o.extrusionAxisSegments - 1)
+    )
     return _update_ell_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
 
 
@@ -1181,27 +1186,6 @@ def _update_ell_points(o, beam_axis, height_axis):
     o.points = _update_extrusion_points(
         [
             [ax1, ay1], [ax2, ay1], [ax2, ay2],
-            [sx2, ay2], [sx2, sy1], [sx1, sy1],
-            [ax1, ay1]
-        ],
-        c,
-        [int(o.stemPosition), int(o.armPosition)],
-        w,
-        b
-    )
-    return o
-
-
-def _update_jay_points(o, beam_axis, height_axis):
-    g = _update_stemmed_points(o, beam_axis, height_axis)
-    w, h, b, c, s = g.geom
-    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
-    jx1 = c[0] + s[0] / 2 - o.hookWidth
-    jy1 = ay2 - o.hookHeight
-
-    o.points = _update_extrusion_points(
-        [
-            [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
             [sx2, ay2], [sx2, sy1], [sx1, sy1],
             [ax1, ay1]
         ],
@@ -1570,6 +1554,27 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
 
 def _update_jay(o, beam_axis, height_axis, **kwargs):
     return _update_jay_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
+
+
+def _update_jay_points(o, beam_axis, height_axis):
+    g = _update_stemmed_points(o, beam_axis, height_axis)
+    w, h, b, c, s = g.geom
+    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
+    jx1 = c[0] + s[0] / 2 - o.hookWidth
+    jy1 = ay2 - o.hookHeight
+
+    o.points = _update_extrusion_points(
+        [
+            [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
+            [sx2, ay2], [sx2, sy1], [sx1, sy1],
+            [ax1, ay1]
+        ],
+        c,
+        [int(o.stemPosition), int(o.armPosition)],
+        w,
+        b
+    )
+    return o
 
 
 def _update_racetrack(o, _, __, **kwargs):

@@ -654,7 +654,9 @@
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
-            "points": ["Points", "Points", []]
+            "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
+            "points": ["Points", "Points", []],
+            "triangulationLevel": ["Triangulation Level", "Range", 0.5, "", 0.0, 1.0]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -1236,6 +1238,7 @@
                     "type",
                     "color",
                     "stemmed.extrusionAxis",
+                    "extrudedPoly.extrusionAxisSegments",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
                     "stemmed.stemWidth",

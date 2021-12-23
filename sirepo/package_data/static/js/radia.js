@@ -331,6 +331,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'dipoleBasic',
         'dipoleC',
         'dipoleH',
+        'ell',
         'geomObject',
         'geomGroup',
         'hybridUndulator',
@@ -3776,6 +3777,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     $scope.watchFields = [
         [
             'geomObject.type',
+            "extrudedPoly.extrusionAxisSegments",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
