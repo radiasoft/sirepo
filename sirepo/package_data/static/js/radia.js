@@ -213,6 +213,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
+        srdbg('RADIA SVC SAVE GEOM');
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
             appState.saveQuietly('geometryReport');
@@ -328,6 +329,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'simulation.beamAxis',
     ];
     const watchedModels = [
+        'dipoleBasic',
+        'dipoleC',
+        'dipoleH',
         'geomObject',
         'geomGroup',
         'hybridUndulator',
@@ -1045,6 +1049,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         loadShapes();
 
         $scope.$on('modelChanged', function(e, modelName) {
+            srdbg('SRC CTL MODEL CH', modelName);
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
             }
@@ -1183,6 +1188,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     updateReports();
                 }
                 solving = false;
+                srdbg('SIM HDL STAT SAVE GEOM');
                 radiaService.saveGeometry(false, true);
             }
         }
@@ -3479,6 +3485,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('geomObject.changed', function(e) {
+                srdbg('GEOM ONJ CH SAVE');
                 radiaService.saveGeometry(true, false);
             });
 
@@ -3835,6 +3842,7 @@ for (const d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         });
 
         $scope.$on('modelChanged', (e, d) => {
+            srdbg('MC', d);
             if (d === 'geomObject' && appState.models.geomObject.id === activeModel().id) {
                 appState.models[$scope.modelName][activeObjName()] = appState.models.geomObject;
                 appState.saveChanges($scope.modelName);

@@ -1021,7 +1021,7 @@
                     "dipoleH.coil.currentDensity"
                 ]],
                 ["Magnet", [
-                    "dipoleH.magnet.color",
+                    "dipoleH.magnet.shapeButton",
                     "magnetSize",
                     "dipoleH.magnet.material",
                     "dipoleH.magnet.materialFile",
