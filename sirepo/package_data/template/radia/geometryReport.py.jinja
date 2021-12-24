@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import h5py
 import os
 import re
@@ -36,15 +34,32 @@ def _add_object(o, radia_objs, id_map):
         ctr = sirepo.util.split_comma_delimited_string(o.center, float)
         sz = sirepo.util.split_comma_delimited_string(o.size, float)
         m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
-        div = sirepo.util.split_comma_delimited_string(o.segments, int)
+        segs = sirepo.util.split_comma_delimited_string(o.segments, int)
     if t == _MODEL_CUBOID:
-        g_id = radia_util.build_cuboid(ctr, sz, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
+        g_id = radia_util.build_cuboid(
+            center=ctr,
+            size=sz,
+            material=o.material,
+            magnetization=m,
+            rem_mag=o.remanentMag,
+            segments=segs,
+            h_m_curve=o.h_m_curve
+        )
     if _MODEL_EXTRUDED_POLY in sc:
-        g_id = radia_util.extrude(ctr, sz, {{ beam_dir }}, '{{ beam_axis }}', o.points, o.material, m, o.remanentMag, div, h_m_curve=o.h_m_curve)
+        g_id = radia_util.extrude(
+            center=ctr,
+            size=sz,
+            extrusion_axis=o.extrusionAxis,
+            points=o.points,
+            material=o.material,
+            magnetization=m,
+            rem_mag=o.remanentMag,
+            segments=segs,
+            h_m_curve=o.h_m_curve
+    )
     if t == _MODEL_RACETRACK:
         g_id = radia_util.build_racetrack(
             center=sirepo.util.split_comma_delimited_string(o.center, float),
-            size=sirepo.util.split_comma_delimited_string(o.size, float),
             axis=o.axis,
             calc=o.fieldCalc,
             radii=sirepo.util.split_comma_delimited_string(o.radii, float),

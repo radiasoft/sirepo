@@ -9,11 +9,9 @@ Radia "instance" goes away and references no longer have any meaning.
 """
 from __future__ import division
 
-from pykern import pkcollections
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
@@ -29,23 +27,14 @@ import sdds
 import sirepo.csv
 import sirepo.sim_data
 import sirepo.util
-import time
 import uuid
-
-_AXES = ['x', 'y', 'z']
 
 _AXES_UNIT = [1, 1, 1]
 
-_BEAM_AXIS_ROTATIONS = PKDict(
+_AXIS_ROTATIONS = PKDict(
     x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
-)
-
-_BEAM_AXIS_VECTORS = PKDict(
-    x=numpy.array([1, 0, 0]),
-    y=numpy.array([0, 1, 0]),
-    z=numpy.array([0, 0, 1]),
 )
 
 _DIPOLE_NOTES = PKDict(
@@ -152,7 +141,7 @@ def extract_report_data(run_dir, sim_in):
     if 'fieldLineoutReport' in sim_in.report:
         beam_axis = sim_in.models.simulation.beamAxis
         v_axis = sim_in.models.simulation.heightAxis
-        h_axis = next(iter(set(_AXES) - {beam_axis, v_axis}))
+        h_axis = next(iter(set(radia_util.AXES) - {beam_axis, v_axis}))
         template_common.write_sequential_result(
             _field_lineout_plot(
                 sim_in.models.simulation.simulationId,
@@ -230,14 +219,14 @@ def get_application_data(data, **kwargs):
             return _save_fm_sdds(
                 res.name,
                 vectors,
-                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                _AXIS_ROTATIONS[data.beamAxis],
                 file_path
             )
         elif data.exportType == 'csv':
             return _save_field_csv(
                 data.fieldType,
                 vectors,
-                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                _AXIS_ROTATIONS[data.beamAxis],
                 file_path
             )
         elif data.exportType == 'SRW':
@@ -245,7 +234,7 @@ def get_application_data(data, **kwargs):
                 data.fieldType,
                 data.gap,
                 vectors,
-                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                _AXIS_ROTATIONS[data.beamAxis],
                 file_path
             )
         return res
@@ -257,7 +246,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _BEAM_AXIS_ROTATIONS[sim.beamAxis]
+    beam_axis = _AXIS_ROTATIONS[sim.beamAxis]
     rpt = data.models[model]
     default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
     sfx = (options.suffix or default_sfx) if options and 'suffix' in options else \
@@ -541,7 +530,7 @@ def _build_undulator_objects(geom, und, beam_axis, height_axis):
 
 
 def _build_field_axis(length, beam_axis):
-    beam_dir = _BEAM_AXIS_VECTORS[beam_axis]
+    beam_dir = radia_util.AXIS_VECTORS[beam_axis]
     f = PKDict(
         begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
         end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
@@ -595,13 +584,13 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
     for c in (h_axis, v_axis):
         plots.append(
             PKDict(
-                points=(m * f[:, _AXES.index(c)]).tolist(),
+                points=(m * f[:, radia_util.AXES.index(c)]).tolist(),
                 label=f'{labels[c]} ({c}) [{radia_util.FIELD_UNITS[f_type]}]',
                 style='line'
             )
         )
     return template_common.parameter_plot(
-        pts[:, _AXES.index(beam_axis)].tolist(),
+        pts[:, radia_util.AXES.index(beam_axis)].tolist(),
         plots,
         PKDict(),
         PKDict(
@@ -827,10 +816,10 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
 # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
 # along the remaining axis
 def _geom_directions(beam_axis, height_axis):
-    beam_dir = _BEAM_AXIS_VECTORS[beam_axis]
+    beam_dir = radia_util.AXIS_VECTORS[beam_axis]
     if not height_axis or height_axis == beam_axis:
         height_axis = SCHEMA.constants.heightAxisMap[beam_axis]
-    height_dir = _BEAM_AXIS_VECTORS[height_axis]
+    height_dir = radia_util.AXIS_VECTORS[height_axis]
 
     # we don't care about the direction of the cross product
     width_dir = abs(numpy.cross(beam_dir, height_dir))
@@ -1143,7 +1132,7 @@ def _undulator_termination_name(index, term_type):
 
 
 def _update_cee(o, beam_axis, height_axis, **kwargs):
-    return _update_cee_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
+    return _update_cee_points(_update_geom_obj(_update_extruded(o), **kwargs), beam_axis, height_axis)
 
 
 def _update_cee_points(o, beam_axis, height_axis):
@@ -1172,10 +1161,7 @@ def _update_cuboid(o, _, __, **kwargs):
 
 
 def _update_ell(o, beam_axis, height_axis, **kwargs):
-    o.segments = sirepo.util.to_comma_delimited_string(
-        _AXES_UNIT + _BEAM_AXIS_VECTORS[o.extrusionAxis] * (o.extrusionAxisSegments - 1)
-    )
-    return _update_ell_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
+    return _update_ell_points(_update_geom_obj(_update_extruded(o), **kwargs), beam_axis, height_axis)
 
 
 def _update_ell_points(o, beam_axis, height_axis):
@@ -1193,6 +1179,13 @@ def _update_ell_points(o, beam_axis, height_axis):
         [int(o.stemPosition), int(o.armPosition)],
         w,
         b
+    )
+    return o
+
+
+def _update_extruded(o):
+    o.segments = sirepo.util.to_comma_delimited_string(
+        _AXES_UNIT + radia_util.AXIS_VECTORS[o.extrusionAxis] * (o.extrusionAxisSegments - 1)
     )
     return o
 
@@ -1552,8 +1545,8 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
     return o
 
 
-def _update_jay(o, beam_axis, height_axis, **kwargs):
-    return _update_jay_points(_update_geom_obj(o, **kwargs), beam_axis, height_axis)
+def _update_jay(o, **kwargs):
+    return _update_jay_points(_update_geom_obj(_update_extruded(o), kwargs), kwargs)
 
 
 def _update_jay_points(o, beam_axis, height_axis):
@@ -1611,9 +1604,9 @@ def _update_group(g, members, do_replace=False):
 
 
 def _update_kickmap(km, und, beam_axis):
-    km.direction = sirepo.util.to_comma_delimited_string(_BEAM_AXIS_VECTORS[beam_axis])
+    km.direction = sirepo.util.to_comma_delimited_string(radia_util.AXIS_VECTORS[beam_axis])
     km.transverseDirection = sirepo.util.to_comma_delimited_string(
-        _BEAM_AXIS_VECTORS[SCHEMA.constants.heightAxisMap[beam_axis]]
+        radia_util.AXIS_VECTORS[SCHEMA.constants.heightAxisMap[beam_axis]]
     )
     km.transverseRange1 = und.gap
     km.numPeriods = und.numPeriods

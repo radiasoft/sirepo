@@ -14,6 +14,15 @@ from numpy import linalg
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 
+AXES = ['x', 'y', 'z']
+
+AXIS_VECTORS = PKDict(
+    x=numpy.array([1, 0, 0]),
+    y=numpy.array([0, 1, 0]),
+    z=numpy.array([0, 0, 1]),
+)
+
+
 FIELD_TYPE_MAG_A = 'A'
 FIELD_TYPE_MAG_B = 'B'
 FIELD_TYPE_MAG_H = 'H'
@@ -186,10 +195,11 @@ def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
 
-def build_cuboid(center, size, material, magnetization, rem_mag, segments, h_m_curve=None):
-    g_id = radia.ObjRecMag(center, size, magnetization)
-    _apply_segments(g_id, segments)
-    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
+def build_cuboid(**kwargs):
+    d = PKDict(kwargs)
+    g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
+    _apply_segments(g_id, d.segments)
+    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 
 
@@ -197,9 +207,9 @@ def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-def build_racetrack(center=[0, 0, 0], size=[1, 1, 1], radii=[1, 2], sides=[1, 1], height=1, axis='x', calc='a', num_segs=3, curr_density=-1.0):
-    g_id = radia.ObjRaceTrk(center, radii, sides, height, num_segs, curr_density, calc, axis)
-    return g_id
+def build_racetrack(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjRaceTrk(d.center, d.radii, d.sides, d.height, d.num_segs, d.curr_density, d.calc, d.axis)
 
 
 def dump(g_id):
@@ -210,18 +220,19 @@ def dump_bin(g_id):
     return radia.UtiDmp(g_id, 'bin')
 
 
-def extrude(center, size, beam_dir, beam_axis, pts, material, magnetization, rem_mag, segments, h_m_curve=None):
-    b = numpy.array(beam_dir)
+def extrude(**kwargs):
+    d = PKDict(kwargs)
+    b = AXIS_VECTORS[d.extrusion_axis]
     g_id = radia.ObjMltExtTri(
-        numpy.sum(b * center),
-        numpy.sum(b * size),
-        pts,
-        numpy.full((len(pts), 2), [1, 1]).tolist(),
-        beam_axis,
-        magnetization
+        numpy.sum(b * d.center),
+        numpy.sum(b * d.size),
+        d.points,
+        numpy.full((len(d.points), 2), [1, 1]).tolist(),
+        d.extrusion_axis,
+        d.magnetization
     )
-    _apply_segments(g_id, segments)
-    radia.MatApl(g_id, _radia_material(material, rem_mag, h_m_curve))
+    _apply_segments(g_id, d.segments)
+    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
 
 
