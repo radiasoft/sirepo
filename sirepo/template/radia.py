@@ -1545,8 +1545,8 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
     return o
 
 
-def _update_jay(o, **kwargs):
-    return _update_jay_points(_update_geom_obj(_update_extruded(o), kwargs), kwargs)
+def _update_jay(o, beam_axis, height_axis):
+    return _update_jay_points(_update_geom_obj(_update_extruded(o)), beam_axis, height_axis)
 
 
 def _update_jay_points(o, beam_axis, height_axis):
