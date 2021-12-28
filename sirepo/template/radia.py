@@ -727,8 +727,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         _update_geom_from_undulator(
             g,
             data.models.hybridUndulator,
-            v.beam_axis,
-            v.height_axis,
+            dirs
         )
     if v.magnetType == 'dipole':
         v.dipoleType = data.models.simulation.dipoleType
@@ -1128,23 +1127,24 @@ def _undulator_termination_name(index, term_type):
 
 
 def _update_cee(o, **kwargs):
-    return _update_cee_points(_update_geom_obj(_update_extruded(o), **kwargs))
+    return _update_cee_points(
+        _update_geom_obj(_update_extruded(o), kwargs)
+    )
 
 
 def _update_cee_points(o):
     g = _update_stemmed_points(o)
-    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
+    p = g.points
 
-    sy2 = sy1 + o.armHeight
+    sy2 = p.sy1 + o.armHeight
 
     o.points = _update_extrusion_points(
         [
-            [ax1, ay1], [ax2, ay1], [ax2, ay2],
-            [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
-            [ax1, ay1]
+            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
+            [p.sx2, p.ay2], [p.sx2, sy2], [p.ax2, sy2], [p.ax2, p.sy1], [p.sx1, p.sy1],
+            [p.ax1, p.ay1]
         ],
-        g.geom.plane_ctr,
-        [int(o.stemPosition), int(o.armPosition)]
+        g
     )
     return o
 
@@ -1154,24 +1154,21 @@ def _update_cuboid(o, **kwargs):
 
 
 def _update_ell(o, **kwargs):
-    return _update_ell_points(_update_geom_obj(
-        _update_extruded(o),
-        **kwargs
-    ))
+    return _update_ell_points(
+        _update_geom_obj(_update_extruded(o), kwargs)
+    )
 
 
 def _update_ell_points(o):
     g = _update_stemmed_points(o)
-    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
-
+    p = g.points
     o.points = _update_extrusion_points(
         [
-            [ax1, ay1], [ax2, ay1], [ax2, ay2],
-            [sx2, ay2], [sx2, sy1], [sx1, sy1],
-            [ax1, ay1]
+            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
+            [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
+            [p.ax1, p.ay1]
         ],
-        g.geom.plane_ctr,
-        [int(o.stemPosition), int(o.armPosition)]
+        g
     )
     return o
 
@@ -1192,9 +1189,9 @@ def _update_extruded(o):
     return o
 
 
-def _update_extrusion_points(points, ctr, stem_indices):
+def _update_extrusion_points(points, stem_geom):
     pts = [
-        [2 * ctr[i] * stem_indices[i] + (-1)**stem_indices[i] * v for (i, v) in enumerate(p)] \
+        [2 * stem_geom.geom.plane_ctr[i] * stem_geom.indices[i] + (-1)**stem_geom.indices[i] * v for (i, v) in enumerate(p)] \
         for p in points
     ]
 
@@ -1527,23 +1524,24 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
 
 
 def _update_jay(o, **kwargs):
-    return _update_jay_points(_update_geom_obj(_update_extruded(o), **kwargs))
+    return _update_jay_points(
+        _update_geom_obj(_update_extruded(o), kwargs)
+    )
 
 
 def _update_jay_points(o):
     g = _update_stemmed_points(o)
-    ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
+    p = g.points
     jx1 = g.geom.plane_ctr[0] + g.geom.plane_size[0] / 2 - o.hookWidth
-    jy1 = ay2 - o.hookHeight
+    jy1 = p.ay2 - o.hookHeight
 
     o.points = _update_extrusion_points(
         [
-            [ax1, ay1], [ax2, ay1], [ax2, jy1], [jx1, jy1], [jx1, ay2],
-            [sx2, ay2], [sx2, sy1], [sx1, sy1],
-            [ax1, ay1]
+            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, jy1], [jx1, jy1], [jx1, p.ay2],
+            [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
+            [p.ax1, p.ay1]
         ],
-        g.geom.plane_ctr,
-        [int(o.stemPosition), int(o.armPosition)]
+        g
     )
     return o
 
@@ -1568,7 +1566,7 @@ def _update_stemmed_points(o):
     return PKDict(
         geom=geom,
         indices=[int(o.stemPosition), int(o.armPosition)],
-        points=(ax1, ax2, ay1, ay2, sx1, sx2, sy1),
+        points=PKDict(ax1=ax1, ax2=ax2, ay1=ay1, ay2=ay2, sx1=sx1, sx2=sx2, sy1=sy1),
     )
 
 
