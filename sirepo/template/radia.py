@@ -294,22 +294,21 @@ def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     _prep_new_sim(data)
-    beam_axis = new_simulation_data.beamAxis
-    height_axis = new_simulation_data.heightAxis
+    dirs = _geom_directions(new_simulation_data.beamAxis, new_simulation_data.heightAxis)
     #TODO(mvk): dict of magnet types to builder methods
     t = new_simulation_data.get('magnetType', 'freehand')
     if  t == 'undulator':
-        _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, beam_axis, height_axis)
+        _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, dirs)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
-            beam_axis
+            dirs.b
         ))
         data.models.simulation.enableKickMaps = '1'
-        _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, beam_axis)
+        _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, dirs.b)
     if t == 'dipole':
         d = data.models[new_simulation_data.dipoleType]
         data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
-        _build_dipole_objects(data.models.geometryReport, d, beam_axis, height_axis)
+        _build_dipole_objects(data.models.geometryReport, d, dirs)
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -352,21 +351,16 @@ def _build_cuboid(**kwargs):
     return _update_cuboid(_build_geom_obj('cuboid', **kwargs), **kwargs)
 
 
-def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
-    geom.objects.append(dipole.pole)
-    if dipole.dipoleType in ['dipoleC', 'dipoleH']:
-        geom.objects.append(dipole.magnet)
-        geom.objects.append(dipole.coil)
-        g = _update_group(dipole.corePoleGroup, [dipole.magnet, dipole.pole], do_replace=True)
+def _build_dipole_objects(geom, model, dirs):
+    geom.objects.append(model.pole)
+    if model.dipoleType in ['dipoleC', 'dipoleH']:
+        geom.objects.append(model.magnet)
+        geom.objects.append(model.coil)
+        g = _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
         geom.objects.append(g)
-        geom.objects.append(_update_group(dipole.magnetCoilGroup, [g, dipole.coil], do_replace=True))
+        geom.objects.append(_update_group(model.magnetCoilGroup, [g, model.coil], do_replace=True))
 
-    return _update_geom_from_dipole(
-        geom,
-        dipole,
-        beam_axis,
-        height_axis
-    )
+    return _update_geom_from_dipole(geom, model, dirs)
 
 
 # have to include points for file type?
@@ -723,10 +717,10 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     v.beam_axis = data.models.simulation.beamAxis
     v.height_axis = data.models.simulation.heightAxis
-    wd, hd, bd = _geom_directions(v.beam_axis, v.height_axis)
-    v.width_dir = wd.tolist()
-    v.height_dir = hd.tolist()
-    v.beam_dir = bd.tolist()
+    dirs = _geom_directions(v.beam_axis, v.height_axis)
+    v.width_dir = dirs.width.tolist()
+    v.height_dir = dirs.height.tolist()
+    v.beam_dir = dirs.beam.tolist()
     if not v.isExample and v.magnetType == 'freehand':
         _update_geom_from_freehand(g)
     if v.magnetType == 'undulator':
@@ -738,12 +732,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         )
     if v.magnetType == 'dipole':
         v.dipoleType = data.models.simulation.dipoleType
-        _update_geom_from_dipole(
-            g,
-            data.models[v.dipoleType],
-            v.beam_axis,
-            v.height_axis,
-        )
+        _update_geom_from_dipole(g, data.models[v.dipoleType], dirs)
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
 
@@ -812,8 +801,11 @@ def _geom_directions(beam_axis, height_axis):
     height_dir = radia_util.AXIS_VECTORS[height_axis]
 
     # we don't care about the direction of the cross product
-    width_dir = abs(numpy.cross(beam_dir, height_dir))
-    return width_dir, height_dir, beam_dir
+    return PKDict(
+        beam=beam_dir,
+        height=height_dir,
+        width=abs(numpy.cross(beam_dir, height_dir)),
+    )
 
 
 def _geom_h5_path(view_type, field_type=None):
@@ -1209,72 +1201,71 @@ def _update_extrusion_points(points, ctr, stem_indices):
     return pts
 
 
-def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
+def _update_geom_from_dipole(geom, model, dirs):
 
-    width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
-    _update_geom_objects(geom.objects, beam_axis=beam_axis, height_axis=height_axis)
+    _update_geom_objects(geom.objects)
 
-    p = dipole.pole
+    p = model.pole
     p_obj = _find_obj_by_id(geom.objects, p.id)
 
-    if dipole.dipoleType == 'dipoleBasic':
+    if model.dipoleType == 'dipoleBasic':
         pole_sz = sirepo.util.split_comma_delimited_string(p.size, float)
         return _update_geom_obj(
             p_obj,
             size=pole_sz,
-            center=pole_sz * height_dir / 2 + dipole.gap * height_dir,
-            transforms=[_build_symm_xform(height_dir, _ZERO, 'parallel')]
+            center=pole_sz * dirs.height / 2 + model.gap * dirs.height,
+            transforms=[_build_symm_xform(dirs.height, _ZERO, 'parallel')]
         )
 
-    m = dipole.magnet
+    m = model.magnet
     m_obj = _find_obj_by_id(geom.objects, m.id)
-    c = dipole.coil
+    c = model.coil
     c_obj = _find_obj_by_id(geom.objects, c.id)
-    cp_obj = _find_obj_by_id(geom.objects, dipole.corePoleGroup.id)
-    mc_obj = _find_obj_by_id(geom.objects, dipole.magnetCoilGroup.id)
+    cp_obj = _find_obj_by_id(geom.objects, model.corePoleGroup.id)
+    mc_obj = _find_obj_by_id(geom.objects, model.magnetCoilGroup.id)
 
     mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(m.size, float))
 
-    if dipole.dipoleType == 'dipoleC':
+    if model.dipoleType == 'dipoleC':
         # resize the poles to fit between the arms (minus gap)
-        pole_sz = mag_sz * length_dir + \
-                  dipole.poleWidth * width_dir + \
-                  mag_sz * height_dir / 2 - m.armHeight * height_dir - dipole.gap * height_dir / 2
-        pole_ctr = pole_sz * height_dir / 2 + dipole.gap * height_dir / 2
-        mag_ctr = mag_sz * width_dir / 2 - pole_sz * width_dir / 2
+        pole_sz = mag_sz * dirs.beam + \
+                  model.poleWidth * dirs.width + \
+                  mag_sz * dirs.height / 2 - m.armHeight * dirs.height - model.gap * dirs.height / 2
+        pole_ctr = pole_sz * dirs.height / 2 + model.gap * dirs.height / 2
+        mag_ctr = mag_sz * dirs.width / 2 - pole_sz * dirs.width / 2
         _update_geom_obj(
             p_obj,
             center=pole_ctr,
             size=pole_sz,
-            transforms=[_build_symm_xform(height_dir, _ZERO, 'parallel')]
+            transforms=[_build_symm_xform(dirs.height, _ZERO, 'parallel')]
         )
         _update_geom_obj(m_obj, center=mag_ctr)
         _update_geom_obj(
             c_obj,
-            center=mag_ctr + mag_sz * width_dir / 2 - m.stemWidth * width_dir / 2
+            center=mag_ctr + mag_sz * dirs.width / 2 - m.stemWidth * dirs.width / 2
         )
-    if dipole.dipoleType == 'dipoleH':
+    if model.dipoleType == 'dipoleH':
         # magnetSize is for the entire magnet - split it here so we can apply symmetries
-        mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(dipole.magnetSize, float)) / 2
-        pole_sz = mag_sz * length_dir + \
-            dipole.poleWidth * width_dir / 2 + \
-            mag_sz * height_dir - m.armHeight * height_dir - dipole.gap * height_dir / 2
-        pole_ctr = pole_sz * height_dir / 2 + dipole.gap * height_dir / 2 + \
-            pole_sz * length_dir / 2 + \
-            pole_sz * width_dir / 2
+        mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(model.magnetSize, float)) / 2
+        pole_sz = mag_sz * dirs.beam + \
+            model.poleWidth * dirs.width / 2 + \
+            mag_sz * dirs.height - m.armHeight * dirs.height - model.gap * dirs.height / 2
+        pole_ctr = pole_sz * dirs.height / 2 + model.gap * dirs.height / 2 + \
+            pole_sz * dirs.beam / 2 + \
+            pole_sz * dirs.width / 2
         _update_geom_obj(p_obj, center=pole_ctr, size=pole_sz)
         _update_geom_obj(
             _find_obj_by_id(geom.objects, m.id),
-            center=mag_sz / 2 - mag_sz * length_dir / 2
+            center=mag_sz / 2 - mag_sz * dirs.beam / 2
         )
         # length and width symmetries
         cp_obj.transforms = [
-            _build_symm_xform(length_dir, _ZERO, 'perpendicular'),
-            _build_symm_xform(width_dir, _ZERO, 'perpendicular')
+            _build_symm_xform(dirs.beam, _ZERO, 'perpendicular'),
+            _build_symm_xform(dirs.width, _ZERO, 'perpendicular')
         ]
         # height symmetry
         mc_obj.transforms = [
-            _build_symm_xform(height_dir, _ZERO, 'parallel')
+            _build_symm_xform(dirs.height, _ZERO, 'parallel')
         ]
 
     return mc_obj
