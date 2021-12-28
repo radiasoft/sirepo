@@ -733,12 +733,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.height_dir = hd.tolist()
     v.beam_dir = bd.tolist()
     if not v.isExample and v.magnetType == 'freehand':
-        _update_geom_from_freehand(
-            g,
-            None,
-            v.beam_axis,
-            v.height_axis,
-        )
+        _update_geom_from_freehand(g)
     if v.magnetType == 'undulator':
         _update_geom_from_undulator(
             g,
@@ -899,6 +894,10 @@ def _kick_map_plot(model):
         y_label='y [mm]',
         z_matrix=z,
     )
+
+
+def _next_axis(axis):
+    return radia_util.AXES[(radia_util.AXES.index(axis) + 1) % len(radia_util.AXES)]
 
 
 def _normalize_bool(x):
@@ -1120,24 +1119,33 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-def _stemmed_geometry(o, beam_axis, height_axis):
-    w, h, b = _geom_directions(beam_axis, height_axis)
+# Returns the width, height, and extrusion directions, and the center and size in the
+# width-height plane
+def _stemmed_geometry(o):
+    w, h, e = radia_util.AXIS_VECTORS[o.widthAxis],\
+              radia_util.AXIS_VECTORS[o.heightAxis],\
+              radia_util.AXIS_VECTORS[o.extrusionAxis]
     ctr = sirepo.util.split_comma_delimited_string(o.center, float)
     sz = sirepo.util.split_comma_delimited_string(o.size, float)
-    return w, h, b, [numpy.sum(w * ctr), numpy.sum(h * ctr)], [numpy.sum(w * sz), numpy.sum(h * sz)]
+    return PKDict(
+        width_dir=w,
+        height_dir=h,
+        extrusion_dir=e,
+        plane_ctr=[numpy.sum(w * ctr), numpy.sum(h * ctr)],
+        plane_size=[numpy.sum(w * sz), numpy.sum(h * sz)]
+    )
 
 
 def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _update_cee(o, beam_axis, height_axis, **kwargs):
-    return _update_cee_points(_update_geom_obj(_update_extruded(o), **kwargs), beam_axis, height_axis)
+def _update_cee(o, **kwargs):
+    return _update_cee_points(_update_geom_obj(_update_extruded(o), **kwargs))
 
 
-def _update_cee_points(o, beam_axis, height_axis):
-    g = _update_stemmed_points(o, beam_axis, height_axis)
-    w, _, b, c, _ = g.geom
+def _update_cee_points(o):
+    g = _update_stemmed_points(o)
     ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
 
     sy2 = sy1 + o.armHeight
@@ -1148,25 +1156,25 @@ def _update_cee_points(o, beam_axis, height_axis):
             [sx2, ay2], [sx2, sy2], [ax2, sy2], [ax2, sy1], [sx1, sy1],
             [ax1, ay1]
         ],
-        c,
-        [int(o.stemPosition), int(o.armPosition)],
-        w,
-        b
+        g.geom.plane_ctr,
+        [int(o.stemPosition), int(o.armPosition)]
     )
     return o
 
 
-def _update_cuboid(o, _, __, **kwargs):
-    return _update_geom_obj(o, delim_fields=PKDict(segments=[1, 1, 1]), **kwargs)
+def _update_cuboid(o, **kwargs):
+    return _update_geom_obj(o, **kwargs)
 
 
-def _update_ell(o, beam_axis, height_axis, **kwargs):
-    return _update_ell_points(_update_geom_obj(_update_extruded(o), **kwargs), beam_axis, height_axis)
+def _update_ell(o, **kwargs):
+    return _update_ell_points(_update_geom_obj(
+        _update_extruded(o),
+        **kwargs
+    ))
 
 
-def _update_ell_points(o, beam_axis, height_axis):
-    g = _update_stemmed_points(o, beam_axis, height_axis)
-    w, h, b, c, s = g.geom
+def _update_ell_points(o):
+    g = _update_stemmed_points(o)
     ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
 
     o.points = _update_extrusion_points(
@@ -1175,32 +1183,33 @@ def _update_ell_points(o, beam_axis, height_axis):
             [sx2, ay2], [sx2, sy1], [sx1, sy1],
             [ax1, ay1]
         ],
-        c,
-        [int(o.stemPosition), int(o.armPosition)],
-        w,
-        b
+        g.geom.plane_ctr,
+        [int(o.stemPosition), int(o.armPosition)]
     )
     return o
 
 
+# For consistency, always set the width and height axes of the extruded shape in
+# permutation order based on the extrusion axis:
+#   x -> (y, z), y -> (z, x), z -> (x, y)
 def _update_extruded(o):
+    o.widthAxis = _next_axis(o.extrusionAxis)
+    o.heightAxis = _next_axis(o.widthAxis)
+
+    # Radia's extrusion routine seems to involve rotations, one result being that
+    # segmentation in the extrusion direction must be along 'x' regardless of the
+    # actual direction
     o.segments = sirepo.util.to_comma_delimited_string(
-        _AXES_UNIT + radia_util.AXIS_VECTORS[o.extrusionAxis] * (o.extrusionAxisSegments - 1)
+        _AXES_UNIT + radia_util.AXIS_VECTORS.x * (o.extrusionAxisSegments - 1)
     )
     return o
 
 
-def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
+def _update_extrusion_points(points, ctr, stem_indices):
     pts = [
         [2 * ctr[i] * stem_indices[i] + (-1)**stem_indices[i] * v for (i, v) in enumerate(p)] \
         for p in points
     ]
-
-    # Radia's extrusion expects points in permutation order based on the extrusion
-    # axis (x -> [y, z], y -> [z, x], z -> [x, y])
-    if width_dir.tolist().index(1) != (length_dir.tolist().index(1) + 1) % 3:
-        for p in pts:
-            p.reverse()
 
     return pts
 
@@ -1208,7 +1217,7 @@ def _update_extrusion_points(points, ctr, stem_indices, width_dir, length_dir):
 def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
 
     width_dir, height_dir, length_dir = _geom_directions(beam_axis, height_axis)
-    _update_geom_objects(geom.objects, beam_axis, height_axis)
+    _update_geom_objects(geom.objects, beam_axis=beam_axis, height_axis=height_axis)
 
     p = dipole.pole
     p_obj = _find_obj_by_id(geom.objects, p.id)
@@ -1276,8 +1285,8 @@ def _update_geom_from_dipole(geom, dipole, beam_axis, height_axis):
     return mc_obj
 
 
-def _update_geom_from_freehand(geom, _, beam_axis, height_axis):
-    _update_geom_objects(geom.objects, beam_axis, height_axis)
+def _update_geom_from_freehand(geom, **kwargs):
+    _update_geom_objects(geom.objects, **kwargs)
 
 
 def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
@@ -1368,8 +1377,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     if props.obj_type == 'ell':
         half_pole = _update_ell(
             half_pole,
-            beam_axis,
-            height_axis,
             armHeight=props.arm_height,
             armPosition=props.arm_pos,
             stemWidth=props.stem_width,
@@ -1378,8 +1385,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     else:
         half_pole = _update_cuboid(
             half_pole,
-            None,
-            None,
             segments=props.segs,
         )
 
@@ -1399,8 +1404,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     if props.obj_type == 'ell':
         magnet_block = _update_ell(
             magnet_block,
-            beam_axis,
-            height_axis,
             armHeight=props.arm_height,
             armPosition=props.arm_pos,
             stemWidth=props.stem_width,
@@ -1409,8 +1412,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     else:
         magnet_block = _update_cuboid(
             magnet_block,
-            None,
-            None,
             segments=props.segs
         )
     und.magnetBaseObjectId = magnet_block.id
@@ -1432,8 +1433,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     if props.obj_type == 'ell':
         pole = _update_ell(
             pole,
-            beam_axis,
-            height_axis,
             armHeight=props.arm_height,
             armPosition=props.arm_pos,
             stemWidth=props.stem_width,
@@ -1442,8 +1441,6 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     else:
         pole = _update_cuboid(
             pole,
-            None,
-            None,
             segments=props.segs,
         )
     und.poleBaseObjectId = pole.id
@@ -1487,20 +1484,13 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         if props.obj_type == 'ell':
             o = _update_ell(
                 o,
-                beam_axis,
-                height_axis,
                 armHeight=props.arm_height,
                 armPosition=props.arm_pos,
                 stemWidth=props.stem_width,
                 stemPosition=props.stem_pos
             )
         else:
-            o = _update_cuboid(
-                o,
-                None,
-                None,
-                segments=props.segs
-            )
+            o = _update_cuboid(o, segments=props.segs)
         o.bevels = props.bevels
         terms.append(o)
         pos += l / 2
@@ -1523,14 +1513,19 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     return oct_grp
 
 
-def _update_geom_objects(objects, beam_axis, height_axis):
+def _update_geom_objects(objects, **kwargs):
     u = '_update_'
     for o in [x for x in objects if 'type' in x]:
-        pkinspect.module_functions(u)[f'{u}{o.type}'](o, beam_axis, height_axis)
+        pkinspect.module_functions(u)[f'{u}{o.type}'](o, **kwargs)
 
 
 def _update_geom_obj(o, delim_fields=None, **kwargs):
-    d = PKDict(center=[0.0, 0.0, 0.0], size=[1.0, 1.0, 1.0], magnetization=[0.0, 0.0, 0.0])
+    d = PKDict(
+        center=[0.0, 0.0, 0.0],
+        magnetization=[0.0, 0.0, 0.0],
+        segments=[1, 1, 1],
+        size=[1.0, 1.0, 1.0],
+    )
     if delim_fields is not None:
         d.update(delim_fields)
     for k in d:
@@ -1545,15 +1540,14 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
     return o
 
 
-def _update_jay(o, beam_axis, height_axis):
-    return _update_jay_points(_update_geom_obj(_update_extruded(o)), beam_axis, height_axis)
+def _update_jay(o, **kwargs):
+    return _update_jay_points(_update_geom_obj(_update_extruded(o), **kwargs))
 
 
-def _update_jay_points(o, beam_axis, height_axis):
-    g = _update_stemmed_points(o, beam_axis, height_axis)
-    w, h, b, c, s = g.geom
+def _update_jay_points(o):
+    g = _update_stemmed_points(o)
     ax1, ax2, ay1, ay2, sx1, sx2, sy1 = g.points
-    jx1 = c[0] + s[0] / 2 - o.hookWidth
+    jx1 = g.geom.plane_ctr[0] + g.geom.plane_size[0] / 2 - o.hookWidth
     jy1 = ay2 - o.hookHeight
 
     o.points = _update_extrusion_points(
@@ -1562,33 +1556,31 @@ def _update_jay_points(o, beam_axis, height_axis):
             [sx2, ay2], [sx2, sy1], [sx1, sy1],
             [ax1, ay1]
         ],
-        c,
-        [int(o.stemPosition), int(o.armPosition)],
-        w,
-        b
+        g.geom.plane_ctr,
+        [int(o.stemPosition), int(o.armPosition)]
     )
     return o
 
 
-def _update_racetrack(o, _, __, **kwargs):
-    return _update_geom_obj(o)
+def _update_racetrack(o, **kwargs):
+    return _update_geom_obj(o, **kwargs)
 
 
-def _update_stemmed_points(o, beam_axis, height_axis):
-    w, h, b, c, s = _stemmed_geometry(o, beam_axis, height_axis)
+def _update_stemmed_points(o):
+    geom = _stemmed_geometry(o)
 
     # start with arm top, stem left - then reflect across centroid axes as needed
-    ax1 = c[0] - s[0] / 2
-    ax2 = ax1 + s[0]
-    ay1 = c[1] + s[1] / 2
+    ax1 = geom.plane_ctr[0] - geom.plane_size[0] / 2
+    ax2 = ax1 + geom.plane_size[0]
+    ay1 = geom.plane_ctr[1] + geom.plane_size[1] / 2
     ay2 = ay1 - o.armHeight
 
-    sx1 = c[0] - s[0] / 2
+    sx1 = geom.plane_ctr[0] - geom.plane_size[0] / 2
     sx2 = sx1 + o.stemWidth
-    sy1 = c[1] - s[1] / 2
+    sy1 = geom.plane_ctr[1] - geom.plane_size[1] / 2
 
     return PKDict(
-        geom=(w, h, b, c, s),
+        geom=geom,
         indices=[int(o.stemPosition), int(o.armPosition)],
         points=(ax1, ax2, ay1, ay2, sx1, sx2, sy1),
     )

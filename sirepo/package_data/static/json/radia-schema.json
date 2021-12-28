@@ -659,8 +659,10 @@
             "_super": ["_", "model", "geomObject"],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
+            "heightAxis": ["_", "BeamAxis", "y"],
             "points": ["Points", "Points", []],
-            "triangulationLevel": ["Triangulation Level", "Range", 0.5, "", 0.0, 1.0]
+            "triangulationLevel": ["Triangulation Level", "Range", 0.5, "", 0.0, 1.0],
+            "widthAxis": ["_", "BeamAxis", "x"]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
