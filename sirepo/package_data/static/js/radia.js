@@ -597,15 +597,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         o.id  = radiaService.generateId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
-        //var n = 0;
-        (o.members || []).forEach(function (oId) {
+        (o.members || []).forEach(oId => {
             self.getObject(oId).groupId = o.id;
-        //    ++n;
         });
-        //if (n > 0) {
-        //    let z = groupBounds(o.members);
-        //    o.size = '0,0,0';
-        //}
+        addShapesForObject(o);
     }
 
     function addShapesForObject(o) {
@@ -830,9 +825,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadShapes() {
         self.shapes = [];
-        appState.models.geometryReport.objects.forEach(function (o) {
-            addShapesForObject(o);
-        });
+        appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
     }
 
