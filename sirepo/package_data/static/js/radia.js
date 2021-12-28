@@ -1091,14 +1091,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
                 }
             }
+            const r = 'geometryReport';
             radiaService.saveGeometry(true, false, () => {
-                panelState.clear('geometryReport');
+                panelState.clear(r);
                 // need to rebuild the geometry after changes were made
-                panelState.requestData('geometryReport', function(data) {
-                    if (self.selectedObject) {
-                        loadShapes();
-                    }
-                });
+                panelState.requestData(
+                    r,
+                    data => {
+                        if (self.selectedObject) {
+                            loadShapes();
+                        }
+                    },
+                    true
+                );
             });
 
         });

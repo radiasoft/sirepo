@@ -349,10 +349,7 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
 
 
 def _build_cuboid(**kwargs):
-    return _update_cuboid(
-        _build_geom_obj('cuboid', None, None, obj_name=kwargs.get('name')),
-        **kwargs
-    )
+    return _update_cuboid(_build_geom_obj('cuboid', **kwargs), **kwargs)
 
 
 def _build_dipole_objects(geom, dipole, beam_axis, height_axis):
@@ -467,21 +464,19 @@ def _build_field_circle_pts(f_path):
     return res
 
 
-def _build_geom_obj(model_name, obj_name=None, obj_color=None):
-    o = PKDict(
-        name=obj_name,
-        model=model_name,
-        color=obj_color,
-    )
+def _build_geom_obj(model_name, **kwargs):
+    o = PKDict(model=model_name,)
     _SIM_DATA.update_model_defaults(o, model_name)
+    o.pkupdate(kwargs)
     if not o.name:
         o.name = f'{model_name}.{o.id}'
     return o
 
 
 def _build_group(members, name=None):
-    g = _build_geom_obj('geomGroup', obj_name=name)
-    return _update_group(g, members, do_replace=True)
+    return _update_group(
+        _build_geom_obj('geomGroup', name=name), members, do_replace=True
+    )
 
 
 def _build_symm_xform(plane, point, type):
@@ -523,7 +518,7 @@ def _build_undulator_objects(geom, und, beam_axis, height_axis):
 
     return _update_geom_from_undulator(
         geom,
-        _build_geom_obj('hybridUndulator', obj_name=geom.name),
+        _build_geom_obj('hybridUndulator', name=geom.name),
         beam_axis,
         height_axis
     )
@@ -544,7 +539,7 @@ def _build_field_axis(length, beam_axis):
 def _build_obj(obj_type, beam_axis, height_axis, **kwargs):
     u = '_update_'
     return pkinspect.module_functions(u)[f'{u}{obj_type}'](
-        _build_geom_obj(obj_type, obj_name=kwargs.get('name')),
+        _build_geom_obj(obj_type, **kwargs),
         beam_axis,
         height_axis,
         **kwargs
@@ -1472,7 +1467,7 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         pos += (t.airGap + l / 2) * beam_dir
         props = obj_props[t.type]
         o = _update_geom_obj(
-            _build_geom_obj(props.obj_type, _undulator_termination_name(i, t.type), props.color),
+            _build_geom_obj(props.obj_type, name=_undulator_termination_name(i, t.type), color=props.color),
             center=props.transverse_ctr + pos,
             material=props.material,
             materialFile=props.mat_file,
