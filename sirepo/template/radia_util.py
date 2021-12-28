@@ -137,7 +137,7 @@ def _apply_translation(g_id, xform):
     )
 
 
-def _geom_bnds(g_id):
+def _geom_bounds(g_id):
     bnds = radia.ObjGeoLim(g_id)
     return PKDict(
         center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
@@ -258,7 +258,7 @@ def geom_to_data(g_id, name=None, divide=True):
     n = (name if name is not None else str(g_id)) + '.Geom'
     pd = PKDict(name=n, id=g_id, data=[])
     d = _to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No'))
-    d.update(_geom_bnds(g_id))
+    d.update(_geom_bounds(g_id))
     n_verts = len(d.polygons.vertices)
     c = radia.ObjCntStuf(g_id)
     l = len(c)
@@ -273,7 +273,7 @@ def geom_to_data(g_id, name=None, divide=True):
             # for fully recursive array
             # for g in get_all_geom(geom):
             s_d = _to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
-            s_d.update(_geom_bnds(g))
+            s_d.update(_geom_bounds(g))
             n_s_verts += len(s_d.polygons.vertices)
             s_d.id = g
             d_arr.append(s_d)
