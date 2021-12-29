@@ -1117,7 +1117,7 @@ def _undulator_termination_name(index, term_type):
 
 def _update_cee(o, **kwargs):
     return _update_cee_points(
-        _update_geom_obj(_update_extruded(o), kwargs)
+        _update_geom_obj(o, kwargs)
     )
 
 
@@ -1144,7 +1144,7 @@ def _update_cuboid(o, **kwargs):
 
 def _update_ell(o, **kwargs):
     return _update_ell_points(
-        _update_geom_obj(_update_extruded(o), **kwargs)
+        _update_geom_obj(o, **kwargs)
     )
 
 
@@ -1486,8 +1486,15 @@ def _update_geom_from_undulator(geom, und, dirs):
 
 def _update_geom_objects(objects, **kwargs):
     u = '_update_'
-    for o in [x for x in objects if 'type' in x]:
-        pkinspect.module_functions(u)[f'{u}{o.type}'](o, **kwargs)
+    for o in objects:
+        _update_geom_obj(o, **kwargs)
+        if 'type' not in o:
+            continue
+        s = SCHEMA.model[o.type]._super
+        if 'extrudedPoly' in s:
+            _update_extruded(o)
+        if 'stemmed' in s:
+            pkinspect.module_functions(u)[f'{u}{o.type}'](o, **kwargs)
 
 
 def _update_geom_obj(o, delim_fields=None, **kwargs):
@@ -1513,7 +1520,7 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
 
 def _update_jay(o, **kwargs):
     return _update_jay_points(
-        _update_geom_obj(_update_extruded(o), kwargs)
+        _update_geom_obj(o, **kwargs)
     )
 
 
