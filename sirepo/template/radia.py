@@ -1094,48 +1094,33 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-# Returns the width, height, and extrusion directions, and the center and size in the
-# width-height plane
-def _stemmed_geometry(o):
-    w, h, e = radia_util.AXIS_VECTORS[o.widthAxis],\
-              radia_util.AXIS_VECTORS[o.heightAxis],\
-              radia_util.AXIS_VECTORS[o.extrusionAxis]
-    ctr = sirepo.util.split_comma_delimited_string(o.center, float)
-    sz = sirepo.util.split_comma_delimited_string(o.size, float)
-    return PKDict(
-        width_dir=w,
-        height_dir=h,
-        extrusion_dir=e,
-        plane_ctr=[numpy.sum(w * ctr), numpy.sum(h * ctr)],
-        plane_size=[numpy.sum(w * sz), numpy.sum(h * sz)]
-    )
-
-
 def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
 def _update_cee(o, **kwargs):
     return _update_cee_points(
-        _update_geom_obj(o, kwargs)
+        _update_geom_obj(o, **kwargs)
     )
 
 
 def _update_cee_points(o):
-    g = _update_stemmed_points(o)
-    p = g.points
+    o.points = _get_cee_points(o, _get_stemmed_info(o))
+    return o
 
+
+def _get_cee_points(o, stemmed_info):
+    p = stemmed_info.points
     sy2 = p.sy1 + o.armHeight
-
-    o.points = _update_extrusion_points(
+    return _orient_stemmed_points(
+        o,
         [
             [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
             [p.sx2, p.ay2], [p.sx2, sy2], [p.ax2, sy2], [p.ax2, p.sy1], [p.sx1, p.sy1],
             [p.ax1, p.ay1]
         ],
-        g
+        stemmed_info.plane_ctr
     )
-    return o
 
 
 def _update_cuboid(o, **kwargs):
@@ -1149,17 +1134,21 @@ def _update_ell(o, **kwargs):
 
 
 def _update_ell_points(o):
-    g = _update_stemmed_points(o)
-    p = g.points
-    o.points = _update_extrusion_points(
+    o.points = _get_ell_points(o, _get_stemmed_info(o))
+    return o
+
+
+def _get_ell_points(o, stemmed_info):
+    p = stemmed_info.points
+    return _orient_stemmed_points(
+        o,
         [
             [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
             [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
             [p.ax1, p.ay1]
         ],
-        g
+        stemmed_info.plane_ctr
     )
-    return o
 
 
 # For consistency, always set the width and height axes of the extruded shape in
@@ -1178,13 +1167,12 @@ def _update_extruded(o):
     return o
 
 
-def _update_extrusion_points(points, stem_geom):
-    pts = [
-        [2 * stem_geom.geom.plane_ctr[i] * stem_geom.indices[i] + (-1)**stem_geom.indices[i] * v for (i, v) in enumerate(p)] \
+def _orient_stemmed_points(o, points, plane_ctr):
+    idx = [int(o.stemPosition), int(o.armPosition)]
+    return [
+        [2 * plane_ctr[i] * idx[i] + (-1)**idx[i] * v for (i, v) in enumerate(p)] \
         for p in points
     ]
-
-    return pts
 
 
 def _update_geom_from_dipole(geom, model, dirs):
@@ -1483,7 +1471,7 @@ def _update_geom_from_undulator(geom, und, dirs):
 
 
 def _update_geom_objects(objects, **kwargs):
-    u = '_update_'
+    g = '_get_'
     for o in objects:
         _update_geom_obj(o, **kwargs)
         if 'type' not in o:
@@ -1492,7 +1480,7 @@ def _update_geom_objects(objects, **kwargs):
         if 'extrudedPoly' in s:
             _update_extruded(o)
         if 'stemmed' in s:
-            pkinspect.module_functions(u)[f'{u}{o.type}'](o, **kwargs)
+            o.points = pkinspect.module_functions(g)[f'{g}{o.type}_points'](o, _get_stemmed_info(o))
 
 
 def _update_geom_obj(o, delim_fields=None, **kwargs):
@@ -1523,42 +1511,51 @@ def _update_jay(o, **kwargs):
 
 
 def _update_jay_points(o):
-    g = _update_stemmed_points(o)
-    p = g.points
-    jx1 = g.geom.plane_ctr[0] + g.geom.plane_size[0] / 2 - o.hookWidth
+    o.points = _get_jay_points(o, _get_stemmed_info(o))
+    return o
+
+
+def _get_jay_points(o, stemmed_info):
+    p = stemmed_info.points
+    jx1 = stemmed_info.plane_ctr[0] + stemmed_info.plane_size[0] / 2 - o.hookWidth
     jy1 = p.ay2 - o.hookHeight
 
-    o.points = _update_extrusion_points(
+    return _orient_stemmed_points(
+        o,
         [
             [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, jy1], [jx1, jy1], [jx1, p.ay2],
             [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
             [p.ax1, p.ay1]
         ],
-        g
+        stemmed_info.plane_ctr
     )
-    return o
 
 
 def _update_racetrack(o, **kwargs):
     return _update_geom_obj(o, **kwargs)
 
 
-def _update_stemmed_points(o):
-    geom = _stemmed_geometry(o)
+def _get_stemmed_info(o):
+    w, h = radia_util.AXIS_VECTORS[o.widthAxis], radia_util.AXIS_VECTORS[o.heightAxis]
+    c = sirepo.util.split_comma_delimited_string(o.center, float)
+    s = sirepo.util.split_comma_delimited_string(o.size, float)
+
+    plane_ctr = [numpy.sum(w * c), numpy.sum(h * c)]
+    plane_size = [numpy.sum(w * s), numpy.sum(h * s)]
 
     # start with arm top, stem left - then reflect across centroid axes as needed
-    ax1 = geom.plane_ctr[0] - geom.plane_size[0] / 2
-    ax2 = ax1 + geom.plane_size[0]
-    ay1 = geom.plane_ctr[1] + geom.plane_size[1] / 2
+    ax1 = plane_ctr[0] - plane_size[0] / 2
+    ax2 = ax1 + plane_size[0]
+    ay1 = plane_ctr[1] + plane_size[1] / 2
     ay2 = ay1 - o.armHeight
 
-    sx1 = geom.plane_ctr[0] - geom.plane_size[0] / 2
+    sx1 = plane_ctr[0] - plane_size[0] / 2
     sx2 = sx1 + o.stemWidth
-    sy1 = geom.plane_ctr[1] - geom.plane_size[1] / 2
+    sy1 = plane_ctr[1] - plane_size[1] / 2
 
     return PKDict(
-        geom=geom,
-        indices=[int(o.stemPosition), int(o.armPosition)],
+        plane_ctr=plane_ctr,
+        plane_size=plane_size,
         points=PKDict(ax1=ax1, ax2=ax2, ay1=ay1, ay2=ay2, sx1=sx1, sx2=sx2, sy1=sy1),
     )
 
