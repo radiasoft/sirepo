@@ -301,10 +301,10 @@ def new_simulation(data, new_simulation_data):
         _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, dirs)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
-            dirs.b
+            new_simulation_data.beamAxis
         ))
         data.models.simulation.enableKickMaps = '1'
-        _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, dirs.b)
+        _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, new_simulation_data.beamAxis)
     if t == 'dipole':
         d = data.models[new_simulation_data.dipoleType]
         data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
@@ -487,18 +487,18 @@ def _build_translate_clone(dist):
     return tx
 
 
-def _build_undulator_objects(geom, und, beam_axis, height_axis):
-    # arrange objects
+def _build_undulator_objects(geom, und, dirs):
+    # arrange object
     geom.objects = []
     #TODO(mvk): proper dispatch to replace this temporary branching based on object type
     # It's going to depend on some other changes
-    half_pole = _build_obj(und.poleObjType, beam_axis, height_axis, name='Half Pole')
+    half_pole = _build_geom_obj(und.poleObjType, name='Half Pole')
     geom.objects.append(half_pole)
-    magnet_block = _build_obj(und.magnetObjType, beam_axis, height_axis, name='Magnet Block')
+    magnet_block = _build_geom_obj(und.magnetObjType, name='Magnet Block')
     geom.objects.append(magnet_block)
     und.magnet = magnet_block
     und.magnetBaseObjectId = magnet_block.id
-    pole = _build_obj(und.poleObjType, beam_axis, height_axis, name='Pole')
+    pole = _build_geom_obj(und.poleObjType, name='Pole')
     geom.objects.append(pole)
     und.pole = pole
     und.poleBaseObjectId = pole.id
@@ -513,8 +513,7 @@ def _build_undulator_objects(geom, und, beam_axis, height_axis):
     return _update_geom_from_undulator(
         geom,
         _build_geom_obj('hybridUndulator', name=geom.name),
-        beam_axis,
-        height_axis
+        dirs
     )
 
 
@@ -528,16 +527,6 @@ def _build_field_axis(length, beam_axis):
     )
     _SIM_DATA.update_model_defaults(f, 'linePath')
     return f
-
-
-def _build_obj(obj_type, beam_axis, height_axis, **kwargs):
-    u = '_update_'
-    return pkinspect.module_functions(u)[f'{u}{obj_type}'](
-        _build_geom_obj(obj_type, **kwargs),
-        beam_axis,
-        height_axis,
-        **kwargs
-    )
 
 
 # deep copy of an object, but with a new id
@@ -1155,7 +1144,7 @@ def _update_cuboid(o, **kwargs):
 
 def _update_ell(o, **kwargs):
     return _update_ell_points(
-        _update_geom_obj(_update_extruded(o), kwargs)
+        _update_geom_obj(_update_extruded(o), **kwargs)
     )
 
 
@@ -1272,31 +1261,30 @@ def _update_geom_from_freehand(geom, **kwargs):
     _update_geom_objects(geom.objects, **kwargs)
 
 
-def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
+def _update_geom_from_undulator(geom, und, dirs):
 
     # "Length" is along the beam axis; "Height" is along the gap axis; "Width" is
     # along the remaining axis
-    width_dir, gap_dir, beam_dir = _geom_directions(beam_axis, height_axis)
-    dir_matrix = numpy.array([width_dir, gap_dir, beam_dir])
+    dir_matrix = numpy.array([dirs.width, dirs.height, dirs.beam])
 
     pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(und.magnetCrossSection, float)
 
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
-        width=width_dir * pole_x[0],
-        height=gap_dir * pole_x[1],
-        length=beam_dir * und.poleLength,
+        width=dirs.width * pole_x[0],
+        height=dirs.height * pole_x[1],
+        length=dirs.beam * und.poleLength,
     )
     magnet_dim = PKDict(
-        width=width_dir * mag_x[0],
-        height=gap_dir * mag_x[1],
-        length=beam_dir * (und.periodLength / 2 - pole_dim.length),
+        width=dirs.width * mag_x[0],
+        height=dirs.height * mag_x[1],
+        length=dirs.beam * (und.periodLength / 2 - pole_dim.length),
     )
 
     # convenient constants
-    gap_half_height = gap_dir * und.gap / 2
-    gap_offset = gap_dir * und.gapOffset
+    gap_half_height = dirs.height * und.gap / 2
+    gap_offset = dirs.height * und.gapOffset
 
     # put the magnetization and segmentation in the correct order below
     obj_props = PKDict(
@@ -1435,11 +1423,11 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
         [_build_clone_xform(
             und.numPeriods - 1,
             True,
-            [_build_translate_clone(beam_dir * und.periodLength / 2)]
+            [_build_translate_clone(dirs.beam * und.periodLength / 2)]
         )]
 
     pos = obj_props.pole.dim_half.length + \
-        beam_dir * (und.numPeriods * und.periodLength / 2)
+        dirs.beam * (und.numPeriods * und.periodLength / 2)
 
     oct_grp = _find_obj_by_name(geom.objects, 'Octant')
 
@@ -1451,8 +1439,8 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     terms = []
     num_term_mags = 0
     for i, t in enumerate(und.terminations):
-        l = t.length * beam_dir
-        pos += (t.airGap + l / 2) * beam_dir
+        l = t.length * dirs.beam
+        pos += (t.airGap + l / 2) * dirs.beam
         props = obj_props[t.type]
         o = _update_geom_obj(
             _build_geom_obj(props.obj_type, name=_undulator_termination_name(i, t.type), color=props.color),
@@ -1489,9 +1477,9 @@ def _update_geom_from_undulator(geom, und, beam_axis, height_axis):
     _update_group(oct_grp, [g])
 
     oct_grp.transforms = [
-        _build_symm_xform(width_dir, _ZERO, 'perpendicular'),
-        _build_symm_xform(gap_dir, _ZERO, 'parallel'),
-        _build_symm_xform(beam_dir, _ZERO, 'perpendicular'),
+        _build_symm_xform(dirs.width, _ZERO, 'perpendicular'),
+        _build_symm_xform(dirs.height, _ZERO, 'parallel'),
+        _build_symm_xform(dirs.beam, _ZERO, 'perpendicular'),
     ]
     return oct_grp
 
