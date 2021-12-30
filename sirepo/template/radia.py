@@ -580,14 +580,12 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis)
     )
 
 
-def _find_obj_by_id(obj_arr, obj_id):
-    a = [o for o in obj_arr if o.id == obj_id]
-    return a[0] if a else None
+def _find_by_id(arr, obj_id):
+    return sirepo.util.find_obj(arr, 'id', obj_id)
 
 
-def _find_obj_by_name(obj_arr, obj_name):
-    a = [o for o in obj_arr if o.name == obj_name]
-    return a[0] if a else None
+def _find_by_name(arr, name):
+    return sirepo.util.find_obj(arr, 'name', name)
 
 
 def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
@@ -1180,7 +1178,7 @@ def _update_geom_from_dipole(geom, model, dirs):
     _update_geom_objects(geom.objects)
 
     p = model.pole
-    p_obj = _find_obj_by_id(geom.objects, p.id)
+    p_obj = _find_by_id(geom.objects, p.id)
 
     if model.dipoleType == 'dipoleBasic':
         pole_sz = sirepo.util.split_comma_delimited_string(p.size, float)
@@ -1192,11 +1190,11 @@ def _update_geom_from_dipole(geom, model, dirs):
         )
 
     m = model.magnet
-    m_obj = _find_obj_by_id(geom.objects, m.id)
+    m_obj = _find_by_id(geom.objects, m.id)
     c = model.coil
-    c_obj = _find_obj_by_id(geom.objects, c.id)
-    cp_obj = _find_obj_by_id(geom.objects, model.corePoleGroup.id)
-    mc_obj = _find_obj_by_id(geom.objects, model.magnetCoilGroup.id)
+    c_obj = _find_by_id(geom.objects, c.id)
+    cp_obj = _find_by_id(geom.objects, model.corePoleGroup.id)
+    mc_obj = _find_by_id(geom.objects, model.magnetCoilGroup.id)
 
     mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(m.size, float))
 
@@ -1229,7 +1227,7 @@ def _update_geom_from_dipole(geom, model, dirs):
             pole_sz * dirs.width / 2
         _update_geom_obj(p_obj, center=pole_ctr, size=pole_sz)
         _update_geom_obj(
-            _find_obj_by_id(geom.objects, m.id),
+            _find_by_id(geom.objects, m.id),
             center=mag_sz / 2 - mag_sz * dirs.length / 2
         )
         # length and width symmetries
@@ -1318,7 +1316,7 @@ def _update_geom_from_undulator(geom, und, dirs):
             (obj_props[k].dim_half.height + gap_half_height)
     obj_props.magnet.transverse_ctr -= gap_offset
 
-    half_pole = _find_obj_by_name(geom.objects, 'Half Pole')
+    half_pole = _find_by_name(geom.objects, 'Half Pole')
     props = obj_props.pole
     pos = props.dim_half.length / 2
     half_pole = _update_geom_obj(
@@ -1346,7 +1344,7 @@ def _update_geom_from_undulator(geom, und, dirs):
         )
 
     pos += (obj_props.pole.dim_half.length / 2 + obj_props.magnet.dim_half.length)
-    magnet_block = _find_obj_by_name(geom.objects, 'Magnet Block')
+    magnet_block = _find_by_name(geom.objects, 'Magnet Block')
     props = obj_props.magnet
     magnet_block = _update_geom_obj(
         magnet_block,
@@ -1375,7 +1373,7 @@ def _update_geom_from_undulator(geom, und, dirs):
     obj_props.magnet.bevels = magnet_block.get('bevels', [])
 
     pos += (obj_props.pole.dim_half.length + obj_props.magnet.dim_half.length)
-    pole = _find_obj_by_name(geom.objects, 'Pole')
+    pole = _find_by_name(geom.objects, 'Pole')
     props = obj_props.pole
     pole = _update_geom_obj(
         pole,
@@ -1404,7 +1402,7 @@ def _update_geom_from_undulator(geom, und, dirs):
     obj_props.pole.bevels = pole.get('bevels', [])
     half_pole.bevels = obj_props.pole.bevels.copy()
 
-    mag_pole_grp = _find_obj_by_name(geom.objects, 'Magnet-Pole Pair')
+    mag_pole_grp = _find_by_name(geom.objects, 'Magnet-Pole Pair')
     mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
         [_build_clone_xform(
             und.numPeriods - 1,
@@ -1415,7 +1413,7 @@ def _update_geom_from_undulator(geom, und, dirs):
     pos = obj_props.pole.dim_half.length + \
         dirs.length * (und.numPeriods * und.periodLength / 2)
 
-    oct_grp = _find_obj_by_name(geom.objects, 'Octant')
+    oct_grp = _find_by_name(geom.objects, 'Octant')
 
     # rebuild the termination group
     old_terms = []
@@ -1454,7 +1452,7 @@ def _update_geom_from_undulator(geom, und, dirs):
         if t.type == 'magnet':
             num_term_mags += 1
     geom.objects.extend(terms)
-    g = _find_obj_by_name(geom.objects, 'Termination')
+    g = _find_by_name(geom.objects, 'Termination')
     if not g:
         g = _build_group(terms, name='Termination')
         geom.objects.append(g)
