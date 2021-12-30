@@ -308,7 +308,13 @@ def new_simulation(data, new_simulation_data):
     if t == 'dipole':
         d = data.models[new_simulation_data.dipoleType]
         data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
-        _build_dipole_objects(data.models.geometryReport, d, dirs)
+        _build_dipole_objects(
+            data.models.geometryReport,
+            d,
+            height_dir=dirs.height,
+            length_dir=dirs.length,
+            width_dir=dirs.width,
+        )
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -351,7 +357,7 @@ def _build_cuboid(**kwargs):
     return _update_cuboid(_build_geom_obj('cuboid', **kwargs), **kwargs)
 
 
-def _build_dipole_objects(geom, model, dirs):
+def _build_dipole_objects(geom, model, **kwargs):
     geom.objects.append(model.pole)
     if model.dipoleType in ['dipoleC', 'dipoleH']:
         geom.objects.append(model.magnet)
@@ -360,7 +366,7 @@ def _build_dipole_objects(geom, model, dirs):
         geom.objects.append(g)
         geom.objects.append(_update_group(model.magnetCoilGroup, [g, model.coil], do_replace=True))
 
-    return _update_geom_from_dipole(geom, model, dirs)
+    return _update_geom_from_dipole(geom, model, **kwargs)
 
 
 # have to include points for file type?
@@ -590,22 +596,22 @@ def _find_by_name(arr, name):
 
 def _fit_poles_in_c_bend(**kwargs):
     d = PKDict(kwargs)
-    pole_sz = d.mag_sz * d.length + \
-              d.pole_width * d.width + \
-              d.mag_sz * d.height / 2 - d.arm_height * d.height - d.gap * d.height / 2
-    pole_ctr = pole_sz * d.height / 2 + d.gap * d.height / 2
-    return pole_sz, pole_ctr
+    s = d.mag_sz * d.length_dir + \
+              d.pole_width * d.width_dir + \
+              d.mag_sz * d.height_dir / 2 - d.arm_height * d.height_dir - d.gap * d.height_dir / 2
+    c = s * d.height_dir / 2 + d.gap * d.height_dir / 2
+    return s, c
 
 
 def _fit_poles_in_h_bend(**kwargs):
     d = PKDict(kwargs)
-    pole_sz = d.mag_sz * d.length + \
-              d.pole_width * d.width / 2 + \
-              d.mag_sz * d.height - d.arm_height * d.height - d.gap * d.height / 2
-    pole_ctr = pole_sz * d.height / 2 + d.gap * d.height / 2 + \
-               pole_sz * d.length / 2 + \
-               pole_sz * d.width / 2
-    return pole_sz, pole_ctr
+    s = d.mag_sz * d.length_dir + \
+              d.pole_width * d.width_dir / 2 + \
+              d.mag_sz * d.height_dir - d.arm_height * d.height_dir - d.gap * d.height_dir / 2
+    c = s * d.height / 2 + d.gap * d.height_dir / 2 + \
+               s * d.length_dir / 2 + \
+               s * d.width_dir / 2
+    return s, c
 
 
 def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
@@ -738,7 +744,13 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
         )
     if v.magnetType == 'dipole':
         v.dipoleType = data.models.simulation.dipoleType
-        _update_geom_from_dipole(g, data.models[v.dipoleType], dirs)
+        _update_geom_from_dipole(
+            g,
+            data.models[v.dipoleType],
+            height_dir=dirs.height,
+            length_dir=dirs.length,
+            width_dir=dirs.width,
+        )
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
 
@@ -1193,8 +1205,9 @@ def _update_extruded(o):
     return o
 
 
-def _update_geom_from_dipole(geom, model, dirs):
+def _update_geom_from_dipole(geom, model, **kwargs):
 
+    d = PKDict(kwargs)
     _update_geom_objects(geom.objects)
 
     pole = _find_by_id(geom.objects, model.pole.id)
@@ -1204,8 +1217,8 @@ def _update_geom_from_dipole(geom, model, dirs):
         return _update_geom_obj(
             pole,
             size=pole_sz,
-            center=pole_sz * dirs.height / 2 + model.gap * dirs.height,
-            transforms=[_build_symm_xform(dirs.height, _ZERO, 'parallel')]
+            center=pole_sz * d.height / 2 + model.gap * d.height,
+            transforms=[_build_symm_xform(d.height, _ZERO, 'parallel')]
         )
 
     magnet = _find_by_id(geom.objects, model.magnet.id)
@@ -1217,23 +1230,23 @@ def _update_geom_from_dipole(geom, model, dirs):
         pole_sz, pole_ctr = _fit_poles_in_c_bend(
             arm_height=model.magnet.armHeight,
             gap=model.gap,
-            height=dirs.height,
-            length=dirs.length,
+            height_dir=d.height_dir,
+            length_dir=d.length_dir,
             mag_sz=mag_sz,
             pole_width=model.poleWidth,
-            width=dirs.width,
+            width_dir=d.width_dir,
         )
-        mag_ctr = mag_sz * dirs.width / 2 - pole_sz * dirs.width / 2
+        mag_ctr = mag_sz * d.width_dir / 2 - pole_sz * d.width_dir / 2
         _update_geom_obj(
             pole,
             center=pole_ctr,
             size=pole_sz,
-            transforms=[_build_symm_xform(dirs.height, _ZERO, 'parallel')]
+            transforms=[_build_symm_xform(d.height_dir, _ZERO, 'parallel')]
         )
         _update_geom_obj(magnet, center=mag_ctr)
         _update_geom_obj(
             _find_by_id(geom.objects, model.coil.id),
-            center=mag_ctr + mag_sz * dirs.width / 2 - model.magnet.stemWidth * dirs.width / 2
+            center=mag_ctr + mag_sz * d.width_dir / 2 - model.magnet.stemWidth * d.width_dir / 2
         )
     if model.dipoleType == 'dipoleH':
         # magnetSize is for the entire magnet - split it here so we can apply symmetries
@@ -1241,25 +1254,25 @@ def _update_geom_from_dipole(geom, model, dirs):
         pole_sz, pole_ctr = _fit_poles_in_h_bend(
             arm_height=model.magnet.armHeight,
             gap=model.gap,
-            height=dirs.height,
-            length=dirs.length,
+            height_dir=d.height_dir,
+            length_dir=d.length_dir,
             mag_sz=mag_sz,
             pole_width=model.poleWidth,
-            width=dirs.width,
+            width_dir=d.width_dir,
         )
         _update_geom_obj(pole, center=pole_ctr, size=pole_sz)
         _update_geom_obj(
             _find_by_id(geom.objects, magnet.id),
-            center=mag_sz / 2 - mag_sz * dirs.length / 2
+            center=mag_sz / 2 - mag_sz * d.length_dir / 2
         )
         # length and width symmetries
         _find_by_id(geom.objects, model.corePoleGroup.id).transforms = [
-            _build_symm_xform(dirs.length, _ZERO, 'perpendicular'),
-            _build_symm_xform(dirs.width, _ZERO, 'perpendicular')
+            _build_symm_xform(d.length, _ZERO, 'perpendicular'),
+            _build_symm_xform(d.width, _ZERO, 'perpendicular')
         ]
         # height symmetry
         mc_obj.transforms = [
-            _build_symm_xform(dirs.height, _ZERO, 'parallel')
+            _build_symm_xform(d.height, _ZERO, 'parallel')
         ]
 
     return mc_obj
