@@ -297,7 +297,7 @@ def new_simulation(data, new_simulation_data):
     dirs = _geom_directions(new_simulation_data.beamAxis, new_simulation_data.heightAxis)
     #TODO(mvk): dict of magnet types to builder methods
     t = new_simulation_data.get('magnetType', 'freehand')
-    if  t == 'undulator':
+    if t == 'undulator':
         _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, dirs)
         data.models.fieldPaths.paths.append(_build_field_axis(
             (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
@@ -586,6 +586,26 @@ def _find_by_id(arr, obj_id):
 
 def _find_by_name(arr, name):
     return sirepo.util.find_obj(arr, 'name', name)
+
+
+def _fit_poles_in_c_bend(**kwargs):
+    d = PKDict(kwargs)
+    pole_sz = d.mag_sz * d.length + \
+              d.pole_width * d.width + \
+              d.mag_sz * d.height / 2 - d.arm_height * d.height - d.gap * d.height / 2
+    pole_ctr = pole_sz * d.height / 2 + d.gap * d.height / 2
+    return pole_sz, pole_ctr
+
+
+def _fit_poles_in_h_bend(**kwargs):
+    d = PKDict(kwargs)
+    pole_sz = d.mag_sz * d.length + \
+              d.pole_width * d.width / 2 + \
+              d.mag_sz * d.height - d.arm_height * d.height - d.gap * d.height / 2
+    pole_ctr = pole_sz * d.height / 2 + d.gap * d.height / 2 + \
+               pole_sz * d.length / 2 + \
+               pole_sz * d.width / 2
+    return pole_sz, pole_ctr
 
 
 def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
@@ -878,6 +898,14 @@ def _normalize_bool(x):
     return bool_map[x] if x in bool_map else x
 
 
+def _orient_stemmed_points(o, points, plane_ctr):
+    idx = [int(o.stemPosition), int(o.armPosition)]
+    return [
+        [2 * plane_ctr[i] * idx[i] + (-1)**idx[i] * v for (i, v) in enumerate(p)] \
+        for p in points
+    ]
+
+
 def _parse_input_file_arg_str(s):
     d = PKDict()
     for kvp in s.split(SCHEMA.constants.inputFileArgDelims.list):
@@ -1165,73 +1193,67 @@ def _update_extruded(o):
     return o
 
 
-def _orient_stemmed_points(o, points, plane_ctr):
-    idx = [int(o.stemPosition), int(o.armPosition)]
-    return [
-        [2 * plane_ctr[i] * idx[i] + (-1)**idx[i] * v for (i, v) in enumerate(p)] \
-        for p in points
-    ]
-
-
 def _update_geom_from_dipole(geom, model, dirs):
 
     _update_geom_objects(geom.objects)
 
-    p = model.pole
-    p_obj = _find_by_id(geom.objects, p.id)
+    pole = _find_by_id(geom.objects, model.pole.id)
 
     if model.dipoleType == 'dipoleBasic':
-        pole_sz = sirepo.util.split_comma_delimited_string(p.size, float)
+        pole_sz = sirepo.util.split_comma_delimited_string(pole.size, float)
         return _update_geom_obj(
-            p_obj,
+            pole,
             size=pole_sz,
             center=pole_sz * dirs.height / 2 + model.gap * dirs.height,
             transforms=[_build_symm_xform(dirs.height, _ZERO, 'parallel')]
         )
 
-    m = model.magnet
-    m_obj = _find_by_id(geom.objects, m.id)
-    c = model.coil
-    c_obj = _find_by_id(geom.objects, c.id)
-    cp_obj = _find_by_id(geom.objects, model.corePoleGroup.id)
+    magnet = _find_by_id(geom.objects, model.magnet.id)
     mc_obj = _find_by_id(geom.objects, model.magnetCoilGroup.id)
 
-    mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(m.size, float))
+    mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(magnet.size, float))
 
     if model.dipoleType == 'dipoleC':
-        # resize the poles to fit between the arms (minus gap)
-        pole_sz = mag_sz * dirs.length + \
-                  model.poleWidth * dirs.width + \
-                  mag_sz * dirs.height / 2 - m.armHeight * dirs.height - model.gap * dirs.height / 2
-        pole_ctr = pole_sz * dirs.height / 2 + model.gap * dirs.height / 2
+        pole_sz, pole_ctr = _fit_poles_in_c_bend(
+            arm_height=model.magnet.armHeight,
+            gap=model.gap,
+            height=dirs.height,
+            length=dirs.length,
+            mag_sz=mag_sz,
+            pole_width=model.poleWidth,
+            width=dirs.width,
+        )
         mag_ctr = mag_sz * dirs.width / 2 - pole_sz * dirs.width / 2
         _update_geom_obj(
-            p_obj,
+            pole,
             center=pole_ctr,
             size=pole_sz,
             transforms=[_build_symm_xform(dirs.height, _ZERO, 'parallel')]
         )
-        _update_geom_obj(m_obj, center=mag_ctr)
+        _update_geom_obj(magnet, center=mag_ctr)
         _update_geom_obj(
-            c_obj,
-            center=mag_ctr + mag_sz * dirs.width / 2 - m.stemWidth * dirs.width / 2
+            _find_by_id(geom.objects, model.coil.id),
+            center=mag_ctr + mag_sz * dirs.width / 2 - model.magnet.stemWidth * dirs.width / 2
         )
     if model.dipoleType == 'dipoleH':
         # magnetSize is for the entire magnet - split it here so we can apply symmetries
         mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(model.magnetSize, float)) / 2
-        pole_sz = mag_sz * dirs.length + \
-            model.poleWidth * dirs.width / 2 + \
-            mag_sz * dirs.height - m.armHeight * dirs.height - model.gap * dirs.height / 2
-        pole_ctr = pole_sz * dirs.height / 2 + model.gap * dirs.height / 2 + \
-            pole_sz * dirs.length / 2 + \
-            pole_sz * dirs.width / 2
-        _update_geom_obj(p_obj, center=pole_ctr, size=pole_sz)
+        pole_sz, pole_ctr = _fit_poles_in_h_bend(
+            arm_height=model.magnet.armHeight,
+            gap=model.gap,
+            height=dirs.height,
+            length=dirs.length,
+            mag_sz=mag_sz,
+            pole_width=model.poleWidth,
+            width=dirs.width,
+        )
+        _update_geom_obj(pole, center=pole_ctr, size=pole_sz)
         _update_geom_obj(
-            _find_by_id(geom.objects, m.id),
+            _find_by_id(geom.objects, magnet.id),
             center=mag_sz / 2 - mag_sz * dirs.length / 2
         )
         # length and width symmetries
-        cp_obj.transforms = [
+        _find_by_id(geom.objects, model.corePoleGroup.id).transforms = [
             _build_symm_xform(dirs.length, _ZERO, 'perpendicular'),
             _build_symm_xform(dirs.width, _ZERO, 'perpendicular')
         ]
