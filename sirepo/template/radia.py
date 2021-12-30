@@ -311,9 +311,9 @@ def new_simulation(data, new_simulation_data):
         _build_dipole_objects(
             data.models.geometryReport,
             d,
-            height_dir=dirs.height,
-            length_dir=dirs.length,
-            width_dir=dirs.width,
+            height_dir=dirs.height_dir,
+            length_dir=dirs.length_dir,
+            width_dir=dirs.width_dir,
         )
 
 
@@ -1312,26 +1312,26 @@ def _update_geom_from_freehand(geom, **kwargs):
 
 def _update_geom_from_undulator(geom, und, dirs):
 
-    dir_matrix = numpy.array([dirs.width, dirs.height, dirs.length])
+    dir_matrix = numpy.array([dirs.width_dir, dirs.height_dir, dirs.length_dir])
 
     pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(und.magnetCrossSection, float)
 
     # pole and magnet dimensions, including direction
     pole_dim = PKDict(
-        width=dirs.width * pole_x[0],
-        height=dirs.height * pole_x[1],
-        length=dirs.length * und.poleLength,
+        width=dirs.width_dir * pole_x[0],
+        height=dirs.height_dir * pole_x[1],
+        length=dirs.length_dir * und.poleLength,
     )
     magnet_dim = PKDict(
-        width=dirs.width * mag_x[0],
-        height=dirs.height * mag_x[1],
-        length=dirs.length * (und.periodLength / 2 - pole_dim.length),
+        width=dirs.width_dir * mag_x[0],
+        height=dirs.height_dir * mag_x[1],
+        length=dirs.length_dir * (und.periodLength / 2 - pole_dim.length),
     )
 
     # convenient constants
-    gap_half_height = dirs.height * und.gap / 2
-    gap_offset = dirs.height * und.gapOffset
+    gap_half_height = dirs.height_dir * und.gap / 2
+    gap_offset = dirs.height_dir * und.gapOffset
 
     # put the magnetization and segmentation in the correct order below
     obj_props = PKDict(
@@ -1470,11 +1470,11 @@ def _update_geom_from_undulator(geom, und, dirs):
         [_build_clone_xform(
             und.numPeriods - 1,
             True,
-            [_build_translate_clone(dirs.length * und.periodLength / 2)]
+            [_build_translate_clone(dirs.length_dir * und.periodLength / 2)]
         )]
 
     pos = obj_props.pole.dim_half.length + \
-        dirs.length * (und.numPeriods * und.periodLength / 2)
+        dirs.length_dir * (und.numPeriods * und.periodLength / 2)
 
     oct_grp = _find_by_name(geom.objects, 'Octant')
 
@@ -1486,8 +1486,8 @@ def _update_geom_from_undulator(geom, und, dirs):
     terms = []
     num_term_mags = 0
     for i, t in enumerate(und.terminations):
-        l = t.length * dirs.length
-        pos += (t.airGap + l / 2) * dirs.length
+        l = t.length * dirs.length_dir
+        pos += (t.airGap + l / 2) * dirs.length_dir
         props = obj_props[t.type]
         o = _update_geom_obj(
             _build_geom_obj(props.obj_type, name=_undulator_termination_name(i, t.type), color=props.color),
@@ -1524,9 +1524,9 @@ def _update_geom_from_undulator(geom, und, dirs):
     _update_group(oct_grp, [g])
 
     oct_grp.transforms = [
-        _build_symm_xform(dirs.width, 'perpendicular'),
-        _build_symm_xform(dirs.height, 'parallel'),
-        _build_symm_xform(dirs.length, 'perpendicular'),
+        _build_symm_xform(dirs.width_dir, 'perpendicular'),
+        _build_symm_xform(dirs.height_dir, 'parallel'),
+        _build_symm_xform(dirs.length_dir, 'perpendicular'),
     ]
     return oct_grp
 
