@@ -418,6 +418,7 @@
                 "color": "#ff00ff",
                 "segments": "4, 4, 4",
                 "magnetization": "0.0, 0.0, 1.0",
+                "name": "pole",
                 "remanentMag": 1.0,
                 "material": "NdFeB",
                 "type": "cuboid",
