@@ -687,6 +687,13 @@
         }
     },
     "model": {
+	"animation": {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
+	},
         "gridEvolutionAnimation": {
             "y1": ["Y1 Value", "ValueList", ""],
             "y2": ["Y2 Value", "ValueList", ""],

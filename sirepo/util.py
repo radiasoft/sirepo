@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog, pkdp, pkdexc
+from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 import asyncio
 import base64
 import concurrent.futures

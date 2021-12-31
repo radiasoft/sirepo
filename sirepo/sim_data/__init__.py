@@ -4,17 +4,12 @@ u"""Type-based simulation operations
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
-import uuid
-
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdexc, pkdc
+from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdformat
 import hashlib
 import inspect
 import re
@@ -25,6 +20,7 @@ import sirepo.job
 import sirepo.resource
 import sirepo.template
 import sirepo.util
+import uuid
 
 cfg = None
 
@@ -231,7 +227,8 @@ class SimDataBase(object):
         Returns:
             str: combined frame id
         """
-        assert response.frameCount > index
+        assert response.frameCount > index, \
+            pkdformat('response={} does not contain enough frames for index={}', response, index)
         frame_args = response.copy()
         frame_args.frameReport = model
         m = data.models[model]

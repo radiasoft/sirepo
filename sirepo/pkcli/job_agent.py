@@ -468,14 +468,7 @@ class _Cmd(PKDict):
     async def on_stdout_read(self, text):
         if self._terminating or not self.send_reply:
             return
-        try:
-            await self.dispatcher.job_cmd_reply(
-                self.msg,
-                job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
-                text,
-            )
-        except Exception as e:
-            pkdlog('{} text={} error={} stack={}', self, text, e, pkdexc())
+        await self._job_cmd_reply(text)
 
     async def start(self):
         if self._is_compute and self._start_time:
@@ -550,6 +543,15 @@ class _Cmd(PKDict):
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
 
+    async def _job_cmd_reply(self, text):
+        try:
+            await self.dispatcher.job_cmd_reply(
+                self.msg,
+                job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
+                text,
+            )
+        except Exception as e:
+            pkdlog('{} text={} error={} stack={}', self, text, e, pkdexc())
 
 class _FastCgiCmd(_Cmd):
     def destroy(self):
@@ -582,7 +584,7 @@ eval export HOME=~$USER
         return c, s, e
 
     def job_cmd_env(self):
-        e = PKDict()
+        e = PKDict(SIREPO_FEATURE_CONFIG_IN_SLURM=1)
         if pkconfig.channel_in('dev'):
             h = pkio.py_path('~/src/radiasoft')
             e.PYTHONPATH = '{}:{}'.format(h.join('sirepo'), h.join('pykern'))
@@ -594,7 +596,11 @@ class _SbatchPrepareSimulationCmd(_SbatchCmd):
         super().__init__(*args, send_reply=False, **kwargs)
 
     async def on_stdout_read(self, text):
-        self.cmd = pkjson.load_any(text).cmd
+        p = pkjson.load_any(text)
+        if p.get('state') == 'error':
+            await self._job_cmd_reply(text)
+            return
+        self.cmd = p.cmd
 
 class _SbatchRun(_SbatchCmd):
 
@@ -693,6 +699,8 @@ class _SbatchRun(_SbatchCmd):
         )
         await c.start()
         await c._await_exit()
+        if 'cmd' not in c:
+            raise AssertionError(pkdformat('No cmd returned from {}', c))
         return ' '.join(c.cmd)
 
     def _sbatch_script(self, start_cmd):
@@ -734,7 +742,6 @@ class _SbatchRun(_SbatchCmd):
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
-export SIREPO_MPI_IN_SLURM=1
 exec {start_cmd}
 '''
         )
