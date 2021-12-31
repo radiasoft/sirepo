@@ -419,6 +419,9 @@ class SimDataBase(object):
             if the data type is "UUID" and the default value is empty, set the
             value to a new UUUID string
 
+            if the data type is "RandomId" and the default value is empty, set the
+            value to a new Base62 string
+
             if the data type has the form "model.zzz", set the value to the default
             value of model "zzz"
 
@@ -438,6 +441,8 @@ class SimDataBase(object):
                 res[f] = copy.deepcopy(d[2])
                 if d[1] == 'UUID' and not res[f]:
                     res[f] = str(uuid.uuid4())
+                if d[1] == 'RandomId' and not res[f]:
+                    res[f] = sirepo.util.random_base62(length=16)
         return res
 
     # TODO(e-carlin): Supplying uid is a temprorary workaround until

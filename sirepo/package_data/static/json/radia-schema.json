@@ -694,7 +694,7 @@
         },
         "geometryReport": {
             "doGenerate": ["_", "Boolean", "1"],
-            "id": ["_", "UUID", ""],
+            "id": ["_", "RandomId", ""],
             "isSolvable": ["_", "Boolean", "1"],
             "name": ["Name", "String", ""],
             "objects": ["_", "Group", []]
@@ -710,7 +710,7 @@
             "bevels": ["Bevels", "BevelTable", []],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
-            "id": ["_", "UUID", ""],
+            "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
@@ -724,7 +724,7 @@
             "_super": ["_", "model", "undulator"],
             "magnetArmHeight": ["_", "Float", 1.0],
             "magnetArmPosition": ["_", "ArmPosition", "0"],
-            "magnetBaseObjectId": ["_", "UUID", ""],
+            "magnetBaseObjectId": ["_", "RandomId", ""],
             "magnetColor": ["Color", "Color", "#00ffff"],
             "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width, Height"],
             "magnetSegments": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
@@ -739,7 +739,7 @@
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
             "poleArmHeight": ["_", "Float", 3.0],
             "poleArmPosition": ["_", "ArmPosition", "1"],
-            "poleBaseObjectId": ["_", "UUID", ""],
+            "poleBaseObjectId": ["_", "RandomId", ""],
             "poleColor": ["Color", "Color", "#ff00ff"],
             "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
             "poleSegments": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
@@ -778,7 +778,7 @@
         "layoutObject": {
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
-            "id": ["_", "UUID", ""],
+            "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"]
         },
         "linePath": {
@@ -847,7 +847,7 @@
             "name": ["Name", "String", "Rotate"]
         },
         "rotateClone": {
-            "id": ["_", "UUID", ""],
+            "id": ["_", "RandomId", ""],
             "angle": ["Angle (deg)", "Float", "0.0"],
             "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
@@ -899,7 +899,7 @@
             "type": ["Object Type", "TerminationType", "magnet", ""]
         },
         "transform": {
-            "id": ["_", "UUID", ""],
+            "id": ["_", "RandomId", ""],
             "name": ["Name", "String", "Transform"],
             "object": ["Apply to", "geomObject", ""]
         },
@@ -908,7 +908,7 @@
             "name": ["Name", "String", "Translate"]
         },
         "translateClone": {
-            "id": ["_", "UUID", ""],
+            "id": ["_", "RandomId", ""],
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
             "name": ["Name", "String", "Translate"]
         },
