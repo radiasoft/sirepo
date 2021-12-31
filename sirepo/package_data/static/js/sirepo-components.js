@@ -4600,7 +4600,7 @@ SIREPO.app.service('utilities', function($window, $interval) {
     };
 
     // create a non-cryptographic baseN string, with N <= 64
-    this.generateId = function(base=62, length=32) {
+    this.randomString = function(base=62, length=32) {
         const BASE64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
         const s = BASE64.substring(0, base);
         return new Array(length)

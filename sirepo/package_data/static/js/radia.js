@@ -198,7 +198,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
     // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
-    self.generateId = () => utilities.generateId(length=16);
+    self.generateId = () => utilities.randomString(62, 16);
 
     self.pathEditorTitle = function() {
         if (! appState.models.fieldPaths) {
@@ -3309,7 +3309,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             //function setColor(info, type, color, alpha=255) {
             function setColor(info, type, color, alpha) {
-                srdbg('setColor', 'info', info, 'type', type, 'color', color, 'alpha', alpha);
+                //srdbg('setColor', 'info', info, 'type', type, 'color', color, 'alpha', alpha);
                 if (angular.isUndefined(alpha)) {
                     alpha = 255;
                 }
@@ -3488,7 +3488,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 updateViewer();
             });
 
-            $scope.$on('radiaObject.color', function (e, d) {
+            $scope.$on('radiaObject.color', function (e, h) {
                 setColor(
                     selectedInfo,
                     SIREPO.APP_SCHEMA.constants.geomTypePolys,
