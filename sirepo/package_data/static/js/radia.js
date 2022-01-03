@@ -198,7 +198,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
     // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
-    self.generateId = () => utilities.randomString(62, 16);
+    self.generateId = () => utilities.randomString(16);
 
     self.pathEditorTitle = function() {
         if (! appState.models.fieldPaths) {
