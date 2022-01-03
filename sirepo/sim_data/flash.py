@@ -70,7 +70,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         try:
             super().sim_files_to_run_dir(data, run_dir)
         except sirepo.sim_data.SimDbFileNotFound:
-            if sirepo.feature_config.cfg().in_slurm:
+            from sirepo import mpi
+            if mpi.cfg.in_slurm:
                 # Must still compile on Sirepo servers when running at
                 # NERSC so all dependencies are present.
                 raise sirepo.util.UserAlert('Must first run Setup and Compile')

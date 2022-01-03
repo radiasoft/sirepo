@@ -114,7 +114,6 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
-        in_slurm=(False, bool, 'True if being run by slurm'),
         package_path=(
             tuple(['sirepo']),
             tuple,

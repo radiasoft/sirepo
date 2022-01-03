@@ -9,7 +9,6 @@ from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import re
-import sirepo.feature_config
 import sys
 
 FIRST_RANK = 0
@@ -55,7 +54,8 @@ def run_program(cmd, output='mpi_run.out', env=None):
         output (str): where to write stdout and stderr
         env (dict): what to pass as env
     """
-    m = [
+    # See: git.radiasoft.org/sirepo/issues/4024
+    m = ['srun'] if cfg.in_slurm else [
         'mpiexec',
         '--bind-to',
         'none',
@@ -63,9 +63,6 @@ def run_program(cmd, output='mpi_run.out', env=None):
         str(cfg.cores),
 
     ]
-    if sirepo.feature_config.cfg().in_slurm:
-        # See: git.radiasoft.org/sirepo/issues/4024
-        m = ['srun']
     pksubprocess.check_call_with_signals(
         m + cmd,
         msg=pkdlog,
@@ -98,6 +95,7 @@ if MPI.COMM_WORLD.Get_rank():
 
 cfg = pkconfig.init(
     cores=(1, int, 'cores to use per run'),
+    in_slurm=(False, bool, 'True if being run by slurm'),
     slaves=(1, int, 'DEPRECATED: set $SIREPO_MPI_CORES'),
 )
 cfg.cores = max(cfg.cores, cfg.slaves)

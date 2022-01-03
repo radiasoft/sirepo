@@ -584,7 +584,8 @@ eval export HOME=~$USER
         return c, s, e
 
     def job_cmd_env(self):
-        e = PKDict(SIREPO_FEATURE_CONFIG_IN_SLURM=1)
+        # POSIT: sirepo.mpi cfg sentinel for running in slurm
+        e = PKDict(SIREPO_MPI_IN_SLURM=1)
         if pkconfig.channel_in('dev'):
             h = pkio.py_path('~/src/radiasoft')
             e.PYTHONPATH = '{}:{}'.format(h.join('sirepo'), h.join('pykern'))
