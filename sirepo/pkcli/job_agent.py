@@ -468,14 +468,7 @@ class _Cmd(PKDict):
     async def on_stdout_read(self, text):
         if self._terminating or not self.send_reply:
             return
-        try:
-            await self.dispatcher.job_cmd_reply(
-                self.msg,
-                job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
-                text,
-            )
-        except Exception as e:
-            pkdlog('{} text={} error={} stack={}', self, text, e, pkdexc())
+        await self._job_cmd_reply(text)
 
     async def start(self):
         if self._is_compute and self._start_time:
@@ -550,6 +543,15 @@ class _Cmd(PKDict):
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
 
+    async def _job_cmd_reply(self, text):
+        try:
+            await self.dispatcher.job_cmd_reply(
+                self.msg,
+                job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
+                text,
+            )
+        except Exception as e:
+            pkdlog('{} text={} error={} stack={}', self, text, e, pkdexc())
 
 class _FastCgiCmd(_Cmd):
     def destroy(self):
@@ -582,12 +584,24 @@ eval export HOME=~$USER
         return c, s, e
 
     def job_cmd_env(self):
-        e = PKDict()
+        # POSIT: sirepo.mpi cfg sentinel for running in slurm
+        e = PKDict(SIREPO_MPI_IN_SLURM=1)
         if pkconfig.channel_in('dev'):
             h = pkio.py_path('~/src/radiasoft')
             e.PYTHONPATH = '{}:{}'.format(h.join('sirepo'), h.join('pykern'))
         return super().job_cmd_env(e)
 
+class _SbatchPrepareSimulationCmd(_SbatchCmd):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, send_reply=False, **kwargs)
+
+    async def on_stdout_read(self, text):
+        p = pkjson.load_any(text)
+        if p.get('state') == 'error':
+            await self._job_cmd_reply(text)
+            return
+        self.cmd = p.cmd
 
 class _SbatchRun(_SbatchCmd):
 
@@ -643,11 +657,11 @@ class _SbatchRun(_SbatchCmd):
         super().destroy()
 
     async def start(self):
-        await self._prepare_simulation()
+        c = await self._prepare_simulation()
         if self._terminating:
             return
         p = subprocess.run(
-            ('sbatch', self._sbatch_script()),
+            ('sbatch', self._sbatch_script(c)),
             close_fds=True,
             cwd=str(self.run_dir),
             capture_output=True,
@@ -675,20 +689,22 @@ class _SbatchRun(_SbatchCmd):
         tornado.ioloop.IOLoop.current().add_callback(self._await_start_ready)
 
     async def _prepare_simulation(self):
-        c = _SbatchCmd(
+        c = _SbatchPrepareSimulationCmd(
             dispatcher=self.dispatcher,
             msg=self.msg.copy().pkupdate(
                 jobCmd='prepare_simulation',
                 # sequential job
                 opName=job.OP_ANALYSIS,
             ),
-            send_reply=False,
             op_id=self.msg.opId,
         )
         await c.start()
         await c._await_exit()
+        if 'cmd' not in c:
+            raise AssertionError(pkdformat('No cmd returned from {}', c))
+        return ' '.join(c.cmd)
 
-    def _sbatch_script(self):
+    def _sbatch_script(self, start_cmd):
         def _assert_project():
             p = self.msg.sbatchProject
             if not p:
@@ -722,17 +738,12 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
-cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
-#TODO(robnagler) need to get command from prepare_simulation
-
-exec python {template_common.PARAMETERS_PYTHON_FILE}
-EOF
-exec srun {'--mpi=pmi2' if pkconfig.channel_in('dev') else ''} {s} /bin/bash bash.stdin
+exec {start_cmd}
 '''
         )
         return f

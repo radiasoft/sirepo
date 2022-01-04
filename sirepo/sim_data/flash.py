@@ -4,14 +4,13 @@ u"""simulation data operations
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo.template import flash_parser
-from sirepo.template import template_common
 import re
+import sirepo.feature_config
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.util
@@ -30,6 +29,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        cls._init_models(dm, ('animation',))
         for m in ('setupArguments', 'varAnimation'):
             cls.update_model_defaults(dm[m], m)
 
@@ -70,6 +70,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         try:
             super().sim_files_to_run_dir(data, run_dir)
         except sirepo.sim_data.SimDbFileNotFound:
+            from sirepo import mpi
+            if mpi.cfg.in_slurm:
+                # Must still compile on Sirepo servers when running at
+                # NERSC so all dependencies are present.
+                raise sirepo.util.UserAlert('Must first run Setup and Compile')
             cls._flash_create_sim_files(data, run_dir)
 
     @classmethod
