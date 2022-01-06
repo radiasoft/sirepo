@@ -146,13 +146,10 @@
             "current_vkick": ["Vertical Current [A]", "AmpField", 0.0],
             "hkick": ["HKICK", "Float", 0.0, "The horizontal momentum change $\\delta PX$"],
             "vkick": ["VKICK", "Float", 0.0, "The vertical momentum change $\\delta PY$"],
-            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""],
-            "deviceName": ["Device", "String", ""]
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "MONITOR": {
-            "name": ["Name", "ValidatedString"],
-            "deviceName": ["Device", "String", ""],
-            "deviceName": ["Device", "String", ""]
+            "name": ["Name", "ValidatedString"]
         },
         "QUADRUPOLE": {
             "name": ["Name", "ValidatedString"],
@@ -164,14 +161,10 @@
             "name": ["Name", "ValidatedString"],
             "current_kick": ["Current [A]", "AmpField", 0.0],
             "kick": ["KICK", "Float", 0.0, "The momentum change $\\delta PY$"],
-            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""],
-            "deviceName": ["Device", "String", ""],
-            "pv2": ["PV Vertical Current", "String", ""]
+            "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "VMONITOR": {
-            "name": ["Name", "ValidatedString"],
-            "deviceName": ["Device", "String", ""],
-            "pv2": ["PV Vertical Position", "String", ""]
+            "name": ["Name", "ValidatedString"]
         }
     },
     "strings": {
