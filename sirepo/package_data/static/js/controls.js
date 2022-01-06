@@ -204,6 +204,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             data => {
                 appState.models.externalLattice = data.externalLattice;
                 appState.models.optimizerSettings = data.optimizerSettings;
+                appState.models.processVariables = data.processVariables;
                 $.extend(appState.models.command_twiss, findExternalCommand('twiss'));
                 $.extend(appState.models.command_beam, findExternalCommand('beam'));
                 appState.saveChanges(['command_beam', 'command_twiss', 'externalLattice', 'optimizerSettings']);
@@ -590,7 +591,7 @@ SIREPO.app.directive('optimizerTable', function(appState) {
         restrict: 'A',
         scope: {},
         template: [
-            '<form name="form">',
+            '<form name="form" class="form-horizontal">',
               '<div class="form-group form-group-sm" data-model-field="\'method\'" data-form="form" data-model-name="\'optimizerSettings\'"></div>',
               '<div data-ng-if="showUpdateBeamline()" class="form-group form-group-sm" data-model-field="\'updateBeamline\'" data-form="form" data-model-name="\'optimizerSettings\'"></div>',
               '<table data-ng-show="appState.models.optimizerSettings.method == \'nmead\'" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
@@ -631,7 +632,7 @@ SIREPO.app.directive('optimizerTable', function(appState) {
 	    // appear
 	    $scope.showUpdateBeamline = () => {
 		return SIREPO.APP_SCHEMA.feature_config.show_update_beamline;
-	    }
+	    };
         },
     };
 });
@@ -1147,100 +1148,55 @@ SIREPO.app.directive('ampField', function(appState, controlsService) {
 SIREPO.app.directive('elementPvFields', function(appState, controlsService, latticeService) {
     return {
         restrict: 'A',
-        scope: {
-            modelName: '@',
-        },
+        scope: {},
         template: `
-            <form name="form" class="form-horizontal">
-              <div class="form-group form-group-sm" data-ng-if="initLattice()">
+            <form name="form">
+              <div class="form-group form-group-sm" data-ng-if="controlsService.hasMadxLattice()" style="max-height: 75vh; overflow-y: auto;">
                 <table class="table table-striped table-condensed">
                   <tr>
                     <th class="text-center" data-ng-repeat="h in headers track by $index">{{ h }}</th>
                     <th></th>
                   </tr>
-                  <tr data-ng-repeat="row in rows track by $index">
+                  <tr data-ng-repeat="pv in appState.models.processVariables.variables track by $index">
                     <td data-ng-repeat="f in fields track by $index">
-                      <div data-ng-if="$index <= 1" class="form-control-static">{{ row[f] }}</div>
-                      <input data-ng-if="$index > 1 && row[f] != null" data-ng-model="row[f]" class="form-control" data-lpignore="true" />
+                      <div class="form-control-static">{{ ::getValue(pv, f) }}</div>
+                    </td>
+                    <td>
+                      <div>
+                        <input data-ng-model="pv.pvName" class="form-control" data-lpignore="true" />
+                      </div>
                     </td>
                   </tr>
                 </table>
               </div>
-              <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
-                <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
-              </div>
+              <div class="text-center" data-buttons="" data-model-name="modelName" data-fields="pvFields"></div>
             </form>
         `,
         controller: function($scope) {
-            $scope.fields = ['type', 'name', 'deviceName', 'pv1', 'pv2'];
-            $scope.headers = ['Type', 'Element Name', 'Device Name', 'PV Horizontal', 'PV Vertical'];
+            $scope.modelName = 'beamline';
+            $scope.appState = appState;
+            $scope.controlsService = controlsService;
+            $scope.pvFields = ['processVariables.variables'];
+            $scope.headers = ['Type', 'Element Name', 'Description', 'Process Variable Name'];
+            $scope.fields = ['type', 'name', 'description'];
 
-            function buildRows() {
-                const schema = SIREPO.APP_SCHEMA.model;
-                $scope.rows = [];
-                for (let el of controlsService.beamlineElements()) {
-                    const s = schema[el.type];
-                    if (s && s.hasOwnProperty('deviceName')) {
-                        $scope.rows.push(elementRow(el, s));
+            $scope.getValue = (pv, field) => {
+                const el = latticeService.elementForId(pv.elId, controlsService.latticeModels());
+                if (field == 'description') {
+                    let res = '';
+                    if (pv.pvDimension != 'none') {
+                        res += pv.pvDimension + ' ';
                     }
-                }
-            }
-
-            function elementRow(el, elSchema) {
-                const res = {
-                    id: el._id,
-                    type: el.type,
-                };
-                for (let f of $scope.fields) {
-                    if (res[f]) {
-                        continue;
+                    if (el.type.indexOf('MONITOR') >= 0) {
+                        res += 'position ';
                     }
-                    res[f] = elSchema.hasOwnProperty(f) ? (el[f] || '') : null;
-                }
-                return res;
-            }
-
-            function saveRows() {
-                const schema = SIREPO.APP_SCHEMA.model;
-                const elMap = {};
-                for (let el of controlsService.beamlineElements()) {
-                    elMap[el._id] = el;
-                }
-                let firstEl;
-                for (const row of $scope.rows) {
-                    const el = elMap[row.id];
-                    const s = schema[el.type];
-                    if (s) {
-                        for (let f of $scope.fields) {
-                            if (s.hasOwnProperty(f)) {
-                                el[f] = row[f];
-                            }
-                        }
+                    else if (el.type == 'QUADRUPOLE' || el.type.indexOf('KICKER') >= 0) {
+                        res += 'current ';
                     }
+                    res += pv.isWritable == '1' ? 'setting' : 'reading';
+                    return res;
                 }
-            }
-
-            $scope.cancelChanges = () => {
-                appState.cancelChanges($scope.modelName);
-                $scope.form.$setPristine();
-                $scope.rows = null;
-            };
-            $scope.hasChanges = () => $scope.form.$dirty;
-            $scope.initLattice = () => {
-                if (! controlsService.hasMadxLattice()) {
-                    return false;
-                }
-                if (! $scope.rows) {
-                    buildRows();
-                }
-                return true;
-            };
-            $scope.saveChanges = () => {
-                saveRows();
-                appState.saveChanges([$scope.modelName, 'externalLattice']);
-                $scope.form.$setPristine();
-                $scope.rows = null;
+                return el[field];
             };
         },
     };

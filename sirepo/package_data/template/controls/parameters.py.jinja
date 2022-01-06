@@ -130,7 +130,7 @@ def _nmead_update_beamline():
 
 
 {% if optimizerSettings_method == 'nmead' %}
-    {% if optimizerSettings_updateBeamline %}
+    {% if optimizerSettings_updateBeamline == '1' %}
 res = _nmead_update_beamline()
     {% else %}
 res = _optimize_nelder_mead({{ correctorCount }})

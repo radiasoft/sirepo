@@ -203,10 +203,10 @@ def _get_external_lattice(simulation_id):
     sirepo.template.madx.uniquify_elements(d)
     _add_monitor(d)
     sirepo.template.madx.eval_code_var(d)
-    return PKDict(
+    return _SIM_DATA.init_process_variables(PKDict(
         externalLattice=d,
         optimizerSettings=_SIM_DATA.default_optimizer_settings(d.models),
-    )
+    ))
 
 
 def _has_beamline(model):

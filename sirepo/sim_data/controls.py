@@ -19,11 +19,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         return sirepo.simulation_db.simulation_dir('madx')
 
     @classmethod
-    def default_optimizer_settings(cls, madx):
-        element_map = PKDict({e._id: e for e in madx.elements})
-        targets = []
+    def beamline_elements(cls, madx):
+        elmap = PKDict({e._id: e for e in madx.elements})
         for el_id in madx.beamlines[0]['items']:
-            el = element_map[el_id]
+            yield elmap[el_id]
+
+    @classmethod
+    def default_optimizer_settings(cls, madx):
+        targets = []
+        for el in cls.beamline_elements(madx):
             if el.type in ('MONITOR', 'HMONITOR', 'VMONITOR'):
                 item = cls.model_defaults('optimizerTarget')
                 item.name = el.name
@@ -52,10 +56,47 @@ class SimData(sirepo.sim_data.SimDataBase):
             sirepo.sim_data.get_class('madx').fixup_old_data(dm.externalLattice)
             if 'optimizerSettings' not in dm:
                 dm.optimizerSettings = cls.default_optimizer_settings(dm.externalLattice.models)
-
+            if 'processVariables' not in dm:
+                cls.init_process_variables(data)
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0
+
+    @classmethod
+    def init_process_variables(cls, data):
+        pvs = []
+        def _add_pv(elId, dim, write='0'):
+            pvs.append(PKDict(
+                elId=elId,
+                pvDimension=dim,
+                isWritable=write,
+                pvName='',
+            ))
+        data.models.processVariables = PKDict(
+            variables=pvs,
+        )
+        for el in cls.beamline_elements(data.models.externalLattice.models):
+            if el.type == 'MONITOR':
+                _add_pv(el._id, 'horizontal')
+                _add_pv(el._id, 'vertical')
+            elif el.type == 'HMONITOR':
+                _add_pv(el._id, 'horizontal')
+            elif el.type == 'VMONITOR':
+                _add_pv(el._id, 'vertical')
+            elif el.type == 'KICKER':
+                _add_pv(el._id, 'horizontal')
+                _add_pv(el._id, 'horizontal', '1')
+                _add_pv(el._id, 'vertical')
+                _add_pv(el._id, 'vertical', '1')
+            elif el.type == 'HKICKER':
+                _add_pv(el._id, 'horizontal')
+                _add_pv(el._id, 'horizontal', '1')
+            elif el.type == 'VKICKER':
+                _add_pv(el._id, 'vertical')
+                _add_pv(el._id, 'vertical', '1')
+            elif el.type == 'QUADRUPOLE':
+                _add_pv(el._id, 'none')
+        return data
 
     @classmethod
     def update_beam_gamma(cls, beam):
