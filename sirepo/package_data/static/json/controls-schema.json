@@ -90,6 +90,10 @@
             "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
             "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
         },
+        "opt_tabs": {
+            "title": "Optimization",
+            "advanced": []
+        },
         "command_twiss": {
             "alfx": ["Horizontal Alpha", "Float", 0.0],
             "alfy": ["Vertical Alpha", "Float", 0.0],
@@ -109,7 +113,9 @@
         },
         "initialMonitorPositionsReport": {},
         "optimizerSettings": {
-            "method": ["Optimization Method", "OptimizationMethod", "nmead"]
+            "method": ["Optimization Method", "OptimizationMethod", "nmead"],
+            "inputs": ["", "OptimizerInputIds"]
+            
         },
         "optimizerTarget": {
             "x": ["X [m]", "Float", 0.0],
@@ -160,6 +166,11 @@
             "title": "Beamline",
             "advanced": []
         },
+        "opt_tabs": {
+            "title": "Optimization",
+            "advanced": []
+         
+        }, 
         "command_beam": {
             "title": "Beam Settings",
             "advanced": [],
