@@ -123,7 +123,7 @@ def create_user(github_handle=None, check_dir=False):
         if n:
             return n
         u = __user_name()
-        if check_dir and __user_dir(u).exists():
+        if check_dir and _user_dir(u).exists():
             raise AssertionError(f'existing user dir with same name={u}')
         JupyterhubUser(
             uid=sirepo.auth.logged_in_user(),
