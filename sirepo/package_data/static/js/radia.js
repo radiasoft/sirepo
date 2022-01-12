@@ -327,6 +327,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'simulation.beamAxis',
     ];
     const watchedModels = [
+        'dipoleBasic',
+        'dipoleC',
+        'dipoleH',
+        'ell',
         'geomObject',
         'geomGroup',
         'hybridUndulator',
@@ -592,15 +596,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         o.id  = radiaService.generateId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
-        //var n = 0;
-        (o.members || []).forEach(function (oId) {
+        (o.members || []).forEach(oId => {
             self.getObject(oId).groupId = o.id;
-        //    ++n;
         });
-        //if (n > 0) {
-        //    let z = groupBounds(o.members);
-        //    o.size = '0,0,0';
-        //}
+        addShapesForObject(o);
     }
 
     function addShapesForObject(o) {
@@ -825,9 +824,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadShapes() {
         self.shapes = [];
-        appState.models.geometryReport.objects.forEach(function (o) {
-            addShapesForObject(o);
-        });
+        appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
     }
 
@@ -1086,14 +1083,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
                 }
             }
+            const r = 'geometryReport';
             radiaService.saveGeometry(true, false, () => {
-                panelState.clear('geometryReport');
+                panelState.clear(r);
                 // need to rebuild the geometry after changes were made
-                panelState.requestData('geometryReport', function(data) {
-                    if (self.selectedObject) {
-                        loadShapes();
-                    }
-                });
+                panelState.requestData(
+                    r,
+                    data => {
+                        if (self.selectedObject) {
+                            loadShapes();
+                        }
+                    },
+                    true
+                );
             });
 
         });
@@ -3771,6 +3773,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     $scope.watchFields = [
         [
             'geomObject.type',
+            "extrudedPoly.extrusionAxisSegments",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor

@@ -459,6 +459,8 @@
                 "armPosition": "1",
                 "center": "0.0, 71.25, 0.0",
                 "color": "#0000ff",
+                "extrusionAxis": "x",
+                "extrusionAxisSegments": 2,
                 "magnetization": "0.0, 0.0, 0.0",
                 "name": "core",
                 "remanentMag": 1.0,
@@ -598,6 +600,8 @@
                 "armPosition": "0",
                 "center": "0.0, 4.0, 3.75",
                 "color": "#0066cd",
+                "extrusionAxis": "x",
+                "extrusionAxisSegments": 2,
                 "magnetization": "0.0, 0.0, 0.0",
                 "name": "core",
                 "remanentMag": 1.0,
@@ -655,7 +659,11 @@
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
-            "points": ["Points", "Points", []]
+            "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
+            "heightAxis": ["_", "BeamAxis", "y"],
+            "points": ["Points", "Points", []],
+            "triangulationLevel": ["Triangulation Level", "Range", 0.5, "", 0.0, 1.0],
+            "widthAxis": ["_", "BeamAxis", "x"]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -1022,7 +1030,7 @@
                     "dipoleH.coil.currentDensity"
                 ]],
                 ["Magnet", [
-                    "dipoleH.magnet.color",
+                    "dipoleH.magnet.shapeButton",
                     "magnetSize",
                     "dipoleH.magnet.material",
                     "dipoleH.magnet.materialFile",
@@ -1237,6 +1245,7 @@
                     "type",
                     "color",
                     "stemmed.extrusionAxis",
+                    "extrudedPoly.extrusionAxisSegments",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
                     "stemmed.stemWidth",

@@ -191,6 +191,22 @@ def err(obj, fmt='', *args, **kwargs):
     return '{}: '.format(obj) + fmt.format(*args, **kwargs)
 
 
+def find_obj(arr, key, value):
+    """Return the first object in the array such that obj[key] == value
+
+    Args:
+        arr (list): list of dict-like objects
+        key (str): object key
+        value (*): value
+    Returns:
+        object: the object, or None if not found
+    """
+    for o in arr:
+        if o[key] == value:
+            return o
+    return None
+
+
 def flask_app():
     import flask
 
