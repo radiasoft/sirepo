@@ -197,22 +197,35 @@ def flask_app():
     return flask.current_app or None
 
 
-def import_submodule(submodule):
-    """Import fully qualified module that contains submodule
+def import_submodule(submodule, type_or_data):
+    """Import fully qualified module that contains submodule for sim type
 
     sirepo.feature_config.package_path will be searched for a match.
+
+    Args:
+        submodule (str): the name of the submodule
+        type_or_data (str or dict): simulation type or description
+    Returns:
+        module: simulation type module instance
     """
-    import sirepo.feature_config
-    r = sirepo.feature_config.cfg().package_path
+    from sirepo import feature_config
+    from sirepo import template
+    t = template.assert_sim_type(
+        type_or_data.simulationType if isinstance(
+            type_or_data,
+            PKDict,
+        ) else type_or_data,
+    )
+    r = feature_config.cfg().package_path
     for p in r:
        try:
-        return importlib.import_module(f'{p}.{submodule}')
+        return importlib.import_module(f'{p}.{submodule}.{t}')
        except ModuleNotFoundError:
            s = pkdexc()
            pass
     # gives more debugging info (perhaps more confusion)
     pkdc(s)
-    raise AssertionError(f'cannot find submodule={submodule} in package_path={r}')
+    raise AssertionError(f'cannot find submodule={submodule} for sim_type={t} in package_path={r}')
 
 
 def in_flask_request():

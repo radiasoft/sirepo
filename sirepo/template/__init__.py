@@ -5,10 +5,8 @@ u"""Templates are used to configure codes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import feature_config
-import importlib
 import sirepo.util
 
 
@@ -21,11 +19,7 @@ def import_module(type_or_data):
     Returns:
         module: simulation type module instance
     """
-    if isinstance(type_or_data, dict):
-        type_or_data = type_or_data['simulationType']
-    return sirepo.util.import_submodule(
-        'template.' + assert_sim_type(type_or_data),
-    )
+    return sirepo.util.import_submodule('template', type_or_data)
 
 
 def is_sim_type(sim_type):

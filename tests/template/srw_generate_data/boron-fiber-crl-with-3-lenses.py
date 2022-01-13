@@ -310,6 +310,21 @@ varParam = [
 
 
 
+def epilogue():
+    def _op():
+        from pykern import pkio
+        from sirepo import simulation_db
+        from sirepo.template import template_common
+        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if sim_in.report == 'coherentModesAnimation':
+            # this sim creates _really_ large intermediate files which should get removed
+            for p in pkio.sorted_glob('*_mi.h5'):
+                p.remove()
+
+    import sirepo.mpi
+    sirepo.mpi.restrict_op_to_first_rank(_op)
+
+
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['CRL','CRL_Watchpoint','Watchpoint','Fiber','Fiber_Watchpoint2','Watchpoint2']
@@ -329,3 +344,5 @@ def main():
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
+
+epilogue()

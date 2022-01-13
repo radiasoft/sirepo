@@ -14,6 +14,11 @@ import sys
 FIRST_RANK = 0
 
 
+def get_cmd():
+    c = ['python', 'parameters.py']
+    return c if cfg.in_slurm else _mpiexec_cmd() + c
+
+
 def restrict_op_to_first_rank(op):
     """If the process has rank FIRST_RANK, call a function. Otherwise do nothing.
 
@@ -45,7 +50,6 @@ def restrict_op_to_first_rank(op):
         res = c.bcast(res, root=FIRST_RANK)
     return res
 
-
 def run_program(cmd, output='mpi_run.out', env=None):
     """Execute python script with mpi.
 
@@ -54,22 +58,12 @@ def run_program(cmd, output='mpi_run.out', env=None):
         output (str): where to write stdout and stderr
         env (dict): what to pass as env
     """
-    # See: git.radiasoft.org/sirepo/issues/4024
-    m = ['srun'] if cfg.in_slurm else [
-        'mpiexec',
-        '--bind-to',
-        'none',
-        '-n',
-        str(cfg.cores),
-
-    ]
     pksubprocess.check_call_with_signals(
-        m + cmd,
+        _mpiexec_cmd() + cmd,
         msg=pkdlog,
         output=str(output),
         env=env,
     )
-
 
 def run_script(script):
     """Execute python script with mpi.
@@ -89,8 +83,17 @@ if MPI.COMM_WORLD.Get_rank():
     script = abort + script if n == script else n
     fn = 'mpi_run.py'
     pkio.write_text(fn, script)
-    p = None
     run_program([sys.executable or 'python', fn])
+
+
+def _mpiexec_cmd():
+    return [
+        'mpiexec',
+        '--bind-to',
+        'none',
+        '-n',
+        str(cfg.cores),
+    ]
 
 
 cfg = pkconfig.init(

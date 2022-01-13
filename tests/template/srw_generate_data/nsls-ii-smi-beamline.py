@@ -594,6 +594,21 @@ varParam = [
 
 
 
+def epilogue():
+    def _op():
+        from pykern import pkio
+        from sirepo import simulation_db
+        from sirepo.template import template_common
+        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if sim_in.report == 'coherentModesAnimation':
+            # this sim creates _really_ large intermediate files which should get removed
+            for p in pkio.sorted_glob('*_mi.h5'):
+                p.remove()
+
+    import sirepo.mpi
+    sirepo.mpi.restrict_op_to_first_rank(_op)
+
+
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['MOAT_1','MOAT_1_MOAT_2','MOAT_2','MOAT_2_HFM','HFM','HFM_VFM','VFM','VFM_VDM','VDM','VDM_SSA','SSA','SSA_ES1','ES1','ES1_CRL','CRL','CRL_ES2','ES2']
@@ -613,3 +628,5 @@ def main():
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
+
+epilogue()

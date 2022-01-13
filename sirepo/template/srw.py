@@ -927,6 +927,9 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _trim(_generate_parameters_file(data, run_dir=run_dir))
     )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd(_run_with_mpi(data))
+    return None
 
 
 def _beamline_animation_percent_complete(run_dir, res):
@@ -1606,7 +1609,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
-    res, v = template_common.generate_parameters_file(data)
+    res, v = template_common.generate_parameters_file(data, mpi=_run_with_mpi(data))
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == 't' and dm.tabulatedUndulator.undulatorType == 'u_i':
         v.rs_type = 'u'
@@ -1963,6 +1966,10 @@ def _rsopt_main():
         'else:',
         '   exit(0)'
     ]
+
+
+def _run_with_mpi(data):
+   return _SIM_DATA.is_parallel(data) and data.report != 'beamlineAnimation'
 
 
 def _safe_beamline_item_name(name, names):

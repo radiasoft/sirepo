@@ -63,13 +63,7 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    s = sirepo.template.assert_sim_type(
-        type_or_data.simulationType if isinstance(
-            type_or_data,
-            PKDict,
-        ) else type_or_data,
-    )
-    return sirepo.util.import_submodule('sim_data.' + s).SimData
+    return sirepo.util.import_submodule('sim_data', type_or_data).SimData
 
 
 def resource_path(filename):
