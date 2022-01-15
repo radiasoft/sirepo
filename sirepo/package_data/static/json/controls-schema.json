@@ -6,24 +6,6 @@
     },
     "constants": {
         "maxBPMPoints": 10,
-        "readoutElements": {
-            "HKICKER": {
-                "fields": ["current_kick"],
-                "group": "Kickers [A]"
-            },
-            "KICKER": {
-                "fields": ["current_hkick", "current_vkick"],
-                "group": "Kickers [A]"
-            },
-            "QUADRUPOLE": {
-                "fields": ["current_k1"],
-                "group": "Quads [A]"
-            },
-            "VKICKER": {
-                "fields": ["current_kick"],
-                "group": "Kickers [A]"
-            }
-        },
         "clight": 299792458,
         "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
@@ -41,12 +23,17 @@
                 "controls.js",
                 "sirepo-lattice.js"
             ],
-             "css": [
-                 "lattice.css"
+            "css": [
+                "controls.css",
+                "lattice.css"
             ]
         }
     },
     "enum": {
+        "OperationMode": [
+            ["madx", "MAD-X Simulation"],
+            ["DeviceServer", "DeviceServer"]
+        ],
         "OptimizationMethod": [
             ["nmead", "Nelder-Mead"],
             ["polyfit", "Linear Response Matrix"]
@@ -109,13 +96,18 @@
             "x": ["Horizontal Centroid [m]", "Float", 0.0],
             "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
+        "controlSettings": {
+            "operationMode": ["Operation Mode", "OperationMode", "madx"],
+            "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
+            "processVariables": ["", "ProcessVariables"],
+            "readOnly": ["Read Only", "Boolean", "1"]
+        },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
         },
         "initialMonitorPositionsReport": {},
         "optimizerSettings": {
-            "method": ["Optimization Method", "OptimizationMethod", "nmead"],
-	    "updateBeamline": ["Update Beamline", "Boolean", "0", "If true will call DeviceServer to update physical beamline with optimized simulated positions"]
+            "method": ["Optimization Method", "OptimizationMethod", "nmead"]
         },
         "optimizerTarget": {
             "x": ["X [m]", "Float", 0.0],
@@ -128,9 +120,6 @@
             "isWritable": ["Setting", "Boolean", "0"],
             "pvName": ["PV Name", "OptionalString"]
         },
-        "processVariables": {
-            "variables": ["Variables", "Array"]
-        },
         "HKICKER": {
             "name": ["Name", "ValidatedString"],
             "current_kick": ["Current [A]", "AmpField", 0.0],
@@ -138,7 +127,8 @@
             "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "HMONITOR": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "x": ["X", "Float", 0]
         },
         "KICKER": {
             "name": ["Name", "ValidatedString"],
@@ -149,7 +139,9 @@
             "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "MONITOR": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "x": ["X", "Float", 0],
+            "y": ["Y", "Float", 0]
         },
         "QUADRUPOLE": {
             "name": ["Name", "ValidatedString"],
@@ -164,17 +156,26 @@
             "ampTable": ["Amp Conversion Table (*.csv)", "AmpTable", ""]
         },
         "VMONITOR": {
-            "name": ["Name", "ValidatedString"]
+            "name": ["Name", "ValidatedString"],
+            "y": ["Y", "Float", 0]
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "typeOfSimulation": "optimization"
     },
     "view": {
         "beamline": {
             "title": "Beamline",
             "advanced": [
-                "name"
+                ["Settings", [
+                    "controlSettings.operationMode",
+                    "controlSettings.deviceServerURL",
+                    "controlSettings.readOnly"
+                ]],
+                ["Process Variables", [
+                    "controlSettings.processVariables"
+                ]]
             ]
         },
         "command_beam": {
@@ -221,6 +222,13 @@
                 ]]
             ]
         },
+        "controlSettings": {
+            "title": "Controls Settings",
+            "advanced": [
+                "operationMode",
+                "deviceServerURL"
+            ]
+        },
         "dataFile": {
             "title": "Existing Madx Simulation",
             "basic": [
@@ -252,7 +260,8 @@
         "HMONITOR": {
             "title": "MONITOR",
             "advanced": [
-                "name"
+                "name",
+                "x"
             ]
         },
         "KICKER": {
@@ -268,7 +277,9 @@
         "MONITOR": {
             "title": "MONITOR",
             "advanced": [
-                "name"
+                "name",
+                "x",
+                "y"
             ]
         },
         "QUADRUPOLE": {
@@ -292,7 +303,8 @@
         "VMONITOR": {
             "title": "MONITOR",
             "advanced": [
-                "name"
+                "name",
+                "y"
             ]
         }
     }

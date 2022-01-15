@@ -133,7 +133,7 @@
                     {
                         "angle": 0,
                         "count": 18,
-                        "distance": 5.455956108890273,
+                        "distance": 5.455956108892648,
                         "id": 125,
                         "items": [
                             101,
@@ -226,9 +226,16 @@
                     {
                         "_id": 144,
                         "_type": "select",
+                        "class": "",
+                        "clear": "0",
                         "column": "name,keyword,s,x,y",
                         "flag": "twiss",
-                        "slice": 1
+                        "full": "0",
+                        "pattern": "",
+                        "range": "",
+                        "sequence": "",
+                        "slice": 1,
+                        "thick": "0"
                     },
                     {
                         "_id": 131,
@@ -347,8 +354,8 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dncorrx1",
-                        "kick": -0.001,
+                        "current_kick": 0,
+                        "kick": 0,
                         "l": 0,
                         "name": "CORRX1",
                         "tilt": 0,
@@ -361,8 +368,8 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dncorrx2",
-                        "kick": -0.001,
+                        "current_kick": 0,
+                        "kick": 0,
                         "l": 0,
                         "name": "CORRX2",
                         "tilt": 0,
@@ -375,7 +382,6 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnbpmx1",
                         "l": 0.01,
                         "name": "BPMX1",
                         "type": "HMONITOR"
@@ -387,7 +393,6 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnbpmx2",
                         "l": 0.01,
                         "name": "BPMX2",
                         "type": "HMONITOR"
@@ -399,13 +404,14 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dncorr1",
-                        "hkick": 0.001,
+                        "current_hkick": 0,
+                        "current_vkick": 0,
+                        "hkick": 0,
                         "l": 0,
                         "name": "CORR1",
                         "tilt": 0,
                         "type": "KICKER",
-                        "vkick": -0.001
+                        "vkick": 0
                     },
                     {
                         "_id": 117,
@@ -414,13 +420,14 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dncorr2",
-                        "hkick": 0.001,
+                        "current_hkick": 0,
+                        "current_vkick": 0,
+                        "hkick": 0,
                         "l": 0,
                         "name": "CORR2",
                         "tilt": 0,
                         "type": "KICKER",
-                        "vkick": -0.001
+                        "vkick": 0
                     },
                     {
                         "_id": 108,
@@ -429,7 +436,6 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnbpm1",
                         "l": 0.05,
                         "name": "BPM1",
                         "type": "MONITOR"
@@ -441,7 +447,6 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnbpm2",
                         "l": 0.05,
                         "name": "BPM2",
                         "type": "MONITOR"
@@ -453,7 +458,7 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnquad1",
+                        "current_k1": 1.2169682896176346,
                         "k1": 5,
                         "k1s": 0,
                         "l": 0.1,
@@ -469,43 +474,11 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnquad2",
+                        "current_k1": -1.2169682896176346,
                         "k1": -5,
                         "k1s": 0,
                         "l": 0.1,
                         "name": "QUAD2",
-                        "thick": "0",
-                        "tilt": 0,
-                        "type": "QUADRUPOLE"
-                    },
-                    {
-                        "_id": 106,
-                        "_super": "_APERTURE_ELEMENT",
-                        "aper_offset": "0",
-                        "aper_tol": "0 0 0",
-                        "aperture": "0",
-                        "apertype": "circle",
-                        "deviceName": "dnquad3",
-                        "k1": 1,
-                        "k1s": 0,
-                        "l": 0.05,
-                        "name": "QUAD3",
-                        "thick": "0",
-                        "tilt": 0,
-                        "type": "QUADRUPOLE"
-                    },
-                    {
-                        "_id": 107,
-                        "_super": "_APERTURE_ELEMENT",
-                        "aper_offset": "0",
-                        "aper_tol": "0 0 0",
-                        "aperture": "0",
-                        "apertype": "circle",
-                        "deviceName": "dnquad4",
-                        "k1": -1,
-                        "k1s": 0,
-                        "l": 0.05,
-                        "name": "QUAD4",
                         "thick": "0",
                         "tilt": 0,
                         "type": "QUADRUPOLE"
@@ -518,6 +491,7 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
+                        "current_k1": 0,
                         "e1": 0,
                         "e2": 0,
                         "fint": 0,
@@ -541,6 +515,7 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
+                        "current_k1": 0,
                         "e1": 0,
                         "e2": 0,
                         "fint": 0,
@@ -563,9 +538,11 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dncorry1",
+                        "current_hkick": 0,
+                        "current_kick": 0,
+                        "current_vkick": 0,
                         "hkick": 0,
-                        "kick": 0.001,
+                        "kick": 0,
                         "l": 0,
                         "name": "CORRY1",
                         "tilt": 0,
@@ -579,9 +556,11 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dncorry2",
+                        "current_hkick": 0,
+                        "current_kick": 0,
+                        "current_vkick": 0,
                         "hkick": 0,
-                        "kick": 0.001,
+                        "kick": 0,
                         "l": 0,
                         "name": "CORRY2",
                         "tilt": 0,
@@ -595,7 +574,6 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnbpmy1",
                         "l": 0.01,
                         "name": "BPMY1",
                         "type": "VMONITOR"
@@ -607,7 +585,6 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnbpmy2",
                         "l": 0.01,
                         "name": "BPMY2",
                         "type": "VMONITOR"
@@ -691,7 +668,7 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnquad3",
+                        "current_k1": 1.2169682896176346,
                         "k1": 5,
                         "k1s": 0,
                         "l": 0.1,
@@ -713,7 +690,7 @@
                         "aper_tol": "0 0 0",
                         "aperture": "0",
                         "apertype": "circle",
-                        "deviceName": "dnquad4",
+                        "current_k1": -1.2169682896176346,
                         "k1": -5,
                         "k1s": 0,
                         "l": 0.1,
@@ -766,21 +743,239 @@
                 "simulation": {
                     "activeBeamlineId": 125,
                     "commandTemplate": "particle",
+                    "computeTwissFromParticles": "0",
                     "documentationUrl": "",
                     "enableParticleTracking": "1",
                     "folder": "/",
                     "name": "example beamline",
                     "notes": "",
                     "visualizationBeamlineId": 125
+                },
+                "twissReport": {
+                    "includeLattice": "1",
+                    "y1": "betx",
+                    "y2": "bety",
+                    "y3": "dx"
                 }
             },
             "simulationType": "madx"
         },
+        "initialMonitorPositionsReport": {},
+        "optimizerSettings": {
+            "method": "nmead",
+            "targets": [
+                {
+                    "name": "BPM1",
+                    "weight": 0.01,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "name": "BPMX1",
+                    "weight": 0.1,
+                    "x": 0
+                },
+                {
+                    "name": "BPMY1",
+                    "weight": 0.1,
+                    "y": 0
+                },
+                {
+                    "name": "BPMX2",
+                    "weight": 0.1,
+                    "x": 0
+                },
+                {
+                    "name": "BPMY2",
+                    "weight": 0.1,
+                    "y": 0
+                },
+                {
+                    "name": "BPM2",
+                    "weight": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ],
+            "updateBeamline": "0"
+        },
+        "controlSettings": {
+            "deviceServerURL": "",
+            "operationMode": "madx",
+            "processVariables": [
+                {
+                    "elId": 116,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr1h:readbackM[0]"
+                },
+                {
+                    "elId": 116,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr1h:currentS"
+                },
+                {
+                    "elId": 116,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr1v:readbackM[0]"
+                },
+                {
+                    "elId": 116,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr1v:currentS"
+                },
+                {
+                    "elId": 108,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpm1h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 108,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpm1v:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 104,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad1:readbackM[0]"
+                },
+                {
+                    "elId": 105,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad2:readbackM[0]"
+                },
+                {
+                    "elId": 118,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx1h:readbackM[0]"
+                },
+                {
+                    "elId": 118,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx1h:currentS"
+                },
+                {
+                    "elId": 110,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpmx1h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 120,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry1v:readbackM[0]"
+                },
+                {
+                    "elId": 120,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry1v:currentS"
+                },
+                {
+                    "elId": 112,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpmy1v:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 119,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx2h:readbackM[0]"
+                },
+                {
+                    "elId": 119,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx2h:currentS"
+                },
+                {
+                    "elId": 111,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpmx2h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 121,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry2v:readbackM[0]"
+                },
+                {
+                    "elId": 121,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry2v:currentS"
+                },
+                {
+                    "elId": 113,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpmy2v:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 157,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad3:readbackM[0]"
+                },
+                {
+                    "elId": 159,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad4:readbackM[0]"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr2h:readbackM[0]"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr2v:currentS"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr2v:readbackM[0]"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr2v:currentS"
+                },
+                {
+                    "elId": 109,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpm2h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 109,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpm2v:tbtOrbitPositionM[0]"
+                }
+            ]
+        },
         "simulation": {
-            "documentationUrl": "",
             "folder": "/Examples",
-            "name": "Sample MAD-X beamline",
-            "notes": ""
+            "name": "Sample MAD-X beamline"
         }
     },
     "simulationType": "controls"

@@ -1,14 +1,38 @@
 # -*- python -*-
 from pykern.pkcollections import PKDict
+from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
 import numpy as np
 import os
 import re
+import requests
 import scipy.optimize
 
+{% if controlSettings_operationMode == 'madx' %}
 lattice_file = """
 {{ madxSource -}}
 """
+
+amp_tables_by_name = PKDict({
+{% for k in ampTables %}
+    "{{ k }}": [
+        {% for row in ampTables[k] %}
+        [{{ row[0] }}, {{ row[1] }}],
+        {% endfor %}
+    ],
+{% endfor %}
+})
+
+amp_table_for_corrector = [
+{% for row in ampTableNames %}
+    {% if row %}
+    amp_tables_by_name['{{ row }}'],
+    {% else %}
+    None,
+    {% endif %}
+{% endfor %}
+]
+{% endif %}
 
 targets = np.array([
     # [target value, weight]
@@ -23,15 +47,20 @@ targets = np.array([
 ])
 
 
-def _cost_function(correctors):
+{% if optimizerSettings_method == 'nmead' %}
+def _nelder_mead_cost_function(correctors):
+{% if controlSettings_operationMode == 'madx' %}
     readings = update_and_run_simulation(correctors)
+{% elif controlSettings_operationMode == 'DeviceServer' %}
+    readings = set_correctors_and_read_device_server(correctors)
+{% endif %}
     cost = np.sqrt(np.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / np.sum(targets[:,1])))
     return cost
 
 
 def _optimize_nelder_mead(variable_count):
     opt = scipy.optimize.minimize(
-        _cost_function,
+        _nelder_mead_cost_function,
         np.zeros(variable_count),
         method='Nelder-Mead',
         options={
@@ -47,8 +76,9 @@ def _optimize_nelder_mead(variable_count):
     if 'x' in opt and len(opt.x) == variable_count:
         res['result'] = opt.x
     return res
+{% endif %}
 
-
+{% if optimizerSettings_method == 'polyfit' %}
 def _optimize_polyfit(variable_count):
     settings_0 = np.zeros(variable_count)
     sets = np.identity(variable_count)
@@ -73,23 +103,35 @@ def _optimize_polyfit(variable_count):
         'success': True,
         'result': new_sets,
     }
+{% endif %}
 
-
+{% if controlSettings_operationMode == 'madx' %}
 def run_simulation(correctors):
     lattice = lattice_file
     values = {}
     for idx in range(len(correctors)):
-        values[f'sr_opt{idx}'] = correctors[idx]
+        ac = AmpConverter(
+            PKDict(
+                {% if command_beam_particle == 'other' %}
+                mass={{command_beam_mass}},
+                charge={{command_beam_charge}},
+                {% else %}
+                particle="{{command_beam_particle}}",
+                {% endif %}
+                gamma={{command_beam_gamma}},
+            ),
+            amp_table_for_corrector[idx],
+        )
+        values[f'sr_opt{idx}'] = ac.current_to_kick(correctors[idx])
     with open('in.madx', 'w') as f:
         for k in values:
             lattice = re.sub('{' + k + '}', str(values[k]), lattice)
         f.write(lattice)
-    assert os.system('madx in.madx > madx.log 2> madx.err') == 0, \
-        'MAD-X simulation failed'
+    return os.system('madx in.madx > madx.log 2> madx.err') == 0
 
 
 def update_and_run_simulation(correctors):
-    run_simulation(correctors)
+    is_success = run_simulation(correctors)
     readings = []
     columns = madx_parser.parse_tfs_file('twiss.file.tfs')
     for idx in range(len(columns.name)):
@@ -100,48 +142,143 @@ def update_and_run_simulation(correctors):
             readings += [float(columns.x[idx])]
         elif keyword == 'VMONITOR':
             readings += [float(columns.y[idx])]
+    res = np.array(readings)
+    if is_success:
+        with open('{{ summaryCSV }}', 'a') as f:
+            f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
+        return res
+    return np.full(res.shape, 1e24)
+{% elif controlSettings_operationMode == 'DeviceServer' %}
+
+{% for prop_type in property_types %}
+{{ prop_type }}_properties = [
+    {% for prop in properties[prop_type] %}
+    {
+        'device': '{{ prop.device }}',
+        'name': '{{ prop.name }}',
+        'type': '{{ prop.type }}',
+        {% if prop.index is not none %}
+        'index': {{ prop.index }},
+        {% endif %}
+    },
+    {% endfor %}
+]
+{% endfor %}
+
+_DEVICE_SERVER_BASEPATH = '{{ controlSettings_deviceServerURL }}'
+
+value_regexp = [
+    r'^\s*(\[.*?\])\s*,?',
+    r'^\s*(.+?)\s*(?:,|$)',
+]
+
+
+def next_value(text):
+    def parse_array(text):
+        if text[0] == '[':
+            text = re.sub(r'\[|\]', '', text)
+            return list(re.split(r'\s*,\s*', text))
+        return text
+    for regexp in value_regexp:
+        m = re.search(regexp, text)
+        if m:
+            v = m.group(1)
+            assert v
+            text = re.sub(regexp, '', text).strip()
+            return text, parse_array(v)
+    raise AssertionError(f'Un-parse-able value: "{text}"')
+
+
+def read_values(text):
+    res = []
+    while True:
+        text, v = next_value(text.strip())
+        res.append(v)
+        if not text:
+            break
+    return res
+
+
+def read_device_server():
+    # call DeviceServer to read all process variables
+    # write to summaryCSV
+    # return monitor values
+    url = _DEVICE_SERVER_BASEPATH + '/api/device/list/value?' \
+        + 'names=' + ','.join([v['device'] for v in read_properties]) \
+        + '&props=' + ','.join([v['name'] for v in read_properties])
+    response = requests.get(url)
+    if response.status_code != requests.codes.ok:
+        return None
+    values = read_values(response.text)
+    correctors = []
+    readings = []
+    for idx in range(len(values)):
+        prop = read_properties[idx]
+        v = values[idx]
+        if 'index' in prop:
+            v = v[prop['index']]
+        if 'MONITOR' in prop['type']:
+            readings += [float(v)]
+        elif 'KICKER' in prop['type']:
+            correctors += [float(v)]
     with open('{{ summaryCSV }}', 'a') as f:
-        f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
-    return np.array(readings)
+        f.write('{}\n'.format(','.join([str(x) for x in correctors + readings])))
+    return readings
+
+
+context_id = None
+
+def set_correctors_and_read_device_server(correctors):
+    global context_id
+    if not context_id:
+        url = _DEVICE_SERVER_BASEPATH + '/api/device/context?{{ deviceServerSetContext }}'
+        response = requests.get(url)
+        if response.status_code != requests.codes.ok:
+            raise AssertionError(f'set context request failed: {response.text}')
+        context_id = response.text.strip()
+    url = _DEVICE_SERVER_BASEPATH + '/api/device/list/value?' \
+        + 'names=' + ','.join([v['device'] for v in write_properties]) \
+        + '&props=' + ','.join([v['name'] for v in write_properties]) \
+        + '&values=' + ','.join([str(v) for v in correctors.tolist()]) \
+        + '&context=' + context_id
+    response = requests.put(url)
+    if response.status_code != requests.codes.ok:
+        raise AssertionError(f'set values request failed: {response.text}')
+    readings = read_device_server()
+    if not readings:
+        #TODO(pjm): replace with failed read values with correct size
+        assert False
+    return readings
+
+
+{% endif %}
 
 
 with open('{{ summaryCSV }}', 'w') as f:
     f.write('{}\n'.format('{{ summaryCSVHeader }}'))
 
-# TODO(e-carlin): sort
-def _nmead_update_beamline():
-    devices = {{ devices }}
-
-    class DeviceServer:
-        @classmethod
-        def get_value(cls, element):
-            assert element['deviceName'] and element['propId']
-            # TODO(e-carlin): use fields to request from actual server
-            return 2
-
-        @classmethod
-        def set_value(cls, element, value):
-            assert element['deviceName'] and element['propId'] and value
-            print(f'setting {element} to {value}')
-
-    res = _optimize_nelder_mead(len(devices))
-    for i, r in enumerate(res['result']):
-        DeviceServer.set_value(devices[i], r)
-
-
 {% if optimizerSettings_method == 'nmead' %}
-    {% if optimizerSettings_updateBeamline == '1' %}
-res = _nmead_update_beamline()
-    {% else %}
+{% if controlSettings_operationMode == 'DeviceServer' %}
+# check connectivity to DeviceServer first with a read
+if not read_device_server():
+    raise AssertionError('Initial DeviceServer read failed')
+{% endif %}
 res = _optimize_nelder_mead({{ correctorCount }})
-    {% endif %}
 {% elif optimizerSettings_method == 'polyfit' %}
 res = _optimize_polyfit({{ correctorCount }})
 {% elif optimizerSettings_method == 'runOnce' %}
 res = {
     'message': '',
     'success': True,
+{% if controlSettings_operationMode == 'DeviceServer' %}
+  {% if controlSettings_readOnly == '1' %}
+    'result': read_device_server(),
+  {% else %}
+    'result': set_correctors_and_read_device_server(np.array({{ initialCorrectors }})),
+  {% endif %}
+{% else %}
     'result': update_and_run_simulation(np.array({{ initialCorrectors }})),
+{% endif %}
 }
 {% else %}
 raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))

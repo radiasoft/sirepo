@@ -5,25 +5,21 @@
 </div>
 <div class="container-fluid" data-ng-if="controls.controlsService.hasMadxLattice()">
   <div class="row">
-    <div class="col-sm-12">
+    <div class="col-sm-12 col-xxl-6">
       <div data-simple-panel="beamline">
         <div id="sr-lattice" data-lattice="" class="sr-plot" data-margin="40" data-model-name="beamlines" data-path-to-models="externalLattice"></div>
       </div>
     </div>
-  </div>
-  <div class="row">
-    <div class="col-md-6 col-xl-4" data-ng-if="controls.simState">
+    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState">
       <div data-simple-panel="simulationStatus">
         <div class="clearfix" data-optimizer-table=""></div>
         <div data-sim-status-panel="controls.simState" data-start-function="controls.startSimulation()" data-cancel-callback="controls.cancelCallback()"></div>
       </div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="! controls.isDeviceServer()">
       <div data-basic-editor-panel="" data-view-name="command_beam"></div>
     </div>
-  </div>
-  <div class="row">
-    <div class="col-sm-12">
+    <div class="col-sm-12 col-xxl-6">
       <div data-simple-panel="monitors">
         <div data-ng-repeat="item in controls.watches track by $index">
           <div class="col-sm-6 col-md-3 col-xl-2">
@@ -37,10 +33,4 @@
     </div>
   </div>
   {{ controls.init() }}
-</div>
-
-<div data-modal-dialog="" data-view-name="beamline">
-  <div class="row"><div class="col-sm-12">
-    <div element-pv-fields=""></div>
-  </div></div>
 </div>

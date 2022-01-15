@@ -9,6 +9,8 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo import simulation_db
+from sirepo.sim_data.controls import AmpConverter
+from sirepo.sim_data.controls import SimData
 import copy
 import flask
 import http
@@ -85,14 +87,14 @@ def _assert_lengths(params, field1, field2):
         _abort(f'{field1} and {field2} must have the same length')
 
 
-def _convert_amps_to_k(amps):
-    #TODO(pjm): import this
-    return amps
-
-
-def _convert_k_to_amps(k_value):
-    #TODO(pjm): implement this
-    return k_value
+def _convert_amps_to_k(element, amps):
+    amp_table = None
+    if element.get('ampTable'):
+        amp_table = app.config['sim'].models.ampTables[element.ampTable]
+    return AmpConverter(
+        app.config['sim'].models.command_beam,
+        amp_table,
+    ).current_to_kick(amps)
 
 
 def _find_element(pv_name):
@@ -104,7 +106,7 @@ def _find_element(pv_name):
 
 
 def _find_process_variable(pv_name):
-    for pv in app.config['sim'].models.processVariables.variables:
+    for pv in app.config['sim'].models.controlSettings.processVariables:
         name = re.sub(r'\[.*?\]$', '', pv.pvName)
         if pv_name == name:
             return pv
@@ -113,7 +115,8 @@ def _find_process_variable(pv_name):
 
 def _format_prop_value(prop_name, value):
     if prop_name in _ARRAY_PROP_NAMES:
-        return f'[{value}]'
+        #TODO(pjm): assumes the first value is the one which will be used
+        return f'[{value},0,0,0]'
     return value
 
 
@@ -173,7 +176,7 @@ def _read_values(params):
             if prop != _READ_CURRENT_PROP_NAME:
                 _abort(f'read current pv must be {_READ_CURRENT_PROP_NAME} not {prop}')
             f = _PV_TO_ELEMENT_FIELD[el.type][pv.pvDimension]
-            res += _format_prop_value(prop, _convert_k_to_amps(el[f]))
+            res += _format_prop_value(prop, el[SimData.current_field(f)])
         else:
             # must be a monitor, get value from twiss output file
             if prop != _POSITION_PROP_NAME:
@@ -208,7 +211,8 @@ def _update_values(params):
         f = _PV_TO_ELEMENT_FIELD[el.type][pv.pvDimension]
         if f not in el:
             _abort(f'unexpected field {f} for element type {el.type}')
-        el[f] = _convert_amps_to_k(float(value))
+        el[SimData.current_field(f)] = float(value)
+        el[f] = _convert_amps_to_k(el, float(value))
     _run_sim()
     return ''
 
