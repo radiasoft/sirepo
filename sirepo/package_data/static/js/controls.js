@@ -282,7 +282,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 $scope.isRunningOptimizer = false;
                 controlsService.runningMessage = '';
             }
-            $scope.$broadcast('sr-latticeUpdateComplete');
         }
     };
 
@@ -840,24 +839,11 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 }, 1500);
             }
 
-            $scope.destroy = function() {
-                $('.sr-lattice-label').off();
-            };
+            $scope.destroy = () => $('.sr-lattice-label').off();
 
-            // $scope.$on('modelChanged', function(e, name) {
-            //     if (SIREPO.APP_SCHEMA.constants.readoutElements[name]) {
-            //         updateReadoutElements();
-            //     }
-            // });
-
-            // $scope.$on('sr-clearElementValues', () => controlsService.setReadoutTableActive(true));
-            // $scope.$on('sr-elementValues', updateReadoutElements);
-            // $scope.$on('sr-latticeUpdateComplete', () => controlsService.setReadoutTableActive(false));
-
-            $scope.$on('sr-beamlineItemSelected', function(e, idx) {
+            $scope.$on('sr-beamlineItemSelected', (e, idx) => {
                 setSelectedId(controlsService.latticeModels().beamlines[0].items[idx]);
             });
-
             $scope.$on('sr-elementValues', updateReadings);
             $scope.$on('sr-renderBeamline', () => panelState.waitForUI(labelElements));
         },
