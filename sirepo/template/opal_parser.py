@@ -51,7 +51,6 @@ class OpalParser(lattice.LatticeParser):
         self.__legacy_fixups()
         self.__convert_references_to_ids()
         self.__combine_options()
-        self.__dedup_elements()
         return res, input_files
 
     def __combine_options(self):
@@ -131,47 +130,6 @@ class OpalParser(lattice.LatticeParser):
                                         found_enum = True
                                         break
                                 assert found_enum, 'unknown value {}: {}'.format(f, el[f])
-
-    def __dedup_elements(self):
-        # iterate all element, remove duplicates, fixup beamlines
-        elements_by_type = PKDict()
-        for el in self.data.models.elements:
-            t = el.type
-            if t not in elements_by_type:
-                elements_by_type[t] = []
-            elements_by_type[t].append(el)
-        id_map = PKDict()
-        for t in elements_by_type:
-            elements = elements_by_type[t]
-            for i in range(len(elements)):
-                if '_matched' in elements[i]:
-                    continue
-                for j in range(i + 1, len(elements)):
-                    if '_matched' in elements[j]:
-                        continue
-                    is_equal = True
-                    for f in elements[i]:
-                        if f in ('name', '_id'):
-                            continue
-                        if f in elements[i] and f in elements[j] and elements[i][f] != elements[j][f]:
-                            is_equal = False
-                            break
-                    if is_equal:
-                        id_map[elements[j]._id] = elements[i]._id
-                        elements[j]._matched = True
-        elements = []
-        for el in self.data.models.elements:
-            if '_matched' not in el:
-                elements.append(el)
-        self.data.models.elements = elements
-        for beamline in self.data.models.beamlines:
-            items = []
-            for el_id in beamline['items']:
-                if el_id in id_map:
-                    items.append(id_map[el_id])
-                else:
-                    items.append(el_id)
-            beamline['items'] = items
 
     def __fix_pow_variables(self):
         # REAL beta=sqrt(1-(1/gamma^2));
