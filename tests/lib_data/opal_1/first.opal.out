@@ -14,16 +14,16 @@ REAL sf = 0.3792590454545455;
 
 "OPT1": option,autophase=4.0,psdumpfreq=100.0,version=10900.0;
 
-"DR1": DRIFT,l=10.0;
-"GUN": RFCAVITY,fmapfn="DriveGun_2D.T7",freq=1300.0,l=0.2927,type=STANDING,volt=60.0;
-"BF": SOLENOID,fmapfn="BF_550_2D.T7",ks=0.12017,l=0.5;
-"M": SOLENOID,fmapfn="M_440_2D.T7",ks=0.3792590454545455,l=0.5;
+"DR1#0": DRIFT,l=10.0;
+"GUN#0": RFCAVITY,fmapfn="DriveGun_2D.T7",freq=1300.0,l=0.2927,type=STANDING,volt=60.0;
+"BF#0": SOLENOID,fmapfn="BF_550_2D.T7",ks=0.12017,l=0.5;
+"M#0": SOLENOID,fmapfn="M_440_2D.T7",ks=0.3792590454545455,l=0.5;
 
-"GUN#0": "GUN",elemedge=0.0;
-"BF#0": "BF",elemedge=0.0;
-"M#0": "M",elemedge=0.0;
-"DR1#0": "DR1",elemedge=0.5;
-DRIVE: LINE=("GUN#0","BF#0","M#0","DR1#0");
+"GUN#0#0": "GUN#0",elemedge=0.0;
+"BF#0#0": "BF#0",elemedge=0.0;
+"M#0#0": "M#0",elemedge=0.0;
+"DR1#0#0": "DR1#0",elemedge=0.5;
+DRIVE: LINE=("GUN#0#0","BF#0#0","M#0#0","DR1#0#0");
 
 
 "FS_SC": fieldsolver,bboxincr=1.0,fstype="FFT",mt=16.0,mx=16.0,my=16.0;
