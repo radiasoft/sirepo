@@ -89,11 +89,12 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
 
     self.hasMadxLattice = () => appState.applicationState().externalLattice;
 
+    self.isDeviceServer = () => appState.models.controlSettings.operationMode == 'DeviceServer';
+
     self.kickField = (currentField) => currentField.replace('current_', '');
 
     self.canChangeCurrents = () => {
-        if (appState.models.controlSettings.operationMode == 'DeviceServer'
-            && appState.models.controlSettings.readOnly == '1') {
+        if (self.isDeviceServer() && appState.models.controlSettings.readOnly == '1') {
             return false;
         }
         return appState.models.simulationStatus
@@ -267,8 +268,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             panelState.waitForUI(getInitialMonitorPositions);
         }
     };
-
-    self.isDeviceServer = () => appState.models.controlSettings.operationMode == 'DeviceServer';
 
     self.simHandleStatus = data => {
         if (self.simState.isProcessing()) {
@@ -499,11 +498,11 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
     };
 });
 
-SIREPO.viewLogic('beamlineView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('beamlineView', function(appState, controlsService, panelState, $scope) {
 
     function updateURLField() {
         panelState.showFields('controlSettings', [
-            ['deviceServerURL', 'readOnly'], appState.models.controlSettings.operationMode == 'DeviceServer',
+            ['deviceServerURL', 'readOnly'], controlsService.isDeviceServer(),
         ]);
     }
 

@@ -12,11 +12,11 @@
     </div>
     <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState">
       <div data-simple-panel="optimizerInputsTab" >
-        <div class="clearfix" data-optimization-picker=""></div>
+        <div data-optimization-picker=""></div>
         <div data-sim-status-panel="controls.simState" data-start-function="controls.startSimulation()" data-cancel-callback="controls.cancelCallback()"></div>
       </div>
     </div>
-    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="! controls.isDeviceServer()">
+    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="! controls.controlsService.isDeviceServer()">
       <div data-basic-editor-panel="" data-view-name="command_beam"></div>
     </div>
     <div class="col-sm-12 col-xxl-6">

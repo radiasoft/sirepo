@@ -110,9 +110,6 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
-        controls=dict(
-            show_update_beamline=(pkconfig.channel_in_internal_test(), bool, 'give users option in GUI to update real beamline when optimized simulated values'),
-        ),
         default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
