@@ -366,12 +366,11 @@ def sim_frame_varAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    if data.report == 'setupAnimation':
-        return
     pkio.write_text(
-        run_dir.join(_FLASH_PAR_FILE),
-        _generate_parameters_file(data, run_dir=run_dir),
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        _generate_parameters_file(data, run_dir),
     )
+    return template_common.get_exec_parameters_cmd()
 
 
 def _find_setup_config_directive(data, name):
@@ -389,7 +388,7 @@ def _format_boolean(value, config=False):
     return r
 
 
-def _generate_parameters_file(data, run_dir=None):
+def _generate_parameters_file(data, run_dir):
     res = ''
     # names = {}
 
@@ -435,7 +434,15 @@ def _generate_parameters_file(data, run_dir=None):
                 res += '{} = "{}"\n'.format(f, v)
         if has_heading:
             res += '\n'
-    return res
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(
+            exe_name=run_dir.join(_SIM_DATA.flash_exe_basename(data)),
+            is_setup_animation=data.report == 'setupAnimation',
+            par=res,
+            par_filename=_FLASH_PAR_FILE,
+        )
+    )
 
 
 def _grid_evolution_columns(run_dir):

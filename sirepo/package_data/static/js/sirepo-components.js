@@ -4599,6 +4599,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
         };
     };
 
+    // create a non-cryptographic base62 string
+    this.randomString = function(length=32) {
+        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        return new Array(length)
+            .fill('')
+            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
+            .join('');
+    };
+
     this.indexArray = function(size) {
         var res = [];
         for (var i = 0; i < size; res.push(i++)) {}

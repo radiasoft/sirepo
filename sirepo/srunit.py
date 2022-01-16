@@ -4,7 +4,6 @@ u"""Support for unit tests
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
 import contextlib
@@ -512,7 +511,14 @@ class _TestClient(flask.testing.FlaskClient):
                 self.sr_run_sim(d, compute_model, expect_completed=False)
             self.sr_sbatch_login(compute_model, d)
             self.sr_sbatch_logged_in = True
-        self.sr_animation_run(sim_name, compute_model, reports, **kwargs)
+        self.sr_animation_run(
+            sim_name,
+            compute_model,
+            reports,
+            # Things take longer with Slurm.
+            timeout=60,
+            **kwargs,
+        )
 
     def sr_sbatch_login(self, compute_model, data):
         import getpass

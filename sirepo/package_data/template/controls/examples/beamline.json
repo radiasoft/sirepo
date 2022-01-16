@@ -123,6 +123,180 @@
             "y": -0.001
         },
         "commands": [],
+        "controlSettings": {
+            "deviceServerURL": "http://localhost:5000/DeviceServer",
+            "operationMode": "madx",
+            "processVariables": [
+                {
+                    "elId": 116,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr1h:readbackM[0]"
+                },
+                {
+                    "elId": 116,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr1h:currentS"
+                },
+                {
+                    "elId": 116,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr1v:readbackM[0]"
+                },
+                {
+                    "elId": 116,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr1v:currentS"
+                },
+                {
+                    "elId": 108,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpm1h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 108,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpm1v:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 104,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad1:readbackM[0]"
+                },
+                {
+                    "elId": 105,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad2:readbackM[0]"
+                },
+                {
+                    "elId": 118,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx1h:readbackM[0]"
+                },
+                {
+                    "elId": 118,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx1h:currentS"
+                },
+                {
+                    "elId": 110,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpmx1h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 120,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry1v:readbackM[0]"
+                },
+                {
+                    "elId": 120,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry1v:currentS"
+                },
+                {
+                    "elId": 112,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpmy1v:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 119,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx2h:readbackM[0]"
+                },
+                {
+                    "elId": 119,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corrx2h:currentS"
+                },
+                {
+                    "elId": 111,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpmx2h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 121,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry2v:readbackM[0]"
+                },
+                {
+                    "elId": 121,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corry2v:currentS"
+                },
+                {
+                    "elId": 113,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpmy2v:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 157,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad3:readbackM[0]"
+                },
+                {
+                    "elId": 159,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quad4:readbackM[0]"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr2h:readbackM[0]"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.corr2v:currentS"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr2v:readbackM[0]"
+                },
+                {
+                    "elId": 117,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.corr2v:currentS"
+                },
+                {
+                    "elId": 109,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.bpm2h:tbtOrbitPositionM[0]"
+                },
+                {
+                    "elId": 109,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.bpm2v:tbtOrbitPositionM[0]"
+                }
+            ]
+        },
         "dataFile": {
             "madxSirepo": true
         },
@@ -762,6 +936,22 @@
         },
         "initialMonitorPositionsReport": {},
         "optimizerSettings": {
+            "inputs": {
+                "kickers": {
+                    "116": true,
+                    "117": true,
+                    "118": true,
+                    "119": true,
+                    "120": true,
+                    "121": true
+                },
+                "quads": {
+                    "104": false,
+                    "105": false,
+                    "157": false,
+                    "159": false
+                }
+            },
             "method": "nmead",
             "targets": [
                 {
@@ -798,180 +988,6 @@
                 }
             ],
             "updateBeamline": "0"
-        },
-        "controlSettings": {
-            "deviceServerURL": "",
-            "operationMode": "madx",
-            "processVariables": [
-                {
-                    "elId": 116,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corr1h:readbackM[0]"
-                },
-                {
-                    "elId": 116,
-                    "isWritable": "1",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corr1h:currentS"
-                },
-                {
-                    "elId": 116,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corr1v:readbackM[0]"
-                },
-                {
-                    "elId": 116,
-                    "isWritable": "1",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corr1v:currentS"
-                },
-                {
-                    "elId": 108,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "bpms.bpm1h:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 108,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "bpms.bpm1v:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 104,
-                    "isWritable": "0",
-                    "pvDimension": "none",
-                    "pvName": "power.quad1:readbackM[0]"
-                },
-                {
-                    "elId": 105,
-                    "isWritable": "0",
-                    "pvDimension": "none",
-                    "pvName": "power.quad2:readbackM[0]"
-                },
-                {
-                    "elId": 118,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corrx1h:readbackM[0]"
-                },
-                {
-                    "elId": 118,
-                    "isWritable": "1",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corrx1h:currentS"
-                },
-                {
-                    "elId": 110,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "bpms.bpmx1h:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 120,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corry1v:readbackM[0]"
-                },
-                {
-                    "elId": 120,
-                    "isWritable": "1",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corry1v:currentS"
-                },
-                {
-                    "elId": 112,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "bpms.bpmy1v:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 119,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corrx2h:readbackM[0]"
-                },
-                {
-                    "elId": 119,
-                    "isWritable": "1",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corrx2h:currentS"
-                },
-                {
-                    "elId": 111,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "bpms.bpmx2h:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 121,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corry2v:readbackM[0]"
-                },
-                {
-                    "elId": 121,
-                    "isWritable": "1",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corry2v:currentS"
-                },
-                {
-                    "elId": 113,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "bpms.bpmy2v:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 157,
-                    "isWritable": "0",
-                    "pvDimension": "none",
-                    "pvName": "power.quad3:readbackM[0]"
-                },
-                {
-                    "elId": 159,
-                    "isWritable": "0",
-                    "pvDimension": "none",
-                    "pvName": "power.quad4:readbackM[0]"
-                },
-                {
-                    "elId": 117,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corr2h:readbackM[0]"
-                },
-                {
-                    "elId": 117,
-                    "isWritable": "1",
-                    "pvDimension": "horizontal",
-                    "pvName": "power.corr2v:currentS"
-                },
-                {
-                    "elId": 117,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corr2v:readbackM[0]"
-                },
-                {
-                    "elId": 117,
-                    "isWritable": "1",
-                    "pvDimension": "vertical",
-                    "pvName": "power.corr2v:currentS"
-                },
-                {
-                    "elId": 109,
-                    "isWritable": "0",
-                    "pvDimension": "horizontal",
-                    "pvName": "bpms.bpm2h:tbtOrbitPositionM[0]"
-                },
-                {
-                    "elId": 109,
-                    "isWritable": "0",
-                    "pvDimension": "vertical",
-                    "pvName": "bpms.bpm2v:tbtOrbitPositionM[0]"
-                }
-            ]
         },
         "simulation": {
             "folder": "/Examples",

@@ -181,38 +181,43 @@ def _generate_parameters(v, data):
     def _format_header(el_id, field):
         return f'el_{el_id}.{field}'
 
-    def _handle_kicker(element):
-        fields = ('hkick', 'vkick')
-        if element.type in ('HKICKER', 'VKICKER'):
-            fields = ('kick',)
-        for f in fields:
-            count = len(kicker.kick)
-            kicker.kick.append(el[_SIM_DATA.current_field(f)])
-            n = '{' + f'sr_opt{count}' + '}'
-            el[f] = n
-            kicker.header.append(_format_header(el._id, _SIM_DATA.current_field(f)))
-            v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
-
     v.ampTableNames = []
     v.ampTables = data.models.get('ampTables', PKDict())
-    kicker = PKDict(
+
+    def _set_opt(el, field, all_correctors):
+        count = len(all_correctors.corrector)
+        all_correctors.corrector.append(el[_SIM_DATA.current_field(field)])
+        el[field] = '{' + f'sr_opt{count}' + '}'
+        all_correctors.header.append(_format_header(el._id, _SIM_DATA.current_field(field)))
+        v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
+
+    c = PKDict(
         header=[],
-        kick=[],
+        corrector=[],
     )
+
     madx = data.models.externalLattice.models
+    k = data.models.optimizerSettings.inputs.kickers
+    q = data.models.optimizerSettings.inputs.quads
+
     header = []
     for el in _SIM_DATA.beamline_elements(madx):
-        if el.type in ('KICKER', 'HKICKER', 'VKICKER'):
-            _handle_kicker(el)
+        if el.type == 'KICKER' and k[str(el._id)]:
+            _set_opt(el, 'hkick', c)
+            _set_opt(el, 'vkick', c)
+        elif el.type in ('HKICKER', 'VKICKER') and k[str(el._id)]:
+            _set_opt(el, 'kick', c)
+        elif el.type == 'QUADRUPOLE' and q[str(el._id)]:
+            _set_opt(el, 'k1', c)
         elif el.type == 'MONITOR':
             header += [_format_header(el._id, x) for x in ('x', 'y')]
         elif el.type == 'HMONITOR':
             header += [_format_header(el._id, 'x')]
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
-    v.summaryCSVHeader = ','.join(kicker.header + header)
-    v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in kicker.kick]))
-    v.correctorCount = len(kicker.kick)
+    v.summaryCSVHeader = ','.join(c.header + header)
+    v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
+    v.correctorCount = len(c.corrector)
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)

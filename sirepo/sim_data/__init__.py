@@ -4,17 +4,12 @@ u"""Type-based simulation operations
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
-import uuid
-
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdexc, pkdc
+from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdformat
 import hashlib
 import inspect
 import re
@@ -25,6 +20,7 @@ import sirepo.job
 import sirepo.resource
 import sirepo.template
 import sirepo.util
+import uuid
 
 cfg = None
 
@@ -67,13 +63,7 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    s = sirepo.template.assert_sim_type(
-        type_or_data.simulationType if isinstance(
-            type_or_data,
-            PKDict,
-        ) else type_or_data,
-    )
-    return sirepo.util.import_submodule('sim_data.' + s).SimData
+    return sirepo.util.import_submodule('sim_data', type_or_data).SimData
 
 
 def resource_path(filename):
@@ -231,7 +221,8 @@ class SimDataBase(object):
         Returns:
             str: combined frame id
         """
-        assert response.frameCount > index
+        assert response.frameCount > index, \
+            pkdformat('response={} does not contain enough frames for index={}', response, index)
         frame_args = response.copy()
         frame_args.frameReport = model
         m = data.models[model]
@@ -263,6 +254,10 @@ class SimDataBase(object):
                 else data_or_model
             ),
         )
+
+    @classmethod
+    def is_run_mpi(cls):
+        raise NotImplementedError()
 
     @classmethod
     def is_watchpoint(cls, name):
@@ -419,6 +414,9 @@ class SimDataBase(object):
             if the data type is "UUID" and the default value is empty, set the
             value to a new UUUID string
 
+            if the data type is "RandomId" and the default value is empty, set the
+            value to a new Base62 string
+
             if the data type has the form "model.zzz", set the value to the default
             value of model "zzz"
 
@@ -438,6 +436,8 @@ class SimDataBase(object):
                 res[f] = copy.deepcopy(d[2])
                 if d[1] == 'UUID' and not res[f]:
                     res[f] = str(uuid.uuid4())
+                if d[1] == 'RandomId' and not res[f]:
+                    res[f] = sirepo.util.random_base62(length=16)
         return res
 
     # TODO(e-carlin): Supplying uid is a temprorary workaround until

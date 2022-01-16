@@ -194,12 +194,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         self.showPathPicker(true, true);
     };
 
-    self.generateId = function() {
-        // a uuid generator found on the interwebs
-        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-        );
-    };
+
+    // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
+    // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
+    // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
+    self.generateId = () => utilities.randomString(16);
 
     self.pathEditorTitle = function() {
         if (! appState.models.fieldPaths) {
@@ -328,6 +327,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'simulation.beamAxis',
     ];
     const watchedModels = [
+        'dipoleBasic',
+        'dipoleC',
+        'dipoleH',
+        'ell',
         'geomObject',
         'geomGroup',
         'hybridUndulator',
@@ -593,15 +596,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         o.id  = radiaService.generateId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
-        //var n = 0;
-        (o.members || []).forEach(function (oId) {
+        (o.members || []).forEach(oId => {
             self.getObject(oId).groupId = o.id;
-        //    ++n;
         });
-        //if (n > 0) {
-        //    let z = groupBounds(o.members);
-        //    o.size = '0,0,0';
-        //}
+        addShapesForObject(o);
     }
 
     function addShapesForObject(o) {
@@ -826,9 +824,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadShapes() {
         self.shapes = [];
-        appState.models.geometryReport.objects.forEach(function (o) {
-            addShapesForObject(o);
-        });
+        appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
     }
 
@@ -1087,14 +1083,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
                 }
             }
+            const r = 'geometryReport';
             radiaService.saveGeometry(true, false, () => {
-                panelState.clear('geometryReport');
+                panelState.clear(r);
                 // need to rebuild the geometry after changes were made
-                panelState.requestData('geometryReport', function(data) {
-                    if (self.selectedObject) {
-                        loadShapes();
-                    }
-                });
+                panelState.requestData(
+                    r,
+                    data => {
+                        if (self.selectedObject) {
+                            loadShapes();
+                        }
+                    },
+                    true
+                );
             });
 
         });
@@ -3478,7 +3479,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('modelChanged', name);
             });
 
-            $scope.$on('geomObject.changed', function(e) {
+            $scope.$on('radiaObject.changed', function(e) {
                 radiaService.saveGeometry(true, false);
             });
 
@@ -3489,12 +3490,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 updateViewer();
             });
 
-            $scope.$on('geomObject.color', function (e, h) {
-                var c = vtk.Common.Core.vtkMath.hex2float(h);
+            $scope.$on('radiaObject.color', function (e, h) {
                 setColor(
                     selectedInfo,
                     SIREPO.APP_SCHEMA.constants.geomTypePolys,
-                    vtkUtils.floatToRGB(c)
+                    vtkUtils.floatToRGB(vtk.Common.Core.vtkMath.hex2float(h))
                 );
                 setAlpha();
             });
@@ -3773,6 +3773,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     $scope.watchFields = [
         [
             'geomObject.type',
+            "extrudedPoly.extrusionAxisSegments",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor

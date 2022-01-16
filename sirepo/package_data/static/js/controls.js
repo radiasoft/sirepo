@@ -92,7 +92,8 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
     self.kickField = (currentField) => currentField.replace('current_', '');
 
     self.canChangeCurrents = () => {
-        if (appState.models.controlSettings.readOnly == '1') {
+        if (appState.models.controlSettings.operationMode == 'DeviceServer'
+            && appState.models.controlSettings.readOnly == '1') {
             return false;
         }
         return appState.models.simulationStatus
@@ -568,6 +569,62 @@ SIREPO.viewLogic('quadrupoleView', function(appState, controlsService, panelStat
     };
 });
 
+SIREPO.app.directive('optimizationPicker', function(latticeService) {
+    return {
+        restrict: 'A',
+        scope: {
+            controller: '='
+        },
+        template: `
+            <div>
+              <div class="container-fluid">
+                <div class="row" data-ng-show="::showTabs">
+                  <div class="col-sm-12">
+                    <ul class="nav nav-tabs">
+                      <li role="presentation" data-ng-class="{active: activeTab == 'targets'}"><a href data-ng-click="activeTab = 'targets'">Targets</a></li>
+                      <li role="presentation" data-ng-class="{active: activeTab == 'inputs'}"><a href data-ng-click="activeTab = 'inputs'">Inputs</a></li>
+                    </ul>
+                  </div>
+                </div>
+                <br />
+              <div data-ng-if="activeTab == 'targets'" class="row">
+                <div class="clearfix" data-optimizer-table=""></div>
+              </div>
+                <div data-ng-if="activeTab == 'inputs'" class="row">
+                  <div class="container-fluid">
+                    <form name="form">
+                      <table ng-repeat="(inputType, inputs) in appState.models.optimizerSettings.inputs" style="float: left; margin: 1em;">
+                        <thead>
+                          <th>{{stringsService.ucfirst(inputType)}}</th>
+                        </thead>
+                        <tbody>
+                          <tr ng-repeat="(id, enabled) in inputs" >
+                            <td class="form-group form-group-sm" >
+                              <label class="form-check-label">
+                                <input type="checkbox" ng-model="inputs[id]" />
+                                  {{latticeService.elementForId(id, latticeModels).name}}
+                              </label>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function(appState, $scope, controlsService, stringsService) {
+            $scope.appState = appState;
+            $scope.latticeModels = controlsService.latticeModels();
+            $scope.latticeService = latticeService;
+            $scope.activeTab = 'targets';
+            $scope.showTabs = true;
+            $scope.stringsService = stringsService;
+        },
+    };
+});
+
 SIREPO.app.directive('optimizerTable', function(appState) {
     return {
         restrict: 'A',
@@ -616,12 +673,13 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
             width: '@',
         },
         template: `
-            <div data-ng-repeat="table in tables track by table.reading" style="display: inline-block; vertical-align: top; margin-left: 3em">
+            <div class="text-center">
+            <div data-ng-repeat="table in tables track by table.reading" style="display: inline-block; vertical-align: top; margin: 0 1.5em">
                 <div data-ng-if="readings[table.reading].length">
                   <table class="table table-hover table-condensed" data-ng-attr-style="min-width: {{ table.columns.length * 10 }}em">
                     <tr><th colspan="3">{{ table.label }}</th></tr>
                     <tr data-ng-repeat="row in readings[table.reading] track by row.name" data-ng-class="{warning: row.id == selectedId}">
-                      <td data-ng-click="elementClicked(row.name)" data-ng-dblclick="elementClicked(row.name, true)" style="padding: 0; user-select: none; cursor: pointer"><strong>{{row.name}}</strong></td>
+                      <td class="text-left" data-ng-click="elementClicked(row.name)" data-ng-dblclick="elementClicked(row.name, true)" style="padding: 0; user-select: none; cursor: pointer"><strong>{{row.name}}</strong></td>
                       <td style="padding: 0" data-ng-class="{'sr-updated-cell': row.changed[col]}" data-ng-repeat="col in table.columns track by $index" class="text-right">{{row[col]}}</td>
                     </tr>
                   </table>
@@ -629,6 +687,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
             </div>
             <div data-ng-if="controlsService.runningMessage" style="margin-left: 3em">
               <span class="glyphicon glyphicon-repeat sr-running-icon"></span> {{ controlsService.runningMessage }}
+            </div>
             </div>
             `,
         controller: function($scope) {
