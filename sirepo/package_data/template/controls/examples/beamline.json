@@ -469,36 +469,6 @@
                         "type": "QUADRUPOLE"
                     },
                     {
-                        "_id": 106,
-                        "_super": "_APERTURE_ELEMENT",
-                        "aper_offset": "0",
-                        "aper_tol": "0 0 0",
-                        "aperture": "0",
-                        "apertype": "circle",
-                        "k1": 1,
-                        "k1s": 0,
-                        "l": 0.05,
-                        "name": "QUAD3",
-                        "thick": "0",
-                        "tilt": 0,
-                        "type": "QUADRUPOLE"
-                    },
-                    {
-                        "_id": 107,
-                        "_super": "_APERTURE_ELEMENT",
-                        "aper_offset": "0",
-                        "aper_tol": "0 0 0",
-                        "aperture": "0",
-                        "apertype": "circle",
-                        "k1": -1,
-                        "k1s": 0,
-                        "l": 0.05,
-                        "name": "QUAD4",
-                        "thick": "0",
-                        "tilt": 0,
-                        "type": "QUADRUPOLE"
-                    },
-                    {
                         "_id": 114,
                         "_super": "_APERTURE_ELEMENT",
                         "angle": 0.26179938779,
