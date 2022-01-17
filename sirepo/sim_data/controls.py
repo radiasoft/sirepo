@@ -57,7 +57,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'externalLattice' in dm:
             sirepo.sim_data.get_class('madx').fixup_old_data(dm.externalLattice)
             if 'optimizerSettings' not in dm:
-
                 dm.optimizerSettings = cls.default_optimizer_settings(dm.externalLattice.models)
 
             if 'inputs' not in dm.optimizerSettings:
@@ -66,11 +65,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                     quads=PKDict()
                 )
                 for el in cls.beamline_elements(dm.externalLattice.models):
-                    if el.type == 'QUADRUPOLE': # maybe 'QUADRUPOLE' in el.type instead?
+                    if el.type == 'QUADRUPOLE': 
                         dm.optimizerSettings.inputs['quads'][str(el._id)] = False
                     elif 'KICKER' in el.type:
                         dm.optimizerSettings.inputs['kickers'][str(el._id)] = True
-
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0

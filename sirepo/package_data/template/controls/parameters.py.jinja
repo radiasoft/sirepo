@@ -22,6 +22,7 @@ targets = np.array([
     {% endfor %}
 ])
 
+
 def _cost_function(correctors):
     readings = update_and_run_simulation(correctors)
     cost = np.sqrt(np.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / np.sum(targets[:,1])))
