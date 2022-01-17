@@ -614,7 +614,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                                 <tr ng-repeat="(id, enabled) in inputs" >
                                   <td class="form-group form-group-sm" > 
                                     <label class="form-check-label"> 
-                                      <input ng-change="changeCheck()" type="checkbox" ng-model="inputs[id]" /> 
+                                      <input type="checkbox" ng-model="inputs[id]" /> 
                                         {{latticeService.elementForId(id, latticeModels).name}} 
                                     </label>
                                   </td>
@@ -633,10 +633,6 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
             $scope.latticeService = latticeService;
             $scope.activeTab = 'targets';
             $scope.showTabs = true;
-
-            $scope.changeCheck = function(){
-                srdbg('kickers and quads', appState.models.optimizerSettings.inputs)
-            }
 
             $scope.capitalizeFirstLetter = function (str) {
                 const capitalized = str.charAt(0).toUpperCase() + str.slice(1);
