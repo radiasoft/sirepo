@@ -18,16 +18,15 @@ REAL sr_n_particles_per_bunch = 5000.0;
 
 "OPT1": option,psdumpfreq=1000.0,version=20000.0;
 
-"D-1#0": DRIFT,l=1.0;
-"D-1#1": DRIFT,l=1.0;
-"Q/2#0": QUADRUPOLE,k1=0.6 * sr_brho,l=0.3;
-"Q:1#0": QUADRUPOLE,k1=-0.599999999997702 * sr_brho,l=pow(0.5477225575, 2);
+"D-1": DRIFT,l=1.0;
+"Q/2": QUADRUPOLE,k1=0.6 * sr_brho,l=0.3;
+"Q:1": QUADRUPOLE,k1=-0.599999999997702 * sr_brho,l=pow(0.5477225575, 2);
 
-"Q:1#0#0": "Q:1#0",elemedge=0;
-"D-1#0#0": "D-1#0",elemedge=0.2999999999943408;
-"Q/2#0#0": "Q/2#0",elemedge=1.2999999999943408;
-"D-1#1#0": "D-1#1",elemedge=1.5999999999943408;
-BL1: LINE=("Q:1#0#0","D-1#0#0","Q/2#0#0","D-1#1#0");
+"Q:1#0": "Q:1",elemedge=0;
+"D-1#0": "D-1",elemedge=0.2999999999943408;
+"Q/2#0": "Q/2",elemedge=1.2999999999943408;
+"D-1#1": "D-1",elemedge=1.5999999999943408;
+BL1: LINE=("Q:1#0","D-1#0","Q/2#0","D-1#1");
 
 
 "FI1": fieldsolver,fstype="NONE",mt=32.0,mx=16.0,my=16.0;
