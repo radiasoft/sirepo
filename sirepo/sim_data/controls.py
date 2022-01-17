@@ -17,7 +17,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def beamline_elements(cls, madx):
         elmap = PKDict({e._id: e for e in madx.elements})
-        for el_id in madx.beamlines[0].items:
+        for el_id in madx.beamlines[0]['items']:
             yield elmap[el_id]
 
     @classmethod

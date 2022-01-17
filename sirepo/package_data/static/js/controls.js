@@ -606,41 +606,26 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                        <div data-ng-if="activeTab == 'inputs'" class="row">
                          <div class="container-fluid">
                          <form name="form">
-                           <table style="float: left; margin: 1em;">
+                           <table ng-repeat="(inputType, inputs) in appState.models.optimizerSettings.inputs" style="float: left; margin: 1em;">
                              <thead>
-                               <th>Kickers</th>
-                                 </thead>
-                                   <tbody>
-                                     <tr ng-repeat="(id, enabled) in appState.models.optimizerSettings.inputs.kickers" >
-                                       <td class="form-group form-group-sm" > 
-                                         <label class="form-check-label"> 
-                                           <input  type="checkbox" ng-model="appState.models.optimizerSettings.inputs.kickers[id]" /> 
-                                             {{latticeService.elementForId(id, latticeModels).name}} 
-                                         </label>
-                                        </td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                <table style="float: left; margin: 1em;">
-                                  <thead>
-                                    <th>Quads</th>
-                                      </thead>
-                                        <tbody>
-                                          <tr ng-repeat="(id, enabled) in appState.models.optimizerSettings.inputs.quads" >
-                                            <td class="form-group form-group-sm" > 
-                                              <label class="form-check-label"> 
-                                                <input type="checkbox" ng-model="appState.models.optimizerSettings.inputs.quads[id]" /> 
-                                                  {{latticeService.elementForId(id, latticeModels).name}} 
-                                              </label>
-                                            </td>
-                                          </tr>
-                                        </tbody>
-                                      </table>
-                                    </form>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>`
+                               <th>{{capitalizeFirstLetter(inputType)}}</th>
+                              </thead>
+                              <tbody>
+                                <tr ng-repeat="(id, enabled) in inputs" >
+                                  <td class="form-group form-group-sm" > 
+                                    <label class="form-check-label"> 
+                                      <input ng-change="changeCheck()" type="checkbox" ng-model="inputs[id]" /> 
+                                        {{latticeService.elementForId(id, latticeModels).name}} 
+                                    </label>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                         </form>
+                       </div>
+                     </div>
+                   </div>
+                 </div>`
         ],
         controller: function(appState, $scope, controlsService) {
             $scope.appState = appState;
@@ -648,6 +633,16 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
             $scope.latticeService = latticeService;
             $scope.activeTab = 'targets';
             $scope.showTabs = true;
+
+            $scope.changeCheck = function(){
+                srdbg('kickers and quads', appState.models.optimizerSettings.inputs)
+            }
+
+            $scope.capitalizeFirstLetter = function (str) {
+                const capitalized = str.charAt(0).toUpperCase() + str.slice(1);
+                return capitalized;
+            }
+
         },
     };
 });
