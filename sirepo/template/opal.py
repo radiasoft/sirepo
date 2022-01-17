@@ -67,12 +67,15 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             def _input_file(self, model_name, field, filename):
                 return f'"{filename}"'
 
+            def _output_file(self, model, field):
+                return f'"{model[field]}"'
+
         g = _G(data)
         r = PKDict(commands=dest_dir.join(source_path.basename))
         pkio.write_text(r.commands, g.sim())
         self._write_input_files(data, source_path, dest_dir)
         r.output_files = LatticeUtil(data, SCHEMA).iterate_models(
-            OpalOutputFileIterator(),
+            OpalOutputFileIterator(preserve_output_filenames=True),
         ).result.keys_in_order
         return r
 
@@ -93,17 +96,21 @@ class OpalElementIterator(lattice.ElementIterator):
         return field == 'name'
 
 class OpalOutputFileIterator(lattice.ModelIterator):
-    def __init__(self):
+    def __init__(self, preserve_output_filenames=False):
         self.result = PKDict(
             keys_in_order=[],
         )
         self.model_index = PKDict()
+        self.preserve_output_filenames = preserve_output_filenames
 
     def field(self, model, field_schema, field):
         self.field_index += 1
         # for now only interested in element outfn output files
         if field == 'outfn' and field_schema[1] == 'OutputFile':
-            filename = '{}.{}.h5'.format(model.name, field)
+            if self.preserve_output_filenames:
+                filename = model[field]
+            else:
+                filename = '{}.{}.h5'.format(model.name, field)
             k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = filename
             self.result.keys_in_order.append(k)
@@ -618,8 +625,7 @@ class _Generate(sirepo.lib.GenerateBase):
         elif el_type == 'InputFile':
             value = self._input_file(LatticeUtil.model_name_for_data(model), field, value)
         elif el_type == 'OutputFile':
-            ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
-            value = '"{}.{}.{}"'.format(model.name, field, ext)
+            value = self._output_file(model, field)
         elif re.search(r'List$', el_type):
             value = state.id_map[int(value)].name
         elif re.search(r'String', el_type):
@@ -727,6 +733,10 @@ class _Generate(sirepo.lib.GenerateBase):
             field,
             filename,
         ))
+
+    def _output_file(self, model, field):
+        ext = 'dat' if model.get('_type', '') == 'list' else 'h5'
+        return '"{}.{}.{}"'.format(model.name, field, ext)
 
 
 def _compute_3d_bounds(run_dir):
