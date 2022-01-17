@@ -17,7 +17,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def beamline_elements(cls, madx):
         elmap = PKDict({e._id: e for e in madx.elements})
-        for el_id in madx.beamlines[0]['items']:
+        for el_id in madx.beamlines[0].items:
             yield elmap[el_id]
 
     @classmethod
@@ -66,9 +66,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 )
                 for el in cls.beamline_elements(dm.externalLattice.models):
                     if el.type == 'QUADRUPOLE': 
-                        dm.optimizerSettings.inputs['quads'][str(el._id)] = False
+                        dm.optimizerSettings.inputs.quads[str(el._id)] = False
                     elif 'KICKER' in el.type:
-                        dm.optimizerSettings.inputs['kickers'][str(el._id)] = True
+                        dm.optimizerSettings.inputs.kickers[str(el._id)] = True
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0

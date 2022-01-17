@@ -586,8 +586,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
     return {
         restrict: 'A',
         scope: {
-            controller: '=',
-            id: '@'  
+            controller: '='
         },
         template: [
                   `<div>
@@ -596,7 +595,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                          <div class="col-sm-12">
                            <ul class="nav nav-tabs">
                              <li role="presentation" data-ng-class="{active: activeTab == 'targets'}"><a href data-ng-click="activeTab = 'targets'">Targets</a></li>
-                             <li role="presentation" data-ng-class="{active: activeTab == \'inputs\'}"><a href data-ng-click="activeTab = 'inputs'">Inputs</a></li>
+                             <li role="presentation" data-ng-class="{active: activeTab == 'inputs'}"><a href data-ng-click="activeTab = 'inputs'">Inputs</a></li>
                            </ul>
                          </div>
                        </div>
@@ -616,7 +615,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                                        <td class="form-group form-group-sm" > 
                                          <label class="form-check-label"> 
                                            <input  type="checkbox" ng-model="appState.models.optimizerSettings.inputs.kickers[id]" /> 
-                                             {{latticeService.elementForId(id, models).name}} 
+                                             {{latticeService.elementForId(id, latticeModels).name}} 
                                          </label>
                                         </td>
                                       </tr>
@@ -631,7 +630,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                                             <td class="form-group form-group-sm" > 
                                               <label class="form-check-label"> 
                                                 <input type="checkbox" ng-model="appState.models.optimizerSettings.inputs.quads[id]" /> 
-                                                  {{latticeService.elementForId(id, models).name}} 
+                                                  {{latticeService.elementForId(id, latticeModels).name}} 
                                               </label>
                                             </td>
                                           </tr>
@@ -645,8 +644,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
         ],
         controller: function(appState, $scope, controlsService) {
             $scope.appState = appState;
-            const models = controlsService.latticeModels();
-            $scope.models = models;
+            $scope.latticeModels = controlsService.latticeModels();
             $scope.latticeService = latticeService;
             $scope.activeTab = 'targets';
             $scope.showTabs = true;
