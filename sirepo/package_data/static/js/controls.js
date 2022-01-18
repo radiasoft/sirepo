@@ -588,10 +588,10 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
         scope: {
             controller: '='
         },
-        template: [
-                  `<div>
+        template: `
+                   <div>
                      <div class="container-fluid">
-                       <div class="row" data-ng-show="::showTabs">'
+                       <div class="row" data-ng-show="::showTabs">
                          <div class="col-sm-12">
                            <ul class="nav nav-tabs">
                              <li role="presentation" data-ng-class="{active: activeTab == 'targets'}"><a href data-ng-click="activeTab = 'targets'">Targets</a></li>
@@ -608,7 +608,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                          <form name="form">
                            <table ng-repeat="(inputType, inputs) in appState.models.optimizerSettings.inputs" style="float: left; margin: 1em;">
                              <thead>
-                               <th>{{capitalizeFirstLetter(inputType)}}</th>
+                               <th>{{stringsService.ucfirst(inputType)}}</th>
                               </thead>
                               <tbody>
                                 <tr ng-repeat="(id, enabled) in inputs" >
@@ -625,20 +625,15 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                        </div>
                      </div>
                    </div>
-                 </div>`
-        ],
-        controller: function(appState, $scope, controlsService) {
+                 </div>
+        `,
+        controller: function(appState, $scope, controlsService, stringsService) {
             $scope.appState = appState;
             $scope.latticeModels = controlsService.latticeModels();
             $scope.latticeService = latticeService;
             $scope.activeTab = 'targets';
             $scope.showTabs = true;
-
-            $scope.capitalizeFirstLetter = function (str) {
-                const capitalized = str.charAt(0).toUpperCase() + str.slice(1);
-                return capitalized;
-            };
-
+            $scope.stringsService = stringsService;
         },
     };
 });

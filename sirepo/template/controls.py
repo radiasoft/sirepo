@@ -144,11 +144,11 @@ def _generate_madx(v, data):
     def _format_header(el_id, field):
         return f'el_{el_id}.{field}'
 
-    def _set_opt(el, field, all_orrectors):
-        count = len(all_orrectors.corrector)
-        all_orrectors.corrector.append(el[field])
+    def _set_opt(el, field, all_correctors):
+        count = len(all_correctors.corrector)
+        all_correctors.corrector.append(el[field])
         el[field] = '{' + f'sr_opt{count}' + '}'
-        all_orrectors.header.append(_format_header(el._id, field))
+        all_correctors.header.append(_format_header(el._id, field))
 
     c = PKDict( 
         header=[],
