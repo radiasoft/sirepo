@@ -589,43 +589,43 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
             controller: '='
         },
         template: `
-                   <div>
-                     <div class="container-fluid">
-                       <div class="row" data-ng-show="::showTabs">
-                         <div class="col-sm-12">
-                           <ul class="nav nav-tabs">
-                             <li role="presentation" data-ng-class="{active: activeTab == 'targets'}"><a href data-ng-click="activeTab = 'targets'">Targets</a></li>
-                             <li role="presentation" data-ng-class="{active: activeTab == 'inputs'}"><a href data-ng-click="activeTab = 'inputs'">Inputs</a></li>
-                           </ul>
-                         </div>
-                       </div>
-                       <br />
-                       <div data-ng-if="activeTab == 'targets'" class="row">
-                         <div class="clearfix" data-optimizer-table=""></div>
-                       </div>
-                       <div data-ng-if="activeTab == 'inputs'" class="row">
-                         <div class="container-fluid">
-                         <form name="form">
-                           <table ng-repeat="(inputType, inputs) in appState.models.optimizerSettings.inputs" style="float: left; margin: 1em;">
-                             <thead>
-                               <th>{{stringsService.ucfirst(inputType)}}</th>
-                              </thead>
-                              <tbody>
-                                <tr ng-repeat="(id, enabled) in inputs" >
-                                  <td class="form-group form-group-sm" > 
-                                    <label class="form-check-label"> 
-                                      <input type="checkbox" ng-model="inputs[id]" /> 
-                                        {{latticeService.elementForId(id, latticeModels).name}} 
-                                    </label>
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                         </form>
-                       </div>
-                     </div>
-                   </div>
-                 </div>
+            <div>
+              <div class="container-fluid">
+                <div class="row" data-ng-show="::showTabs">
+                  <div class="col-sm-12">
+                    <ul class="nav nav-tabs">
+                      <li role="presentation" data-ng-class="{active: activeTab == 'targets'}"><a href data-ng-click="activeTab = 'targets'">Targets</a></li>
+                      <li role="presentation" data-ng-class="{active: activeTab == 'inputs'}"><a href data-ng-click="activeTab = 'inputs'">Inputs</a></li>
+                    </ul>
+                  </div>
+                </div>
+                <br />
+              <div data-ng-if="activeTab == 'targets'" class="row">
+                <div class="clearfix" data-optimizer-table=""></div>
+              </div>
+                <div data-ng-if="activeTab == 'inputs'" class="row">
+                  <div class="container-fluid">
+                    <form name="form">
+                      <table ng-repeat="(inputType, inputs) in appState.models.optimizerSettings.inputs" style="float: left; margin: 1em;">
+                        <thead>
+                          <th>{{stringsService.ucfirst(inputType)}}</th>
+                        </thead>
+                        <tbody>
+                          <tr ng-repeat="(id, enabled) in inputs" >
+                            <td class="form-group form-group-sm" > 
+                              <label class="form-check-label"> 
+                                <input type="checkbox" ng-model="inputs[id]" /> 
+                                  {{latticeService.elementForId(id, latticeModels).name}} 
+                              </label>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
         `,
         controller: function(appState, $scope, controlsService, stringsService) {
             $scope.appState = appState;
