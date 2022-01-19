@@ -1278,7 +1278,7 @@ def _update_geom_from_dipole(geom, model, **kwargs):
         )
 
     magnet = _find_by_id(geom.objects, model.magnet.id)
-    coil = _find_by_id(geom.objects, model.coil.id),
+    coil = _find_by_id(geom.objects, model.coil.id)
     mag_coil_group = _find_by_id(geom.objects, model.magnetCoilGroup.id)
 
     if model.dipoleType == 'dipoleC':
