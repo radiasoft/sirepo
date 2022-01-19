@@ -735,6 +735,23 @@ def python_source_for_model(data, model, plot_reports=True):
     return _generate_parameters_file(data, plot_reports=plot_reports)
 
 
+def run_epilogue():
+    # POSIT: only called from template.run_epilogue
+    def _op():
+        from pykern import pkio
+        from sirepo import simulation_db
+        from sirepo.template import template_common
+        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if sim_in.report == 'coherentModesAnimation':
+            # this sim creates _really_ large intermediate files which should get removed
+            for p in pkio.sorted_glob('*_mi.h5'):
+                p.remove()
+
+    import sirepo.mpi
+    sirepo.mpi.restrict_op_to_first_rank(_op)
+
+
+
 def stateful_compute_compute_undulator_length(data):
     return compute_undulator_length(data['tabulated_undulator'])
 
@@ -928,7 +945,7 @@ def write_parameters(data, run_dir, is_parallel):
         _trim(_generate_parameters_file(data, run_dir=run_dir))
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(_run_with_mpi(data))
+        return template_common.get_exec_parameters_cmd(_SIM_DATA.is_run_mpi(data))
     return None
 
 
@@ -1611,7 +1628,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     _update_models_for_report(report, dm)
     res, v = template_common.generate_parameters_file(
         data,
-        will_run_with_mpi=_run_with_mpi(data),
+        is_run_mpi=_SIM_DATA.is_run_mpi(data),
     )
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == 't' and dm.tabulatedUndulator.undulatorType == 'u_i':
@@ -1632,6 +1649,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         pkio.write_text(v.python_file, dm.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
     _set_parameters(v, data, plot_reports, run_dir)
+    v.in_server = run_dir is not None
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
 
 
@@ -1969,10 +1987,6 @@ def _rsopt_main():
         'else:',
         '   exit(0)'
     ]
-
-
-def _run_with_mpi(data):
-   return _SIM_DATA.is_parallel(data) and data.report != 'beamlineAnimation'
 
 
 def _safe_beamline_item_name(name, names):
