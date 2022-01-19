@@ -144,35 +144,43 @@ def _generate_madx(v, data):
     def _format_header(el_id, field):
         return f'el_{el_id}.{field}'
 
-    def _set_opt(el, field, kicker):
-        count = len(kicker.kick)
-        kicker.kick.append(el[field])
+    def _set_opt(el, field, all_correctors):
+        count = len(all_correctors.corrector)
+        all_correctors.corrector.append(el[field])
         el[field] = '{' + f'sr_opt{count}' + '}'
-        kicker.header.append(_format_header(el._id, field))
+        all_correctors.header.append(_format_header(el._id, field))
 
-    kicker = PKDict(
+    c = PKDict( 
         header=[],
-        kick=[],
+        corrector=[],
     )
+
     madx = data.models.externalLattice.models
+    k = data.models.optimizerSettings.inputs.kickers
+    q = data.models.optimizerSettings.inputs.quads
+
     header = []
     element_map = PKDict({e._id: e for e in madx.elements})
+  
     for el_id in madx.beamlines[0]['items']:
+
         el = element_map[el_id]
-        if el.type == 'KICKER':
-            _set_opt(el, 'hkick', kicker)
-            _set_opt(el, 'vkick', kicker)
-        elif el.type in ('HKICKER', 'VKICKER'):
-            _set_opt(el, 'kick', kicker)
+        if el.type == 'KICKER' and k[str(el_id)]:
+            _set_opt(el, 'hkick', c) 
+            _set_opt(el, 'vkick', c)
+        elif el.type in ('HKICKER', 'VKICKER') and k[str(el_id)]:
+            _set_opt(el, 'kick', c)
+        elif el.type == 'QUADRUPOLE' and q[str(el_id)]:
+            _set_opt(el, 'k1', c)
         elif el.type == 'MONITOR':
             header += [_format_header(el._id, x) for x in ('x', 'y')]
         elif el.type == 'HMONITOR':
             header += [_format_header(el._id, 'x')]
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
-    v.summaryCSVHeader = ','.join(kicker.header + header)
-    v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in kicker.kick]))
-    v.correctorCount = len(kicker.kick)
+    v.summaryCSVHeader = ','.join(c.header + header)
+    v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
+    v.correctorCount = len(c.corrector) 
     v.monitorCount = len(header) / 2
     data.models.externalLattice.report = ''
     v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
