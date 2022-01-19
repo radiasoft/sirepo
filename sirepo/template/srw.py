@@ -1609,7 +1609,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
-    res, v = template_common.generate_parameters_file(data, mpi=_run_with_mpi(data))
+    res, v = template_common.generate_parameters_file(
+        data,
+        will_run_with_mpi=_run_with_mpi(data),
+    )
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == 't' and dm.tabulatedUndulator.undulatorType == 'u_i':
         v.rs_type = 'u'

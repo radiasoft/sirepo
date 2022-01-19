@@ -376,10 +376,11 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def generate_parameters_file(data, mpi=False):
+def generate_parameters_file(data, will_run_with_mpi=False):
+    from sirepo import mpi
     v = flatten_data(data['models'], PKDict())
     v.notes = _get_notes(v)
-    v.mpi = mpi
+    v.mpi = mpi.abort_on_signal_code() if will_run_with_mpi else ''
     return render_jinja(None, v, name='common-header.py'), v
 
 

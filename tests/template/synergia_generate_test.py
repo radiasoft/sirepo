@@ -16,7 +16,7 @@ def test_generate_python():
     with pkunit.save_chdir_work() as d:
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.txt')):
             e = pkio.read_text(f)
-            m = re.search(r'^#\s*(.*\S)\s*$', e, flags=re.MULTILINE)
+            m = re.search(r'^# \s*(.*\S)\s*$', e, flags=re.MULTILINE)
             assert m
             pkunit.file_eq(
                 f,
@@ -33,4 +33,4 @@ def _example_data(name):
     for d in simulation_db.examples(synergia.SIM_TYPE):
         if d.models.simulation.name == name:
             return simulation_db.fixup_old_data(d)[0]
-    assert False
+    raise AssertionError(f'name={name} not found')

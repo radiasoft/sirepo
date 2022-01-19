@@ -14,6 +14,17 @@ import sys
 FIRST_RANK = 0
 
 
+def abort_on_signal_code():
+    return '''
+
+from mpi4py import MPI
+if MPI.COMM_WORLD.Get_rank():
+    import signal
+    signal.signal(signal.SIGTERM, lambda x, y: MPI.COMM_WORLD.Abort(1))
+
+'''
+
+
 def get_cmd():
     c = ['python', 'parameters.py']
     return c if cfg.in_slurm else _mpiexec_cmd() + c
@@ -71,16 +82,9 @@ def run_script(script):
     Args:
         script (str): python text
     """
-    abort = '''
-
-from mpi4py import MPI
-if MPI.COMM_WORLD.Get_rank():
-    import signal
-    signal.signal(signal.SIGTERM, lambda x, y: MPI.COMM_WORLD.Abort(1))
-
-'''
-    n = re.sub(r'^from __future.*', abort, script, count=1, flags=re.MULTILINE)
-    script = abort + script if n == script else n
+    a = abort_on_signal_code()
+    n = re.sub(r'^from __future.*', a, script, count=1, flags=re.MULTILINE)
+    script = a + script if n == script else n
     fn = 'mpi_run.py'
     pkio.write_text(fn, script)
     run_program([sys.executable or 'python', fn])

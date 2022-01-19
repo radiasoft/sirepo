@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 {% if notes | length %}
 """
 {% for key in notes %}
@@ -7,12 +8,4 @@
 {% endfor %}
 """
 {% endif %}
-{% if mpi %}
-#TODO(e-carlin): discuss with rn if this is needed? It exists in sirepo.mpi but
-# it is guarded by a re of '^from __future.*' so is it only for py2?
-#TODO(e-carlin): share with sirepo.mpi
-from mpi4py import MPI
-if MPI.COMM_WORLD.Get_rank():
-    import signal
-    signal.signal(signal.SIGTERM, lambda x, y: MPI.COMM_WORLD.Abort(1))
-{% endif %}
+{{ mpi }}
