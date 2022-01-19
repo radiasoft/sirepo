@@ -256,6 +256,10 @@ class SimDataBase(object):
         )
 
     @classmethod
+    def is_run_mpi(cls):
+        raise NotImplementedError()
+
+    @classmethod
     def is_watchpoint(cls, name):
         return cls.WATCHPOINT_REPORT in name
 
