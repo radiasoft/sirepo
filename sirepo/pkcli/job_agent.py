@@ -712,16 +712,14 @@ class _SbatchRun(_SbatchCmd):
 
     def _sbatch_script(self):
         def _assert_no_run_background():
-            try:
-                from sirepo import pkcli
-                getattr(pkcli.import_module(self.msg), 'run_background')
-            except AttributeError:
-                return
-            raise AssertionError(
-                f'simulation_type={self.msg.simulationType} cannot have'
-                ' pkcli.run_background if called from sbatch. Sbatch only'
-                ' supports running through `python parameters.py` ',
-            )
+            from sirepo import pkcli
+            m = pkcli.import_module(self.msg)
+            if hasattr(m, 'run_background'):
+                raise AssertionError(
+                    f'simulation_type={self.msg.simulationType} cannot have'
+                    ' pkcli.run_background if called from sbatch. Sbatch only'
+                    ' supports running through `python parameters.py` ',
+                )
 
         def _assert_project():
             p = self.msg.sbatchProject
@@ -750,6 +748,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --tasks-per-node=32
 {_assert_project()}'''
             s = '--cpu-bind=cores shifter'
+        m = '--mpi=pmi2' if pkconfig.channel_in('dev') else ''
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
@@ -765,7 +764,7 @@ if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
 fi
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
-exec srun {'--mpi=pmi2' if pkconfig.channel_in('dev') else ''} {s} /bin/bash bash.stdin
+exec srun {m} {s} /bin/bash bash.stdin
 '''
         )
         return f
