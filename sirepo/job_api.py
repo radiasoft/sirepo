@@ -95,6 +95,36 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         )
 
 
+@api_perm.require_user
+def api_exportRSOptConfig(simulation_type, simulation_id, filename):
+    import zipfile
+    t = sirepo.template.import_module(simulation_type)
+    assert hasattr(t, 'export_rsopt_config'), 'Export rsopt unavailable'
+    e = t.export_rsopt_config(
+        simulation_db.read_simulation_json(simulation_type, sid=simulation_id),
+        filename
+    )
+    with simulation_db.tmp_dir() as tmp:
+        fz = tmp.join(filename)
+        with zipfile.ZipFile(
+            fz,
+            mode='w',
+            compression=zipfile.ZIP_DEFLATED,
+            allowZip64=True,
+        ) as z:
+            for f in e.generated_files:
+                z.writestr(e.generated_files[f].filename, e.generated_files[f].content)
+            z.writestr(e.readme.filename, e.readme.content)
+            for f in e.lib_files:
+                z.write(f, f.basename)
+
+        return http_reply.gen_file_as_attachment(
+            fz,
+            filename,
+            content_type='application/zip'
+        )
+
+
 @api_perm.allow_visitor
 def api_jobSupervisorPing():
     import requests.exceptions
