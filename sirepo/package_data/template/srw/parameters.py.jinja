@@ -12,7 +12,6 @@
 {%- endfor -%}
 {%- endmacro -%}
 
-#!/usr/bin/env python
 import os
 try:
     __IPYTHON__
@@ -502,6 +501,15 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
 
 {% endif %}
 
+def epilogue():
+    {% if in_server %}
+    import sirepo.template
+    sirepo.template.run_epilogue('srw')
+    {% else %}
+    pass
+    {% endif %}
+
+
 def main():
 {% if forRSOpt %}
     import sys
@@ -511,8 +519,11 @@ def main():
     del sys.argv[1:]
     _rsopt_run(args[1])
 
+
 if __name__ == "__main__":
     main()
+    epilogue()
 {% else %}
 {{srwMain}}
+epilogue()
 {% endif %}

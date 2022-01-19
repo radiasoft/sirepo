@@ -454,11 +454,13 @@ def prepare_simulation(data, run_dir):
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = s.is_parallel(data)
-    template.write_parameters(
+    c = template.write_parameters(
         data,
         run_dir=run_dir,
         is_parallel=is_p,
     )
+    if c:
+        return c, run_dir
     cmd = [
         pkinspect.root_package(template),
         pkinspect.module_basename(template),

@@ -310,6 +310,10 @@ varParam = [
 
 
 
+def epilogue():
+    pass
+
+
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['CRL','CRL_Watchpoint','Watchpoint','Fiber','Fiber_Watchpoint2','Watchpoint2']
@@ -329,3 +333,5 @@ def main():
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
+
+epilogue()

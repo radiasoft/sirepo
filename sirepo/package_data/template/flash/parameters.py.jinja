@@ -1,0 +1,15 @@
+{% if not is_setup_animation %}
+from pykern import pkio
+import subprocess
+
+pkio.write_text(
+    '{{ par_filename }}',
+    """
+{{ par }}
+""",
+)
+
+subprocess.check_call(
+    ('{{ exe_name }}', '{{ par_filename }}'),
+)
+{% endif %}
