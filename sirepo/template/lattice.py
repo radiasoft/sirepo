@@ -548,9 +548,12 @@ class LatticeUtil(object):
 
     @classmethod
     def find_first_command(cls, data, command_type):
+        pkdp('\n\n\n\n FIND FIRST COMMAND: target={}', command_type)
         for m in data.models.commands:
+            pkdp('command type: {}', m._type)
             if m._type == command_type:
                 return m
+        pkdp('\n\n\n\n\n\n')
         return None
 
     @classmethod

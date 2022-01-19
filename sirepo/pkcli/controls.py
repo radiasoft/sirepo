@@ -27,4 +27,7 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
+    # TODO (gurhar1133): need to generate ptc_particles.madx like pkcli.madx.run_background
+    # from pykern import pkio
+    pkio.py_path('~/ptc_particles.madx').copy(pkio.py_path(cfg_dir).join('ptc_particles.madx'))
     template_common.exec_parameters()

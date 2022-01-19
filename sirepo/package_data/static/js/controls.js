@@ -634,6 +634,8 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
             $scope.activeTab = 'targets';
             $scope.showTabs = true;
             $scope.stringsService = stringsService;
+
+            srdbg('appState.models.optimizerSettings', $scope.appState.models.optimizerSettings.inputs);
         },
     };
 });

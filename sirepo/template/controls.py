@@ -5,6 +5,7 @@ u"""Controls execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from dis import Instruction
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
@@ -150,14 +151,61 @@ def _generate_madx(v, data):
         el[field] = '{' + f'sr_opt{count}' + '}'
         all_correctors.header.append(_format_header(el._id, field))
 
+    def _add_ptc_observes(instruments, max_id=1000):
+        dmc = data.models.externalLattice.models.commands
+        d = max_id
+        idx = next(i for i, _ in enumerate(dmc))
+
+        ins_commands = [
+            PKDict(
+                _id=d,
+                _type='ptc_observe',
+                place=ins.name,
+            ) for ins in instruments
+        ]
+
+        ptc_commands = [
+            PKDict(
+                _id=5000,
+                _type='ptc_create_universe',
+                name='PT1',
+            ),
+            *ins_commands,
+            PKDict(
+                _id=6000,
+                _type='ptc_create_layout',
+            ),
+            PKDict(
+                _id=7000,
+                _type='ptc_track',
+                file='1',
+            ),
+            PKDict(
+                _id=8000,
+                _type='ptc_track_end',
+                name='PT1'
+            ),
+            PKDict(
+                _id=9000,
+                _type='ptc_end',
+                name='PT1'
+            )
+        ]
+
+        for c in ptc_commands:
+            dmc.insert(idx + 1, c)
+            idx += 1
+
     c = PKDict( 
         header=[],
         corrector=[],
     )
 
+    i = []
     madx = data.models.externalLattice.models
     k = data.models.optimizerSettings.inputs.kickers
     q = data.models.optimizerSettings.inputs.quads
+    
 
     header = []
     element_map = PKDict({e._id: e for e in madx.elements})
@@ -165,6 +213,8 @@ def _generate_madx(v, data):
     for el_id in madx.beamlines[0]['items']:
 
         el = element_map[el_id]
+        if el.type == 'INSTRUMENT':
+            i.append(el)  
         if el.type == 'KICKER' and k[str(el_id)]:
             _set_opt(el, 'hkick', c) 
             _set_opt(el, 'vkick', c)
@@ -178,12 +228,17 @@ def _generate_madx(v, data):
             header += [_format_header(el._id, 'x')]
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
+
+    _add_ptc_observes(i)
+    pkdp('\n\n\n\n\n data.models.externalLattice.commands {} \n\n\n\n\n', data.models.externalLattice.models.commands)
     v.summaryCSVHeader = ','.join(c.header + header)
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector) 
     v.monitorCount = len(header) / 2
     data.models.externalLattice.report = ''
     v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
+    
+
 
 
 def _get_external_lattice(simulation_id):

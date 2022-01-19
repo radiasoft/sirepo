@@ -44,7 +44,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+        
         dm = data.models
+        # pkdp('\n\n\n\n\n data models: {} \n\n\n\n\n --', dm)
+        # pkdp('\n\n\n\n\n externalLattice in dm? : {} \n\n\n\n\n --', 'externalLattice' in dm)
         cls._init_models(
             dm,
             (
