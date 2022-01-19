@@ -392,12 +392,13 @@ def export_rsopt_config(data, filename):
     f = re.sub(r'[^\w.]+', '-', fz.purebasename).strip('-')
     v.runDir = f'{f}_scan'
     v.fileBase = f
-    tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
+    tf = {k: PKDict(filename=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
     for t in tf:
-        v[f'{t}FileName'] = tf[t].file
+        v[f'{t}FileName'] = tf[t].filename
     v.outFileName = f'{f}.out'
     v.readmeFileName = 'README.txt'
-    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
+    lf = _SIM_DATA.lib_files_for_export(data)
+    v.libFiles = [f.basename for f in lf]
     v.hasLibFiles = len(v.libFiles) > 0
     v.randomSeed = data.models.exportRsOpt.randomSeed if \
         data.models.exportRsOpt.randomSeed is not None else ''
@@ -408,20 +409,15 @@ def export_rsopt_config(data, filename):
         tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
-    readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
 
-    with zipfile.ZipFile(
-        fz,
-        mode='w',
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
-        for t in tf:
-            z.writestr(tf[t].file, tf[t].content)
-        z.writestr(v.readmeFileName, readme)
-        for d in _SIM_DATA.lib_files_for_export(data):
-            z.write(d, d.basename)
-    return fz
+    return PKDict(
+        generated_files=tf,
+        lib_files=lf,
+        readme=PKDict(
+            filename=v.readmeFileName,
+            content=template_common.render_jinja(SIM_TYPE, v, v.readmeFileName),
+        ),
+    )
 
 
 def get_application_data(data, **kwargs):
