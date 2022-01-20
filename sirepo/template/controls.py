@@ -153,24 +153,24 @@ def _generate_madx(v, data):
 
     def _insert_ptc_commands(data, ptc_commands):
         dmc = data.models.commands
-        idx = len(dmc)
+        i = len(dmc)
         for c in ptc_commands:
-            dmc.insert(idx, c)
-            idx += 1
+            dmc.insert(i, c)
+            i += 1
 
     def _create_ptc_observes(instruments):
-        ins_commands = [
+        i = [
             PKDict(
                 _type='ptc_observe',
-                place=ins.name,
-            ) for _, ins in enumerate(instruments)
+                place=o.name,
+            ) for _, o in enumerate(instruments)
         ]
-        return ins_commands
+        return i
 
     def _set_ptc_ids(ptc_commands, data):
-        max_id = LatticeUtil.max_id(data) + 1
+        m = LatticeUtil.max_id(data) + 1
         for i,  c in enumerate(ptc_commands):
-            c._id = max_id + i
+            c._id = m + i
 
     def _gen_full_ptc(ptc_commands_all, instruments, data):
         ptc_commands_all.append(
@@ -178,7 +178,6 @@ def _generate_madx(v, data):
                     _type='ptc_create_universe',
                     name='PT1',
                 ))
-
         for i_command in _create_ptc_observes(instruments):
             ptc_commands_all.append(i_command)
 
@@ -206,27 +205,25 @@ def _generate_madx(v, data):
 
     def _get_all_ptc(instruments, data):
     
-        ptc_commands_all = []
+        p = []
         u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
-      
         if not u:
-            return _gen_full_ptc(ptc_commands_all, instruments, data)
+            return _gen_full_ptc(p, instruments, data)
         else:
             # POSIT: if ptc_create_universe exists, assume all needed ptc commands exist
             pkdp('\n\n\n\n\n FOUND ptc_create_universe, so just inserting instruments \n\n\n\n\n')
-            target_idx = 0
+            t = 0
             for i, c in enumerate(data.models.commands):
                 if c._type == 'ptc_create_universe':
-                    target_idx = i + 1
+                    t = i + 1
                     break
             o = _create_ptc_observes(instruments)
             _set_ptc_ids(o, data)
             for i, c in enumerate(o):
-                data.models.commands.insert(target_idx + i, c)
+                data.models.commands.insert(t + i, c)
                     
             return None
 
-       
     # ptc_commands_all = []
     # ptc_commands_all.append(
     #     PKDict(
@@ -258,7 +255,6 @@ def _generate_madx(v, data):
 
     # _insert_ptc_commands(data.models.externalLattice, ptc_commands_all)
 
-
     c = PKDict( 
         header=[],
         corrector=[],
@@ -269,7 +265,6 @@ def _generate_madx(v, data):
     k = data.models.optimizerSettings.inputs.kickers
     q = data.models.optimizerSettings.inputs.quads
     
-
     header = []
     element_map = PKDict({e._id: e for e in madx.elements})
   
@@ -292,16 +287,12 @@ def _generate_madx(v, data):
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
     
-    
-
-    
     v.summaryCSVHeader = ','.join(c.header + header)
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector) 
     v.monitorCount = len(header) / 2
     data.models.externalLattice.report = ''
 
-    # TODO (gurhar1133): need to ensure ptc commands are inserted at end of commands?
     a = _get_all_ptc(i, data.models.externalLattice)
     if a:
         pkdp('\n\n\n\n\n CHECK IF PTC COMMANDS CREATED: {}', a)
