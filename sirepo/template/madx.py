@@ -252,7 +252,6 @@ def generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     _add_marker_and_observe(data)
     util = LatticeUtil(data, SCHEMA)
-    pkdp('\n\n\n\n\n util: {} \n\n\n\n\n', util)
     filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
@@ -485,7 +484,6 @@ def _add_commands(data, util):
         _type='use',
         sequence=util.select_beamline().id,
     ))
-    pkdp('\n\n\n\n\n IN _add_commands(): about to call util.find_fist_command = {} \n\n\n\n\n', util.find_first_command(data, PTC_LAYOUT_COMMAND))
     if not util.find_first_command(data, PTC_LAYOUT_COMMAND):
         return
     # insert call for particles after ptc_create_layout
@@ -494,6 +492,7 @@ def _add_commands(data, util):
         _type='call',
         file=PTC_PARTICLES_FILE,
     ))
+
 
 
 def _add_marker_and_observe(data):
@@ -542,7 +541,6 @@ def _add_marker_and_observe(data):
                 place=m,
             ))
 
-    pkdp('\n\n\n\n\n data.models.commands (madx) : {} \n\n\n\n\n\n', data.models.commands)
     if not data.get('report') == 'animation' or \
        not int(data.models.simulation.computeTwissFromParticles):
         return
