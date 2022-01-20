@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.template import template_common
-from sirepo.template.lattice import LatticeUtil
+from sirepo.template.lattice import LatticeIterator, LatticeUtil
 import copy
 import csv
 import re
@@ -151,50 +151,74 @@ def _generate_madx(v, data):
         el[field] = '{' + f'sr_opt{count}' + '}'
         all_correctors.header.append(_format_header(el._id, field))
 
-    def _add_ptc_observes(instruments, max_id=1000):
-        dmc = data.models.externalLattice.models.commands
-        d = max_id
+    def _insert_ptc_commands(data, ptc_commands):
+        dmc = data.models.commands
         idx = next(i for i, _ in enumerate(dmc))
+        for c in ptc_commands:
+            dmc.insert(idx + 1, c)
+            idx += 1
 
+    def _create_ptc_observes(instruments):
+        d = 10000
         ins_commands = [
             PKDict(
-                _id=d,
+                _id=d+i,
                 _type='ptc_observe',
                 place=ins.name,
-            ) for ins in instruments
+            ) for i, ins in enumerate(instruments)
         ]
+        return ins_commands
 
-        ptc_commands = [
-            PKDict(
-                _id=5000,
-                _type='ptc_create_universe',
-                name='PT1',
-            ),
-            *ins_commands,
+    def _get_all_ptc(instruments, data):
+        dmc = data.models.commands
+
+        # TODO (gurhar1133): work out these edge cases
+        ptc_commands_all = []
+        if LatticeUtil.find_first_command(data, 'ptc_create_universe') == None:
+            
+            ptc_commands_all.append(
+                PKDict(
+                    _id=5000,
+                    _type='ptc_create_universe',
+                    name='PT1',
+                )
+            )
+        
+        for i_command in _create_ptc_observes(instruments):
+            ptc_commands_all.append(i_command)
+        
+        ptc_commands_all.append(
             PKDict(
                 _id=6000,
                 _type='ptc_create_layout',
-            ),
+            )
+        )
+        
+        ptc_commands_all.append(
             PKDict(
                 _id=7000,
                 _type='ptc_track',
                 file='1',
-            ),
+            )
+        )
+
+        ptc_commands_all.append(
             PKDict(
                 _id=8000,
                 _type='ptc_track_end',
                 name='PT1'
-            ),
+            )
+        )
+        
+        ptc_commands_all.append(
             PKDict(
                 _id=9000,
                 _type='ptc_end',
                 name='PT1'
             )
-        ]
+        )
+        return ptc_commands_all
 
-        for c in ptc_commands:
-            dmc.insert(idx + 1, c)
-            idx += 1
 
     c = PKDict( 
         header=[],
@@ -229,7 +253,10 @@ def _generate_madx(v, data):
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
 
-    _add_ptc_observes(i)
+    _insert_ptc_commands(
+        data.models.externalLattice, 
+        _get_all_ptc(i, data.models.externalLattice))
+
     pkdp('\n\n\n\n\n data.models.externalLattice.commands {} \n\n\n\n\n', data.models.externalLattice.models.commands)
     v.summaryCSVHeader = ','.join(c.header + header)
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
