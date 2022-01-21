@@ -23,6 +23,7 @@ import os.path
 import pykern.pkinspect
 import re
 import scipy.constants
+import sirepo.lib
 import sirepo.sim_data
 
 
@@ -125,6 +126,30 @@ _PTC_OBSERVE_TWISS_COLS = [
 _TFS_FILE_EXTENSION = 'tfs'
 
 _TWISS_OUTPUT_FILE = f'twiss.{_TFS_FILE_EXTENSION}'
+
+#TODO(pjm): this is only a start on the MAD-X LibAdapter
+class LibAdapter(sirepo.lib.LibAdapterBase):
+
+    def parse_file(self, path):
+        from sirepo.template import madx_parser
+        return self._convert(madx_parser.parse_file(pkio.read_text(path)))
+
+    def write_files(self, data, source_path, dest_dir):
+        """writes files for the simulation
+
+        Returns:
+            PKDict: structure of files written (debugging only)
+        """
+        pkio.write_text(
+            dest_dir.join(source_path.basename),
+            generate_parameters_file(data),
+        )
+        if LatticeUtil.find_first_command(data, PTC_LAYOUT_COMMAND):
+            import sirepo.pkcli.madx
+            #TODO(pjm): move the method to template.madx.generate_ptc_particles_file()
+            sirepo.pkcli.madx._generate_ptc_particles_file(dest_dir, data, None)
+        return PKDict()
+
 
 class MadxOutputFileIterator(lattice.ModelIterator):
     def __init__(self):

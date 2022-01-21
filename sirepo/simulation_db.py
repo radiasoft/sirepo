@@ -107,7 +107,7 @@ def app_version():
 
 
 def assert_sid(sid):
-    assert _ID_RE.search(sid), 'invalid sid='.format(sid)
+    assert _ID_RE.search(sid), 'invalid sid={}'.format(sid)
     return sid
 
 
