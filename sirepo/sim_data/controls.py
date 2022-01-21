@@ -15,6 +15,12 @@ import sirepo.simulation_db
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
+    def beamline_elements(cls, madx):
+        elmap = PKDict({e._id: e for e in madx.elements})
+        for el_id in madx.beamlines[0]['items']:
+            yield elmap[el_id]
+
+    @classmethod
     def controls_madx_dir(cls):
         return sirepo.simulation_db.simulation_dir('madx')
 
@@ -53,6 +59,16 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'optimizerSettings' not in dm:
                 dm.optimizerSettings = cls.default_optimizer_settings(dm.externalLattice.models)
 
+            if 'inputs' not in dm.optimizerSettings:
+                dm.optimizerSettings.inputs = PKDict(
+                    kickers=PKDict(),
+                    quads=PKDict()
+                )
+                for el in cls.beamline_elements(dm.externalLattice.models):
+                    if el.type == 'QUADRUPOLE': 
+                        dm.optimizerSettings.inputs.quads[str(el._id)] = False
+                    elif 'KICKER' in el.type:
+                        dm.optimizerSettings.inputs.kickers[str(el._id)] = True
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0
