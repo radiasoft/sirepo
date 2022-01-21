@@ -39,5 +39,8 @@
   {{ controls.init() }}
 </div>
 <div class="container">
-  <!-- <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div> -->
+
+  <!-- TODO(e-carlin): iterate over  each animation model and create a report for it -->
+  <!-- <div data-ng-repeate="m in instrumentanimations"> -->
+    <div data-report-panel="heatmap" data-model-name="instrumentAnimation"></div>
 </div>

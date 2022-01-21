@@ -324,12 +324,24 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     };
 
     self.simHandleStatus = data => {
+	// TODO(e-carlin): check for the bool for ptc particles output file existing
+	// if it exists then set a value on $scope that triggers the html to display the report
         if (data.elementValues) {
             handleElementValues(data);
         }
         if (! self.simState.isProcessing()) {
             $scope.$broadcast('sr-latticeUpdateComplete');
         }
+	// TODO(e-carlin): Need to add an instrumentAnimationX model for each
+	// instrument in the list of elements.
+	// appState.models.elements.forEach((m) => {
+	//     if (m._type !== 'INSTRUMENT') {
+	// 	return;
+	//     }
+	//     const k = 'instrumentAnimation' + i;
+	//     appState.models[k] = {};
+	//     $scope.instrumentAnimations.push(k)
+	// })
     };
 
     self.startSimulation = () => {
@@ -612,10 +624,10 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
                         </thead>
                         <tbody>
                           <tr ng-repeat="(id, enabled) in inputs" >
-                            <td class="form-group form-group-sm" > 
-                              <label class="form-check-label"> 
-                                <input type="checkbox" ng-model="inputs[id]" /> 
-                                  {{latticeService.elementForId(id, latticeModels).name}} 
+                            <td class="form-group form-group-sm" >
+                              <label class="form-check-label">
+                                <input type="checkbox" ng-model="inputs[id]" />
+                                  {{latticeService.elementForId(id, latticeModels).name}}
                               </label>
                             </td>
                           </tr>

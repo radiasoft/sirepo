@@ -24,10 +24,12 @@ _SUMMARY_CSV_FILE = 'summary.csv'
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
+        # TODO(e-carlin): we will need to return a bool once the ptc output file is
+        # present and the browser can request data from it
         return PKDict(
             percentComplete=0,
             frameCount=0,
-            elementValues=_read_summary_line(run_dir)
+            elementValues=_read_summary_line(run_dir),
         )
     return PKDict(
         percentComplete=100,
@@ -38,6 +40,31 @@ def background_percent_complete(report, run_dir, is_running):
         )
     )
 
+
+def sim_frame(frame_args):
+    raise NotImplementedError('you need to implement me')
+# TODO(e-carlin): you are going to have to implement something like this code
+# TODO(e-carlin): this was copied from madx; need to abstract and share
+"""
+def _extract_report_elementAnimation(data, run_dir, filename):
+    if _is_parameter_report_file(filename):
+        return extract_parameter_report(data, run_dir, filename)
+    m = data.models[data.report]
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
+    info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
+    return template_common.heatmap(
+        [to_floats(t[m.x]), to_floats(t[m.y1])],
+        m,
+        PKDict(
+            x_label=_field_label(m.x),
+            y_label=_field_label(m.y1),
+            title='{}-{} at {}m, {} turn {}'.format(
+                m.x, m.y1, info.s, info.name, info.turn,
+            ),
+        ),
+    )
+
+"""
 
 def stateful_compute_get_madx_sim_list(data):
     res = []
@@ -204,7 +231,7 @@ def _generate_madx(v, data):
         return ptc_commands_all
 
     def _get_all_ptc(instruments, data):
-    
+
         p = []
         u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
         if not u:
@@ -221,7 +248,7 @@ def _generate_madx(v, data):
             _set_ptc_ids(o, data)
             for i, c in enumerate(o):
                 data.models.commands.insert(t + i, c)
-                    
+
             return None
 
     # ptc_commands_all = []
@@ -255,7 +282,7 @@ def _generate_madx(v, data):
 
     # _insert_ptc_commands(data.models.externalLattice, ptc_commands_all)
 
-    c = PKDict( 
+    c = PKDict(
         header=[],
         corrector=[],
     )
@@ -264,17 +291,17 @@ def _generate_madx(v, data):
     madx = data.models.externalLattice.models
     k = data.models.optimizerSettings.inputs.kickers
     q = data.models.optimizerSettings.inputs.quads
-    
+
     header = []
     element_map = PKDict({e._id: e for e in madx.elements})
-  
+
     for el_id in madx.beamlines[0]['items']:
 
         el = element_map[el_id]
         if el.type == 'INSTRUMENT':
-            i.append(el)  
+            i.append(el)
         if el.type == 'KICKER' and k[str(el_id)]:
-            _set_opt(el, 'hkick', c) 
+            _set_opt(el, 'hkick', c)
             _set_opt(el, 'vkick', c)
         elif el.type in ('HKICKER', 'VKICKER') and k[str(el_id)]:
             _set_opt(el, 'kick', c)
@@ -286,10 +313,10 @@ def _generate_madx(v, data):
             header += [_format_header(el._id, 'x')]
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
-    
+
     v.summaryCSVHeader = ','.join(c.header + header)
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
-    v.correctorCount = len(c.corrector) 
+    v.correctorCount = len(c.corrector)
     v.monitorCount = len(header) / 2
     data.models.externalLattice.report = ''
 
@@ -297,12 +324,12 @@ def _generate_madx(v, data):
     if a:
         pkdp('\n\n\n\n\n CHECK IF PTC COMMANDS CREATED: {}', a)
         _insert_ptc_commands(
-            data.models.externalLattice, 
+            data.models.externalLattice,
             a)
 
     pkdp('\n\n\n\n\n PTC COMMANDS AT THE END?: {} \n\n\n\n\n', data.models.externalLattice.models.commands)
     v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
-    
+
 
 
 

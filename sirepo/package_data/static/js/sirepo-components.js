@@ -2263,6 +2263,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
                 $scope.modelKey = $scope.modelData.modelKey;
             }
             $scope.reportTitle = function() {
+		srdbg(`modelName `, $scope.modelName);
                 return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
             };
             $scope.notes = function () {
