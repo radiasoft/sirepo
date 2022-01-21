@@ -323,7 +323,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
+
     self.simHandleStatus = data => {
+        $scope.haveInstrumentData = data.elementValues;
+        $scope.instruments = data;
         if (data.elementValues) {
             handleElementValues(data);
         }
@@ -360,6 +363,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     return self;
 });
+
 
 SIREPO.app.directive('appFooter', function(controlsService) {
     return {

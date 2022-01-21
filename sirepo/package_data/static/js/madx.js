@@ -194,6 +194,8 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     self.panelState = panelState;
     self.simScope = $scope;
 
+    
+
     function cleanFilename(fn) {
         return fn.replace(/\.(?:tfs)/g, '');
     }
