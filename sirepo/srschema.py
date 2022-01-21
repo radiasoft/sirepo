@@ -148,6 +148,7 @@ def validate(schema):
         _validate_model_name(model_name)
         sch_model = sch_models[model_name]
         for field_name in sch_model:
+            _validate_job_run_mode(field_name, schema)
             sch_field_info = sch_model[field_name]
             if len(sch_field_info) <= 2:
                 continue
@@ -204,6 +205,20 @@ def _validate_enum(val, sch_field_info, sch_enums):
         return
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
         raise AssertionError(util.err(sch_enums, 'enum {} value {} not in schema', type, val))
+
+
+def _validate_job_run_mode(field_name, schema):
+    if field_name != 'jobRunMode':
+        return
+    from sirepo import pkcli
+    t = schema.simulationType
+    m = pkcli.import_module(t)
+    if hasattr(m, 'run_background'):
+        raise AssertionError(
+            f'simulation_type={t} cannot have'
+            ' pkcli.run_background because it supports slurm. Slurm only'
+            ' supports running a code through `python parameters.py` ',
+        )
 
 
 def _validate_model_name(model_name):
