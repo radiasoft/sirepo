@@ -2656,6 +2656,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
     const ELAPSED_TIME_INTERVAL_SECS = 1;
 
     self.initSimulationState = function(controller) {
+	srdbg(`ccccccccccc `, controller.simAnalysisModel);
         var state = {
             controller: controller,
             dots: '.',

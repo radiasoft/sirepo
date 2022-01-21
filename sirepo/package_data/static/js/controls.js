@@ -109,7 +109,12 @@ SIREPO.app.factory('controlsService', function(appState) {
         }
     };
 
-    self.computeModel = () => 'animation';
+    self.computeModel = (analysisModel) => {
+	if (analysisModel.includes('instrument')) {
+	    return 'instrumentAnimation';
+	}
+	return 'animation';
+    }
 
     self.currentField = (kickField) => 'current_' + kickField;
 
@@ -162,6 +167,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     const self = this;
     self.appState = appState;
     self.simScope = $scope;
+
+    // TODO(e-carlin): sort
+    self.simAnalysisModel = 'instrumentAnimation';
 
     function buildWatchColumns() {
         self.watches = [];
@@ -313,10 +321,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     self.cancelCallback = () => $scope.$broadcast('sr-latticeUpdateComplete');
 
-    self.computeModel = (analysisModel) => {
-        return 'instrumentAnimation';
-    }
-
     self.hasMadxLattice = () => appState.applicationState().externalLattice;
 
     //TODO(pjm): init from template to allow listeners to register before data is received
@@ -334,7 +338,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 	// if it exists then set a value on $scope that triggers the html to display the report
         srdbg('data', data);
         if (data.elementValues) {
-            
+
             // srdbg('$scope', $scope)
             handleElementValues(data);
             srdbg('appState.models', appState.models);
@@ -346,11 +350,11 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                         appState.models[k] = {};
                         self.instrumentAnimations.push(k);
                     }
-                    
-                    
+
+
             });
             srdbg('$scope.instrumentAnimations', self.instrumentAnimations);
-            srdbg('appState.models inside controls.js: ', appState.models);   
+            srdbg('appState.models inside controls.js: ', appState.models);
         }
         // else {
         //     $scope.showHeatmaps = false;
@@ -360,8 +364,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
 	// TODO(e-carlin): Need to add an instrumentAnimationX model for each
 	// instrument in the list of elements.
-        
-        
+
+
     };
 
     self.startSimulation = () => {

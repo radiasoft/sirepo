@@ -44,7 +44,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        
+
         dm = data.models
         # pkdp('\n\n\n\n\n data models: {} \n\n\n\n\n --', dm)
         # pkdp('\n\n\n\n\n externalLattice in dm? : {} \n\n\n\n\n --', 'externalLattice' in dm)
@@ -68,7 +68,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     quads=PKDict()
                 )
                 for el in cls.beamline_elements(dm.externalLattice.models):
-                    if el.type == 'QUADRUPOLE': 
+                    if el.type == 'QUADRUPOLE':
                         dm.optimizerSettings.inputs.quads[str(el._id)] = False
                     elif 'KICKER' in el.type:
                         dm.optimizerSettings.inputs.kickers[str(el._id)] = True
@@ -90,6 +90,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r == 'initialMonitorPositionsReport':
             res = ['dataFile', 'externalLattice']
         return res
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'instrument' in analysis_model:
+            return 'instrumentAnimation'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):
