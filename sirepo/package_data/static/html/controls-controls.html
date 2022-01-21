@@ -42,5 +42,8 @@
 
   <!-- TODO(e-carlin): iterate over  each animation model and create a report for it -->
   <!-- <div data-ng-repeate="m in instrumentanimations"> -->
-    <div data-report-panel="heatmap" data-model-name="instrumentAnimation"></div>
+    <div ng-if="controls.instrumentAnimations">
+      <div  data-report-panel="heatmap" data-panel-title="foo" data-model-name="instrumentAnimation23"></div>
+    </div>
+    
 </div>

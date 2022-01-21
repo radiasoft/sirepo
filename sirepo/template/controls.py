@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.template import template_common
+from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeIterator, LatticeUtil
 import copy
 import csv
@@ -21,6 +22,19 @@ import sirepo.template.madx
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 
+_FIELD_UNITS = PKDict(
+    betx='m',
+    bety='m',
+    dx='m',
+    dy='m',
+    mux='2π',
+    muy='2π',
+    s='m',
+    x='m',
+    y='m',
+)
+
+_TWISS_OUTPUT_FILE = 'twiss.tfs'
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
@@ -30,6 +44,7 @@ def background_percent_complete(report, run_dir, is_running):
             percentComplete=0,
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
+            # TODO (gurhar1133): send instrument models to browser here.
         )
     return PKDict(
         percentComplete=100,
@@ -40,12 +55,71 @@ def background_percent_complete(report, run_dir, is_running):
         )
     )
 
+# TODO (gurhar1133): may not be needed
+def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, results=None):
+    if not results:
+        assert run_dir and filename, \
+            f'must supply either results or run_dir={run_dir} and filename={filename}'
+    t = results or madx_parser.parse_tfs_file(run_dir.join(filename))
+    plots = []
+    m = data.models[data.report]
+    for f in ('y1', 'y2', 'y3'):
+        if m[f] == 'None':
+            continue
+        plots.append(
+            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
+        )
+    x = m.get('x') or 's'
+    res = template_common.parameter_plot(
+        to_floats(t[x]),
+        plots,
+        m,
+        PKDict(
+            y_label='',
+            x_label=_field_label(x),
+        )
+    )
+    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
+        res.initialTwissParameters = PKDict(
+            betx=t.betx[0],
+            bety=t.bety[0],
+            alfx=t.alfx[0],
+            alfy=t.alfy[0],
+        )
+    return res
+
+# TODO (gurhar1133): may not be needed
+def _is_parameter_report_file(filename):
+    return 'twiss' in filename or 'touschek' in filename
+
+# TODO (gurhar1133): may not be needed
+def to_float(value):
+    return float(value)
+
+# TODO (gurhar1133): may not be needed
+def to_floats(values):
+    return [to_float(v) for v in values]
+
+# TODO (gurhar1133): may not be needed
+def _field_label(field):
+    if field in _FIELD_UNITS:
+        return '{} [{}]'.format(field, _FIELD_UNITS[field])
+    return field
+
 
 def sim_frame(frame_args):
-    raise NotImplementedError('you need to implement me')
+    d = frame_args.sim_in
+    d.report = frame_args.frameReport
+    d.models[d.report] = frame_args
+    pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.report: {}', d.report)
+    pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.models: {}', d.models)
+    return _extract_report_elementAnimation(d, frame_args.run_dir, 'ptc_track.file.tfsone')
+    # raise NotImplementedError('you need to implement me')
+
+    
 # TODO(e-carlin): you are going to have to implement something like this code
 # TODO(e-carlin): this was copied from madx; need to abstract and share
-"""
+
 def _extract_report_elementAnimation(data, run_dir, filename):
     if _is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
@@ -63,8 +137,6 @@ def _extract_report_elementAnimation(data, run_dir, filename):
             ),
         ),
     )
-
-"""
 
 def stateful_compute_get_madx_sim_list(data):
     res = []
@@ -281,6 +353,16 @@ def _generate_madx(v, data):
     # _set_ptc_ids(ptc_commands_all, data.models.externalLattice)
 
     # _insert_ptc_commands(data.models.externalLattice, ptc_commands_all)
+    # def _save_instruments_to_models(data):
+    #     data.models['instruments'] = []
+    #     for c in data.models.commands:
+    #         if c._type == 'ptc_observe':
+    #             data.models.instruments.append(
+    #                 PKDict(
+    #                     name=c.place,
+    #                     _type='INSTRUMENT',
+    #                 )
+    #             )
 
     c = PKDict(
         header=[],
@@ -300,6 +382,7 @@ def _generate_madx(v, data):
         el = element_map[el_id]
         if el.type == 'INSTRUMENT':
             i.append(el)
+            
         if el.type == 'KICKER' and k[str(el_id)]:
             _set_opt(el, 'hkick', c)
             _set_opt(el, 'vkick', c)
@@ -327,7 +410,11 @@ def _generate_madx(v, data):
             data.models.externalLattice,
             a)
 
-    pkdp('\n\n\n\n\n PTC COMMANDS AT THE END?: {} \n\n\n\n\n', data.models.externalLattice.models.commands)
+    # pkdp('\n\n\n\n\n\n x-x-x-x-x-x-x-x-x-x-x \n\n\n\n\n\n')
+    # _save_instruments_to_models(data.models.externalLattice)
+
+
+    pkdp('\n\n\n\n\n INSTRUMENTS IN MODELS?: {} \n\n\n\n\n', data.models.externalLattice.models)
     v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
 
 

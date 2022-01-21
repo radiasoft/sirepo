@@ -119,6 +119,7 @@
             "inputs": ["", "OptimizerInputIds"],
             "method": ["Optimization Method", "OptimizationMethod", "nmead"]
         },
+        "instruments": [],
         "optimizerTarget": {
             "x": ["X [m]", "Float", 0.0],
             "y": ["Y [m]", "Float", 0.0],

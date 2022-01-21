@@ -310,7 +310,12 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             ? 6 : 4;
     }
 
+
     self.cancelCallback = () => $scope.$broadcast('sr-latticeUpdateComplete');
+
+    self.computeModel = (analysisModel) => {
+        return 'instrumentAnimation';
+    }
 
     self.hasMadxLattice = () => appState.applicationState().externalLattice;
 
@@ -327,22 +332,36 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.simHandleStatus = data => {
 	// TODO(e-carlin): check for the bool for ptc particles output file existing
 	// if it exists then set a value on $scope that triggers the html to display the report
+        srdbg('data', data);
         if (data.elementValues) {
+            
+            // srdbg('$scope', $scope)
             handleElementValues(data);
+            srdbg('appState.models', appState.models);
+            self.instrumentAnimations = []
+            appState.models.externalLattice.models.elements.forEach((m, i) => {
+                    srdbg('MODEL', m);
+                    if (m.type === 'INSTRUMENT') {
+                        const k = 'instrumentAnimation' + i;
+                        appState.models[k] = {};
+                        self.instrumentAnimations.push(k);
+                    }
+                    
+                    
+            });
+            srdbg('$scope.instrumentAnimations', self.instrumentAnimations);
+            srdbg('appState.models inside controls.js: ', appState.models);   
         }
+        // else {
+        //     $scope.showHeatmaps = false;
+        // }
         if (! self.simState.isProcessing()) {
             $scope.$broadcast('sr-latticeUpdateComplete');
         }
 	// TODO(e-carlin): Need to add an instrumentAnimationX model for each
 	// instrument in the list of elements.
-	// appState.models.elements.forEach((m) => {
-	//     if (m._type !== 'INSTRUMENT') {
-	// 	return;
-	//     }
-	//     const k = 'instrumentAnimation' + i;
-	//     appState.models[k] = {};
-	//     $scope.instrumentAnimations.push(k)
-	// })
+        
+        
     };
 
     self.startSimulation = () => {
@@ -649,7 +668,7 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
             $scope.showTabs = true;
             $scope.stringsService = stringsService;
 
-            srdbg('appState.models.optimizerSettings', $scope.appState.models.optimizerSettings.inputs);
+            // srdbg('appState.models.optimizerSettings', $scope.appState.models.optimizerSettings.inputs);
         },
     };
 });

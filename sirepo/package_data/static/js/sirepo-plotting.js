@@ -114,6 +114,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
         };
         scope.hasManyFrames = function() {
+            srdbg('x-x-x-x-x-x-x');
+            srdbg('scope.modelName: ', scope.modelName);
+            srdbg('appState.models: ', appState.models);
             if (SIREPO.SINGLE_FRAME_ANIMATION && SIREPO.SINGLE_FRAME_ANIMATION.indexOf(scope.modelName) >= 0) {
                 return false;
             }
