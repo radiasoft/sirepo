@@ -323,6 +323,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
+
     self.simHandleStatus = data => {
 	// TODO(e-carlin): check for the bool for ptc particles output file existing
 	// if it exists then set a value on $scope that triggers the html to display the report
@@ -372,6 +373,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     return self;
 });
+
 
 SIREPO.app.directive('appFooter', function(controlsService) {
     return {
