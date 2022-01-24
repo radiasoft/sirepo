@@ -122,11 +122,9 @@ def create_user(github_handle=None, check_dir=False):
         n = unchecked_jupyterhub_user_name()
         if n:
             return n
-        if check_dir:
-            h = __handle_or_name_sanitized()
-            assert not _user_dir(h).exists(), \
-                f'existing user dir with same name={h}'
         u = __user_name()
+        if check_dir and _user_dir(u).exists():
+            raise AssertionError(f'existing user dir with same name={u}')
         JupyterhubUser(
             uid=sirepo.auth.logged_in_user(),
             user_name=u,
