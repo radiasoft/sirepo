@@ -145,37 +145,61 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
         return extract_parameter_report(data, run_dir, filename)
 
     pkdp('\n\n\n\n REPORT: {}', frame_args.frameReport)
-
-    pkdp('\n\n\n\n data.models[data.report]: {}', data.models[frame_args.frameReport])
+    
+        
+    #pkdp('\n\n\n\n data.models[data.report]: {}', data.models[frame_args.frameReport])
     # pkdp('\n\n\n\n -------- data (in extract): {}', data)
     # pkdp('\n\n\n\n -------- data.report (in extract): {}', data.report)
-    element_id = data.models[frame_args.frameReport].id
-    data.models[frame_args.frameReport] = frame_args
+    
     
     # pkdp('\n\n\n\n\n m.id {}', m.id)
     info_all = madx_parser.parse_tfs_page_info(run_dir.join(filename))
     
     idx = 0
 
-    # pkdp('\n\n\n\n\n external Lattice models: {}', frame_args.sim_in.models.externalLattice.models.elements)
-    obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
-        
-            # print('\n\n\n\n\n\n\n\n ------- INST ------- {}', obj)
-    target = obj.name
-            
-    # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
-    for i in info_all:
-        if i.name == target:
-            idx = info_all.index(i)
-            info = i
-            
+    #pkdp('\n\n\n\n\n external Lattice models: {}', frame_args.sim_in.models.externalLattice.models.elements)
 
-    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
+    if 'start' in frame_args.frameReport:
+        target = 'start'
+                
+        # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
+        for i in info_all:
+            if i.name == target:
+                idx = info_all.index(i)
+                info = i
 
-    # pkdp(' \n\n\n\n\n\n\n\n INFO ALL: {}', madx_parser.parse_tfs_page_info(run_dir.join(filename)))
-    # pkdp('\n\n\n\n\n frame_args.x {}, frame_args.y1 {}', frame_args.x, frame_args.y1)
-    # pkdp('\n\n\n\n\n\n\n\n  T {}', t)
-    # pkdp(' \n\n\n\n\n\n\n\n INFO {}', info)
+        t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=0)
+    elif 'end' in frame_args.frameReport:
+        target = 'end'
+                
+        # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
+        for i in info_all:
+            if i.name == target:
+                idx = info_all.index(i)
+                info = i
+
+        t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=len(info_all)-1)
+    else:
+        element_id = data.models[frame_args.frameReport].id
+        data.models[frame_args.frameReport] = frame_args
+        obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
+            
+                # print('\n\n\n\n\n\n\n\n ------- INST ------- {}', obj)
+        target = obj.name
+                
+        # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
+        for i in info_all:
+            if i.name == target:
+                idx = info_all.index(i)
+                info = i
+                
+
+        t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
+
+        # pkdp(' \n\n\n\n\n\n\n\n INFO ALL: {}', madx_parser.parse_tfs_page_info(run_dir.join(filename)))
+        # pkdp('\n\n\n\n\n frame_args.x {}, frame_args.y1 {}', frame_args.x, frame_args.y1)
+        # pkdp('\n\n\n\n\n\n\n\n  T {}', t)
+        # pkdp(' \n\n\n\n\n\n\n\n INFO {}', info)
     
     return template_common.heatmap( 
     # TODO (gurhar1133): see original in madx; used t._ instead of t[m._]. m needs to have x and y fields that are set in UI
@@ -389,14 +413,11 @@ def _generate_parameters(v, data):
         return ptc_commands_all
 
     def _get_all_ptc(instruments, data):
-
         p = []
         u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
         if not u:
             return _gen_full_ptc(p, instruments, data)
         else:
-            # POSIT: if ptc_create_universe exists, assume all needed ptc commands exist
-            pkdp('\n\n\n\n\n FOUND ptc_create_universe, so just inserting instruments \n\n\n\n\n')
             t = 0
             for i, c in enumerate(data.models.commands):
                 if c._type == 'ptc_create_universe':
@@ -408,47 +429,6 @@ def _generate_parameters(v, data):
                 data.models.commands.insert(t + i, c)
 
             return None
-
-    # ptc_commands_all = []
-    # ptc_commands_all.append(
-    #     PKDict(
-    #         _type='ptc_create_universe',
-    #         name='PT1',
-    #     ))
-
-
-    # ptc_commands_all.append(
-    #     PKDict(
-    #         _type='ptc_create_layout',
-    #     ))
-    # ptc_commands_all.append(
-    #     PKDict(
-    #         _type='ptc_track',
-    #         file='1',
-    #     ))
-    # ptc_commands_all.append(
-    #     PKDict(
-    #         _type='ptc_track_end',
-    #         name='PT1'
-    #     ))
-    # ptc_commands_all.append(
-    #     PKDict(
-    #         _type='ptc_end',
-    #         name='PT1'
-    #     ))
-    # _set_ptc_ids(ptc_commands_all, data.models.externalLattice)
-
-    # _insert_ptc_commands(data.models.externalLattice, ptc_commands_all)
-    # def _save_instruments_to_models(data):
-    #     data.models['instruments'] = []
-    #     for c in data.models.commands:
-    #         if c._type == 'ptc_observe':
-    #             data.models.instruments.append(
-    #                 PKDict(
-    #                     name=c.place,
-    #                     _type='INSTRUMENT',
-    #                 )
-    #             )
 
     c = PKDict(
         header=[],
@@ -483,18 +463,12 @@ def _generate_parameters(v, data):
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header) / 2
-    
-
     a = _get_all_ptc(i, data.models.externalLattice)
     if a:
         pkdp('\n\n\n\n\n CHECK IF PTC COMMANDS CREATED: {}', a)
         _insert_ptc_commands(
             data.models.externalLattice,
             a)
-
-    # pkdp('\n\n\n\n\n\n x-x-x-x-x-x-x-x-x-x-x \n\n\n\n\n\n')
-    # _save_instruments_to_models(data.models.externalLattice)
-
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)

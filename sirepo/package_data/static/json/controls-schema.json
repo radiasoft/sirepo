@@ -192,7 +192,7 @@
     },
     "view": {
         "instrumentAnimation": {
-                "title": "Placeholder Title",
+                "title": "Cross Section",
                 "model": "instrumentAnimation",
                 "advanced": [
                     [

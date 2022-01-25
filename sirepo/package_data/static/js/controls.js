@@ -306,48 +306,58 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     };
 
+    function setHeatmapModels(modelKey, data) {
+        const k = {
+            modelAccess: {
+                modelKey: modelKey,
+                getData: function () {
+                    return appState.models[modelKey];
+                }
+            }
+        }
+        // appState.models[k] = {};
+        self.instrumentAnimations.push(k);
+        srdbg('instrumentAnimations: ', self.instrumentAnimations);
+        var m = appState.models[modelKey];
+        if (!m) {
+            m = {
+                id: 'start',
+                x: data.plottableColumns[0],
+                y1: data.plottableColumns[1],
+            };
+            appState.models[modelKey] = m;
+
+        }
+        m.id = 'start';
+        srdbg('data.plottableColumns: ', data.plottableColumns)
+        m.valueList = {
+            x: data.plottableColumns,
+            y1: data.plottableColumns,
+        }
+            
+        // m.x = 'x',
+        // m.y1 = 'y',
+        appState.setModelDefaults(m, 'instrumentAnimation');
+        appState.saveQuietly(modelKey);
+        frameCache.setFrameCount(1, modelKey);
+    }
+
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
+        const modelKeyStart = 'instrumentAnimation' + 'start'; 
+        const modelKeyEnd = 'instrumentAnimation' + 'end';
+
+        setHeatmapModels(modelKeyStart, data);
+
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 srdbg('MODEL', m);
                 if (m.type === 'INSTRUMENT') {
                     const modelKey = 'instrumentAnimation' + i; 
-                    const k = {
-                        modelAccess: {
-                            
-                            modelKey: modelKey,
-                            getData: function () {
-                                return appState.models[modelKey];
-                            }
-                        }
-                    }
-                    // appState.models[k] = {};
-                    self.instrumentAnimations.push(k);
-                    srdbg('instrumentAnimations: ', self.instrumentAnimations);
-                    var m = appState.models[modelKey];
-                    if (!m) {
-                        m = {
-                            id: i,
-                            x: data.plottableColumns[0],
-                            y1: data.plottableColumns[1],
-                        };
-                        appState.models[modelKey] = m;
-
-                    }
-                    m.id = i;
-                    srdbg('data.plottableColumns: ',data.plottableColumns)
-                    m.valueList = {
-                        x: data.plottableColumns,
-                        y1: data.plottableColumns,
-                    }
-                     
-                    // m.x = 'x',
-                    // m.y1 = 'y',
-                    appState.setModelDefaults(m, 'instrumentAnimation');
-                    appState.saveQuietly(modelKey);
-                    frameCache.setFrameCount(1, modelKey);
+                    setHeatmapModels(modelKey, data);    
                 }
         });
+
+        setHeatmapModels(modelKeyEnd, data);
     }
 
     self.startSimulation = () => {
