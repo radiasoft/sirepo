@@ -330,6 +330,9 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, is_parallel, run_dir=run_dir),
     )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd(mpi=True)
+    return None
 
 
 def _add_obj_lines(field_data, obj):

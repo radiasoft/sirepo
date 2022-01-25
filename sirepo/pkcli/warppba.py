@@ -9,7 +9,6 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.template
@@ -38,15 +37,6 @@ def run(cfg_dir):
     else:
         raise AssertionError('invalid report: {}'.format(a.frameReport))
     template_common.write_sequential_result(res)
-
-
-def run_background(cfg_dir, sbatch=False):
-    """Run code in ``cfg_dir`` with mpi
-
-    Args:
-        cfg_dir (str): directory to run code in
-    """
-    template_common.exec_parameters_with_mpi()
 
 
 def _run_code():
