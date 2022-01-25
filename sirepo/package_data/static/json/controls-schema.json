@@ -63,7 +63,18 @@
         ]
     },
     "frameIdFields": {
-        "instrumentAnimation": []
+        "instrumentAnimation": [
+            "x",
+            "y1",
+            "y2",
+            "y3",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset"
+        ]
     },
     "localRoutes": {
         "controls": {
@@ -96,6 +107,12 @@
         "optimizerInputsTab": {
             "title": "Optimization",
             "advanced": []
+        },
+        "instrumentAnimation":{
+            "x": ["Horizontal Value to Plot", "ValueList", ""],
+            "y1": ["Vertical Value to Plot", "ValueList", ""],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "command_twiss": {
             "alfx": ["Horizontal Alpha", "Float", 0.0],
@@ -165,10 +182,22 @@
         "completionState": ""
     },
     "view": {
-	"instrumentAnimation": {
-            "title": "fancy title",
-            "advanced": []
-	},
+        "instrumentAnimation": {
+                "title": "Placeholder Title",
+                "model": "instrumentAnimation",
+                "advanced": [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "colorMap"
+                ]
+        },
         "beamline": {
             "title": "Beamline",
             "advanced": []

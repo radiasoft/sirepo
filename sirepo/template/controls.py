@@ -9,6 +9,7 @@ from dis import Instruction
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+# from zmq import frame
 from sirepo.template import template_common
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeIterator, LatticeUtil
@@ -44,6 +45,7 @@ def background_percent_complete(report, run_dir, is_running):
             percentComplete=0,
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
+            plottableColumns=['x', 'px', 'y', 'py', 't', 's', 'e'],
             # TODO (gurhar1133): send instrument models to browser here.
         )
     return PKDict(
@@ -52,11 +54,13 @@ def background_percent_complete(report, run_dir, is_running):
         elementValues=_read_summary_line(
             run_dir,
             SCHEMA.constants.maxBPMPoints,
-        )
+        ),
+        plottableColumns=['x', 'px', 'y', 'py', 't', 's', 'e'],
     )
 
-# TODO (gurhar1133): may not be needed
+
 def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, results=None):
+    # TODO (gurhar1133): this was copied from madx
     if not results:
         assert run_dir and filename, \
             f'must supply either results or run_dir={run_dir} and filename={filename}'
@@ -88,60 +92,94 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
         )
     return res
 
-# TODO (gurhar1133): may not be needed
+
 def _is_parameter_report_file(filename):
+    # TODO (gurhar1133): this was copied from madx
     return 'twiss' in filename or 'touschek' in filename
 
-# TODO (gurhar1133): may not be needed
+
 def to_float(value):
+    # TODO (gurhar1133): this was copied from madx
     return float(value)
 
-# TODO (gurhar1133): may not be needed
+
 def to_floats(values):
+    # TODO (gurhar1133): this was copied from madx
     return [to_float(v) for v in values]
 
-# TODO (gurhar1133): may not be needed
+
 def _field_label(field):
+    # TODO (gurhar1133): this was copied from madx
+    pkdp('\n\n\n\n\n FIELD: {}', field)
     if field in _FIELD_UNITS:
         return '{} [{}]'.format(field, _FIELD_UNITS[field])
     return field
 
 
 def sim_frame(frame_args):
-    d = frame_args.sim_in
-    d.report = frame_args.frameReport
-    d.models[d.report] = frame_args
-    pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.report: {}', d.report)
-    pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.models: {}', d.models)
-    return _extract_report_elementAnimation(d, frame_args.run_dir, 'ptc_track.file.tfsone')
+    # TODO (gurhar1133): this was copied from madx
+    # d = frame_args.sim_in
+    # d.report = frame_args.frameReport
+    # d.models[d.report] = frame_args
+    # pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.report: {}', d.report)
+    # pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.models: {}', d.models)
+    return _extract_report_elementAnimation(frame_args, frame_args.run_dir, 'ptc_track.file.tfsone')
     # raise NotImplementedError('you need to implement me')
 
     
 # TODO(e-carlin): you are going to have to implement something like this code
 # TODO(e-carlin): this was copied from madx; need to abstract and share
+def _extract_report_elementAnimation(frame_args, run_dir, filename):
+    data = frame_args.sim_in
 
-def _extract_report_elementAnimation(data, run_dir, filename):
+    # TODO (gurhar1133): this was copied from madx; need to abstract and share
     if _is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
-    m = data.models[data.report]
-    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
-    info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
 
-    pkdp('\n\n\n\n\n\n\n\n M {}', m)
-    pkdp('data.report {}', data.report)
-    pkdp(' T {}', t)
-    for guy in t:
-        pkdp('\n\n\n\n t boi: {}', guy)
+    pkdp('\n\n\n\n REPORT: {}', frame_args.frameReport)
 
-    pkdp('info {}', info)
-    return template_common.heatmap(
-        [to_floats(t.x), to_floats(t.px)],
-        m,
+    pkdp('\n\n\n\n data.models[data.report]: {}', data.models[frame_args.frameReport])
+    # pkdp('\n\n\n\n -------- data (in extract): {}', data)
+    # pkdp('\n\n\n\n -------- data.report (in extract): {}', data.report)
+    element_id = data.models[frame_args.frameReport].id
+    data.models[frame_args.frameReport] = frame_args
+    
+    # pkdp('\n\n\n\n\n m.id {}', m.id)
+    info_all = madx_parser.parse_tfs_page_info(run_dir.join(filename))
+    
+    idx = 0
+
+    # pkdp('\n\n\n\n\n external Lattice models: {}', frame_args.sim_in.models.externalLattice.models.elements)
+    obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
+        
+            # print('\n\n\n\n\n\n\n\n ------- INST ------- {}', obj)
+    target = obj.name
+            
+    # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
+    for i in info_all:
+        if i.name == target:
+            idx = info_all.index(i)
+            info = i
+            
+
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
+
+    # pkdp(' \n\n\n\n\n\n\n\n INFO ALL: {}', madx_parser.parse_tfs_page_info(run_dir.join(filename)))
+    # pkdp('\n\n\n\n\n frame_args.x {}, frame_args.y1 {}', frame_args.x, frame_args.y1)
+    # pkdp('\n\n\n\n\n\n\n\n  T {}', t)
+    # pkdp(' \n\n\n\n\n\n\n\n INFO {}', info)
+    
+    return template_common.heatmap( 
+    # TODO (gurhar1133): see original in madx; used t._ instead of t[m._]. m needs to have x and y fields that are set in UI
+    # right now just a heatmap of x and px hardcoded
+    # frame_args is what m was in madx
+        [to_floats(t[frame_args.x]), to_floats(t[frame_args.y1])],
+        frame_args,
         PKDict(
-            x_label=_field_label('101'),
-            y_label=_field_label('101'),
-            title='{}-{} at {}m, {} turn {}'.format(
-                t.x, t.px, t.s, t.number, t.turn,
+            x_label=_field_label(frame_args.x),
+            y_label=_field_label(frame_args.y1),
+            title='{}-{} at {}m, {}'.format(
+                frame_args.x, frame_args.y1, info.s, info.name, 
             ),
         ),
     )

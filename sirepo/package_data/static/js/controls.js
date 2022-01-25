@@ -336,25 +336,16 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.simHandleStatus = data => {
 	// TODO(e-carlin): check for the bool for ptc particles output file existing
 	// if it exists then set a value on $scope that triggers the html to display the report
-        srdbg('data', data);
+        // srdbg('data', data);
         if (data.elementValues) {
 
             // srdbg('$scope', $scope)
             handleElementValues(data);
-            srdbg('appState.models', appState.models);
-            self.instrumentAnimations = []
-            appState.models.externalLattice.models.elements.forEach((m, i) => {
-                    srdbg('MODEL', m);
-                    if (m.type === 'INSTRUMENT') {
-                        const k = 'instrumentAnimation' + i;
-                        appState.models[k] = {};
-                        self.instrumentAnimations.push(k);
-                    }
-
-
-            });
-            srdbg('$scope.instrumentAnimations', self.instrumentAnimations);
-            srdbg('appState.models inside controls.js: ', appState.models);
+            loadHeatmapReports(data);
+            // srdbg('appState.models', appState.models);
+            
+            // srdbg('$scope.instrumentAnimations', self.instrumentAnimations);
+            // srdbg('appState.models inside controls.js: ', appState.models);
         }
         // else {
         //     $scope.showHeatmaps = false;
@@ -367,6 +358,50 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
 
     };
+
+    function loadHeatmapReports(data) {
+        self.instrumentAnimations = []
+        appState.models.externalLattice.models.elements.forEach((m, i) => {
+                srdbg('MODEL', m);
+                if (m.type === 'INSTRUMENT') {
+                    const modelKey = 'instrumentAnimation' + i; 
+                    const k = {
+                        modelAccess: {
+                            
+                            modelKey: modelKey,
+                            getData: function () {
+                                return appState.models[modelKey];
+                            }
+                        }
+                    }
+                    // appState.models[k] = {};
+                    self.instrumentAnimations.push(k);
+                    srdbg('instrumentAnimations: ', self.instrumentAnimations);
+                    var m = appState.models[modelKey];
+                    if (!m) {
+                        m = {
+                            id: i,
+                            x: data.plottableColumns[0],
+                            y1: data.plottableColumns[1],
+                        };
+                        appState.models[modelKey] = m;
+
+                    }
+                    m.id = i;
+                    srdbg('data.plottableColumns: ',data.plottableColumns)
+                    m.valueList = {
+                        x: data.plottableColumns,
+                        y1: data.plottableColumns,
+                    }
+                     
+                    // m.x = 'x',
+                    // m.y1 = 'y',
+                    appState.setModelDefaults(m, 'instrumentAnimation');
+                    appState.saveQuietly(modelKey);
+                    frameCache.setFrameCount(1, modelKey);
+                }
+        });
+    }
 
     self.startSimulation = () => {
         $scope.$broadcast('sr-clearElementValues');

@@ -625,6 +625,15 @@ def _extract_report_elementAnimation(data, run_dir, filename):
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
+
+    pkdp('\n\n\n\n\n\n\n\n M {}', m)
+    pkdp('\n\n\n\n\n\n\n\n  data.report {}', data.report)
+    pkdp('\n\n\n\n\n\n\n\n  T {}', t)
+    pkdp(' \n\n\n\n\n\n\n\n INFO {}', info)
+
+
+    pkdp('\n\n\n\n info {}', info)
+
     return template_common.heatmap(
         [to_floats(t[m.x]), to_floats(t[m.y1])],
         m,
