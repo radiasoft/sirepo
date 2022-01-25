@@ -9,16 +9,18 @@ from dis import Instruction
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-# from zmq import frame
+from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import template_common
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeIterator, LatticeUtil
 import copy
 import csv
+import os
 import re
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.madx
+import socket
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
@@ -36,6 +38,12 @@ _FIELD_UNITS = PKDict(
 )
 
 _TWISS_OUTPUT_FILE = 'twiss.tfs'
+_DEVICE_SERVER_PROPERTY_IDS = PKDict(
+    HKICKER=PKDict(kick='propForHKick'),
+    KICKER=PKDict(hkick='propForHKick', vkick='propForVKick'),
+    VKICKER=PKDict(kick='propForHKick'),
+)
+
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
@@ -202,7 +210,32 @@ def stateful_compute_get_madx_sim_list(data):
 
 
 def stateful_compute_get_external_lattice(data):
-    return _get_external_lattice(data.simulationId)
+    madx = sirepo.simulation_db.read_json(
+        _SIM_DATA.controls_madx_dir().join(
+            data.simulationId,
+            sirepo.simulation_db.SIMULATION_DATA_FILE,
+        ),
+    )
+    _delete_unused_madx_models(madx)
+    sirepo.template.madx.eval_code_var(madx)
+    by_name = _delete_unused_madx_commands(madx)
+    sirepo.template.madx.uniquify_elements(madx)
+    _add_monitor(madx)
+    madx.models.bunch.beamDefinition = 'gamma'
+    _SIM_DATA.update_beam_gamma(by_name.beam)
+    _SIM_DATA.init_currents(by_name.beam, madx.models)
+    return _SIM_DATA.init_process_variables(PKDict(
+        externalLattice=madx,
+        optimizerSettings=_SIM_DATA.default_optimizer_settings(madx.models),
+        command_beam=by_name.beam,
+        command_twiss=by_name.twiss,
+    ))
+
+
+def stateless_compute_current_to_kick(data):
+    return PKDict(
+        kick=AmpConverter(data.command_beam, data.amp_table).current_to_kick(data.current),
+    )
 
 
 def python_source_for_model(data, model):
@@ -239,12 +272,16 @@ def _delete_unused_madx_commands(data):
     for c in data.models.commands:
         if c._type in by_name and not by_name[c._type]:
             by_name[c._type] = c
-    if by_name.twiss:
-        by_name.twiss.sectorfile = '0'
-        by_name.twiss.sectormap = '0'
-        by_name.twiss.file = '1';
-    data.models.bunch.beamDefinition = 'gamma';
-    _SIM_DATA.update_beam_gamma(by_name.beam)
+
+    if not by_name.twiss:
+        by_name.twiss = PKDict(
+            _id=LatticeUtil.max_id(data) + 2,
+            _type='twiss',
+            file='1',
+        )
+    by_name.twiss.sectorfile = '0'
+    by_name.twiss.sectormap = '0'
+    by_name.twiss.file = '1'
     data.models.commands = [
         by_name.beam,
         PKDict(
@@ -253,12 +290,9 @@ def _delete_unused_madx_commands(data):
             flag='twiss',
             column='name,keyword,s,x,y',
         ),
-        by_name.twiss or PKDict(
-            _id=LatticeUtil.max_id(data) + 2,
-            _type='twiss',
-            file='1',
-        )
+        by_name.twiss,
     ]
+    return by_name
 
 
 def _delete_unused_madx_models(data):
@@ -277,7 +311,9 @@ def _delete_unused_madx_models(data):
 
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
-    _generate_madx(v, data)
+    _generate_parameters(v, data)
+    if data.models.controlSettings.operationMode == 'DeviceServer':
+        _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
@@ -285,16 +321,20 @@ def _generate_parameters_file(data):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
-def _generate_madx(v, data):
+def _generate_parameters(v, data):
 
     def _format_header(el_id, field):
         return f'el_{el_id}.{field}'
 
+    v.ampTableNames = []
+    v.ampTables = data.models.get('ampTables', PKDict())
+
     def _set_opt(el, field, all_correctors):
         count = len(all_correctors.corrector)
-        all_correctors.corrector.append(el[field])
+        all_correctors.corrector.append(el[_SIM_DATA.current_field(field)])
         el[field] = '{' + f'sr_opt{count}' + '}'
-        all_correctors.header.append(_format_header(el._id, field))
+        all_correctors.header.append(_format_header(el._id, _SIM_DATA.current_field(field)))
+        v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
 
     def _insert_ptc_commands(data, ptc_commands):
         dmc = data.models.commands
@@ -421,20 +461,16 @@ def _generate_madx(v, data):
     q = data.models.optimizerSettings.inputs.quads
 
     header = []
-    element_map = PKDict({e._id: e for e in madx.elements})
 
-    for el_id in madx.beamlines[0]['items']:
-
-        el = element_map[el_id]
-        if el.type == 'INSTRUMENT':
-            i.append(el)
-            
-        if el.type == 'KICKER' and k[str(el_id)]:
+    for el in _SIM_DATA.beamline_elements(madx):
+        if el.type == 'KICKER' and k[str(el._id)]:
             _set_opt(el, 'hkick', c)
             _set_opt(el, 'vkick', c)
-        elif el.type in ('HKICKER', 'VKICKER') and k[str(el_id)]:
+        elif el.type == 'INSTRUMENT':
+            i.append(el)
+        elif el.type in ('HKICKER', 'VKICKER') and k[str(el._id)]:
             _set_opt(el, 'kick', c)
-        elif el.type == 'QUADRUPOLE' and q[str(el_id)]:
+        elif el.type == 'QUADRUPOLE' and q[str(el._id)]:
             _set_opt(el, 'k1', c)
         elif el.type == 'MONITOR':
             header += [_format_header(el._id, x) for x in ('x', 'y')]
@@ -447,7 +483,7 @@ def _generate_madx(v, data):
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header) / 2
-    data.models.externalLattice.report = ''
+    
 
     a = _get_all_ptc(i, data.models.externalLattice)
     if a:
@@ -459,29 +495,9 @@ def _generate_madx(v, data):
     # pkdp('\n\n\n\n\n\n x-x-x-x-x-x-x-x-x-x-x \n\n\n\n\n\n')
     # _save_instruments_to_models(data.models.externalLattice)
 
-
-    pkdp('\n\n\n\n\n INSTRUMENTS IN MODELS?: {} \n\n\n\n\n', data.models.externalLattice.models)
-    v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
-
-
-
-
-def _get_external_lattice(simulation_id):
-    d = sirepo.simulation_db.read_json(
-        _SIM_DATA.controls_madx_dir().join(
-            simulation_id,
-            sirepo.simulation_db.SIMULATION_DATA_FILE,
-        ),
-    )
-    _delete_unused_madx_models(d)
-    _delete_unused_madx_commands(d)
-    sirepo.template.madx.uniquify_elements(d)
-    _add_monitor(d)
-    sirepo.template.madx.eval_code_var(d)
-    return PKDict(
-        externalLattice=d,
-        optimizerSettings=_SIM_DATA.default_optimizer_settings(d.models),
-    )
+    if data.models.controlSettings.operationMode == 'madx':
+        data.models.externalLattice.report = ''
+        v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
 
 
 def _has_beamline(model):
@@ -528,3 +544,46 @@ def _read_summary_line(run_dir, line_count=None):
         if len(header) == len(line):
             return [PKDict(zip(header, line))]
     return None
+
+
+def _validate_process_variables(v, data):
+    settings = data.models.controlSettings
+    if not settings.deviceServerURL:
+        raise AssertionError('Missing DeviceServer URL value')
+    elmap = PKDict({e._id: e for e in data.models.externalLattice.models.elements})
+    properties = PKDict(
+        read=[],
+        write=[],
+    )
+    for pv in settings.processVariables:
+        el = elmap[pv.elId]
+        name = el.name
+        if not pv.pvName:
+            raise AssertionError(f'Missing Process Variable Name for beamline element {name}')
+        values = re.split(r':', pv.pvName)
+        if len(values) != 2:
+            raise AssertionError(f'Beamline element {name} Process Variable must contain one : separator')
+        idx = None
+        if pv.isWritable == '0':
+            m = re.search(r'\[(\d+)\]', values[1])
+            if m:
+                idx = int(m.group(1))
+                values[1] = re.sub(r'\[.*$', '', values[1])
+        properties['write' if pv.isWritable == '1' else 'read'].append(PKDict(
+            device=values[0],
+            name=values[1],
+            index=idx,
+            type=el.type,
+        ))
+    v.properties = properties
+    v.property_types = properties.keys()
+    config = PKDict(
+        #TODO(pjm): set from config
+        user='moeller',
+        procName='RadiaSoft/Sirepo',
+        procId=os.getpid(),
+        machine=socket.gethostname(),
+    )
+    v.deviceServerSetContext = '&'.join([
+        f'{k}={config[k]}' for k in config
+    ])
