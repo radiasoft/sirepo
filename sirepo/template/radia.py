@@ -38,10 +38,25 @@ _AXIS_ROTATIONS = PKDict(
 _DIPOLE_NOTES = PKDict(
     dipoleBasic='Simple dipole with permanent magnets',
     dipoleC='C-bend dipole with a single coil',
-    dipoleH='H-bend dipole with two coils'
+    dipoleH='H-bend dipole with two coils',
 )
 
 _DMP_FILE = 'geometry.dat'
+
+_FREEHAND_NOTES = PKDict(
+    freehand='',
+)
+
+_UNDULATOR_NOTES = PKDict(
+    undulatorBasic='Simple undulator with permanent magnets',
+    undulatorHybrid='Undulator with alternating permanent magnets and susceptible poles',
+)
+
+_MAGNET_NOTES = PKDict(
+    dipole=_DIPOLE_NOTES,
+    freehand=_FREEHAND_NOTES,
+    undulator=_UNDULATOR_NOTES,
+)
 
 # Note that these column names and units are required by elegant
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
@@ -293,26 +308,24 @@ def new_simulation(data, new_simulation_data):
     data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
     _prep_new_sim(data)
     dirs = _geom_directions(new_simulation_data.beamAxis, new_simulation_data.heightAxis)
-    #TODO(mvk): dict of magnet types to builder methods
     t = new_simulation_data.get('magnetType', 'freehand')
+    s = new_simulation_data[f'{t}Type']
+    m = data.models[s]
+    data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    pkinspect.module_functions('_build_')[f'_build_{t}_objects'](
+        data.models.geometryReport,
+        m,
+        height_dir=dirs.height_dir,
+        length_dir=dirs.length_dir,
+        width_dir=dirs.width_dir,
+    )
     if t == 'undulator':
-        _build_undulator_objects(data.models.geometryReport, data.models.hybridUndulator, dirs)
         data.models.fieldPaths.paths.append(_build_field_axis(
-            (data.models.hybridUndulator.numPeriods + 0.5) * data.models.hybridUndulator.periodLength,
+            (m.numPeriods + 0.5) * m.periodLength,
             new_simulation_data.beamAxis
         ))
         data.models.simulation.enableKickMaps = '1'
-        _update_kickmap(data.models.kickMapReport, data.models.hybridUndulator, new_simulation_data.beamAxis)
-    if t == 'dipole':
-        d = data.models[new_simulation_data.dipoleType]
-        data.models.simulation.notes = _DIPOLE_NOTES[d.dipoleType]
-        _build_dipole_objects(
-            data.models.geometryReport,
-            d,
-            height_dir=dirs.height_dir,
-            length_dir=dirs.length_dir,
-            width_dir=dirs.width_dir,
-        )
+        _update_kickmap(data.models.kickMapReport, m, new_simulation_data.beamAxis)
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -491,34 +504,26 @@ def _build_translate_clone(dist):
     return tx
 
 
-def _build_undulator_objects(geom, und, dirs):
-    # arrange object
-    geom.objects = []
-    #TODO(mvk): proper dispatch to replace this temporary branching based on object type
-    # It's going to depend on some other changes
-    half_pole = _build_geom_obj(und.poleObjType, name='Half Pole')
+def _build_undulator_objects(geom, model, **kwargs):
+    half_pole = _build_geom_obj(model.pole.type, name='Half Pole')
     geom.objects.append(half_pole)
-    magnet_block = _build_geom_obj(und.magnetObjType, name='Magnet Block')
-    geom.objects.append(magnet_block)
-    und.magnet = magnet_block
-    und.magnetBaseObjectId = magnet_block.id
-    pole = _build_geom_obj(und.poleObjType, name='Pole')
-    geom.objects.append(pole)
-    und.pole = pole
-    und.poleBaseObjectId = pole.id
-    mag_pole_grp = _build_group([magnet_block, pole], name='Magnet-Pole Pair')
-    geom.objects.append(mag_pole_grp)
-    # empty termination group
-    term_grp = _build_group([], name='Termination')
-    geom.objects.append(term_grp)
-    oct_grp = _build_group([half_pole, mag_pole_grp, term_grp], name='Octant')
-    geom.objects.append(oct_grp)
-
-    return _update_geom_from_undulator(
-        geom,
-        _build_geom_obj('hybridUndulator', name=geom.name),
-        dirs
+    geom.objects.append(model.magnet)
+    geom.objects.append(model.pole)
+    g = _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
+    geom.objects.append(g)
+    geom.objects.append(model.terminationGroup)
+    geom.objects.append(
+        _update_group(
+            model.corePoleGroup,
+            [half_pole, g, model.terminationGroup],
+            do_replace=True
+        )
     )
+    return _update_geom_from_undulator(geom, model, **kwargs)
+
+
+def _build_freehand_objects(geom, model, **kwargs):
+    return geom
 
 
 def _build_field_axis(length, beam_axis):
@@ -730,10 +735,13 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     if not v.isExample and v.magnetType == 'freehand':
         _update_geom_from_freehand(g)
     if v.magnetType == 'undulator':
+        v.undulatorType = data.models.simulation.undulatorType
         _update_geom_from_undulator(
             g,
-            data.models.hybridUndulator,
-            dirs
+            data.models[v.undulatorType],
+            height_dir=dirs.height_dir,
+            length_dir=dirs.length_dir,
+            width_dir=dirs.width_dir,
         )
     if v.magnetType == 'dipole':
         v.dipoleType = data.models.simulation.dipoleType
@@ -1308,7 +1316,25 @@ def _update_geom_from_freehand(geom, **kwargs):
     _update_geom_objects(geom.objects, **kwargs)
 
 
-def _update_geom_from_undulator(geom, und, dirs):
+def _update_geom_from_undulator(geom, model, **kwargs):
+
+    assert model.undulatorType in [x[0] for x in SCHEMA.enum.UndulatorType]
+    _update_geom_objects(geom.objects)
+
+
+    magnet = _find_by_id(geom.objects, model.magnet.id)
+    mag_coil_group = _find_by_id(geom.objects, model.magnetCoilGroup.id)
+
+
+    if model.undulatorType == 'unudulatorHybrid':
+        pole = _find_by_id(geom.objects, model.pole.id)
+        return _update_undulator_hybrid(
+            model,
+            pole=pole,
+            magnet=magnet,
+            mag_coil_group=mag_coil_group,
+            **kwargs
+        )
 
     dir_matrix = numpy.array([dirs.width_dir, dirs.height_dir, dirs.length_dir])
 
@@ -1527,6 +1553,8 @@ def _update_geom_from_undulator(geom, und, dirs):
         _build_symm_xform(dirs.length_dir, 'perpendicular'),
     ]
     return oct_grp
+
+def _update_undulator_hybrid(model, **kwargs):
 
 
 def _update_geom_objects(objects, **kwargs):

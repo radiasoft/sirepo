@@ -290,6 +290,9 @@
             ["H", "H"],
             ["J", "J"]
         ],
+        "FreehandType": [
+            ["freehand", ""]
+        ],
         "KickMapComponent": [
             ["h", "Horizontal"],
             ["v", "Vertical"]
@@ -729,39 +732,6 @@
             "type": ["Shape Type", "ObjectType", "cuboid"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
-        "hybridUndulator": {
-            "_super": ["_", "model", "undulator"],
-            "magnetArmHeight": ["_", "Float", 1.0],
-            "magnetArmPosition": ["_", "ArmPosition", "0"],
-            "magnetBaseObjectId": ["_", "RandomId", ""],
-            "magnetColor": ["Color", "Color", "#00ffff"],
-            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width, Height"],
-            "magnetSegments": ["Segments per Octant", "IntStringArray", "1, 1, 3", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
-            "magnetLength": ["Thickness [mm]", "Float", 18.0, "Period length/2 - pole length"],
-            "magnetMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, -1.0", "", "Transverse, Vertical, Beam"],
-            "magnetMaterial": ["Material", "MaterialType", "NdFeB"],
-            "magnetMaterialFile": ["Tabulated H-M Curve File", "HMFile", "", "H, M (T)"],
-            "magnetRemanentMag": ["Remanent Magnetization [T]", "Float", 1.2, "", 0.0],
-            "magnetObjType": ["Shape", "ObjectType", "cuboid"],
-            "magnetStemWidth": ["_", "Float", 1.0],
-            "magnetStemPosition": ["_", "StemPosition", "0"],
-            "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the gap axis"],
-            "poleArmHeight": ["_", "Float", 3.0],
-            "poleArmPosition": ["_", "ArmPosition", "1"],
-            "poleBaseObjectId": ["_", "RandomId", ""],
-            "poleColor": ["Color", "Color", "#ff00ff"],
-            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
-            "poleSegments": ["Segments per Octant", "IntStringArray", "2, 5, 2", "Segmentation is applied to one octant of the magent. Radia duplicates it across symmetry planes to build the full undulator", "Transverse, Vertical, Beam"],
-            "poleLength": ["Thickness [mm]", "Float", 5.0, "Length along beam axis"],
-            "poleMagnetization": ["Magentization [T]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Transverse, Vertical, Beam"],
-            "poleMaterial": ["Material", "MaterialType", "custom"],
-            "poleMaterialFile": ["Tabulated H-M Curve File", "InputFile", "VaPermendur.csv", "H, M (T)"],
-            "poleRemanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "poleObjType": ["Shape", "ObjectType", "ell"],
-            "poleStemWidth": ["_", "Float", 19.5],
-            "poleStemPosition": ["_", "StemPosition", "0"],
-            "undulatorType": ["_", "UndulatorType", "undulatorHybrid"]
-        },
         "jay": {
             "_super": ["_", "model", "stemmed"],
             "hookHeight": ["Hook Height [mm]", "Float", 1.0],
@@ -866,6 +836,7 @@
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleC"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
+            "freehandType": ["", "FreehandType", "freehand"],
             "heightAxis": ["Height Axis", "BeamAxis", "y", "Height is measured along this axis. For undulators the gap is usually defined in this direction"],
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
@@ -921,12 +892,27 @@
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
             "name": ["Name", "String", "Translate"]
         },
-        "undulator": {
+        "undulatorBasic": {
             "_super": ["_", "model", "radiaObject"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "1"],
             "gap": ["Gap [mm]", "Float", 20.0, "", 0.0, "Measured along the height axis"],
+            "magnet": ["Magnet Block", "model.geomObject", {
+                "center": "16.25,11.5,-33.5",
+                "color": "#00ffff",
+                "magnetization": "0.0, 0.0, -1.0",
+                "name": "permanentMagnet",
+                "remanentMag": 1.2,
+                "material": "NdFeB",
+                "type": "cuboid",
+                "segments": "1, 1, 3",
+                "size": "65.0, 18.0, 45.0"
+            }],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
+            "phaseCount": ["Phase per Period", "Integer", 2, "The magnetization of each successive magnet is rotated by 2π/n about the beam direction", 2],
+            "terminationGroup": ["_", "model.geomGroup", {
+                "name": "terminations"
+            }],
             "terminations": ["Termination Groups", "TerminationTable",
                 [
                     {
@@ -936,8 +922,42 @@
                     }
                 ]
             ],
-            "transverseAxis": ["Transverse Axis", "BeamAxis", "x", "Perpendicular to beam and gap axes"],
             "undulatorType": ["_", "UndulatorType", "undulatorBasic"]
+        },
+        "undulatorHybrid": {
+            "_super": ["_", "model", "undulatorBasic"],
+            "magnet": ["Magnet Block", "model.geomObject", {
+                "center": "16.25,11.5,-33.5",
+                "color": "#00ffff",
+                "magnetization": "0.0, 0.0, -1.0",
+                "name": "permanentMagnet",
+                "remanentMag": 1.2,
+                "material": "NdFeB",
+                "type": "cuboid",
+                "segments": "1, 1, 3",
+                "size": "65.0, 18.0, 45.0"
+            }],
+            "pole": ["Pole", "model.geomObject", {
+                "bevels": [],
+                "center": "0.0, 0.0, 1.0",
+                "color": "#ff00ff",
+                "segments": "2, 5, 2",
+                "magnetization": "0.0, 0.0, 0.0",
+                "materialFile": "VaPermendur.csv",
+                "name": "pole",
+                "remanentMag": 0.0,
+                "material": "custom",
+                "type": "cuboid",
+                "size": "45.0, 5.0, 25.0"
+            }],
+            "corePoleGroup": ["_", "model.geomGroup", {
+                "name": "core + pole"
+            }],
+            "octantGroup": ["_", "model.geomGroup", {
+                "name": "octant"
+            }],
+            "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the height axis"],
+            "undulatorType": ["_", "UndulatorType", "undulatorHybrid"]
         }
     },
     "strings": {
@@ -1135,8 +1155,8 @@
                 ]]
             ]
         },
-        "hybridUndulator": {
-            "title": "Undulator",
+        "undulatorHybrid": {
+            "title": "Hybrid Undulator",
             "advanced": [],
             "basic": [
                 ["Main", [
