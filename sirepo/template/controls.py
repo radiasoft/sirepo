@@ -139,7 +139,8 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     idx = 0
 
     if 'start' in frame_args.frameReport:
-        
+        # TODO (gurhar1133): for i in info_all loop to set t = madx_parser... is
+        # repeated too many times. Make a helper function
         for i in info_all:
             if i.name == 'start':
                 idx = info_all.index(i)
