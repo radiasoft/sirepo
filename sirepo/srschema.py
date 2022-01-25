@@ -216,8 +216,8 @@ def _validate_job_run_mode(field_name, schema):
     if hasattr(m, 'run_background'):
         raise AssertionError(
             f'simulation_type={t} cannot have'
-            ' pkcli.run_background because it supports slurm. Slurm only'
-            ' supports running a code through `python parameters.py` ',
+            + ' pkcli.run_background because it supports slurm. Slurm only'
+            + ' supports running a code through `python parameters.py` ',
         )
 
 
