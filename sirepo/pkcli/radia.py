@@ -15,4 +15,4 @@ def run(cfg_dir):
     import sirepo.template.radia as template
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    template.extract_report_data(pkio.py_path.local(cfg_dir), data)
+    template.extract_report_data(pkio.py_path(cfg_dir), data)
