@@ -1,0 +1,989 @@
+{
+    "models": {
+        "beamline3dAnimation": {},
+        "beamlines": [
+            {
+                "id": 137,
+                "items": [
+                    107,
+                    106,
+                    116,
+                    120,
+                    131,
+                    132,
+                    134,
+                    136
+                ],
+                "name": "LINAC",
+                "phi": 0,
+                "positions": [
+                    {
+                        "elemedge": -0.0017
+                    },
+                    {
+                        "elemedge": 0.0
+                    },
+                    {
+                        "elemedge": 2.1229889999999996
+                    },
+                    {
+                        "elemedge": 4.831923
+                    },
+                    {
+                        "elemedge": 8.702989999999998
+                    },
+                    {
+                        "elemedge": 8.702989999999998
+                    },
+                    {
+                        "elemedge": 8.904238999999999
+                    },
+                    {
+                        "elemedge": 9.326422999999998
+                    }
+                ],
+                "psi": 0,
+                "theta": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        ],
+        "bunchAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "viridis",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.0,
+            "notes": "",
+            "plotRangeType": "fit",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.0,
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport1": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "z",
+            "y": "pz"
+        },
+        "commands": [
+            {
+                "_id": 101,
+                "_type": "option",
+                "asciidump": "0",
+                "autophase": 4.0,
+                "beamhaloboundary": 0.0,
+                "boundpdestroyfq": 10.0,
+                "clotuneonly": "0",
+                "csrdump": "0",
+                "czero": "0",
+                "ebdump": "0",
+                "echo": "0",
+                "haloshift": 0.0,
+                "idealized": "0",
+                "info": "1",
+                "logbendtrajectory": "0",
+                "memorydump": "0",
+                "minbinemitted": 10.0,
+                "minstepforrebin": 200.0,
+                "mtssubsteps": 1.0,
+                "name": "Opt1",
+                "nlhs": 1.0,
+                "numblocks": 0.0,
+                "ppdebug": "0",
+                "psdumpeachturn": "0",
+                "psdumpframe": "GLOBAL",
+                "psdumpfreq": 500.0,
+                "rebinfreq": 100.0,
+                "recycleblocks": 0.0,
+                "remotepartdel": 0.0,
+                "repartfreq": 10.0,
+                "rhodump": "0",
+                "rngtype": "RANDOM",
+                "scsolvefreq": 1.0,
+                "seed": 123456789.0,
+                "sptdumpfreq": 1.0,
+                "statdumpfreq": 500.0,
+                "surfdumpfreq": -1.0,
+                "tell": "0",
+                "trace": "0",
+                "version": 10900.0,
+                "warn": "1"
+            },
+            {
+                "_id": 138,
+                "_type": "distribution",
+                "cathtemp": 300.0,
+                "corrt": 0.0,
+                "corrx": 0.0,
+                "corry": 0.0,
+                "corrz": 0.0,
+                "cutoff": 3.0,
+                "cutofflong": 3.0,
+                "cutoffpx": 3.0,
+                "cutoffpy": 3.0,
+                "cutoffpz": 3.0,
+                "cutoffr": 3.0,
+                "cutoffx": 3.0,
+                "cutoffy": 3.0,
+                "denergy": 0.001,
+                "einithr": 0.0,
+                "ekin": 0.55,
+                "elaser": 4.86,
+                "emissionmodel": "NONE",
+                "emissionsteps": 100.0,
+                "emitted": "1",
+                "et": 1e-06,
+                "ex": 1e-06,
+                "ey": 1e-06,
+                "fe": 7.0,
+                "flipx": "0",
+                "flipy": "0",
+                "fna": 1.54e-06,
+                "fname": "",
+                "fnb": 6830000000.0,
+                "fnbeta": 50.0,
+                "fnfieldthr": 30.0,
+                "fnmaxemi": 20.0,
+                "fnphiw": 4.65,
+                "fnvysecond": 1.065,
+                "fnvyzero": 0.9632,
+                "fny": 3.795e-05,
+                "ftoscamplitude": 0.0,
+                "ftoscperiods": 0.0,
+                "id1": 0.0,
+                "id2": 0.0,
+                "imagename": "",
+                "inputmounits": "",
+                "intensitycut": 0.0,
+                "inwardmargin": 0.001,
+                "laserproffn": "",
+                "line": "",
+                "maxstepsco": 100.0,
+                "maxstepssi": 2000.0,
+                "mt": 10001.0,
+                "mx": 10001.0,
+                "my": 10001.0,
+                "mz": 10001.0,
+                "name": "gen_dist",
+                "nbin": 9.0,
+                "nemissionmode": "1",
+                "npdarkcur": 1000.0,
+                "nsectors": 1.0,
+                "nsteps": 720.0,
+                "offsetp": 0.0,
+                "offsetpx": 0.0,
+                "offsetpy": 0.0,
+                "offsetpz": 0.0,
+                "offsett": 0.0,
+                "offsetx": 0.0,
+                "offsety": 0.0,
+                "offsetz": 0.0,
+                "ordermaps": 7.0,
+                "pxmult": 1.0,
+                "pymult": 1.0,
+                "pzmult": 1.0,
+                "r": 0.0,
+                "r51": 0.0,
+                "r52": 0.0,
+                "r61": 0.0,
+                "r62": 0.0,
+                "residuum": 1e-08,
+                "rguess": -1.0,
+                "rotate180": "0",
+                "rotate270": "0",
+                "rotate90": "0",
+                "sbin": 100.0,
+                "scalable": "0",
+                "secondaryflag": 0.0,
+                "sector": "1",
+                "sigmapt": 0.0,
+                "sigmapx": 0.0,
+                "sigmapy": 0.0,
+                "sigmapz": 0.0,
+                "sigmar": 0.002,
+                "sigmat": 0.0,
+                "sigmax": 0.0,
+                "sigmay": 0.0,
+                "sigmaz": 0.0,
+                "surfmaterial": 0.0,
+                "tfall": 0.0,
+                "tmult": 1.0,
+                "tpulsefwhm": 1.3333333333333333e-11,
+                "trise": 0.0,
+                "type": "FLATTOP",
+                "vemax": 165.0,
+                "vezero": 12.5,
+                "vkenergy": 1.0,
+                "vktheta": 1.0,
+                "vseymax": 2.22,
+                "vseyzero": 0.5,
+                "vvthermal": 726892.9821,
+                "vw": 1.0,
+                "w": 4.31,
+                "weight": 1.0,
+                "writetofile": "1",
+                "xmult": 1.0,
+                "ymult": 1.0,
+                "zmult": 1.0
+            },
+            {
+                "_id": 139,
+                "_type": "distribution",
+                "cathtemp": 300.0,
+                "corrt": 0.0,
+                "corrx": 0.0,
+                "corry": 0.0,
+                "corrz": 0.0,
+                "cutoff": 3.0,
+                "cutofflong": 3.0,
+                "cutoffpx": 3.0,
+                "cutoffpy": 3.0,
+                "cutoffpz": 3.0,
+                "cutoffr": 3.0,
+                "cutoffx": 3.0,
+                "cutoffy": 3.0,
+                "denergy": 0.001,
+                "einithr": 0.0,
+                "ekin": 0.4,
+                "elaser": 4.86,
+                "emissionmodel": "NONE",
+                "emissionsteps": 100.0,
+                "emitted": "1",
+                "et": 1e-06,
+                "ex": 1e-06,
+                "ey": 1e-06,
+                "fe": 7.0,
+                "flipx": "0",
+                "flipy": "0",
+                "fna": 1.54e-06,
+                "fname": "fast_laser.dist",
+                "fnb": 6830000000.0,
+                "fnbeta": 50.0,
+                "fnfieldthr": 30.0,
+                "fnmaxemi": 20.0,
+                "fnphiw": 4.65,
+                "fnvysecond": 1.065,
+                "fnvyzero": 0.9632,
+                "fny": 3.795e-05,
+                "ftoscamplitude": 0.0,
+                "ftoscperiods": 0.0,
+                "id1": 0.0,
+                "id2": 0.0,
+                "imagename": "",
+                "inputmounits": "",
+                "intensitycut": 0.0,
+                "inwardmargin": 0.001,
+                "laserproffn": "",
+                "line": "",
+                "maxstepsco": 100.0,
+                "maxstepssi": 2000.0,
+                "mt": 10001.0,
+                "mx": 10001.0,
+                "my": 10001.0,
+                "mz": 10001.0,
+                "name": "vc_dist",
+                "nbin": 9.0,
+                "nemissionmode": "1",
+                "npdarkcur": 1000.0,
+                "nsectors": 1.0,
+                "nsteps": 720.0,
+                "offsetp": 0.0,
+                "offsetpx": 0.0,
+                "offsetpy": 0.0,
+                "offsetpz": 0.0,
+                "offsett": 0.0,
+                "offsetx": 0.0,
+                "offsety": 0.0,
+                "offsetz": 0.0,
+                "ordermaps": 7.0,
+                "pxmult": 1.0,
+                "pymult": 1.0,
+                "pzmult": 1.0,
+                "r": 0.0,
+                "r51": 0.0,
+                "r52": 0.0,
+                "r61": 0.0,
+                "r62": 0.0,
+                "residuum": 1e-08,
+                "rguess": -1.0,
+                "rotate180": "0",
+                "rotate270": "0",
+                "rotate90": "0",
+                "sbin": 100.0,
+                "scalable": "0",
+                "secondaryflag": 0.0,
+                "sector": "1",
+                "sigmapt": 0.0,
+                "sigmapx": 0.0,
+                "sigmapy": 0.0,
+                "sigmapz": 0.0,
+                "sigmar": 0.0,
+                "sigmat": 0.0,
+                "sigmax": 0.0,
+                "sigmay": 0.0,
+                "sigmaz": 0.0,
+                "surfmaterial": 0.0,
+                "tfall": 0.0,
+                "tmult": 1.0,
+                "tpulsefwhm": 0.0,
+                "trise": 0.0,
+                "type": "FROMFILE",
+                "vemax": 165.0,
+                "vezero": 12.5,
+                "vkenergy": 1.0,
+                "vktheta": 1.0,
+                "vseymax": 2.22,
+                "vseyzero": 0.5,
+                "vvthermal": 726892.9821,
+                "vw": 1.0,
+                "w": 4.31,
+                "weight": 1.0,
+                "writetofile": "0",
+                "xmult": 1.0,
+                "ymult": 1.0,
+                "zmult": 1.0
+            },
+            {
+                "_id": 140,
+                "_type": "fieldsolver",
+                "alpha": 0.0,
+                "bboxincr": 1.0,
+                "bcfftt": "OPEN",
+                "bcfftx": "OPEN",
+                "bcffty": "OPEN",
+                "bcfftz": "OPEN",
+                "epsilon": 0.0,
+                "fstype": "FFT",
+                "geometry": "",
+                "greensf": "INTEGRATED",
+                "interpl": "LINEAR",
+                "itsolver": "CG",
+                "maxiters": 100.0,
+                "mt": 25.0,
+                "mx": 26.0,
+                "my": 26.0,
+                "name": "FS_SC",
+                "parfftt": "1",
+                "parfftx": "0",
+                "parffty": "0",
+                "precmode": "HIERARCHY",
+                "rc": 0.0,
+                "tol": 1e-08
+            },
+            {
+                "_id": 141,
+                "_type": "beam",
+                "bcurrent": 0.13,
+                "bfreq": 1300.0,
+                "charge": -1.0,
+                "energy": 0.0,
+                "gamma": 0.0,
+                "mass": 0.0,
+                "name": "BEAM1",
+                "npart": 41428.0,
+                "particle": "ELECTRON",
+                "pc": 1e-06
+            },
+            {
+                "_id": 143,
+                "_type": "track",
+                "beam": 141,
+                "dt": "{2.0e-13}",
+                "dtau": -1.0,
+                "dtscinit": 1e-12,
+                "line": 137,
+                "map_order": 1.0,
+                "maxsteps": 2500000.0,
+                "name": "TR1",
+                "run_beam": 141,
+                "run_boundarygeometry": "",
+                "run_distribution": 139,
+                "run_fieldsolver": 140,
+                "run_mb_binning": "GAMMA",
+                "run_mb_eta": 0.01,
+                "run_mbmode": "FORCE",
+                "run_method": "PARALLEL-T",
+                "run_multipacting": "0",
+                "run_paramb": 5.0,
+                "run_trackback": "0",
+                "run_turns": 1.0,
+                "stepsperturn": 720.0,
+                "t0": 0.0,
+                "timeintegrator": "RK-4",
+                "zstart": 0.0,
+                "zstop": "{9.25}"
+            }
+        ],
+        "elements": [
+            {
+                "_id": 131,
+                "_super": "_ELEMENT",
+                "aperture": "circle(1)",
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "l": 0.0,
+                "monitor_type": "SPATIAL",
+                "name": "X_106",
+                "outfn": "output_x_106.h5",
+                "particlematterinteraction": "",
+                "phi": 0.0,
+                "psi": 0.0,
+                "theta": 0.0,
+                "type": "MONITOR",
+                "wakef": ""
+            },
+            {
+                "_id": 136,
+                "_super": "_ELEMENT",
+                "aperture": "circle(1)",
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "l": 0.0,
+                "monitor_type": "SPATIAL",
+                "name": "X_107",
+                "outfn": "output_x_107.h5",
+                "particlematterinteraction": "",
+                "phi": 0.0,
+                "psi": 0.0,
+                "theta": 0.0,
+                "type": "MONITOR",
+                "wakef": ""
+            },
+            {
+                "_id": 132,
+                "_super": "_ELEMENT",
+                "aperture": "circle(1)",
+                "dk1": 0.0,
+                "dk1s": 0.0,
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "k1": 0.0,
+                "k1s": 0.0,
+                "l": 0.167,
+                "name": "Q_106",
+                "nslices": 1.0,
+                "particlematterinteraction": "",
+                "phi": 0.0,
+                "psi": 0.0,
+                "theta": 0.0,
+                "type": "QUADRUPOLE",
+                "wakef": ""
+            },
+            {
+                "_id": 134,
+                "_super": "_ELEMENT",
+                "aperture": "circle(1)",
+                "dk1": 0.0,
+                "dk1s": 0.0,
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "k1": 0.0,
+                "k1s": 0.0,
+                "l": 0.167,
+                "name": "Q_107",
+                "nslices": 1.0,
+                "particlematterinteraction": "",
+                "phi": 0.0,
+                "psi": 0.0,
+                "theta": 0.0,
+                "type": "QUADRUPOLE",
+                "wakef": ""
+            },
+            {
+                "_id": 116,
+                "_super": "_ELEMENT",
+                "amplitude_model": "",
+                "angle": 0.0,
+                "aperture": "circle(1)",
+                "apveto": "0",
+                "betrf": 0.0,
+                "designenergy": -1.0,
+                "dlag": 0.0,
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dvolt": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "fast": "1",
+                "fmapfn": "TESLA_SF7.T7",
+                "freq": 1300.0,
+                "frequency_model": "",
+                "gapwidth": 0.0,
+                "geometry": "",
+                "harmon": 0.0,
+                "l": 1.3492,
+                "lag": -0.03490658503988659,
+                "name": "CC1",
+                "particlematterinteraction": "",
+                "pdis": 0.0,
+                "pg": 0.0,
+                "phase_model": "",
+                "phi": 0.0,
+                "phi0": 0.0,
+                "psi": 0.0,
+                "rfcavity_type": "",
+                "rmax": 0.0,
+                "rmin": 0.0,
+                "shunt": 0.0,
+                "tfill": 0.0,
+                "theta": 0.0,
+                "type": "RFCAVITY",
+                "volt": 28.57233448,
+                "wakef": ""
+            },
+            {
+                "_id": 120,
+                "_super": "_ELEMENT",
+                "amplitude_model": "",
+                "angle": 0.0,
+                "aperture": "circle(1)",
+                "apveto": "0",
+                "betrf": 0.0,
+                "designenergy": -1.0,
+                "dlag": 0.0,
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dvolt": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "fast": "1",
+                "fmapfn": "TESLA_SF7.T7",
+                "freq": 1300.0,
+                "frequency_model": "",
+                "gapwidth": 0.0,
+                "geometry": "",
+                "harmon": 0.0,
+                "l": 1.3492,
+                "lag": -0.17453292519943295,
+                "name": "CC2",
+                "particlematterinteraction": "",
+                "pdis": 0.0,
+                "pg": 0.0,
+                "phase_model": "",
+                "phi": 0.0,
+                "phi0": 0.0,
+                "psi": 0.0,
+                "rfcavity_type": "",
+                "rmax": 0.0,
+                "rmin": 0.0,
+                "shunt": 0.0,
+                "tfill": 0.0,
+                "theta": 0.0,
+                "type": "RFCAVITY",
+                "volt": 30.6427935,
+                "wakef": ""
+            },
+            {
+                "_id": 106,
+                "_super": "_ELEMENT",
+                "amplitude_model": "",
+                "angle": 0.0,
+                "aperture": "circle(1)",
+                "apveto": "1",
+                "betrf": 0.0,
+                "designenergy": -1.0,
+                "dlag": 0.0,
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dvolt": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "fast": "1",
+                "fmapfn": "GUN_SF7.T7",
+                "freq": 1300.0,
+                "frequency_model": "",
+                "gapwidth": 0.0,
+                "geometry": "",
+                "harmon": 0.0,
+                "l": 0.265,
+                "lag": -0.3490658503988659,
+                "name": "GUN",
+                "particlematterinteraction": "",
+                "pdis": 0.0,
+                "pg": 0.0,
+                "phase_model": "",
+                "phi": 0.0,
+                "phi0": 0.0,
+                "psi": 0.0,
+                "rfcavity_type": "",
+                "rmax": 0.0,
+                "rmin": 0.0,
+                "shunt": 0.0,
+                "tfill": 0.0,
+                "theta": 0.0,
+                "type": "RFCAVITY",
+                "volt": 42.93509225,
+                "wakef": ""
+            },
+            {
+                "_id": 107,
+                "_super": "_ELEMENT",
+                "aperture": "circle(1)",
+                "dphi": 0.0,
+                "dpsi": 0.0,
+                "dtheta": 0.0,
+                "dx": 0.0,
+                "dy": 0.0,
+                "dz": 0.0,
+                "fast": "1",
+                "fmapfn": "SOLENO4.T7",
+                "ks": 0.17765710979201543,
+                "l": 0.0,
+                "name": "MS",
+                "particlematterinteraction": "",
+                "phi": 0.0,
+                "psi": 0.0,
+                "theta": 0.0,
+                "type": "SOLENOID",
+                "wakef": ""
+            }
+        ],
+        "plot2Animation": {
+            "includeLattice": "0",
+            "notes": "",
+            "x": "s",
+            "y1": "rms x",
+            "y2": "rms y",
+            "y3": "rms s"
+        },
+        "plotAnimation": {
+            "aspectRatio": "1",
+            "includeLattice": "0",
+            "notes": "",
+            "x": "SPOS",
+            "y1": "#varepsilon x",
+            "y2": "#varepsilon y",
+            "y3": "none"
+        },
+        "rpnVariables": [
+            {
+                "name": "n_particles",
+                "value": 41428.0
+            },
+            {
+                "name": "P0",
+                "value": 1e-06
+            },
+            {
+                "name": "rf_frequency",
+                "value": 1300.0
+            },
+            {
+                "name": "gun_phase",
+                "value": -20.0
+            },
+            {
+                "name": "cc1_phase",
+                "value": -2.0
+            },
+            {
+                "name": "cc2_phase",
+                "value": -10.0
+            },
+            {
+                "name": "solenoid_strength_parameter",
+                "value": 0.17765710979201543
+            },
+            {
+                "name": "I_Q106",
+                "value": 0.0
+            },
+            {
+                "name": "I_Q107",
+                "value": 0.0
+            },
+            {
+                "name": "beam_current",
+                "value": 0.13
+            },
+            {
+                "name": "fwhm",
+                "value": 6.666666666666666e-12
+            },
+            {
+                "name": "gun.elemedge",
+                "value": 0.0
+            },
+            {
+                "name": "gun.l",
+                "value": 0.265
+            },
+            {
+                "name": "dg1.elemedge",
+                "value": 0.265
+            },
+            {
+                "name": "dg1.l",
+                "value": 0.363253
+            },
+            {
+                "name": "dg2.elemedge",
+                "value": 0.628253
+            },
+            {
+                "name": "dg2.l",
+                "value": 0.256055
+            },
+            {
+                "name": "dg3.elemedge",
+                "value": 0.8843079999999999
+            },
+            {
+                "name": "dg3.l",
+                "value": 0.039253
+            },
+            {
+                "name": "dg4.elemedge",
+                "value": 0.9235609999999999
+            },
+            {
+                "name": "dg4.l",
+                "value": 0.262251
+            },
+            {
+                "name": "dg5.elemedge",
+                "value": 1.1858119999999999
+            },
+            {
+                "name": "dg5.l",
+                "value": 0.246295
+            },
+            {
+                "name": "dg6.elemedge",
+                "value": 1.4321069999999998
+            },
+            {
+                "name": "dg6.l",
+                "value": 0.193948
+            },
+            {
+                "name": "dg7.elemedge",
+                "value": 1.6260549999999998
+            },
+            {
+                "name": "dg7.l",
+                "value": 0.076743
+            },
+            {
+                "name": "dg8.elemedge",
+                "value": 1.7027979999999998
+            },
+            {
+                "name": "dg8.l",
+                "value": 0.420191
+            },
+            {
+                "name": "cc1.elemedge",
+                "value": 2.1229889999999996
+            },
+            {
+                "name": "cc1.l",
+                "value": 1.3492
+            },
+            {
+                "name": "dcc1_1.elemedge",
+                "value": 3.4721889999999993
+            },
+            {
+                "name": "dcc1_1.l",
+                "value": 0.58952
+            },
+            {
+                "name": "dcc1_2.elemedge",
+                "value": 4.061709
+            },
+            {
+                "name": "dcc1_2.l",
+                "value": 0.045959
+            },
+            {
+                "name": "dcc1_3.elemedge",
+                "value": 4.107667999999999
+            },
+            {
+                "name": "dcc1_3.l",
+                "value": 0.724255
+            },
+            {
+                "name": "cc2.elemedge",
+                "value": 4.831923
+            },
+            {
+                "name": "dcc2_1.elemedge",
+                "value": 6.1811229999999995
+            },
+            {
+                "name": "dcc2_1.l",
+                "value": 0.801182
+            },
+            {
+                "name": "dcc2_2.elemedge",
+                "value": 6.982304999999999
+            },
+            {
+                "name": "dcc2_2.l",
+                "value": 0.090742
+            },
+            {
+                "name": "dcc2_3.elemedge",
+                "value": 7.073046999999999
+            },
+            {
+                "name": "dcc2_3.l",
+                "value": 0.213827
+            },
+            {
+                "name": "dcc2_4.elemedge",
+                "value": 7.286873999999999
+            },
+            {
+                "name": "dcc2_4.l",
+                "value": 0.120424
+            },
+            {
+                "name": "dcc2_5.elemedge",
+                "value": 7.407297999999999
+            },
+            {
+                "name": "dcc2_5.l",
+                "value": 0.343
+            },
+            {
+                "name": "dcc2_6.elemedge",
+                "value": 7.750297999999999
+            },
+            {
+                "name": "dcc2_6.l",
+                "value": 0.343
+            },
+            {
+                "name": "dcc2_7.elemedge",
+                "value": 8.093297999999999
+            },
+            {
+                "name": "dcc2_7.l",
+                "value": 0.32599
+            },
+            {
+                "name": "dcc2_8.elemedge",
+                "value": 8.419287999999998
+            },
+            {
+                "name": "dcc2_8.l",
+                "value": 0.078595
+            },
+            {
+                "name": "dcc2_9.elemedge",
+                "value": 8.497882999999998
+            },
+            {
+                "name": "dcc2_9.l",
+                "value": 0.126538
+            },
+            {
+                "name": "dcc2_10.elemedge",
+                "value": 8.624420999999998
+            },
+            {
+                "name": "dcc2_10.l",
+                "value": 0.078569
+            },
+            {
+                "name": "x_106.elemedge",
+                "value": 8.702989999999998
+            },
+            {
+                "name": "q_106.elemedge",
+                "value": 8.702989999999998
+            },
+            {
+                "name": "q_106.l",
+                "value": 0.167
+            },
+            {
+                "name": "dq106.elemedge",
+                "value": 8.869989999999998
+            },
+            {
+                "name": "dq106.l",
+                "value": 0.034249
+            },
+            {
+                "name": "q_107.elemedge",
+                "value": 8.904238999999999
+            },
+            {
+                "name": "q_107.l",
+                "value": 0.167
+            },
+            {
+                "name": "dx107.elemedge",
+                "value": 9.071238999999998
+            },
+            {
+                "name": "dx107.l",
+                "value": 0.255184
+            }
+        ],
+        "sequences": [],
+        "simulation": {
+            "activeBeamlineId": 137,
+            "documentationUrl": "",
+            "elementPosition": "absolute",
+            "folder": "/",
+            "name": "first",
+            "notes": "",
+            "simulationSerial": 0,
+            "visualizationBeamlineId": 137
+        }
+    },
+    "simulationType": "opal"
+}
