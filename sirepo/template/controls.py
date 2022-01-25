@@ -125,86 +125,46 @@ def _field_label(field):
 
 
 def sim_frame(frame_args):
-    # TODO (gurhar1133): this was copied from madx
-    # d = frame_args.sim_in
-    # d.report = frame_args.frameReport
-    # d.models[d.report] = frame_args
-    # pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.report: {}', d.report)
-    # pkdp('\n\n\n\n\n\n xxxxxxxxxxxxxxxx \n\n\n\n\n\n\n d.models: {}', d.models)
+    # TODO (gurhar1133): this was copied from madx, but has been modified
     return _extract_report_elementAnimation(frame_args, frame_args.run_dir, 'ptc_track.file.tfsone')
-    # raise NotImplementedError('you need to implement me')
 
-    
-# TODO(e-carlin): you are going to have to implement something like this code
-# TODO(e-carlin): this was copied from madx; need to abstract and share
+
+# TODO(e-carlin): this was copied from madx, but has been modified; need to abstract and share
 def _extract_report_elementAnimation(frame_args, run_dir, filename):
     data = frame_args.sim_in
-
-    # TODO (gurhar1133): this was copied from madx; need to abstract and share
     if _is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
-
-    pkdp('\n\n\n\n REPORT: {}', frame_args.frameReport)
-    
-        
-    #pkdp('\n\n\n\n data.models[data.report]: {}', data.models[frame_args.frameReport])
-    # pkdp('\n\n\n\n -------- data (in extract): {}', data)
-    # pkdp('\n\n\n\n -------- data.report (in extract): {}', data.report)
-    
-    
-    # pkdp('\n\n\n\n\n m.id {}', m.id)
     info_all = madx_parser.parse_tfs_page_info(run_dir.join(filename))
     
     idx = 0
 
-    #pkdp('\n\n\n\n\n external Lattice models: {}', frame_args.sim_in.models.externalLattice.models.elements)
-
     if 'start' in frame_args.frameReport:
-        target = 'start'
-                
-        # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
+        
         for i in info_all:
-            if i.name == target:
+            if i.name == 'start':
                 idx = info_all.index(i)
                 info = i
-
         t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=0)
     elif 'end' in frame_args.frameReport:
-        target = 'end'
-                
-        # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
+    
         for i in info_all:
-            if i.name == target:
+            if i.name == 'end':
                 idx = info_all.index(i)
                 info = i
-
         t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=len(info_all)-1)
     else:
         element_id = data.models[frame_args.frameReport].id
         data.models[frame_args.frameReport] = frame_args
+        pkdp('\n\n\n\n\n\n\n element_id: {}', element_id)
         obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
-            
-                # print('\n\n\n\n\n\n\n\n ------- INST ------- {}', obj)
         target = obj.name
-                
-        # pkdp('\n\n\n\n\n\n INFO TARGETS: {}', info_targets)
         for i in info_all:
             if i.name == target:
                 idx = info_all.index(i)
                 info = i
-                
-
         t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
-
-        # pkdp(' \n\n\n\n\n\n\n\n INFO ALL: {}', madx_parser.parse_tfs_page_info(run_dir.join(filename)))
-        # pkdp('\n\n\n\n\n frame_args.x {}, frame_args.y1 {}', frame_args.x, frame_args.y1)
-        # pkdp('\n\n\n\n\n\n\n\n  T {}', t)
-        # pkdp(' \n\n\n\n\n\n\n\n INFO {}', info)
     
     return template_common.heatmap( 
-    # TODO (gurhar1133): see original in madx; used t._ instead of t[m._]. m needs to have x and y fields that are set in UI
-    # right now just a heatmap of x and px hardcoded
-    # frame_args is what m was in madx
         [to_floats(t[frame_args.x]), to_floats(t[frame_args.y1])],
         frame_args,
         PKDict(

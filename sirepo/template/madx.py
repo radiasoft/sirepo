@@ -295,7 +295,6 @@ def generate_parameters_file(data):
         return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
     _add_commands(data, util)
     v.commands = _generate_commands(filename_map, util)
-    # pkdp('\n\n\n\n v.commands {} \n\n\n\n', v.commands)
     v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
     if not v.hasTwiss:
         v.twissOutputFilename = _TWISS_OUTPUT_FILE
@@ -650,14 +649,6 @@ def _extract_report_elementAnimation(data, run_dir, filename):
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
-
-    pkdp('\n\n\n\n\n\n\n\n M {}', m)
-    pkdp('\n\n\n\n\n\n\n\n  data.report {}', data.report)
-    pkdp('\n\n\n\n\n\n\n\n  T {}', t)
-    pkdp(' \n\n\n\n\n\n\n\n INFO {}', info)
-
-
-    pkdp('\n\n\n\n info {}', info)
 
     return template_common.heatmap(
         [to_floats(t[m.x]), to_floats(t[m.y1])],

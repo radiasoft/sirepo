@@ -35,13 +35,13 @@
   <!-- TODO(e-carlin): iterate over  each animation model and create a report for it -->
   <!-- <div data-ng-repeate="m in instrumentanimations"> -->
 
-    <div data-ng-if="controls.simState.hasFrames()">
+    <!-- <div class="clearfix"> -->
       
-      <div data-ng-repeat="item in controls.instrumentAnimations" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" >
+      <div data-ng-if="controls.simState.hasFrames()" data-ng-repeat="item in controls.instrumentAnimations" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" >
         <div data-report-panel="heatmap" data-model-data="item.modelAccess" data-model-name="instrumentAnimation"></div>
       </div>
       
-    </div>
+    <!-- </div> -->
   {{ controls.init() }}
 </div>
 <div data-modal-editor="" view-name="instrumentAnimation" data-ng-repeat="item in controls.instrumentAnimations" data-model-data="item.modelAccess"></div>

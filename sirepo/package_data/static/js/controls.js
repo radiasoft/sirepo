@@ -286,27 +286,16 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         if ($scope.isRunningOptimizer && data.elementValues) {
             handleElementValues(data);
             loadHeatmapReports(data);
-            // srdbg('appState.models', appState.models);
-            
-            // srdbg('$scope.instrumentAnimations', self.instrumentAnimations);
-            // srdbg('appState.models inside controls.js: ', appState.models);
         }
-        // else {
-        //     $scope.showHeatmaps = false;
-        // }
         if (! self.simState.isProcessing()) {
             if ($scope.isRunningOptimizer) {
                 $scope.isRunningOptimizer = false;
                 controlsService.runningMessage = '';
             }
         }
-	// TODO(e-carlin): Need to add an instrumentAnimationX model for each
-	// instrument in the list of elements.
-
-
     };
 
-    function setHeatmapModels(modelKey, data) {
+    function setHeatmapModels(modelKey, data, id) {
         const k = {
             modelAccess: {
                 modelKey: modelKey,
@@ -315,28 +304,23 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 }
             }
         }
-        // appState.models[k] = {};
         self.instrumentAnimations.push(k);
-        srdbg('instrumentAnimations: ', self.instrumentAnimations);
         var m = appState.models[modelKey];
         if (!m) {
             m = {
-                id: 'start',
+                id: id,
                 x: data.plottableColumns[0],
                 y1: data.plottableColumns[1],
             };
             appState.models[modelKey] = m;
 
         }
-        m.id = 'start';
+        m.id = id;
         srdbg('data.plottableColumns: ', data.plottableColumns)
         m.valueList = {
             x: data.plottableColumns,
             y1: data.plottableColumns,
         }
-            
-        // m.x = 'x',
-        // m.y1 = 'y',
         appState.setModelDefaults(m, 'instrumentAnimation');
         appState.saveQuietly(modelKey);
         frameCache.setFrameCount(1, modelKey);
@@ -344,20 +328,19 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
-        const modelKeyStart = 'instrumentAnimation' + 'start'; 
-        const modelKeyEnd = 'instrumentAnimation' + 'end';
+        const s = 'instrumentAnimationstart'; 
+        const e = 'instrumentAnimationend';
 
-        setHeatmapModels(modelKeyStart, data);
+        setHeatmapModels(s, data, 'start');
 
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 srdbg('MODEL', m);
                 if (m.type === 'INSTRUMENT') {
                     const modelKey = 'instrumentAnimation' + i; 
-                    setHeatmapModels(modelKey, data);    
+                    setHeatmapModels(modelKey, data, i);    
                 }
         });
-
-        setHeatmapModels(modelKeyEnd, data);
+        setHeatmapModels(e, data, 'end');
     }
 
     self.startSimulation = () => {
