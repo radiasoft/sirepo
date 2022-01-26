@@ -279,6 +279,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
 
     self.simHandleStatus = data => {
+	if (data.plottableColumns) {
+	    srdbg(`cccccccccccccccc `, data.plottableColumns);
+	}
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
@@ -328,7 +331,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
-        const s = 'instrumentAnimationstart'; 
+        const s = 'instrumentAnimationstart';
         const e = 'instrumentAnimationend';
 
         setHeatmapModels(s, data, 'start');
@@ -336,8 +339,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 srdbg('MODEL', m);
                 if (m.type === 'INSTRUMENT') {
-                    const modelKey = 'instrumentAnimation' + i; 
-                    setHeatmapModels(modelKey, data, i);    
+                    const modelKey = 'instrumentAnimation' + i;
+                    setHeatmapModels(modelKey, data, i);
                 }
         });
         setHeatmapModels(e, data, 'end');

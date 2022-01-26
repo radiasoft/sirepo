@@ -53,8 +53,16 @@ def background_percent_complete(report, run_dir, is_running):
             percentComplete=0,
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
-            plottableColumns=['x', 'px', 'y', 'py', 't', 's', 'e'],
-            # TODO (gurhar1133): send instrument models to browser here.
+            # TODO(e-carlin): share better; at the very least make the function public
+            # TODO(e-carlin): share with same call below
+            # TODO(e-carlin): rename plottableColumns to something like ptcTrackColumns
+            # TODO(e-carlin): make method for calling madx._file_info
+            plottableColumns=sirepo.template.madx._file_info(
+                # POSIT: onetable is activated by madx app
+                'ptc_track.file.tfsone',
+                run_dir,
+                'unused',
+            ).plottableColumns,
         )
     return PKDict(
         percentComplete=100,
@@ -63,7 +71,16 @@ def background_percent_complete(report, run_dir, is_running):
             run_dir,
             SCHEMA.constants.maxBPMPoints,
         ),
-        plottableColumns=['x', 'px', 'y', 'py', 't', 's', 'e'],
+        # TODO(e-carlin): if there are no instruments then there will be no ptc_track.file.tfsone so we don't want to do this code
+        # TODO(e-carlin): for checking if exists `run_dir.join('ptc_track.file.tfsone').exists()
+        # probably can just check if file exists if so send back plottableColumns if not send back empty array.
+        # TODO(e-carlin): share better; at the very least make the function public
+        plottableColumns=sirepo.template.madx._file_info(
+            # POSIT: onetable is activated by madx app
+            'ptc_track.file.tfsone',
+            run_dir,
+            'unused',
+        ).plottableColumns,
     )
 
 
@@ -135,19 +152,18 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     if _is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
     info_all = madx_parser.parse_tfs_page_info(run_dir.join(filename))
-    
+
     idx = 0
 
+    # TODO(e-carlin): need to remove all start and end code
     if 'start' in frame_args.frameReport:
-        # TODO (gurhar1133): for i in info_all loop to set t = madx_parser... is
-        # repeated too many times. Make a helper function
         for i in info_all:
             if i.name == 'start':
                 idx = info_all.index(i)
                 info = i
         t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=0)
     elif 'end' in frame_args.frameReport:
-    
+
         for i in info_all:
             if i.name == 'end':
                 idx = info_all.index(i)
@@ -164,15 +180,15 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
                 idx = info_all.index(i)
                 info = i
         t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
-    
-    return template_common.heatmap( 
+
+    return template_common.heatmap(
         [to_floats(t[frame_args.x]), to_floats(t[frame_args.y1])],
         frame_args,
         PKDict(
             x_label=_field_label(frame_args.x),
             y_label=_field_label(frame_args.y1),
             title='{}-{} at {}m, {}'.format(
-                frame_args.x, frame_args.y1, info.s, info.name, 
+                frame_args.x, frame_args.y1, info.s, info.name,
             ),
         ),
     )
