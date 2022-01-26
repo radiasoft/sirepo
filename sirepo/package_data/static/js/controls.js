@@ -279,14 +279,15 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
 
     self.simHandleStatus = data => {
-	if (data.plottableColumns) {
-	    srdbg(`cccccccccccccccc `, data.plottableColumns);
-	}
+        if (data.ptcTrackColumns) {
+            srdbg(`cccccccccccccccc `, data.ptcTrackColumns);
+        }
+        srdbg('self.instrumentAnimations', self.instrumentAnimations);
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
         }
-        if ($scope.isRunningOptimizer && data.elementValues) {
+        if (data.elementValues) {
             handleElementValues(data);
             loadHeatmapReports(data);
         }
@@ -298,7 +299,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
-    function setHeatmapModels(modelKey, data, id) {
+    function setHeatmapModels(modelKey, data, id, instrumentAnimations) {
+  
         const k = {
             modelAccess: {
                 modelKey: modelKey,
@@ -307,49 +309,77 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 }
             }
         }
-        self.instrumentAnimations.push(k);
+
+        instrumentAnimations.push(k);
+
         var m = appState.models[modelKey];
         if (!m) {
             m = {
                 id: id,
-                x: data.plottableColumns[0],
-                y1: data.plottableColumns[1],
+                x: data.ptcTrackColumns[0],
+                y1: data.ptcTrackColumns[1],
             };
             appState.models[modelKey] = m;
 
         }
         m.id = id;
-        srdbg('data.plottableColumns: ', data.plottableColumns)
+        srdbg('data.ptcTrackColumns: ', data.ptcTrackColumns)
         m.valueList = {
-            x: data.plottableColumns,
-            y1: data.plottableColumns,
+            x: data.ptcTrackColumns,
+            y1: data.ptcTrackColumns,
         }
-        appState.setModelDefaults(m, 'instrumentAnimation');
-        appState.saveQuietly(modelKey);
+
+        // appState.setModelDefaults(m, 'instrumentAnimation');
+        // appState.saveQuietly(modelKey);
         frameCache.setFrameCount(1, modelKey);
     }
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
-        // const s = 'instrumentAnimationstart';
-        // const e = 'instrumentAnimationend';
+        for(const m in appState.models) {
+            if(m.includes('instrumentAnimation')) {
+                appState.models[m].valueList = data.ptcTrackColumns;
+                srdbg('mmmmmmmm ', appState.models[m])
+                self.instrumentAnimations.push(m);
+                appState.saveQuietly(m);
+                // TODO: Is this needed?
+                frameCache.setFrameCount(1, m);
+            }
+        }
+    }
 
-        // setHeatmapModels(s, data, 'start');
+    function initInstrumentModels() { 
+        for(const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
+                return;
+            }
+        }
 
+        const modelKeys  = [];
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 srdbg('MODEL', m);
-                if (m.type === 'INSTRUMENT') {
-                    const modelKey = 'instrumentAnimation' + i;
-                    setHeatmapModels(modelKey, data, i);
+                if (m.type !== 'INSTRUMENT') {
+                    return;
                 }
+                const modelKey = 'instrumentAnimation' + i;
+                modelKeys.push(modelKey);
+                const n = {
+                    id: i, //TODO(): share the concept that i is the id with modelKey above
+                };
+                appState.setModelDefaults(n, 'instrumentAnimation');
+                appState.models[modelKey] = n;
         });
-        // setHeatmapModels(e, data, 'end');
+        appState.saveChanges(modelKeys);
+        
+    
     }
 
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
+        // Create the instrumentAnimation models and put on appState.models; then saveChanges with the new modelNames
+        initInstrumentModels()
         appState.saveChanges('optimizerSettings', self.simState.runSimulation);
     };
 

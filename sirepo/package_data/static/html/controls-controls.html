@@ -38,7 +38,9 @@
     <!-- <div class="clearfix"> -->
       
       <div data-ng-if="controls.simState.hasFrames()" data-ng-repeat="item in controls.instrumentAnimations" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" >
-        <div data-report-panel="heatmap" data-model-data="item.modelAccess" data-model-name="instrumentAnimation"></div>
+        <!-- <div data-report-panel="heatmap" data-model-data="item.modelAccess" data-model-name="instrumentAnimation"></div> -->
+        <div data-report-panel="heatmap" data-model-name="{{item.modelAccess.modelKey}}" data-panel-title="Instrument Cross Section"></div>
+
       </div>
       
     <!-- </div> -->

@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sympy import EX
 from sirepo.template import lattice
 import re
 import sirepo.sim_data
@@ -202,8 +203,12 @@ def parse_tfs_file(tfs_file, header_only=False, want_page=-1):
     for i in range(len(col_names)):
         name = col_names[i].lower()
         if name:
+
             for row in rows:
-                res[name].append(row[i])
+                try:
+                    res[name].append(row[i])
+                except Exception:
+                    assert False, f'problematic index {i}, len row {len(row)}'
     return res
 
 _TWISS_VARS = PKDict(

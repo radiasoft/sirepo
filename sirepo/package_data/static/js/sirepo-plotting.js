@@ -1754,6 +1754,7 @@ SIREPO.app.directive('columnForAspectRatio', function(appState) {
         controller: function($scope) {
             $scope.columnClass = function() {
                 if (appState.isLoaded()) {
+                    srdbg('11111111111 ', $scope.modelName)
                     var ratio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
                     if (ratio <= 0.5) {
                         return 'col-md-12 col-xl-8';
