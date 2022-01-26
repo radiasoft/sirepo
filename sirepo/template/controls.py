@@ -57,12 +57,13 @@ def background_percent_complete(report, run_dir, is_running):
             # TODO(e-carlin): share with same call below
             # TODO(e-carlin): rename plottableColumns to something like ptcTrackColumns
             # TODO(e-carlin): make method for calling madx._file_info
-            plottableColumns=sirepo.template.madx._file_info(
-                # POSIT: onetable is activated by madx app
-                'ptc_track.file.tfsone',
-                run_dir,
-                'unused',
-            ).plottableColumns,
+            plottableColumns=['x', 'px', 'y', 'py', 't', 's', 'e']
+            # plottableColumns=sirepo.template.madx._file_info(
+            #     # POSIT: onetable is activated by madx app
+            #     'ptc_track.file.tfsone',
+            #     run_dir,
+            #     'unused',
+            # ).plottableColumns,
         )
     return PKDict(
         percentComplete=100,
@@ -71,10 +72,6 @@ def background_percent_complete(report, run_dir, is_running):
             run_dir,
             SCHEMA.constants.maxBPMPoints,
         ),
-        # TODO(e-carlin): if there are no instruments then there will be no ptc_track.file.tfsone so we don't want to do this code
-        # TODO(e-carlin): for checking if exists `run_dir.join('ptc_track.file.tfsone').exists()
-        # probably can just check if file exists if so send back plottableColumns if not send back empty array.
-        # TODO(e-carlin): share better; at the very least make the function public
         plottableColumns=sirepo.template.madx._file_info(
             # POSIT: onetable is activated by madx app
             'ptc_track.file.tfsone',
@@ -82,6 +79,15 @@ def background_percent_complete(report, run_dir, is_running):
             'unused',
         ).plottableColumns,
     )
+
+
+def get_ptc_output_info(run_dir):
+    # TODO (gurhar1133): animation vs instrumentAnimation run dirs???
+    # TODO(e-carlin): if there are no instruments then there will be no ptc_track.file.tfsone so we don't want to do this code
+    # TODO(e-carlin): for checking if exists `run_dir.join('ptc_track.file.tfsone').exists()
+    # probably can just check if file exists if so send back plottableColumns if not send back empty array.
+    # TODO(e-carlin): share better; at the very least make the function public
+    pass
 
 
 def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, results=None):
@@ -156,30 +162,30 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     idx = 0
 
     # TODO(e-carlin): need to remove all start and end code
-    if 'start' in frame_args.frameReport:
-        for i in info_all:
-            if i.name == 'start':
-                idx = info_all.index(i)
-                info = i
-        t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=0)
-    elif 'end' in frame_args.frameReport:
+    # if 'start' in frame_args.frameReport:
+    #     for i in info_all:
+    #         if i.name == 'start':
+    #             idx = info_all.index(i)
+    #             info = i
+    #     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=0)
+    # elif 'end' in frame_args.frameReport:
 
-        for i in info_all:
-            if i.name == 'end':
-                idx = info_all.index(i)
-                info = i
-        t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=len(info_all)-1)
-    else:
-        element_id = data.models[frame_args.frameReport].id
-        data.models[frame_args.frameReport] = frame_args
-        pkdp('\n\n\n\n\n\n\n element_id: {}', element_id)
-        obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
-        target = obj.name
-        for i in info_all:
-            if i.name == target:
-                idx = info_all.index(i)
-                info = i
-        t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
+    #     for i in info_all:
+    #         if i.name == 'end':
+    #             idx = info_all.index(i)
+    #             info = i
+    #     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=len(info_all)-1)
+    # else:
+    element_id = data.models[frame_args.frameReport].id
+    data.models[frame_args.frameReport] = frame_args
+    pkdp('\n\n\n\n\n\n\n element_id: {}', element_id)
+    obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
+    target = obj.name
+    for i in info_all:
+        if i.name == target:
+            idx = info_all.index(i)
+            info = i
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
 
     return template_common.heatmap(
         [to_floats(t[frame_args.x]), to_floats(t[frame_args.y1])],

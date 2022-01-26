@@ -331,10 +331,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
-        const s = 'instrumentAnimationstart';
-        const e = 'instrumentAnimationend';
+        // const s = 'instrumentAnimationstart';
+        // const e = 'instrumentAnimationend';
 
-        setHeatmapModels(s, data, 'start');
+        // setHeatmapModels(s, data, 'start');
 
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 srdbg('MODEL', m);
@@ -343,7 +343,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                     setHeatmapModels(modelKey, data, i);
                 }
         });
-        setHeatmapModels(e, data, 'end');
+        // setHeatmapModels(e, data, 'end');
     }
 
     self.startSimulation = () => {
