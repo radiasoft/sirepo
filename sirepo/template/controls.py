@@ -91,7 +91,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
         [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
         frame_args,
         PKDict(
-            x_label=sirepo.template.madx.field_label(frame_args.x), # TODO (gurhar1133): make private methods used here public (think about consequences)
+            x_label=sirepo.template.madx.field_label(frame_args.x), 
             y_label=sirepo.template.madx.field_label(frame_args.y1),
             title='{}-{} at {}m, {}'.format(
                 frame_args.x, frame_args.y1, i.s, i.name,

@@ -279,7 +279,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
 
     self.simHandleStatus = data => {
-        
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
@@ -304,7 +303,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                         x: data.ptcTrackColumns, 
                         y1: data.ptcTrackColumns,
                     };
-                
                 self.instrumentAnimations.push({
                     modelKey: m,
                     getData: () => { return appState.models[m]},
@@ -322,7 +320,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 return;
             }
         }
-
         const modelKeys  = [];
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 if (m.type !== 'INSTRUMENT') {
@@ -337,8 +334,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 appState.models[modelKey] = n;
         });
         appState.saveChanges(modelKeys);
-        
-    
     }
 
     self.startSimulation = () => {
