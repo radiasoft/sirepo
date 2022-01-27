@@ -26,6 +26,7 @@ import socket
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         # TODO(e-carlin): we will need to return a bool once the ptc output file is
@@ -97,6 +98,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
             ),
         ),
     )
+
 
 def stateful_compute_get_madx_sim_list(data):
     res = []
