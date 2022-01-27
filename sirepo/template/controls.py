@@ -31,6 +31,7 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         # TODO(e-carlin): we will need to return a bool once the ptc output file is
         # present and the browser can request data from it
+        # Todo (gurhar): ^ still needed?
         return PKDict(
             percentComplete=0,
             frameCount=0,
@@ -50,7 +51,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_ptc_track_columns(run_dir):
-    # TODO (gurhar1133): check with Evan on line below
     data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
     m = data.models.externalLattice.models.elements
     for e in m:
@@ -72,7 +72,6 @@ def get_target_info(info_all, target):
 
 
 def sim_frame(frame_args):
-    # TODO (gurhar1133): this was copied from madx, but has been modified
     return _extract_report_elementAnimation(frame_args, frame_args.run_dir, 'ptc_track.file.tfsone')
 
 
