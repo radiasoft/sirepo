@@ -279,10 +279,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
 
     self.simHandleStatus = data => {
-        if (data.ptcTrackColumns) {
-            srdbg(`cccccccccccccccc `, data.ptcTrackColumns);
-        }
-        srdbg('self.instrumentAnimations', self.instrumentAnimations);
+        
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
@@ -299,42 +296,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
-
-    // function setHeatmapModels(modelKey, data, id, instrumentAnimations) {
-  
-    //     const k = {
-    //         modelAccess: {
-    //             modelKey: modelKey,
-    //             getData: function () {
-    //                 return appState.models[modelKey];
-    //             }
-    //         }
-    //     }
-
-    //     instrumentAnimations.push(k);
-
-    //     var m = appState.models[modelKey];
-    //     if (!m) {
-    //         m = {
-    //             id: id,
-    //             x: data.ptcTrackColumns[0],
-    //             y1: data.ptcTrackColumns[1],
-    //         };
-    //         appState.models[modelKey] = m;
-
-    //     }
-    //     m.id = id;
-    //     srdbg('data.ptcTrackColumns: ', data.ptcTrackColumns)
-    //     m.valueList = {
-    //         x: data.ptcTrackColumns,
-    //         y1: data.ptcTrackColumns,
-    //     }
-
-    //     // appState.setModelDefaults(m, 'instrumentAnimation');
-    //     // appState.saveQuietly(modelKey);
-    //     frameCache.setFrameCount(1, modelKey);
-    // }
-
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
         for(const m in appState.models) {
@@ -344,7 +305,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                         y1: data.ptcTrackColumns,
                     };
                 
-                srdbg('mmmmmmmm ', appState.models[m])
                 self.instrumentAnimations.push({
                     modelKey: m,
                     getData: () => { return appState.models[m]},
@@ -365,7 +325,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
         const modelKeys  = [];
         appState.models.externalLattice.models.elements.forEach((m, i) => {
-                srdbg('MODEL', m);
                 if (m.type !== 'INSTRUMENT') {
                     return;
                 }
@@ -386,8 +345,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
-        // Create the instrumentAnimation models and put on appState.models; then saveChanges with the new modelNames
-        initInstrumentModels()
+        initInstrumentModels();
         appState.saveChanges('optimizerSettings', self.simState.runSimulation);
     };
 

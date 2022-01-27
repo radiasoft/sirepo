@@ -70,30 +70,22 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_ptc_track_columns(run_dir):
-    # TODO (gurhar1133): animation vs instrumentAnimation run dirs???
     # TODO(e-carlin): share better; at the very least make the function public
 
     data = pkjson.load_any(pkio.mkdir_parent_only(run_dir).join('sirepo-data.json'))
     e = data.models.externalLattice.models.elements
 
-    # pkdp('\n\n\n\n\n dm : {}', e)
-
-    i_present = False
     for el in e:
-        if el.type == 'INSTRUMENT':
-            i_present = True
-            break
-    
-    if run_dir.join('ptc_track.file.tfsone').exists() and i_present:
-        # pkdp('\n\n\n\n\n xxxxxxxxxxxxxx \n\n\n\n\n\n\n ptc_track.file.tfsone exists in {}', run_dir)
-        return sirepo.template.madx._file_info(
-                # POSIT: onetable is activated by madx app
-                'ptc_track.file.tfsone',
-                run_dir,
-                'unused',
-            ).plottableColumns
-   
-    #  'x', 'px', 'y', 'py', 'e', 't', 's'
+        if el.type != 'INSTRUMENT':
+            continue
+        
+        if run_dir.join('ptc_track.file.tfsone').exists():
+            return sirepo.template.madx._file_info(
+                    'ptc_track.file.tfsone',
+                    run_dir,
+                    'unused',
+                ).plottableColumns
+
     return []
  
 
@@ -149,7 +141,6 @@ def to_floats(values):
 
 def _field_label(field):
     # TODO (gurhar1133): this was copied from madx
-    pkdp('\n\n\n\n\n FIELD: {}', field)
     if field in _FIELD_UNITS:
         return '{} [{}]'.format(field, _FIELD_UNITS[field])
     return field
@@ -168,21 +159,8 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     info_all = madx_parser.parse_tfs_page_info(run_dir.join(filename))
 
     idx = 0
-
-    pkdp('\n\n\n\n\n data.models: {}', data.models)
-    pkdp('\n\n\n\n\n frame_args.frameReport: {}', frame_args.frameReport) 
-
-    # TODO (gurhar1133): when I rm the run dir data.models gets key error on instrumentAnimation(id)
-
-    pkdp('\n\n\n\n\n data.models.keys(): {}', data.models.keys())
-
     element_id = data.models[frame_args.frameReport].id
-
-    
-
-
     data.models[frame_args.frameReport] = frame_args
-    pkdp('\n\n\n\n\n\n\n element_id: {}', element_id)
     obj = frame_args.sim_in.models.externalLattice.models.elements[element_id]
     target = obj.name
     for i in info_all:
@@ -190,9 +168,6 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
             idx = info_all.index(i)
             info = i
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
-    
-    pkdp('\n\n\n\n info:  {}', info)
-    pkdp('\n\n\n\n\n\n frame_args.x', frame_args.x)
     return template_common.heatmap(
         [to_floats(t[frame_args.x]), to_floats(t[frame_args.y1])],
         frame_args,
