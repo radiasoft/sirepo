@@ -299,48 +299,56 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
-    function setHeatmapModels(modelKey, data, id, instrumentAnimations) {
+
+    // function setHeatmapModels(modelKey, data, id, instrumentAnimations) {
   
-        const k = {
-            modelAccess: {
-                modelKey: modelKey,
-                getData: function () {
-                    return appState.models[modelKey];
-                }
-            }
-        }
+    //     const k = {
+    //         modelAccess: {
+    //             modelKey: modelKey,
+    //             getData: function () {
+    //                 return appState.models[modelKey];
+    //             }
+    //         }
+    //     }
 
-        instrumentAnimations.push(k);
+    //     instrumentAnimations.push(k);
 
-        var m = appState.models[modelKey];
-        if (!m) {
-            m = {
-                id: id,
-                x: data.ptcTrackColumns[0],
-                y1: data.ptcTrackColumns[1],
-            };
-            appState.models[modelKey] = m;
+    //     var m = appState.models[modelKey];
+    //     if (!m) {
+    //         m = {
+    //             id: id,
+    //             x: data.ptcTrackColumns[0],
+    //             y1: data.ptcTrackColumns[1],
+    //         };
+    //         appState.models[modelKey] = m;
 
-        }
-        m.id = id;
-        srdbg('data.ptcTrackColumns: ', data.ptcTrackColumns)
-        m.valueList = {
-            x: data.ptcTrackColumns,
-            y1: data.ptcTrackColumns,
-        }
+    //     }
+    //     m.id = id;
+    //     srdbg('data.ptcTrackColumns: ', data.ptcTrackColumns)
+    //     m.valueList = {
+    //         x: data.ptcTrackColumns,
+    //         y1: data.ptcTrackColumns,
+    //     }
 
-        // appState.setModelDefaults(m, 'instrumentAnimation');
-        // appState.saveQuietly(modelKey);
-        frameCache.setFrameCount(1, modelKey);
-    }
+    //     // appState.setModelDefaults(m, 'instrumentAnimation');
+    //     // appState.saveQuietly(modelKey);
+    //     frameCache.setFrameCount(1, modelKey);
+    // }
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = []
         for(const m in appState.models) {
             if(m.includes('instrumentAnimation')) {
-                appState.models[m].valueList = data.ptcTrackColumns;
+                appState.models[m].valueList = {
+                        x: data.ptcTrackColumns, 
+                        y1: data.ptcTrackColumns,
+                    };
+                
                 srdbg('mmmmmmmm ', appState.models[m])
-                self.instrumentAnimations.push(m);
+                self.instrumentAnimations.push({
+                    modelKey: m,
+                    getData: () => { return appState.models[m]},
+                });
                 appState.saveQuietly(m);
                 // TODO: Is this needed?
                 frameCache.setFrameCount(1, m);

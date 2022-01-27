@@ -1236,7 +1236,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         var m = appState.models;
         m = m[frameReport in m ? frameReport : c];
         var f = SIREPO.APP_SCHEMA.frameIdFields;
-	srdbg(`fffffffffffffffff `, frameReport);
+	    srdbg(`fffffffffffffffff `, frameReport, m, appState.models);
         f = f[frameReport in f ? frameReport : c];
         if (! f) {
             throw new Error('frameReport=' + frameReport + ' missing from schema frameIdFields');

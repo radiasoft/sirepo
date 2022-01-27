@@ -2257,6 +2257,11 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         controller: function($scope) {
             // random id for the keypress service to track
             $scope.reportId = utilities.reportId();  //Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+            
+           
+            if ($scope.modelName.includes('{')) {
+                throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
+            }
 
             $scope.modelKey = $scope.modelName;
             if ($scope.modelData) {
