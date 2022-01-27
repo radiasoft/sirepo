@@ -26,21 +26,6 @@ import socket
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 
-# _FIELD_UNITS = PKDict(
-#     betx='m',
-#     bety='m',
-#     dx='m',
-#     dy='m',
-#     mux='2π',
-#     muy='2π',
-#     s='m',
-#     x='m',
-#     y='m',
-# )
-
-
-
-
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         # TODO(e-carlin): we will need to return a bool once the ptc output file is
@@ -64,77 +49,20 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_ptc_track_columns(run_dir):
-    # TODO(e-carlin): share better; at the very least make the function public
     # TODO (gurhar1133): check with Evan on line below
-    data = pkjson.load_any(pkio.mkdir_parent_only(run_dir).join('sirepo-data.json'))
+    data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
     m = data.models.externalLattice.models.elements
     for e in m:
         if e.type != 'INSTRUMENT':
             continue
         if run_dir.join('ptc_track.file.tfsone').exists():
-            return sirepo.template.madx._file_info(
+            return sirepo.template.madx.file_info(
                     'ptc_track.file.tfsone',
                     run_dir,
                     'unused',
                 ).plottableColumns
     return []
- 
 
-
-# def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, results=None):
-#     # TODO (gurhar1133): this was copied from madx
-#     if not results:
-#         assert run_dir and filename, \
-#             f'must supply either results or run_dir={run_dir} and filename={filename}'
-#     t = results or madx_parser.parse_tfs_file(run_dir.join(filename))
-#     plots = []
-#     m = data.models[data.report]
-#     for f in ('y1', 'y2', 'y3'):
-#         if m[f] == 'None':
-#             continue
-#         plots.append(
-#             PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
-#         )
-#     x = m.get('x') or 's'
-#     res = template_common.parameter_plot(
-#         to_floats(t[x]),
-#         plots,
-#         m,
-#         PKDict(
-#             y_label='',
-#             x_label=_field_label(x),
-#         )
-#     )
-#     if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
-#         res.initialTwissParameters = PKDict(
-#             betx=t.betx[0],
-#             bety=t.bety[0],
-#             alfx=t.alfx[0],
-#             alfy=t.alfy[0],
-#         )
-    return res
-
-
-# def _is_parameter_report_file(filename):
-#     # TODO (gurhar1133): this was copied from madx
-#     return 'twiss' in filename or 'touschek' in filename
-
-
-# def to_float(value):
-#     # TODO (gurhar1133): this was copied from madx
-#     return float(value)
-
-
-# def to_floats(values):
-#     # TODO (gurhar1133): this was copied from madx
-#     return [to_float(v) for v in values]
-
-
-# def _field_label(field):
-#     # TODO (gurhar1133): this was copied from madx
-#     if field in _FIELD_UNITS:
-#         return '{} [{}]'.format(field, _FIELD_UNITS[field])
-#     return field
 
 def get_target_info(info_all, target):
     for i in info_all:
@@ -150,25 +78,22 @@ def sim_frame(frame_args):
 # TODO(e-carlin): this was copied from madx, but has been modified; need to abstract and share
 def _extract_report_elementAnimation(frame_args, run_dir, filename):
     data = frame_args.sim_in
-    if sirepo.template.madx._is_parameter_report_file(filename):
+    if sirepo.template.madx.is_parameter_report_file(filename):
         return sirepo.template.madx.extract_parameter_report(data, run_dir, filename)
-    info_all = madx_parser.parse_tfs_page_info(run_dir.join(filename))
-  
-    element_id = data.models[frame_args.frameReport].id
+    a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
+    d = data.models[frame_args.frameReport].id
     data.models[frame_args.frameReport] = frame_args
-    target = frame_args.sim_in.models.externalLattice.models.elements[element_id].name
-
-    info, idx = get_target_info(info_all, target)
-
-    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=idx)
+    n = frame_args.sim_in.models.externalLattice.models.elements[d].name
+    i, x = get_target_info(a, n)
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
     return template_common.heatmap(
         [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
         frame_args,
         PKDict(
-            x_label=sirepo.template.madx._field_label(frame_args.x), # TODO (gurhar1133): make private methods used here public (think about consequences)
-            y_label=sirepo.template.madx._field_label(frame_args.y1),
+            x_label=sirepo.template.madx.field_label(frame_args.x), # TODO (gurhar1133): make private methods used here public (think about consequences)
+            y_label=sirepo.template.madx.field_label(frame_args.y1),
             title='{}-{} at {}m, {}'.format(
-                frame_args.x, frame_args.y1, info.s, info.name,
+                frame_args.x, frame_args.y1, i.s, i.name,
             ),
         ),
     )

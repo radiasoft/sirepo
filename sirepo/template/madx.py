@@ -258,7 +258,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
         if m[f] == 'None':
             continue
         plots.append(
-            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
+            PKDict(field=m[f], points=to_floats(t[m[f]]), label=field_label(m[f])),
         )
     x = m.get('x') or 's'
     res = template_common.parameter_plot(
@@ -267,7 +267,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
         m,
         PKDict(
             y_label='',
-            x_label=_field_label(x),
+            x_label=field_label(x),
         )
     )
     if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
@@ -621,8 +621,8 @@ def _extract_report_bunchReport(data, run_dir):
         ],
         m,
         PKDict(
-            x_label=_field_label(m.x),
-            y_label=_field_label(m.y),
+            x_label=field_label(m.x),
+            y_label=field_label(m.y),
         )
     )
     bunch = data.models.bunch
@@ -644,7 +644,7 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_elementAnimation(data, run_dir, filename):
-    if _is_parameter_report_file(filename):
+    if is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
@@ -654,8 +654,8 @@ def _extract_report_elementAnimation(data, run_dir, filename):
         [to_floats(t[m.x]), to_floats(t[m.y1])],
         m,
         PKDict(
-            x_label=_field_label(m.x),
-            y_label=_field_label(m.y1),
+            x_label=field_label(m.x),
+            y_label=field_label(m.y1),
             title='{}-{} at {}m, {} turn {}'.format(
                 m.x, m.y1, info.s, info.name, info.turn,
             ),
@@ -809,13 +809,13 @@ def _extract_report_twissReport(data, run_dir):
     return extract_parameter_report(data, run_dir)
 
 
-def _field_label(field):
+def field_label(field):
     if field in _FIELD_UNITS:
         return '{} [{}]'.format(field, _FIELD_UNITS[field])
     return field
 
 
-def _file_info(filename, run_dir, file_id):
+def file_info(filename, run_dir, file_id):
     path = str(run_dir.join(filename))
     plottable = []
     tfs = madx_parser.parse_tfs_file(path)
@@ -832,7 +832,7 @@ def _file_info(filename, run_dir, file_id):
     return PKDict(
         modelKey='elementAnimation{}'.format(file_id),
         filename=filename,
-        isHistogram=not _is_parameter_report_file(filename),
+        isHistogram=not is_parameter_report_file(filename),
         plottableColumns=plottable,
         pageCount=count,
     )
@@ -911,7 +911,7 @@ def _get_filename_for_element_id(file_id, data):
     return _build_filename_map(data)[file_id]
 
 
-def _is_parameter_report_file(filename):
+def is_parameter_report_file(filename):
     return 'twiss' in filename or 'touschek' in filename
 
 
@@ -935,7 +935,7 @@ def _output_info(run_dir):
     for k in files.keys_in_order:
         f = files[k]
         if run_dir.join(f.filename).exists():
-            res.append(_file_info(f.filename, run_dir, k))
+            res.append(file_info(f.filename, run_dir, k))
             if f.model_type == _PTC_TRACK_COMMAND and \
                int(data.models.simulation.computeTwissFromParticles):
                 res.insert(0, PKDict(
