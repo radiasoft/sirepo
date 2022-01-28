@@ -57,6 +57,18 @@ def test_jspec(fc):
     )
 
 
+def test_radia(fc):
+    fc.sr_animation_run(
+        'Dipole',
+        'solverAnimation',
+        PKDict(
+            solverAnimation=PKDict(
+            ),
+        ),
+        timeout=20,
+    )
+
+
 def test_srw(fc):
     fc.sr_animation_run(
         "Young's Double Slit Experiment",

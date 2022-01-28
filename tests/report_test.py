@@ -27,6 +27,14 @@ def test_elegant(fc):
     )
 
 
+def test_radia(fc):
+    _r(
+        fc,
+        'Dipole',
+        'geometryReport',
+    )
+
+
 def test_synergia(fc):
     _r(
         fc,
