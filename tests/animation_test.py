@@ -65,7 +65,7 @@ def test_jspec(fc):
     )
 
 
-def test_madxs(fc):
+def test_madx(fc):
     fc.sr_animation_run(
         'FODO PTC',
         'animation',
