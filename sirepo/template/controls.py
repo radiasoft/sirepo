@@ -69,6 +69,7 @@ def get_target_info(info_all, target):
     for i in info_all:
         if i.name == target:
             return i, info_all.index(i)
+    raise AssertionError(f'no target={target} in info_all={info_all}')            
 
 
 def sim_frame(frame_args):
@@ -263,48 +264,35 @@ def _generate_parameters(v, data):
         m = LatticeUtil.max_id(data) + 1
         for i,  c in enumerate(ptc_commands):
             c._id = m + i
+        return ptc_commands    
 
-    def _gen_full_ptc(ptc_commands_all, instruments, data):
-        ptc_commands_all.append(
-                PKDict(
-                    _type='ptc_create_universe',
-                    name='PT1',
-                ))
-        for i_command in _create_ptc_observes(instruments):
-            ptc_commands_all.append(i_command)
+    def _gen_full_ptc(instruments, data):
 
-        ptc_commands_all.append(
-            PKDict(
-                _type='ptc_create_layout',
-            ))
-        ptc_commands_all.append(
-            PKDict(
-                _type='ptc_track',
-                file='1',
-            ))
-        ptc_commands_all.append(
-            PKDict(
-                _type='ptc_track_end',
-                name='PT1'
-            ))
-        ptc_commands_all.append(
-            PKDict(
-                _type='ptc_end',
-                name='PT1'
-            ))
-        _set_ptc_ids(ptc_commands_all, data)
-        return ptc_commands_all
+
+        return _set_ptc_ids(
+            [
+                PKDict(_type='ptc_create_universe'),
+                *_create_ptc_observes(instruments),
+                PKDict(_type='ptc_create_layout'),
+                PKDict(_type='ptc_track', file='1'),
+                PKDict(_type='ptc_track_end'),
+                PKDict(_type='ptc_end'),
+            ],
+            data,
+        )
 
     def _get_all_ptc(instruments, data):
-        p = []
+        
         u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
         if not u:
-            return _gen_full_ptc(p, instruments, data)
+            return _gen_full_ptc(instruments, data)
         else:
             t = 0
             for i, c in enumerate(data.models.commands):
+                
                 if c._type == 'ptc_create_universe':
                     t = i + 1
+                    # POSIT: assume if ptc_create_universe exits, all other commands are there too
                     break
             o = _create_ptc_observes(instruments)
             _set_ptc_ids(o, data)
