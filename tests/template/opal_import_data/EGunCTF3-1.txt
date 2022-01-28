@@ -13,6 +13,8 @@ REAL repartfreq = 100.0;
 "OPT1": option,autophase=4.0,psdumpfreq=50.0,statdumpfreq=1.0,version=10900.0;
 
 "FIND1_MQ10": QUADRUPOLE,l=0.1;
+"FIND1_MQ20": QUADRUPOLE,l=0.1;
+"FIND1_MQ30": QUADRUPOLE,l=0.1;
 "FINSS_RGUN": RFCAVITY,fmapfn="RFCAVITY-fmapfn.CTF3_Ez_ASTRA.opal",freq=BF,l=0.34986,lag=-3.5/180.0*PI,type=STANDING,volt=100.0;
 "END": SOLENOID,fmapfn="SOLENOID-fmapfn.NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal",ks=0.01,l=0.01;
 "FIND1_MSOL10": SOLENOID,fmapfn="SOLENOID-fmapfn.NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal",ks=0.206,l=0.6;
@@ -22,10 +24,10 @@ REAL repartfreq = 100.0;
 "FINSS_RGUN#0": "FINSS_RGUN",elemedge=0.0;
 "FIND1_MSOL10#0": "FIND1_MSOL10",elemedge=0.3;
 "FIND1_MQ10#0": "FIND1_MQ10",elemedge=1.38;
-"FIND1_MQ10#1": "FIND1_MQ10",elemedge=1.56;
-"FIND1_MQ10#2": "FIND1_MQ10",elemedge=1.74;
+"FIND1_MQ20#0": "FIND1_MQ20",elemedge=1.56;
+"FIND1_MQ30#0": "FIND1_MQ30",elemedge=1.74;
 "END#0": "END",elemedge=100.;
-Injector: LINE=("GUNSOURCE#0","FINSS_RGUN#0","FIND1_MSOL10#0","FIND1_MQ10#0","FIND1_MQ10#1","FIND1_MQ10#2","END#0");
+Injector: LINE=("GUNSOURCE#0","FINSS_RGUN#0","FIND1_MSOL10#0","FIND1_MQ10#0","FIND1_MQ20#0","FIND1_MQ30#0","END#0");
 
 
 "FS1": fieldsolver,bboxincr=1.0,fstype="FFT",mt=32.0,mx=16.0,my=16.0,parfftx=true,parffty=true;
