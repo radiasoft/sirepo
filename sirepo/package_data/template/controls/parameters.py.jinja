@@ -2,6 +2,8 @@
 from pykern.pkcollections import PKDict
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
+from pykern.pkdebug import pkdp, pkdlog
+import sirepo.pkcli.madx
 import numpy as np
 import os
 import re
@@ -253,6 +255,9 @@ def set_correctors_and_read_device_server(correctors):
 
 {% endif %}
 
+{% if controlSettings_operationMode == 'madx' %}
+sirepo.pkcli.madx.particle_file_for_external_lattice()
+{% endif %}
 
 with open('{{ summaryCSV }}', 'w') as f:
     f.write('{}\n'.format('{{ summaryCSVHeader }}'))
