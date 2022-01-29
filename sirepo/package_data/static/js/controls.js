@@ -296,15 +296,17 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     };
 
     function loadHeatmapReports(data) {
-        
-        let instAnims = [];
+     
+
+        self.instrumentAnimations = [];
         for(const m in appState.models) {
             if(m.includes('instrumentAnimation')) {
+                srdbg('loop:', m);
                 appState.models[m].valueList = {
                         x: data.ptcTrackColumns, 
                         y1: data.ptcTrackColumns,
                     };
-                instAnims.push({
+                self.instrumentAnimations.push({
                     modelKey: m,
                     getData: () => { return appState.models[m]},
                 });
@@ -314,19 +316,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 frameCache.setFrameCount(1, m);
             }
         } 
-        instAnims.sort(function compare(a, b) {
-            let comparison = 0;
-            if (a.modelKey.replace('instrumentAnimation', '') > b.modelKey.replace('instrumentAnimation', '')) {
-              comparison = 1;
-            } else if (a.modelKey.replace('instrumentAnimation', '') > b.modelKey.replace('instrumentAnimation', '')) {
-              comparison = -1;
-            }
-            return comparison;
-          });
-        srdbg('instAnims: ', instAnims);
-
-        self.instrumentAnimations = instAnims;
-        srdbg('self.instrumentAnimations', self.instrumentAnimations);
+        srdbg('self.instrumentAnimations before: ', self.instrumentAnimations);
+        self.instrumentAnimations.sort((a, b)=> Number(a.modelKey.replace('instrumentAnimation', '')) - Number(b.modelKey.replace('instrumentAnimation', '')));
+        srdbg('appState.models: ', appState.models);
+        srdbg('self.instrumentAnimations after: ', self.instrumentAnimations);
     }
 
     function initInstrumentModels() { 
