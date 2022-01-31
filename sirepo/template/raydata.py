@@ -121,7 +121,7 @@ def stateless_compute_scans(data):
             raise sirepo.util.UserAlert(
                 f'More than {_MAX_NUM_SCANS} scans found. Please reduce your query.',
             )
-        s.append(_scan_info(v[0], metadata=v[1].metadata))
+        s.append(_scan_info(v[0], data.selectedColumns, metadata=v[1].metadata))
     return _scan_info_result(s)
 
 
@@ -177,19 +177,17 @@ def _metadata(data):
     return res
 
 
-def _scan_info(scan_uuid, metadata=None):
+def _scan_info(scan_uuid, selected_columns, metadata=None):
     m = metadata
     if not m:
-        m =  catalog()[scan_uuid].metadata
-    return PKDict(
-        uid=scan_uuid,
-        suid=_suid(scan_uuid),
-        owner=m['start']['owner'],
-        start=m['start']['time'],
-        stop=m['stop']['time'],
-        T_sample_=m['start'].get('T_sample_'),
-        sequence_id=m['start']['sequence id'],
-    )
+        m = catalog()[scan_uuid].metadata
+    d = PKDict()
+    d.start = m['start']['time']
+    d.stop = m['stop']['time']
+    d.suid = _suid(scan_uuid)
+    for c in selected_columns:
+        d[c] = m['start'][c]
+    return d
 
 
 def _scan_info_result(scans):

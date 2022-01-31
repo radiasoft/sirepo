@@ -616,55 +616,55 @@ SIREPO.app.directive('pngImage', function(plotting) {
     };
 });
 
-SIREPO.app.directive('elementPicker', function() {
+SIREPO.app.directive('columnPicker', function() {
     return {
         restrict: 'A',
         scope: {
-            controller: '=',
             title: '@',
             id: '@',
-            smallElementClass: '@',
             availableColumns: '=',
             masterListColumns: '=',
             columns: '=',
+            defaultColumns: '=',
+            setColumns: '=',
+            setAvailableColumns: '=',
         },
-        template: [
-            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<label for="scans-columns">Field: </label>',
-                        '<select name="scans-columns" id="scans-columns" data-ng-model="selected" ng-change="selectColumn()">',
-                          '<option ng-repeat="column in availableColumns">{{column}}</option>',
-                        '</select>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info">
+                            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                                <span class="lead modal-title text-info">{{ title }}</span>
+                            </div>
+                            <div class="modal-body">
+                                <div class="container-fluid">
+                                    <label for="scans-columns" style="margin-right: 10px;">Field:</label>
+                                        <select name="scans-columns" id="scans-columns" data-ng-model="selected" ng-change="selectColumn()">
+                                            <option ng-repeat="column in availableColumns">{{column}}</option>
+                                        </select>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+        `,
         controller: function($scope, appState, $interval, panelState) {
             $scope.activeTab = 'basic';
             $scope.selected = null;
-            $scope.columns = ['select'].concat(appState.models.metadataColumns);
+            $scope.setColumns();
 
             $scope.selectColumn = function() {
                 if ($scope.selected !== null) {
-                    appState.models.metadataColumns.push($scope.selected);
+                    appState.models.metadataColumns.selected.push($scope.selected);
                 }
                 appState.saveChanges('metadataColumns');
-                $scope.columns = ['select'].concat(appState.models.metadataColumns);
+                $scope.setColumns();
+                $scope.setAvailableColumns();
 
                 $scope.selected = null;
-                $scope.availableColumns = $scope.masterListColumns.filter(function(value) {
-                    return !$scope.columns.includes(value);
-                });
-                $('#' + panelState.modalId('newCommand')).modal('hide');
+
+                $('#' + panelState.modalId('columnPicker')).modal('hide');
             };
         },
     };
@@ -711,28 +711,26 @@ SIREPO.app.directive('scanSelector', function() {
               </table>
 	    </div>
 
-	    <div data-element-picker="" data-controller="control" data-title="New Command" data-id="sr-newCommand-editor" data-small-element-class="col-sm-3" data-available-columns="availableColumns" data-master-list-columns="masterListColumns" data-columns="columns"></div>
+	    <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-master-list-columns="masterListColumns" data-columns="columns" data-default-columns="defaultColumns" data-set-columns="setColumns" data-set-available-columns="setAvailableColumns"></div>
 
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope, $interval) {
         let hoveredIndex = null;
 	    let cols = [];
 	    const startOrStop = ['Start', 'Stop'];
 
 	    $scope.scans = [];
-        $scope.columns = ['select'].concat(appState.models.metadataColumns);
+	    $scope.defaultColumns = ['start', 'stop', 'suid'];
+        $scope.columns = ['select'].concat($scope.defaultColumns.concat(appState.models.metadataColumns.selected));
         $scope.masterListColumns = [];
         $scope.availableColumns = [];
 
 	    $scope.deleteCol = function(colName) {
-            let index = appState.models.metadataColumns.indexOf(colName);
-            appState.models.metadataColumns.splice(index, 1);
+            let index = appState.models.metadataColumns.selected.indexOf(colName);
+            appState.models.metadataColumns.selected.splice(index, 1);
             appState.saveChanges('metadataColumns');
             $scope.setColumns();
-
-            $scope.availableColumns = $scope.masterListColumns.filter(function(value) {
-                return !$scope.columns.includes(value);
-            });
+            $scope.setAvailableColumns();
          };
 
 	    function searchStartOrStopTimeKey(startOrStop) {
@@ -759,7 +757,7 @@ SIREPO.app.directive('scanSelector', function() {
         };
 
 	    $scope.newCommand = function() {
-            $('#' + panelState.modalId('newCommand')).modal('show');
+            $('#' + panelState.modalId('columnPicker')).modal('show');
          };
 
 	    $scope.search = function() {
@@ -772,8 +770,11 @@ SIREPO.app.directive('scanSelector', function() {
 			return;
 		    }
 		}
+
+
 		$scope.searchForm.$setPristine();
-		requestSender.sendStatelessCompute(
+//        $scope.sendRequest();
+			requestSender.sendStatelessCompute(
 		    appState,
 		    (json) => {
 			$scope.scans = [];
@@ -802,6 +803,7 @@ SIREPO.app.directive('scanSelector', function() {
 			searchStopTime: appState.models.scans[
 			    searchStartOrStopTimeKey(startOrStop[1])
 			],
+			selectedColumns: appState.models.metadataColumns.selected,
 		    },
 		    {
 			modelName: $scope.args.modelKey,
@@ -814,12 +816,61 @@ SIREPO.app.directive('scanSelector', function() {
 		);
 	    };
 
+	    $scope.sendRequest = function() {
+			requestSender.sendStatelessCompute(
+		    appState,
+		    (json) => {
+			$scope.scans = [];
+			json.data.scans.forEach((s) => {
+			    s.selected = s.uid in appState.models.scans.selected;
+			    $scope.scans.push(s);
+			});
+			// Remove scans that were selected but are not in the new search results
+			Object.keys(appState.models.scans.selected).forEach((u) => {
+			    if ($scope.scans.some((e) => e.uid === u)) {
+				return;
+			    }
+			    if (appState.models.scans.visualizationId === u) {
+				appState.models.scans.visualizationId = null;
+			    }
+			    delete appState.models.scans.selected[u];
+			});
+			cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
+			appState.saveChanges('scans');
+		    },
+		    {
+			method: 'scans',
+			searchStartTime: appState.models.scans[
+			    searchStartOrStopTimeKey(startOrStop[0])
+			],
+			searchStopTime: appState.models.scans[
+			    searchStartOrStopTimeKey(startOrStop[1])
+			],
+			selectedColumns: appState.models.metadataColumns.selected,
+		    },
+		    {
+			modelName: $scope.args.modelKey,
+			onError: (data) => {
+			    errorService.alertText(data.error);
+			    panelState.setLoading($scope.args.modelKey, false);
+			},
+			panelState: panelState,
+		    }
+		);
+		};
+
 	    $scope.setColumns = function() {
-            $scope.columns = ['select'].concat(appState.models.metadataColumns);
+            $scope.columns = ['select'].concat($scope.defaultColumns.concat(appState.models.metadataColumns.selected));
+	    };
+
+	    $scope.setAvailableColumns = function() {
+            $scope.availableColumns = $scope.masterListColumns.filter(function(value) {
+                return !$scope.columns.includes(value) && !$scope.defaultColumns.includes(value);
+            });
 	    };
 
         $scope.showDeleteButton = (index) => {
-            return index === hoveredIndex;
+            return index > 3 && index === hoveredIndex;
         };
 
 	    $scope.showSearchButton = function() {
@@ -833,9 +884,7 @@ SIREPO.app.directive('scanSelector', function() {
             appState,
             (json) => {
                 $scope.masterListColumns = json.columns;
-                $scope.availableColumns = $scope.masterListColumns.filter(function(value) {
-                    return !$scope.columns.includes(value);
-                });
+                $scope.setAvailableColumns();
             },
             {
                 method: 'get_columns',
@@ -843,6 +892,10 @@ SIREPO.app.directive('scanSelector', function() {
             }
         );
 
+        $scope.appState = appState;
+        $scope.$watchCollection('appState.models.metadataColumns.selected', function(newNames, oldNames) {
+            $scope.sendRequest();
+        });
         },
 
     };
