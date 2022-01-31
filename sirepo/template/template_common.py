@@ -430,7 +430,6 @@ def h5_to_dict(hf, path=None):
 
 def heatmap(values, model, plot_fields=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
-    pkdp('\n\n\n\n HISTOGRAM MODEL: {} \n\n\n\n', model)
     r = None
     if 'plotRangeType' in model:
         if model['plotRangeType'] == 'fixed':
@@ -571,7 +570,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
 
 
 def sim_frame(frame_id, op):
-    pkdp('e-carlin iiiiiiiiiiiiiiiii={}', frame_id)
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
     sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)

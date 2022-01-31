@@ -157,6 +157,8 @@ def update_and_run_simulation(correctors):
                         'unused',
                     ).plottableColumns
                 pkio.write_text('{{ ptcTrackColumns }}', ','.join(cols))
+                pkio.unchecked_remove('{{ ptcTrackFile }}')
+                os.rename('ptc_track.file.tfsone', '{{ ptcTrackFile }}')
         return res
     return np.full(res.shape, 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}

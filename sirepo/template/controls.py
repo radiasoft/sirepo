@@ -26,13 +26,11 @@ import socket
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 _PTC_TRACK_COLUMNS_FILE = 'ptc_track_columns.txt'
+_PTC_TRACK_FILE = 'track.txt'
 
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
-        # TODO(e-carlin): we will need to return a bool once the ptc output file is
-        # present and the browser can request data from it
-        # Todo (gurhar): ^ still needed?
         return PKDict(
             percentComplete=0,
             frameCount=0,
@@ -65,7 +63,7 @@ def get_target_info(info_all, target):
 
 
 def sim_frame(frame_args):
-    return _extract_report_elementAnimation(frame_args, frame_args.run_dir, 'ptc_track.file.tfsone')
+    return _extract_report_elementAnimation(frame_args, frame_args.run_dir, _PTC_TRACK_FILE)
 
 
 # TODO(e-carlin): this was copied from madx, but has been modified; need to abstract and share
@@ -217,6 +215,7 @@ def _generate_parameters_file(data):
     v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
+    v.ptcTrackFile = _PTC_TRACK_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
         v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)

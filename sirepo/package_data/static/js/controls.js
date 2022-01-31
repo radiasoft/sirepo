@@ -103,9 +103,9 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             return false;
         }
         return appState.models.simulationStatus
-            && appState.models.simulationStatus.animation
+            && appState.models.simulationStatus.instrumentAnimation
             && ['pending', 'running'].indexOf(
-                appState.models.simulationStatus.animation.state
+                appState.models.simulationStatus.instrumentAnimation.state
             ) < 0;
     };
 
@@ -297,11 +297,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = [];
-        srdbg('appState.models', appState.models);
         for(const m in appState.models) {
             if(m.includes('instrumentAnimation')) {
                 appState.models[m].valueList = {
-                        // POSIT: ptcTrackColumns only available after simulation complete = ok?
                         x: data.ptcTrackColumns, 
                         y1: data.ptcTrackColumns,
                     };
@@ -310,9 +308,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                     modelKey: m,
                     getData: () => { return appState.models[m]},
                 });
-                appState.saveQuietly(m);
-                // TODO: Is this needed?
-                frameCache.setFrameCount(1, m);
+                 frameCache.setFrameCount(1, m);
+                 appState.saveChanges(m);
             }
         } 
         self.instrumentAnimations.sort(compareInstrumentKeys);
@@ -331,8 +328,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             }
         }
         const modelKeys  = [];
-        // controlsService.beamlineElements().forEach((m, i) => {
-            
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 if (m.type !== 'INSTRUMENT') {
                     return;
