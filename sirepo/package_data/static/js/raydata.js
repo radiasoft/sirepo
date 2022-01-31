@@ -692,46 +692,48 @@ SIREPO.app.directive('scanSelector', function() {
 		<div class="clearfix"></div>
                 <button type="submit" class="btn btn-primary" data-ng-show="showSearchButton()" data-ng-click="search()">Search</button>
 	      </form>
-	          <button class="btn btn-info btn-xs" data-ng-click="newCommand()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
-              <table class="table table-striped table-hover col-sm-4">
-                <thead>
-                  <tr>
-                    <th data-ng-repeat="column in columns track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px;">
-                          {{ column }}
-                          <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
-                    </th>
-                </tr>
-                </thead>
-                <tbody ng-repeat="s in scans">
-                  <tr>
-                    <td style="width: 100px; height: 40px;"><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
-                    <td data-ng-repeat="c in columns.slice(1)" style="width: 100px; height: 40px;">{{ getScanField(s, c) }}</td>
+              <div data-ng-if="searchStartTime && searchStopTime">
+	        <button class="btn btn-info btn-xs" data-ng-click="newCommand()" style="float: right;"><span class="glyphicon glyphicon-plus"></span></button>
+                <table class="table table-striped table-hover col-sm-4">
+                  <thead>
+                    <tr>
+                      <th data-ng-repeat="column in columns track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px;">
+                            {{ column }}
+                            <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
+                      </th>
                   </tr>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody ng-repeat="s in scans">
+                    <tr>
+                      <td style="width: 100px; height: 40px;"><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
+                      <td data-ng-repeat="c in columns.slice(1)" style="width: 100px; height: 40px;">{{ getScanField(s, c) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 	    </div>
 
 	    <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-master-list-columns="masterListColumns" data-columns="columns" data-default-columns="defaultColumns" data-set-columns="setColumns" data-set-available-columns="setAvailableColumns"></div>
 
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope, $interval) {
-        let hoveredIndex = null;
+	    let hoveredIndex = null;
 	    let cols = [];
 	    const startOrStop = ['Start', 'Stop'];
 
 	    $scope.scans = [];
 	    $scope.defaultColumns = ['start', 'stop', 'suid'];
-        $scope.columns = ['select'].concat($scope.defaultColumns.concat(appState.models.metadataColumns.selected));
-        $scope.masterListColumns = [];
-        $scope.availableColumns = [];
+	    $scope.columns = ['select'].concat($scope.defaultColumns.concat(appState.models.metadataColumns.selected));
+	    $scope.masterListColumns = [];
+	    $scope.availableColumns = [];
 
 	    $scope.deleteCol = function(colName) {
-            let index = appState.models.metadataColumns.selected.indexOf(colName);
-            appState.models.metadataColumns.selected.splice(index, 1);
-            appState.saveChanges('metadataColumns');
-            $scope.setColumns();
-            $scope.setAvailableColumns();
-         };
+		let index = appState.models.metadataColumns.selected.indexOf(colName);
+		appState.models.metadataColumns.selected.splice(index, 1);
+		appState.saveChanges('metadataColumns');
+		$scope.setColumns();
+		$scope.setAvailableColumns();
+	    };
 
 	    function searchStartOrStopTimeKey(startOrStop) {
 		return `search${startOrStop}Time`;
@@ -748,17 +750,17 @@ SIREPO.app.directive('scanSelector', function() {
 
 	    $scope.getScanField = raydataService.getScanField;
 
-        $scope.hoverChange = (index, hovered) => {
-            if (! hovered) {
-            hoveredIndex = null;
-            return;
-            }
-            hoveredIndex = index;
-        };
+	    $scope.hoverChange = (index, hovered) => {
+		if (! hovered) {
+		hoveredIndex = null;
+		return;
+		}
+		hoveredIndex = index;
+	    };
 
 	    $scope.newCommand = function() {
-            $('#' + panelState.modalId('columnPicker')).modal('show');
-         };
+		$('#' + panelState.modalId('columnPicker')).modal('show');
+	    };
 
 	    $scope.search = function() {
 		for (let i = 0; i < startOrStop.length; i++) {
@@ -773,47 +775,7 @@ SIREPO.app.directive('scanSelector', function() {
 
 
 		$scope.searchForm.$setPristine();
-//        $scope.sendRequest();
-			requestSender.sendStatelessCompute(
-		    appState,
-		    (json) => {
-			$scope.scans = [];
-			json.data.scans.forEach((s) => {
-			    s.selected = s.uid in appState.models.scans.selected;
-			    $scope.scans.push(s);
-			});
-			// Remove scans that were selected but are not in the new search results
-			Object.keys(appState.models.scans.selected).forEach((u) => {
-			    if ($scope.scans.some((e) => e.uid === u)) {
-				return;
-			    }
-			    if (appState.models.scans.visualizationId === u) {
-				appState.models.scans.visualizationId = null;
-			    }
-			    delete appState.models.scans.selected[u];
-			});
-			cols = raydataService.updateScanInfoTableColsInCache(json.data.cols);
-			appState.saveChanges('scans');
-		    },
-		    {
-			method: 'scans',
-			searchStartTime: appState.models.scans[
-			    searchStartOrStopTimeKey(startOrStop[0])
-			],
-			searchStopTime: appState.models.scans[
-			    searchStartOrStopTimeKey(startOrStop[1])
-			],
-			selectedColumns: appState.models.metadataColumns.selected,
-		    },
-		    {
-			modelName: $scope.args.modelKey,
-			onError: (data) => {
-			    errorService.alertText(data.error);
-			    panelState.setLoading($scope.args.modelKey, false);
-			},
-			panelState: panelState,
-		    }
-		);
+		$scope.sendRequest();
 	    };
 
 	    $scope.sendRequest = function() {
@@ -857,21 +819,21 @@ SIREPO.app.directive('scanSelector', function() {
 			panelState: panelState,
 		    }
 		);
-		};
+	    };
 
 	    $scope.setColumns = function() {
-            $scope.columns = ['select'].concat($scope.defaultColumns.concat(appState.models.metadataColumns.selected));
+		$scope.columns = ['select'].concat($scope.defaultColumns.concat(appState.models.metadataColumns.selected));
 	    };
 
 	    $scope.setAvailableColumns = function() {
-            $scope.availableColumns = $scope.masterListColumns.filter(function(value) {
-                return !$scope.columns.includes(value) && !$scope.defaultColumns.includes(value);
-            });
+		$scope.availableColumns = $scope.masterListColumns.filter(function(value) {
+		    return !$scope.columns.includes(value) && !$scope.defaultColumns.includes(value);
+		});
 	    };
 
-        $scope.showDeleteButton = (index) => {
-            return index > 3 && index === hoveredIndex;
-        };
+	    $scope.showDeleteButton = (index) => {
+		return index > 3 && index === hoveredIndex;
+	    };
 
 	    $scope.showSearchButton = function() {
 		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
@@ -880,23 +842,25 @@ SIREPO.app.directive('scanSelector', function() {
 	    $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
 	    appState.whenModelsLoaded($scope, () => $scope.search());
 
-        requestSender.sendStatelessCompute(
-            appState,
-            (json) => {
-                $scope.masterListColumns = json.columns;
-                $scope.setAvailableColumns();
-            },
-            {
-                method: 'get_columns',
-                scans: []
-            }
-        );
+	    requestSender.sendStatelessCompute(
+		appState,
+		(json) => {
+		    $scope.masterListColumns = json.columns;
+		    $scope.setAvailableColumns();
+		},
+		{
+		    method: 'get_columns',
+		    scans: []
+		}
+	    );
 
-        $scope.appState = appState;
-        $scope.$watchCollection('appState.models.metadataColumns.selected', function(newNames, oldNames) {
-            $scope.sendRequest();
-        });
-        },
+	    $scope.appState = appState;
+	    $scope.$watchCollection('appState.models.metadataColumns.selected', function(newValue, previousValue) {
+		if (newValue !== previousValue) {
+		    $scope.sendRequest();
+		}
+	    });
+	},
 
     };
 });

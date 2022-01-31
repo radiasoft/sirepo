@@ -7,7 +7,7 @@ u"""Raydata execution template.
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
+from pykern.pkdebug import pkdp, pkdlog, pkdformat
 from sirepo.template import template_common
 import base64
 import databroker
@@ -111,6 +111,8 @@ def stateless_compute_scan_info(data):
 
 
 def stateless_compute_scans(data):
+    assert data.searchStartTime and data.searchStopTime, \
+        pkdformat('must have both searchStartTime and searchStopTime data={}', data)
     s = []
     for i, v in enumerate(catalog().search(databroker.queries.TimeRange(
             since=data.searchStartTime,
