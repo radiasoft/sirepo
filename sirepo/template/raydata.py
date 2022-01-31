@@ -22,7 +22,7 @@ import sirepo.util
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 # TODO(e-carlin): from user
-_CATALOG_NAME = 'chx'
+_CATALOG_NAME = 'csx'
 
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
@@ -123,6 +123,10 @@ def stateless_compute_scans(data):
             )
         s.append(_scan_info(v[0], metadata=v[1].metadata))
     return _scan_info_result(s)
+
+
+def stateless_compute_get_columns(data):
+    return PKDict(columns=list(databroker.catalog['csx'][-1].metadata['start'].keys()))
 
 
 def write_parameters(data, run_dir, is_parallel):
