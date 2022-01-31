@@ -3,6 +3,8 @@ from pykern.pkcollections import PKDict
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
 from pykern.pkdebug import pkdp, pkdlog
+from pykern import pkio
+import sirepo.template.madx
 import sirepo.pkcli.madx
 import numpy as np
 import os
@@ -148,6 +150,13 @@ def update_and_run_simulation(correctors):
     if is_success:
         with open('{{ summaryCSV }}', 'a') as f:
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
+            if pkio.py_path('ptc_track.file.tfsone').exists():
+                cols = sirepo.template.madx.file_info(
+                        'ptc_track.file.tfsone',
+                        pkio.py_path('.'),
+                        'unused',
+                    ).plottableColumns
+                pkio.write_text('{{ ptcTrackColumns }}', ','.join(cols))
         return res
     return np.full(res.shape, 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}

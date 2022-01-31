@@ -34,7 +34,7 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState.hasFrames()" data-ng-repeat="m in controls.instrumentAnimations"  >
+    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-show="controls.simState.hasFrames()" data-ng-repeat="m in controls.instrumentAnimations"  >
       <div data-report-panel="heatmap" data-model-data="m" data-panel-title="Instrument Cross Section" ></div>
     </div>
   </div>

@@ -65,7 +65,8 @@
             "horizontalSize",
             "horizontalOffset",
             "verticalSize",
-            "verticalOffset"
+            "verticalOffset",
+            "refreshId"
         ]
     },
     "localRoutes": {

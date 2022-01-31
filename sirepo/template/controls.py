@@ -25,6 +25,7 @@ import socket
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
+_PTC_TRACK_COLUMNS_FILE = 'ptc_track_columns.txt'
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -37,7 +38,7 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
             # TODO(e-carlin): share with same call below
-            ptcTrackColumns=[]
+            ptcTrackColumns=get_ptc_track_columns(run_dir),
         )
     return PKDict(
         percentComplete=100,
@@ -51,17 +52,8 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_ptc_track_columns(run_dir):
-    data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    m = data.models.externalLattice.models.elements
-    for e in m:
-        if e.type != 'INSTRUMENT':
-            continue
-        if run_dir.join('ptc_track.file.tfsone').exists():
-            return sirepo.template.madx.file_info(
-                    'ptc_track.file.tfsone',
-                    run_dir,
-                    'unused',
-                ).plottableColumns
+    if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
+        return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
     return []
 
 
@@ -224,6 +216,7 @@ def _generate_parameters_file(data):
         _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
+    v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
         v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)

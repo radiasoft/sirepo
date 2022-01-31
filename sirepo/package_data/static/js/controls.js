@@ -297,14 +297,15 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = [];
+        srdbg('appState.models', appState.models);
         for(const m in appState.models) {
             if(m.includes('instrumentAnimation')) {
-                srdbg('loop:', m);
                 appState.models[m].valueList = {
                         // POSIT: ptcTrackColumns only available after simulation complete = ok?
                         x: data.ptcTrackColumns, 
                         y1: data.ptcTrackColumns,
                     };
+                appState.models[m].refreshId = Math.random();
                 self.instrumentAnimations.push({
                     modelKey: m,
                     getData: () => { return appState.models[m]},
@@ -330,6 +331,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             }
         }
         const modelKeys  = [];
+        // controlsService.beamlineElements().forEach((m, i) => {
+            
         appState.models.externalLattice.models.elements.forEach((m, i) => {
                 if (m.type !== 'INSTRUMENT') {
                     return;
