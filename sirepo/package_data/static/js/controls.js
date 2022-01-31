@@ -843,14 +843,14 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 });
                 $('#sr-lattice').find('title').each((v, node) => {
                     const values = $(node).text().split(': ');
-                    if (! SIREPO.APP_SCHEMA.model[values[1]]) {
+                    if (! SIREPO.APP_SCHEMA.model[values[1]] && values[1] != 'INSTRUMENT') {
                         return;
                     }
-                    const isMonitor = values[1].indexOf('MONITOR') >= 0;
+                    const isMonitorOrInstrument = (values[1].indexOf('MONITOR') >= 0) || (values[1].indexOf('INSTRUMENT') >= 0);
                     const rect = node.parentElement.getBoundingClientRect();
                     let pos = [
                         rect.left - parentRect.left + (rect.right - rect.left) - 25,
-                        isMonitor
+                        isMonitorOrInstrument
                             ? rect.top - parentRect.top - 5
                             : rect.bottom - parentRect.top + 5,
 
@@ -882,7 +882,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                     let yOffset = 0;
                     const c = 3;
                     while (p) {
-                        if (isMonitor) {
+                        if (isMonitorOrInstrument) {
                             const d = div[0].getBoundingClientRect().bottom - p.top - 1;
                             if (d > c) {
                                 yOffset -= d;
