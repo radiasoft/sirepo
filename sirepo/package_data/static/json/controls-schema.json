@@ -104,7 +104,7 @@
         "instrumentAnimation":{
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "x": ["Horizontal Value to Plot", "ValueList", "x"],
-            "y1": ["Vertical Value to Plot", "ValueList", "px"],
+            "y1": ["Vertical Value to Plot", "ValueList", "y"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },

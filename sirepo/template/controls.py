@@ -35,7 +35,6 @@ def background_percent_complete(report, run_dir, is_running):
             percentComplete=0,
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
-            # TODO(e-carlin): share with same call below
             ptcTrackColumns=get_ptc_track_columns(run_dir),
         )
     return PKDict(
@@ -214,21 +213,8 @@ def _generate_parameters_file(data):
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
-    # pkdp('\n\n\n\n\n _SIM_DATA.controls_madx_dir(): {}', _SIM_DATA.controls_madx_dir())
-    # pkdp('\n\n\n\n\n sirepo.simulation_db.simulation_dir(madx): {}', sirepo.simulation_db.simulation_dir('controls'))
-    # assert False, 'break point'
-    n = sirepo.simulation_db.read_json(
-        sirepo.simulation_db.simulation_dir('controls').join(
-            data.simulationId,
-            sirepo.simulation_db.SIMULATION_DATA_FILE,
-        ),
-    ).models.externalLattice.models.bunch.numberOfParticles
-
-    # pkdp('\n\n\n\n\n number of particles: {}', n)
-    
-    # assert False, 'break point'
+    n = data.models.externalLattice.models.bunch.numberOfParticles
     v.particleCount = n
-    
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE

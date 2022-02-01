@@ -35,7 +35,7 @@ tr.warning td.sr-updated-cell {
   animation: sr-running 2s linear 0s infinite;
 }
 
-.row-heatmaps {
+.sr-row-heatmaps {
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
@@ -43,7 +43,7 @@ tr.warning td.sr-updated-cell {
   flex-wrap: wrap;
 }
 
-.row-heatmaps > [class*='col-'] {
+.sr-row-heatmaps > [class*='col-'] {
   display: flex;
   flex-direction: column;
 } 
