@@ -98,12 +98,6 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 @api_perm.require_user
 def api_exportRSOptConfig(simulation_type, simulation_id, filename):
     import zipfile
-    #req = sirepo.http_request.parse_params(
-    #    id=simulation_id,
-    #    model='exportRsOpt',
-    #    type=simulation_type,
-    #    check_sim_exists=True,
-    #)
     t = sirepo.template.import_module(simulation_type)
     assert hasattr(t, 'export_rsopt_config'), 'Export rsopt unavailable'
     e = t.export_rsopt_config(
@@ -111,10 +105,6 @@ def api_exportRSOptConfig(simulation_type, simulation_id, filename):
         filename
     )
     with simulation_db.tmp_dir() as tmp:
-        #r = _request(
-        #    computeJobHash='unused',
-        #    req_data=req.req_data,
-        #)
         fz = tmp.join(filename)
         with zipfile.ZipFile(
             fz,
@@ -245,7 +235,21 @@ def api_simulationFrame(frame_id):
 
 @api_perm.require_user
 def api_statefulCompute():
-    return _request_compute()
+    import base64
+    res = _request_compute()
+    if 'content' not in res:
+        return res
+    if res.content_type == 'application/zip':
+        with simulation_db.tmp_dir() as tmp:
+            f = tmp.join(res.filename)
+            pykern.pkio.write_binary(f, base64.b64decode(res.content))
+            return http_reply.gen_file_as_attachment(
+                f,
+                res.filename,
+                content_type=res.content_type
+            )
+
+    return res
 
 
 @api_perm.require_user

@@ -15,6 +15,7 @@ from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
+import base64
 import copy
 import math
 import numpy as np
@@ -385,6 +386,13 @@ def extract_report_data(sim_in):
     return res
 
 
+def stateful_compute_export_rsopt_config(data):
+    return export_rsopt_config(
+        simulation_db.read_simulation_json(SIM_TYPE, sid=data.sim_id),
+        data.filename
+    )
+
+
 def export_rsopt_config(data, filename):
     v = _rsopt_jinja_context(data.models.exportRsOpt)
 
@@ -410,14 +418,31 @@ def export_rsopt_config(data, filename):
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
 
-    return PKDict(
-        generated_files=tf,
-        lib_files=lf,
-        readme=PKDict(
-            filename=v.readmeFileName,
-            content=template_common.render_jinja(SIM_TYPE, v, v.readmeFileName),
-        ),
-    )
+    with simulation_db.tmp_dir() as tmp:
+        with zipfile.ZipFile(
+            fz,
+            mode='w',
+            compression=zipfile.ZIP_DEFLATED,
+            allowZip64=True,
+        ) as z:
+            for f in tf:
+                z.writestr(tf[f].filename, tf[f].content)
+            z.writestr(
+                v.readmeFileName,
+                template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
+            )
+            for f in lf:
+                z.write(f, f.basename)
+
+            pkdp('ZIP HAS {}', z.namelist())
+
+
+        return PKDict(
+            content_type='application/zip',
+            content=pkcompat.from_bytes(base64.b64encode(pkio.read_binary(fz))),
+            filename=filename
+        )
+
 
 
 def get_application_data(data, **kwargs):
