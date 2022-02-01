@@ -11,6 +11,7 @@ import os
 import re
 import requests
 import scipy.optimize
+import subprocess
 
 {% if controlSettings_operationMode == 'madx' %}
 lattice_file = """
@@ -131,7 +132,20 @@ def run_simulation(correctors):
         for k in values:
             lattice = re.sub('{' + k + '}', str(values[k]), lattice)
         f.write(lattice)
-    return os.system('madx in.madx > madx.log 2> madx.err') == 0
+   
+    succeeded = os.system('madx in.madx > madx.log 2> madx.err') == 0
+    if not suceeded:
+        return False
+
+    cmd = 'grep "is lost" madx.log  | wc'
+    res = subprocess.check_output(cmd, shell=True)
+    lost = int(res.decode().strip().split(' ')[0])
+    
+    if lost == {{ particleCount }}:
+        return False
+    
+    return True
+
 
 
 def update_and_run_simulation(correctors):
@@ -157,7 +171,6 @@ def update_and_run_simulation(correctors):
                         'unused',
                     ).plottableColumns
                 pkio.write_text('{{ ptcTrackColumns }}', ','.join(cols))
-                pkio.unchecked_remove('{{ ptcTrackFile }}')
                 os.rename('ptc_track.file.tfsone', '{{ ptcTrackFile }}')
         return res
     return np.full(res.shape, 1e24)

@@ -23,7 +23,7 @@ import sirepo.template.madx as template
 def particle_file_for_external_lattice():
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME).models.externalLattice
     data.report = 'unused'
-    data.models.bunch.matchTwissParameters = '1'
+    data.models.bunch.matchTwissParameters = '0'
     _create_particle_file(pkio.py_path('.'), data)
 
 

@@ -312,7 +312,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                  appState.saveChanges(m);
             }
         } 
-        self.instrumentAnimations.sort(compareInstrumentKeys);
+        // TODO (gurhar1133): should we be sorting here
+        // self.instrumentAnimations.sort(compareInstrumentKeys);
     }
 
     function compareInstrumentKeys(a, b) {

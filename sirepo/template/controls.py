@@ -26,7 +26,7 @@ import socket
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 _PTC_TRACK_COLUMNS_FILE = 'ptc_track_columns.txt'
-_PTC_TRACK_FILE = 'track.txt'
+_PTC_TRACK_FILE = 'track.tfs'
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -59,6 +59,7 @@ def get_target_info(info_all, target):
     for i in info_all:
         if i.name == target:
             return i, info_all.index(i)
+
     raise AssertionError(f'no target={target} in info_all={info_all}')            
 
 
@@ -213,6 +214,9 @@ def _generate_parameters_file(data):
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
+    pkdp('\n\n\n\n\ndata.models.externalLattice: {}:', data.models.externalLattice)
+    v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
+    
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE
