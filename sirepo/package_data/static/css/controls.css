@@ -34,3 +34,16 @@ tr.warning td.sr-updated-cell {
 .sr-running-icon {
   animation: sr-running 2s linear 0s infinite;
 }
+
+.row-heatmaps {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display:         flex;
+  flex-wrap: wrap;
+}
+
+.row-heatmaps > [class*='col-'] {
+  display: flex;
+  flex-direction: column;
+} 

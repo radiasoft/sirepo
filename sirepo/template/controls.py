@@ -214,8 +214,20 @@ def _generate_parameters_file(data):
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
-    pkdp('\n\n\n\n\ndata.models.externalLattice: {}:', data.models.externalLattice)
-    v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
+    # pkdp('\n\n\n\n\n _SIM_DATA.controls_madx_dir(): {}', _SIM_DATA.controls_madx_dir())
+    # pkdp('\n\n\n\n\n sirepo.simulation_db.simulation_dir(madx): {}', sirepo.simulation_db.simulation_dir('controls'))
+    # assert False, 'break point'
+    n = sirepo.simulation_db.read_json(
+        sirepo.simulation_db.simulation_dir('controls').join(
+            data.simulationId,
+            sirepo.simulation_db.SIMULATION_DATA_FILE,
+        ),
+    ).models.externalLattice.models.bunch.numberOfParticles
+
+    # pkdp('\n\n\n\n\n number of particles: {}', n)
+    
+    # assert False, 'break point'
+    v.particleCount = n
     
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE

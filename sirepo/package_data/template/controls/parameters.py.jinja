@@ -133,23 +133,23 @@ def run_simulation(correctors):
             lattice = re.sub('{' + k + '}', str(values[k]), lattice)
         f.write(lattice)
    
-    succeeded = os.system('madx in.madx > madx.log 2> madx.err') == 0
-    if not suceeded:
+    success = os.system('madx in.madx > madx.log 2> madx.err') == 0
+    if not success:
         return False
 
     cmd = 'grep "is lost" madx.log  | wc'
     res = subprocess.check_output(cmd, shell=True)
     lost = int(res.decode().strip().split(' ')[0])
-    
-    if lost == {{ particleCount }}:
-        return False
-    
-    return True
+    pkdp('\n\n\n\n\n xxxxxxxxxx \n\n\n\n\n ')
+    pkdp('\n\n\n\n\n\n\n lost: {} and particleCount: {}', lost, {{ particleCount }})
+    return not lost == {{ particleCount }}
+        
 
 
 
 def update_and_run_simulation(correctors):
     is_success = run_simulation(correctors)
+    pkdp('\n\n\n\n\n is_success? : {}', is_success)
     readings = []
     columns = madx_parser.parse_tfs_file('twiss.file.tfs')
     for idx in range(len(columns.name)):
