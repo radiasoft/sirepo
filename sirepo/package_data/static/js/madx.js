@@ -386,7 +386,6 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelStat
         controller: function($scope) {
             $scope.modelKey = $scope.reportInfo.modelAccess.modelKey;
             $scope.viewName = $scope.reportInfo.viewName;
-            // srdbg('viewName ', $scope.viewName, $scope.reportInfo)
             $scope.modelAccess = {
                 modelKey: $scope.modelKey,
                 getData: function() {

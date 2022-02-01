@@ -2265,7 +2265,6 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
                 $scope.modelKey = $scope.modelData.modelKey;
             }
             $scope.reportTitle = function() {
-		// srdbg(`modelName `, $scope.modelName);
                 return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
             };
             $scope.notes = function () {
@@ -3533,10 +3532,9 @@ SIREPO.app.directive('toolbar', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            //srdbg('fltr', $scope.itemFilter());
             $scope.allItems = [];
             var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
-            //srdbg('items', items);
+            
             function addItem(name, items) {
                 var item = appState.setModelDefaults({type: name}, name);
                 items.push(item);

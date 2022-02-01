@@ -230,7 +230,7 @@ def _generate_parameters(v, data):
 
     v.ampTableNames = []
     v.ampTables = data.models.get('ampTables', PKDict())
-
+    
     def _set_opt(el, field, all_correctors):
         count = len(all_correctors.corrector)
         all_correctors.corrector.append(el[_SIM_DATA.current_field(field)])
@@ -239,11 +239,12 @@ def _generate_parameters(v, data):
         v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
 
     def _insert_ptc_commands(data, ptc_commands):
-        dmc = data.models.commands
-        i = len(dmc)
-        for c in ptc_commands:
-            dmc.insert(i, c)
-            i += 1
+        if ptc_commands:
+            dmc = data.models.commands
+            i = len(dmc)
+            for c in ptc_commands:
+                dmc.insert(i, c)
+                i += 1
 
     def _create_ptc_observes(instruments):
         i = [
@@ -261,8 +262,6 @@ def _generate_parameters(v, data):
         return ptc_commands    
 
     def _gen_full_ptc(instruments, data):
-
-
         return _set_ptc_ids(
             [
                 PKDict(_type='ptc_create_universe'),
@@ -276,14 +275,12 @@ def _generate_parameters(v, data):
         )
 
     def _get_all_ptc(instruments, data):
-        
         u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
         if not u:
             return _gen_full_ptc(instruments, data)
         else:
             t = 0
             for i, c in enumerate(data.models.commands):
-                
                 if c._type == 'ptc_create_universe':
                     t = i + 1
                     # POSIT: assume if ptc_create_universe exits, all other commands are there too
@@ -292,21 +289,17 @@ def _generate_parameters(v, data):
             _set_ptc_ids(o, data)
             for i, c in enumerate(o):
                 data.models.commands.insert(t + i, c)
-
             return None
 
     c = PKDict(
         header=[],
         corrector=[],
     )
-
     i = []
     madx = data.models.externalLattice.models
     k = data.models.optimizerSettings.inputs.kickers
     q = data.models.optimizerSettings.inputs.quads
-
     header = []
-
     for el in _SIM_DATA.beamline_elements(madx):
         if el.type == 'KICKER' and k[str(el._id)]:
             _set_opt(el, 'hkick', c)
@@ -323,16 +316,13 @@ def _generate_parameters(v, data):
             header += [_format_header(el._id, 'x')]
         elif el.type == 'VMONITOR':
             header += [_format_header(el._id, 'y')]
-
     v.summaryCSVHeader = ','.join(c.header + header)
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header) / 2
-    a = _get_all_ptc(i, data.models.externalLattice)
-    if a:
-        _insert_ptc_commands(
-            data.models.externalLattice,
-            a)
+    if i:
+        a = _get_all_ptc(i, data.models.externalLattice)
+        _insert_ptc_commands( data.models.externalLattice, a)
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)

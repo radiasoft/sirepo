@@ -69,7 +69,7 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
 	    return 'instrumentAnimation';
 	}
 	return 'animation';
-    }
+    };
 
     self.currentField = (kickField) => 'current_' + kickField;
 
@@ -306,20 +306,16 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 appState.models[m].refreshId = Math.random();
                 self.instrumentAnimations.push({
                     modelKey: m,
-                    getData: () => { return appState.models[m]},
+                    getData: genGetDataFunction(m),
                 });
                  frameCache.setFrameCount(1, m);
                  appState.saveChanges(m);
             }
-        } 
-        // TODO (gurhar1133): should we be sorting here
-        // self.instrumentAnimations.sort(compareInstrumentKeys);
+        }
     }
 
-    function compareInstrumentKeys(a, b) {
-        const aNum = Number(a.modelKey.replace('instrumentAnimation', ''));
-        const bNum = Number(b.modelKey.replace('instrumentAnimation', ''));
-        return aNum - bNum;
+    function genGetDataFunction(m) {
+        return () => appState.models[m];
     }
 
     function initInstrumentModels() { 
@@ -681,8 +677,6 @@ SIREPO.app.directive('optimizationPicker', function(latticeService) {
             $scope.activeTab = 'targets';
             $scope.showTabs = true;
             $scope.stringsService = stringsService;
-
-            // srdbg('appState.models.optimizerSettings', $scope.appState.models.optimizerSettings.inputs);
         },
     };
 });

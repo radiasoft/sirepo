@@ -114,9 +114,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
         };
         scope.hasManyFrames = function() {
-            // srdbg('x-x-x-x-x-x-x');
-            // srdbg('scope.modelName: ', scope.modelName);
-            // srdbg('appState.models: ', appState.models);
             if (SIREPO.SINGLE_FRAME_ANIMATION && SIREPO.SINGLE_FRAME_ANIMATION.indexOf(scope.modelName) >= 0) {
                 return false;
             }
@@ -1754,7 +1751,6 @@ SIREPO.app.directive('columnForAspectRatio', function(appState) {
         controller: function($scope) {
             $scope.columnClass = function() {
                 if (appState.isLoaded()) {
-                    // srdbg('11111111111 ', $scope.modelName)
                     var ratio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
                     if (ratio <= 0.5) {
                         return 'col-md-12 col-xl-8';
