@@ -8,6 +8,14 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 import pytest
 
+def test_controls(fc):
+    fc.sr_animation_run(
+        'Sample MAD-X beamline',
+        'animation',
+        PKDict(),
+        expect_completed=False,
+    )
+
 
 def test_elegant(fc):
     fc.sr_animation_run(
@@ -54,6 +62,39 @@ def test_jspec(fc):
             ),
         ),
         timeout=20,
+    )
+
+
+def test_madx(fc):
+    fc.sr_animation_run(
+        'FODO PTC',
+        'animation',
+        PKDict(),
+    )
+
+
+def test_ml(fc):
+    fc.sr_animation_run(
+        '2019 World Happiness',
+        'animation',
+        PKDict(),
+        timeout=45,
+    )
+
+
+def test_opal(fc):
+    fc.sr_animation_run(
+        'Slit-1',
+        'animation',
+        PKDict(),
+    )
+
+
+def test_radia(fc):
+    fc.sr_animation_run(
+        'Dipole',
+        'solverAnimation',
+        PKDict(),
     )
 
 
