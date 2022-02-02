@@ -5,6 +5,9 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+
+import io
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -387,62 +390,9 @@ def extract_report_data(sim_in):
 
 
 def stateful_compute_export_rsopt_config(data):
-    return export_rsopt_config(
-        simulation_db.read_simulation_json(SIM_TYPE, sid=data.sim_id),
-        data.filename
+    return _export_rsopt_config(
+        simulation_db.read_simulation_json(SIM_TYPE, sid=data.sim_id)
     )
-
-
-def export_rsopt_config(data, filename):
-    v = _rsopt_jinja_context(data.models.exportRsOpt)
-
-    fz = pkio.py_path(filename)
-    f = re.sub(r'[^\w.]+', '-', fz.purebasename).strip('-')
-    v.runDir = f'{f}_scan'
-    v.fileBase = f
-    tf = {k: PKDict(filename=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
-    for t in tf:
-        v[f'{t}FileName'] = tf[t].filename
-    v.outFileName = f'{f}.out'
-    v.readmeFileName = 'README.txt'
-    lf = _SIM_DATA.lib_files_for_export(data)
-    v.libFiles = [f.basename for f in lf]
-    v.hasLibFiles = len(v.libFiles) > 0
-    v.randomSeed = data.models.exportRsOpt.randomSeed if \
-        data.models.exportRsOpt.randomSeed is not None else ''
-
-    # do this in a second loop so v is fully updated
-    # note that the rsopt context is regenerated in python_source_for_model()
-    for t in tf:
-        tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
-            if t == 'py' else \
-            template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
-
-    with simulation_db.tmp_dir() as tmp:
-        with zipfile.ZipFile(
-            fz,
-            mode='w',
-            compression=zipfile.ZIP_DEFLATED,
-            allowZip64=True,
-        ) as z:
-            for f in tf:
-                z.writestr(tf[f].filename, tf[f].content)
-            z.writestr(
-                v.readmeFileName,
-                template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
-            )
-            for f in lf:
-                z.write(f, f.basename)
-
-            pkdp('ZIP HAS {}', z.namelist())
-
-
-        return PKDict(
-            content_type='application/zip',
-            content=pkcompat.from_bytes(base64.b64encode(pkio.read_binary(fz))),
-            filename=filename
-        )
-
 
 
 def get_application_data(data, **kwargs):
@@ -1299,6 +1249,54 @@ def _enum_text(name, model, field):
     if field in model:
         return template_common.enum_text(SCHEMA, name, model[field])
     return ''
+
+
+def _export_rsopt_config(data):
+    v = _rsopt_jinja_context(data.models.exportRsOpt)
+
+    filename = f'{data.models.simulation.name}-rsOptExport.zip'
+    f = re.sub(r'[^\w.]+', '-', pkio.py_path(filename).purebasename).strip('-')
+    v.runDir = f'{f}_scan'
+    v.fileBase = f
+    tf = {k: PKDict(filename=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
+    for t in tf:
+        v[f'{t}FileName'] = tf[t].filename
+    v.outFileName = f'{f}.out'
+    v.readmeFileName = 'README.txt'
+    lf = _SIM_DATA.lib_files_for_export(data)
+    v.libFiles = [f.basename for f in lf]
+    v.hasLibFiles = len(v.libFiles) > 0
+    v.randomSeed = data.models.exportRsOpt.randomSeed if \
+        data.models.exportRsOpt.randomSeed is not None else ''
+
+    # do this in a second loop so v is fully updated
+    # note that the rsopt context is regenerated in python_source_for_model()
+    for t in tf:
+        tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
+            if t == 'py' else \
+            template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
+
+    b = io.BytesIO()
+    with zipfile.ZipFile(
+        b,
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in tf:
+            z.writestr(tf[f].filename, tf[f].content)
+        z.writestr(
+            v.readmeFileName,
+            template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
+        )
+        for f in lf:
+            z.write(f, f.basename)
+
+    return PKDict(
+        content_type='application/zip',
+        content=pkcompat.from_bytes(base64.b64encode(b.getvalue())),
+        filename=filename
+    )
 
 
 def _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd):

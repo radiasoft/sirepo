@@ -1804,7 +1804,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, validationService) {
+SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, utilities, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1965,41 +1965,25 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {
-
-                    requestSender.newWindow('statefulCompute', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
-                    });
-                    const f = `${appState.models.simulation.name}-rsOptExport.zip`;
                     requestSender.sendStatefulCompute(
                         appState,
                         function(data) {
-                            /*
-                            srdbg('RSOPT DATA', data);
                             if (data.error) {
                                 throw new Error(data.error);
                             }
-                            if (data.state === 'canceled') {
-                                throw new Error('compute canceled');
+                            if (data.state !== 'completed') {
+                                throw new Error(`compute failed with state ${data.state}`);
                             }
-                            const b = window.atob(data.zipfile);
-                            const B = new Blob([b], {type: 'application/zip'});
-                            saveAs(B, f);
-                            */
+                            saveAs(
+                                utilities.base64ToBlob(data.content, {type: data.content_type}),
+                                data.filename
+                            );
                         },
                         {
                             method: 'export_rsopt_config',
-                            filename: f,
                             sim_id: appState.models.simulation.simulationId,
                         }
                     );
-
-                    //requestSender.newWindow('exportRSOptConfig', {
-                    //    '<simulation_id>': appState.models.simulation.simulationId,
-                    //    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    //    '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
-                    //});
                 });
             });
         },
