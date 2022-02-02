@@ -132,15 +132,15 @@ def run_simulation(correctors):
         for k in values:
             lattice = re.sub('{' + k + '}', str(values[k]), lattice)
         f.write(lattice)
-   
-    success = os.system('madx in.madx > madx.log 2> madx.err') == 0
-    if not success:
+
+    p = subprocess.run(('madx', 'in.madx'), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    pkio.write_text('madx.log', p.stdout)
+    pkio.write_text('madx.err', p.stderr)
+    if p.returncode != 0:
         return False
 
-    cmd = 'grep "is lost" madx.log  | wc'
-    res = subprocess.check_output(cmd, shell=True)
-    lost = int(res.decode().strip().split(' ')[0])
-    return not lost == {{ particleCount }}
+    lost = pkio.read_text('madx.log').count('is lost')
+    return lost != {{ particleCount }}
         
 
 
