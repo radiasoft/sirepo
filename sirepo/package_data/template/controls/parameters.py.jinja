@@ -1,17 +1,17 @@
 # -*- python -*-
+from pykern import pkcompat
+from pykern import pkio
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
-from pykern.pkdebug import pkdp, pkdlog
-from pykern import pkio
-from pykern import pkcompat
-import sirepo.template.madx
-import sirepo.pkcli.madx
-import numpy as np
 import os
+import numpy as np
 import re
 import requests
 import scipy.optimize
+import sirepo.pkcli.madx
+import sirepo.template.madx
 import subprocess
 
 {% if controlSettings_operationMode == 'madx' %}
@@ -133,14 +133,12 @@ def run_simulation(correctors):
         for k in values:
             lattice = re.sub('{' + k + '}', str(values[k]), lattice)
         f.write(lattice)
-
-    p = subprocess.run(('madx', 'in.madx'), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    p = subprocess.run(('madx', 'in.madx'), capture_output=True, text=True)
     pkio.write_text('madx.log', p.stdout)
     pkio.write_text('madx.err', p.stderr)
     if p.returncode != 0:
         return False
-
-    lost = pkcompat.from_bytes(p.stdout).count('is lost')
+    lost = p.stdout.count('is lost')
     return lost != {{ particleCount }}
 
 
