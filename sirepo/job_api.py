@@ -235,21 +235,7 @@ def api_simulationFrame(frame_id):
 
 @api_perm.require_user
 def api_statefulCompute():
-    import base64
-    res = _request_compute()
-    if 'content' not in res:
-        return res
-    if res.content_type == 'application/zip':
-        with simulation_db.tmp_dir() as tmp:
-            f = tmp.join(res.filename)
-            pykern.pkio.write_binary(f, base64.b64decode(res.content))
-            return http_reply.gen_file_as_attachment(
-                f,
-                res.filename,
-                content_type=res.content_type
-            )
-
-    return res
+    return _request_compute()
 
 
 @api_perm.require_user
