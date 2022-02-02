@@ -629,8 +629,8 @@ SIREPO.app.directive('scanSelector', function() {
 
 	    $scope.hoverChange = (index, hovered) => {
 		if (! hovered) {
-            hoveredIndex = null;
-            return;
+		    hoveredIndex = null;
+		    return;
 		}
 		hoveredIndex = index;
 	    };
