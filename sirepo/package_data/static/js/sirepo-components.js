@@ -4577,6 +4577,17 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return 'fullscreenchange';
     };
 
+    // takes a base64 encoded string and returns a Blob. atob() alone does not work
+    this.base64ToBlob = (str, blobOptions={}) => {
+        const b = window.atob(str);
+        return new Blob(
+            [
+                new Uint8Array(b.length).map( (x, i) => b.codePointAt(i)),
+                blobOptions
+            ]
+        );
+    }
+
     // Returns a function, that, as long as it continues to be invoked, will not
     // be triggered. The function will be called after it stops being called for
     // N milliseconds.
