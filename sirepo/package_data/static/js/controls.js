@@ -277,7 +277,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
-
     self.simHandleStatus = data => {
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
@@ -297,8 +296,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function loadHeatmapReports(data) {
         self.instrumentAnimations = [];
-        for(const m in appState.models) {
-            if(m.includes('instrumentAnimation')) {
+        for (const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
                 appState.models[m].valueList = {
                         x: data.ptcTrackColumns,
                         y1: data.ptcTrackColumns,
@@ -319,25 +318,25 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function initInstrumentModels() {
-        for(const m in appState.models) {
+        for (const m in appState.models) {
             if (m.includes('instrumentAnimation')) {
                 return;
             }
         }
-        const modelKeys  = [];
-        appState.models.externalLattice.models.elements.forEach((m, i) => {
-                if (m.type !== 'INSTRUMENT') {
+        const k  = [];
+        appState.models.externalLattice.models.elements.forEach((e, i) => {
+                if (e.type !== 'INSTRUMENT') {
                     return;
                 }
-                const modelKey = 'instrumentAnimation' + i;
-                modelKeys.push(modelKey);
+                const m = 'instrumentAnimation' + i;
+                k.push(m);
                 const n = {
-                    id: i, //TODO(): share the concept that i is the id with modelKey above
+                    id: i,
                 };
                 appState.setModelDefaults(n, 'instrumentAnimation');
-                appState.models[modelKey] = n;
+                appState.models[m] = n;
         });
-        appState.saveChanges(modelKeys);
+        appState.saveChanges(k);
     }
 
     self.startSimulation = () => {

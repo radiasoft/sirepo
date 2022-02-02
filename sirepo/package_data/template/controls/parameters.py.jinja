@@ -162,6 +162,7 @@ def update_and_run_simulation(correctors):
     if is_success:
         with open('{{ summaryCSV }}', 'a') as f:
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
+            # POSIT: one table option is enabled.
             if pkio.py_path('ptc_track.file.tfsone').exists():
                 cols = sirepo.template.madx.file_info(
                         'ptc_track.file.tfsone',

@@ -193,13 +193,6 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=1,
-        # TODO(e-carlin): madx produces n number of output files. We return what they are here.
-        # in controls we know how many instruments there are. So in simHandleStatus once we are
-        # sure the ptc output file is produced we are just going to add a model/report for each
-        # instrument
-
-        # Request life cycle:
-        # gui run-status -> background_percent_complete -> simHandleStatus
         outputInfo=_output_info(run_dir),
     )
 
@@ -823,7 +816,7 @@ def file_info(filename, run_dir, file_id):
         if f in _ALPHA_COLUMNS:
             continue
         v = to_floats(tfs[f])
-        if np.any(v): 
+        if np.any(v):
             plottable.append(f)
     count = 1
     if 'turn' in tfs:

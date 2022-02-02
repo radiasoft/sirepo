@@ -5,7 +5,6 @@ u"""Controls execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from dis import Instruction
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -13,7 +12,7 @@ from pykern.pkdebug import pkdp
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import template_common
 from sirepo.template import madx_parser
-from sirepo.template.lattice import LatticeIterator, LatticeUtil
+from sirepo.template.lattice import LatticeUtil
 import copy
 import csv
 import os
@@ -35,7 +34,7 @@ def background_percent_complete(report, run_dir, is_running):
             percentComplete=0,
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
-            ptcTrackColumns=get_ptc_track_columns(run_dir),
+            ptcTrackColumns=_get_ptc_track_columns(run_dir),
         )
     return PKDict(
         percentComplete=100,
@@ -44,17 +43,17 @@ def background_percent_complete(report, run_dir, is_running):
             run_dir,
             SCHEMA.constants.maxBPMPoints,
         ),
-        ptcTrackColumns=get_ptc_track_columns(run_dir),
+        ptcTrackColumns=_get_ptc_track_columns(run_dir),
     )
 
 
-def get_ptc_track_columns(run_dir):
+def _get_ptc_track_columns(run_dir):
     if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
         return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
     return []
 
 
-def get_target_info(info_all, target):
+def _get_target_info(info_all, target):
     for i in info_all:
         if i.name == target:
             return i, info_all.index(i)
@@ -66,7 +65,6 @@ def sim_frame(frame_args):
     return _extract_report_elementAnimation(frame_args, frame_args.run_dir, _PTC_TRACK_FILE)
 
 
-# TODO(e-carlin): this was copied from madx, but has been modified; need to abstract and share
 def _extract_report_elementAnimation(frame_args, run_dir, filename):
     data = frame_args.sim_in
     if sirepo.template.madx.is_parameter_report_file(filename):
@@ -75,7 +73,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     d = data.models[frame_args.frameReport].id
     data.models[frame_args.frameReport] = frame_args
     n = frame_args.sim_in.models.externalLattice.models.elements[d].name
-    i, x = get_target_info(a, n)
+    i, x = _get_target_info(a, n)
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
     return template_common.heatmap(
         [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
@@ -213,8 +211,7 @@ def _generate_parameters_file(data):
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
-    n = data.models.externalLattice.models.bunch.numberOfParticles
-    v.particleCount = n
+    v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE
