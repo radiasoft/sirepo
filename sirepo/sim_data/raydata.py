@@ -30,5 +30,5 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if v:
                     yield cls.lib_file_name_with_model_field('inputFiles', k, v)
         return [
-            data.models.analysisAnimation.notebook,
+            data.models.scans.catalogName + '.zip',
         ] + list(_input_files())
