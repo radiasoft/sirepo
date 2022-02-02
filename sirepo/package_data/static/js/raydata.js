@@ -761,9 +761,9 @@ SIREPO.app.directive('scanSelector', function() {
 	    };
 
 	    $scope.saveColumnChanges = () => {
-	    	appState.saveChanges('metadataColumns');
-		    $scope.setColumns();
-		    $scope.setAvailableColumns();
+	        appState.saveChanges('metadataColumns');
+	        $scope.setColumns();
+	        $scope.setAvailableColumns();
 	    }
 
 	    $scope.search = function() {
