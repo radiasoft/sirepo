@@ -103,7 +103,7 @@ def stateless_compute_scans(data):
     return _scan_info_result(s)
 
 
-def stateless_compute_get_columns(data):
+def stateless_compute_get_scan_fields(data):
     return PKDict(columns=list(catalog()[-1].metadata['start'].keys()))
 
 
@@ -137,7 +137,7 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            input_name=run_dir.join(data.models.scans.catalogName),
+            input_name=_SIM_DATA.raydata_notebook_zip_filename(data),
             mask_path=m,
             output_name=_OUTPUT_FILE,
             scan_dir=_dir_for_scan_uuid(s),
