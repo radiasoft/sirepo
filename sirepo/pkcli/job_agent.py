@@ -723,7 +723,7 @@ class _SbatchRun(_SbatchCmd):
             return f'#SBATCH --account={p}'
 
         def _processor():
-            if self.msg.sbatchQueue == 'debug':
+            if self.msg.sbatchQueue == 'debug' and pkconfig.channel_in('dev'):
                 return 'knl'
             return 'haswell'
 
