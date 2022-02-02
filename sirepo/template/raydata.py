@@ -58,19 +58,22 @@ def background_percent_complete(report, run_dir, is_running):
     r = PKDict(percentComplete=0 if is_running else 100)
     if report != 'pollBlueskyForScansAnimation':
         return r
+    d = sirepo.simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     try:
         t = float(pkio.read_text(run_dir.join(_BLUESKY_POLL_TIME_FILE)).strip())
     except Exception as e:
         if not pkio.exception_is_not_found(e):
             raise
-        t = sirepo.simulation_db.read_json(
-            run_dir.join(template_common.INPUT_BASE_NAME),
-        ).models.pollBlueskyForScansAnimation.start
+        t = d.models.pollBlueskyForScansAnimation.start
 
     s = []
     for k, v in catalog().search({'time': {'$gte': t}}).items():
         t = max(t, v.metadata['start']['time'])
-        s.append(_scan_info(k, metadata=v.metadata))
+        s.append(_scan_info(
+            k,
+            d.models.metadataColumns.selected,
+            metadata=v.metadata,
+        ))
     pkio.atomic_write(run_dir.join(_BLUESKY_POLL_TIME_FILE), t)
     return r.pkupdate(**_scan_info_result(s).data)
 
@@ -136,7 +139,7 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            input_name=run_dir.join(data.models.scans.catalogName + '.zip'),
+            input_name=run_dir.join(data.models.scans.catalogName),
             mask_path=m,
             output_name=_OUTPUT_FILE,
             scan_dir=_dir_for_scan_uuid(s),
