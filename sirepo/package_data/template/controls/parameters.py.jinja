@@ -140,7 +140,7 @@ def run_simulation(correctors):
     if p.returncode != 0:
         return False
 
-    lost = pkcompat.locale_str(p.stdout).count('is lost')
+    lost = pkcompat.from_bytes(p.stdout).count('is lost')
     return lost != {{ particleCount }}
         
 
