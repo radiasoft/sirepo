@@ -4,6 +4,7 @@ from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
 from pykern.pkdebug import pkdp, pkdlog
 from pykern import pkio
+from pykern import pkcompat
 import sirepo.template.madx
 import sirepo.pkcli.madx
 import numpy as np
@@ -139,7 +140,7 @@ def run_simulation(correctors):
     if p.returncode != 0:
         return False
 
-    lost = pkio.read_text('madx.log').count('is lost')
+    lost = pkcompat.locale_str(p.stdout).count('is lost')
     return lost != {{ particleCount }}
         
 
