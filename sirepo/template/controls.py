@@ -238,22 +238,22 @@ def _generate_parameters(v, data):
         all_correctors.header.append(_format_header(el._id, _SIM_DATA.current_field(field)))
         v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
 
-    def _insert_ptc_commands(data, ptc_commands):
-        if ptc_commands:
-            dmc = data.models.commands
-            i = len(dmc)
-            for c in ptc_commands:
-                dmc.insert(i, c)
-                i += 1
-
-    def _create_ptc_observes(instruments):
-        i = [
-            PKDict(
-                _type='ptc_observe',
-                place=o.name,
-            ) for _, o in enumerate(instruments)
-        ]
-        return i
+    def _create_ptc_observes(instruments, data):
+        for i, c in enumerate(data.models.commands):
+            if c._type == 'ptc_create_universe':
+                # POSIT: assume if ptc_create_universe exits, all other commands are there too
+                break
+        else:
+            raise AssertionError(f'adding only ptc_observes but no ptc_create_universe found commands={data.models.commands}')
+        data.models.commands[i + 1:i + 1] = _set_ptc_ids(
+            [
+                PKDict(
+                    _type='ptc_observe',
+                    place=o.name,
+                ) for o in instruments
+            ],
+            data,
+        )
 
     def _set_ptc_ids(ptc_commands, data):
         m = LatticeUtil.max_id(data) + 1
@@ -262,34 +262,24 @@ def _generate_parameters(v, data):
         return ptc_commands
 
     def _gen_full_ptc(instruments, data):
-        return _set_ptc_ids(
+        data.models.commands.extend(_set_ptc_ids(
             [
                 PKDict(_type='ptc_create_universe'),
-                *_create_ptc_observes(instruments),
                 PKDict(_type='ptc_create_layout'),
                 PKDict(_type='ptc_track', file='1'),
                 PKDict(_type='ptc_track_end'),
                 PKDict(_type='ptc_end'),
             ],
             data,
-        )
+        ))
+        _create_ptc_observes(instruments, data)
 
-    def _get_all_ptc(instruments, data):
+    def _add_ptc(instruments, data):
         u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
         if not u:
-            return _gen_full_ptc(instruments, data)
-        else:
-            t = 0
-            for i, c in enumerate(data.models.commands):
-                if c._type == 'ptc_create_universe':
-                    t = i + 1
-                    # POSIT: assume if ptc_create_universe exits, all other commands are there too
-                    break
-            o = _create_ptc_observes(instruments)
-            _set_ptc_ids(o, data)
-            for i, c in enumerate(o):
-                data.models.commands.insert(t + i, c)
-            return None
+            _gen_full_ptc(instruments, data)
+            return
+        _create_ptc_observes(instruments, data)
 
     c = PKDict(
         header=[],
@@ -321,8 +311,7 @@ def _generate_parameters(v, data):
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header) / 2
     if i:
-        a = _get_all_ptc(i, data.models.externalLattice)
-        _insert_ptc_commands( data.models.externalLattice, a)
+        _add_ptc(i, data.models.externalLattice)
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
