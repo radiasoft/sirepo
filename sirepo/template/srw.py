@@ -4,10 +4,6 @@ u"""SRW execution template.
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
-import io
-
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -20,6 +16,7 @@ from sirepo.template import template_common
 import array
 import base64
 import copy
+import io
 import math
 import numpy as np
 import os
