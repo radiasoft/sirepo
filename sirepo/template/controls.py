@@ -59,7 +59,7 @@ def get_target_info(info_all, target):
         if i.name == target:
             return i, info_all.index(i)
 
-    raise AssertionError(f'no target={target} in info_all={info_all}')            
+    raise AssertionError(f'no target={target} in info_all={info_all}')
 
 
 def sim_frame(frame_args):
@@ -81,7 +81,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
         [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
         frame_args,
         PKDict(
-            x_label=sirepo.template.madx.field_label(frame_args.x), 
+            x_label=sirepo.template.madx.field_label(frame_args.x),
             y_label=sirepo.template.madx.field_label(frame_args.y1),
             title='{}-{} at {}m, {}'.format(
                 frame_args.x, frame_args.y1, i.s, i.name,
@@ -230,7 +230,7 @@ def _generate_parameters(v, data):
 
     v.ampTableNames = []
     v.ampTables = data.models.get('ampTables', PKDict())
-    
+
     def _set_opt(el, field, all_correctors):
         count = len(all_correctors.corrector)
         all_correctors.corrector.append(el[_SIM_DATA.current_field(field)])
@@ -259,7 +259,7 @@ def _generate_parameters(v, data):
         m = LatticeUtil.max_id(data) + 1
         for i,  c in enumerate(ptc_commands):
             c._id = m + i
-        return ptc_commands    
+        return ptc_commands
 
     def _gen_full_ptc(instruments, data):
         return _set_ptc_ids(

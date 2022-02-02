@@ -300,7 +300,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         for(const m in appState.models) {
             if(m.includes('instrumentAnimation')) {
                 appState.models[m].valueList = {
-                        x: data.ptcTrackColumns, 
+                        x: data.ptcTrackColumns,
                         y1: data.ptcTrackColumns,
                     };
                 appState.models[m].refreshId = Math.random();
@@ -318,7 +318,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         return () => appState.models[m];
     }
 
-    function initInstrumentModels() { 
+    function initInstrumentModels() {
         for(const m in appState.models) {
             if (m.includes('instrumentAnimation')) {
                 return;
