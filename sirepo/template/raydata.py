@@ -198,7 +198,8 @@ def _scan_info(scan_uuid, selected_columns, metadata=None):
     m = metadata
     if not m:
         m = catalog()[scan_uuid].metadata
-    d = PKDict()
+    # POSIT: uid is no displayed but all of the code expects uid field to exist
+    d = PKDict(uid=scan_uuid)
     for c in _DEFAULT_COLUMNS:
         d[c] = locals()[f'_get_{c}'](m)
 
