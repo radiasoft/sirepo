@@ -33,31 +33,6 @@ _NON_DISPLAY_SCAN_FIELDS = ('uid')
 
 _OUTPUT_FILE = 'out.ipynb'
 
-# The metadata fields are from bluesky. Some have spaces while others don't.
-_METDATA = PKDict(
-    analysis=(
-        'analysis',
-        'auto_pipeline',
-        'detectors',
-        'number of images',
-    ),
-    general= (
-        'beamline_id',
-        'cycle',
-        'data path',
-        'owner',
-        'time',
-        'uid',
-    ),
-    plan= (
-        'plan_args',
-        'plan_name',
-        'plan_type',
-        'scan_id',
-        'sequence id',
-    ),
-)
-
 _BLUESKY_POLL_TIME_FILE = 'bluesky-poll-time.txt'
 
 def analysis_job_output_files(data):
@@ -102,10 +77,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 def catalog():
     return databroker.catalog[_CATALOG_NAME]
-
-
-def stateless_compute_metadata(data):
-    return PKDict(data=_metadata(data))
 
 
 def stateless_compute_scan_info(data):
@@ -165,22 +136,13 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            input_name=run_dir.join(data.models.analysisAnimation.notebook),
+            input_name=run_dir.join(data.models.scans.catalogName + '.zip'),
             mask_path=m,
             output_name=_OUTPUT_FILE,
             scan_dir=_dir_for_scan_uuid(s),
             scan_uuid=s,
         ),
     )
-
-
-def _metadata(data):
-    res = PKDict()
-    for k in _METDATA[data.category]:
-        res[
-            ' '.join(k.split('_'))
-        ] = catalog()[data.uid].metadata['start'][k]
-    return res
 
 
 def _scan_info(scan_uuid, selected_columns, metadata=None):

@@ -4,9 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
-    SIREPO.appReportTypes  = ['analysis', 'general', 'plan'].map((c) => {
-	return `<div data-ng-switch-when="${c}Metadata" data-metadata-table="" data-category="${c}" class="sr-plot" data-model-name="{{ modelKey }}"></div>`;
-    }).join('') + `
+    SIREPO.appReportTypes  = `
         <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
 });
@@ -56,8 +54,6 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	    if (haveRecursed) {
 		throw new Error(`infinite recursion detected scans=${JSON.stringify(s)} cache=${JSON.stringify(simulationDataCache.scans)}`);
 	    }
-	    srdbg('xxxxxxxx');
-	    srdbg(s)
 	    srdbg(appState.models.metadataColumns.selected)
 	    requestSender.sendStatelessCompute(
 		appState,
@@ -204,22 +200,6 @@ SIREPO.app.controller('AnalysisController', function(appState, persistentSimulat
 SIREPO.app.controller('DataSourceController', function() {
     // TODO(e-carlin): only let certain files to be uploaded
     const self = this;
-    return self;
-});
-
-SIREPO.app.controller('MetadataController', function(appState) {
-    const self = this;
-
-    self.haveVisualizationId = function() {
-	return appState.models.scans.visualizationId;
-    };
-
-    self.metadataTableArgs = function(category) {
-	return {
-	    category: category
-	};
-    };
-
     return self;
 });
 
@@ -497,7 +477,6 @@ SIREPO.app.directive('appHeader', function(appState) {
               <app-header-right-sim-loaded>
 		<div data-ng-if="nav.isLoaded()" data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('data-source')}"><a href data-ng-click="nav.openSection('dataSource')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
-                  <li class="sim-section" data-ng-if="haveScans()" data-ng-class="{active: nav.isActive('metadata')}"><a data-ng-href="{{ nav.sectionURL('metadata') }}"><span class="glyphicon glyphicon-flash"></span> Metadata</a></li>
                   <li class="sim-section" data-ng-if="haveScans()" data-ng-class="{active: nav.isActive('analysis')}"><a data-ng-href="{{ nav.sectionURL('analysis') }}"><span class="glyphicon glyphicon-picture"></span> Analysis</a></li>
                 </div>
               </app-header-right-sim-loaded>
@@ -558,105 +537,6 @@ SIREPO.app.directive('columnPicker', function() {
     };
 });
 
-
-SIREPO.app.directive('metadataTable', function() {
-    return {
-        restrict: 'A',
-        scope: {
-	    args: '='
-	},
-        template: `
-            <div class="table-responsive" data-ng-if="data">
-              <table class="table">
-                <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Value</th>
-                  <th></th>
-                  <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr data-ng-repeat="(_, v) in data">
-                  <td>{{ v[0] }}</td>
-                  <td id="{{ elementId(v[0]) }}" class="raydata-overflow-text">{{ v[1] }}</td>
-                  <td><button class="glyphicon glyphicon-plus" data-ng-if="wouldOverflow(v[0])" data-ng-click="toggleExpanded(v[0])"></span></td>
-                  <td><button class="glyphicon glyphicon-minus" data-ng-if="expanded[v[0]]" data-ng-click="toggleExpanded(v[0])"></span></td>
-                </tr>
-                </tbody>
-              </table>
-            </div>
-	`,
-	controller: function(appState, panelState, requestSender, $scope) {
-	    $scope.expanded = {};
-
-	    function elementForKey(key) {
-		return $('#' + $scope.elementId(key));
-	    }
-
-	    function getMetadata(){
-		const u = appState.models.scans.visualizationId;
-		if (! u) {
-		    $scope.data = null;
-		    return;
-		}
-		requestSender.sendStatelessCompute(
-		    appState,
-		    (data) => {
-			$scope.data = Object.entries(data.data).map(([k, v]) => [k, v]);
-		    },
-		    {
-			method: 'metadata',
-			category: $scope.args.category,
-			uid: u
-		    },
-		    {
-			modelName: $scope.args.modelKey,
-			panelState: panelState,
-		    }
-		);
-	    }
-
-	    function indexOfKey(key) {
-		for (let i in $scope.data) {
-		    if ($scope.data[i][0] === key) {
-			return i;
-		    }
-		}
-		throw new Error(`No key=${key} in data=${$scope.data}`);
-	    }
-
-	    $scope.elementId = function(key) {
-		return 'metadata-table-' + $scope.args.category + '-' + indexOfKey(key);
-	    };
-
-
-	    $scope.wouldOverflow = function(key) {
-		const e = elementForKey(key);
-		return e.prop('clientWidth') < e.prop('scrollWidth');
-	    };
-
-	    $scope.toggleExpanded = function(key) {
-		if ( key in $scope.expanded ) {
-		    $scope.expanded[key] = ! $scope.expanded[key];
-		}
-		else {
-		    $scope.expanded[key] = true;
-		}
-		elementForKey(key).toggleClass('raydata-overflow-text');
-	    };
-
-	    // Cannot use appState.watchModelFields because it does
-	    // not update when values are null which visualizationId
-	    // will be set to when no scan is checked
-            $scope.$watch(
-		() => appState.models.scans.visualizationId,
-		getMetadata
-	    );
-	    appState.whenModelsLoaded($scope, getMetadata);
-        },
-    };
-});
 
 SIREPO.app.directive('pngImage', function(plotting) {
     return {
