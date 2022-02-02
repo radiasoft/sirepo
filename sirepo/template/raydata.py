@@ -24,6 +24,8 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 # TODO(e-carlin): from user
 _CATALOG_NAME = 'csx'
 
+_DEFAULT_COLUMNS = ['start', 'stop', 'suid']
+
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
@@ -107,7 +109,9 @@ def stateless_compute_metadata(data):
 
 
 def stateless_compute_scan_info(data):
-    return _scan_info_result([_scan_info(s) for s in data.scans])
+    pkdp(data.selectedColumns)
+    pkdp(data.scans)
+    return _scan_info_result([_scan_info(s, data.selectedColumns) for s in data.scans])
 
 
 def stateless_compute_scans(data):
@@ -128,7 +132,7 @@ def stateless_compute_scans(data):
 
 
 def stateless_compute_get_columns(data):
-    return PKDict(columns=list(databroker.catalog['csx'][-1].metadata['start'].keys()))
+    return PKDict(columns=list(catalog()[-1].metadata['start'].keys()))
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -180,15 +184,26 @@ def _metadata(data):
 
 
 def _scan_info(scan_uuid, selected_columns, metadata=None):
+    def _get_start(metadata):
+        return metadata['start']['time']
+
+    def _get_stop(metadata):
+        return metadata['stop']['time']
+
+    def _get_suid(metadata):
+        return _suid(metadata['start']['uid'])
+
+    pkdp(scan_uuid)
+    pkdp(selected_columns)
     m = metadata
     if not m:
         m = catalog()[scan_uuid].metadata
     d = PKDict()
-    d.start = m['start']['time']
-    d.stop = m['stop']['time']
-    d.suid = _suid(scan_uuid)
+    for c in _DEFAULT_COLUMNS:
+        d[c] = locals()[f'_get_{c}'](m)
+
     for c in selected_columns:
-        d[c] = m['start'][c]
+        d[c] = m['start'].get(c)
     return d
 
 
