@@ -1247,6 +1247,7 @@ def _update_dipole_h(model, **kwargs):
         **kwargs
     )
     _update_geom_obj(d.pole, center=pole_ctr, size=pole_sz)
+    _update_geom_obj(d.coil, center=pole_ctr * d.height_dir)
     _update_geom_obj(
         d.magnet,
         size=mag_sz,
