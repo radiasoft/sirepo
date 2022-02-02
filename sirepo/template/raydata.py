@@ -83,8 +83,6 @@ def catalog():
 
 
 def stateless_compute_scan_info(data):
-    pkdp(data.selectedColumns)
-    pkdp(data.scans)
     return _scan_info_result([_scan_info(s, data.selectedColumns) for s in data.scans])
 
 
@@ -158,8 +156,6 @@ def _scan_info(scan_uuid, selected_columns, metadata=None):
     def _get_suid(metadata):
         return _suid(metadata['start']['uid'])
 
-    pkdp(scan_uuid)
-    pkdp(selected_columns)
     m = metadata
     if not m:
         m = catalog()[scan_uuid].metadata

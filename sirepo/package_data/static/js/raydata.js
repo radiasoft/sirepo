@@ -22,7 +22,7 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 
     self.columnPickerModal = (panelState) => {
         return $('#' + panelState.modalId('columnPicker'));
-    }
+    };
 
     self.getScanField = function(scan, field) {
 	if (['start', 'stop'].includes(field)) {
@@ -54,7 +54,6 @@ SIREPO.app.factory('raydataService', function(appState, requestSender, runMulti,
 	    if (haveRecursed) {
 		throw new Error(`infinite recursion detected scans=${JSON.stringify(s)} cache=${JSON.stringify(simulationDataCache.scans)}`);
 	    }
-	    srdbg(appState.models.metadataColumns.selected)
 	    requestSender.sendStatelessCompute(
 		appState,
 		(json) => {
@@ -644,7 +643,7 @@ SIREPO.app.directive('scanSelector', function() {
 	    	appState.saveChanges('metadataColumns');
 		    $scope.setColumns();
 		    $scope.setAvailableColumns();
-	    }
+	    };
 
 	    $scope.search = function() {
 		for (let i = 0; i < startOrStop.length; i++) {
