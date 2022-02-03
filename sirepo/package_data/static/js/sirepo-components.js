@@ -2257,7 +2257,9 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         controller: function($scope) {
             // random id for the keypress service to track
             $scope.reportId = utilities.reportId();  //Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-
+            if ($scope.modelName && $scope.modelName.includes('{') ) {
+                throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
+            }
             $scope.modelKey = $scope.modelName;
             if ($scope.modelData) {
                 $scope.modelKey = $scope.modelData.modelKey;
@@ -3530,10 +3532,9 @@ SIREPO.app.directive('toolbar', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            //srdbg('fltr', $scope.itemFilter());
             $scope.allItems = [];
             var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
-            //srdbg('items', items);
+            
             function addItem(name, items) {
                 var item = appState.setModelDefaults({type: name}, name);
                 items.push(item);

@@ -64,7 +64,12 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
         return models.beamlines[0].items.map(elId => latticeService.elementForId(elId, models));
     };
 
-    self.computeModel = () => 'animation';
+    self.computeModel = (analysisModel) => {
+	if (analysisModel.includes('instrument')) {
+	    return 'instrumentAnimation';
+	}
+	return 'animation';
+    };
 
     self.currentField = (kickField) => 'current_' + kickField;
 
@@ -98,9 +103,9 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             return false;
         }
         return appState.models.simulationStatus
-            && appState.models.simulationStatus.animation
+            && appState.models.simulationStatus.instrumentAnimation
             && ['pending', 'running'].indexOf(
-                appState.models.simulationStatus.animation.state
+                appState.models.simulationStatus.instrumentAnimation.state
             ) < 0;
     };
 
@@ -115,6 +120,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.appState = appState;
     self.controlsService = controlsService;
     self.simScope = $scope;
+
+    // TODO(e-carlin): sort
+    self.simAnalysisModel = 'instrumentAnimation';
 
     function buildWatchColumns() {
         self.watches = [];
@@ -274,8 +282,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
         }
-        if ($scope.isRunningOptimizer && data.elementValues) {
+        if (data.elementValues) {
             handleElementValues(data);
+            loadHeatmapReports(data);
         }
         if (! self.simState.isProcessing()) {
             if ($scope.isRunningOptimizer) {
@@ -285,10 +294,56 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
+    function loadHeatmapReports(data) {
+        self.instrumentAnimations = [];
+        for (const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
+                appState.models[m].valueList = {
+                        x: data.ptcTrackColumns,
+                        y1: data.ptcTrackColumns,
+                    };
+                appState.models[m].refreshId = Math.random();
+                self.instrumentAnimations.push({
+                    modelKey: m,
+                    getData: genGetDataFunction(m),
+                });
+                 frameCache.setFrameCount(1, m);
+                 appState.saveChanges(m);
+            }
+        }
+    }
+
+    function genGetDataFunction(m) {
+        return () => appState.models[m];
+    }
+
+    function initInstrumentModels() {
+        for (const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
+                return;
+            }
+        }
+        const k  = [];
+        appState.models.externalLattice.models.elements.forEach((e, i) => {
+                if (e.type !== 'INSTRUMENT') {
+                    return;
+                }
+                const m = 'instrumentAnimation' + i;
+                k.push(m);
+                const n = {
+                    id: i,
+                };
+                appState.setModelDefaults(n, 'instrumentAnimation');
+                appState.models[m] = n;
+        });
+        appState.saveChanges(k);
+    }
+
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
+        initInstrumentModels();
         appState.saveChanges('optimizerSettings', self.simState.runSimulation);
     };
 
@@ -312,6 +367,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     return self;
 });
+
 
 SIREPO.app.directive('appFooter', function(controlsService) {
     return {
@@ -776,14 +832,14 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 });
                 $('#sr-lattice').find('title').each((v, node) => {
                     const values = $(node).text().split(': ');
-                    if (! SIREPO.APP_SCHEMA.model[values[1]]) {
+                    if (! SIREPO.APP_SCHEMA.model[values[1]] && values[1] != 'INSTRUMENT') {
                         return;
                     }
-                    const isMonitor = values[1].indexOf('MONITOR') >= 0;
+                    const isMonitorOrInstrument = (values[1].indexOf('MONITOR') >= 0) || (values[1].indexOf('INSTRUMENT') >= 0);
                     const rect = node.parentElement.getBoundingClientRect();
                     let pos = [
                         rect.left - parentRect.left + (rect.right - rect.left) - 25,
-                        isMonitor
+                        isMonitorOrInstrument
                             ? rect.top - parentRect.top - 5
                             : rect.bottom - parentRect.top + 5,
 
@@ -815,7 +871,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                     let yOffset = 0;
                     const c = 3;
                     while (p) {
-                        if (isMonitor) {
+                        if (isMonitorOrInstrument) {
                             const d = div[0].getBoundingClientRect().bottom - p.top - 1;
                             if (d > c) {
                                 yOffset -= d;
