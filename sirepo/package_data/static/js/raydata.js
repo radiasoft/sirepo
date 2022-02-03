@@ -40,18 +40,18 @@ SIREPO.app.factory('raydataService', function(appState, panelState, requestSende
             const s = Object.keys(appState.models.scans.selected);
             if (s.every((e) => {
                 // POSIT: If start is present so are the other fields we need
-		return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
-	    })) {
-		successCallback(
-		    s.map(
-			u => simulationDataCache.scans[u]
-		    ).sort((a, b) => a.start - b.start),
-		    simulationDataCache.scanInfoTableCols
-		);
-		return;
-	    }
+                return e in (simulationDataCache.scans || {}) && simulationDataCache.scans[e].start;
+            })) {
+                successCallback(
+                    s.map(
+                        u => simulationDataCache.scans[u]
+                    ).sort((a, b) => a.start - b.start),
+                    simulationDataCache.scanInfoTableCols
+                );
+                return;
+            }
 
-	    if (haveRecursed) {
+            if (haveRecursed) {
                 throw new Error(`infinite recursion detected scans=${JSON.stringify(s)} cache=${JSON.stringify(simulationDataCache.scans)}`);
             }
             requestSender.sendStatelessCompute(
@@ -644,22 +644,22 @@ SIREPO.app.directive('scanSelector', function() {
                 $scope.setAvailableColumns();
             };
 
-	    $scope.search = function() {
-		for (let i = 0; i < startOrStop.length; i++) {
-		    const k = searchStartOrStopTimeKey(startOrStop[i]);
-		    if ($scope[k]) {
-			appState.models.scans[k] = timeService.unixTime($scope[k]);
-		    }
-		    if (!appState.models.scans[k]) {
-			return;
-		    }
-		}
+            $scope.search = function() {
+                for (let i = 0; i < startOrStop.length; i++) {
+                    const k = searchStartOrStopTimeKey(startOrStop[i]);
+                    if ($scope[k]) {
+                        appState.models.scans[k] = timeService.unixTime($scope[k]);
+                    }
+                    if (!appState.models.scans[k]) {
+                        return;
+                    }
+                }
 
-		$scope.searchForm.$setPristine();
-		$scope.sendScanRequest();
-	    };
+                $scope.searchForm.$setPristine();
+                $scope.sendScanRequest();
+            };
 
-	    $scope.sendScanRequest = function() {
+            $scope.sendScanRequest = function() {
                 requestSender.sendStatelessCompute(
                     appState,
                     (json) => {
@@ -700,53 +700,53 @@ SIREPO.app.directive('scanSelector', function() {
                         panelState: panelState,
                     }
                 );
-	    };
+            };
 
-	    $scope.setColumnHeaders = function() {
+            $scope.setColumnHeaders = function() {
             $scope.columnHeaders = [
                 'selected',
                 ...$scope.defaultColumns,
                 ...appState.models.metadataColumns.selected
             ];
-	    };
+            };
 
-	    $scope.setAvailableColumns = function() {
-		$scope.availableColumns = masterListColumns.filter((value) => {
-		    return value !== 'uid' && ! $scope.columnHeaders.includes(value);
-		});
-	    };
+            $scope.setAvailableColumns = function() {
+                $scope.availableColumns = masterListColumns.filter((value) => {
+                    return value !== 'uid' && ! $scope.columnHeaders.includes(value);
+                });
+            };
 
-	    $scope.showDeleteButton = (index) => {
-		return index > $scope.defaultColumns.length && index === hoveredIndex;
-	    };
+            $scope.showDeleteButton = (index) => {
+                return index > $scope.defaultColumns.length && index === hoveredIndex;
+            };
 
-	    $scope.showSearchButton = function() {
-		return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
-	    };
+            $scope.showSearchButton = function() {
+                return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
+            };
 
-	    $scope.setColumnHeaders();
-	    $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
-	    appState.whenModelsLoaded($scope, () => $scope.search());
+            $scope.setColumnHeaders();
+            $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
+            appState.whenModelsLoaded($scope, () => $scope.search());
 
-	    requestSender.sendStatelessCompute(
-		appState,
-		(json) => {
-		    masterListColumns = json.columns;
-		    $scope.setAvailableColumns();
-		},
-		{
-		    method: 'get_scan_fields',
-		    scans: []
-		}
-	    );
+            requestSender.sendStatelessCompute(
+                appState,
+                (json) => {
+                    masterListColumns = json.columns;
+                    $scope.setAvailableColumns();
+                },
+                {
+                    method: 'get_scan_fields',
+                    scans: []
+                }
+            );
 
-	    $scope.appState = appState;
-	    $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
-		if (newValue !== previousValue) {
-		    $scope.sendScanRequest();
-		}
-	    });
-	},
+            $scope.appState = appState;
+            $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
+                if (newValue !== previousValue) {
+                    $scope.sendScanRequest();
+                }
+            });
+        },
     };
 });
 

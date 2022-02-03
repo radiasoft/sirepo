@@ -15,7 +15,7 @@
         }
     },
     "frameIdFields": {
-	"animation": []
+        "animation": []
     },
     "localRoutes": {
         "analysis": {
@@ -36,14 +36,14 @@
     "model": {
         "analysisStatus": {
             "notes": ["Notes", "Text", ""]
-	},
+        },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
-	"pollBlueskyForScansAnimation": {
-	    "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
-	},
-	"scans": {},
+        "pollBlueskyForScansAnimation": {
+            "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
+        },
+        "scans": {},
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
         }
