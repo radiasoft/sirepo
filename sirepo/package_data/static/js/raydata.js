@@ -575,16 +575,17 @@ SIREPO.app.directive('scanSelector', function() {
                 <table class="table table-striped table-hover col-sm-4">
                   <thead>
                     <tr>
-                      <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px;">
+                      <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
+                        <span style="color:lightgray;" class="glyphicon glyphicon-arrow-down" data-ng-show="showArrowDown(column)" ></span>
+                        <span style="color:lightgray" class="glyphicon glyphicon-arrow-up" data-ng-show="showArrowUp(column)" ></span>
                         {{ column }}
-                        <button type="submit" class="btn btn-primary btn-xs"  id="select-deselect-all" data-ng-show="showSelectAllButton($index)" data-ng-click="toggleSelectAll()">select all</button>
-                        
+                        <input type="checkbox" data-ng-checked="selectAllColumns" data-ng-show="showSelectAllButton($index)" data-ng-click="toggleSelectAll()"/>
                         <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                   </tr>
                   </thead>
-                  <tbody ng-repeat="s in scans">
-                    <tr>
+                  <tbody>
+                    <tr ng-repeat="s in scans|orderBy:orderByColumn:reverseSortScans">
                       <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -600,10 +601,13 @@ SIREPO.app.directive('scanSelector', function() {
             let masterListColumns = [];
             const startOrStop = ['Start', 'Stop'];
 
-            $scope.scans = [];
+            $scope.availableColumns = [];
             // POSIT: same columns as sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['start', 'stop', 'suid'];
-            $scope.availableColumns = [];
+            $scope.orderByColumn = 'start';
+            $scope.reverseSortScans = false;
+            $scope.scans = [];
+            $scope.selectAllColumns = false;
 
             $scope.deleteCol = function(colName) {
                 appState.models.metadataColumns.selected.splice(
@@ -718,6 +722,14 @@ SIREPO.app.directive('scanSelector', function() {
                 });
             };
 
+            $scope.showArrowDown = (column) => {
+                return $scope.orderByColumn === column && ! $scope.reverseSortScans;
+            };
+
+            $scope.showArrowUp = (column) => {
+                return $scope.orderByColumn === column && $scope.reverseSortScans;
+            };
+
             $scope.showDeleteButton = (index) => {
                 return index > $scope.defaultColumns.length && index === hoveredIndex;
             };
@@ -727,30 +739,34 @@ SIREPO.app.directive('scanSelector', function() {
             };
 
             $scope.showSelectAllButton = (index) => {
-                return index === 0 && index === hoveredIndex;
+                return index === 0;
+            };
+
+            $scope.showSortButton = (index) => {
+                return index > 0 && index === hoveredIndex;
+            };
+
+            $scope.sortCol = (column) => {
+                if (column === 'selected') {
+                    return;
+                }
+                $scope.orderByColumn = column;
+                $scope.reverseSortScans = ! $scope.reverseSortScans;
             };
 
             $scope.toggleSelectAll = () => {
-                srdbg('called select all')
-                let allSelected = true
-                for (let i = 0; i < $scope.scans.length; i++) {
-                    if (! $scope.scans[i].selected) {
-                        srdbg('unselected scan found');
-                        allSelected = false;
-                        break;
-                    }
-                }
-
-                if (allSelected) {
+                if ($scope.selectAllColumns) {
                     for (let i = 0; i < $scope.scans.length; i++) {
-                        $scope.toggleScanSelection($scope.scans[i], false)
+                        $scope.toggleScanSelection($scope.scans[i], false);
                     }
+                    $scope.selectAllColumns = false;
                 } else {
                     for (let i = 0; i < $scope.scans.length; i++) {
-                        $scope.toggleScanSelection($scope.scans[i], true)
+                        $scope.toggleScanSelection($scope.scans[i], true);
                     }
+                    $scope.selectAllColumns = true;
                 }
-            }
+            };
 
             $scope.setColumnHeaders();
             $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
