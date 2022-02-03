@@ -1713,6 +1713,9 @@ SIREPO.app.directive('safePath', function() {
 SIREPO.app.directive('showLoadingAndError', function(panelState) {
     return {
         transclude: true,
+        scope: {
+            modelKey: '@',
+        },
         template: `
             <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
@@ -3534,7 +3537,7 @@ SIREPO.app.directive('toolbar', function(appState) {
         controller: function($scope) {
             $scope.allItems = [];
             var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
-            
+
             function addItem(name, items) {
                 var item = appState.setModelDefaults({type: name}, name);
                 items.push(item);
