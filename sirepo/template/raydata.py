@@ -82,6 +82,10 @@ def catalog():
     return databroker.catalog[_CATALOG_NAME]
 
 
+def stateless_compute_scan_fields(_):
+    return PKDict(columns=list(catalog()[-1].metadata['start'].keys()))
+
+
 def stateless_compute_scan_info(data):
     return _scan_info_result([_scan_info(s, data.selectedColumns) for s in data.scans])
 
@@ -101,10 +105,6 @@ def stateless_compute_scans(data):
             )
         s.append(_scan_info(v[0], data.selectedColumns, metadata=v[1].metadata))
     return _scan_info_result(s)
-
-
-def stateless_compute_get_scan_fields(data):
-    return PKDict(columns=list(catalog()[-1].metadata['start'].keys()))
 
 
 def write_parameters(data, run_dir, is_parallel):

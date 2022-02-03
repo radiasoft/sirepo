@@ -735,8 +735,7 @@ SIREPO.app.directive('scanSelector', function() {
                     $scope.setAvailableColumns();
                 },
                 {
-                    method: 'get_scan_fields',
-                    scans: []
+                    method: 'scan_fields',
                 }
             );
 
