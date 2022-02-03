@@ -137,7 +137,7 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            input_name=_SIM_DATA.raydata_notebook_zip_filename(data),
+            input_name=run_dir.join(_SIM_DATA.raydata_notebook_zip_filename(data)),
             mask_path=m,
             output_name=_OUTPUT_FILE,
             scan_dir=_dir_for_scan_uuid(s),
