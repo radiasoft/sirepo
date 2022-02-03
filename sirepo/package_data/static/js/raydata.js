@@ -577,6 +577,8 @@ SIREPO.app.directive('scanSelector', function() {
                     <tr>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px;">
                         {{ column }}
+                        <button type="submit" class="btn btn-primary btn-xs"  id="select-deselect-all" data-ng-show="showSelectAllButton($index)" data-ng-click="toggleSelectAll()">select all</button>
+                        
                         <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                   </tr>
@@ -723,6 +725,32 @@ SIREPO.app.directive('scanSelector', function() {
             $scope.showSearchButton = function() {
                 return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
             };
+
+            $scope.showSelectAllButton = (index) => {
+                return index === 0 && index === hoveredIndex;
+            };
+
+            $scope.toggleSelectAll = () => {
+                srdbg('called select all')
+                let allSelected = true
+                for (let i = 0; i < $scope.scans.length; i++) {
+                    if (! $scope.scans[i].selected) {
+                        srdbg('unselected scan found');
+                        allSelected = false;
+                        break;
+                    }
+                }
+
+                if (allSelected) {
+                    for (let i = 0; i < $scope.scans.length; i++) {
+                        $scope.toggleScanSelection($scope.scans[i], false)
+                    }
+                } else {
+                    for (let i = 0; i < $scope.scans.length; i++) {
+                        $scope.toggleScanSelection($scope.scans[i], true)
+                    }
+                }
+            }
 
             $scope.setColumnHeaders();
             $scope.toggleScanSelection = raydataService.maybeToggleScanSelection;
