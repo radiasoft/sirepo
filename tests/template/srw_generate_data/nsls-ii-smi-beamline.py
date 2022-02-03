@@ -594,6 +594,10 @@ varParam = [
 
 
 
+def epilogue():
+    pass
+
+
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['MOAT_1','MOAT_1_MOAT_2','MOAT_2','MOAT_2_HFM','HFM','HFM_VFM','VFM','VFM_VDM','VDM','VDM_SSA','SSA','SSA_ES1','ES1','ES1_CRL','CRL','CRL_ES2','ES2']
@@ -613,3 +617,5 @@ def main():
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
+
+epilogue()

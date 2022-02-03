@@ -330,6 +330,9 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, is_parallel, run_dir=run_dir),
     )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd(mpi=True)
+    return None
 
 
 def _add_obj_lines(field_data, obj):
@@ -1278,7 +1281,7 @@ def _update_geom_from_dipole(geom, model, **kwargs):
         )
 
     magnet = _find_by_id(geom.objects, model.magnet.id)
-    coil = _find_by_id(geom.objects, model.coil.id),
+    coil = _find_by_id(geom.objects, model.coil.id)
     mag_coil_group = _find_by_id(geom.objects, model.magnetCoilGroup.id)
 
     if model.dipoleType == 'dipoleC':

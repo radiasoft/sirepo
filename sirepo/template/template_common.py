@@ -4,7 +4,6 @@ u"""Common execution template.
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -23,6 +22,7 @@ import sirepo.sim_data
 import sirepo.template
 import sirepo.util
 import subprocess
+import sys
 import types
 
 
@@ -376,10 +376,18 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def generate_parameters_file(data):
+def generate_parameters_file(data, is_run_mpi=False):
+    from sirepo import mpi
     v = flatten_data(data['models'], PKDict())
-    v['notes'] = _get_notes(v)
+    v.notes = _get_notes(v)
+    v.mpi = mpi.abort_on_signal_code() if is_run_mpi else ''
     return render_jinja(None, v, name='common-header.py'), v
+
+
+def get_exec_parameters_cmd(mpi=False):
+    import sirepo.mpi
+    return sirepo.mpi.get_cmd() if mpi \
+        else (sys.executable, PARAMETERS_PYTHON_FILE)
 
 
 def h5_to_dict(hf, path=None):

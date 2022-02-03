@@ -287,7 +287,7 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, 
                 undulator: appState.models.undulator,
                 undulatorBeam: appState.models.undulatorBeam,
             }
-	);
+        );
     }
 
     function updateUndulatorFields() {

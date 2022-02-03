@@ -648,7 +648,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         if (self.isLoaded() && self.models.simulation.simulationId == simulationId) {
             return;
         }
-	simulationDataCache.clear();
+        simulationDataCache.clear();
         self.clearModels();
         var routeObj = {
             routeName: 'simulationData',
@@ -990,11 +990,11 @@ within a single simulation (sid).
 SIREPO.app.factory('simulationDataCache', function ($rootScope){
     const self = {};
     self.clear = () => {
-	for (let k in self) {
-	    if (k !== 'clear') {
-		delete self[k];
-	    }
-	}
+        for (let k in self) {
+            if (k !== 'clear') {
+                delete self[k];
+            }
+        }
     };
     return self;
 });
@@ -1042,24 +1042,24 @@ SIREPO.app.factory('timeService', function() {
     const self = {};
 
     self.unixTime = (date) => {
-	return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
+        return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
     };
 
     self.unixTimeNow = () => {
-	return self.unixTime(new Date());
+        return self.unixTime(new Date());
     };
 
     self.unixTimeToDate = (unixTime) => {
-	return new Date(unixTime * UNIX_TIMESTAMP_SCALE);
+        return new Date(unixTime * UNIX_TIMESTAMP_SCALE);
     };
 
     self.unixTimeToDateString = (unixTime) => {
-	return self.unixTimeToDate(unixTime).toLocaleString(
-	    'en-US',
-	    {
-		timeZoneName: 'short'
-	    }
-	);
+        return self.unixTimeToDate(unixTime).toLocaleString(
+            'en-US',
+            {
+                timeZoneName: 'short'
+            }
+        );
     };
 
     return self;
@@ -1255,7 +1255,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return;
         }
         function onError() {
-	    panelState.reportNotGenerated(modelName);
+            panelState.reportNotGenerated(modelName);
         }
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
@@ -1694,15 +1694,15 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.maybeSetState = function(model, state) {
-	if (!model) {
-	    return;
-	}
-	const d = {
-	    error: () => self.reportNotGenerated(model),
-	    loading: () => self.setLoading(model, true),
-	    loadingDone: () => self.setLoading(model, false)
-	};
-	return d[state]();
+        if (!model) {
+            return;
+        }
+        const d = {
+            error: () => self.reportNotGenerated(model),
+            loading: () => self.setLoading(model, true),
+            loadingDone: () => self.setLoading(model, false)
+        };
+        return d[state]();
     };
 
     self.modalId = function(name) {
@@ -1724,8 +1724,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.reportNotGenerated = function(modelName) {
-	self.setLoading(modelName, false);
-	self.setError(modelName, 'Report not generated');
+        self.setLoading(modelName, false);
+        self.setError(modelName, 'Report not generated');
     };
 
     self.requestData = function(name, callback, forceRun, errorCallback) {
@@ -2371,37 +2371,37 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
     };
 
     self.sendStatelessCompute = function(appState, successCallback, data, options={}) {
-	const maybeSetPanelState = (state) => {
-	    if (! options.panelState) {
-		return;
-	    }
-	    options.panelState.maybeSetState(options.modelName, state);
-	};
+        const maybeSetPanelState = (state) => {
+            if (! options.panelState) {
+                return;
+            }
+            options.panelState.maybeSetState(options.modelName, state);
+        };
 
-	const onError = (data) => {
-	    srlog('statelessCompute error: ', data.error);
-	    if (options.onError) {
-		options.onError(data);
-		return;
-	    }
-	    maybeSetPanelState('error');
-	};
+        const onError = (data) => {
+            srlog('statelessCompute error: ', data.error);
+            if (options.onError) {
+                options.onError(data);
+                return;
+            }
+            maybeSetPanelState('error');
+        };
 
-	maybeSetPanelState('loading');
-	sendWithSimulationFields(
-	    'statelessCompute',
-	    appState,
-	    (data) => {
-		if (data.state === 'error') {
-		    onError(data);
-		    return;
-		}
-		maybeSetPanelState('loadingDone');
-		successCallback(data);
-	    },
-	    data,
-	    onError
-	);
+        maybeSetPanelState('loading');
+        sendWithSimulationFields(
+            'statelessCompute',
+            appState,
+            (data) => {
+                if (data.state === 'error') {
+                    onError(data);
+                    return;
+                }
+                maybeSetPanelState('loadingDone');
+                successCallback(data);
+            },
+            data,
+            onError
+        );
     };
 
     $rootScope.$on('$routeChangeStart', checkCookieRedirect);

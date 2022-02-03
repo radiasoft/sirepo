@@ -4,19 +4,12 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
-from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import copy
-import numpy as np
 import sirepo.job
-import sirepo.template.srw
 
 
 def create_predefined(out_dir=None):
@@ -109,6 +102,7 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
+    import sirepo.template.srw
     sirepo.job.init()
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
@@ -122,20 +116,3 @@ def run(cfg_dir):
         template_common.write_sequential_result(
             sirepo.template.srw.extract_report_data(sim_in),
         )
-
-
-def run_background(cfg_dir):
-    """Run srw with mpi in ``cfg_dir``
-
-    Args:
-        cfg_dir (str): directory to run srw in
-    """
-    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if sim_in.report == 'beamlineAnimation':
-        template_common.exec_parameters()
-    else:
-        template_common.exec_parameters_with_mpi()
-    if sim_in.report == 'coherentModesAnimation':
-        # this sim creates _really_ large intermediate files which should get removed
-        for p in pkio.sorted_glob('*_mi.h5'):
-            p.remove()

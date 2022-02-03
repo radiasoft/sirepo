@@ -278,18 +278,18 @@ SIREPO.app.directive('appHeader', function() {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-		//  '<div>App-specific setting item</div>',
-	      '</app-settings>',
+                //  '<div>App-specific setting item</div>',
+              '</app-settings>',
               '<app-header-right-sim-list>',
               '</app-header-right-sim-list>',
             '</div>',
-	].join(''),
+        ].join(''),
     };
 });
 
@@ -321,7 +321,7 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-	    plotting.setTextOnlyReport($scope);
+            plotting.setTextOnlyReport($scope);
             $scope.load = function(json) {
                 $scope.rates = json.rate;
             };

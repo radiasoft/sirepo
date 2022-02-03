@@ -801,39 +801,39 @@ SIREPO.app.directive('analysisParameter', function(appState, webconService) {
 
 SIREPO.app.directive('appFooter', function() {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appFooter',
-	},
+        },
         template: [
             '<div data-common-footer="nav"></div>',
-	].join(''),
+        ].join(''),
     };
 });
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: [
             '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
-		'</div>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-		//  '<div>App-specific setting item</div>',
+                //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
               '</app-header-right-sim-list>',
             '</div>',
-	].join(''),
+        ].join(''),
     };
 });
 

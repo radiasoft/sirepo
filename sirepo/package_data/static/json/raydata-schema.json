@@ -46,7 +46,7 @@
 	"scans": {},
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
-	}
+        }
     },
     "strings": {
         "completionState": "",
@@ -58,8 +58,8 @@
         "analysisStatus": {
             "title": "Analysis Status",
             "advanced": [
-		"notes"
-	    ]
+                "notes"
+            ]
         },
         "inputFiles": {
             "title": "Input Files",
@@ -76,11 +76,11 @@
         "simulationStatus": {
             "title": "Poll For New Scans",
             "advanced": [
-		"notes"
-	    ],
-	    "basic": [
+                "notes"
+            ],
+            "basic": [
                 "pollBlueskyForScansAnimation.minutes"
-	    ]
+            ]
         }
     }
 }

@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -496,11 +495,11 @@ class _Cmd(PKDict):
     async def _await_exit(self):
         try:
             await self._process.exit_ready()
-            if self._terminating:
-                return
             e = self._process.stderr.text.decode('utf-8', errors='ignore')
             if e:
                 pkdlog('{} exit={} stderr={}', self, self._process.returncode, e)
+            if self._terminating:
+                return
             if self._process.returncode != 0:
                 await self.dispatcher.send(
                     self.dispatcher.format_op(
@@ -591,17 +590,27 @@ eval export HOME=~$USER
             e.PYTHONPATH = '{}:{}'.format(h.join('sirepo'), h.join('pykern'))
         return super().job_cmd_env(e)
 
+
 class _SbatchPrepareSimulationCmd(_SbatchCmd):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, send_reply=False, **kwargs)
 
+    async def _await_exit(self):
+        await self._process.exit_ready()
+        s = pkjson.load_any(self.stdout).get('state')
+        if s != job.COMPLETED:
+            raise AssertionError(
+                pkdformat('unexpected state={} from result of cmd={} stdout={}', s, self, self.stdout)
+            )
+
+    async def on_stderr_read(self, text):
+        pkdlog('self={} stderr={}', self, text)
+
     async def on_stdout_read(self, text):
-        p = pkjson.load_any(text)
-        if p.get('state') == 'error':
-            await self._job_cmd_reply(text)
-            return
-        self.cmd = p.cmd
+        self.stdout = text
+        pkdlog('self={} stdout={}', self, self.stdout)
+
 
 class _SbatchRun(_SbatchCmd):
 
@@ -657,11 +666,11 @@ class _SbatchRun(_SbatchCmd):
         super().destroy()
 
     async def start(self):
-        c = await self._prepare_simulation()
+        await self._prepare_simulation()
         if self._terminating:
             return
         p = subprocess.run(
-            ('sbatch', self._sbatch_script(c)),
+            ('sbatch', self._sbatch_script()),
             close_fds=True,
             cwd=str(self.run_dir),
             capture_output=True,
@@ -700,24 +709,21 @@ class _SbatchRun(_SbatchCmd):
         )
         await c.start()
         await c._await_exit()
-        if 'cmd' not in c:
-            raise AssertionError(pkdformat('No cmd returned from {}', c))
-        return ' '.join(c.cmd)
 
-    def _sbatch_script(self, start_cmd):
+    def _sbatch_script(self):
         def _assert_project():
             p = self.msg.sbatchProject
             if not p:
                 return ''
             o = subprocess.check_output(['hpssquota'], text=True)
             assert re.search(r'^[-\w]+$', p), \
-                f'invalid NERSC project={r}'
+                f'invalid NERSC project={p}'
             assert re.search(r'{}\s+\d+\.'.format(p), o), \
                 f'sbatchProject={p} is invalid. hpssquota={o}'
             return f'#SBATCH --account={p}'
 
         def _processor():
-            if self.msg.sbatchQueue == 'debug':
+            if self.msg.sbatchQueue == 'debug' and pkconfig.channel_in('dev'):
                 return 'knl'
             return 'haswell'
 
@@ -731,6 +737,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --tasks-per-node=32
 {_assert_project()}'''
             s = '--cpu-bind=cores shifter'
+        m = '--mpi=pmi2' if pkconfig.channel_in('dev') else ''
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
@@ -738,12 +745,15 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
+cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
-exec {start_cmd}
+exec python {template_common.PARAMETERS_PYTHON_FILE}
+EOF
+exec srun {m} {s} /bin/bash bash.stdin
 '''
         )
         return f

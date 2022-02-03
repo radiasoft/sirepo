@@ -274,11 +274,11 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, reques
                 }
             },
             {
-		method: 'compute_rms_size',
-		gaussianBeam: appState.models.gaussianBeam,
-		simulationSettings: appState.models.simulationSettings,
-		mirror: silasService.getFirstMirror(),
-		crystal: silasService.getCrystal(),
+                method: 'compute_rms_size',
+                gaussianBeam: appState.models.gaussianBeam,
+                simulationSettings: appState.models.simulationSettings,
+                mirror: silasService.getFirstMirror(),
+                crystal: silasService.getCrystal(),
             }
         );
     }

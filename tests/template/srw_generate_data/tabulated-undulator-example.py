@@ -294,6 +294,10 @@ def setup_magnetic_measurement_files(filename, v):
     v.und_mdir = os.path.dirname(f) or './'
 
 
+def epilogue():
+    pass
+
+
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files("magnetic_measurements.zip", v)
@@ -314,3 +318,5 @@ def main():
     srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
+
+epilogue()
