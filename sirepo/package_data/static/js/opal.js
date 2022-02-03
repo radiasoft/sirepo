@@ -217,40 +217,40 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
 
 SIREPO.app.directive('appFooter', function() {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appFooter',
-	},
+        },
         template: [
             '<div data-common-footer="nav"></div>',
             '<div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in or .madx file." data-file-formats=".in,.madx,.zip">',
               '<div data-opal-import-options=""></div>',
             '</div>',
-	].join(''),
+        ].join(''),
     };
 });
 
 // must import opalService so it registers with appState
 SIREPO.app.directive('appHeader', function(appState, latticeService, opalService, panelState) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: [
             '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
+                '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
                   '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-		'</div>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-		//  '<div>App-specific setting item</div>',
+                //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
                 '<ul class="nav navbar-nav sr-navbar-right">',
@@ -258,7 +258,7 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
                 '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
-	].join(''),
+        ].join(''),
         controller: function($scope) {
             $scope.latticeService = latticeService;
 

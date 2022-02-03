@@ -7,31 +7,31 @@
         }
     },
     "enum": {
-	"OutputParameter": [
-	    ["bunching", "bunching"],
-	    ["energy", "energy"],
-	    ["error", "error"],
-	    ["increment", "increment"],
-	    ["p_mid", "p_mid"],
-	    ["phi_mid", "phi_mid"],
-	    ["power", "power"],
-	    ["r_size", "r_size"],
-	    ["xrms", "xrms"],
-	    ["yrms", "yrms"]
-	],
-	"ParticleColumn": [
-	    ["gamma", "gamma"],
-	    ["psi", "psi"],
-	    ["x", "x"],
-	    ["y", "y"],
-	    ["pxmc", "p_x/mc"],
-	    ["pymc", "p_y/mc"]
-	]
+        "OutputParameter": [
+            ["bunching", "bunching"],
+            ["energy", "energy"],
+            ["error", "error"],
+            ["increment", "increment"],
+            ["p_mid", "p_mid"],
+            ["phi_mid", "phi_mid"],
+            ["power", "power"],
+            ["r_size", "r_size"],
+            ["xrms", "xrms"],
+            ["yrms", "yrms"]
+        ],
+        "ParticleColumn": [
+            ["gamma", "gamma"],
+            ["psi", "psi"],
+            ["x", "x"],
+            ["y", "y"],
+            ["pxmc", "p_x/mc"],
+            ["pymc", "p_y/mc"]
+        ]
     },
     "frameIdFields": {
         "fieldDistributionAnimation": [],
         "parameterAnimation": ["y"],
-	"particleAnimation": ["x", "y"]
+        "particleAnimation": ["x", "y"]
     },
     "localRoutes": {
         "source": {
@@ -177,10 +177,10 @@
                 "Transverse position in y of the electron beam at the undulator entrance with respect to the undulator axis."
             ]
         },
-	"fieldDistributionAnimation": {
+        "fieldDistributionAnimation": {
             "notes": ["Notes", "Text", ""],
-	    "step": ["Step", "Integer", 0]
-	},
+            "step": ["Step", "Integer", 0]
+        },
         "focusing": {
             "dl": [
                 "DL",
@@ -660,16 +660,16 @@
                 "Non zero value enables that a transport matrix is applied to the electron distribution when importing it with PARTFILE. The individual matrix is defined by ITRAM##"
             ]
         },
-	"parameterAnimation": {
+        "parameterAnimation": {
             "notes": ["Notes", "Text", ""],
-	    "y": ["Y Value", "OutputParameter", "power"]
-	},
-	"particleAnimation": {
-	    "histogramBins": ["Histogram Bins", "Integer", 200],
+            "y": ["Y Value", "OutputParameter", "power"]
+        },
+        "particleAnimation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200],
             "notes": ["Notes", "Text", ""],
-	    "x": ["X Value", "ParticleColumn", "psi"],
-	    "y": ["Y Value", "ParticleColumn", "gamma"]
-	},
+            "x": ["X Value", "ParticleColumn", "psi"],
+            "y": ["Y Value", "ParticleColumn", "gamma"]
+        },
         "particleLoading": {
             "iall": [
                 "IALL",
@@ -1095,10 +1095,10 @@
                 "ybeam"
             ]
         },
-	"fieldDistributionAnimation": {
+        "fieldDistributionAnimation": {
             "title": "Field Distribution",
             "advanced": []
-	},
+        },
         "focusing": {
             "title": "Focusing",
             "advanced": [],
@@ -1188,20 +1188,20 @@
                 "rmax0sc"
             ]
         },
-	"parameterAnimation": {
+        "parameterAnimation": {
             "title": "Parameter Report",
             "advanced": [
-		"y"
+                "y"
             ]
-	},
-	"particleAnimation": {
+        },
+        "particleAnimation": {
             "title": "Particle Distribution",
             "advanced": [
-		"histogramBins",
-		"x",
-		"y"
+                "histogramBins",
+                "x",
+                "y"
             ]
-	},
+        },
         "particleLoading": {
             "title": "Particle Loading",
             "advanced": [],

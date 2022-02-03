@@ -328,18 +328,18 @@ SIREPO.app.directive('appFooter', function(controlsService) {
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: `
             <div data-app-header-brand="nav"></div>
             <div data-app-header-left="nav"></div>
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
-		<div data-sim-sections="">
+                <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('controls')}"><a href data-ng-click="nav.openSection('controls')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>
-		</div>
+                </div>
               </app-header-right-sim-loaded>
               <app-settings>
                 <div><a href data-ng-click="openSettings()"><span class="glyphicon glyphicon-th-list"></span> Control Settings</a></div>

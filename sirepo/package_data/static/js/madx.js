@@ -548,7 +548,7 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
                 command_beam: appState.clone(appState.models.command_beam),
                 variables: appState.clone(appState.models.rpnVariables),
             }
-	);
+        );
     }
 
     function updateLongitudinalMethod() {

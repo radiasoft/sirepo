@@ -15,9 +15,9 @@
         }
     },
     "frameIdFields": {
-	"animation": [
-	    "filename"
-	]
+        "animation": [
+            "filename"
+        ]
     },
     "localRoutes": {
         "analysis": {
@@ -45,26 +45,26 @@
     "model": {
         "analysisMetadata": {
             "notes": ["Notes", "Text", ""]
-	},
+        },
         "analysisStatus": {
             "notes": ["Notes", "Text", ""]
-	},
+        },
         "generalMetadata": {
             "notes": ["Notes", "Text", ""]
-	},
+        },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
         "planMetadata": {
             "notes": ["Notes", "Text", ""]
-	},
-	"pollBlueskyForScansAnimation": {
-	    "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
-	},
-	"scans": {},
+        },
+        "pollBlueskyForScansAnimation": {
+            "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
+        },
+        "scans": {},
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
-	}
+        }
     },
     "strings": {
         "completionState": "",
@@ -76,20 +76,20 @@
         "analysisMetadata": {
             "title": "Analysis",
             "advanced": [
-		"notes"
-	    ]
+                "notes"
+            ]
         },
         "analysisStatus": {
             "title": "Analysis Status",
             "advanced": [
-		"notes"
-	    ]
+                "notes"
+            ]
         },
         "generalMetadata": {
             "title": "General",
             "advanced": [
-		"notes"
-	    ]
+                "notes"
+            ]
         },
         "inputFiles": {
             "title": "Input Files",
@@ -101,8 +101,8 @@
         "planMetadata": {
             "title": "Plan",
             "advanced": [
-		"notes"
-	    ]
+                "notes"
+            ]
         },
         "scans": {
             "title": "Scans",
@@ -112,11 +112,11 @@
         "simulationStatus": {
             "title": "Poll For New Scans",
             "advanced": [
-		"notes"
-	    ],
-	    "basic": [
+                "notes"
+            ],
+            "basic": [
                 "pollBlueskyForScansAnimation.minutes"
-	    ]
+            ]
         }
     }
 }
