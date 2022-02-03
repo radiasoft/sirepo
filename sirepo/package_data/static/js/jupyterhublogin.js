@@ -32,14 +32,14 @@ SIREPO.app.controller('NameConflictController', function(requestSender, jupyterh
 
 SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: [
             '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-right="nav"></div>',
-	].join('')
+        ].join('')
     };
 });
 

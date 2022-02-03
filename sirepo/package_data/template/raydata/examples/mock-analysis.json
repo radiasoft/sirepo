@@ -4,26 +4,26 @@
             "notebook": "mock-analysis.ipynb"
         },
         "analysisMetadata": {
-	    "notes": ""
-	},
+            "notes": ""
+        },
         "generalMetadata": {
-	    "notes": ""
-	},
+            "notes": ""
+        },
         "inputFiles": {
             "mask": null
         },
         "planMetadata": {
-	    "notes": ""
-	},
-	"pollBlueskyForScansAnimation": {
-	    "minutes": 1
-	},
+            "notes": ""
+        },
+        "pollBlueskyForScansAnimation": {
+            "minutes": 1
+        },
         "scans": {
-	    "searchStartTime": null,
-	    "searchStopTime": null,
-	    "selected": {},
-	    "visualizationId": null
-	},
+            "searchStartTime": null,
+            "searchStopTime": null,
+            "selected": {},
+            "visualizationId": null
+        },
         "simulation": {
             "folder": "/Examples",
             "isExample": true,

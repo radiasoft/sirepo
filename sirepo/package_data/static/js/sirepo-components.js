@@ -644,41 +644,41 @@ SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
         restrict: 'A',
         transclude: true,
         scope: {
-	    childArgs: '&',
-	    modelKey: '@',
-	},
+            childArgs: '&',
+            modelKey: '@',
+        },
         template: `
             <div class="panel panel-info">
               <div class="panel-heading clearfix" data-panel-heading="{{ panelHeading() }}" data-model-key="modelKey"></div>
-	      <div data-show-loading-and-error="">
-	        <div data-ng-show="showTranscludedElement()">
-		  <transcluded-element></transcluded-element>
-	        </div>
+              <div data-show-loading-and-error="">
+                <div data-ng-show="showTranscludedElement()">
+                  <transcluded-element></transcluded-element>
+                </div>
               </div>
             </div>
         `,
         controller: function($scope) {
-	    $scope.panelState = panelState;
-	    $scope.panelHeading = () => {
-		return appState.viewInfo($scope.modelKey).title;
-	    };
+            $scope.panelState = panelState;
+            $scope.panelHeading = () => {
+                return appState.viewInfo($scope.modelKey).title;
+            };
 
-	    $scope.showTranscludedElement = () => {
-		return ! (panelState.isLoading($scope.modelKey) || panelState.getError($scope.modelKey));
-	    };
-	},
-	link: function(scope, element, attrs, ctrls, transclude){
-	    transclude(scope, function(clonedContent, transcludeScope){
-		transcludeScope.args = {
-		    modelKey: scope.modelKey
-		};
-		const c =  scope.childArgs();
-		if (c) {
-		    $.extend(transcludeScope.args, c);
-		}
-		element.find('transcluded-element').replaceWith(clonedContent);
-	    });
-	}
+            $scope.showTranscludedElement = () => {
+                return ! (panelState.isLoading($scope.modelKey) || panelState.getError($scope.modelKey));
+            };
+        },
+        link: function(scope, element, attrs, ctrls, transclude){
+            transclude(scope, function(clonedContent, transcludeScope){
+                transcludeScope.args = {
+                    modelKey: scope.modelKey
+                };
+                const c =  scope.childArgs();
+                if (c) {
+                    $.extend(transcludeScope.args, c);
+                }
+                element.find('transcluded-element').replaceWith(clonedContent);
+            });
+        }
     };
 });
 
@@ -1302,30 +1302,30 @@ SIREPO.app.directive('headerTooltip', function() {
             '<span data-ng-class="className()"></span>',
         ],
         controller: function link($scope, $element) {
-	    $scope.className = function() {
-		return 'glyphicon sr-info-pointer glyphicon-' + ({
-		    canceled: 'ban-circle',
-		    completed: 'ok',
-		    error: 'exclamation-sign',
-		    missing: 'question-sign',
-		    pending: 'hourglass',
-		    running: 'transfer'
-		}[$scope.tipText] || 'info-sign');
-	    };
+            $scope.className = function() {
+                return 'glyphicon sr-info-pointer glyphicon-' + ({
+                    canceled: 'ban-circle',
+                    completed: 'ok',
+                    error: 'exclamation-sign',
+                    missing: 'question-sign',
+                    pending: 'hourglass',
+                    running: 'transfer'
+                }[$scope.tipText] || 'info-sign');
+            };
 
             $scope.$on('$destroy', function() {
                 $($element).tooltip('destroy');
             });
 
-	    $scope.$watch('tipText', () => {
-		$($element).tooltip().attr('data-original-title', $scope.tipText);
-	    });
+            $scope.$watch('tipText', () => {
+                $($element).tooltip().attr('data-original-title', $scope.tipText);
+            });
 
-	    $($element).tooltip({
-		title: $scope.tipText,
-		html: true,
-		placement: 'bottom',
-	    });
+            $($element).tooltip({
+                title: $scope.tipText,
+                html: true,
+                placement: 'bottom',
+            });
         },
     };
 });
@@ -1712,14 +1712,14 @@ SIREPO.app.directive('safePath', function() {
 
 SIREPO.app.directive('showLoadingAndError', function(panelState) {
     return {
-	transclude: true,
-	template: `
+        transclude: true,
+        template: `
             <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
               <div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>
               <div data-ng-transclude=""></div>
             </div>
-	`,
+        `,
         controller: function($scope, $element) {
             $scope.panelState = panelState;
             $scope.hasTransclude = function() {
@@ -2214,7 +2214,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-	    '<div data-show-loading-and-error="">',
+            '<div data-show-loading-and-error="">',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
                 '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
@@ -4459,7 +4459,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                     {
                         method: 'get_' + $scope.code + '_sim_list'
                     }
-		);
+                );
             });
         },
     };
