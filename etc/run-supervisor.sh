@@ -29,7 +29,7 @@ radia_run redhat-docker
         nersc_user=$3
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
-        export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
+        export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE="$docker_image"
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${nersc_user::1}/$nersc_user/.pyenv/versions/$(pyenv version-name)/bin/sirepo
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15

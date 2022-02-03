@@ -258,6 +258,9 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd(mpi=True)
+    return None
 
 
 def _adjust_z_width(data_list, data_file):

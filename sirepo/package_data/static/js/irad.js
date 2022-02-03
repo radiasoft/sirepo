@@ -282,13 +282,13 @@ SIREPO.app.controller('SourceController', function (appState, iradService, $scop
 
 SIREPO.app.directive('appFooter', function(appState, requestSender, $location) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appFooter',
-	},
+        },
         template: [
             '<div data-common-footer="nav"></div>',
-	].join(''),
+        ].join(''),
         controller: function($scope) {
             $scope.$on('$routeChangeSuccess', function() {
                 if ($location.path() == SIREPO.APP_SCHEMA.localRoutes.simulations.route) {
@@ -308,27 +308,27 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, $location) {
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: [
             '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-user"></span> DICOM Viewer</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-picture"></span> Dose Comparison</a></li>',
-		'</div>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-		//  '<div>App-specific setting item</div>',
+                //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
               '</app-header-right-sim-list>',
             '</div>',
-	].join(''),
+        ].join(''),
     };
 });
 

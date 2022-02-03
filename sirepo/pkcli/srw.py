@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.job
-import sirepo.template.srw
 
 
 def create_predefined(out_dir=None):
@@ -103,6 +102,7 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
+    import sirepo.template.srw
     sirepo.job.init()
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()

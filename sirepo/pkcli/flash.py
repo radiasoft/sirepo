@@ -10,13 +10,11 @@ from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import mpi
 from sirepo import simulation_db
-from sirepo.template import flash_parser
 from sirepo.template import template_common
 import glob
 import os
 import re
 import sirepo.sim_data
-import sirepo.template.flash as template
 
 _SIM_DATA = sirepo.sim_data.get_class('flash')
 
@@ -42,12 +40,14 @@ def config_to_schema(path):
     Args:
       path (str): path to Config file to parse
     """
+    from sirepo.template import flash_parser
     return flash_parser.ConfigParser().parse(pkio.read_text(path))
 
 
 def parse_par(sim_id, par_path):
     """Returns parsed flash.par values.
     """
+    from sirepo.template import flash_parser
     sim_path = _sim_path_from_id(sim_id)
     return flash_parser.ParameterParser().parse(
         pkjson.load_any(pkio.read_text(sim_path)),
@@ -63,6 +63,7 @@ def update_sim_from_config(sim_id, config_path):
 
 
 def update_sim_from_par(sim_id, par_path):
+    from sirepo.template import flash_parser
     sim_path = _sim_path_from_id(sim_id)
     data = pkjson.load_any(pkio.read_text(sim_path))
     parser = flash_parser.ParameterParser()

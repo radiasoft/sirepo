@@ -711,16 +711,6 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        def _assert_no_run_background():
-            from sirepo import pkcli
-            m = pkcli.import_module(self.msg)
-            if hasattr(m, 'run_background'):
-                raise AssertionError(
-                    f'simulation_type={self.msg.simulationType} cannot have'
-                    ' pkcli.run_background if called from sbatch. Sbatch only'
-                    ' supports running through `python parameters.py` ',
-                )
-
         def _assert_project():
             p = self.msg.sbatchProject
             if not p:
@@ -733,11 +723,10 @@ class _SbatchRun(_SbatchCmd):
             return f'#SBATCH --account={p}'
 
         def _processor():
-            if self.msg.sbatchQueue == 'debug':
+            if self.msg.sbatchQueue == 'debug' and pkconfig.channel_in('dev'):
                 return 'knl'
             return 'haswell'
 
-        _assert_no_run_background()
         i = self.msg.shifterImage
         s = o = ''
 #POSIT: job_api has validated values
