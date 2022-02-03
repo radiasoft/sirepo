@@ -67,11 +67,13 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'controlSettings' not in dm:
                 cls.init_process_variables(dm)
                 cls.init_currents(dm.command_beam, dm.externalLattice.models)
+            cls._init_models(dm, ('controlSettings',))
             if 'inputs' not in dm.optimizerSettings:
                 cls.init_optimizer_inputs(dm.optimizerSettings, dm.externalLattice.models)
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0
+
 
     @classmethod
     def init_optimizer_inputs(cls, optimizerSettings, madx):

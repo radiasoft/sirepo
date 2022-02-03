@@ -303,6 +303,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                         y1: data.ptcTrackColumns,
                     };
                 appState.models[m].refreshId = Math.random();
+                appState.models[m].particlePlotSize = appState.models.controlSettings.particlePlotSize;
                 self.instrumentAnimations.push({
                     modelKey: m,
                     getData: genGetDataFunction(m),
@@ -363,6 +364,15 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             appState.cancelChanges('externalLattice');
         }
     });
+    $scope.$on('controlSettings.changed', () => {
+        srdbg('Entering on controlSettings changed plots');
+        for (const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
+                appState.models[m].particlePlotSize = appState.models.controlSettings.particlePlotSize;
+                appState.saveQuietly(m);
+            }
+        }
+    })
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
 
     return self;
@@ -425,7 +435,11 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            const defaultDomain = [-0.0021, 0.0021];
+
+            let defaultDomain = [
+                -appState.models.controlSettings.bpmPlotSize/2,
+                 appState.models.controlSettings.bpmPlotSize/2
+                ];
             let points;
             let colName = $scope.modelName.substring(0, $scope.modelName.indexOf('Report'));
             $scope.isClientOnly = true;
@@ -433,6 +447,10 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
 
             function clearPoints() {
                 points = [];
+                defaultDomain = [
+                    -appState.models.controlSettings.bpmPlotSize/2,
+                    appState.models.controlSettings.bpmPlotSize/2
+               ];
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
                 $scope.select('.plot-viewport').selectAll('.sr-scatter-point').remove();
                 ['x', 'y'].forEach(dim => {
@@ -455,31 +473,31 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                     // the user has zoomed in
                     return;
                 }
-                [0, 1].forEach(i => {
-                    points.forEach(p => {
-                        if (p[i] < dim[0]) {
-                            dim[0] = p[i];
-                        }
-                        if (p[i] > dim[1]) {
-                            dim[1] = p[i];
-                        }
-                    });
-                    let pad = (dim[1] - dim[0]) / 20;
-                    if (pad == 0) {
-                        pad = 0.1;
-                    }
-                    dim[0] -= pad;
-                    dim[1] += pad;
-                });
-                if ( -dim[0] > dim[1]) {
-                    dim[1] = -dim[0];
-                }
-                else if (-dim[0] < dim[1]) {
-                    dim[0] = -dim[1];
-                }
-                ['x', 'y'].forEach(axis => {
-                    $scope.axes[axis].scale.domain(dim).nice();
-                });
+                // [0, 1].forEach(i => {
+                //     points.forEach(p => {
+                //         if (p[i] < dim[0]) {
+                //             dim[0] = p[i];
+                //         }
+                //         if (p[i] > dim[1]) {
+                //             dim[1] = p[i];
+                //         }
+                //     });
+                //     let pad = (dim[1] - dim[0]) / 20;
+                //     if (pad == 0) {
+                //         pad = 0.1;
+                //     }
+                //     dim[0] -= pad;
+                //     dim[1] += pad;
+                // });
+                // if ( -dim[0] > dim[1]) {
+                //     dim[1] = -dim[0];
+                // }
+                // else if (-dim[0] < dim[1]) {
+                //     dim[0] = -dim[1];
+                // }
+                // ['x', 'y'].forEach(axis => {
+                //     $scope.axes[axis].scale.domain(dim).nice();
+                // });
             }
 
             function pushAndTrim(p) {
@@ -540,7 +558,7 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                     ];
                     pushAndTrim(point);
                 });
-                fitPoints();
+                // fitPoints();
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
                 $scope.resize();
             });
@@ -549,6 +567,12 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                 clearPoints();
                 $scope.refresh();
             });
+
+            $scope.$on('controlSettings.changed', () => {
+                srdbg('CHANGING CONTROLSETTINGS');
+                clearPoints();
+                $scope.resize();
+            })
         },
         link: (scope, element) => plotting.linkPlot(scope, element),
     };

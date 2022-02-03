@@ -73,6 +73,11 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     d = data.models[frame_args.frameReport].id
     data.models[frame_args.frameReport] = frame_args
     n = frame_args.sim_in.models.externalLattice.models.elements[d].name
+    frame_args.plotRangeType = 'fixed'
+    frame_args.verticalSize = frame_args.particlePlotSize
+    frame_args.verticalOffset = 0
+    frame_args.horizontalSize = frame_args.particlePlotSize
+    frame_args.horizontalOffset = 0
     i, x = _get_target_info(a, n)
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
     return template_common.heatmap(
