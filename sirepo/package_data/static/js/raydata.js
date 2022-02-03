@@ -576,8 +576,8 @@ SIREPO.app.directive('scanSelector', function() {
                   <thead>
                     <tr>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px;">
-                            {{ column }}
-                            <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
+                        {{ column }}
+                        <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                   </tr>
                   </thead>
@@ -590,9 +590,7 @@ SIREPO.app.directive('scanSelector', function() {
                 </table>
               </div>
 	    </div>
-
 	    <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
-
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope) {
 	    let hoveredIndex = null;
@@ -640,11 +638,11 @@ SIREPO.app.directive('scanSelector', function() {
 		raydataService.columnPickerModal().modal('show');
 	    };
 
-	    $scope.saveColumnChanges = () => {
-	    	appState.saveChanges('metadataColumns');
-		    $scope.setColumnHeaders();
-		    $scope.setAvailableColumns();
-	    };
+        $scope.saveColumnChanges = () => {
+            appState.saveChanges('metadataColumns');
+            $scope.setColumnHeaders();
+            $scope.setAvailableColumns();
+        };
 
 	    $scope.search = function() {
 		for (let i = 0; i < startOrStop.length; i++) {
