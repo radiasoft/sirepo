@@ -371,7 +371,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 appState.saveQuietly(m);
             }
         }
-    })
+    });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
 
     return self;
