@@ -54,6 +54,17 @@
             ["vertical", "Vertical"]
         ]
     },
+    "frameIdFields": {
+        "instrumentAnimation": [
+            "x",
+            "y1",
+            "y2",
+            "y3",
+            "histogramBins",
+            "particlePlotSize",
+            "refreshId"
+        ]
+    },
     "localRoutes": {
         "controls": {
             "route": "/controls/:simulationId",
@@ -86,6 +97,13 @@
             "title": "Optimization",
             "advanced": []
         },
+        "instrumentAnimation":{
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "x": ["Horizontal Value to Plot", "ValueList", "x"],
+            "y1": ["Vertical Value to Plot", "ValueList", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+        },
         "command_twiss": {
             "alfx": ["Horizontal Alpha", "Float", 0.0],
             "alfy": ["Vertical Alpha", "Float", 0.0],
@@ -104,7 +122,9 @@
             "operationMode": ["Operation Mode", "OperationMode", "madx"],
             "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
             "processVariables": ["", "ProcessVariables"],
-            "readOnly": ["Read Only", "Boolean", "1"]
+            "readOnly": ["Read Only", "Boolean", "1"],
+            "particlePlotSize": ["Plot Dimension [m]", "Float", 0.1],
+            "bpmPlotSize": ["Monitor Dimension [m]", "Float", 0.0021]
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
@@ -114,6 +134,7 @@
             "inputs": ["", "OptimizerInputIds"],
             "method": ["Optimization Method", "OptimizationMethod", "nmead"]
         },
+        "instruments": [],
         "optimizerTarget": {
             "x": ["X [m]", "Float", 0.0],
             "y": ["Y [m]", "Float", 0.0],
@@ -170,6 +191,22 @@
         "typeOfSimulation": "optimization"
     },
     "view": {
+        "instrumentAnimation": {
+                "title": "Cross Section",
+                "model": "instrumentAnimation",
+                "advanced": [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "colorMap"
+                ]
+        },
         "beamline": {
             "title": "Beamline",
             "advanced": [
@@ -180,14 +217,18 @@
                 ]],
                 ["Process Variables", [
                     "controlSettings.processVariables"
+                ]],
+                ["Plot Sizes", [
+                    "controlSettings.bpmPlotSize",
+                    "controlSettings.particlePlotSize"
                 ]]
             ]
         },
         "optimizerInputsTab": {
             "title": "Optimization",
             "advanced": []
-         
-        }, 
+
+        },
         "command_beam": {
             "title": "Beam Settings",
             "advanced": [],

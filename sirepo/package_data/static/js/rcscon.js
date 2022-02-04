@@ -70,36 +70,36 @@ SIREPO.app.factory('rcsconService', function(appState, panelState, frameCache) {
 
 SIREPO.app.directive('appFooter', function() {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appFooter',
-	},
+        },
         template: [
             '<div data-common-footer="nav"></div>',
             '<div data-import-dialog=""></div>',
-	].join(''),
+        ].join(''),
     };
 });
 
 SIREPO.app.directive('appHeader', function(appState) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: [
             '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-  	        '<div data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>',
                   '<li class="sim-section" data-ng-if="hasFiles()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>',
                   '<li class="sim-section" data-ng-if="hasFilesAndPartition()" data-ng-class="{active: nav.isActive(\'machine-learning\')}"><a href data-ng-click="nav.openSection(\'machine-learning\')"><span class="glyphicon glyphicon-qrcode"></span> Machine Learning</a></li>',
-		'</div>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-		//  '<div>App-specific setting item</div>',
+                //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
                 '<ul class="nav navbar-nav sr-navbar-right">',
@@ -107,7 +107,7 @@ SIREPO.app.directive('appHeader', function(appState) {
                 '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
-	].join(''),
+        ].join(''),
         controller: function($scope) {
             $scope.hasFiles = function() {
                 if (appState.isLoaded()) {

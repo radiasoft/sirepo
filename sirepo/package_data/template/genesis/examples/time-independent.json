@@ -23,9 +23,9 @@
             "xbeam": 0.0,
             "ybeam": 0.0
         },
-	"fieldDistributionAnimation": {
-	    "notes": ""
-	},
+        "fieldDistributionAnimation": {
+            "notes": ""
+        },
         "focusing": {
             "dl": 0.0,
             "drl": 0.0,
@@ -120,16 +120,16 @@
             "rmax0": 9.0,
             "rmax0sc": 0.0
         },
-	"parameterAnimation": {
-	    "notes": "",
-	    "y": "power"
-	},
-	"particleAnimation": {
-	    "histogramBins": 200,
-	    "notes": "",
-	    "x": "psi",
-	    "y": "gamma"
-	},
+        "parameterAnimation": {
+            "notes": "",
+            "y": "power"
+        },
+        "particleAnimation": {
+            "histogramBins": 200,
+            "notes": "",
+            "x": "psi",
+            "y": "gamma"
+        },
         "particleLoading": {
             "iall": 0,
             "igamgaus": 1,

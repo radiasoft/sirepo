@@ -501,7 +501,7 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
                 method: 'rpn_value',
                 value: value,
             }
-	);
+        );
     };
 
     self.getRpnBooleanForField = function(model, field) {

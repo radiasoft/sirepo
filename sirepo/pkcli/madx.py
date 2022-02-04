@@ -19,6 +19,15 @@ import re
 import sirepo.template.madx as template
 
 
+def particle_file_for_external_lattice():
+    data = simulation_db.read_json(
+        template_common.INPUT_BASE_NAME,
+    ).models.externalLattice
+    data.report = 'unused'
+    data.models.bunch.matchTwissParameters = '0'
+    _create_particle_file(pkio.py_path('.'), data)
+
+
 def run(cfg_dir):
     _run_simulation(cfg_dir)
     template.save_sequential_report_data(
@@ -29,6 +38,24 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     _run_simulation(cfg_dir)
+
+
+def _create_particle_file(cfg_dir, data):
+    twiss = PKDict()
+    if _is_matched_bunch(data):
+        report = data.report
+        # run twiss report and copy results into beam
+        data.models.simulation.activeBeamlineId = data.models.simulation.visualizationBeamlineId
+        data.report = 'twissReport'
+        template.write_parameters(data, cfg_dir, False, 'matched-twiss.madx')
+        _run_madx('matched-twiss.madx')
+        twiss = template.extract_parameter_report(data, cfg_dir).initialTwissParameters
+        data.models.bunch.update(twiss)
+        # restore the original report and generate new source with the updated beam values
+        data.report = report
+        if data.report == 'animation':
+            template.write_parameters(data, py.path.local(cfg_dir), False)
+    _generate_ptc_particles_file(cfg_dir, data, twiss)
 
 
 def _generate_ptc_particles_file(run_dir, data, twiss):
@@ -93,20 +120,6 @@ def _run_simulation(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if _need_particle_file(data):
-        twiss = PKDict()
-        if _is_matched_bunch(data):
-            report = data.report
-            # run twiss report and copy results into beam
-            data.models.simulation.activeBeamlineId = data.models.simulation.visualizationBeamlineId
-            data.report = 'twissReport'
-            template.write_parameters(data, cfg_dir, False, 'matched-twiss.madx')
-            _run_madx('matched-twiss.madx')
-            twiss = template.extract_parameter_report(data, cfg_dir).initialTwissParameters
-            data.models.bunch.update(twiss)
-            # restore the original report and generate new source with the updated beam values
-            data.report = report
-            if data.report == 'animation':
-                template.write_parameters(data, pkio.py_path(cfg_dir), False)
-        _generate_ptc_particles_file(cfg_dir, data, twiss)
+        _create_particle_file(cfg_dir, data)
     if cfg_dir.join(template.MADX_INPUT_FILE).exists():
         _run_madx()

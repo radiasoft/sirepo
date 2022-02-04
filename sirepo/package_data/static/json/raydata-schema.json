@@ -15,9 +15,7 @@
         }
     },
     "frameIdFields": {
-	"animation": [
-	    "filename"
-	]
+        "animation": []
     },
     "localRoutes": {
         "analysis": {
@@ -25,13 +23,6 @@
             "config": {
                 "controller": "AnalysisController as analysis",
                 "templateUrl": "/static/html/raydata-analysis.html"
-          }
-        },
-        "metadata": {
-            "route": "/metadata/:simulationId",
-            "config": {
-                "controller": "MetadataController as metadata",
-                "templateUrl": "/static/html/raydata-metadata.html"
           }
         },
         "dataSource": {
@@ -43,28 +34,19 @@
         }
     },
     "model": {
-        "analysisMetadata": {
-            "notes": ["Notes", "Text", ""]
-	},
         "analysisStatus": {
             "notes": ["Notes", "Text", ""]
-	},
-        "generalMetadata": {
-            "notes": ["Notes", "Text", ""]
-	},
+        },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
-        "planMetadata": {
-            "notes": ["Notes", "Text", ""]
-	},
-	"pollBlueskyForScansAnimation": {
-	    "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
-	},
-	"scans": {},
+        "pollBlueskyForScansAnimation": {
+            "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
+        },
+        "scans": {},
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
-	}
+        }
     },
     "strings": {
         "completionState": "",
@@ -73,23 +55,11 @@
         "typeOfSimulation": "poll"
     },
     "view": {
-        "analysisMetadata": {
-            "title": "Analysis",
-            "advanced": [
-		"notes"
-	    ]
-        },
         "analysisStatus": {
             "title": "Analysis Status",
             "advanced": [
-		"notes"
-	    ]
-        },
-        "generalMetadata": {
-            "title": "General",
-            "advanced": [
-		"notes"
-	    ]
+                "notes"
+            ]
         },
         "inputFiles": {
             "title": "Input Files",
@@ -97,12 +67,6 @@
                 "mask"
             ],
             "advanced": []
-        },
-        "planMetadata": {
-            "title": "Plan",
-            "advanced": [
-		"notes"
-	    ]
         },
         "scans": {
             "title": "Scans",
@@ -112,11 +76,11 @@
         "simulationStatus": {
             "title": "Poll For New Scans",
             "advanced": [
-		"notes"
-	    ],
-	    "basic": [
+                "notes"
+            ],
+            "basic": [
                 "pollBlueskyForScansAnimation.minutes"
-	    ]
+            ]
         }
     }
 }
