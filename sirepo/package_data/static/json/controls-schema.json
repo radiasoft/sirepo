@@ -61,11 +61,7 @@
             "y2",
             "y3",
             "histogramBins",
-            "plotRangeType",
-            "horizontalSize",
-            "horizontalOffset",
-            "verticalSize",
-            "verticalOffset",
+            "particlePlotSize",
             "refreshId"
         ]
     },
@@ -126,7 +122,9 @@
             "operationMode": ["Operation Mode", "OperationMode", "madx"],
             "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
             "processVariables": ["", "ProcessVariables"],
-            "readOnly": ["Read Only", "Boolean", "1"]
+            "readOnly": ["Read Only", "Boolean", "1"],
+            "particlePlotSize": ["Plot Dimension [m]", "Float", 0.1],
+            "bpmPlotSize": ["Monitor Dimension [m]", "Float", 0.0021]
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
@@ -219,6 +217,10 @@
                 ]],
                 ["Process Variables", [
                     "controlSettings.processVariables"
+                ]],
+                ["Plot Sizes", [
+                    "controlSettings.bpmPlotSize",
+                    "controlSettings.particlePlotSize"
                 ]]
             ]
         },
