@@ -10,6 +10,7 @@
     </div>
     <div class="clearfix"></div>
     <div data-ng-repeat="item in visualization.outputFiles" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" data-ng-if="visualization.simState.hasFrames()">
+      {{item.modelAccess}}
       <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
     </div>
   </div> <!-- /row -->
