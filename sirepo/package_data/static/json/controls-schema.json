@@ -63,6 +63,13 @@
             "histogramBins",
             "particlePlotSize",
             "refreshId"
+        ],
+        "instrumentAnimationTwiss": [
+            "x",
+            "y1",
+            "y2",
+            "y3",
+            "refreshId"
         ]
     },
     "localRoutes": {
@@ -103,6 +110,14 @@
             "y1": ["Vertical Value to Plot", "ValueList", "y"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "afmhot"]
+        },
+        "instrumentAnimationTwiss": {
+            "x": ["Horizontal Value to Plot", "ValueList", "s"],
+            "y1": ["Vertical Value to Plot", "ValueList", "x"],
+            "y2": ["Vertical Value to Plot", "ValueList", "y"],
+            "y3": ["Vertical Value to Plot", "ValueList", "None"],
+            "panelTitle": ["Twiss Report Title", "String", "Twiss Report"],
+            "includeLattice": ["Include the lattice", "Boolean", 0]
         },
         "command_twiss": {
             "alfx": ["Horizontal Alpha", "Float", 0.0],
@@ -206,6 +221,21 @@
                     "histogramBins",
                     "colorMap"
                 ]
+        },
+        "instrumentAnimationTwiss": {
+            "title": "Twiss Report",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1",
+                        "y2",
+                        "y3"
+                    ]]
+                ]
+            ]
         },
         "beamline": {
             "title": "Beamline",

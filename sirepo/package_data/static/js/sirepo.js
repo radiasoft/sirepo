@@ -608,6 +608,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.isAnimationModelName = function(name) {
+        // srdbg('name', name);
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
 

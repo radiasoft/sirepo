@@ -44,6 +44,7 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="bpmMonitor" data-zoom="XY" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="bpmHMonitor" data-zoom="X" data-bpm-monitor-plot="Horizontal" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="bpmVMonitor" data-zoom="Y" data-bpm-monitor-plot="Vertical" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+        <div data-ng-switch-when="parameterWithExternalLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-path-to-models="externalLattice"></div>
     `;
 });
 
@@ -277,6 +278,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
+    self.showTwissEditor = () => {
+        panelState.showModalEditor('instrumentAnimationTwiss');
+    };
+
     self.simHandleStatus = data => {
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
@@ -285,6 +290,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         if (data.elementValues) {
             handleElementValues(data);
             loadHeatmapReports(data);
+            loadTwissReport(data);
         }
         if (! self.simState.isProcessing()) {
             if ($scope.isRunningOptimizer) {
@@ -314,37 +320,80 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     }
 
+    function loadTwissReport(data) {
+        appState.models['instrumentAnimationTwiss'].refreshId = Math.random();
+        appState.models['instrumentAnimationTwiss'].valueList = {
+            x: data.twissColumns,
+            y1: data.twissColumns,
+            y2: data.twissColumns,
+            y3: data.twissColumns,
+        };
+        self.twissReport = [{
+            modelKey: 'instrumentAnimationTwiss',
+            getData: genGetDataFunction('instrumentAnimationTwiss')
+        }];
+        frameCache.setFrameCount(1, 'instrumentAnimationTwiss');
+        appState.saveChanges('instrumentAnimationTwiss');
+    }
+
     function genGetDataFunction(m) {
         return () => appState.models[m];
     }
 
-    function initInstrumentModels() {
-        for (const m in appState.models) {
-            if (m.includes('instrumentAnimation')) {
-                return;
-            }
+    function initInstruments() {
+        if (checkModelSet('instrumentAnimation')){
+            return;
         }
         const k  = [];
+        const modelViewName = 'instrumentAnimation'
         appState.models.externalLattice.models.elements.forEach((e, i) => {
                 if (e.type !== 'INSTRUMENT') {
                     return;
                 }
-                const m = 'instrumentAnimation' + i;
+                const m = modelViewName + i;
                 k.push(m);
-                const n = {
-                    id: i,
-                };
-                appState.setModelDefaults(n, 'instrumentAnimation');
-                appState.models[m] = n;
+                setAnimationModel(m, modelViewName, i)
         });
         appState.saveChanges(k);
+    }
+
+    function setAnimationModel(modelKey, modelViewName, id) {
+        const n = {
+            id: id,
+            viewName: modelViewName,
+        };
+        appState.setModelDefaults(n, modelViewName);
+        appState.models[modelKey] = n;
+    }
+
+    function initTwiss() {
+        if (checkModelSet('instrumentAnimationTwiss')){
+            return;
+        }
+        const keys = [];
+        const modelKey = 'instrumentAnimationTwiss';
+        const modelViewName = 'instrumentAnimationTwiss';
+        const id = appState.models.externalLattice.models.length + 2;
+        keys.push(modelKey);
+        setAnimationModel(modelKey, modelViewName, id);
+        appState.saveChanges(keys);
+    }
+
+    function checkModelSet(model) {
+        for (const m in appState.models) {
+            if (m.includes(model)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
-        initInstrumentModels();
+        initInstruments();
+        initTwiss();
         appState.saveChanges('optimizerSettings', self.simState.runSimulation);
     };
 
@@ -705,8 +754,10 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
         restrict: 'A',
         scope: {
             width: '@',
+            modelName: '@',
         },
         template: `
+            <div class="col-sm-7" ng-if="modelName == 'beamlines'">
             <div class="text-center">
             <div data-ng-repeat="table in tables track by table.reading" style="display: inline-block; vertical-align: top; margin: 0 1.5em">
                 <div data-ng-if="readings[table.reading].length">
@@ -721,6 +772,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
             </div>
             <div data-ng-if="controlsService.runningMessage" style="margin-left: 3em">
               <span class="glyphicon glyphicon-repeat sr-running-icon"></span> {{ controlsService.runningMessage }}
+            </div>
             </div>
             </div>
             `,
@@ -806,6 +858,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 $('.sr-lattice-label').remove();
                 const parentRect = $('#sr-lattice')[0].getBoundingClientRect();
                 const positions = [];
+                const labeled = [];
                 $("[class^='sr-beamline']").each( (_ , element) => {
                     positions.push(element.getBoundingClientRect());
                 });
@@ -938,7 +991,9 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 setSelectedId(controlsService.latticeModels().beamlines[0].items[idx]);
             });
             $scope.$on('sr-elementValues', updateReadings);
-            $scope.$on('sr-renderBeamline', () => panelState.waitForUI(labelElements));
+            $scope.$on('sr-renderBeamline', () => {
+                panelState.waitForUI(labelElements);
+            });
         },
     };
 });

@@ -26,6 +26,8 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 _PTC_TRACK_COLUMNS_FILE = 'ptc_track_columns.txt'
 _PTC_TRACK_FILE = 'track.tfs'
+_TWISS_FILE = 'twiss.tfs'
+_TWISS_COLS_FILE = 'twiss_columns.txt'
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -35,6 +37,7 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=0,
             elementValues=_read_summary_line(run_dir),
             ptcTrackColumns=_get_ptc_track_columns(run_dir),
+            twissColumns=_get_twiss_track_columns(run_dir),
         )
     return PKDict(
         percentComplete=100,
@@ -44,12 +47,18 @@ def background_percent_complete(report, run_dir, is_running):
             SCHEMA.constants.maxBPMPoints,
         ),
         ptcTrackColumns=_get_ptc_track_columns(run_dir),
+        twissColumns=_get_twiss_track_columns(run_dir),
     )
 
 
 def _get_ptc_track_columns(run_dir):
     if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
         return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
+    return []
+
+def _get_twiss_track_columns(run_dir):
+    if run_dir.join('twiss_columns.txt').exists():
+        return pkio.read_text('twiss_columns.txt').split(',')
     return []
 
 
@@ -67,8 +76,10 @@ def sim_frame(frame_args):
 
 def _extract_report_elementAnimation(frame_args, run_dir, filename):
     data = frame_args.sim_in
-    if sirepo.template.madx.is_parameter_report_file(filename):
-        return sirepo.template.madx.extract_parameter_report(data, run_dir, filename)
+    if 'twiss' in frame_args.frameReport.lower():
+        data.report = frame_args.frameReport
+        data.models[data.report] = frame_args
+        return sirepo.template.madx.extract_parameter_report(data, run_dir, _TWISS_FILE)
     a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
     d = data.models[frame_args.frameReport].id
     data.models[frame_args.frameReport] = frame_args
@@ -186,12 +197,12 @@ def _delete_unused_madx_commands(data):
     by_name.twiss.file = '1'
     data.models.commands = [
         by_name.beam,
-        PKDict(
-            _id=LatticeUtil.max_id(data) + 1,
-            _type='select',
-            flag='twiss',
-            column='name,keyword,s,x,y',
-        ),
+        # PKDict(
+        #     _id=LatticeUtil.max_id(data) + 1,
+        #     _type='select',
+        #     flag='twiss',
+        #     # column='name,keyword,s,x,y',
+        # ),
         by_name.twiss,
     ]
     return by_name
@@ -221,6 +232,8 @@ def _generate_parameters_file(data):
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE
+    v.twissColsFile = _TWISS_COLS_FILE
+    v.twissFile = _TWISS_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
         v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)

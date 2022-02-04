@@ -208,7 +208,7 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
             loadElementReports(data.outputInfo);
         }
     };
-
+    srdbg('appState.models', appState.models);
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
         outputInfo.forEach(function(info) {

@@ -142,6 +142,16 @@ def run_simulation(correctors):
     return lost != {{ particleCount }}
 
 
+def read_cols_and_save_report(default_file, save_file, cols_file):
+    if pkio.py_path(default_file).exists():
+        cols = sirepo.template.madx.file_info(
+                default_file,
+                pkio.py_path('.'),
+                'unused',
+            ).plottableColumns
+        pkio.write_text(cols_file, ','.join(cols))
+        os.rename(default_file, save_file)
+
 def update_and_run_simulation(correctors):
     is_success = run_simulation(correctors)
     readings = []
@@ -159,14 +169,8 @@ def update_and_run_simulation(correctors):
         with open('{{ summaryCSV }}', 'a') as f:
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
             # POSIT: one table option is enabled.
-            if pkio.py_path('ptc_track.file.tfsone').exists():
-                cols = sirepo.template.madx.file_info(
-                        'ptc_track.file.tfsone',
-                        pkio.py_path('.'),
-                        'unused',
-                    ).plottableColumns
-                pkio.write_text('{{ ptcTrackColumns }}', ','.join(cols))
-                os.rename('ptc_track.file.tfsone', '{{ ptcTrackFile }}')
+            read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
+            read_cols_and_save_report('twiss.file.tfs', '{{ twissFile }}', '{{ twissColsFile }}')
         return res
     return np.full(res.shape, 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
