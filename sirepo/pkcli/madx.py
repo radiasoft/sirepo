@@ -54,7 +54,7 @@ def _create_particle_file(cfg_dir, data):
         # restore the original report and generate new source with the updated beam values
         data.report = report
         if data.report == 'animation':
-            template.write_parameters(data, py.path.local(cfg_dir), False)
+            template.write_parameters(data, pkio.py_path(cfg_dir), False)
     _generate_ptc_particles_file(cfg_dir, data, twiss)
 
 
