@@ -4,7 +4,6 @@ u"""MAD-X execution template.
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -13,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import lattice
 from sirepo.template import madx_parser
+from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 import copy
@@ -83,43 +83,48 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _PTC_OBSERVE_TWISS_COLS = [
     'W',
-    'alphax',
-    'alphay',
+    'alfx',
+    'alfy',
     'betx',
     'bety',
-    'emitx',
-    'emity',
+    'ct0',
+    'ctct',
+    'ctpt',
+    'emit_t',
+    'emit_x',
+    'emit_y',
+    'eta_px',
+    'eta_py',
+    'eta_x',
+    'eta_y',
+    'gamma_x',
+    'gamma_y',
     'n',
-    'p0',
+    'pt0',
+    'ptpt',
+    'px0',
+    'pxct',
+    'pxpt',
+    'pxpx',
+    'pxpy',
+    'pxy',
+    'py0',
+    'pyct',
+    'pypt',
+    'pypy',
     's',
     'x0',
-    'xp0',
-    'xpxp',
+    'xct',
+    'xpt',
+    'xpx',
     'xpy',
-    'xpyp',
     'xx',
-    'xxp',
     'xy',
-    'xyp',
     'y0',
-    'yp0',
-    'ypyp',
+    'yct',
+    'ypt',
+    'ypy',
     'yy',
-    'yyp',
-    # TODO(e-carlin): add back in when git.radiasoft.org/sirepo/issues/3669 is fixed
-    # Also, upated analyze_beam(2)
-    # 'dd',
-    # 'dy',
-    # 'etax',
-    # 'etay',
-    # 'xpd',
-    # 'xpz',
-    # 'xz',
-    # 'ypd',
-    # 'ypz',
-    # 'yz',
-    # 'zd',
-    # 'zz',
 ]
 
 
@@ -250,10 +255,14 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
     for f in ('y1', 'y2', 'y3'):
         if m[f] == 'None':
             continue
+        if m[f] not in t:
+            return PKDict(
+                error=f'Missing column "{m[f]}" in report output file.',
+            )
         plots.append(
             PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
         )
-    x = m.get('x') or 's'
+    x = m.get('x', 's')
     res = template_common.parameter_plot(
         to_floats(t[x]),
         plots,
@@ -263,12 +272,16 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
             x_label=_field_label(x),
         )
     )
-    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
+    if filename == _TWISS_OUTPUT_FILE and not results:
         res.initialTwissParameters = PKDict(
             betx=t.betx[0],
             bety=t.bety[0],
             alfx=t.alfx[0],
             alfy=t.alfy[0],
+            x=t.x[0],
+            y=t.y[0],
+            px=t.px[0],
+            py=t.py[0],
         )
     return res
 
@@ -696,103 +709,21 @@ def _extract_report_twissEllipseReport(data, run_dir):
 
 
 def _extract_report_twissFromParticlesAnimation(data, run_dir, filename):
-    # load_output and analyze_beam adapted from:
-    # https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
-    def load_output(filename):
-        with pkio.open_text(filename) as f:
-            t = [x.strip().split() for x in f]
-            i = 0
-            res = []
-            while i < len(t):
-                l = t[i]
-                i += 1
-                if '#segment' in l:
-                    p = int(l[3])
-                    res.append(np.asarray(t[i:i + p]).astype(np.float))
-                    i += p
-            return res
-
-    def analyze_beam(ptc_dump, mc2=0.938):
-        f = [
-            's', 'n', 'xx', 'xxp', 'xy', 'xyp', 'xpxp', 'xpy', 'xpyp', 'yy',
-            'yyp', 'ypyp', 'W', 'x0', 'y0', 'xp0', 'yp0', 'p0',
-        ]
-
-        c = PKDict(
-            n=lambda snap, res: float(len(snap)),
-            x0=lambda snap, res: np.mean(snap[:,2]),
-            y0=lambda snap, res: np.mean(snap[:,4]),
-            xp0=lambda snap, res: np.mean(snap[:,3]),
-            yp0=lambda snap, res: np.mean(snap[:,5]),
-            x=lambda snap, res: snap[:,2] - np.mean(snap[:,2]),
-            px=lambda snap, res: snap[:,3] - np.mean(snap[:,3]),
-            y=lambda snap, res: snap[:,4] - np.mean(snap[:,4]),
-            py=lambda snap, res: snap[:,5] - np.mean(snap[:,5]),
-            # dt=lambda snap, res: snap[:,6] - np.mean(snap[:,6]),
-            # delta=lambda snap, res: snap[:,7] - np.mean(snap[:,7]),
-            s=lambda snap, res: np.average(snap[:,8]),
-            E=lambda snap, res: np.average(snap[:,9]),
-            p0=lambda snap, res: np.mean(snap[:,7]),
-            gamma=lambda snap, res: res.E / mc2,
-            beta=lambda snap, res: np.sqrt(1.0-1.0/(res.gamma**2)),
-            m=lambda snap, res: mc2 * 1.0e9 / (scipy.constants.c ** 2.) * scipy.constants.elementary_charge,
-            pz=lambda snap, res: res.gamma * res.beta * res.m * scipy.constants.c,
-            xp=lambda snap, res: res.px,
-            yp=lambda snap, res: res.py,
-            W=lambda snap, res: res.E,
-
-            # etax=lambda snap, res: np.dot(res.x, res.delta)/np.dot(res.delta,res.delta),
-            # etay=lambda snap, res: np.dot(res.y, res.delta)/np.dot(res.delta,res.delta),
-
-            # etaxp=lambda snap, res: np.dot(res.xp, res.delta)/np.dot(res.delta,res.delta),
-            # etayp=lambda snap, res: np.dot(res.yp, res.delta)/np.dot(res.delta,res.delta),
-            xx=lambda snap, res: np.dot(res.x, res.x) / res.n,
-            xxp=lambda snap, res: np.dot(res.x, res.xp) / res.n,
-            xy=lambda snap, res: np.dot(res.x, res.y) / res.n,
-            xyp=lambda snap, res: np.dot(res.x, res.yp) / res.n,
-            xpxp=lambda snap, res: np.dot(res.xp, res.xp) / res.n,
-            xpy=lambda snap, res: np.dot(res.xp, res.y) / res.n,
-            xpyp=lambda snap, res: np.dot(res.xp, res.yp) / res.n,
-            yy=lambda snap, res: np.dot(res.y, res.y) / res.n,
-            yyp=lambda snap, res: np.dot(res.y, res.yp) / res.n,
-            ypyp=lambda snap, res: np.dot(res.yp, res.yp) / res.n,
-            # xz=lambda snap, res: np.dot(res.x, res.dt) / res.n,
-            # xd=lambda snap, res: np.dot(res.x, res.delta) / res.n,
-            # xpz=lambda snap, res: np.dot(res.xp, res.dt) / res.n,
-            # xpd=lambda snap, res: np.dot(res.xp, res.delta) / res.n,
-            # yz=lambda snap, res: np.dot(res.y, res.dt) / res.n,
-            # dy=lambda snap, res: np.dot(res.y, res.delta) / res.n,
-            # ypz=lambda snap, res: np.dot(res.yp, res.dt) / res.n,
-            # ypd=lambda snap, res: np.dot(res.yp, res.delta) / res.n,
-            # zz=lambda snap, res: np.dot(res.dt,res.dt) / res.n,
-            # zd=lambda snap, res: np.dot(res.dt,res.delta) / res.n,
-            # dd=lambda snap, res: np.dot(res.delta,res.delta) / res.n,
-        )
-        s = []
-        for v in ptc_dump:
-            r = PKDict()
-            for k, e in c.items():
-                r[k] = e(v, r)
-            s.append([r[k] for k in f])
-
-        a = np.asarray(s)
-        res = PKDict()
-        for i in range(0, len(f)):
-            res[f[i]] = a[:,i]
-
-        res.emitx = np.sqrt(res.xx * res.xpxp - res.xxp ** 2.)
-        res.emity = np.sqrt(res.yy * res.ypyp - res.yyp ** 2.)
-        res.betx = res.xx / res.emitx
-        res.bety = res.yy / res.emity
-        res.alphax = - res.xxp / res.emitx
-        res.alphay = - res.yyp / res.emity
-        assert set(res.keys()) == set(_PTC_OBSERVE_TWISS_COLS), \
-            f'unknown ptc twiss columns={set(res.keys())}'
-        return res
-
+    res = particle_beam.analyze_ptc_beam(
+        particle_beam.read_ptc_data(run_dir.join(filename))[0],
+        mc2=SCHEMA.constants.particleMassAndCharge.proton[0],
+    )
+    # remap alpha/beta columns
+    for dim in ('x', 'y'):
+        res[f'alf{dim}'] = res[f'alpha_{dim}']
+        del res[f'alpha_{dim}']
+        res[f'bet{dim}'] = res[f'beta_{dim}']
+        del res[f'beta_{dim}']
+    assert set(res.keys()) == set(_PTC_OBSERVE_TWISS_COLS), \
+        f'unknown ptc twiss columns={set(res.keys())} expected={_PTC_OBSERVE_TWISS_COLS}'
     return extract_parameter_report(
         data,
-        results=analyze_beam(load_output(run_dir.join(filename))),
+        results=PKDict(res),
     )
 
 
@@ -870,6 +801,12 @@ def _generate_commands(filename_map, util):
     for c in util.data.models.commands:
         if c._type in (_PTC_TRACK_COMMAND, _PTC_TRACKLINE_COMMAND):
             c.onetable = '1'
+        if c._type == _PTC_TRACK_COMMAND and \
+           int(util.data.models.simulation.computeTwissFromParticles) and \
+           int(c.icase) == 4:
+            raise AssertionError(
+                f'ptc_track.icase must be set to 5 or 6 to compute twiss from particles',
+            )
     res = util.render_lattice(
         util.iterate_models(
             lattice.ElementIterator(filename_map, _format_field_value),
@@ -1006,8 +943,3 @@ def _update_beam_energy(data):
         for e in SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
-    if bunch.longitudinalMethod == '1':
-        beam.sigt = SCHEMA.model.command_beam.sigt[2]
-        beam.sige = SCHEMA.model.command_beam.sige[2]
-    if bunch.longitudinalMethod == '2':
-        beam.et = SCHEMA.model.command_beam.et[2]

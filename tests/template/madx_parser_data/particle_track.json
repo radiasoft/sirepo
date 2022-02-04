@@ -74,10 +74,13 @@
             "bety": 1.0,
             "ex": 1e-06,
             "ey": 1e-06,
-            "longitudinalMethod": "1",
             "matchTwissParameters": "0",
             "numberOfParticles": 1000,
-            "randomSeed": 123456789
+            "px": 0.0,
+            "py": 0.0,
+            "randomSeed": 123456789,
+            "x": 0.0,
+            "y": 0.0
         },
         "bunchReport1": {
             "colorMap": "afmhot",

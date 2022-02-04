@@ -232,7 +232,3 @@ def _update_beam_and_bunch(beam, data):
     for v in data.models.rpnVariables:
         if v.name in _TWISS_VARS:
             bunch[_TWISS_VARS[v.name]] = v.value
-    beam_info = schema.model.command_beam
-    if beam.et == beam_info.et[2] and \
-       (beam.sigt != beam_info.sigt[2] or beam.sige != beam_info.sige[2]):
-        bunch.longitudinalMethod = '2'
