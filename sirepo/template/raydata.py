@@ -4,7 +4,7 @@ u"""Raydata execution template.
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from glob import glob
+import glob
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -50,7 +50,7 @@ def analysis_job_output_files(data):
     def _paths():
         d = _dir_for_scan_uuid(_parse_scan_uuid(data))
 
-        for f in glob(str(d.join('/**/*.png')), recursive = True):
+        for f in glob.glob(str(d.join('/**/*.png')), recursive=True):
             yield pkio.py_path(f)
 
     return PKDict(data=[_filename_and_image(p) for p in _paths()])

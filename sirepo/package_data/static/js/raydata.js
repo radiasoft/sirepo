@@ -585,7 +585,7 @@ SIREPO.app.directive('scanSelector', function() {
                   </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans|orderBy:orderByColumn:reverseSortScans">
+                    <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans">
                       <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -755,17 +755,10 @@ SIREPO.app.directive('scanSelector', function() {
             };
 
             $scope.toggleSelectAll = () => {
-                if ($scope.selectAllColumns) {
-                    for (let i = 0; i < $scope.scans.length; i++) {
-                        $scope.toggleScanSelection($scope.scans[i], false);
-                    }
-                    $scope.selectAllColumns = false;
-                } else {
-                    for (let i = 0; i < $scope.scans.length; i++) {
-                        $scope.toggleScanSelection($scope.scans[i], true);
-                    }
-                    $scope.selectAllColumns = true;
+                for (let i = 0; i < $scope.scans.length; i++) {
+                    $scope.toggleScanSelection($scope.scans[i], ! $scope.selectAllColumns);
                 }
+                $scope.selectAllColumns = ! $scope.selectAllColumns;
             };
 
             $scope.setColumnHeaders();
