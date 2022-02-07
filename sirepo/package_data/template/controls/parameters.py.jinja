@@ -1,12 +1,18 @@
 # -*- python -*-
+from pykern import pkcompat
+from pykern import pkio
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
-import numpy as np
 import os
+import numpy as np
 import re
 import requests
 import scipy.optimize
+import sirepo.pkcli.madx
+import sirepo.template.madx
+import subprocess
 
 {% if controlSettings_operationMode == 'madx' %}
 lattice_file = """
@@ -127,7 +133,13 @@ def run_simulation(correctors):
         for k in values:
             lattice = re.sub('{' + k + '}', str(values[k]), lattice)
         f.write(lattice)
-    return os.system('madx in.madx > madx.log 2> madx.err') == 0
+    p = subprocess.run(('madx', 'in.madx'), capture_output=True, text=True)
+    pkio.write_text('madx.log', p.stdout)
+    pkio.write_text('madx.err', p.stderr)
+    if p.returncode != 0:
+        return False
+    lost = p.stdout.count('is lost')
+    return lost != {{ particleCount }}
 
 
 def update_and_run_simulation(correctors):
@@ -146,6 +158,15 @@ def update_and_run_simulation(correctors):
     if is_success:
         with open('{{ summaryCSV }}', 'a') as f:
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
+            # POSIT: one table option is enabled.
+            if pkio.py_path('ptc_track.file.tfsone').exists():
+                cols = sirepo.template.madx.file_info(
+                        'ptc_track.file.tfsone',
+                        pkio.py_path('.'),
+                        'unused',
+                    ).plottableColumns
+                pkio.write_text('{{ ptcTrackColumns }}', ','.join(cols))
+                os.rename('ptc_track.file.tfsone', '{{ ptcTrackFile }}')
         return res
     return np.full(res.shape, 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
@@ -253,6 +274,9 @@ def set_correctors_and_read_device_server(correctors):
 
 {% endif %}
 
+{% if controlSettings_operationMode == 'madx' %}
+sirepo.pkcli.madx.particle_file_for_external_lattice()
+{% endif %}
 
 with open('{{ summaryCSV }}', 'w') as f:
     f.write('{}\n'.format('{{ summaryCSVHeader }}'))

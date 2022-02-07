@@ -37,7 +37,7 @@ _PV_TO_ELEMENT_FIELD = PKDict(
         none='k1',
     ),
 )
-_POSITION_PROP_NAME = 'tbtOrbitPositionM'
+_POSITION_PROP_NAME = 'tbtOrbPositionM'
 _READ_CURRENT_PROP_NAME = 'readbackM'
 _WRITE_CURRENT_PROP_NAME = 'currentS'
 _ARRAY_PROP_NAMES = set([_READ_CURRENT_PROP_NAME, _POSITION_PROP_NAME])
@@ -144,7 +144,7 @@ def _position_from_twiss_file(el, pv):
     columns = sirepo.template.madx_parser.parse_tfs_file(str(path))
     for idx in range(len(columns.name)):
         name = columns.name[idx].replace('"', '')
-        if name == el.name:
+        if name.upper() == el.name.upper():
             if pv.pvDimension == 'horizontal':
                 return columns.x[idx]
             if pv.pvDimension == 'vertical':
