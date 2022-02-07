@@ -1965,6 +1965,14 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {
+                    requestSender.newWindow('downloadDataFile', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<model>': 'exportRsOpt',
+                        '<frame>': -1,
+                        '<suffix>': 'zip'
+                    });
+                    /*
                     requestSender.sendStatefulCompute(
                         appState,
                         function(data) {
@@ -1984,6 +1992,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                             sim_id: appState.models.simulation.simulationId,
                         }
                     );
+                    */
                 });
             });
         },
