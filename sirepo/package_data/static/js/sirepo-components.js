@@ -880,25 +880,27 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<li data-ng-if="::authState.isGuestUser"><a data-ng-href="{{ ::authService.loginUrl }}"><span class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>',
-            '<li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">',
-              '<a href class="dropdown-toggle" data-toggle="dropdown">',
-                '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
-                '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
-                ' <span class="caret"></span>',
-              '</a>',
-              '<ul class="dropdown-menu">',
-                '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
-                '<li class="dropdown-header">{{ authState.paymentPlanName() }}</li>',
-                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
-                '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
-                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
-              '</ul>',
-            '</li>',
-        ].join(''),
-        controller: function($scope) {
+        template: `
+            <li data-ng-if="::authState.isGuestUser"><a data-ng-href="{{ ::authService.loginUrl }}"><span
+                    class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>
+            <li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">
+              <a href class="dropdown-toggle" data-toggle="dropdown">
+                <img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">
+                <span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>
+                <span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu">
+                <li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>
+                <li class="dropdown-header">{{ authState.paymentPlanName() }}</li>
+                <li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>
+                <li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl('admJobs') }}">Admin</a></li>
+                <li><a data-ng-click="showJobsList()">Jobs</a></li>
+                <li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>
+              </ul>
+            </li>
+            <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
+        `,
+        controller: function($scope, panelState) {
             $scope.authState = authState;
             $scope.authService = authService;
 
@@ -908,6 +910,11 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
 
             $scope.showAdmJobs = function() {
                 return authState.roles.indexOf('adm') >= 0;
+            };
+
+            $scope.showJobsList = function() {
+                $('#' + panelState.modalId('jobsListModal')).prependTo("body");
+                $('#' + panelState.modalId('jobsListModal')).modal('show');
             };
         },
     };
@@ -3208,7 +3215,6 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
-
 SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
     return {
         restrict: 'A',
@@ -3315,7 +3321,41 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getJobs();
 
+            panelState.waitForUI(() => {
+                $('#' + panelState.modalId('jobsListModal')).on('shown.bs.modal', function() {
+                $scope.getJobs();
+                });
+            });
+
         },
+
+    };
+});
+
+SIREPO.app.directive('jobsListModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            title: '@',
+            id: '@',
+        },
+        template: `
+            <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                    <div data-jobs-list=""></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
     };
 });
 
