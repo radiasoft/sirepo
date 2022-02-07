@@ -1133,9 +1133,7 @@ def _undulator_termination_name(index, term_type):
 
 
 def _update_cee(o, **kwargs):
-    return _update_cee_points(
-        _update_geom_obj(o, **kwargs)
-    )
+    return _update_geom_obj(o, **kwargs)
 
 
 def _update_cee_points(o):
@@ -1162,9 +1160,7 @@ def _update_cuboid(o, **kwargs):
 
 
 def _update_ell(o, **kwargs):
-    return _update_ell_points(
-        _update_geom_obj(o, **kwargs)
-    )
+    return _update_geom_obj(o, **kwargs)
 
 
 def _update_ell_points(o):
@@ -1241,7 +1237,8 @@ def _update_dipole_h(model, **kwargs):
     d = PKDict(kwargs)
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
     mag_sz = numpy.array(
-        sirepo.util.split_comma_delimited_string(model.magnetSize, float)) / 2
+        sirepo.util.split_comma_delimited_string(model.magnetSize, float)
+    ) / 2
     pole_sz, pole_ctr = _fit_poles_in_h_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1250,9 +1247,11 @@ def _update_dipole_h(model, **kwargs):
         **kwargs
     )
     _update_geom_obj(d.pole, center=pole_ctr, size=pole_sz)
+    _update_geom_obj(d.coil, center=pole_ctr * d.height_dir)
     _update_geom_obj(
         d.magnet,
-        center=mag_sz / 2 - mag_sz * d.length_dir / 2
+        size=mag_sz,
+        center=mag_sz / 2
     )
     # length and width symmetries
     d.core_pole_group.transforms = [
@@ -1533,16 +1532,8 @@ def _update_geom_from_undulator(geom, und, dirs):
 
 
 def _update_geom_objects(objects, **kwargs):
-    g = '_get_'
     for o in objects:
         _update_geom_obj(o, **kwargs)
-        if 'type' not in o:
-            continue
-        s = SCHEMA.model[o.type]._super
-        if 'extrudedPoly' in s:
-            _update_extruded(o)
-        if 'stemmed' in s:
-            o.points = pkinspect.module_functions(g)[f'{g}{o.type}_points'](o, _get_stemmed_info(o))
 
 
 def _update_geom_obj(o, delim_fields=None, **kwargs):
@@ -1563,13 +1554,21 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
         if v is not None:
             del kwargs[k]
     o.update(kwargs)
+    if 'type' not in o:
+        return o
+    s = SCHEMA.model[o.type]._super
+    if 'extrudedPoly' in s:
+        _update_extruded(o)
+    if 'stemmed' in s:
+        o.points = pkinspect.module_functions('_get_')[f'_get_{o.type}_points'](
+            o,
+            _get_stemmed_info(o)
+        )
     return o
 
 
 def _update_jay(o, **kwargs):
-    return _update_jay_points(
-        _update_geom_obj(o, **kwargs)
-    )
+    return _update_geom_obj(o, **kwargs)
 
 
 def _update_jay_points(o):
