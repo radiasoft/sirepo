@@ -160,10 +160,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
 class AmpConverter():
-    _GEV_TO_KG = 5.6096e26
+    _GEV_TO_KG = 1.78266192e-27
     _DEFAULT_FACTOR = 100
     # Coulomb
-    _ELEMENTARY_CHARGE = 1.602e-19
+    _ELEMENTARY_CHARGE = 1.602176634e-19
     _SCHEMA = SimData.schema()
 
     def __init__(self, beam, amp_table=None):
@@ -204,7 +204,7 @@ class AmpConverter():
         else:
             pmc = [beam.mass, beam.charge]
         return PKDict(
-            mass=pmc[0] / self._GEV_TO_KG,
+            mass=pmc[0] * self._GEV_TO_KG,
             charge=pmc[1] * self._ELEMENTARY_CHARGE,
             gamma=beam.gamma,
             beta=math.sqrt(1 - (1 / (beam.gamma * beam.gamma))),
