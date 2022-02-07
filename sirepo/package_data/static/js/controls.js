@@ -321,8 +321,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function loadTwissReport(data) {
-        appState.models['instrumentAnimationTwiss'].refreshId = Math.random();
-        appState.models['instrumentAnimationTwiss'].valueList = {
+        appState.models.instrumentAnimationTwiss.refreshId = Math.random();
+        appState.models.instrumentAnimationTwiss.valueList = {
             x: data.twissColumns,
             y1: data.twissColumns,
             y2: data.twissColumns,
@@ -345,14 +345,14 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             return;
         }
         const k  = [];
-        const modelViewName = 'instrumentAnimation'
+        const modelViewName = 'instrumentAnimation';
         appState.models.externalLattice.models.elements.forEach((e, i) => {
                 if (e.type !== 'INSTRUMENT') {
                     return;
                 }
                 const m = modelViewName + i;
                 k.push(m);
-                setAnimationModel(m, modelViewName, i)
+                setAnimationModel(m, modelViewName, i);
         });
         appState.saveChanges(k);
     }
