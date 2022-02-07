@@ -48,7 +48,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('madxService', function(appState, commandService, requestSender, rpnService) {
     var self = {};
     rpnService.isCaseInsensitive = true;
-    self.twissFields = ['betx', 'bety', 'alfx', 'alfy'];
+    self.twissFields = ['betx', 'bety', 'alfx', 'alfy', 'x', 'px', 'y', 'py'];
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -159,8 +159,8 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
         'makethin', 'match', 'migrad', 'option',
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
         'ptc_normal', 'ptc_observe', 'ptc_select', 'ptc_setswitch', 'ptc_start',
-        'ptc_track', 'ptc_track_end', 'ptc_trackline', 'resbeam', 'savebeta', 'select', 'set', 'show',
-        'sodd', 'touschek', 'twiss', 'use', 'vary',
+        'ptc_track', 'ptc_track_end', 'ptc_trackline', 'ptc_twiss', 'resbeam', 'savebeta', 'select',
+        'set', 'show', 'sodd', 'touschek', 'twiss', 'use', 'vary',
     ];
     self.advancedNames = [];
 
@@ -498,7 +498,7 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
                     addCommands([
                         { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
                         { _type: 'ptc_create_layout' },
-                        { _type: 'ptc_track', element_by_element: '1', file: '1' },
+                        { _type: 'ptc_track', element_by_element: '1', file: '1', icase: '6' },
                         { _type: 'ptc_track_end' },
                         { _type: 'ptc_end' },
                     ]);
@@ -551,14 +551,6 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
         );
     }
 
-    function updateLongitudinalMethod() {
-        var method = appState.models.bunch.longitudinalMethod;
-        panelState.showFields('command_beam', [
-            'et', method == '1',
-            ['sigt','sige'], method == '2',
-        ]);
-    }
-
     function updateParticle() {
         var beam = appState.models.command_beam;
         ['mass', 'charge'].forEach(function(f) {
@@ -600,13 +592,11 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     $scope.whenSelected = function() {
         updateParticle();
         updateTwissFields();
-        updateLongitudinalMethod();
     };
 
     $scope.watchFields = [
         ['command_beam.particle'], updateParticle,
         ['bunch.matchTwissParameters'], updateTwissFields,
-        ['bunch.longitudinalMethod'], updateLongitudinalMethod,
         $.merge(['bunch.beamDefinition'], energyFields.map(function(f) { return 'command_beam.' + f; })),
             calculateBunchParameters,
     ];
