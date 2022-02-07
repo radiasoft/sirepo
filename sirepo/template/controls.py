@@ -122,6 +122,7 @@ def stateful_compute_get_external_lattice(data):
     by_name = _delete_unused_madx_commands(madx)
     sirepo.template.madx.uniquify_elements(madx)
     _add_monitor(madx)
+    madx.models.simulation.computeTwissFromParticles = '0'
     madx.models.bunch.beamDefinition = 'gamma'
     _SIM_DATA.update_beam_gamma(by_name.beam)
     _SIM_DATA.init_currents(by_name.beam, madx.models)
@@ -268,7 +269,7 @@ def _generate_parameters(v, data):
             [
                 PKDict(_type='ptc_create_universe'),
                 PKDict(_type='ptc_create_layout'),
-                PKDict(_type='ptc_track', file='1'),
+                PKDict(_type='ptc_track', file='1', icase='6'),
                 PKDict(_type='ptc_track_end'),
                 PKDict(_type='ptc_end'),
             ],
