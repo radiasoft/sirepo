@@ -32,7 +32,6 @@ def send(recipient, subject, body):
 
 def _mx(msg):
     import dns.resolver
-    import pykern.pkcompat
 
     h = msg['To'].split('@')[1]
     try:
@@ -86,7 +85,7 @@ def _init():
         return
     _SEND = _send_with_auth
     if pkconfig.channel_in('dev'):
-        if not cfg.server:
+        if cfg.server is None:
             cfg.server = _DEV_SMTP_SERVER
         return
     if cfg.server is None or cfg.user is None or cfg.password is None:
