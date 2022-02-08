@@ -898,7 +898,6 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
                 <li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>
               </ul>
             </li>
-            <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
         `,
         controller: function($scope, panelState) {
             $scope.authState = authState;
@@ -913,7 +912,6 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showJobsList = function() {
-                $('#' + panelState.modalId('jobsListModal')).prependTo("body");
                 $('#' + panelState.modalId('jobsListModal')).modal('show');
             };
         },
@@ -1656,7 +1654,7 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
     };
 });
 
-SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
+SIREPO.app.directive('pendingLinkToSimulations', function() {
     return {
         restrict: 'A',
         scope: {
@@ -1664,16 +1662,15 @@ SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
         },
         template: `
             <div data-ng-show="simState.isStatePending()">
-              <a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >
-                <span class="glyphicon glyphicon-hourglass"></span>
-                {{ simState.stateAsText() }}
-                <span data-ng-show="simState.isWaitingOnAnotherSimulation()"> ({{ simState.jobStatusMessage() }})</span>
-                {{ simState.dots }}
+              <a data-ng-click="showJobsList()">
+                <span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}
               </a>
             </div>
         `,
-        controller: function($scope) {
-            $scope.requestSender = requestSender;
+        controller: function($scope, panelState) {
+            $scope.showJobsList = function() {
+                $('#' + panelState.modalId('jobsListModal')).modal('show');
+            };
         },
     };
 });
@@ -2980,12 +2977,13 @@ SIREPO.app.directive('commonFooter', function() {
         scope: {
             nav: '=commonFooter',
         },
-        template: [
-            '<div data-delete-simulation-modal="nav"></div>',
-            '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>',
-            '<div data-sbatch-login-modal=""></div>',
-        ].join(''),
+        template: `
+            <div data-delete-simulation-modal="nav"></div>
+            <div data-reset-simulation-modal="nav"></div>
+            <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
+            <div data-sbatch-login-modal=""></div>
+            <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
+        `,
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
         }
@@ -3319,16 +3317,13 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             };
 
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
-            $scope.getJobs();
 
             panelState.waitForUI(() => {
                 $('#' + panelState.modalId('jobsListModal')).on('shown.bs.modal', function() {
                 $scope.getJobs();
                 });
             });
-
         },
-
     };
 });
 
