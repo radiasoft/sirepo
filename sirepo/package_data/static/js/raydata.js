@@ -633,8 +633,8 @@ SIREPO.app.directive('scanSelector', function() {
                 return {
                     glyphicon: true,
                     [`glyphicon-arrow-${$scope.reverseSortScans ? 'up' : 'down'}`]: true,
-                }
-            }
+                };
+            };
 
             $scope.getHeader = function() {
                 return raydataService.getScanInfoTableHeader('select', cols);
