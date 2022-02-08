@@ -594,7 +594,6 @@ SIREPO.app.directive('scanSelector', function() {
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
         `,
-                        // <span style="color:lightgray" data-ng-class="glyphicon glyphicon-arrow-{{arrowDirection}}" data-ng-show="showArrowUp(column)" ></span>
         controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope) {
             let hoveredIndex = null;
             let cols = [];
