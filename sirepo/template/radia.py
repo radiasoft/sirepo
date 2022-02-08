@@ -876,6 +876,18 @@ def _get_geom_data(
     return res
 
 
+def _get_radia_objects(geom_objs, model):
+    o = PKDict()
+    for f in model:
+        try:
+            if '_super' in model[f] and 'radiaObject' in model[f]._super:
+                o[f] = (_find_by_id(geom_objs, model[f].id))
+        # ignore non-objects
+        except TypeError:
+            pass
+    return o
+
+
 def _get_sdds(cols, units):
     if _cfg.sdds is None:
         _cfg.sdds = sdds.SDDS(_SDDS_INDEX)
@@ -1207,7 +1219,7 @@ def _update_extruded(o):
     return o
 
 
-def _update_dipole_basic(model, **kwargs):
+def _update_dipoleBasic(model, **kwargs):
     d = PKDict(kwargs)
     pole_sz = sirepo.util.split_comma_delimited_string(d.pole.size, float)
     return _update_geom_obj(
@@ -1218,9 +1230,10 @@ def _update_dipole_basic(model, **kwargs):
     )
 
 
-def _update_dipole_c(model, **kwargs):
+def _update_dipoleC(model, **kwargs):
     d = PKDict(kwargs)
-    mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(d.magnet.size, float))
+    a = d.assembly
+    mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(a.magnet.size, float))
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1230,21 +1243,22 @@ def _update_dipole_c(model, **kwargs):
     )
     mag_ctr = mag_sz * d.width_dir / 2 - pole_sz * d.width_dir / 2
     _update_geom_obj(
-        d.pole,
+        a.pole,
         center=pole_ctr,
         size=pole_sz,
         transforms=[_build_symm_xform(d.height_dir, 'parallel')]
     )
-    _update_geom_obj(d.magnet, center=mag_ctr)
+    _update_geom_obj(a.magnet, center=mag_ctr)
     _update_geom_obj(
-        d.coil,
+        a.coil,
         center=mag_ctr + mag_sz * d.width_dir / 2 - model.magnet.stemWidth * d.width_dir / 2
     )
-    return d.mag_coil_group
+    return a.magnetCoilGroup
 
 
-def _update_dipole_h(model, **kwargs):
+def _update_dipoleH(model, **kwargs):
     d = PKDict(kwargs)
+    a = d.assembly
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
     mag_sz = numpy.array(
         sirepo.util.split_comma_delimited_string(model.magnetSize, float)
@@ -1256,23 +1270,23 @@ def _update_dipole_h(model, **kwargs):
         pole_width=model.poleWidth,
         **kwargs
     )
-    _update_geom_obj(d.pole, center=pole_ctr, size=pole_sz)
-    _update_geom_obj(d.coil, center=pole_ctr * d.height_dir)
+    _update_geom_obj(a.pole, center=pole_ctr, size=pole_sz)
+    _update_geom_obj(a.coil, center=pole_ctr * d.height_dir)
     _update_geom_obj(
-        d.magnet,
+        a.magnet,
         size=mag_sz,
         center=mag_sz / 2
     )
     # length and width symmetries
-    d.core_pole_group.transforms = [
+    a.core_pole_group.transforms = [
         _build_symm_xform(d.length_dir, 'perpendicular'),
         _build_symm_xform(d.width_dir, 'perpendicular')
     ]
     # height symmetry
-    d.mag_coil_group.transforms = [
+    a.mag_coil_group.transforms = [
         _build_symm_xform(d.height_dir, 'parallel')
     ]
-    return d.mag_coil_group
+    return a.magnetCoilGroup
 
 
 def _update_geom_from_dipole(geom, model, **kwargs):
@@ -1280,40 +1294,11 @@ def _update_geom_from_dipole(geom, model, **kwargs):
     assert model.dipoleType in [x[0] for x in SCHEMA.enum.DipoleType]
     _update_geom_objects(geom.objects)
 
-    pole = _find_by_id(geom.objects, model.pole.id)
-
-    if model.dipoleType == 'dipoleBasic':
-        return _update_dipole_basic(
-            model,
-            pole=pole,
-            **kwargs
-        )
-
-    magnet = _find_by_id(geom.objects, model.magnet.id)
-    coil = _find_by_id(geom.objects, model.coil.id)
-    mag_coil_group = _find_by_id(geom.objects, model.magnetCoilGroup.id)
-
-    if model.dipoleType == 'dipoleC':
-        return _update_dipole_c(
-            model,
-            pole=pole,
-            magnet=magnet,
-            coil=coil,
-            mag_coil_group=mag_coil_group,
-            **kwargs
-        )
-    if model.dipoleType == 'dipoleH':
-        return _update_dipole_h(
-            model,
-            pole=pole,
-            magnet=magnet,
-            coil=coil,
-            mag_coil_group=mag_coil_group,
-            core_pole_group=_find_by_id(geom.objects, model.corePoleGroup.id),
-            **kwargs
-        )
-
-    return mag_coil_group
+    return pkinspect.module_functions('_update_')[f'_update_{model.dipoleType}'](
+        model,
+        assembly=_get_radia_objects(geom.objects, model),
+        **kwargs
+    )
 
 
 def _update_geom_from_freehand(geom, **kwargs):
@@ -1325,10 +1310,7 @@ def _update_geom_from_undulator(geom, model, **kwargs):
     assert model.undulatorType in [x[0] for x in SCHEMA.enum.UndulatorType]
     _update_geom_objects(geom.objects)
 
-
     magnet = _find_by_id(geom.objects, model.magnet.id)
-    mag_coil_group = _find_by_id(geom.objects, model.magnetCoilGroup.id)
-
 
     if model.undulatorType == 'undulatorBasic':
         return _update_undulator_basic(
@@ -1343,7 +1325,8 @@ def _update_geom_from_undulator(geom, model, **kwargs):
             magnet=magnet,
             pole=_find_by_id(geom.objects, model.pole.id),
             half_pole=_find_by_id(geom.objects, model.halfPole.id),
-
+            core_pole_group=_find_by_id(geom.objects, model.corePoleGroup.id),
+            octant_group=_find_by_id(geom.objects, model.octantGroup.id),
             **kwargs
         )
 
@@ -1367,25 +1350,25 @@ def _update_undulator_basic(model, **kwargs):
     gap_offset = d.height_dir * model.gapOffset
 
 
+    mag=dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
+    ),
+    segs=dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.poleSegments, int)
+    ),
 
-            mag=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
-            ),
-            segs=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.poleSegments, int)
-            ),
+    mag=dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
+    ),
 
-            mag=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
-            ),
-
-            segs=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.magnetSegments, int)
-            ),
+    segs=dir_matrix.dot(
+        sirepo.util.split_comma_delimited_string(und.magnetSegments, int)
+    ),
 
 
-        obj_props[k].transverse_ctr = obj_props[k].dim_half.width / 2 - \
-            (obj_props[k].dim_half.height + gap_half_height)
+    obj_props[k].transverse_ctr = obj_props[k].dim_half.width / 2 - \
+        (obj_props[k].dim_half.height + gap_half_height)
+
     obj_props.magnet.transverse_ctr -= gap_offset
 
     pos = props.dim_half.length / 2
@@ -1398,10 +1381,10 @@ def _update_undulator_basic(model, **kwargs):
 
 
 
-        half_pole = _update_cuboid(
-            half_pole,
-            segments=props.segs,
-        )
+    half_pole = _update_cuboid(
+        half_pole,
+        segments=props.segs,
+    )
 
     pos += (obj_props.pole.dim_half.length / 2 + obj_props.magnet.dim_half.length)
     magnet_block = _find_by_name(geom.objects, 'Magnet Block')
