@@ -22,10 +22,7 @@ import sirepo.template.madx as template
 def particle_file_for_external_lattice():
     data = simulation_db.read_json(
         template_common.INPUT_BASE_NAME,
-    )
-    beam = data.models.command_beam
-    data = data.models.externalLattice
-    data.models.command_beam = beam
+    ).models.externalLattice
     data.report = 'unused'
     data.models.bunch.matchTwissParameters = '0'
     _create_particle_file(pkio.py_path('.'), data)
@@ -63,7 +60,7 @@ def _create_particle_file(cfg_dir, data):
 
 def _generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
-    beam = data.models.command_beam
+    beam = LatticeUtil.find_first_command(data, 'beam')
     p = particle_beam.populate_uncoupled_beam(
         bunch.numberOfParticles,
         float(bunch.betx),
