@@ -345,14 +345,13 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             return;
         }
         const k  = [];
-        const modelViewName = 'instrumentAnimation';
         appState.models.externalLattice.models.elements.forEach((e, i) => {
                 if (e.type !== 'INSTRUMENT') {
                     return;
                 }
-                const m = modelViewName + i;
+                const m = 'instrumentAnimation' + i;
                 k.push(m);
-                setAnimationModel(m, modelViewName, i);
+                setAnimationModel(m, 'instrumentAnimation', i);
         });
         appState.saveChanges(k);
     }
@@ -371,11 +370,11 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             return;
         }
         const keys = [];
-        const modelKey = 'instrumentAnimationTwiss';
-        const modelViewName = 'instrumentAnimationTwiss';
-        const id = appState.models.externalLattice.models.length + 2;
-        keys.push(modelKey);
-        setAnimationModel(modelKey, modelViewName, id);
+        keys.push('instrumentAnimationTwiss');
+        setAnimationModel('instrumentAnimationTwiss',
+            'instrumentAnimationTwiss',
+            appState.models.externalLattice.models.length + 2
+        );
         appState.saveChanges(keys);
     }
 

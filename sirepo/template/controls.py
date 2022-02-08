@@ -76,7 +76,7 @@ def sim_frame(frame_args):
 
 def _extract_report_elementAnimation(frame_args, run_dir, filename):
     data = frame_args.sim_in
-    if 'twiss' in frame_args.frameReport.lower():
+    if frame_args.frameReport == 'instrumentAnimationTwiss':
         data.report = frame_args.frameReport
         data.models[data.report] = frame_args
         return sirepo.template.madx.extract_parameter_report(data, run_dir, _TWISS_FILE)
