@@ -576,8 +576,7 @@ SIREPO.app.directive('scanSelector', function() {
                   <thead>
                     <tr>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
-                        <span style="color:lightgray;" class="glyphicon glyphicon-arrow-down" data-ng-show="showArrowDown(column)" ></span>
-                        <span style="color:lightgray" class="glyphicon glyphicon-arrow-up" data-ng-show="showArrowUp(column)" ></span>
+                        <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         {{ column }}
                         <input type="checkbox" data-ng-checked="selectAllColumns" data-ng-show="showSelectAllButton($index)" data-ng-click="toggleSelectAll()"/>
                         <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
@@ -595,6 +594,7 @@ SIREPO.app.directive('scanSelector', function() {
             </div>
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns" data-save-column-changes="saveColumnChanges"></div>
         `,
+                        // <span style="color:lightgray" data-ng-class="glyphicon glyphicon-arrow-{{arrowDirection}}" data-ng-show="showArrowUp(column)" ></span>
         controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope) {
             let hoveredIndex = null;
             let cols = [];
@@ -625,6 +625,16 @@ SIREPO.app.directive('scanSelector', function() {
                 const k = searchStartOrStopTimeKey(x);
                 $scope[k] = appState.models.scans[k] ? timeService.unixTimeToDate(appState.models.scans[k]) : null;
             });
+
+            $scope.arrowClass = (column) => {
+                if ($scope.orderByColumn !== column) {
+                    return {};
+                }
+                return {
+                    glyphicon: true,
+                    [`glyphicon-arrow-${$scope.reverseSortScans ? 'up' : 'down'}`]: true,
+                }
+            }
 
             $scope.getHeader = function() {
                 return raydataService.getScanInfoTableHeader('select', cols);
@@ -720,14 +730,6 @@ SIREPO.app.directive('scanSelector', function() {
                 $scope.availableColumns = masterListColumns.filter((value) => {
                     return value !== 'uid' && ! $scope.columnHeaders.includes(value);
                 });
-            };
-
-            $scope.showArrowDown = (column) => {
-                return $scope.orderByColumn === column && ! $scope.reverseSortScans;
-            };
-
-            $scope.showArrowUp = (column) => {
-                return $scope.orderByColumn === column && $scope.reverseSortScans;
             };
 
             $scope.showDeleteButton = (index) => {
