@@ -575,14 +575,16 @@ SIREPO.app.directive('scanSelector', function() {
                 <table class="table table-striped table-hover col-sm-4">
                   <thead>
                     <tr>
-                      <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px;">
+                      <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px;">
+                        <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         {{ column }}
+                        <input type="checkbox" data-ng-checked="selectAllColumns" data-ng-show="showSelectAllButton($index)" data-ng-click="toggleSelectAll()"/>
                         <button type="submit" class="btn btn-primary btn-xs"  id="del-column" data-ng-show="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                   </tr>
                   </thead>
-                  <tbody ng-repeat="s in scans">
-                    <tr>
+                  <tbody>
+                    <tr ng-repeat="s in scans | orderBy:orderByColumn:reverseSortScans">
                       <td><input type="checkbox" data-ng-checked="s.selected" data-ng-click="toggleScanSelection(s)"/></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
                     </tr>
@@ -598,10 +600,13 @@ SIREPO.app.directive('scanSelector', function() {
             let masterListColumns = [];
             const startOrStop = ['Start', 'Stop'];
 
-            $scope.scans = [];
+            $scope.availableColumns = [];
             // POSIT: same columns as sirepo.template.raydata._DEFAULT_COLUMNS
             $scope.defaultColumns = ['start', 'stop', 'suid'];
-            $scope.availableColumns = [];
+            $scope.orderByColumn = 'start';
+            $scope.reverseSortScans = false;
+            $scope.scans = [];
+            $scope.selectAllColumns = false;
 
             $scope.deleteCol = function(colName) {
                 appState.models.metadataColumns.selected.splice(
@@ -619,6 +624,16 @@ SIREPO.app.directive('scanSelector', function() {
                 const k = searchStartOrStopTimeKey(x);
                 $scope[k] = appState.models.scans[k] ? timeService.unixTimeToDate(appState.models.scans[k]) : null;
             });
+
+            $scope.arrowClass = (column) => {
+                if ($scope.orderByColumn !== column) {
+                    return {};
+                }
+                return {
+                    glyphicon: true,
+                    [`glyphicon-arrow-${$scope.reverseSortScans ? 'up' : 'down'}`]: true,
+                };
+            };
 
             $scope.getHeader = function() {
                 return raydataService.getScanInfoTableHeader('select', cols);
@@ -722,6 +737,29 @@ SIREPO.app.directive('scanSelector', function() {
 
             $scope.showSearchButton = function() {
                 return $scope.searchForm.$dirty && $scope.searchStartTime && $scope.searchStopTime;
+            };
+
+            $scope.showSelectAllButton = (index) => {
+                return index === 0;
+            };
+
+            $scope.showSortButton = (index) => {
+                return index > 0 && index === hoveredIndex;
+            };
+
+            $scope.sortCol = (column) => {
+                if (column === 'selected') {
+                    return;
+                }
+                $scope.orderByColumn = column;
+                $scope.reverseSortScans = ! $scope.reverseSortScans;
+            };
+
+            $scope.toggleSelectAll = () => {
+                for (let i = 0; i < $scope.scans.length; i++) {
+                    $scope.toggleScanSelection($scope.scans[i], ! $scope.selectAllColumns);
+                }
+                $scope.selectAllColumns = ! $scope.selectAllColumns;
             };
 
             $scope.setColumnHeaders();

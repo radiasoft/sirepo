@@ -95,6 +95,11 @@ def sim_common():
     return pykern.pkcollections.PKDict(cfg()).sim_common
 
 
+def _data_dir(value):
+    import sirepo.srdb
+    return sirepo.srdb.root().join(value)
+
+
 def _init():
     from pykern import pkconfig
     from pykern import pkio
@@ -121,7 +126,7 @@ def _init():
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         raydata=dict(
-            data_dir=(None, pkio.py_path, 'abspath of dir to store raydata analysis output'),
+            data_dir=(None, _data_dir, 'abspath of dir to store raydata analysis output'),
         ),
         sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
