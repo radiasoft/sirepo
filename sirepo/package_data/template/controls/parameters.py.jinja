@@ -10,6 +10,7 @@ import numpy as np
 import re
 import requests
 import scipy.optimize
+import sirepo.pkcli.controls
 import sirepo.pkcli.madx
 import sirepo.template.madx
 import subprocess
@@ -279,7 +280,7 @@ def set_correctors_and_read_device_server(correctors):
 {% endif %}
 
 {% if controlSettings_operationMode == 'madx' %}
-sirepo.pkcli.madx.particle_file_for_external_lattice()
+sirepo.pkcli.controls.particle_file_for_external_lattice()
 {% endif %}
 
 with open('{{ summaryCSV }}', 'w') as f:
