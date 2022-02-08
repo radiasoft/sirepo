@@ -287,7 +287,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
         }
-        if (data.elementValues) {
+        if (data.elementValues && data.elementValues.length) {
             handleElementValues(data);
             loadHeatmapReports(data);
             loadTwissReport(data);
@@ -314,7 +314,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                     modelKey: m,
                     getData: genGetDataFunction(m),
                 });
-                 frameCache.setFrameCount(1, m);
+                if (frameCache.getFrameCount()) {
+                    frameCache.setFrameCount(1, m);
+                }
                  appState.saveChanges(m);
             }
         }
@@ -332,7 +334,11 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             modelKey: 'instrumentAnimationTwiss',
             getData: genGetDataFunction('instrumentAnimationTwiss')
         }];
-        frameCache.setFrameCount(1, 'instrumentAnimationTwiss');
+
+        if (frameCache.getFrameCount()) {
+            frameCache.setFrameCount(1, 'instrumentAnimationTwiss');
+        }
+
         appState.saveChanges('instrumentAnimationTwiss');
     }
 

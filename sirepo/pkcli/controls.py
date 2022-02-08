@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio, pkjson
+from pykern.pkdebug import pkdp
 from pykern.pkcollections import PKDict
 from sirepo.template import template_common
 import sirepo.pkcli.madx

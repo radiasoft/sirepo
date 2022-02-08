@@ -111,6 +111,6 @@ def _run_simulation(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if _need_particle_file(data):
-        _create_particle_file(cfg_dir, data)
+        create_particle_file(cfg_dir, data)
     if cfg_dir.join(template.MADX_INPUT_FILE).exists():
         _run_madx()
