@@ -31,21 +31,24 @@ _TWISS_COLS_FILE = 'twiss_columns.txt'
 
 
 def background_percent_complete(report, run_dir, is_running):
+
     if is_running:
+        e = _read_summary_line(run_dir)
         return PKDict(
             percentComplete=0,
-            frameCount=0,
-            elementValues=_read_summary_line(run_dir),
+            frameCount=1 if e else 0,
+            elementValues=e,
             ptcTrackColumns=_get_ptc_track_columns(run_dir),
             twissColumns=_get_twiss_track_columns(run_dir),
         )
+    e = _read_summary_line(
+        run_dir,
+        SCHEMA.constants.maxBPMPoints,
+    )
     return PKDict(
         percentComplete=100,
-        frameCount=1,
-        elementValues=_read_summary_line(
-            run_dir,
-            SCHEMA.constants.maxBPMPoints,
-        ),
+        frameCount=1 if e else 0,
+        elementValues=e,
         ptcTrackColumns=_get_ptc_track_columns(run_dir),
         twissColumns=_get_twiss_track_columns(run_dir),
     )

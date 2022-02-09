@@ -213,10 +213,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function handleElementValues(data) {
-        if (! data.elementValues) {
+        if (! data.elementValues || data.elementValues.length == 0) {
             return;
         }
-        frameCache.setFrameCount(1);
+        // frameCache.setFrameCount(1);
         updateElements(data.elementValues);
         $scope.$broadcast('sr-elementValues', data.elementValues);
     }
@@ -298,7 +298,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 controlsService.runningMessage = '';
             }
         }
-        srdbg('data:', data);
+        frameCache.setFrameCount(data.frameCount);
     };
 
     function loadHeatmapReports(data) {
@@ -335,11 +335,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             modelKey: 'instrumentAnimationTwiss',
             getData: genGetDataFunction('instrumentAnimationTwiss')
         }];
-
         if (frameCache.getFrameCount()) {
             frameCache.setFrameCount(1, 'instrumentAnimationTwiss');
         }
-
         appState.saveChanges('instrumentAnimationTwiss');
     }
 
