@@ -298,6 +298,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 controlsService.runningMessage = '';
             }
         }
+        srdbg('data:', data);
     };
 
     function loadHeatmapReports(data) {
