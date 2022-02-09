@@ -844,7 +844,6 @@ class _ComputeJob(PKDict):
 
     async def _send_simulation_compute(self, req):
         pkdlog('{} method={} api={}', req, req.content.data.method, req.content.api)
-
         f = inspect.currentframe().f_back.f_code.co_name
         m = re.search(f'^_receive_api_([a-z]+)Compute$', f)
         assert m, f'unrecognized caller function={f}'
