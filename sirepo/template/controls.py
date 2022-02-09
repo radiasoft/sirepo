@@ -66,10 +66,9 @@ def _get_twiss_track_columns(run_dir):
 
 
 def _get_target_info(info_all, target):
-    for i in info_all:
-        if i.name == target:
-            return i, info_all.index(i)
-
+    for i, o in enumerate(info_all):
+        if o.name == target.upper():
+            return o, i
     raise AssertionError(f'no target={target} in info_all={info_all}')
 
 
