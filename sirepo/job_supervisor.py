@@ -843,8 +843,7 @@ class _ComputeJob(PKDict):
             op.destroy(cancel=False)
 
     async def _send_simulation_compute(self, req):
-        pkdp(req.content.api)
-        pkdp(req.content.data.method)
+        pkdlog('{} method={} api={}', req, req.content.data.method, req.content.api)
 
         f = inspect.currentframe().f_back.f_code.co_name
         m = re.search(f'^_receive_api_([a-z]+)Compute$', f)
