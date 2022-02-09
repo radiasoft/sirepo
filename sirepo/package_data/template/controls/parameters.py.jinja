@@ -10,6 +10,7 @@ import numpy as np
 import re
 import requests
 import scipy.optimize
+import sirepo.pkcli.controls
 import sirepo.pkcli.madx
 import sirepo.template.madx
 import subprocess
@@ -169,8 +170,8 @@ def update_and_run_simulation(correctors):
         with open('{{ summaryCSV }}', 'a') as f:
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
             # POSIT: one table option is enabled.
-            read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
-            read_cols_and_save_report('twiss.file.tfs', '{{ twissFile }}', '{{ twissColsFile }}')
+        read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
+        read_cols_and_save_report('twiss.file.tfs', '{{ twissFile }}', '{{ twissColsFile }}')
         return res
     return np.full(res.shape, 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
@@ -279,7 +280,7 @@ def set_correctors_and_read_device_server(correctors):
 {% endif %}
 
 {% if controlSettings_operationMode == 'madx' %}
-sirepo.pkcli.madx.particle_file_for_external_lattice()
+sirepo.pkcli.controls.particle_file_for_external_lattice()
 {% endif %}
 
 with open('{{ summaryCSV }}', 'w') as f:
