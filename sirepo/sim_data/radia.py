@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import copy
 import sirepo.sim_data
 
 
@@ -79,12 +80,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                         type='line'
                     ))
         if dm.simulation.magnetType == 'undulator':
-            if not dm.hybridUndulator.get('magnetBaseObjectId'):
-                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Magnet Block').id
-            if not dm.hybridUndulator.get('poleBaseObjectId'):
-                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Pole').id
-            if not dm.hybridUndulator.get('terminations'):
-                dm.hybridUndulator.terminations = []
+            if 'hybridUndulator' in dm:
+                dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
+                del dm['hybridUndulator']
+            if not dm.undulatorHybrid.get('terminations'):
+                dm.undulatorHybrid.terminations = []
             t = _find_obj_by_name(dm.geometryReport.objects, 'Termination')
             if not t:
                 t = cls.model_defaults('geomGroup')

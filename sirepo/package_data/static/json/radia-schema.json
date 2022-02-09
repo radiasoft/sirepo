@@ -839,6 +839,7 @@
             "freehandType": ["", "FreehandType", "freehand"],
             "heightAxis": ["Height Axis", "BeamAxis", "y", "Height is measured along this axis. For undulators the gap is usually defined in this direction"],
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
+            "undulatorType": ["Undulator Type", "UndulatorType", "undulatorHybrid"],
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
         "solverAnimation":  {
@@ -900,7 +901,7 @@
                 "center": "16.25,11.5,-33.5",
                 "color": "#00ffff",
                 "magnetization": "0.0, 0.0, -1.0",
-                "name": "permanentMagnet",
+                "name": "permanent magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
@@ -926,20 +927,23 @@
         },
         "undulatorHybrid": {
             "_super": ["_", "model", "undulatorBasic"],
+            "halfPole": ["_", "model.geomObject", {
+                "name": "half pole"
+            }],
             "magnet": ["Magnet Block", "model.geomObject", {
-                "center": "16.25,11.5,-33.5",
                 "color": "#00ffff",
                 "magnetization": "0.0, 0.0, -1.0",
-                "name": "permanentMagnet",
+                "name": "permanent magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
                 "type": "cuboid",
                 "segments": "1, 1, 3",
                 "size": "65.0, 18.0, 45.0"
             }],
+            "magnetCrossSection": ["Cross Section", "FloatStringArray", "65.0, 45.0"],
+            "magnetLength": ["Length", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
-                "center": "0.0, 0.0, 1.0",
                 "color": "#ff00ff",
                 "segments": "2, 5, 2",
                 "magnetization": "0.0, 0.0, 0.0",
@@ -950,6 +954,8 @@
                 "type": "cuboid",
                 "size": "45.0, 5.0, 25.0"
             }],
+            "poleCrossSection": ["Cross Section", "FloatStringArray", "45.0, 25.0"],
+            "poleLength":["Length", "Float", 5.0],
             "corePoleGroup": ["_", "model.geomGroup", {
                 "name": "core + pole"
             }],
@@ -1152,41 +1158,6 @@
             ]],
                 ["Transforms", [
                     "transforms"
-                ]]
-            ]
-        },
-        "undulatorHybrid": {
-            "title": "Hybrid Undulator",
-            "advanced": [],
-            "basic": [
-                ["Main", [
-                    "gap",
-                    "numPeriods",
-                    "periodLength"
-                ]],
-                ["Poles", [
-                    "geomObject.shapeButton",
-                    "poleCrossSection",
-                    "poleLength",
-                    "poleSegments",
-                    "poleMaterial",
-                    "poleMaterialFile",
-                    "poleMagnetization",
-                    "poleRemanentMag"
-                ]],
-                ["Permanent Magnets", [
-                    "geomObject.shapeButton",
-                    "magnetCrossSection",
-                    "magnetLength",
-                    "gapOffset",
-                    "magnetSegments",
-                    "magnetMaterial",
-                    "magnetMaterialFile",
-                    "magnetMagnetization",
-                    "magnetRemanentMag"
-                ]],
-                ["Termination", [
-                    "terminations"
                 ]]
             ]
         },
@@ -1418,8 +1389,8 @@
                 "distance"
             ]
         },
-        "undulator": {
-            "title": "Undulator",
+        "undulatorBasic": {
+            "title": "Basic Undulator",
             "advanced": [],
             "basic": [
                 ["Main", [
@@ -1440,6 +1411,40 @@
                     "hybridUndulator.magnetMaterial",
                     "hybridUndulator.magnetMaterialFile",
                     "hybridUndulator.gapOffset"
+                ]],
+                ["Termination", [
+                    "terminations"
+                ]]
+            ]
+        },
+        "undulatorHybrid": {
+            "title": "Hybrid Undulator",
+            "advanced": [],
+            "basic": [
+                ["Main", [
+                    "gap",
+                    "numPeriods",
+                    "periodLength"
+                ]],
+                ["Poles", [
+                    "undulatorHybrid.pole.shapeButton",
+                    "poleCrossSection",
+                    "poleLength",
+                    "undulatorHybrid.pole.segments",
+                    "undulatorHybrid.pole.material",
+                    "undulatorHybrid.pole.materialFile",
+                    "undulatorHybrid.pole.magnetization",
+                    "undulatorHybrid.pole.remanentMag"
+                ]],
+                ["Permanent Magnets", [
+                    "undulatorHybrid.magnet.shapeButton",
+                    "magnetCrossSection",
+                    "gapOffset",
+                    "undulatorHybrid.magnet.segments",
+                    "undulatorHybrid.magnet.material",
+                    "undulatorHybrid.magnet.materialFile",
+                    "undulatorHybrid.magnet.magnetization",
+                    "undulatorHybrid.magnet.remanentMag"
                 ]],
                 ["Termination", [
                     "terminations"

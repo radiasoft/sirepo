@@ -9,6 +9,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.heightAxis = 'y';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'dipoleBasic';
+    SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorHybrid';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
@@ -318,12 +319,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomUndulatorGroup',
     ];
     const undulatorEditorFields = [
-        'hybridUndulator.magnetMagnetization',
-        'hybridUndulator.magnetMaterial',
-        'hybridUndulator.periodLength',
-        'hybridUndulator.poleLength',
-        'hybridUndulator.poleMagnetization',
-        'hybridUndulator.poleMaterial',
+        'undulatorHybrid.magnetMagnetization',
+        'undulatorHybrid.magnetMaterial',
+        'undulatorHybrid.periodLength',
+        'undulatorHybrid.poleLength',
+        'undulatorHybrid.poleMagnetization',
+        'undulatorHybrid.poleMaterial',
         'simulation.beamAxis',
     ];
     const watchedModels = [
@@ -333,7 +334,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'ell',
         'geomObject',
         'geomGroup',
-        'hybridUndulator',
+        'undulatorHybrid',
         'racetrack',
         'radiaObject',
         'simulation',
@@ -944,10 +945,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function updateUndulatorEditor() {
-        let modelName = 'hybridUndulator';
+        let modelName = 'undulatorHybrid';
         let u = appState.models[modelName];
 
-        panelState.enableField('hybridUndulator', 'magnetLength', false);
+        panelState.enableField('undulatorHybrid', 'magnetLength', false);
 
         for (const m of ['pole', 'magnet']) {
             const matField = `${m}Material`;
@@ -1051,7 +1052,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 appState.models.geometryReport.lastModified = Date.now();
                 radiaService.setWidthAxis();
                 appState.saveQuietly('simulation');
-                appState.models.kickMapReport.periodLength = appState.models.hybridUndulator.periodLength;
+                appState.models.kickMapReport.periodLength = appState.models.undulatorHybrid.periodLength;
                 appState.saveQuietly('kickMapReport');
             }
             let o = self.selectedObject;
@@ -3866,10 +3867,10 @@ for (const d of SIREPO.APP_SCHEMA.enum.DipoleType) {
     });
 }
 
-SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaService, $scope) {
+SIREPO.viewLogic('undulatorHybridView', function(appState, panelState, radiaService, $scope) {
 
     $scope.watchFields = [
-        ['hybridUndulator.magnetObjectType', 'hybridUndulator.poleObjectType'], update
+        ['undulatorHybrid.magnetObjectType', 'undulatorHybrid.poleObjectType'], update
     ];
 
     const baseObjectNames = {
@@ -3908,7 +3909,7 @@ SIREPO.viewLogic('hybridUndulatorView', function(appState, panelState, radiaServ
     });
 
     //TODO(mvk): this is all pretty cheesy.  Need a better relationship between the "magnet" like
-    // hybridUndulator and the objects in geometryReport
+    // undulatorHybrid and the objects in geometryReport
     function baseObjectName() {
         return baseObjectNames[$scope.$parent.activePage.name];
     }

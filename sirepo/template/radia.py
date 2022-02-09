@@ -17,6 +17,7 @@ from sirepo import simulation_db
 from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
+import copy
 import h5py
 import math
 import numpy
@@ -313,7 +314,7 @@ def new_simulation(data, new_simulation_data):
     m = data.models[s]
     data.models.simulation.notes = _MAGNET_NOTES[t][s]
     pkinspect.module_functions('_build_')[f'_build_{t}_objects'](
-        data.models.geometryReport,
+        data.models.geometryReport.objects,
         m,
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
@@ -371,16 +372,16 @@ def _build_cuboid(**kwargs):
     return _update_cuboid(_build_geom_obj('cuboid', **kwargs), **kwargs)
 
 
-def _build_dipole_objects(geom, model, **kwargs):
-    geom.objects.append(model.pole)
+def _build_dipole_objects(geom_objs, model, **kwargs):
+    geom_objs.append(model.pole)
     if model.dipoleType in ['dipoleC', 'dipoleH']:
-        geom.objects.append(model.magnet)
-        geom.objects.append(model.coil)
+        geom_objs.append(model.magnet)
+        geom_objs.append(model.coil)
         g = _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
-        geom.objects.append(g)
-        geom.objects.append(_update_group(model.magnetCoilGroup, [g, model.coil], do_replace=True))
+        geom_objs.append(g)
+        geom_objs.append(_update_group(model.magnetCoilGroup, [g, model.coil], do_replace=True))
 
-    return _update_geom_from_dipole(geom, model, **kwargs)
+    return _update_geom_from_dipole(geom_objs, model, **kwargs)
 
 
 # have to include points for file type?
@@ -507,16 +508,15 @@ def _build_translate_clone(dist):
     return tx
 
 
-def _build_undulator_objects(geom, model, **kwargs):
-    model.halfPole = _build_geom_obj(model.pole.type, name='Half Pole')
-    geom.objects.append(model.halfPole)
-    geom.objects.append(model.magnet)
-    geom.objects.append(model.pole)
-    geom.objects.append(model.terminationGroup)
-    geom.objects.append(
+def _build_undulator_objects(geom_objs, model, **kwargs):
+    geom_objs.append(model.halfPole)
+    geom_objs.append(model.magnet)
+    geom_objs.append(model.pole)
+    geom_objs.append(model.terminationGroup)
+    geom_objs.append(
         _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
     )
-    geom.objects.append(
+    geom_objs.append(
         _update_group(
             model.octantGroup,
             [model.halfPole, model.corePoleGroup, model.terminationGroup],
@@ -524,7 +524,7 @@ def _build_undulator_objects(geom, model, **kwargs):
         )
     )
 
-    return _update_geom_from_undulator(geom, model, **kwargs)
+    return _update_geom_from_undulator(geom_objs, model, **kwargs)
 
 
 def _build_freehand_objects(geom, model, **kwargs):
@@ -739,24 +739,15 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     dirs = _geom_directions(data.models.simulation.beamAxis, data.models.simulation.heightAxis)
     if not v.isExample and v.magnetType == 'freehand':
         _update_geom_from_freehand(g)
-    if v.magnetType == 'undulator':
-        v.undulatorType = data.models.simulation.undulatorType
-        _update_geom_from_undulator(
-            g,
-            data.models[v.undulatorType],
-            height_dir=dirs.height_dir,
-            length_dir=dirs.length_dir,
-            width_dir=dirs.width_dir,
-        )
-    if v.magnetType == 'dipole':
-        v.dipoleType = data.models.simulation.dipoleType
-        _update_geom_from_dipole(
-            g,
-            data.models[v.dipoleType],
-            height_dir=dirs.height_dir,
-            length_dir=dirs.length_dir,
-            width_dir=dirs.width_dir,
-        )
+    st = f'{v.magnetType}Type'
+    v[st] = data.models.simulation[st]
+    pkinspect.module_functions('_update_geom_from_')[f'_update_geom_from_{v.magnetType}'](
+        g.objects,
+        data.models[v[st]],
+        height_dir=dirs.height_dir,
+        length_dir=dirs.length_dir,
+        width_dir=dirs.width_dir,
+    )
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
 
@@ -1289,50 +1280,38 @@ def _update_dipoleH(model, **kwargs):
     return a.magnetCoilGroup
 
 
-def _update_geom_from_dipole(geom, model, **kwargs):
+def _update_geom_from_dipole(geom_objs, model, **kwargs):
 
     assert model.dipoleType in [x[0] for x in SCHEMA.enum.DipoleType]
-    _update_geom_objects(geom.objects)
+    _update_geom_objects(geom_objs)
 
     return pkinspect.module_functions('_update_')[f'_update_{model.dipoleType}'](
         model,
-        assembly=_get_radia_objects(geom.objects, model),
+        assembly=_get_radia_objects(geom_objs, model),
         **kwargs
     )
 
 
-def _update_geom_from_freehand(geom, **kwargs):
-    _update_geom_objects(geom.objects, **kwargs)
+def _update_geom_from_freehand(geom_objs, **kwargs):
+    _update_geom_objects(geom_objs, **kwargs)
 
 
-def _update_geom_from_undulator(geom, model, **kwargs):
+def _update_geom_from_undulator(geom_objs, model, **kwargs):
 
     assert model.undulatorType in [x[0] for x in SCHEMA.enum.UndulatorType]
-    _update_geom_objects(geom.objects)
+    _update_geom_objects(geom_objs)
 
-    magnet = _find_by_id(geom.objects, model.magnet.id)
-
-    if model.undulatorType == 'undulatorBasic':
-        return _update_undulator_basic(
-            model,
-            magnet=magnet,
-            **kwargs
-        )
-
-    if model.undulatorType == 'undulatorHybrid':
-        return _update_undulator_hybrid(
-            model,
-            magnet=magnet,
-            pole=_find_by_id(geom.objects, model.pole.id),
-            half_pole=_find_by_id(geom.objects, model.halfPole.id),
-            core_pole_group=_find_by_id(geom.objects, model.corePoleGroup.id),
-            octant_group=_find_by_id(geom.objects, model.octantGroup.id),
-            **kwargs
-        )
+    _build_undulator_termination(model, geom_objs, **kwargs)
+    return pkinspect.module_functions('_update_')[f'_update_{model.undulatorType}'](
+        model,
+        assembly=_get_radia_objects(geom_objs, model),
+        **kwargs
+    )
 
 
-def _update_undulator_basic(model, **kwargs):
+def _update_undulatorBasic(model, **kwargs):
     d = PKDict(kwargs)
+    a = d.assembly
 
     pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
@@ -1511,191 +1490,117 @@ def _update_undulator_basic(model, **kwargs):
     return oct_grp
 
 
-def _update_undulator_hybrid(model, **kwargs):
-    dir_matrix = numpy.array([dirs.width_dir, dirs.height_dir, dirs.length_dir])
+def _update_undulatorHybrid(model, **kwargs):
 
-    pole_x = sirepo.util.split_comma_delimited_string(und.poleCrossSection, float)
-    mag_x = sirepo.util.split_comma_delimited_string(und.magnetCrossSection, float)
+    d = PKDict(kwargs)
+    a = d.assembly
+    dir_matrix = numpy.array([d.width_dir, d.height_dir, d.length_dir])
 
-    # pole and magnet dimensions, including direction
-    pole_dim = PKDict(
-        width=dirs.width_dir * pole_x[0],
-        height=dirs.height_dir * pole_x[1],
-        length=dirs.length_dir * und.poleLength,
-    )
-    magnet_dim = PKDict(
-        width=dirs.width_dir * mag_x[0],
-        height=dirs.height_dir * mag_x[1],
-        length=dirs.length_dir * (und.periodLength / 2 - pole_dim.length),
-    )
+    pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
+    mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
+    #pole_sz = sirepo.util.split_comma_delimited_string(model.pole.size, float)
+    #mag_sz = sirepo.util.split_comma_delimited_string(model.magnet.size, float)
 
     # convenient constants
-    gap_half_height = dirs.height_dir * und.gap / 2
-    gap_offset = dirs.height_dir * und.gapOffset
+    gap_half_height = model.gap / 2 * d.height_dir
+    gap_offset = model.gapOffset * d.height_dir
 
-    # put the magnetization and segmentation in the correct order below
-    obj_props = PKDict(
-        pole=PKDict(
-            arm_height=und.poleArmHeight,
-            arm_pos=und.poleArmPosition,
-            color=und.poleColor,
-            dim=pole_dim,
-            dim_half=PKDict({k:v / 2 for k, v in pole_dim.items()}),
-            material=und.poleMaterial,
-            mat_file=und.poleMaterialFile,
-            mag=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.poleMagnetization, float)
-            ),
-            obj_type=und.poleObjType,
-            rem_mag=und.poleRemanentMag,
-            segs=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.poleSegments, int)
-            ),
-            stem_width=und.poleStemWidth,
-            stem_pos=und.poleStemPosition,
+    pos = 0
+    sz = pole_x[0] / 2 * d.width_dir + \
+         d.height_dir * pole_x[1] + \
+         model.poleLength / 2 * d.length_dir
+
+    #sz = pole_sz * d.width_dir / 2 + \
+    #     pole_sz * d.height_dir + \
+    #     pole_sz * d.length_dir / 2
+    for f in ['bevels', 'color', 'material', 'materialFile', 'remanentMag']:
+        a.halfPole[f] = copy.deepcopy(a.pole[f])
+    _update_geom_obj(
+        a.halfPole,
+        center=pos + sz / 2 + gap_half_height,
+        magnetization=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(a.pole.magnetization, float)
         ),
-        magnet=PKDict(
-            arm_height=und.magnetArmHeight,
-            arm_pos=und.magnetArmPosition,
-            color=und.magnetColor,
-            dim=magnet_dim,
-            dim_half=PKDict({k: v / 2 for k, v in magnet_dim.items()}),
-            material=und.magnetMaterial,
-            mat_file=und.magnetMaterialFile,
-            mag=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.magnetMagnetization, float)
-            ),
-            obj_type=und.magnetObjType,
-            rem_mag=und.magnetRemanentMag,
-            segs=dir_matrix.dot(
-                sirepo.util.split_comma_delimited_string(und.magnetSegments, int)
-            ),
-            stem_width=und.magnetStemWidth,
-            stem_pos=und.magnetStemPosition,
-        )
+        segments=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(a.pole.segments, int)
+        ),
+        size=sz,
+        type=a.pole.type
     )
-    for k in obj_props.keys():
-        obj_props[k].transverse_ctr = obj_props[k].dim_half.width / 2 - \
-            (obj_props[k].dim_half.height + gap_half_height)
-    obj_props.magnet.transverse_ctr -= gap_offset
+    pos += sz / 2 * d.length_dir
 
-    half_pole = _find_by_name(geom.objects, 'Half Pole')
-    props = obj_props.pole
-    pos = props.dim_half.length / 2
-    half_pole = _update_geom_obj(
-        half_pole,
-        center=props.transverse_ctr + pos,
-        color=props.color,
-        magnetization=props.mag,
-        material=props.material,
-        materialFile=props.mat_file,
-        remanentMag=props.rem_mag,
-        size=props.dim_half.width + props.dim.height + props.dim_half.length,
+    sz = mag_x[0] * d.width_dir + \
+         mag_x[1] * d.height_dir + \
+         (model.periodLength / 2 - model.poleLength) * d.length_dir
+    #sz = mag_sz * (d.width_dir / 2 + d.height_dir) + \
+    #     (model.periodLength / 2 * d.length_dir - pole_sz * d.length_dir)
+    _update_geom_obj(
+        a.magnet,
+        center=pos + sz / 2 + gap_half_height - gap_offset,
+        magnetization=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(a.magnet.magnetization, float)
+        ),
+        segments=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(a.magnet.segments, int)
+        ),
+        size=sz
     )
-    if props.obj_type == 'ell':
-        half_pole = _update_ell(
-            half_pole,
-            armHeight=props.arm_height,
-            armPosition=props.arm_pos,
-            stemWidth=props.stem_width,
-            stemPosition=props.stem_pos
-        )
-    else:
-        half_pole = _update_cuboid(
-            half_pole,
-            segments=props.segs,
-        )
+    pos += sz / 2 * d.length_dir
 
-    pos += (obj_props.pole.dim_half.length / 2 + obj_props.magnet.dim_half.length)
-    magnet_block = _find_by_name(geom.objects, 'Magnet Block')
-    props = obj_props.magnet
-    magnet_block = _update_geom_obj(
-        magnet_block,
-        center=props.transverse_ctr + pos,
-        color=props.color,
-        magnetization=props.mag,
-        material=props.material,
-        materialFile=props.mat_file,
-        remanentMag=props.rem_mag,
-        size=props.dim_half.width + props.dim.height + props.dim.length,
+    sz = pole_x[0] / 2 * d.width_dir + \
+         d.height_dir * pole_x[1] + \
+         model.poleLength * d.length_dir
+    #sz = pole_sz *(d.width_dir / 2 + d.height_dir + d.length_dir)
+    _update_geom_obj(
+        a.pole,
+        center=pos + sz / 2 + gap_half_height,
+        magnetization=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(a.pole.magnetization, float)
+        ),
+        segments=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(a.pole.segments, int)
+        ),
+        size=sz,
     )
-    if props.obj_type == 'ell':
-        magnet_block = _update_ell(
-            magnet_block,
-            armHeight=props.arm_height,
-            armPosition=props.arm_pos,
-            stemWidth=props.stem_width,
-            stemPosition=props.stem_pos
-        )
-    else:
-        magnet_block = _update_cuboid(
-            magnet_block,
-            segments=props.segs
-        )
-    und.magnetBaseObjectId = magnet_block.id
-    obj_props.magnet.bevels = magnet_block.get('bevels', [])
 
-    pos += (obj_props.pole.dim_half.length + obj_props.magnet.dim_half.length)
-    pole = _find_by_name(geom.objects, 'Pole')
-    props = obj_props.pole
-    pole = _update_geom_obj(
-        pole,
-        center=props.transverse_ctr + pos,
-        color=props.color,
-        magnetization=props.mag,
-        material=props.material,
-        materialFile=props.mat_file,
-        remanentMag=props.rem_mag,
-        size=props.dim_half.width + props.dim.height + props.dim.length,
-    )
-    if props.obj_type == 'ell':
-        pole = _update_ell(
-            pole,
-            armHeight=props.arm_height,
-            armPosition=props.arm_pos,
-            stemWidth=props.stem_width,
-            stemPosition=props.stem_pos
-        )
-    else:
-        pole = _update_cuboid(
-            pole,
-            segments=props.segs,
-        )
-    und.poleBaseObjectId = pole.id
-    obj_props.pole.bevels = pole.get('bevels', [])
-    half_pole.bevels = obj_props.pole.bevels.copy()
-
-    mag_pole_grp = _find_by_name(geom.objects, 'Magnet-Pole Pair')
-    mag_pole_grp.transforms = [] if und.numPeriods < 2 else \
+    a.corePoleGroup.transforms = [] if model.numPeriods < 2 else \
         [_build_clone_xform(
-            und.numPeriods - 1,
+            model.numPeriods - 1,
             True,
-            [_build_translate_clone(dirs.length_dir * und.periodLength / 2)]
+            [_build_translate_clone(model.periodLength / 2 * d.length_dir)]
         )]
 
-    pos = obj_props.pole.dim_half.length + \
-        dirs.length_dir * (und.numPeriods * und.periodLength / 2)
+    #pos = obj_props.pole.dim_half.length + \
+    #    dirs.length_dir * (und.numPeriods * und.periodLength / 2)
 
-    oct_grp = _find_by_name(geom.objects, 'Octant')
+    a.octantGroup.transforms = [
+        _build_symm_xform(d.width_dir, 'perpendicular'),
+        _build_symm_xform(d.height_dir, 'parallel'),
+        _build_symm_xform(d.length_dir, 'perpendicular'),
+    ]
+    return a.octantGroup
 
-    # rebuild the termination group
+
+def _build_undulator_termination(model, geom_objs, **kwargs):
+    return
+    d = PKDict(kwargs)
+    a = d.assembly
     old_terms = []
-    for i, o in enumerate(geom.objects):
+    for i, o in enumerate(geom_objs):
         old_terms.extend([_undulator_termination_name(i, n[0]) for n in SCHEMA.enum.TerminationType])
-    geom.objects[:] = [o for o in geom.objects if o.name not in old_terms]
+    geom_objs[:] = [o for o in geom_objs if o.name not in old_terms]
     terms = []
     num_term_mags = 0
-    for i, t in enumerate(und.terminations):
-        l = t.length * dirs.length_dir
-        pos += (t.airGap + l / 2) * dirs.length_dir
+    pos = 0
+    for i, t in enumerate(model.terminations):
+        l = t.length * d.length_dir
+        pos += (t.airGap + l / 2) * d.length_dir
         props = obj_props[t.type]
         o = _update_geom_obj(
             _build_geom_obj(props.obj_type, name=_undulator_termination_name(i, t.type), color=props.color),
             center=props.transverse_ctr + pos,
-            material=props.material,
-            materialFile=props.mat_file,
             magnetization=_ZERO if t.type == 'pole' else (-1) ** (
-                        und.numPeriods + num_term_mags) * props.mag,
+                        model.numPeriods + num_term_mags) * props.mag,
             remanentMag=props.rem_mag,
             size=props.dim_half.width + props.dim.height + l,
         )
@@ -1714,21 +1619,10 @@ def _update_undulator_hybrid(model, **kwargs):
         pos += l / 2
         if t.type == 'magnet':
             num_term_mags += 1
-    geom.objects.extend(terms)
-    g = _find_by_name(geom.objects, 'Termination')
-    if not g:
-        g = _build_group(terms, name='Termination')
-        geom.objects.append(g)
-    else:
-        _update_group(g, terms, do_replace=True)
-    _update_group(oct_grp, [g])
-
-    oct_grp.transforms = [
-        _build_symm_xform(dirs.width_dir, 'perpendicular'),
-        _build_symm_xform(dirs.height_dir, 'parallel'),
-        _build_symm_xform(dirs.length_dir, 'perpendicular'),
-    ]
-    return oct_grp
+    geom_objs.extend(terms)
+    _update_group(a.octantGroup, [
+        _update_group(a.terminationGroup, terms, do_replace=True)
+    ])
 
 
 def _update_geom_objects(objects, **kwargs):
