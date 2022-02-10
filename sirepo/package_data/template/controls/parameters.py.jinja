@@ -53,6 +53,8 @@ targets = np.array([
     {% endfor %}
 ])
 
+finished_sims = False
+
 
 {% if optimizerSettings_method == 'nmead' %}
 def _nelder_mead_cost_function(correctors):
@@ -154,26 +156,29 @@ def read_cols_and_save_report(default_file, save_file, cols_file):
         os.rename(default_file, save_file)
 
 def update_and_run_simulation(correctors):
-    is_success = run_simulation(correctors)
-    readings = []
-    columns = madx_parser.parse_tfs_file('twiss.file.tfs')
-    for idx in range(len(columns.name)):
-        keyword = columns.keyword[idx].replace('"', '')
-        if keyword == 'MONITOR':
-            readings += [float(columns.x[idx]), float(columns.y[idx])]
-        elif keyword == 'HMONITOR':
-            readings += [float(columns.x[idx])]
-        elif keyword == 'VMONITOR':
-            readings += [float(columns.y[idx])]
-    res = np.array(readings)
-    if is_success:
+    global finished_sims
+    if run_simulation(correctors):
+        readings = []
+        finished_sims = True
+        columns = madx_parser.parse_tfs_file('twiss.file.tfs')
+        for i, k in enumerate(columns.keyword):
+            k = k.replace('"', '')
+            if k == 'MONITOR':
+                readings += [float(columns.x[i]), float(columns.y[i])]
+            elif k == 'HMONITOR':
+                readings += [float(columns.x[i])]
+            elif k == 'VMONITOR':
+                readings += [float(columns.y[i])]
+            else:
+                pass
+        res = np.array(readings)
         with open('{{ summaryCSV }}', 'a') as f:
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
             # POSIT: one table option is enabled.
         read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
         read_cols_and_save_report('twiss.file.tfs', '{{ twissFile }}', '{{ twissColsFile }}')
         return res
-    return np.full(res.shape, 1e24)
+    return np.full(int({{ monitorCount }}), 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
 
 {% for prop_type in property_types %}
@@ -312,3 +317,5 @@ res = {
 {% else %}
 raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))
 {% endif %}
+if not finished_sims:
+    raise AssertionError(f'Optimization failed all minimization attempts')
