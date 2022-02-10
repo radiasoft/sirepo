@@ -9,9 +9,8 @@ from pykern.pkcollections import PKDict
 import pytest
 
 def test_controls(fc):
-    data = fc.sr_sim_data('Sample MAD-X beamline')
     fc.sr_animation_run(
-        data,
+        fc.sr_sim_data('Sample MAD-X beamline'),
         'animation',
         PKDict(),
         expect_completed=False,
@@ -31,6 +30,7 @@ def test_elegant(fc):
                 expect_y_range='-1.*e-15, 34.6',
             ),
         }),
+        timeout=30,
     )
 
 
@@ -73,6 +73,7 @@ def test_ml(fc):
         fc.sr_sim_data('iris Dataset'),
         'animation',
         PKDict(),
+        timeout=45,
     )
 
 
@@ -148,7 +149,7 @@ def test_warppba(fc):
         rCellResolution=20,
         zScale=1,
         zLength=10.162490077316,
-        zMax=1.600000000000,
+        zMax=1.6,
         zMin=-10.162490077316,
         zCellsPerWavelength=8,
         zCount=118,
@@ -169,6 +170,7 @@ def test_warppba(fc):
                 expect_y_range='-5.*e-06, 5.*e-06, 18',
             ),
         ),
+        timeout=20,
     )
 
 
