@@ -321,6 +321,15 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                  appState.saveChanges(m);
             }
         }
+
+        self.instrumentAnimationSettings = {
+            modelKey: 'instrumentAnimationSettings',
+            getData: () => appState.models['instrumentAnimationSettings'],
+        }
+
+        srdbg('appState.models:', appState.models);
+        srdbg('controls.instrumentAnimations:', self.instrumentAnimations)
+        srdbg('controls.instrumentAnimationSettings',self.instrumentAnimationSettings)
     }
 
     function loadTwissReport(data) {
@@ -358,7 +367,17 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 k.push(m);
                 setAnimationModel(m, 'instrumentAnimation', i);
         });
+
+        setAnimationModel('instrumentAnimationSettings', 'instrumentAnimation', appState.models.externalLattice.models.length + 2)
+
+        self.instrumentAnimationSettings = {
+            modelKey: 'instrumentAnimationSettings',
+            getData: () => appState.models['instrumentAnimationSettings'],
+        }
+
+        k.push('instrumentAnimationSettings');
         appState.saveChanges(k);
+        srdbg('self.instrumentAnimationSettings', self.instrumentAnimationSettings)
     }
 
     function setAnimationModel(modelKey, modelViewName, id) {
@@ -426,7 +445,22 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
-
+    $scope.$on('instrumentAnimationSettings.changed', () => {
+        srdbg('CHANGED INSTRUMENT ANIMATION SETTINGS');
+        srdbg('instrumentAnimationSettings:', self.instrumentAnimationSettings);
+        for (const i in self.instrumentAnimations) {
+            let instrument = self.instrumentAnimations[i]
+            srdbg('instrument', instrument);
+            for (const key in appState.models[instrument.modelKey]) {
+                srdbg('key', key)
+                srdbg('getData?', self.instrumentAnimationSettings)
+                if (key != 'id'){
+                    appState.models[instrument.modelKey][key] = self.instrumentAnimationSettings.getData()[key];
+                }
+            }
+            // appState.saveChanges(instrument.modelKey)
+        }
+    })
     return self;
 });
 
