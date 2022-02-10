@@ -131,14 +131,14 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     ),
                     8);
             },
-	    {
-		    method: 'process_undulator_definition',
-		    undulator_definition: undulatorDefinition,
-		    undulator_parameter: appState.models.undulator[deflectingParameter],
-		    amplitude: appState.models.undulator[amplitude],
-		    undulator_period: appState.models.undulator.period / 1000,
-		    methodSignature: 'process_undulator_definition' + deflectingParameter,
-	    }
+            {
+                    method: 'process_undulator_definition',
+                    undulator_definition: undulatorDefinition,
+                    undulator_parameter: appState.models.undulator[deflectingParameter],
+                    amplitude: appState.models.undulator[amplitude],
+                    undulator_period: appState.models.undulator.period / 1000,
+                    methodSignature: 'process_undulator_definition' + deflectingParameter,
+            }
         );
     }
 
@@ -242,7 +242,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 prefix1: prefixes[0],
                 prefix2: prefixes[1],
             }
-	);
+        );
     };
 
     self.computeFields = function(method, item, fields) {
@@ -257,7 +257,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 method: method,
                 optical_element: item,
             }
-	);
+        );
     };
 
     self.computeModel = function(analysisModel) {
@@ -447,7 +447,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                 methodSignature: 'model_list ' + modelName + (sig || ''),
                 model_name: modelName,
             }
-	);
+        );
     };
 
     self.setShowCalcCoherence = function(isShown) {
@@ -1052,7 +1052,7 @@ SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
-	);
+        );
     }
 
     function updateCRLFields(item) {
@@ -1098,7 +1098,7 @@ SIREPO.beamlineItemLogic('crystalView', function(appState, panelState, requestSe
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
-	);
+        );
     }
 
     function updateCrystal(item) {
@@ -1328,7 +1328,7 @@ SIREPO.beamlineItemLogic('gratingView', function(appState, panelState, requestSe
                 optical_element: item,
                 photon_energy: appState.models.simulation.photonEnergy,
             }
-	);
+        );
     }
 
     function updateGratingFields(item) {

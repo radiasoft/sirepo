@@ -6,10 +6,12 @@ u"""Controls execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import template_common
+from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
 import copy
 import csv
@@ -22,28 +24,85 @@ import socket
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
-
-_DEVICE_SERVER_PROPERTY_IDS = PKDict(
-    HKICKER=PKDict(kick='propForHKick'),
-    KICKER=PKDict(hkick='propForHKick', vkick='propForVKick'),
-    VKICKER=PKDict(kick='propForHKick'),
-)
+_PTC_TRACK_COLUMNS_FILE = 'ptc_track_columns.txt'
+_PTC_TRACK_FILE = 'track.tfs'
+_TWISS_FILE = 'twiss.tfs'
+_TWISS_COLS_FILE = 'twiss_columns.txt'
 
 
 def background_percent_complete(report, run_dir, is_running):
+
     if is_running:
+        e = _read_summary_line(run_dir)
         return PKDict(
             percentComplete=0,
-            frameCount=0,
-            elementValues=_read_summary_line(run_dir)
+            frameCount=1 if e else 0,
+            elementValues=e,
+            ptcTrackColumns=_get_ptc_track_columns(run_dir),
+            twissColumns=_get_twiss_track_columns(run_dir),
         )
+    e = _read_summary_line(
+        run_dir,
+        SCHEMA.constants.maxBPMPoints,
+    )
     return PKDict(
         percentComplete=100,
-        frameCount=1,
-        elementValues=_read_summary_line(
-            run_dir,
-            SCHEMA.constants.maxBPMPoints,
-        )
+        frameCount=1 if e else 0,
+        elementValues=e,
+        ptcTrackColumns=_get_ptc_track_columns(run_dir),
+        twissColumns=_get_twiss_track_columns(run_dir),
+    )
+
+
+def _get_ptc_track_columns(run_dir):
+    if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
+        return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
+    return []
+
+def _get_twiss_track_columns(run_dir):
+    if run_dir.join('twiss_columns.txt').exists():
+        return pkio.read_text('twiss_columns.txt').split(',')
+    return []
+
+
+def _get_target_info(info_all, target):
+    for i, o in enumerate(info_all):
+        if o.name == target.upper():
+            return o, i
+    raise AssertionError(f'no target={target} in info_all={info_all}')
+
+
+def sim_frame(frame_args):
+    return _extract_report_elementAnimation(frame_args, frame_args.run_dir, _PTC_TRACK_FILE)
+
+
+def _extract_report_elementAnimation(frame_args, run_dir, filename):
+    data = frame_args.sim_in
+    if frame_args.frameReport == 'instrumentAnimationTwiss':
+        data.report = frame_args.frameReport
+        data.models[data.report] = frame_args
+        return sirepo.template.madx.extract_parameter_report(data, run_dir, _TWISS_FILE)
+    a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
+    d = data.models[frame_args.frameReport].id
+    data.models[frame_args.frameReport] = frame_args
+    n = frame_args.sim_in.models.externalLattice.models.elements[d].name
+    frame_args.plotRangeType = 'fixed'
+    frame_args.verticalSize = frame_args.particlePlotSize
+    frame_args.verticalOffset = 0
+    frame_args.horizontalSize = frame_args.particlePlotSize
+    frame_args.horizontalOffset = 0
+    i, x = _get_target_info(a, n)
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
+    return template_common.heatmap(
+        [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
+        frame_args,
+        PKDict(
+            x_label=sirepo.template.madx.field_label(frame_args.x),
+            y_label=sirepo.template.madx.field_label(frame_args.y1),
+            title='{}-{} at {}m, {}'.format(
+                frame_args.x, frame_args.y1, i.s, i.name,
+            ),
+        ),
     )
 
 
@@ -76,6 +135,7 @@ def stateful_compute_get_external_lattice(data):
     by_name = _delete_unused_madx_commands(madx)
     sirepo.template.madx.uniquify_elements(madx)
     _add_monitor(madx)
+    madx.models.simulation.computeTwissFromParticles = '0'
     madx.models.bunch.beamDefinition = 'gamma'
     _SIM_DATA.update_beam_gamma(by_name.beam)
     _SIM_DATA.init_currents(by_name.beam, madx.models)
@@ -139,12 +199,6 @@ def _delete_unused_madx_commands(data):
     by_name.twiss.file = '1'
     data.models.commands = [
         by_name.beam,
-        PKDict(
-            _id=LatticeUtil.max_id(data) + 1,
-            _type='select',
-            flag='twiss',
-            column='name,keyword,s,x,y',
-        ),
         by_name.twiss,
     ]
     return by_name
@@ -170,7 +224,12 @@ def _generate_parameters_file(data):
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
     v.optimizerTargets = data.models.optimizerSettings.targets
+    v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
     v.summaryCSV = _SUMMARY_CSV_FILE
+    v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
+    v.ptcTrackFile = _PTC_TRACK_FILE
+    v.twissColsFile = _TWISS_COLS_FILE
+    v.twissFile = _TWISS_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
         v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)
@@ -191,20 +250,64 @@ def _generate_parameters(v, data):
         all_correctors.header.append(_format_header(el._id, _SIM_DATA.current_field(field)))
         v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
 
+    def _create_ptc_observes(instruments, data):
+        for i, c in enumerate(data.models.commands):
+            if c._type == 'ptc_create_universe':
+                # POSIT: assume if ptc_create_universe exits, all other commands are there too
+                break
+        else:
+            raise AssertionError(f'adding only ptc_observes but no ptc_create_universe found commands={data.models.commands}')
+        data.models.commands[i + 1:i + 1] = _set_ptc_ids(
+            [
+                PKDict(
+                    _type='ptc_observe',
+                    place=o.name,
+                ) for o in instruments
+            ],
+            data,
+        )
+
+    def _set_ptc_ids(ptc_commands, data):
+        m = LatticeUtil.max_id(data) + 1
+        for i,  c in enumerate(ptc_commands):
+            c._id = m + i
+        return ptc_commands
+
+    def _gen_full_ptc(instruments, data):
+        data.models.commands.extend(_set_ptc_ids(
+            [
+                PKDict(_type='ptc_create_universe'),
+                PKDict(_type='ptc_create_layout'),
+                PKDict(_type='ptc_track', file='1', icase='6'),
+                PKDict(_type='ptc_track_end'),
+                PKDict(_type='ptc_end'),
+            ],
+            data,
+        ))
+        _create_ptc_observes(instruments, data)
+
+    def _add_ptc(instruments, data):
+        u = LatticeUtil.find_first_command(data, 'ptc_create_universe')
+        if not u:
+            _gen_full_ptc(instruments, data)
+            return
+        _create_ptc_observes(instruments, data)
+
     c = PKDict(
         header=[],
         corrector=[],
     )
-
+    i = []
     madx = data.models.externalLattice.models
     k = data.models.optimizerSettings.inputs.kickers
     q = data.models.optimizerSettings.inputs.quads
-
     header = []
     for el in _SIM_DATA.beamline_elements(madx):
         if el.type == 'KICKER' and k[str(el._id)]:
             _set_opt(el, 'hkick', c)
             _set_opt(el, 'vkick', c)
+        elif el.type == 'INSTRUMENT':
+            i.append(el)
         elif el.type in ('HKICKER', 'VKICKER') and k[str(el._id)]:
             _set_opt(el, 'kick', c)
         elif el.type == 'QUADRUPOLE' and q[str(el._id)]:
@@ -218,6 +321,9 @@ def _generate_parameters(v, data):
     v.summaryCSVHeader = ','.join(c.header + header)
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
+    v.monitorCount = len(header)
+    if i:
+        _add_ptc(i, data.models.externalLattice)
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)

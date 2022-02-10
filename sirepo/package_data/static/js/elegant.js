@@ -214,7 +214,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
                 method: 'get_beam_input_type',
                 input_file: 'bunchFile-sourceFile.' + cmd.input,
             }
-	);
+        );
     }
 
     function updateBunchFromCommand(bunch, cmd) {
@@ -681,7 +681,7 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
+                '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
                   '<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
                   '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',

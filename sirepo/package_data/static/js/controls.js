@@ -44,6 +44,7 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="bpmMonitor" data-zoom="XY" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="bpmHMonitor" data-zoom="X" data-bpm-monitor-plot="Horizontal" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="bpmVMonitor" data-zoom="Y" data-bpm-monitor-plot="Vertical" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+        <div data-ng-switch-when="parameterWithExternalLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-path-to-models="externalLattice"></div>
     `;
 });
 
@@ -64,7 +65,12 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
         return models.beamlines[0].items.map(elId => latticeService.elementForId(elId, models));
     };
 
-    self.computeModel = () => 'animation';
+    self.computeModel = (analysisModel) => {
+	if (analysisModel.includes('instrument')) {
+	    return 'instrumentAnimation';
+	}
+	return 'animation';
+    };
 
     self.currentField = (kickField) => 'current_' + kickField;
 
@@ -98,9 +104,9 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             return false;
         }
         return appState.models.simulationStatus
-            && appState.models.simulationStatus.animation
+            && appState.models.simulationStatus.instrumentAnimation
             && ['pending', 'running'].indexOf(
-                appState.models.simulationStatus.animation.state
+                appState.models.simulationStatus.instrumentAnimation.state
             ) < 0;
     };
 
@@ -115,6 +121,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.appState = appState;
     self.controlsService = controlsService;
     self.simScope = $scope;
+
+    // TODO(e-carlin): sort
+    self.simAnalysisModel = 'instrumentAnimation';
 
     function buildWatchColumns() {
         self.watches = [];
@@ -204,10 +213,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function handleElementValues(data) {
-        if (! data.elementValues) {
+        if (! data.elementValues || data.elementValues.length == 0) {
             return;
         }
-        frameCache.setFrameCount(1);
+        // frameCache.setFrameCount(1);
         updateElements(data.elementValues);
         $scope.$broadcast('sr-elementValues', data.elementValues);
     }
@@ -269,13 +278,19 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
     };
 
+    self.showTwissEditor = () => {
+        panelState.showModalEditor('instrumentAnimationTwiss');
+    };
+
     self.simHandleStatus = data => {
         if (self.simState.isProcessing()) {
             controlsService.runningMessage = 'Running Optimization';
             $scope.isRunningOptimizer = true;
         }
-        if ($scope.isRunningOptimizer && data.elementValues) {
+        if (data.elementValues && data.elementValues.length) {
             handleElementValues(data);
+            loadHeatmapReports(data);
+            loadTwissReport(data);
         }
         if (! self.simState.isProcessing()) {
             if ($scope.isRunningOptimizer) {
@@ -283,12 +298,106 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 controlsService.runningMessage = '';
             }
         }
+        frameCache.setFrameCount(data.frameCount);
     };
+
+    function loadHeatmapReports(data) {
+        self.instrumentAnimations = [];
+        for (const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
+                appState.models[m].valueList = {
+                        x: data.ptcTrackColumns,
+                        y1: data.ptcTrackColumns,
+                    };
+                appState.models[m].refreshId = Math.random();
+                appState.models[m].particlePlotSize = appState.models.controlSettings.particlePlotSize;
+                self.instrumentAnimations.push({
+                    modelKey: m,
+                    getData: genGetDataFunction(m),
+                });
+                if (frameCache.getFrameCount()) {
+                    frameCache.setFrameCount(1, m);
+                }
+                 appState.saveChanges(m);
+            }
+        }
+    }
+
+    function loadTwissReport(data) {
+        appState.models.instrumentAnimationTwiss.refreshId = Math.random();
+        appState.models.instrumentAnimationTwiss.valueList = {
+            x: data.twissColumns,
+            y1: data.twissColumns,
+            y2: data.twissColumns,
+            y3: data.twissColumns,
+        };
+        self.twissReport = [{
+            modelKey: 'instrumentAnimationTwiss',
+            getData: genGetDataFunction('instrumentAnimationTwiss')
+        }];
+        if (frameCache.getFrameCount()) {
+            frameCache.setFrameCount(1, 'instrumentAnimationTwiss');
+        }
+        appState.saveChanges('instrumentAnimationTwiss');
+    }
+
+    function genGetDataFunction(m) {
+        return () => appState.models[m];
+    }
+
+    function initInstruments() {
+        if (checkModelSet('instrumentAnimation')){
+            return;
+        }
+        const k  = [];
+        appState.models.externalLattice.models.elements.forEach((e, i) => {
+                if (e.type !== 'INSTRUMENT') {
+                    return;
+                }
+                const m = 'instrumentAnimation' + i;
+                k.push(m);
+                setAnimationModel(m, 'instrumentAnimation', i);
+        });
+        appState.saveChanges(k);
+    }
+
+    function setAnimationModel(modelKey, modelViewName, id) {
+        const n = {
+            id: id,
+            viewName: modelViewName,
+        };
+        appState.setModelDefaults(n, modelViewName);
+        appState.models[modelKey] = n;
+    }
+
+    function initTwiss() {
+        if (checkModelSet('instrumentAnimationTwiss')){
+            return;
+        }
+        const keys = [];
+        keys.push('instrumentAnimationTwiss');
+        setAnimationModel('instrumentAnimationTwiss',
+            'instrumentAnimationTwiss',
+            appState.models.externalLattice.models.length + 2
+        );
+        appState.saveChanges(keys);
+    }
+
+    function checkModelSet(model) {
+        for (const m in appState.models) {
+            if (m.includes(model)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
+        initInstruments();
+        initTwiss();
         appState.saveChanges('optimizerSettings', self.simState.runSimulation);
     };
 
@@ -308,10 +417,19 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             appState.cancelChanges('externalLattice');
         }
     });
+    $scope.$on('controlSettings.changed', () => {
+        for (const m in appState.models) {
+            if (m.includes('instrumentAnimation')) {
+                appState.models[m].particlePlotSize = appState.models.controlSettings.particlePlotSize;
+                appState.saveQuietly(m);
+            }
+        }
+    });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
 
     return self;
 });
+
 
 SIREPO.app.directive('appFooter', function(controlsService) {
     return {
@@ -328,18 +446,18 @@ SIREPO.app.directive('appFooter', function(controlsService) {
 
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: `
             <div data-app-header-brand="nav"></div>
             <div data-app-header-left="nav"></div>
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
-		<div data-sim-sections="">
+                <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('controls')}"><a href data-ng-click="nav.openSection('controls')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>
-		</div>
+                </div>
               </app-header-right-sim-loaded>
               <app-settings>
                 <div><a href data-ng-click="openSettings()"><span class="glyphicon glyphicon-th-list"></span> Control Settings</a></div>
@@ -369,7 +487,10 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            const defaultDomain = [-0.0021, 0.0021];
+            let defaultDomain = [
+                -appState.models.controlSettings.bpmPlotSize/2,
+                 appState.models.controlSettings.bpmPlotSize/2
+                ];
             let points;
             let colName = $scope.modelName.substring(0, $scope.modelName.indexOf('Report'));
             $scope.isClientOnly = true;
@@ -377,52 +498,15 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
 
             function clearPoints() {
                 points = [];
+                defaultDomain = [
+                    -appState.models.controlSettings.bpmPlotSize/2,
+                    appState.models.controlSettings.bpmPlotSize/2
+               ];
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
                 $scope.select('.plot-viewport').selectAll('.sr-scatter-point').remove();
                 ['x', 'y'].forEach(dim => {
                     $scope.axes[dim].domain = [-1, 1];
                     $scope.axes[dim].scale.domain(appState.clone(defaultDomain));
-                });
-            }
-
-            function domainWidth(domain) {
-                return domain[1] - domain[0];
-            }
-
-            function fitPoints() {
-                if (points.length <= 1) {
-                    return;
-                }
-                let dim = appState.clone(defaultDomain);
-                if (domainWidth($scope.axes.x.scale.domain()) < domainWidth(defaultDomain)) {
-                    // keep current domain if domain width is smaller than default domain
-                    // the user has zoomed in
-                    return;
-                }
-                [0, 1].forEach(i => {
-                    points.forEach(p => {
-                        if (p[i] < dim[0]) {
-                            dim[0] = p[i];
-                        }
-                        if (p[i] > dim[1]) {
-                            dim[1] = p[i];
-                        }
-                    });
-                    let pad = (dim[1] - dim[0]) / 20;
-                    if (pad == 0) {
-                        pad = 0.1;
-                    }
-                    dim[0] -= pad;
-                    dim[1] += pad;
-                });
-                if ( -dim[0] > dim[1]) {
-                    dim[1] = -dim[0];
-                }
-                else if (-dim[0] < dim[1]) {
-                    dim[0] = -dim[1];
-                }
-                ['x', 'y'].forEach(axis => {
-                    $scope.axes[axis].scale.domain(dim).nice();
                 });
             }
 
@@ -484,7 +568,6 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                     ];
                     pushAndTrim(point);
                 });
-                fitPoints();
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
                 $scope.resize();
             });
@@ -492,6 +575,11 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
             $scope.$on('sr-clearElementValues', () => {
                 clearPoints();
                 $scope.refresh();
+            });
+
+            $scope.$on('controlSettings.changed', () => {
+                clearPoints();
+                $scope.resize();
             });
         },
         link: (scope, element) => plotting.linkPlot(scope, element),
@@ -670,8 +758,10 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
         restrict: 'A',
         scope: {
             width: '@',
+            modelName: '@',
         },
         template: `
+            <div class="col-sm-7" ng-if="modelName == 'beamlines'">
             <div class="text-center">
             <div data-ng-repeat="table in tables track by table.reading" style="display: inline-block; vertical-align: top; margin: 0 1.5em">
                 <div data-ng-if="readings[table.reading].length">
@@ -686,6 +776,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
             </div>
             <div data-ng-if="controlsService.runningMessage" style="margin-left: 3em">
               <span class="glyphicon glyphicon-repeat sr-running-icon"></span> {{ controlsService.runningMessage }}
+            </div>
             </div>
             </div>
             `,
@@ -771,19 +862,20 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 $('.sr-lattice-label').remove();
                 const parentRect = $('#sr-lattice')[0].getBoundingClientRect();
                 const positions = [];
+                const labeled = [];
                 $("[class^='sr-beamline']").each( (_ , element) => {
                     positions.push(element.getBoundingClientRect());
                 });
                 $('#sr-lattice').find('title').each((v, node) => {
                     const values = $(node).text().split(': ');
-                    if (! SIREPO.APP_SCHEMA.model[values[1]]) {
+                    if (! SIREPO.APP_SCHEMA.model[values[1]] && values[1] != 'INSTRUMENT') {
                         return;
                     }
-                    const isMonitor = values[1].indexOf('MONITOR') >= 0;
+                    const isMonitorOrInstrument = (values[1].indexOf('MONITOR') >= 0) || (values[1].indexOf('INSTRUMENT') >= 0);
                     const rect = node.parentElement.getBoundingClientRect();
                     let pos = [
                         rect.left - parentRect.left + (rect.right - rect.left) - 25,
-                        isMonitor
+                        isMonitorOrInstrument
                             ? rect.top - parentRect.top - 5
                             : rect.bottom - parentRect.top + 5,
 
@@ -815,7 +907,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                     let yOffset = 0;
                     const c = 3;
                     while (p) {
-                        if (isMonitor) {
+                        if (isMonitorOrInstrument) {
                             const d = div[0].getBoundingClientRect().bottom - p.top - 1;
                             if (d > c) {
                                 yOffset -= d;
@@ -903,7 +995,9 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, lattic
                 setSelectedId(controlsService.latticeModels().beamlines[0].items[idx]);
             });
             $scope.$on('sr-elementValues', updateReadings);
-            $scope.$on('sr-renderBeamline', () => panelState.waitForUI(labelElements));
+            $scope.$on('sr-renderBeamline', () => {
+                panelState.waitForUI(labelElements);
+            });
         },
     };
 });

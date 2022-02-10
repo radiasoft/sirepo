@@ -42,9 +42,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 elif el.type == 'VMONITOR':
                     del item['x']
                 targets.append(item)
-        return cls.model_defaults('optimizerSettings').pkupdate(PKDict(
+        opts = cls.model_defaults('optimizerSettings').pkupdate(PKDict(
             targets=targets,
         ))
+        cls.init_optimizer_inputs(opts, madx)
+        return opts
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -65,19 +67,25 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'controlSettings' not in dm:
                 cls.init_process_variables(dm)
                 cls.init_currents(dm.command_beam, dm.externalLattice.models)
+            cls._init_models(dm, ('controlSettings',))
             if 'inputs' not in dm.optimizerSettings:
-                dm.optimizerSettings.inputs = PKDict(
-                    kickers=PKDict(),
-                    quads=PKDict()
-                )
-                for el in cls.beamline_elements(dm.externalLattice.models):
-                    if el.type == 'QUADRUPOLE':
-                        dm.optimizerSettings.inputs.quads[str(el._id)] = False
-                    elif 'KICKER' in el.type:
-                        dm.optimizerSettings.inputs.kickers[str(el._id)] = True
+                cls.init_optimizer_inputs(dm.optimizerSettings, dm.externalLattice.models)
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0
+
+
+    @classmethod
+    def init_optimizer_inputs(cls, optimizerSettings, madx):
+        optimizerSettings.inputs = PKDict(
+                    kickers=PKDict(),
+                    quads=PKDict()
+                )
+        for el in cls.beamline_elements(madx):
+            if el.type == 'QUADRUPOLE':
+                optimizerSettings.inputs.quads[str(el._id)] = False
+            elif 'KICKER' in el.type:
+                optimizerSettings.inputs.kickers[str(el._id)] = True
 
     @classmethod
     def init_currents(cls, beam, models):
@@ -141,15 +149,21 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'instrument' in analysis_model:
+            return 'instrumentAnimation'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
     def _lib_file_basenames(cls, data):
         return []
 
 
 class AmpConverter():
-    _GEV_TO_KG = 5.6096e26
+    _GEV_TO_KG = 1.78266192e-27
     _DEFAULT_FACTOR = 100
     # Coulomb
-    _ELEMENTARY_CHARGE = 1.602e-19
+    _ELEMENTARY_CHARGE = 1.602176634e-19
     _SCHEMA = SimData.schema()
 
     def __init__(self, beam, amp_table=None):
@@ -190,7 +204,7 @@ class AmpConverter():
         else:
             pmc = [beam.mass, beam.charge]
         return PKDict(
-            mass=pmc[0] / self._GEV_TO_KG,
+            mass=pmc[0] * self._GEV_TO_KG,
             charge=pmc[1] * self._ELEMENTARY_CHARGE,
             gamma=beam.gamma,
             beta=math.sqrt(1 - (1 / (beam.gamma * beam.gamma))),

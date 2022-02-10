@@ -374,7 +374,6 @@ def _read_srw_file(filename):
 
 def _rsopt_run(filename):
     from pykern import pkio
-    from sirepo.template import template_common
     import h5py
     import multiprocessing
     import time
@@ -428,14 +427,10 @@ def _rsopt_run(filename):
     params_all = numpy.concatenate(task_arrays, axis=0)
 
     ###### consolidated input and output file used for ML
-    template_common.write_dict_to_h5(
-        {
-            'params': [{{ rsOptFuctionSignature(true) }}],
-            'paramVals': params_all.tolist(),
-            'beamIntensities': beams_all.tolist(),
-        },
-        f'{_DATASET_DIR}/results.h5'
-    )
+    with h5py.File(f'{_DATASET_DIR}/results.h5', 'w') as f:
+        f.create_dataset('params', data=[{{ rsOptFuctionSignature(true) }}])
+        f.create_dataset('paramVals', data=params_all.tolist())
+        f.create_dataset('beamIntensities', data=beams_all.tolist())
 
 def _rsopt_run_set(param_arr, start, end, proc_num):
     pkdlog(f'Process {proc_num} to complete {end - start} tasks')

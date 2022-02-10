@@ -18,6 +18,7 @@ pykern.pksetup.setup(
         'aenum',
         'asyncssh',
         'cryptography>=2.8',
+        'dnspython',
         'futures',
         # for virtualenv
         'importlib-metadata<2,>=0.12',
