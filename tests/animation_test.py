@@ -9,8 +9,9 @@ from pykern.pkcollections import PKDict
 import pytest
 
 def test_controls(fc):
+    data = fc.sr_sim_data('Sample MAD-X beamline')
     fc.sr_animation_run(
-        'Sample MAD-X beamline',
+        data,
         'animation',
         PKDict(),
         expect_completed=False,
@@ -18,39 +19,30 @@ def test_controls(fc):
 
 
 def test_elegant(fc):
+    import sirepo.template.lattice
+    data = fc.sr_sim_data('Compact Storage Ring')
+    sirepo.template.lattice.LatticeUtil.find_first_command(data, 'bunched_beam').n_particles_per_bunch = 1
     fc.sr_animation_run(
-        'bunchComp - fourDipoleCSR',
+        data,
         'animation',
         PKDict({
-            'elementAnimation13-5': PKDict(
-                expect_x_range='3.9.*, 3.9.*, 200',
-            ),
-        }),
-        timeout=30,
-    )
-    fc.sr_animation_run(
-        'Compact Storage Ring',
-        'animation',
-        PKDict({
-            'elementAnimation20-21': PKDict(
-                expect_y_range='-0.0003.*, 0.0003.*, 200',
-            ),
-            'elementAnimation20-29': PKDict(
-                expect_y_range='^.9.44.*, 0.0012',
-            ),
             'elementAnimation22-13': PKDict(
-                expect_y_range=', 34.6',
-            ),
-            'elementAnimation20-4': PKDict(
-                expect_x_range='^.0.0, 46.0',
+                expect_x_range='0.0, 46',
+                expect_y_range='-1.*e-15, 34.6',
             ),
         }),
     )
 
 
 def test_jspec(fc):
+    data = fc.sr_sim_data('DC Cooling Example')
+    data.models.simulationSettings.update(dict(
+        time=1,
+        step_number=1,
+        time_step=1,
+    ))
     fc.sr_animation_run(
-        'DC Cooling Example',
+        data,
         'animation',
         PKDict(
             #TODO(robnagler) these are sometimes off, just rerun
@@ -58,7 +50,7 @@ def test_jspec(fc):
                 expect_y_range=r'2.15e-06',
             ),
             coolingRatesAnimation=PKDict(
-                expect_y_range=r'-[\d\.]+, (0.00|0)\b',
+                expect_x_range=r'0, 1\.0',
             ),
         ),
         timeout=20,
@@ -66,8 +58,11 @@ def test_jspec(fc):
 
 
 def test_madx(fc):
+    import sirepo.template.lattice
+    data = fc.sr_sim_data('FODO PTC')
+    sirepo.template.lattice.LatticeUtil.find_first_command(data, 'beam').npart = 1
     fc.sr_animation_run(
-        'FODO PTC',
+        data,
         'animation',
         PKDict(),
     )
@@ -75,16 +70,15 @@ def test_madx(fc):
 
 def test_ml(fc):
     fc.sr_animation_run(
-        '2019 World Happiness',
+        fc.sr_sim_data('iris Dataset'),
         'animation',
         PKDict(),
-        timeout=45,
     )
 
 
 def test_opal(fc):
     fc.sr_animation_run(
-        'Slit-1',
+        fc.sr_sim_data('CSR Bend Drift'),
         'animation',
         PKDict(),
     )
@@ -92,15 +86,18 @@ def test_opal(fc):
 
 def test_radia(fc):
     fc.sr_animation_run(
-        'Dipole',
+        fc.sr_sim_data('Dipole'),
         'solverAnimation',
         PKDict(),
     )
 
 
 def test_srw(fc):
+    data = fc.sr_sim_data("Young's Double Slit Experiment")
+    data.models.multiElectronAnimation.numberOfMacroElectrons = 4
+    data.models.simulation.sampleFactor = 0.0001
     fc.sr_animation_run(
-        "Young's Double Slit Experiment",
+        data,
         'multiElectronAnimation',
         PKDict(
             multiElectronAnimation=PKDict(
@@ -110,13 +107,12 @@ def test_srw(fc):
             ),
         ),
         timeout=20,
-        expect_completed=False,
     )
 
 
 def test_synergia(fc):
     fc.sr_animation_run(
-        'Simple FODO',
+        fc.sr_sim_data('Simple FODO'),
         'animation',
         PKDict(
             beamEvolutionAnimation=PKDict(
@@ -140,27 +136,45 @@ def test_synergia(fc):
 
 
 def test_warppba(fc):
+    data = fc.sr_sim_data('Laser Pulse')
+    data.models.simulationGrid.update(dict(
+        rScale=1,
+        rLength=5.081245038595,
+        rMax=5.081245038595,
+        rMin=0,
+        rCount=8,
+        rCellsPerSpotSize=8,
+        rParticlesPerCell=1,
+        rCellResolution=20,
+        zScale=1,
+        zLength=10.162490077316,
+        zMax=1.600000000000,
+        zMin=-10.162490077316,
+        zCellsPerWavelength=8,
+        zCount=118,
+        zParticlesPerCell=1,
+        zCellResolution=20,
+    ))
+    data.models.electronPlasma.length = 0.05
     fc.sr_animation_run(
-        'Laser Pulse',
+        data,
         'animation',
         PKDict(
             particleAnimation=PKDict(
                 expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
-                expect_y_range='-2.096.*e-05, 2.096.*e-05, 219',
+                expect_y_range='-5.7.*e-06, 5.7.*e-06, 219',
             ),
             fieldAnimation=PKDict(
                 expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
-                expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
+                expect_y_range='-5.*e-06, 5.*e-06, 18',
             ),
         ),
-        timeout=20,
-        expect_completed=False,
     )
 
 
-def test_warpvnd_1(fc):
+def test_warpvnd(fc):
     fc.sr_animation_run(
-        'Two Poles',
+        fc.sr_sim_data('Two Poles'),
         'fieldCalculationAnimation',
         PKDict(
             fieldCalcAnimation=PKDict(
@@ -170,30 +184,31 @@ def test_warpvnd_1(fc):
         ),
         timeout=20,
     )
-
-
-def test_warpvnd_2(fc):
+    data = fc.sr_sim_data('Two Poles')
+    data.models.simulationGrid.update(dict(
+        num_steps=100,
+        channel_width=0.09,
+    ))
     fc.sr_animation_run(
-        'Two Poles',
+        data,
         'animation',
         PKDict(
             currentAnimation=PKDict(
                 frame_index=0,
-                expect_y_range='0.0, 2.*e-05',
+                expect_y_range='0.0, 9.9.*e-06',
             ),
             fieldAnimation=PKDict(
                 frame_index=0,
-                expect_y_range='-1e-07, 1e-07, 23',
+                expect_y_range='-4.5e-08, 4.5e-08, 23',
             ),
         ),
-        expect_completed=False,
         timeout=20,
     )
 
 
 def test_zgoubi(fc):
     fc.sr_animation_run(
-        'EMMA',
+        fc.sr_sim_data('EMMA'),
         'animation',
         PKDict(
             bunchAnimation=PKDict(
