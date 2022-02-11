@@ -303,7 +303,12 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     };
 
     function isCrossSectionModel(modelKey) {
-        return modelKey.includes('instrumentAnimation') && modelKey != 'instrumentAnimationTwiss';
+        if (modelKey.includes('instrumentAnimation') && /\d/.test(modelKey)){
+            //srdbg('only instrumentAnimations with numbered ids?: ', modelKey);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function loadHeatmapReports(data) {
@@ -326,6 +331,13 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                  appState.saveChanges(m);
             }
         }
+
+        appState.models.instrumentAnimationAll.valueList = {
+            x: data.ptcTrackColumns,
+            y1: data.ptcTrackColumns,
+        };
+        appState.models.instrumentAnimationAll.particlePlotSize = appState.models.controlSettings.particlePlotSize;
+
 
         // appState.saveQuietly('instrumentAnimation');
         // console.log('test111111');
@@ -455,7 +467,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         // srdbg('model changed: ', name);
     })
 
-    $scope.$on('instrumentAnimation.changed', () => {
+    $scope.$on('instrumentAnimationAll.changed', () => {
         srdbg('self instrument animations', self.instrumentAnimations);
         if (!self.instrumentAnimations){
             return
@@ -469,9 +481,10 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             for (const key in appState.models[e.modelKey]) {
                 // srdbg('key', key)
                 if (key != 'id'){
-                    appState.models[e.modelKey][key] = appState.models.instrumentAnimation[key];
+                    appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
                 }
             }
+            // appState.saveQuietly(e.modelKey)
             appState.saveChanges(e.modelKey)
         });
         // for (const i in self.instrumentAnimations) {
