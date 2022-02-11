@@ -124,7 +124,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     // TODO(e-carlin): sort
     self.simAnalysisModel = 'instrumentAnimation';
-
     function buildWatchColumns() {
         self.watches = [];
         for (let el of controlsService.beamlineElements()) {
@@ -301,10 +300,14 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         frameCache.setFrameCount(data.frameCount);
     };
 
+    function isCrossSectionModel(modelKey) {
+        return modelKey.includes('instrumentAnimation') && /\d/.test(modelKey);
+    }
+
     function loadHeatmapReports(data) {
         self.instrumentAnimations = [];
         for (const m in appState.models) {
-            if (m.includes('instrumentAnimation')) {
+            if (isCrossSectionModel(m)) {
                 appState.models[m].valueList = {
                         x: data.ptcTrackColumns,
                         y1: data.ptcTrackColumns,
@@ -321,6 +324,11 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                  appState.saveChanges(m);
             }
         }
+        appState.models.instrumentAnimationAll.valueList = {
+            x: data.ptcTrackColumns,
+            y1: data.ptcTrackColumns,
+        };
+        appState.models.instrumentAnimationAll.particlePlotSize = appState.models.controlSettings.particlePlotSize;
     }
 
     function loadTwissReport(data) {
@@ -378,14 +386,14 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         keys.push('instrumentAnimationTwiss');
         setAnimationModel('instrumentAnimationTwiss',
             'instrumentAnimationTwiss',
-            appState.models.externalLattice.models.length + 2
+            appState.models.externalLattice.models.elements.length + 2
         );
         appState.saveChanges(keys);
     }
 
     function checkModelSet(model) {
         for (const m in appState.models) {
-            if (m.includes(model)) {
+            if (m.includes(model) && m != 'instrumentAnimationAll') {
                 return true;
             }
         }
@@ -419,14 +427,31 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     });
     $scope.$on('controlSettings.changed', () => {
         for (const m in appState.models) {
-            if (m.includes('instrumentAnimation')) {
+            if (m.includes('instrumentAnimation') && m != 'instrumentAnimationAll') {
                 appState.models[m].particlePlotSize = appState.models.controlSettings.particlePlotSize;
                 appState.saveQuietly(m);
             }
         }
     });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
-
+    $scope.$on('instrumentAnimationAll.changed', () => {
+        if (!self.instrumentAnimations){
+            return;
+        }
+        const m = [];
+        self.instrumentAnimations.forEach((e, i) => {
+            if (e.modelKey == 'instrumentAnimationAll' || e.modelKey == 'instrumentAnimationTwiss'){
+                return;
+            }
+            for (const key in appState.models[e.modelKey]) {
+                if (key != 'id'){
+                    appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
+                }
+            }
+            m.push(e.modelKey);
+        });
+        appState.saveChanges(m);
+    });
     return self;
 });
 

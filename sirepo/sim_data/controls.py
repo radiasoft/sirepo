@@ -58,6 +58,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'command_twiss',
                 'dataFile',
                 'initialMonitorPositionsReport',
+                'instrumentAnimationAll',
             ),
         )
         if 'externalLattice' in dm:
