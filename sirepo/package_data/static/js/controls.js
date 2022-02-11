@@ -386,7 +386,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         keys.push('instrumentAnimationTwiss');
         setAnimationModel('instrumentAnimationTwiss',
             'instrumentAnimationTwiss',
-            appState.models.externalLattice.models.elements.length + 2,
+            appState.models.externalLattice.models.elements.length + 2
         );
         appState.saveChanges(keys);
     }
@@ -436,7 +436,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
     $scope.$on('instrumentAnimationAll.changed', () => {
         if (!self.instrumentAnimations){
-            return
+            return;
         }
         self.instrumentAnimations.forEach((e, i) => {
             if (e.modelKey == 'instrumentAnimationAll' || e.modelKey == 'instrumentAnimationTwiss'){
@@ -447,9 +447,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                     appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
                 }
             }
-            appState.saveChanges(e.modelKey)
+            appState.saveChanges(e.modelKey);
         });
-    })
+    });
     return self;
 });
 
