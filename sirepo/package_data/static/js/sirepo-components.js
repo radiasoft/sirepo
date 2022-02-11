@@ -650,7 +650,7 @@ SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
         template: `
             <div class="panel panel-info">
               <div class="panel-heading clearfix" data-panel-heading="{{ panelHeading() }}" data-model-key="modelKey"></div>
-              <div data-show-loading-and-error="">
+              <div data-show-loading-and-error="" data-model-key="modelKey">
                 <div data-ng-show="showTranscludedElement()">
                   <transcluded-element></transcluded-element>
                 </div>
