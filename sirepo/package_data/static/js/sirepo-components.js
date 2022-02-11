@@ -894,7 +894,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
                 <li class="dropdown-header">{{ authState.paymentPlanName() }}</li>
                 <li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>
                 <li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl('admJobs') }}">Admin</a></li>
-                <li><a data-ng-click="showJobsList()">Jobs</a></li>
+                <li><a data-ng-click="showJobsList()" style="cursor:pointer">Jobs</a></li>
                 <li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>
               </ul>
             </li>
@@ -1662,7 +1662,7 @@ SIREPO.app.directive('pendingLinkToSimulations', function() {
         },
         template: `
             <div data-ng-show="simState.isStatePending()">
-              <a data-ng-click="showJobsList()">
+              <a data-ng-click="showJobsList()" style="cursor:pointer">
                 <span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}
               </a>
             </div>
