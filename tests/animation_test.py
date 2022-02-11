@@ -36,7 +36,7 @@ def test_elegant(fc):
 
 def test_jspec(fc):
     data = fc.sr_sim_data('DC Cooling Example')
-    data.models.simulationSettings.update(dict(
+    data.models.simulationSettings.update(PKDict(
         time=1,
         step_number=1,
         time_step=1,
@@ -138,7 +138,7 @@ def test_synergia(fc):
 
 def test_warppba(fc):
     data = fc.sr_sim_data('Laser Pulse')
-    data.models.simulationGrid.update(dict(
+    data.models.simulationGrid.update(PKDict(
         rScale=1,
         rLength=5.081245038595,
         rMax=5.081245038595,
@@ -187,7 +187,7 @@ def test_warpvnd(fc):
         timeout=20,
     )
     data = fc.sr_sim_data('Two Poles')
-    data.models.simulationGrid.update(dict(
+    data.models.simulationGrid.update(PKDict(
         num_steps=100,
         channel_width=0.09,
     ))
