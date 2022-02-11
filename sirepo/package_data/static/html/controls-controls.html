@@ -41,7 +41,7 @@
       </div>
     </div>
   </div>
-  <div class="container-fluid" data-ng-if="! controls.controlsService.isDeviceServer()">
+  <div data-ng-if="! controls.controlsService.isDeviceServer()">
     <div data-simple-panel="instrumentAnimationAll" data-ng-show="controls.simState.hasFrames()">
       <div class="row sr-row-heatmaps">
         <div class="col-md-4 col-xl-3 col-xxl-2 " data-ng-show="controls.simState.hasFrames() && m.modelKey != 'instrumentAnimationTwiss' && m.modelKey != 'instrumentAnimationAll'" data-ng-repeat="m in controls.instrumentAnimations track by $index"  >

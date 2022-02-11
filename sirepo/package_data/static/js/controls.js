@@ -438,6 +438,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         if (!self.instrumentAnimations){
             return;
         }
+        const m = [];
         self.instrumentAnimations.forEach((e, i) => {
             if (e.modelKey == 'instrumentAnimationAll' || e.modelKey == 'instrumentAnimationTwiss'){
                 return;
@@ -447,8 +448,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                     appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
                 }
             }
-            appState.saveChanges(e.modelKey);
+            m.push(e.modelKey);
         });
+        appState.saveChanges(m);
     });
     return self;
 });
