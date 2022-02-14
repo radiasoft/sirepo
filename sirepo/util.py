@@ -4,7 +4,6 @@ u"""Support routines and classes, mostly around errors and I/O.
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
@@ -12,7 +11,6 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 import asyncio
 import base64
 import concurrent.futures
-import contextlib
 import hashlib
 import importlib
 import inspect
@@ -189,6 +187,22 @@ def create_token(value):
 
 def err(obj, fmt='', *args, **kwargs):
     return '{}: '.format(obj) + fmt.format(*args, **kwargs)
+
+
+def files_to_watch_for_reload(*extensions):
+    from sirepo import feature_config
+    if not pkconfig.channel_in('dev'):
+        return []
+    for e in extensions:
+        for p in set(['sirepo', *feature_config.cfg().package_path]):
+            d = pykern.pkio.py_path(
+                getattr(importlib.import_module(p), '__file__'),
+            ).dirname
+            for f in pykern.pkio.sorted_glob(
+                    f'{d}/**/*.{e}',
+                    recursive=True,
+            ):
+                yield f
 
 
 def find_obj(arr, key, value):
