@@ -225,13 +225,12 @@ class _TestClient(flask.testing.FlaskClient):
         self.sr_sim_type = None
         self.sr_uid = None
 
-    def sr_animation_run(self, sim_name, compute_model, reports=None, **kwargs):
+    def sr_animation_run(self, data, compute_model, reports=None, **kwargs):
         from pykern import pkunit
         from pykern.pkcollections import PKDict
         from pykern.pkdebug import pkdp, pkdlog
         import re
 
-        data = self.sr_sim_data(sim_name)
         run = self.sr_run_sim(data, compute_model, **kwargs)
         for r, a in reports.items():
             if 'runSimulation' in a:
