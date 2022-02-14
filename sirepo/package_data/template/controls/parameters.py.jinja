@@ -176,7 +176,6 @@ def update_and_run_simulation(correctors):
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
             # POSIT: one table option is enabled.
         read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
-        read_cols_and_save_report('twiss.file.tfs', '{{ twissFile }}', '{{ twissColsFile }}')
         return res
     return np.full(int({{ monitorCount }}), 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
