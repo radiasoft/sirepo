@@ -165,17 +165,23 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _add_monitor(data):
-    if list(filter(lambda el: el.type == 'MONITOR', data.models.elements)):
-        return
-    m = PKDict(
-        _id=LatticeUtil.max_id(data) + 1,
-        name='M_1',
-        type='MONITOR',
-    )
-    data.models.elements.append(m)
-    assert len(data.models.beamlines) == 1, \
-        f'expecting 1 beamline={data.models.beamlines}'
-    data.models.beamlines[0]['items'].append(m._id)
+    for i, e in enumerate(data.models.elements):
+        if e.type == 'MARKER':
+            data.models.elements[i] = PKDict(
+                _id=e._id,
+                name=e.name,
+                type='MONITOR',
+            )
+    if not list(filter(lambda el: el.type == 'MONITOR', data.models.elements)):
+        m = PKDict(
+            _id=LatticeUtil.max_id(data) + 1,
+            name='M1',
+            type='MONITOR',
+        )
+        data.models.elements.append(m)
+        assert len(data.models.beamlines) == 1, \
+            f'expecting 1 beamline={data.models.beamlines}'
+        data.models.beamlines[0]['items'].append(m._id)
 
 
 def _delete_unused_madx_commands(data):

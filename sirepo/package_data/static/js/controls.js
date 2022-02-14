@@ -400,6 +400,13 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         return false;
     }
 
+    self.hasInstrumentAnimations = () => {
+        if (self.instrumentAnimations != null) {
+            return self.instrumentAnimations.length;
+        }
+        return false;
+    };
+
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
