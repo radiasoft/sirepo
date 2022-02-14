@@ -42,7 +42,7 @@
     </div>
   </div>
   <div data-ng-if="! controls.controlsService.isDeviceServer()">
-    <div data-simple-panel="instrumentAnimationAll" data-ng-show="controls.simState.hasFrames()">
+    <div data-simple-panel="instrumentAnimationAll" data-ng-show="controls.simState.hasFrames() && controls.hasInstrumentAnimations() ">
       <div class="row sr-row-heatmaps">
         <div class="col-md-4 col-xl-3 col-xxl-2 " data-ng-show="controls.simState.hasFrames() && m.modelKey != 'instrumentAnimationTwiss' && m.modelKey != 'instrumentAnimationAll'" data-ng-repeat="m in controls.instrumentAnimations track by $index"  >
           <div data-report-content="heatmap" data-model-key="{{ m.modelKey }}" data-panel-title="Instrument Cross Section" ></div>
