@@ -405,7 +405,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             return self.instrumentAnimations.length;
         }
         return false;
-    }
+    };
 
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
