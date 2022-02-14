@@ -5,7 +5,6 @@ u"""Controls execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from aenum import enum
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -166,11 +165,14 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _add_monitor(data):
-    o = list(filter(lambda el: el.type == 'MONITOR', data.models.elements))
-    a = list(filter(lambda el: el.type == 'MARKER', data.models.elements))
-    if o and not a:
-        return
-    if not o and not a:
+    for i, e in enumerate(data.models.elements):
+        if e.type == 'MARKER':
+            data.models.elements[i] = PKDict(
+                _id=e._id,
+                name=e.name,
+                type='MONITOR',
+            )
+    if not list(filter(lambda el: el.type == 'MONITOR', data.models.elements)):
         m = PKDict(
             _id=LatticeUtil.max_id(data) + 1,
             name='M1',
@@ -180,15 +182,6 @@ def _add_monitor(data):
         assert len(data.models.beamlines) == 1, \
             f'expecting 1 beamline={data.models.beamlines}'
         data.models.beamlines[0]['items'].append(m._id)
-        return
-    for i, e in enumerate(data.models.elements):
-        if e.type == 'MARKER':
-            m = PKDict(
-                _id=e._id,
-                name=e.name,
-                type='MONITOR',
-            )
-            data.models.elements[i] = m
 
 
 def _delete_unused_madx_commands(data):
