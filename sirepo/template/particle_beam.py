@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import numpy as np
+from pykern.pkdebug import pkdp
 import scipy.constants as sc
 
 # Methods provided from jupyter notebook with no changes
