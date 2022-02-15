@@ -19,15 +19,6 @@ import re
 import sirepo.template.madx as template
 
 
-def particle_file_for_external_lattice():
-    data = simulation_db.read_json(
-        template_common.INPUT_BASE_NAME,
-    ).models.externalLattice
-    data.report = 'unused'
-    data.models.bunch.matchTwissParameters = '0'
-    _create_particle_file(pkio.py_path('.'), data)
-
-
 def run(cfg_dir):
     _run_simulation(cfg_dir)
     template.save_sequential_report_data(
@@ -40,7 +31,7 @@ def run_background(cfg_dir):
     _run_simulation(cfg_dir)
 
 
-def _create_particle_file(cfg_dir, data):
+def create_particle_file(cfg_dir, data):
     twiss = PKDict()
     if _is_matched_bunch(data):
         report = data.report
@@ -120,6 +111,6 @@ def _run_simulation(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if _need_particle_file(data):
-        _create_particle_file(cfg_dir, data)
+        create_particle_file(cfg_dir, data)
     if cfg_dir.join(template.MADX_INPUT_FILE).exists():
         _run_madx()

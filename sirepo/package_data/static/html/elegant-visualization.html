@@ -22,7 +22,7 @@
           </form>
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isStopped()">
             <div class="col-sm-12">
-              <div data-simulation-stopped-status="visualization.simState"></div>
+              <div data-simulation-stopped-status="visualization.simState" data-ng-if=" visualization.simState.stateAsText() != 'Missing' "></div>
               <div class="col-sm-12" data-ng-show="visualization.simState.hasTimeData()" data-simulation-status-timer="visualization.simState"></div>
               <br><br>
               <div class="well well-lg" data-ng-show="visualization.simulationAlerts || visualization.simState.hasFrames()">

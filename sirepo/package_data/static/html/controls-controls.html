@@ -8,6 +8,15 @@
     <div class="col-sm-12 col-xxl-6">
       <div data-simple-panel="beamline">
         <div id="sr-lattice" data-lattice="" class="sr-plot" data-margin="40" data-model-name="beamlines" data-path-to-models="externalLattice"></div>
+        <div class="row">
+          <div style="position: relative;" class="col-sm-5" data-ng-if="controls.twissReport && ! controls.controlsService.isDeviceServer()" data-ng-show="controls.simState.hasFrames()">
+            <h4 style="position: absolute; top: -2%; left: 10%;">Twiss Parameters</h4>
+            <button style="position: absolute; top: -1%; right: 5%;" ng-click="controls.showTwissEditor()" class="btn bg-info">
+              <span class="glyphicon glyphicon-pencil text-primary"></span>
+            </button>
+            <div data-report-content="parameterWithExternalLattice" data-model-key="{{ controls.twissReport.modelKey }}" data-panel-title="{{ controls.twissReport.getData().panelTitle }}"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState">
@@ -32,11 +41,14 @@
       </div>
     </div>
   </div>
-  <div class="row sr-row-heatmaps" data-ng-if="! controls.controlsService.isDeviceServer()">
-    <div class="col-md-4 col-xl-3 col-xxl-2" data-ng-show="controls.simState.hasFrames()" data-ng-repeat="m in controls.instrumentAnimations track by $index"  >
-      <div data-report-panel="heatmap" data-model-data="m" data-panel-title="Instrument Cross Section" ></div>
+  <div data-ng-if="! controls.controlsService.isDeviceServer()">
+    <div data-simple-panel="instrumentAnimationAll" data-ng-show="controls.simState.hasFrames() && controls.hasInstrumentAnimations() ">
+      <div class="row sr-row-heatmaps">
+        <div class="col-md-4 col-xl-3 col-xxl-2 " data-ng-show="controls.simState.hasFrames() && m.modelKey != 'instrumentAnimationTwiss' && m.modelKey != 'instrumentAnimationAll'" data-ng-repeat="m in controls.instrumentAnimations track by $index"  >
+          <div data-report-content="heatmap" data-model-key="{{ m.modelKey }}" data-panel-title="Instrument Cross Section" ></div>
+        </div>
+      </div>
     </div>
   </div>
   {{ controls.init() }}
 </div>
-<div class="editor" data-modal-editor="" data-view-name="instrumentAnimation" data-model-data="m" data-ng-repeat="m in controls.instrumentAnimations"></div>

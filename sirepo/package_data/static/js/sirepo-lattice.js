@@ -1254,9 +1254,11 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
             modelName: '@',
             reportId: '<',
             beamlineId: '<',
+            pathToModels: '@',
+            showTable: '@',
         },
         template: [
-            '<div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-flatten="1"></div></div>',
+            '<div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-show-table-"{{ showTable }}" data-path-to-models="{{ pathToModels }}" data-flatten="1"></div></div>',
             '<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -1319,6 +1321,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             modelName: '@',
             flatten: '@',
             pathToModels: '@',
+            showTable: '@',
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {

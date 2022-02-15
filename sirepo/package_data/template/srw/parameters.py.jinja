@@ -480,7 +480,7 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
     a = [0.0, 0.0, 0.0]
     {% for t in e.rotation.initial %}
     {% if e.rotation.offsets[loop.index0] != 0 %}
-    a[{{ loop.index0 }}] = {{ e.title }}_{{ e[p].fieldNames[loop.index0] }}
+    a[{{ loop.index0 }}] = {{ e.title }}_{{ e.rotation.fieldNames[loop.index0] }}
     {% endif %}
     {% endfor %}
     n = _apply_rotation(a, {{ e.rotation.initial }})
