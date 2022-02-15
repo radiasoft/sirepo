@@ -63,7 +63,7 @@ def default_command():
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
     if cfg.debug:
-        for f in sirepo.util.files_to_watch_for_reload('jinja', 'json', 'py'):
+        for f in sirepo.util.files_to_watch_for_reload('json', 'py'):
             tornado.autoreload.watch(f)
 
     server = tornado.httpserver.HTTPServer(
