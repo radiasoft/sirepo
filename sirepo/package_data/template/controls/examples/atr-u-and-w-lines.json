@@ -818,12 +818,6 @@
                         "sigt": 1
                     },
                     {
-                        "_id": 298,
-                        "_type": "select",
-                        "column": "name,keyword,s,x,y",
-                        "flag": "twiss"
-                    },
-                    {
                         "_id": 294,
                         "_type": "twiss",
                         "alfx": 0,

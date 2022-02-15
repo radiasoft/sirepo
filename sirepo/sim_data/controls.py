@@ -59,6 +59,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'dataFile',
                 'initialMonitorPositionsReport',
                 'instrumentAnimationAll',
+                'instrumentAnimationTwiss',
             ),
         )
         if 'externalLattice' in dm:
@@ -71,6 +72,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             cls._init_models(dm, ('controlSettings',))
             if 'inputs' not in dm.optimizerSettings:
                 cls.init_optimizer_inputs(dm.optimizerSettings, dm.externalLattice.models)
+            cls._remove_select_command(dm.externalLattice.models)
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0
@@ -158,6 +160,14 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         return []
+
+    @classmethod
+    def _remove_select_command(cls, dm):
+        cmds = []
+        for cmd in dm.commands:
+            if cmd._type != 'select':
+                cmds.append(cmd)
+        dm.commands = cmds
 
 
 class AmpConverter():
