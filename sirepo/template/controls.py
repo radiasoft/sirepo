@@ -319,9 +319,9 @@ def _generate_parameters(v, data):
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header)
     v.schema = SCHEMA
-    v.isTrackingSim = True if LatticeUtil.find_first_command(data, 'ptc_create_universe') else False
     if i:
         _add_ptc(i, data.models.externalLattice)
+    v.isTrackingSim = True if LatticeUtil.find_first_command(data.models.externalLattice, 'ptc_create_universe') else False
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
