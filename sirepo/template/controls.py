@@ -318,6 +318,7 @@ def _generate_parameters(v, data):
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header)
+    v.schema = SCHEMA
     if i:
         _add_ptc(i, data.models.externalLattice)
     if data.models.controlSettings.operationMode == 'madx':
