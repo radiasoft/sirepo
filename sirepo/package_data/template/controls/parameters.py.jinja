@@ -122,11 +122,9 @@ def check_twiss_success():
         particle_beam.read_ptc_data('ptc_track.file.tfsone')[0],
         mc2=s['constants']['particleMassAndCharge']['proton'][0],
     )
-    pkdp('\n\n\n\n res: {}', res)
     for col in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
+        #TODO (gurhar1133): single letter vars here
         nans = list(filter(lambda x: x != x, res[col]))
-        pkdp('\n\n\n res[col] : {}', res[col])
-        pkdp('\n\n\n nans: {}', nans)
         if nans:
             return False
     return True
