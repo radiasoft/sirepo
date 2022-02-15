@@ -319,6 +319,7 @@ def _generate_parameters(v, data):
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header)
     v.schema = SCHEMA
+    v.isTrackingSim = True if LatticeUtil.find_first_command(data, 'ptc_create_universe') else False
     if i:
         _add_ptc(i, data.models.externalLattice)
     if data.models.controlSettings.operationMode == 'madx':
