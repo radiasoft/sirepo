@@ -29,6 +29,7 @@ __cfg = None
 
 def flask():
     from sirepo import server
+    from sirepo import util
     import sirepo.pkcli.setup_dev
 
     with pkio.save_chdir(_run_dir()) as r:
@@ -42,6 +43,7 @@ def flask():
         werkzeug.serving.click = None
         app.run(
             exclude_patterns=[str(r.join('*'))],
+            extra_files=util.files_to_watch_for_reload('json'),
             host=_cfg().ip,
             port=_cfg().port,
             threaded=True,
