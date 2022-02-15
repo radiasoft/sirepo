@@ -155,13 +155,13 @@
                     "elId": 108,
                     "isWritable": "0",
                     "pvDimension": "horizontal",
-                    "pvName": "bpms.bpm1h:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpm1h:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 108,
                     "isWritable": "0",
                     "pvDimension": "vertical",
-                    "pvName": "bpms.bpm1v:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpm1v:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 104,
@@ -191,7 +191,7 @@
                     "elId": 110,
                     "isWritable": "0",
                     "pvDimension": "horizontal",
-                    "pvName": "bpms.bpmx1h:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpmx1h:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 120,
@@ -209,7 +209,7 @@
                     "elId": 112,
                     "isWritable": "0",
                     "pvDimension": "vertical",
-                    "pvName": "bpms.bpmy1v:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpmy1v:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 119,
@@ -227,7 +227,7 @@
                     "elId": 111,
                     "isWritable": "0",
                     "pvDimension": "horizontal",
-                    "pvName": "bpms.bpmx2h:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpmx2h:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 121,
@@ -245,7 +245,7 @@
                     "elId": 113,
                     "isWritable": "0",
                     "pvDimension": "vertical",
-                    "pvName": "bpms.bpmy2v:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpmy2v:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 157,
@@ -287,13 +287,13 @@
                     "elId": 109,
                     "isWritable": "0",
                     "pvDimension": "horizontal",
-                    "pvName": "bpms.bpm2h:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpm2h:tbtOrbPositionM[0]"
                 },
                 {
                     "elId": 109,
                     "isWritable": "0",
                     "pvDimension": "vertical",
-                    "pvName": "bpms.bpm2v:tbtOrbitPositionM[0]"
+                    "pvName": "bpms.bpm2v:tbtOrbPositionM[0]"
                 }
             ]
         },
@@ -396,20 +396,6 @@
                         "sequence": "",
                         "sige": 0.001,
                         "sigt": 1
-                    },
-                    {
-                        "_id": 144,
-                        "_type": "select",
-                        "class": "",
-                        "clear": "0",
-                        "column": "name,keyword,s,x,y",
-                        "flag": "twiss",
-                        "full": "0",
-                        "pattern": "",
-                        "range": "",
-                        "sequence": "",
-                        "slice": 1,
-                        "thick": "0"
                     },
                     {
                         "_id": 131,
