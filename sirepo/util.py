@@ -198,10 +198,7 @@ def files_to_watch_for_reload(*extensions):
             d = pykern.pkio.py_path(
                 getattr(importlib.import_module(p), '__file__'),
             ).dirname
-            for f in pykern.pkio.sorted_glob(
-                    f'{d}/**/*.{e}',
-                    recursive=True,
-            ):
+            for f in pykern.pkio.sorted_glob(f'{d}/**/*.{e}'):
                 yield f
 
 
