@@ -85,12 +85,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 del dm['hybridUndulator']
             if not dm.undulatorHybrid.get('terminations'):
                 dm.undulatorHybrid.terminations = []
-            t = _find_obj_by_name(dm.geometryReport.objects, 'Termination')
-            if not t:
-                t = cls.model_defaults('geomGroup')
-                t.name = 'Termination'
-                dm.geometryReport.objects.append(t)
-                _find_obj_by_name(dm.geometryReport.objects, 'Octant')
             b = _find_obj_by_name(dm.geometryReport.objects, 'End Block')
             if b:
                 b.name = 'termination.magnet.0'
