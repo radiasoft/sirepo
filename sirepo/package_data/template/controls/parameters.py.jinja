@@ -119,13 +119,12 @@ def _optimize_polyfit(variable_count):
 def check_twiss_success():
     if not {{ isTrackingSim }}:
         return True
-    s = {{ schema }}
     res = particle_beam.analyze_ptc_beam(
         particle_beam.read_ptc_data('ptc_track.file.tfsone')[0],
-        mc2=s['constants']['particleMassAndCharge']['proton'][0],
+        mc2={{ mc2 }},
     )
     for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
-        if list(filter(lambda x: x != x, res[c])):
+        if list(filter(lambda x: np.isnan(x), res[c])):
             return False
     return True
 

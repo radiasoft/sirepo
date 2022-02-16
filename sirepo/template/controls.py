@@ -318,10 +318,10 @@ def _generate_parameters(v, data):
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header)
-    v.schema = SCHEMA
+    v.mc2 = SCHEMA.constants.particleMassAndCharge.proton[0]
     if i:
         _add_ptc(i, data.models.externalLattice)
-    v.isTrackingSim = True if LatticeUtil.find_first_command(data.models.externalLattice, 'ptc_create_universe') else False
+    v.isTrackingSim = bool(LatticeUtil.find_first_command(data.models.externalLattice, 'ptc_create_universe'))
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
