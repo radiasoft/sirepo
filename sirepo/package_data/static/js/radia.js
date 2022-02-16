@@ -3817,112 +3817,77 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 });
 
-for (const d of SIREPO.APP_SCHEMA.enum.DipoleType) {
-    SIREPO.viewLogic(d[0] + 'View', function(appState, panelState, radiaService, $scope) {
-        let editedModels = [];
-        let models = {};
-        for (const p of $scope.$parent.advancedFields) {
-            models[p[0]] = {
-                objName: p[0].toLowerCase(),
-                obj: appState.models[$scope.modelName][p[0].toLowerCase()],
+for(const m of ['Dipole', 'Undulator']) {
+    for (const d of SIREPO.APP_SCHEMA.enum[m + 'Type']) {
+        SIREPO.viewLogic(d[0] + 'View', function(appState, panelState, radiaService, $scope) {
+            let editedModels = [];
+            let models = {};
+            for (const p of $scope.$parent.advancedFields) {
+                const page = p[0];
+                models[page] = {};
+                // supports zero or one sub-model per page
+                for (const f of p[1]) {
+                    let m = appState.parseModelField(f);
+                    if (! m) {
+                        continue;
+                    }
+                    m = appState.parseModelField(m[1]);
+                    if (! m) {
+                        continue;
+                    }
+                    models[page] = {
+                        objModelName: m[0],
+                        obj: appState.models[$scope.modelName][m[0]],
+                    }
+                    break;
+                }
+            }
+
+            $scope.$on('cancelChanges', (e, d) => {
+                // geometryReport is not part of the superclass chain and needs to be handled
+                // separately
+                if (d !== 'geometryReport') {
+                    appState.cancelChanges('geometryReport');
+                }
+            });
+
+            $scope.$on('modelChanged', (e, d) => {
+                if (d !== 'geomObject' || ! activeModelId()) {
+                    return;
+                }
+                if (appState.models.geomObject.id === activeModelId()) {
+                    appState.models[$scope.modelName][activeObjModelName()] = appState.models.geomObject;
+                    appState.saveChanges($scope.modelName);
+                }
+            });
+
+            $scope.whenSelected = function() {
+                const o = getObjFromGeomRpt();
+                if (! o ) {
+                    return;
+                }
+                // set the object in the model to the equivalent object in the report
+                // also set the base model and its superclasses
+                appState.models[$scope.modelName][activeObjModelName()] = o;
+                editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
+                appState.saveChanges([$scope.modelName, ...editedModels]);
             };
-        }
 
-        $scope.$on('cancelChanges', (e, d) => {
-            // geometryReport is not part of the superclass chain and needs to be handled
-            // separately
-            if (d !== 'geometryReport') {
-                appState.cancelChanges('geometryReport');
+            function activeModelId() {
+                return (models[$scope.$parent.activePage.name].obj || {}).id;
             }
-        });
 
-        $scope.$on('modelChanged', (e, d) => {
-            if (d === 'geomObject' && appState.models.geomObject.id === activeModel().id) {
-                appState.models[$scope.modelName][activeObjName()] = appState.models.geomObject;
-                appState.saveChanges($scope.modelName);
+            function activeObjModelName() {
+                return models[$scope.$parent.activePage.name].objModelName;
             }
+
+            function getObjFromGeomRpt() {
+                return radiaService.getObject(activeModelId());
+            }
+
         });
-
-        $scope.whenSelected = function() {
-            const o = getObjFromGeomRpt();
-            // set the object in the dipole model to the equivalent object in the report
-            // also set the base model and its superclasses
-            appState.models[$scope.modelName][activeObjName()] = o;
-            editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
-            appState.saveChanges([$scope.modelName, ...editedModels]);
-        };
-
-        function activeModel() {
-            return models[$scope.$parent.activePage.name].obj;
-        }
-
-        function activeObjName() {
-            return models[$scope.$parent.activePage.name].objName;
-        }
-
-        function getObjFromGeomRpt() {
-            return radiaService.getObject(activeModel().id);
-        }
-
-    });
+    }
 }
-
-SIREPO.viewLogic('undulatorHybridView', function(appState, panelState, radiaService, $scope) {
-
-    $scope.watchFields = [
-        ['undulatorHybrid.magnetObjectType', 'undulatorHybrid.poleObjectType'], update
-    ];
-
-    const baseObjectNames = {
-        'Poles': 'pole',
-        'Permanent Magnets': 'magnet'
-    };
-
-    $scope.modelData = appState.models[$scope.modelName];
-
-    $scope.getBaseObject = function() {
-        return radiaService.getObject($scope.getBaseObjectId());
-    };
-
-    $scope.getBaseObjectId = function() {
-        let n = baseObjectName();
-        return n ?  $scope.modelData[`${n}BaseObjectId`] : null;
-    };
-
-    $scope.whenSelected = function() {
-        const o = $scope.getBaseObject();
-        if (! o) {
-            return;
-        }
-        appState.models.geomObject = o;
-        appState.saveChanges('geomObject');
-    };
-
-    $scope.$on('geomObject.changed', () => {
-        const o = $scope.getBaseObject();
-        if (! o || appState.models.geomObject.id != o.id) {
-            return;
-        }
-        $scope.modelData[`${baseObjectName()}Color`] = o.color;
-        $scope.modelData[`${baseObjectName()}ObjType`] = o.type;
-        appState.saveChanges($scope.modelName);
-    });
-
-    //TODO(mvk): this is all pretty cheesy.  Need a better relationship between the "magnet" like
-    // undulatorHybrid and the objects in geometryReport
-    function baseObjectName() {
-        return baseObjectNames[$scope.$parent.activePage.name];
-    }
-
-    function update(a) {
-    }
-
-    return {
-        getObjectId: $scope.getBaseObjectId,
-        getBaseObject: $scope.getBaseObject,
-    };
-});
-
 
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 

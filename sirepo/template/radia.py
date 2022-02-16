@@ -1210,21 +1210,20 @@ def _update_extruded(o):
     return o
 
 
-def _update_dipoleBasic(model, **kwargs):
+def _update_dipoleBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    pole_sz = sirepo.util.split_comma_delimited_string(d.pole.size, float)
+    pole_sz = sirepo.util.split_comma_delimited_string(assembly.pole.size, float)
     return _update_geom_obj(
-        d.pole,
+        assembly.pole,
         size=pole_sz,
         center=pole_sz * d.height_dir / 2 + model.gap * d.height_dir / 2,
         transforms=[_build_symm_xform(d.height_dir, 'parallel')]
     )
 
 
-def _update_dipoleC(model, **kwargs):
+def _update_dipoleC(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    a = d.assembly
-    mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(a.magnet.size, float))
+    mag_sz = numpy.array(sirepo.util.split_comma_delimited_string(assembly.magnet.size, float))
     pole_sz, pole_ctr = _fit_poles_in_c_bend(
         arm_height=model.magnet.armHeight,
         gap=model.gap,
@@ -1234,22 +1233,21 @@ def _update_dipoleC(model, **kwargs):
     )
     mag_ctr = mag_sz * d.width_dir / 2 - pole_sz * d.width_dir / 2
     _update_geom_obj(
-        a.pole,
+        assembly.pole,
         center=pole_ctr,
         size=pole_sz,
         transforms=[_build_symm_xform(d.height_dir, 'parallel')]
     )
-    _update_geom_obj(a.magnet, center=mag_ctr)
+    _update_geom_obj(assembly.magnet, center=mag_ctr)
     _update_geom_obj(
-        a.coil,
+        assembly.coil,
         center=mag_ctr + mag_sz * d.width_dir / 2 - model.magnet.stemWidth * d.width_dir / 2
     )
-    return a.magnetCoilGroup
+    return assembly.magnetCoilGroup
 
 
-def _update_dipoleH(model, **kwargs):
+def _update_dipoleH(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    a = d.assembly
     # magnetSize is for the entire magnet - split it here so we can apply symmetries
     mag_sz = numpy.array(
         sirepo.util.split_comma_delimited_string(model.magnetSize, float)
@@ -1261,23 +1259,23 @@ def _update_dipoleH(model, **kwargs):
         pole_width=model.poleWidth,
         **kwargs
     )
-    _update_geom_obj(a.pole, center=pole_ctr, size=pole_sz)
-    _update_geom_obj(a.coil, center=pole_ctr * d.height_dir)
+    _update_geom_obj(assembly.pole, center=pole_ctr, size=pole_sz)
+    _update_geom_obj(assembly.coil, center=pole_ctr * d.height_dir)
     _update_geom_obj(
-        a.magnet,
+        assembly.magnet,
         size=mag_sz,
         center=mag_sz / 2
     )
     # length and width symmetries
-    a.core_pole_group.transforms = [
+    assembly.corePoleGroup.transforms = [
         _build_symm_xform(d.length_dir, 'perpendicular'),
         _build_symm_xform(d.width_dir, 'perpendicular')
     ]
     # height symmetry
-    a.mag_coil_group.transforms = [
+    assembly.magnetCoilGroup.transforms = [
         _build_symm_xform(d.height_dir, 'parallel')
     ]
-    return a.magnetCoilGroup
+    return assembly.magnetCoilGroup
 
 
 def _update_geom_from_dipole(geom_objs, model, **kwargs):
@@ -1304,14 +1302,13 @@ def _update_geom_from_undulator(geom_objs, model, **kwargs):
     _build_undulator_termination(model, geom_objs, **kwargs)
     return pkinspect.module_functions('_update_')[f'_update_{model.undulatorType}'](
         model,
-        assembly=_get_radia_objects(geom_objs, model),
+        _get_radia_objects(geom_objs, model),
         **kwargs
     )
 
 
-def _update_undulatorBasic(model, **kwargs):
+def _update_undulatorBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    a = d.assembly
 
     pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
@@ -1490,10 +1487,9 @@ def _update_undulatorBasic(model, **kwargs):
     return oct_grp
 
 
-def _update_undulatorHybrid(model, **kwargs):
+def _update_undulatorHybrid(model, assembly, **kwargs):
 
     d = PKDict(kwargs)
-    a = d.assembly
     dir_matrix = numpy.array([d.width_dir, d.height_dir, d.length_dir])
 
     pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
@@ -1514,34 +1510,34 @@ def _update_undulatorHybrid(model, **kwargs):
     #     pole_sz * d.height_dir + \
     #     pole_sz * d.length_dir / 2
     for f in ['bevels', 'color', 'material', 'materialFile', 'remanentMag']:
-        a.halfPole[f] = copy.deepcopy(a.pole[f])
+        assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
     _update_geom_obj(
-        a.halfPole,
+        assembly.halfPole,
         center=pos + sz / 2 + gap_half_height,
         magnetization=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(a.pole.magnetization, float)
+            sirepo.util.split_comma_delimited_string(assembly.pole.magnetization, float)
         ),
         segments=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(a.pole.segments, int)
+            sirepo.util.split_comma_delimited_string(assembly.pole.segments, int)
         ),
         size=sz,
-        type=a.pole.type
+        type=assembly.pole.type
     )
     pos += sz / 2 * d.length_dir
 
-    sz = mag_x[0] * d.width_dir + \
+    sz = mag_x[0] / 2 * d.width_dir + \
          mag_x[1] * d.height_dir + \
          (model.periodLength / 2 - model.poleLength) * d.length_dir
     #sz = mag_sz * (d.width_dir / 2 + d.height_dir) + \
     #     (model.periodLength / 2 * d.length_dir - pole_sz * d.length_dir)
     _update_geom_obj(
-        a.magnet,
+        assembly.magnet,
         center=pos + sz / 2 + gap_half_height - gap_offset,
         magnetization=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(a.magnet.magnetization, float)
+            sirepo.util.split_comma_delimited_string(assembly.magnet.magnetization, float)
         ),
         segments=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(a.magnet.segments, int)
+            sirepo.util.split_comma_delimited_string(assembly.magnet.segments, int)
         ),
         size=sz
     )
@@ -1552,18 +1548,18 @@ def _update_undulatorHybrid(model, **kwargs):
          model.poleLength * d.length_dir
     #sz = pole_sz *(d.width_dir / 2 + d.height_dir + d.length_dir)
     _update_geom_obj(
-        a.pole,
+        assembly.pole,
         center=pos + sz / 2 + gap_half_height,
         magnetization=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(a.pole.magnetization, float)
+            sirepo.util.split_comma_delimited_string(assembly.pole.magnetization, float)
         ),
         segments=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(a.pole.segments, int)
+            sirepo.util.split_comma_delimited_string(assembly.pole.segments, int)
         ),
         size=sz,
     )
 
-    a.corePoleGroup.transforms = [] if model.numPeriods < 2 else \
+    assembly.corePoleGroup.transforms = [] if model.numPeriods < 2 else \
         [_build_clone_xform(
             model.numPeriods - 1,
             True,
@@ -1573,12 +1569,12 @@ def _update_undulatorHybrid(model, **kwargs):
     #pos = obj_props.pole.dim_half.length + \
     #    dirs.length_dir * (und.numPeriods * und.periodLength / 2)
 
-    a.octantGroup.transforms = [
+    assembly.octantGroup.transforms = [
         _build_symm_xform(d.width_dir, 'perpendicular'),
         _build_symm_xform(d.height_dir, 'parallel'),
         _build_symm_xform(d.length_dir, 'perpendicular'),
     ]
-    return a.octantGroup
+    return assembly.octantGroup
 
 
 def _build_undulator_termination(model, geom_objs, **kwargs):
@@ -1620,8 +1616,8 @@ def _build_undulator_termination(model, geom_objs, **kwargs):
         if t.type == 'magnet':
             num_term_mags += 1
     geom_objs.extend(terms)
-    _update_group(a.octantGroup, [
-        _update_group(a.terminationGroup, terms, do_replace=True)
+    _update_group(assembly.octantGroup, [
+        _update_group(assembly.terminationGroup, terms, do_replace=True)
     ])
 
 
