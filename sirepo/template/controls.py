@@ -221,8 +221,8 @@ def _generate_parameters_file(data):
     _generate_parameters(v, data)
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
-    v.optimizerTargets = data.models.optimizerSettings.targets
     v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
+    v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE
