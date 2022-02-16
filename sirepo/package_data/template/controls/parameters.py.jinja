@@ -5,6 +5,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import madx_parser
+from sirepo.template import particle_beam
 import os
 import numpy as np
 import re
@@ -115,6 +116,17 @@ def _optimize_polyfit(variable_count):
 {% endif %}
 
 {% if controlSettings_operationMode == 'madx' %}
+def check_twiss_success():
+    res = particle_beam.analyze_ptc_beam(
+        particle_beam.read_ptc_data('ptc_track.file.tfsone')[0],
+        mc2={{ mc2 }},
+    )
+    for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
+        if list(filter(lambda x: np.isnan(x), res[c])):
+            return False
+    return True
+
+
 def run_simulation(correctors):
     lattice = lattice_file
     values = {}
@@ -142,7 +154,11 @@ def run_simulation(correctors):
     if p.returncode != 0:
         return False
     lost = p.stdout.count('is lost')
+    {% if isTrackingSim %}
+    return lost != {{ particleCount }} and check_twiss_success()
+    {% else %}
     return lost != {{ particleCount }}
+    {% endif %}
 
 
 def read_cols_and_save_report(default_file, save_file, cols_file):
@@ -176,7 +192,6 @@ def update_and_run_simulation(correctors):
             f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
             # POSIT: one table option is enabled.
         read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
-        read_cols_and_save_report('twiss.file.tfs', '{{ twissFile }}', '{{ twissColsFile }}')
         return res
     return np.full(int({{ monitorCount }}), 1e24)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
