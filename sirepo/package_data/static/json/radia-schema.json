@@ -720,7 +720,7 @@
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "bevels": ["Bevels", "BevelTable", []],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
+            "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "segments": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
@@ -730,7 +730,7 @@
             "materialFile": ["Tabulated H-B from File", "InputFile", "", "H, B (T)"],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "type": ["Shape Type", "ObjectType", "cuboid"],
-            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
+            "size": ["Size [mm]", "FloatStringArray", "10.0, 10.0, 10.0", "", "x, y, z"]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
@@ -786,8 +786,8 @@
             "name": ["Name", "String", ""]
         },
         "objectBevel": {
-            "amountVert": ["Cut Distance in Vertical Direction (mm)", "Float", 1.0],
-            "amountHoriz": ["Cut Distance in Horizontal Direction (mm)", "Float", 1.0],
+            "amountVert": ["Cut Distance in Vertical Direction [mm]", "Float", 1.0],
+            "amountHoriz": ["Cut Distance in Horizontal Direction [mm]", "Float", 1.0],
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
             "edge": ["Bevel Edge", "BevelEdge", "0", "Index of base shape edge to bevel, relative to the view axis"],
@@ -800,7 +800,7 @@
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
+            "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "currentDensity": ["Current Density (A/mm)", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height", "Float", 105.0, "", "Size along axis"],
@@ -808,7 +808,7 @@
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
             "radii": ["Radii", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
-            "sides": ["Straight Sides", "FloatStringArray", "50.0, 62.5", "", "width (mm), length (mm)"],
+            "sides": ["Straight Sides [mm]", "FloatStringArray", "50.0, 62.5", "", "width, length"],
             "size": ["_", "FloatStringArray", "1.0, 1.0, 105.0"],
             "type": ["_", "ObjectType", "racetrack"]
         },
@@ -940,8 +940,8 @@
                 "segments": "1, 1, 3",
                 "size": "65.0, 18.0, 45.0"
             }],
-            "magnetCrossSection": ["Cross Section", "FloatStringArray", "65.0, 45.0", "", "Width [mm], Height [mm]"],
-            "magnetLength": ["Length", "Float", 18.0],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width, Height"],
+            "magnetLength": ["Length [mm]", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
                 "color": "#ff00ff",
@@ -954,8 +954,8 @@
                 "type": "cuboid",
                 "size": "45.0, 5.0, 25.0"
             }],
-            "poleCrossSection": ["Cross Section", "FloatStringArray", "45.0, 25.0", "", "Width [mm], Height [mm]"],
-            "poleLength":["Length", "Float", 5.0],
+            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
+            "poleLength":["Length [mm]", "Float", 5.0],
             "corePoleGroup": ["_", "model.geomGroup", {
                 "name": "core + pole"
             }],
