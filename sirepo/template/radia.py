@@ -1505,7 +1505,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     sz = pole_x[0] / 2 * d.width_dir + \
          d.height_dir * pole_x[1] + \
          model.poleLength / 2 * d.length_dir
-
+    ctr = pos + sz / 2 + gap_half_height
     #sz = pole_sz * d.width_dir / 2 + \
     #     pole_sz * d.height_dir + \
     #     pole_sz * d.length_dir / 2
@@ -1513,7 +1513,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
     _update_geom_obj(
         assembly.halfPole,
-        center=pos + sz / 2 + gap_half_height,
+        center=ctr,
         magnetization=dir_matrix.dot(
             sirepo.util.split_comma_delimited_string(assembly.pole.magnetization, float)
         ),
@@ -1523,16 +1523,17 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         size=sz,
         type=assembly.pole.type
     )
-    pos += sz / 2 * d.length_dir
+    pos += sz * d.length_dir
 
     sz = mag_x[0] / 2 * d.width_dir + \
          mag_x[1] * d.height_dir + \
          (model.periodLength / 2 - model.poleLength) * d.length_dir
+    ctr = pos + sz / 2 + gap_half_height - gap_offset
     #sz = mag_sz * (d.width_dir / 2 + d.height_dir) + \
     #     (model.periodLength / 2 * d.length_dir - pole_sz * d.length_dir)
     _update_geom_obj(
         assembly.magnet,
-        center=pos + sz / 2 + gap_half_height - gap_offset,
+        center=ctr,
         magnetization=dir_matrix.dot(
             sirepo.util.split_comma_delimited_string(assembly.magnet.magnetization, float)
         ),
@@ -1541,15 +1542,16 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         ),
         size=sz
     )
-    pos += sz / 2 * d.length_dir
+    pos += sz * d.length_dir
 
     sz = pole_x[0] / 2 * d.width_dir + \
          d.height_dir * pole_x[1] + \
          model.poleLength * d.length_dir
+    ctr = pos + sz / 2 + gap_half_height
     #sz = pole_sz *(d.width_dir / 2 + d.height_dir + d.length_dir)
     _update_geom_obj(
         assembly.pole,
-        center=pos + sz / 2 + gap_half_height,
+        center=ctr,
         magnetization=dir_matrix.dot(
             sirepo.util.split_comma_delimited_string(assembly.pole.magnetization, float)
         ),
@@ -1565,9 +1567,6 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
             True,
             [_build_translate_clone(model.periodLength / 2 * d.length_dir)]
         )]
-
-    #pos = obj_props.pole.dim_half.length + \
-    #    dirs.length_dir * (und.numPeriods * und.periodLength / 2)
 
     assembly.octantGroup.transforms = [
         _build_symm_xform(d.width_dir, 'perpendicular'),
