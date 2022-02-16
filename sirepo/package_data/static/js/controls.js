@@ -298,6 +298,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 controlsService.runningMessage = '';
             }
         }
+        srdbg('appState.models:', appState.models);
         frameCache.setFrameCount(data.frameCount);
     };
 
@@ -428,6 +429,11 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 appState.saveQuietly(m);
             }
         }
+    });
+    $scope.$on('command_beam.changed', () => {
+        srdbg('changed the particleCount');
+        appState.models.externalLattice.models.bunch.numberOfParticles = appState.models.command_beam.particleCount;
+        appState.saveChanges('externalLattice');
     });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
     $scope.$on('instrumentAnimationAll.changed', () => {
