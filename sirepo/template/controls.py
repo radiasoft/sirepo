@@ -184,6 +184,7 @@ def _delete_unused_madx_commands(data):
     )
     for c in data.models.commands:
         if c._type in by_name and not by_name[c._type]:
+            _SIM_DATA.update_model_defaults(c, f'command_{c._type}')
             by_name[c._type] = c
 
     if not by_name.twiss:
@@ -217,9 +218,6 @@ def _delete_unused_madx_models(data):
 
 
 def _generate_parameters_file(data):
-    data.models.externalLattice.models.bunch.numberOfParticles = data.models.command_beam.particleCount
-    pkdp('\n\n\n\n\n bunch.particles: {}', data.models.externalLattice.models.bunch.numberOfParticles)
-    pkdp('\n\n\n\n\n command_beam.particles: {}', data.models.command_beam.particleCount)
     res, v = template_common.generate_parameters_file(data)
     _generate_parameters(v, data)
     if data.models.controlSettings.operationMode == 'DeviceServer':
