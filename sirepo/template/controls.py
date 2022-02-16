@@ -217,6 +217,9 @@ def _delete_unused_madx_models(data):
 
 
 def _generate_parameters_file(data):
+    data.models.externalLattice.models.bunch.numberOfParticles = data.models.command_beam.particleCount
+    pkdp('\n\n\n\n\n bunch.particles: {}', data.models.externalLattice.models.bunch.numberOfParticles)
+    pkdp('\n\n\n\n\n command_beam.particles: {}', data.models.command_beam.particleCount)
     res, v = template_common.generate_parameters_file(data)
     _generate_parameters(v, data)
     if data.models.controlSettings.operationMode == 'DeviceServer':

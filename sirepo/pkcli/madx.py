@@ -51,7 +51,6 @@ def create_particle_file(cfg_dir, data):
 
 def _generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
-    pkdp('\n\n\n\n\n data.models.numberOfParticles: {}', data.models.numberOfParticles)
     beam = LatticeUtil.find_first_command(data, 'beam')
     p = particle_beam.populate_uncoupled_beam(
         bunch.numberOfParticles,
