@@ -95,6 +95,11 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         )
 
 
+@api_perm.require_user
+def api_ioJob():
+    return _request()
+
+
 @api_perm.allow_visitor
 def api_jobSupervisorPing():
     import requests.exceptions

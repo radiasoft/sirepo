@@ -2234,6 +2234,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
 
+    self.sendIOJob = function(appState, callback, data) {
+        sendWithSimulationFields('ioJob', appState, callback, data);
+    };
+
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback) {
             errorCallback = logError;

@@ -549,6 +549,13 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
+    async def _receive_api_ioJob(self, req):
+        return await self._send_with_single_reply(
+            job.OP_IO,
+            req,
+            jobCmd='io_job',
+        )
+
     @classmethod
     async def _receive_api_ownJobs(cls, req):
         return cls._get_running_pending_jobs(uid=req.content.uid)

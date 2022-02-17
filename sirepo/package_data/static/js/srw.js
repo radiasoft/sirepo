@@ -1964,6 +1964,13 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
+                requestSender.sendIOJob(
+                    appState,
+                    data => {
+                        srdbg('IO DATA', data);
+                    },
+                    {noModel: {}, data:'POOP'}
+                )
                 $scope.$on('exportRsOpt.saved', () => {
                     requestSender.newWindow('downloadDataFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,

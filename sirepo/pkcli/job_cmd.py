@@ -214,6 +214,11 @@ def _do_get_simulation_frame(msg, template):
         return _maybe_parse_user_alert(e, error='report not generated')
 
 
+def _do_io_job(msg, template):
+    pkdp('IO JOB MSG {}', msg)
+    return {}
+
+
 def _do_prepare_simulation(msg, template):
     if 'libFileList' in msg:
         msg.data.libFileList = msg.libFileList
