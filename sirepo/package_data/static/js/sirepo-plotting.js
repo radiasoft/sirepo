@@ -2653,25 +2653,10 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 ];
                 centerTitle();
                 centerSubTitle();
-
-                if (equalDomains(fullDomain[0], axes.x.scale.domain()) && equalDomains(fullDomain[1], axes.y.scale.domain())) {
-                    srdbg('ZOOMED OUT');
+                if (appState.deepEquals(fullDomain, prevDomain)) {
                     adjustZoomToCenter(axes.x.scale);
                     adjustZoomToCenter(axes.y.scale);
                 }
-            }
-
-            function equalDomains(axisA, axisB) {
-                if (axisA.length != axisB.length) {
-                    return false;
-                }
-                for (var i=0; i < axisA.length; i++) {
-                    if (axisA[i] != axisB[i]){
-                        // if (Math.abs(axisA[i] - axisB[i]) > 1e-3){
-                        return false;
-                    }
-                }
-                return true
             }
 
             function resetZoom() {
