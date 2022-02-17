@@ -9,7 +9,7 @@
       <div data-simple-panel="beamline">
         <div id="sr-lattice" data-lattice="" class="sr-plot" data-margin="40" data-model-name="beamlines" data-path-to-models="externalLattice"></div>
         <div class="row">
-          <div style="position: relative;" class="col-sm-5" data-ng-if="controls.twissReport && ! controls.controlsService.isDeviceServer()" data-ng-show="controls.simState.hasFrames()">
+          <div style="position: relative;" class="col-sm-5" data-ng-if="controls.twissReport && ! controls.controlsService.isDeviceServer() && controls.instrumentAnimations.length" data-ng-show="controls.simState.hasFrames()">
             <h4 style="position: absolute; top: -2%; left: 10%;">Twiss Parameters</h4>
             <button style="position: absolute; top: -1%; right: 5%;" ng-click="controls.showTwissEditor()" class="btn bg-info">
               <span class="glyphicon glyphicon-pencil text-primary"></span>

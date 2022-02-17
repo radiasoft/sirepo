@@ -26,12 +26,9 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
 _PTC_TRACK_COLUMNS_FILE = 'ptc_track_columns.txt'
 _PTC_TRACK_FILE = 'track.tfs'
-_TWISS_FILE = 'twiss.tfs'
-_TWISS_COLS_FILE = 'twiss_columns.txt'
 
 
 def background_percent_complete(report, run_dir, is_running):
-
     if is_running:
         e = _read_summary_line(run_dir)
         return PKDict(
@@ -39,7 +36,7 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=1 if e else 0,
             elementValues=e,
             ptcTrackColumns=_get_ptc_track_columns(run_dir),
-            twissColumns=_get_twiss_track_columns(run_dir),
+            twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
         )
     e = _read_summary_line(
         run_dir,
@@ -50,18 +47,13 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1 if e else 0,
         elementValues=e,
         ptcTrackColumns=_get_ptc_track_columns(run_dir),
-        twissColumns=_get_twiss_track_columns(run_dir),
+        twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
     )
 
 
 def _get_ptc_track_columns(run_dir):
     if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
         return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
-    return []
-
-def _get_twiss_track_columns(run_dir):
-    if run_dir.join('twiss_columns.txt').exists():
-        return pkio.read_text('twiss_columns.txt').split(',')
     return []
 
 
@@ -81,7 +73,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     if frame_args.frameReport == 'instrumentAnimationTwiss':
         data.report = frame_args.frameReport
         data.models[data.report] = frame_args
-        return sirepo.template.madx.extract_parameter_report(data, run_dir, _TWISS_FILE)
+        return sirepo.template.madx.extract_report_twissFromParticlesAnimation(data, run_dir, _PTC_TRACK_FILE)
     a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
     d = data.models[frame_args.frameReport].id
     data.models[frame_args.frameReport] = frame_args
@@ -192,6 +184,7 @@ def _delete_unused_madx_commands(data):
     )
     for c in data.models.commands:
         if c._type in by_name and not by_name[c._type]:
+            _SIM_DATA.update_model_defaults(c, f'command_{c._type}')
             by_name[c._type] = c
 
     if not by_name.twiss:
@@ -229,13 +222,11 @@ def _generate_parameters_file(data):
     _generate_parameters(v, data)
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
-    v.optimizerTargets = data.models.optimizerSettings.targets
     v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
+    v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE
-    v.twissColsFile = _TWISS_COLS_FILE
-    v.twissFile = _TWISS_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
         v.optimizerSettings_method = 'runOnce'
     return res + template_common.render_jinja(SIM_TYPE, v)
@@ -328,8 +319,10 @@ def _generate_parameters(v, data):
     v.initialCorrectors = '[{}]'.format(','.join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
     v.monitorCount = len(header)
+    v.mc2 = SCHEMA.constants.particleMassAndCharge.proton[0]
     if i:
         _add_ptc(i, data.models.externalLattice)
+    v.isTrackingSim = bool(LatticeUtil.find_first_command(data.models.externalLattice, 'ptc_create_universe'))
     if data.models.controlSettings.operationMode == 'madx':
         data.models.externalLattice.report = ''
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)

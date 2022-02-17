@@ -95,6 +95,7 @@
             "mass": ["Mass [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
             "charge": ["Charge [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
             "gamma": ["Gamma", "Float", 1.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles.", 1e-99],
+            "particleCount": ["Number of Particles", "Integer", 1500, "Number of particles to track (min 100)", 100, 10000000],
             "ex": ["Horizontal Emittance [m]", "Float", 1.0],
             "ey": ["Vertical Emittance [m]", "Float", 1.0],
             "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
@@ -120,8 +121,8 @@
         },
         "instrumentAnimationTwiss": {
             "x": ["Horizontal Value to Plot", "ValueList", "s"],
-            "y1": ["Vertical Value to Plot", "ValueList", "x"],
-            "y2": ["Vertical Value to Plot", "ValueList", "y"],
+            "y1": ["Vertical Value to Plot", "ValueList", "x0"],
+            "y2": ["Vertical Value to Plot", "ValueList", "y0"],
             "y3": ["Vertical Value to Plot", "ValueList", "None"],
             "panelTitle": ["Twiss Report Title", "String", "Twiss Report"],
             "includeLattice": ["Include the lattice", "Boolean", 0]
@@ -290,7 +291,8 @@
                     "particle",
                     "mass",
                     "charge",
-                    "gamma"
+                    "gamma",
+                    "particleCount"
                 ]],
                 ["Twiss", [
                     [
