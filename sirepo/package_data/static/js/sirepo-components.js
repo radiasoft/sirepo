@@ -3253,13 +3253,16 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 );
             }
 
-            $scope.endSimulation = function() {
-                srdbg('called endSimulation')
+            $scope.endSimulation = function(rowIndex) {
                 //function(urlOrParams, successCallback, data, errorCallback)
-                let simId = ''
-                let reportName = ''
+                // if (!$scope.data.rows[rowIndex]){
+                //     return
+                // }
+                // let simId = $scope.data.rows[rowIndex][1]
+                let simId = 'd5ANbivf';
+                let reportName = 'multiElectronAnimation'
                 let qi = {
-                request: {simulationId: simId, report: reportName}
+                request: {simulationId: simId, report: reportName, simulationType: 'srw', models: appState.models}
                 }
                 let successCallback = () => {
                     srdbg('in success callback')
@@ -3267,7 +3270,17 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 let errorCallback = () => {
                     srdbg('in error callback')
                 }
+                srdbg('called endSimulation')
+
                 requestSender.sendRequest('runCancel', successCallback, qi.request, errorCallback);
+
+                srdbg('getting $scope.data:\n')
+                if ($scope.data) {
+                    srdbg($scope.data)
+                } else {
+                    srdbg('doesnt exist\n')
+                }
+
                 srdbg('finished endSimulation')
             }
 

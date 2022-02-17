@@ -102,6 +102,8 @@ def parse_post(**kwargs):
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
 
+    pkdp(res)
+
     for x in (
         # must be first
         ('type', ('simulationType',), t),
