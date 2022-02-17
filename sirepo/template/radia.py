@@ -368,10 +368,6 @@ def _build_clone_xform(num_copies, alt_fields, transforms):
     return tx
 
 
-def _build_cuboid(**kwargs):
-    return _update_cuboid(_build_geom_obj('cuboid', **kwargs), **kwargs)
-
-
 def _build_dipole_objects(geom_objs, model, **kwargs):
     geom_objs.append(model.pole)
     if model.dipoleType in ['dipoleC', 'dipoleH']:
@@ -737,8 +733,6 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.is_raw = v.exampleName in SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     dirs = _geom_directions(data.models.simulation.beamAxis, data.models.simulation.heightAxis)
-    if not v.isExample and v.magnetType == 'freehand':
-        _update_geom_from_freehand(g)
     st = f'{v.magnetType}Type'
     v[st] = data.models.simulation[st]
     pkinspect.module_functions('_update_geom_from_')[f'_update_geom_from_{v.magnetType}'](
@@ -1145,15 +1139,6 @@ def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _update_cee(o, **kwargs):
-    return _update_geom_obj(o, **kwargs)
-
-
-def _update_cee_points(o):
-    o.points = _get_cee_points(o, _get_stemmed_info(o))
-    return o
-
-
 def _get_cee_points(o, stemmed_info):
     p = stemmed_info.points
     sy2 = p.sy1 + o.armHeight
@@ -1166,19 +1151,6 @@ def _get_cee_points(o, stemmed_info):
         ],
         stemmed_info.plane_ctr
     )
-
-
-def _update_cuboid(o, **kwargs):
-    return _update_geom_obj(o, **kwargs)
-
-
-def _update_ell(o, **kwargs):
-    return _update_geom_obj(o, **kwargs)
-
-
-def _update_ell_points(o):
-    o.points = _get_ell_points(o, _get_stemmed_info(o))
-    return o
 
 
 def _get_ell_points(o, stemmed_info):
@@ -1290,8 +1262,8 @@ def _update_geom_from_dipole(geom_objs, model, **kwargs):
     )
 
 
-def _update_geom_from_freehand(geom_objs, **kwargs):
-    _update_geom_objects(geom_objs, **kwargs)
+def _update_geom_from_freehand(geom_objs, model, **kwargs):
+    _update_geom_objects(geom_objs)
 
 
 def _update_geom_from_undulator(geom_objs, model, **kwargs):
@@ -1299,7 +1271,7 @@ def _update_geom_from_undulator(geom_objs, model, **kwargs):
     assert model.undulatorType in [x[0] for x in SCHEMA.enum.UndulatorType]
     _update_geom_objects(geom_objs)
 
-    _build_undulator_termination(model, geom_objs, **kwargs)
+    _build_undulator_termination(geom_objs, model, **kwargs)
     return pkinspect.module_functions('_update_')[f'_update_{model.undulatorType}'](
         model,
         _get_radia_objects(geom_objs, model),
@@ -1507,13 +1479,12 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     #sz = pole_sz * d.width_dir / 2 + \
     #     pole_sz * d.height_dir + \
     #     pole_sz * d.length_dir / 2
-    for f in ['bevels', 'color', 'material', 'materialFile', 'remanentMag']:
+    for f in ['bevels', 'color', 'material', 'materialFile', 'remanentMag', 'type']:
         assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
     _update_geom_obj(
         assembly.halfPole,
         center=pos + sz / 2 + gap_half_height,
-        size=sz,
-        type=assembly.pole.type
+        size=sz
     )
     pos += sz * d.length_dir
 
@@ -1554,10 +1525,8 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     return assembly.octantGroup
 
 
-def _build_undulator_termination(model, geom_objs, **kwargs):
-    return
+def _build_undulator_termination(geom_objs, model,  **kwargs):
     d = PKDict(kwargs)
-    a = d.assembly
     old_terms = []
     for i, o in enumerate(geom_objs):
         old_terms.extend([_undulator_termination_name(i, n[0]) for n in SCHEMA.enum.TerminationType])
@@ -1568,7 +1537,6 @@ def _build_undulator_termination(model, geom_objs, **kwargs):
     for i, t in enumerate(model.terminations):
         l = t.length * d.length_dir
         pos += (t.airGap + l / 2) * d.length_dir
-        props = obj_props[t.type]
         o = _update_geom_obj(
             _build_geom_obj(props.obj_type, name=_undulator_termination_name(i, t.type), color=props.color),
             center=props.transverse_ctr + pos,
@@ -1577,17 +1545,6 @@ def _build_undulator_termination(model, geom_objs, **kwargs):
             remanentMag=props.rem_mag,
             size=props.dim_half.width + props.dim.height + l,
         )
-        if props.obj_type == 'ell':
-            o = _update_ell(
-                o,
-                armHeight=props.arm_height,
-                armPosition=props.arm_pos,
-                stemWidth=props.stem_width,
-                stemPosition=props.stem_pos
-            )
-        else:
-            o = _update_cuboid(o, segments=props.segs)
-        o.bevels = props.bevels
         terms.append(o)
         pos += l / 2
         if t.type == 'magnet':
@@ -1598,20 +1555,18 @@ def _build_undulator_termination(model, geom_objs, **kwargs):
     ])
 
 
-def _update_geom_objects(objects, **kwargs):
+def _update_geom_objects(objects):
     for o in objects:
-        _update_geom_obj(o, **kwargs)
+        _update_geom_obj(o)
 
 
-def _update_geom_obj(o, delim_fields=None, **kwargs):
+def _update_geom_obj(o, **kwargs):
     d = PKDict(
         center=[0.0, 0.0, 0.0],
         magnetization=[0.0, 0.0, 0.0],
         segments=[1, 1, 1],
         size=[1.0, 1.0, 1.0],
     )
-    if delim_fields is not None:
-        d.update(delim_fields)
     for k in d:
         v = kwargs.get(k)
         if k in o and v is None:
@@ -1631,15 +1586,6 @@ def _update_geom_obj(o, delim_fields=None, **kwargs):
             o,
             _get_stemmed_info(o)
         )
-    return o
-
-
-def _update_jay(o, **kwargs):
-    return _update_geom_obj(o, **kwargs)
-
-
-def _update_jay_points(o):
-    o.points = _get_jay_points(o, _get_stemmed_info(o))
     return o
 
 
