@@ -472,6 +472,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.shapes;
     };
 
+    self.getUndulatorType = () => {
+        if (self.getMagnetType() !== 'undulator') {
+            return null;
+        }
+        return appState.models.simulation.undulatorType;
+    };
+
     self.isDropEnabled = function() {
         return self.dropEnabled;
     };
@@ -3907,16 +3914,13 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             'magnetType',
             isNew()
         );
-        panelState.showField(
-            $scope.modelName,
-            'dipoleType',
-            isDipole
-        );
-        panelState.enableField(
-            $scope.modelName,
-            'dipoleType',
-            isNew() && isDipole
-        );
+
+        for(const m of ['dipole', 'undulator']) {
+            const t = m + 'Type';
+            panelState.showField($scope.modelName, t, model.magnetType === m);
+            panelState.enableField($scope.modelName, t, isNew() && model.magnetType === m);
+        }
+
         //TODO(mvk): setting the beamAxis/heightAxis to anything other than x/z for dipoles causes
         // the magnet to be built incorrectly. For now set those values and disable the fields
         if (model.magnetType === 'dipole') {
@@ -3926,8 +3930,14 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         panelState.enableField(
             $scope.modelName,
             'beamAxis',
+            isNew() && model.magnetType !== 'dipole'
+        );
+        panelState.enableField(
+            $scope.modelName,
+            'heightAxis',
             isNew() && ! isDipole
         );
+
         for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
             const axis = e[SIREPO.ENUM_INDEX_VALUE];
             const isShown = axis !== model.beamAxis;
@@ -3941,11 +3951,6 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
                 model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
             }
         }
-        panelState.enableField(
-            $scope.modelName,
-            'heightAxis',
-            isNew() && ! isDipole
-        );
         radiaService.setWidthAxis();
     }
 

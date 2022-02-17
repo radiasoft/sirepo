@@ -835,12 +835,12 @@
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
-            "dipoleType": ["Dipole Type", "DipoleType", "dipoleC"],
+            "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
             "freehandType": ["", "FreehandType", "freehand"],
             "heightAxis": ["Height Axis", "BeamAxis", "y", "Height is measured along this axis. For undulators the gap is usually defined in this direction"],
             "magnetType": ["Magnet Type", "MagnetType", "freehand"],
-            "undulatorType": ["Undulator Type", "UndulatorType", "undulatorHybrid"],
+            "undulatorType": ["Undulator Type", "UndulatorType", "undulatorBasic"],
             "widthAxis": ["Width Axis", "BeamAxis", "x", "Width is measured along this axis"]
         },
         "solverAnimation":  {
@@ -896,10 +896,10 @@
         },
         "undulatorBasic": {
             "_super": ["_", "model", "radiaObject"],
+            "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance between magnets"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "1"],
             "gap": ["Gap [mm]", "Float", 20.0, "", 0.0, "Measured along the height axis"],
             "magnet": ["Magnet Block", "model.geomObject", {
-                "center": "16.25,11.5,-33.5",
                 "color": "#00ffff",
                 "magnetization": "0.0, 0.0, -1.0",
                 "name": "magnet",
@@ -910,20 +910,15 @@
                 "size": "65.0, 18.0, 45.0"
             }],
             "numPeriods": ["Number of Periods", "Integer", 2, "", 1],
+            "octantGroup": ["_", "model.geomGroup", {
+                "name": "octant"
+            }],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
             "phaseCount": ["Phase per Period", "Integer", 2, "The magnetization of each successive magnet is rotated by 2π/n about the beam direction", 2],
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
             }],
-            "terminations": ["Termination Groups", "TerminationTable",
-                [
-                    {
-                        "airGap": 0,
-                        "length": 9,
-                        "type": "magnet"
-                    }
-                ]
-            ],
+            "terminations": ["Termination Groups", "TerminationTable", []],
             "undulatorType": ["_", "UndulatorType", "undulatorBasic"]
         },
         "undulatorHybrid": {
@@ -957,11 +952,17 @@
             }],
             "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
             "poleLength":["Length [mm]", "Float", 5.0],
+            "terminations": ["Termination Groups", "TerminationTable",
+                [
+                    {
+                        "airGap": 0,
+                        "length": 9,
+                        "type": "magnet"
+                    }
+                ]
+            ],
             "corePoleGroup": ["_", "model.geomGroup", {
                 "name": "core + pole"
-            }],
-            "octantGroup": ["_", "model.geomGroup", {
-                "name": "octant"
             }],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the height axis"],
             "undulatorType": ["_", "UndulatorType", "undulatorHybrid"]
@@ -1326,6 +1327,7 @@
                 "folder",
                 "magnetType",
                 "dipoleType",
+                "undulatorType",
                 "beamAxis",
                 "heightAxis"
             ]
@@ -1396,22 +1398,15 @@
             "basic": [
                 ["Main", [
                     "gap",
-                    "numPeriods",
-                    "periodLength"
-                ]],
-                ["Poles", [
-                    "undulatorHybrid.poleCrossSection",
-                    "undulatorHybrid.poleLength",
-                    "undulatorHybrid.poleDivision",
-                    "undulatorHybrid.poleMaterial",
-                    "undulatorHybrid.poleMaterialFile"
+                    "numPeriods"
                 ]],
                 ["Permanent Magnets", [
-                    "undulatorHybrid.magnetCrossSection",
-                    "undulatorHybrid.magnetDivision",
-                    "undulatorHybrid.magnetMaterial",
-                    "undulatorHybrid.magnetMaterialFile",
-                    "undulatorHybrid.gapOffset"
+                    "undulatorBasic.magnet.shapeButton",
+                    "undulatorBasic.magnet.size",
+                    "airGap",
+                    "undulatorBasic.magnet.segments",
+                    "undulatorBasic.magnet.material",
+                    "undulatorBasic.magnet.materialFile"
                 ]],
                 ["Termination", [
                     "terminations"
