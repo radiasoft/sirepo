@@ -184,6 +184,7 @@ def _delete_unused_madx_commands(data):
     )
     for c in data.models.commands:
         if c._type in by_name and not by_name[c._type]:
+            _SIM_DATA.update_model_defaults(c, f'command_{c._type}')
             by_name[c._type] = c
 
     if not by_name.twiss:
@@ -221,8 +222,8 @@ def _generate_parameters_file(data):
     _generate_parameters(v, data)
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
-    v.optimizerTargets = data.models.optimizerSettings.targets
     v.particleCount = data.models.externalLattice.models.bunch.numberOfParticles
+    v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE

@@ -401,7 +401,8 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         const k = checkModelSet('instrumentAnimation')
               ? []
               : initInstruments();
-        k.push('optimizerSettings');
+        appState.models.externalLattice.models.bunch.numberOfParticles = appState.models.command_beam.particleCount;
+        k.push('optimizerSettings', 'externalLattice');
         appState.saveChanges(k, self.simState.runSimulation);
     };
 
