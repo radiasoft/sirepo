@@ -328,8 +328,8 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
 
 def import_file(req, **kwargs):
     text = pkcompat.from_bytes(req.file_stream.read())
-    assert re.search(r'\.madx$|\.seq$', req.filename, re.IGNORECASE), \
-        'invalid file extension, expecting .madx'
+    if not bool(re.search(r'\.madx$|\.seq$', req.filename, re.IGNORECASE)):
+        raise AssertionError('invalid file extension, expecting .madx or .seq')
     data = madx_parser.parse_file(text, downcase_variables=True)
     # TODO(e-carlin): need to clean this up. copied from elegant
     data.models.simulation.name = re.sub(
