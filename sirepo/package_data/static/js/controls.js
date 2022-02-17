@@ -402,8 +402,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
               ? []
               : initInstruments();
         appState.models.externalLattice.models.bunch.numberOfParticles = appState.models.command_beam.particleCount;
-        k.push('optimizerSettings');
-        k.push('externalLattice');
+        k.push('optimizerSettings', 'externalLattice');
         appState.saveChanges(k, self.simState.runSimulation);
     };
 
