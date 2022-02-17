@@ -124,7 +124,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     // TODO(e-carlin): sort
     self.simAnalysisModel = 'instrumentAnimation';
-
     function buildWatchColumns() {
         self.watches = [];
         for (let el of controlsService.beamlineElements()) {
@@ -149,17 +148,17 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                     errorService.alertText(data.error);
                     return;
                 }
-                const names = [
+                const k = [
                     'externalLattice',
                     'optimizerSettings',
                     'controlSettings',
                     'command_twiss',
                     'command_beam',
                 ];
-                for (let f of names) {
+                for (let f of k) {
                     appState.models[f] = data[f];
                 }
-                appState.saveChanges(names);
+                appState.saveChanges(k);
             },
             {
                 method: 'get_external_lattice',
@@ -289,8 +288,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
         if (data.elementValues && data.elementValues.length) {
             handleElementValues(data);
-            loadHeatmapReports(data);
-            loadTwissReport(data);
+            const k = loadHeatmapReports(data);
+            k.push(loadTwissReport(data));
+            appState.saveChanges(k);
         }
         if (! self.simState.isProcessing()) {
             if ($scope.isRunningOptimizer) {
@@ -301,10 +301,15 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         frameCache.setFrameCount(data.frameCount);
     };
 
+    function isCrossSectionModel(modelKey) {
+        return modelKey.includes('instrumentAnimation') && /\d/.test(modelKey);
+    }
+
     function loadHeatmapReports(data) {
         self.instrumentAnimations = [];
+        const k = [];
         for (const m in appState.models) {
-            if (m.includes('instrumentAnimation')) {
+            if (isCrossSectionModel(m)) {
                 appState.models[m].valueList = {
                         x: data.ptcTrackColumns,
                         y1: data.ptcTrackColumns,
@@ -318,9 +323,15 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
                 if (frameCache.getFrameCount()) {
                     frameCache.setFrameCount(1, m);
                 }
-                 appState.saveChanges(m);
+                k.push(m);
             }
         }
+        appState.models.instrumentAnimationAll.valueList = {
+            x: data.ptcTrackColumns,
+            y1: data.ptcTrackColumns,
+        };
+        appState.models.instrumentAnimationAll.particlePlotSize = appState.models.controlSettings.particlePlotSize;
+        return k;
     }
 
     function loadTwissReport(data) {
@@ -331,14 +342,14 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             y2: data.twissColumns,
             y3: data.twissColumns,
         };
-        self.twissReport = [{
+        self.twissReport = {
             modelKey: 'instrumentAnimationTwiss',
             getData: genGetDataFunction('instrumentAnimationTwiss')
-        }];
+        };
         if (frameCache.getFrameCount()) {
             frameCache.setFrameCount(1, 'instrumentAnimationTwiss');
         }
-        appState.saveChanges('instrumentAnimationTwiss');
+        return 'instrumentAnimationTwiss';
     }
 
     function genGetDataFunction(m) {
@@ -346,19 +357,16 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     }
 
     function initInstruments() {
-        if (checkModelSet('instrumentAnimation')){
-            return;
-        }
         const k  = [];
         appState.models.externalLattice.models.elements.forEach((e, i) => {
-                if (e.type !== 'INSTRUMENT') {
-                    return;
-                }
-                const m = 'instrumentAnimation' + i;
-                k.push(m);
-                setAnimationModel(m, 'instrumentAnimation', i);
+            if (e.type !== 'INSTRUMENT') {
+                return;
+            }
+            const m = 'instrumentAnimation' + i;
+            k.push(m);
+            setAnimationModel(m, 'instrumentAnimation', i);
         });
-        appState.saveChanges(k);
+        return k;
     }
 
     function setAnimationModel(modelKey, modelViewName, id) {
@@ -370,35 +378,32 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         appState.models[modelKey] = n;
     }
 
-    function initTwiss() {
-        if (checkModelSet('instrumentAnimationTwiss')){
-            return;
-        }
-        const keys = [];
-        keys.push('instrumentAnimationTwiss');
-        setAnimationModel('instrumentAnimationTwiss',
-            'instrumentAnimationTwiss',
-            appState.models.externalLattice.models.length + 2
-        );
-        appState.saveChanges(keys);
-    }
-
     function checkModelSet(model) {
         for (const m in appState.models) {
-            if (m.includes(model)) {
+            if (m.includes(model) && m != 'instrumentAnimationAll' && m != 'instrumentAnimationTwiss') {
                 return true;
             }
         }
         return false;
     }
 
+    self.hasInstrumentAnimations = () => {
+        if (self.instrumentAnimations != null) {
+            return self.instrumentAnimations.length;
+        }
+        return false;
+    };
+
     self.startSimulation = () => {
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
-        initInstruments();
-        initTwiss();
-        appState.saveChanges('optimizerSettings', self.simState.runSimulation);
+        const k = checkModelSet('instrumentAnimation')
+              ? []
+              : initInstruments();
+        appState.models.externalLattice.models.bunch.numberOfParticles = appState.models.command_beam.particleCount;
+        k.push('optimizerSettings', 'externalLattice');
+        appState.saveChanges(k, self.simState.runSimulation);
     };
 
     if (controlsService.hasMadxLattice()) {
@@ -419,14 +424,31 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     });
     $scope.$on('controlSettings.changed', () => {
         for (const m in appState.models) {
-            if (m.includes('instrumentAnimation')) {
+            if (m.includes('instrumentAnimation') && m != 'instrumentAnimationAll') {
                 appState.models[m].particlePlotSize = appState.models.controlSettings.particlePlotSize;
                 appState.saveQuietly(m);
             }
         }
     });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
-
+    $scope.$on('instrumentAnimationAll.changed', () => {
+        if (!self.instrumentAnimations){
+            return;
+        }
+        const m = [];
+        self.instrumentAnimations.forEach((e, i) => {
+            if (e.modelKey == 'instrumentAnimationAll' || e.modelKey == 'instrumentAnimationTwiss'){
+                return;
+            }
+            for (const key in appState.models[e.modelKey]) {
+                if (key != 'id'){
+                    appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
+                }
+            }
+            m.push(e.modelKey);
+        });
+        appState.saveChanges(m);
+    });
     return self;
 });
 

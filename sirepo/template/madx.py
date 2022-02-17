@@ -81,7 +81,7 @@ _PTC_TRACKLINE_COMMAND = 'ptc_trackline'
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_PTC_OBSERVE_TWISS_COLS = [
+PTC_OBSERVE_TWISS_COLS = [
     'W',
     'alfx',
     'alfy',
@@ -710,7 +710,7 @@ def _extract_report_twissEllipseReport(data, run_dir):
     )
 
 
-def _extract_report_twissFromParticlesAnimation(data, run_dir, filename):
+def extract_report_twissFromParticlesAnimation(data, run_dir, filename):
     res = particle_beam.analyze_ptc_beam(
         particle_beam.read_ptc_data(run_dir.join(filename))[0],
         mc2=SCHEMA.constants.particleMassAndCharge.proton[0],
@@ -721,12 +721,15 @@ def _extract_report_twissFromParticlesAnimation(data, run_dir, filename):
         del res[f'alpha_{dim}']
         res[f'bet{dim}'] = res[f'beta_{dim}']
         del res[f'beta_{dim}']
-    assert set(res.keys()) == set(_PTC_OBSERVE_TWISS_COLS), \
-        f'unknown ptc twiss columns={set(res.keys())} expected={_PTC_OBSERVE_TWISS_COLS}'
+    assert set(res.keys()) == set(PTC_OBSERVE_TWISS_COLS), \
+        f'unknown ptc twiss columns={set(res.keys())} expected={PTC_OBSERVE_TWISS_COLS}'
     return extract_parameter_report(
         data,
         results=PKDict(res),
     )
+
+def _extract_report_twissFromParticlesAnimation(data, run_dir, filename):
+    return extract_report_twissFromParticlesAnimation(data, run_dir, filename)
 
 
 def _extract_report_twissReport(data, run_dir):
@@ -872,7 +875,7 @@ def _output_info(run_dir):
                     modelKey='twissFromParticlesAnimation',
                     filename=f.filename,
                     isHistogram=True,
-                    plottableColumns=_PTC_OBSERVE_TWISS_COLS,
+                    plottableColumns=PTC_OBSERVE_TWISS_COLS,
                     pageCount=0,
                 ))
     if LatticeUtil.find_first_command(data, _END_MATCH_COMMAND):

@@ -23,16 +23,6 @@ def test_elegant(fc):
         'Compact Storage Ring',
         'twissReport',
     )
-#    _r(
-#        fc,
-#        'Script Element Example',
-#        'twissReport',
-#    )
-    _r(
-        fc,
-        'Backtracking',
-        'twissReport',
-    )
 
 
 def test_madx(fc):
@@ -95,11 +85,6 @@ def test_synergia(fc):
 def test_warppba(fc):
     _r(
         fc,
-        'Electron Beam',
-        'beamPreviewReport',
-    )
-    _r(
-        fc,
         'Laser Pulse',
         'laserPreviewReport',
     )
@@ -110,16 +95,6 @@ def test_zgoubi(fc):
         fc,
         'Los Alamos Proton Storage Ring',
         'twissReport',
-    )
-    _r(
-        fc,
-        'Los Alamos Proton Storage Ring',
-        'bunchReport1',
-    )
-    _r(
-        fc,
-        'Los Alamos Proton Storage Ring',
-        'twissReport2',
     )
 
 

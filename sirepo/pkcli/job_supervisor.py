@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -13,14 +12,18 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import asyncio
 import copy
 import functools
+import importlib
 import signal
 import sirepo.events
+import sirepo.feature_config
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
 import sirepo.sim_db_file
 import sirepo.srdb
 import sirepo.srtime
+import sirepo.util
+import tornado.autoreload
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -59,6 +62,10 @@ def default_command():
         websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
+    if cfg.debug:
+        for f in sirepo.util.files_to_watch_for_reload('json', 'py'):
+            tornado.autoreload.watch(f)
+
     server = tornado.httpserver.HTTPServer(
         app,
         xheaders=True,
