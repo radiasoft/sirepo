@@ -2545,18 +2545,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         qi.qMode = 'transient';
         var isProcessingTransient = qi.qState == 'processing' && ! qi.persistent;
         if (qi.qState == 'processing') {
-            srdbg('in cancelItem')
-            srdbg('qi is ', qi)
-            srdbg('simulation id is ', qi.request.simulationId)
-            srdbg('report is ', qi.request.report)
-
-            let testQi = {
-                request: {simulationId: 'abcdef', report: 'testName'}
-            }
-
-            srdbg('t simulation id is ', testQi.request.simulationId)
-            srdbg('t report is ', testQi.request.report)
-
             requestSender.sendRequest('runCancel', successCallback, qi.request, errorCallback);
             qi.qState = 'canceled';
         }

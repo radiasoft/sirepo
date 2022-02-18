@@ -3223,7 +3223,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                         <td data-ng-repeat="c in r track by $index" ng-show="!$first">
                               {{ getCellContent($parent.$index, $index + getStartIndex()) }}
                         </td>
-                        <td><button class="btn btn-default" data-ng-click="endSimulation()">End Simulation</button></td>
+                        <td><button class="btn btn-default" data-ng-click="endSimulation($index)">End Simulation</button></td>
                       </tr>
                     </tbody>
                 </table>
@@ -3254,43 +3254,25 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             }
 
             $scope.endSimulation = function(rowIndex) {
-                //function(urlOrParams, successCallback, data, errorCallback)
-                // if (!$scope.data.rows[rowIndex]){
-                //     return
-                // }
-                // let simId = $scope.data.rows[rowIndex][1]
-                let simId = 'o8X0n18j';
-                let reportName = 'multiElectronAnimation'
-                let qi = {
-                    request: {simulationId: simId, report: reportName, simulationType: 'srw'}
-                }
+                let s = $scope.data.rows[rowIndex][1];
+                let r = $scope.data.rows[rowIndex][7];
+                let t = $scope.data.rows[rowIndex][0];
+                let j = {
+                    request: {simulationId: s, report: r, simulationType: t}
+                };
                 let successCallback = () => {
-                    srdbg('in success callback')
-                }
+                    $scope.getJobs();
+                };
                 let errorCallback = () => {
-                    srdbg('in error callback')
-                }
-                srdbg('called endSimulation')
-
-                requestSender.sendRequest('runCancel', successCallback, qi.request, errorCallback);
-
-                srdbg('getting $scope.data:\n')
-                if ($scope.data) {
-                    srdbg($scope.data)
-                } else {
-                    srdbg('doesnt exist\n')
-                }
-
-                srdbg('finished endSimulation')
-            }
+                    srlog('Error with runCancel request');
+                };
+                requestSender.sendRequest('runCancel', successCallback, j.request, errorCallback);
+            };
 
             $scope.getCellContent = function(rowIndex, colIndex) {
-                if (! $scope.data) {
-                    return
-                }
-                let row = $scope.data.rows[rowIndex]
-                if (! row[colIndex]) {
-                    return
+                let row = $scope.data.rows[rowIndex];
+                if (! row[colIndex] || colIndex === row.length - 1) {
+                    return;
                 }
                 const typeDispatch = {
                     DateTime: appState.formatDate,
@@ -3298,10 +3280,10 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     String: function(s){return s;},
                 };
 
-                let cellData = $scope.data.rows[rowIndex][colIndex]
-                let typeDispatchFunction = typeDispatch[$scope.data.header[colIndex][1]]
+                let cellData = $scope.data.rows[rowIndex][colIndex];
+                let typeDispatchFunction = typeDispatch[$scope.data.header[colIndex][1]];
                 return typeDispatchFunction(cellData);
-            }
+            };
 
             $scope.getHeader = function() {
                 var h = '';
@@ -3315,17 +3297,17 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
 
             $scope.getJobLink = function(rowIndex) {
                 if (! $scope.data) {
-                    return
+                    return;
                 }
-                let row = $scope.data.rows[rowIndex]
+                let row = $scope.data.rows[rowIndex];
                 var s = getHeaderIndex('Simulation id');
                 var a = getHeaderIndex('App');
-                let link = ''
+                let link = '';
                 if (!$scope.wantAdm) {
                      return getUrl(row[s], row[a]);
                 }
                 return link;
-            }
+            };
 
             $scope.getJobs = function () {
                 requestSender.sendRequest(
@@ -3339,7 +3321,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             $scope.getStartIndex = function() {
                 // 'SimulationId' and
                 return $scope.wantAdm ? 0 : 2;
-            }
+            };
 
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getJobs();
