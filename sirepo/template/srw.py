@@ -490,6 +490,8 @@ def _copy_frame_args_into_model(frame_args, name):
 
 def sim_frame(frame_args):
     r = frame_args.frameReport
+    pkdp('\n\n\n {}', r)
+    return PKDict(array=np.random.rand(90000, 9000))
     frame_args.sim_in.report = r
     if r == 'multiElectronAnimation':
         m = frame_args.sim_in.models[r]

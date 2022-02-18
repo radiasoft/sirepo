@@ -29,9 +29,9 @@ http {
     default_type application/octet-stream;
     proxy_http_version 1.1;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
-    proxy_read_timeout 600s;
-    proxy_send_timeout 600s;
-    proxy_connect_timeout 600s;
+    proxy_read_timeout 25s;
+    proxy_send_timeout 25s;
+    proxy_connect_timeout 25s;
     proxy_redirect off;
     proxy_set_header Host $host:$server_port;
     proxy_set_header Proxy "";
@@ -56,8 +56,8 @@ http {
         {% endif %}
         location / {
             include /etc/nginx/uwsgi_params;
-            uwsgi_read_timeout 300s;
-            uwsgi_send_timeout 300s;
+            uwsgi_read_timeout 500s;
+            uwsgi_send_timeout 500s;
             uwsgi_pass 127.0.0.1:{{ port }};
         }
     }

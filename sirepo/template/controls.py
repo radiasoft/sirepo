@@ -21,6 +21,7 @@ import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.madx
 import socket
+import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = 'summary.csv'
@@ -85,6 +86,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     frame_args.horizontalOffset = 0
     i, x = _get_target_info(a, n)
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
+    # time.sleep(650)
     return template_common.heatmap(
         [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
         frame_args,
@@ -92,7 +94,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
             x_label=sirepo.template.madx.field_label(frame_args.x),
             y_label=sirepo.template.madx.field_label(frame_args.y1),
             title='{}-{} at {}m, {}'.format(
-                frame_args.x, frame_args.y1, i.s, i.name,
+                frame_args.blorf, frame_args.y1, i.s, i.name,
             ),
         ),
     )

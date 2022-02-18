@@ -1725,7 +1725,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.reportNotGenerated = function(modelName) {
         self.setLoading(modelName, false);
-        self.setError(modelName, 'Report not generated');
+        self.setError(modelName, '*****Report not generated');
     };
 
     self.requestData = function(name, callback, forceRun, errorCallback) {
@@ -2870,7 +2870,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (state.isStateError()) {
                 var e = state.getError();
                 if (e) {
-                    return 'Error: ' + e.split(/[\n\r]+/)[0];
+                    let m = e.split(/[\n\r]+/)[0]
+                    if (m.toLowerCase().includes('504')){
+                        return 'Timeout Error. Please contact support@radiasoft.net if the problem persists';
+                    }
+                    return 'Error: ' + m;
                 }
             }
             return stringsService.ucfirst(simulationStatus().state);
