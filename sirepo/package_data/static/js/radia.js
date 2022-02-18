@@ -9,7 +9,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.heightAxis = 'y';
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'dipoleBasic';
-    SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorHybrid';
+    SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorBasic';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
@@ -2146,9 +2146,9 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
               '</colgroup>',
               '<thead>',
                 '<tr>',
-                  '<th>Object Type</th>',
-                  '<th>Length</th>',
-                  '<th>Air Gap</th>',
+                  '<th>Object</th>',
+                  '<th>Air Gap [mm]</th>',
+                  '<th>Gap Offset [mm]</th>',
                   '<th></th>',
                 '</tr>',
               '</thead>',
@@ -2156,9 +2156,9 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
             '<tr>',
             '</tr>',
                 '<tr data-ng-repeat="item in loadItems()">',
-                    '<td>{{ item.type }}</td>',
-                    '<td>{{ item.length }}mm</td>',
-                    '<td>{{ item.airGap }}mm</td>',
+                    '<td>{{ item.object.name }}</td>',
+                    '<td>{{ item.airGap }}</td>',
+                    '<td>{{ item.gapOffset }}</td>',
                   '<td style="text-align: right">',
                     '<div class="sr-button-bar-parent">',
                         '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
@@ -2203,6 +2203,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 isEditing = ! isNew;
                 $scope.selectedItem = item;
                 appState.models[itemModel] = item;
+                appState.models.geomObject = item.object;
                 panelState.showModalEditor(itemModel);
             };
 

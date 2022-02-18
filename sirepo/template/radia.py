@@ -321,6 +321,8 @@ def new_simulation(data, new_simulation_data):
         width_dir=dirs.width_dir,
     )
     if t == 'undulator':
+        if s == 'undulatorBasic':
+            data.models.geometryReport.isSolvable = '0'
         data.models.fieldPaths.paths.append(_build_field_axis(
             (m.numPeriods + 0.5) * m.periodLength,
             new_simulation_data.beamAxis
@@ -522,9 +524,8 @@ def _build_translate_clone(dist):
 
 def _build_undulator_objects(geom_objs, model, **kwargs):
     geom_objs.append(model.magnet)
-    geom_objs.append(model.terminationGroup)
 
-    oct_grp = [model.terminationGroup]
+    oct_grp = []
 
     if model.undulatorType in ['undulatorBasic']:
         oct_grp.extend([model.magnet])
@@ -535,44 +536,24 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
         geom_objs.append(
             _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
         )
-        oct_grp.extend([model.halfPole, model.corePoleGroup])
+        t_grp = []
+        for t in model.terminations:
+            t_grp.append(_build_geom_obj(t.object.type, **t.object))
+        geom_objs.extend(t_grp)
+        geom_objs.append(
+            _update_group(model.terminationGroup, t_grp, do_replace=True)
+        )
+        oct_grp.extend([
+            model.halfPole,
+            model.corePoleGroup,
+            model.terminationGroup
+        ])
 
     geom_objs.append(
         _update_group(model.octantGroup, oct_grp, do_replace=True)
     )
 
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
-
-
-def _build_undulator_termination(geom_objs, model,  **kwargs):
-    return
-    d = PKDict(kwargs)
-    old_terms = []
-    for i, o in enumerate(geom_objs):
-        old_terms.extend([_undulator_termination_name(i, n[0]) for n in SCHEMA.enum.TerminationType])
-    geom_objs[:] = [o for o in geom_objs if o.name not in old_terms]
-    terms = []
-    num_term_mags = 0
-    pos = 0
-    for i, t in enumerate(model.terminations):
-        l = t.length * d.length_dir
-        pos += (t.airGap + l / 2) * d.length_dir
-        o = _update_geom_obj(
-            _build_geom_obj(props.obj_type, name=_undulator_termination_name(i, t.type), color=props.color),
-            center=props.transverse_ctr + pos,
-            magnetization=_ZERO if t.type == 'pole' else (-1) ** (
-                        model.numPeriods + num_term_mags) * props.mag,
-            remanentMag=props.rem_mag,
-            size=props.dim_half.width + props.dim.height + l,
-        )
-        terms.append(o)
-        pos += l / 2
-        if t.type == 'magnet':
-            num_term_mags += 1
-    geom_objs.extend(terms)
-    _update_group(assembly.octantGroup, [
-        _update_group(assembly.terminationGroup, terms, do_replace=True)
-    ])
 
 
 # deep copy of an object, but with a new id
@@ -860,6 +841,33 @@ def _geom_h5_path(view_type, field_type=None):
     return p
 
 
+def _get_cee_points(o, stemmed_info):
+    p = stemmed_info.points
+    sy2 = p.sy1 + o.armHeight
+    return _orient_stemmed_points(
+        o,
+        [
+            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
+            [p.sx2, p.ay2], [p.sx2, sy2], [p.ax2, sy2], [p.ax2, p.sy1], [p.sx1, p.sy1],
+            [p.ax1, p.ay1]
+        ],
+        stemmed_info.plane_ctr
+    )
+
+
+def _get_ell_points(o, stemmed_info):
+    p = stemmed_info.points
+    return _orient_stemmed_points(
+        o,
+        [
+            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
+            [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
+            [p.ax1, p.ay1]
+        ],
+        stemmed_info.plane_ctr
+    )
+
+
 def _get_g_id():
     return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
@@ -895,6 +903,22 @@ def _get_geom_data(
     res.idMap = _read_id_map()
     res.solution = _read_solution()
     return res
+
+
+def _get_jay_points(o, stemmed_info):
+    p = stemmed_info.points
+    jx1 = stemmed_info.plane_ctr[0] + stemmed_info.plane_size[0] / 2 - o.hookWidth
+    jy1 = p.ay2 - o.hookHeight
+
+    return _orient_stemmed_points(
+        o,
+        [
+            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, jy1], [jx1, jy1], [jx1, p.ay2],
+            [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
+            [p.ax1, p.ay1]
+        ],
+        stemmed_info.plane_ctr
+    )
 
 
 def _get_radia_objects(geom_objs, model):
@@ -1175,33 +1199,6 @@ def _undulator_termination_name(index, term_type):
     return f'termination.{term_type}.{index}'
 
 
-def _get_cee_points(o, stemmed_info):
-    p = stemmed_info.points
-    sy2 = p.sy1 + o.armHeight
-    return _orient_stemmed_points(
-        o,
-        [
-            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
-            [p.sx2, p.ay2], [p.sx2, sy2], [p.ax2, sy2], [p.ax2, p.sy1], [p.sx1, p.sy1],
-            [p.ax1, p.ay1]
-        ],
-        stemmed_info.plane_ctr
-    )
-
-
-def _get_ell_points(o, stemmed_info):
-    p = stemmed_info.points
-    return _orient_stemmed_points(
-        o,
-        [
-            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, p.ay2],
-            [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
-            [p.ax1, p.ay1]
-        ],
-        stemmed_info.plane_ctr
-    )
-
-
 # For consistency, always set the width and height axes of the extruded shape in
 # permutation order based on the extrusion axis:
 #   x -> (y, z), y -> (z, x), z -> (x, y)
@@ -1220,11 +1217,11 @@ def _update_extruded(o):
 
 def _update_dipoleBasic(model, assembly, **kwargs):
     d = PKDict(kwargs)
-    pole_sz = sirepo.util.split_comma_delimited_string(assembly.pole.size, float)
+    sz = sirepo.util.split_comma_delimited_string(assembly.pole.size, float)
     return _update_geom_obj(
         assembly.pole,
-        size=pole_sz,
-        center=pole_sz * d.height_dir / 2 + model.gap * d.height_dir / 2,
+        size=sz,
+        center=sz * d.height_dir / 2 + model.gap * d.height_dir / 2,
         transforms=[_build_symm_xform(d.height_dir, 'parallel')]
     )
 
@@ -1287,13 +1284,10 @@ def _update_dipoleH(model, assembly, **kwargs):
 
 
 def _update_geom_from_dipole(geom_objs, model, **kwargs):
-
-    assert model.dipoleType in [x[0] for x in SCHEMA.enum.DipoleType]
     _update_geom_objects(geom_objs)
-
     return pkinspect.module_functions('_update_')[f'_update_{model.dipoleType}'](
         model,
-        assembly=_get_radia_objects(geom_objs, model),
+       _get_radia_objects(geom_objs, model),
         **kwargs
     )
 
@@ -1303,11 +1297,7 @@ def _update_geom_from_freehand(geom_objs, model, **kwargs):
 
 
 def _update_geom_from_undulator(geom_objs, model, **kwargs):
-
-    assert model.undulatorType in [x[0] for x in SCHEMA.enum.UndulatorType]
     _update_geom_objects(geom_objs)
-
-    _build_undulator_termination(geom_objs, model, **kwargs)
     return pkinspect.module_functions('_update_')[f'_update_{model.undulatorType}'](
         model,
         _get_radia_objects(geom_objs, model),
@@ -1381,7 +1371,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     #     (model.periodLength / 2 * d.length_dir - pole_sz * d.length_dir)
     _update_geom_obj(
         assembly.magnet,
-        center=pos + sz / 2 + gap_half_height - gap_offset,
+        center=pos + sz / 2 + gap_half_height + gap_offset,
         size=sz
     )
     pos += sz * d.length_dir
@@ -1395,6 +1385,16 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         center=pos + sz / 2 + gap_half_height,
         size=sz,
     )
+
+    pos += sz * d.length_dir
+    for t in model.terminations:
+        o = t.object
+        sz = numpy.array(sirepo.util.split_comma_delimited_string(o.size, float))
+        _update_geom_obj(
+            o,
+            center=pos + sz / 2  + t.airGap * d.length_dir + gap_half_height + t.gapOffset * d.height_dir,
+        )
+        pos += sz * d.length_dir + t.airGap * d.length_dir
 
     assembly.corePoleGroup.transforms = [] if model.numPeriods < 2 else \
         [_build_clone_xform(
@@ -1444,21 +1444,6 @@ def _update_geom_obj(o, **kwargs):
         )
     return o
 
-
-def _get_jay_points(o, stemmed_info):
-    p = stemmed_info.points
-    jx1 = stemmed_info.plane_ctr[0] + stemmed_info.plane_size[0] / 2 - o.hookWidth
-    jy1 = p.ay2 - o.hookHeight
-
-    return _orient_stemmed_points(
-        o,
-        [
-            [p.ax1, p.ay1], [p.ax2, p.ay1], [p.ax2, jy1], [jx1, jy1], [jx1, p.ay2],
-            [p.sx2, p.ay2], [p.sx2, p.sy1], [p.sx1, p.sy1],
-            [p.ax1, p.ay1]
-        ],
-        stemmed_info.plane_ctr
-    )
 
 
 def _update_racetrack(o, **kwargs):

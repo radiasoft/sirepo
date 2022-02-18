@@ -298,8 +298,8 @@
             ["v", "Vertical"]
         ],
         "MagnetType": [
-            ["dipole", "Dipole"],
             ["freehand", "Freehand"],
+            ["dipole", "Dipole"],
             ["undulator", "Undulator"]
         ],
         "MaterialType": [
@@ -877,8 +877,8 @@
         },
         "termination": {
             "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
-            "length": ["Object Length [mm]", "Float", 9.0],
-            "type": ["Object Type", "TerminationType", "magnet", ""]
+            "gapOffset": ["Gap Offset [mm]", "Float", 0.0, "Additional offset away from the beam along the height axis"],
+            "object": ["Object", "model.geomObject", {}]
         },
         "transform": {
             "id": ["_", "RandomId", ""],
@@ -915,10 +915,6 @@
             }],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
             "phaseCount": ["Phase per Period", "Integer", 2, "The magnetization of each successive magnet is rotated by 2π/n about the beam direction", 2],
-            "terminationGroup": ["_", "model.geomGroup", {
-                "name": "terminations"
-            }],
-            "terminations": ["Termination Groups", "TerminationTable", []],
             "undulatorType": ["_", "UndulatorType", "undulatorBasic"]
         },
         "undulatorHybrid": {
@@ -952,12 +948,24 @@
             }],
             "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
             "poleLength":["Length [mm]", "Float", 5.0],
+            "terminationGroup": ["_", "model.geomGroup", {
+                "name": "terminations"
+            }],
             "terminations": ["Termination Groups", "TerminationTable",
                 [
                     {
                         "airGap": 0,
-                        "length": 9,
-                        "type": "magnet"
+                        "gapOffset": 0,
+                        "object": {
+                            "color": "#00ffff",
+                            "magnetization": "0.0, 0.0, -1.0",
+                            "name": "termination.magnet.0",
+                            "remanentMag": 1.2,
+                            "material": "NdFeB",
+                            "type": "cuboid",
+                            "segments": "1, 1, 3",
+                            "size": "65.0, 18.0, 45.0"
+                        }
                     }
                 ]
             ],
@@ -1356,15 +1364,17 @@
         },
         "termination": {
             "title": "Termination",
-            "basic": [
-                "type",
-                "length",
-                "airGap"
-            ],
+            "basic": [],
             "advanced": [
-                "type",
-                "length",
-                "airGap"
+                "termination.object.shapeButton",
+                "termination.object.size",
+                "termination.object.segments",
+                "airGap",
+                "gapOffset",
+                "termination.object.material",
+                "termination.object.materialFile",
+                "termination.object.magnetization",
+                "termination.object.remanentMag"
             ]
         },
         "transform": {
@@ -1396,7 +1406,7 @@
             "title": "Basic Undulator",
             "advanced": [],
             "basic": [
-                ["Main", [
+                ["Undulator Parameters", [
                     "gap",
                     "numPeriods"
                 ]],
@@ -1406,10 +1416,9 @@
                     "airGap",
                     "undulatorBasic.magnet.segments",
                     "undulatorBasic.magnet.material",
-                    "undulatorBasic.magnet.materialFile"
-                ]],
-                ["Termination", [
-                    "terminations"
+                    "undulatorBasic.magnet.materialFile",
+                    "undulatorBasic.magnet.magnetization",
+                    "undulatorBasic.magnet.remanentMag"
                 ]]
             ]
         },
@@ -1417,7 +1426,7 @@
             "title": "Hybrid Undulator",
             "advanced": [],
             "basic": [
-                ["Main", [
+                ["Undulator Parameters", [
                     "gap",
                     "numPeriods",
                     "periodLength"
