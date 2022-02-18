@@ -3259,10 +3259,10 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 //     return
                 // }
                 // let simId = $scope.data.rows[rowIndex][1]
-                let simId = 'd5ANbivf';
+                let simId = 'o8X0n18j';
                 let reportName = 'multiElectronAnimation'
                 let qi = {
-                request: {simulationId: simId, report: reportName, simulationType: 'srw', models: appState.models}
+                    request: {simulationId: simId, report: reportName, simulationType: 'srw'}
                 }
                 let successCallback = () => {
                     srdbg('in success callback')
@@ -3573,7 +3573,7 @@ SIREPO.app.directive('toolbar', function(appState) {
         controller: function($scope) {
             $scope.allItems = [];
             var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
-            
+
             function addItem(name, items) {
                 var item = appState.setModelDefaults({type: name}, name);
                 items.push(item);

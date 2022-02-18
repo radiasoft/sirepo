@@ -497,6 +497,7 @@ class _ComputeJob(PKDict):
                     i.db.lastUpdateTime,
                     i.elapsed_time(),
                     i.db.get('jobStatusMessage', ''),
+                    sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
                 ]
                 if uid:
                     d.insert(l, i.db.simName)
