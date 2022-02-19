@@ -482,7 +482,7 @@ class _ComputeJob(PKDict):
                 ])
             return h
 
-        def _get_rows():
+        def _get_jobs():
             def _get_queued_time(db):
                 m = i.db.computeJobStart if i.db.status == job.RUNNING \
                     else sirepo.srtime.utc_now_as_int()
@@ -490,31 +490,27 @@ class _ComputeJob(PKDict):
 
             r = []
             for i in filter(_filter_jobs, cls.instances.values()):
-                d = [
-                    i.db.simulationType,
-                    i.db.simulationId,
-                    i.db.computeJobStart,
-                    i.db.lastUpdateTime,
-                    i.elapsed_time(),
-                    i.db.get('jobStatusMessage', ''),
-                    sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
-                ]
+                d = {
+                    'simulationType': i.db.simulationType,
+                    'simulationId': i.db.simulationId,
+                    'startTime': i.db.computeJobStart,
+                    'lastUpdateTime': i.db.lastUpdateTime,
+                    'elapsedTime': i.elapsed_time(),
+                    'statusMessage': i.db.get('jobStatusMessage', ''),
+                    'computeModel': sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
+                }
                 if uid:
-                    d.insert(l, i.db.simName)
+                    d['simName'] = i.db.simName
                 else:
-                    d.insert(l, i.db.uid)
-                    d.extend([
-                        _get_queued_time(i.db),
-                        ' | '.join(sorted(i.db.driverDetails.values())),
-                        i.db.isPremiumUser,
-                    ])
+                    d['uid'] = i.db.uid
+                    d['queuedTime'] = _get_queued_time(i.db)
+                    d['driverDetails'] = ' | '.join(sorted(i.db.driverDetails.values()))
+                    d['isPremiumUser'] = i.db.isPremiumUser
                 r.append(d)
-
-            r.sort(key=lambda x: x[l])
             return r
 
         l = 2
-        return PKDict(header=_get_header(), rows=_get_rows())
+        return PKDict(header=_get_header(), jobs=_get_jobs())
 
     def _is_running_pending(self):
         return self.db.status in (job.RUNNING, job.PENDING)
