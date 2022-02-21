@@ -951,7 +951,7 @@
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
             }],
-            "terminations": ["Termination Groups", "TerminationTable",
+            "terminations": ["Termination Objects", "TerminationTable",
                 [
                     {
                         "airGap": 0,

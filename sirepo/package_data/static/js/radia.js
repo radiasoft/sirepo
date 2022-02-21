@@ -152,6 +152,21 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         }
     };
 
+    self.deleteObject = o => {
+        const i = appState.models.geometryReport.objects.indexOf(o);
+        if (i < 0) {
+            return;
+        }
+        // if object was a group, ungroup its members
+        for (const mId of (o.members || [])) {
+            self.getObject(mId).groupId = '';
+        }
+        // if object was in a group, remove from that group
+        removeFromGroup(o);
+        appState.models.geometryReport.objects.splice(i, 1);
+        self.saveGeometry(true, false);
+    };
+
     self.getAxisIndices = function() {
         const sim = appState.models.simulation;
         return {
@@ -283,6 +298,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         }).length;
     }
 
+    function removeFromGroup(o) {
+        const gId = o.groupId;
+        if (gId !== 0 && (! gId || gId === '')) {
+            return;
+        }
+        let g = self.getObject(gId);
+        g.members.splice(g.members.indexOf(o.id), 1);
+        appState.models.geomGroup = g;
+        appState.saveQuietly('geomGroup');
+    }
+
     function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.pathPtsFileType) {
         fileUpload.uploadFileToUrl(
             inputFile,
@@ -378,19 +404,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.deleteObject = function(o) {
-        const oIdx = appState.models.geometryReport.objects.indexOf(o);
-        if (oIdx < 0) {
-            return;
-        }
         deleteShapesForObject(o);
-        // if object was a group, ungroup its members
-        for (const mId of (o.members || [])) {
-            self.getObject(mId).groupId = '';
-        }
-        // if object was in a group, remove from that group
-        removeFromGroup(o);
-        appState.models.geometryReport.objects.splice(oIdx, 1);
-        radiaService.saveGeometry(true, false);
+        radiaService.deleteObject(o);
     };
 
     self.dipoleTitle = () => {
@@ -401,7 +416,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }[self.getDipoleType()] || '') + ' Dipole';
     };
 
-    function removeFromGroup(o) {
+    self.removeFromGroup = o => {
         const gId = o.groupId;
         if (gId !== 0 && (! gId || gId === '')) {
             return;
@@ -2174,7 +2189,8 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
         ].join(''),
         controller: function($scope, $element) {
             let isEditing = false;
-            let itemModel = 'termination';
+            const itemModel = 'termination';
+            const groupModel = 'terminationGroup';
             let watchedModels = [itemModel];
 
             $scope.items = [];
@@ -2186,8 +2202,9 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
             }
 
             $scope.addItem = function() {
-                let b = appState.setModelDefaults({}, itemModel);
-                $scope.editItem(b, true);
+                const item = appState.setModelDefaults({}, itemModel);
+                item.object.groupId = $scope.model[groupModel].id;
+                $scope.editItem(item, true);
             };
 
             $scope.deleteItem = function(item) {
@@ -2195,8 +2212,9 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 if (index < 0) {
                     return;
                 }
+                radiaService.deleteObject(radiaService.getObject(item.object.id));
                 $scope.field.splice(index, 1);
-                appState.saveChanges('geometry');
+                appState.saveChanges([$scope.modelName, 'geometryReport']);
             };
 
             $scope.editItem = function(item, isNew) {
@@ -2224,10 +2242,20 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                     }
                     $scope.selectedItem = null;
                     if (! isEditing) {
-                        $scope.field.push(appState.models[modelName]);
+                        const item = appState.models[modelName];
+                        $scope.field.push(item);
+                        $scope.model[groupModel].members.push(item.object.id);
+                        appState.models.geometryReport.objects.push(item.object);
                         isEditing = true;
                     }
-                    appState.saveChanges('geometry', function () {
+                    for (const item of $scope.field) {
+                        appState.models.geometryReport.objects[
+                            appState.models.geometryReport.objects.indexOf(
+                                radiaService.getObject(item.object.id)
+                            )
+                        ] = item.object;
+                    }
+                    appState.saveChanges('geometryReport', function () {
                         $scope.loadItems();
                     });
                 });

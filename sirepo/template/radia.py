@@ -538,7 +538,9 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
         )
         t_grp = []
         for t in model.terminations:
-            t_grp.append(_build_geom_obj(t.object.type, **t.object))
+            _SIM_DATA.update_model_defaults(t.object, t.object.type)
+            t_grp.append(t.object)
+        pkdp('TERMS {}', model.terminations)
         geom_objs.extend(t_grp)
         geom_objs.append(
             _update_group(model.terminationGroup, t_grp, do_replace=True)
@@ -1297,7 +1299,18 @@ def _update_geom_from_freehand(geom_objs, model, **kwargs):
 
 
 def _update_geom_from_undulator(geom_objs, model, **kwargs):
+
     _update_geom_objects(geom_objs)
+    #if 'terminations' in model:
+    #    t_grp = set(model.terminationGroup.members)
+    #    for t in model.terminations:
+    #        t_grp.add(
+    #            _update_geom_obj(
+    #                _find_by_id(geom_objs, _update_geom_obj(t.object).id), **t.object
+    #            ).id
+    #        )
+    #    model.terminationGroup.members = list(t_grp)
+
     return pkinspect.module_functions('_update_')[f'_update_{model.undulatorType}'](
         model,
         _get_radia_objects(geom_objs, model),
@@ -1352,6 +1365,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     sz = pole_x[0] / 2 * d.width_dir + \
          d.height_dir * pole_x[1] + \
          model.poleLength / 2 * d.length_dir
+
     #sz = pole_sz * d.width_dir / 2 + \
     #     pole_sz * d.height_dir + \
     #     pole_sz * d.length_dir / 2
@@ -1386,13 +1400,13 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
         size=sz,
     )
 
-    pos += sz * d.length_dir
+    pos = (model.poleLength + model.numPeriods * model.periodLength) / 2 * d.length_dir
     for t in model.terminations:
         o = t.object
         sz = numpy.array(sirepo.util.split_comma_delimited_string(o.size, float))
         _update_geom_obj(
             o,
-            center=pos + sz / 2  + t.airGap * d.length_dir + gap_half_height + t.gapOffset * d.height_dir,
+            center=pos + sz / 2 + t.airGap * d.length_dir + gap_half_height + t.gapOffset * d.height_dir,
         )
         pos += sz * d.length_dir + t.airGap * d.length_dir
 
