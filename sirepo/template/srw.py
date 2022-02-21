@@ -28,6 +28,7 @@ import sirepo.uri_router
 import sirepo.util
 import srwl_bl
 import srwlib
+import sys
 import time
 import traceback
 import uti_io
@@ -382,6 +383,10 @@ def extract_report_data(sim_in):
     )
     if out.dimensions == 3:
         res = _remap_3d(res, allrange, out, dm[r])
+    # res = PKDict(array=np.random.rand(90000, 9000))r
+    pkdp('\n\n\n\n Res Size: {}', sys.getsizeof(res))
+    if sys.getsizeof(res) > 50000:
+        raise AssertionError('Failed to load report because it was to large')
     return res
 
 
@@ -490,8 +495,8 @@ def _copy_frame_args_into_model(frame_args, name):
 
 def sim_frame(frame_args):
     r = frame_args.frameReport
-    pkdp('\n\n\n {}', r)
-    return PKDict(array=np.random.rand(90000, 9000))
+    # pkdp('\n\n\n {}', r)
+    # return PKDict(array=np.random.rand(90000, 9000))
     frame_args.sim_in.report = r
     if r == 'multiElectronAnimation':
         m = frame_args.sim_in.models[r]

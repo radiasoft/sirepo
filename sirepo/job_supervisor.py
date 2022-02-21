@@ -151,6 +151,8 @@ def init():
         purge_non_premium_task_secs=(None, pkconfig.parse_seconds, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
+    pkdp('timeout secs analysis: {}', cfg.max_secs.analysis)
+    pkdp('timeout secs sequantial: {}', cfg.max_secs.sequential)
     _DB_DIR = sirepo.srdb.supervisor_dir()
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
