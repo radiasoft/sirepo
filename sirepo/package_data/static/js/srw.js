@@ -3306,13 +3306,6 @@ SIREPO.app.directive('beamlineAnimation', function(appState, panelState, frameCa
             });
 
             $scope.start = function() {
-                const index = 0;
-                for (const m in appState.models) {
-                    if (m.includes('beamlineAnimation')){
-                        srdbg('TEST m:', m);
-                        panelState.setError(m, '')
-                    }
-                }
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
