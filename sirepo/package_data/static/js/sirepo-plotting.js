@@ -63,8 +63,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.prevFrameIndex = index;
             frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
                 if (scope.element) {
+                    // srdbg('scope.modelName', scope.modelName);
+                    if (data.state == 'canceled') {
+                        data.error = 'Request canceled due to timeout';
+                    }
                     if (data.error) {
                         panelState.setError(scope.modelName, data.error);
+                        srdbg('data.error:', data.error);
                         return;
                     }
                     panelState.setError(scope.modelName, null);
@@ -2775,6 +2780,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 srdbg('json.z_matrix: ', json.z_matrix)
+                srdbg('appState.models: ', appState.models);
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],

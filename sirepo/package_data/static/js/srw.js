@@ -3272,7 +3272,7 @@ SIREPO.app.directive('srwNumberList', function(appState) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, panelState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
@@ -3306,6 +3306,13 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             });
 
             $scope.start = function() {
+                const index = 0;
+                for (const m in appState.models) {
+                    if (m.includes('beamlineAnimation')){
+                        srdbg('TEST m:', m);
+                        panelState.setError(m, '')
+                    }
+                }
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
