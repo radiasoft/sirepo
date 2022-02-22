@@ -2653,6 +2653,10 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 ];
                 centerTitle();
                 centerSubTitle();
+                if (appState.deepEquals(fullDomain, prevDomain)) {
+                    adjustZoomToCenter(axes.x.scale);
+                    adjustZoomToCenter(axes.y.scale);
+                }
             }
 
             function resetZoom() {
