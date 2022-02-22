@@ -22,9 +22,6 @@ import sirepo.util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-# TODO(e-carlin): from user
-_CATALOG_NAME = 'csx'
-
 _DEFAULT_COLUMNS = ['start', 'stop', 'suid']
 
 # TODO(e-carlin): tune this number
@@ -69,34 +66,39 @@ def background_percent_complete(report, run_dir, is_running):
         t = d.models.pollBlueskyForScansAnimation.start
 
     s = []
-    for k, v in catalog().search({'time': {'$gte': t}}).items():
+    for k, v in catalog(d.models.scans).search({'time': {'$gte': t}}).items():
         t = max(t, v.metadata['start']['time'])
         s.append(_scan_info(
             k,
-            d.models.metadataColumns.selected,
+            d.models.scans,
             metadata=v.metadata,
         ))
     pkio.atomic_write(run_dir.join(_BLUESKY_POLL_TIME_FILE), t)
     return r.pkupdate(**_scan_info_result(s).data)
 
 
-def catalog():
-    return databroker.catalog[_CATALOG_NAME]
+def catalog(scans_data_or_catalog_name):
+    return databroker.catalog[
+        scans_data_or_catalog_name.catalogName if isinstance(
+            scans_data_or_catalog_name,
+            PKDict,
+        ) else scans_data_or_catalog_name
+    ]
 
 
-def stateless_compute_scan_fields(_):
-    return PKDict(columns=list(catalog()[-1].metadata['start'].keys()))
+def stateless_compute_scan_fields(data):
+    return PKDict(columns=list(catalog(data)[-1].metadata['start'].keys()))
 
 
 def stateless_compute_scan_info(data):
-    return _scan_info_result([_scan_info(s, data.selectedColumns) for s in data.scans])
+    return _scan_info_result([_scan_info(s, data) for s in data.scans])
 
 
 def stateless_compute_scans(data):
     assert data.searchStartTime and data.searchStopTime, \
         pkdformat('must have both searchStartTime and searchStopTime data={}', data)
     s = []
-    for i, v in enumerate(catalog().search(databroker.queries.TimeRange(
+    for i, v in enumerate(catalog(data).search(databroker.queries.TimeRange(
             since=data.searchStartTime,
             until=data.searchStopTime,
             timezone='utc',
@@ -105,7 +107,7 @@ def stateless_compute_scans(data):
             raise sirepo.util.UserAlert(
                 f'More than {_MAX_NUM_SCANS} scans found. Please reduce your query.',
             )
-        s.append(_scan_info(v[0], data.selectedColumns, metadata=v[1].metadata))
+        s.append(_scan_info(v[0], data, metadata=v[1].metadata))
     return _scan_info_result(s)
 
 
@@ -148,7 +150,7 @@ def _generate_parameters_file(data, run_dir):
     )
 
 
-def _scan_info(scan_uuid, selected_columns, metadata=None):
+def _scan_info(scan_uuid, scans_data, metadata=None):
     def _get_start(metadata):
         return metadata['start']['time']
 
@@ -160,13 +162,13 @@ def _scan_info(scan_uuid, selected_columns, metadata=None):
 
     m = metadata
     if not m:
-        m = catalog()[scan_uuid].metadata
+        m = catalog(scans_data)[scan_uuid].metadata
     # POSIT: uid is no displayed but all of the code expects uid field to exist
     d = PKDict(uid=scan_uuid)
     for c in _DEFAULT_COLUMNS:
         d[c] = locals()[f'_get_{c}'](m)
 
-    for c in selected_columns:
+    for c in scans_data.selectedColumns:
         d[c] = m['start'].get(c)
     return d
 
