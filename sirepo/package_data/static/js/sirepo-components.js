@@ -3254,6 +3254,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             $scope.displayedCols = $scope.wantAdm ? [
                 'simulationType',
                 'simulationId',
+                'displayName',
                 'uid',
                 'startTime',
                 'lastUpdateTime',
