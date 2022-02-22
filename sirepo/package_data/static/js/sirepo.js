@@ -2287,6 +2287,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
             }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
                 // Try to parse javascript-redirect.html
+                srdbg('DATA', data);
                 var m = SR_EXCEPTION_RE.exec(data);
                 if (m) {
                     // if this is invalid, will throw SyntaxError, which we
@@ -2304,6 +2305,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
                     srlog('javascriptRedirectDocument: staying on page', m[1]);
                     // set explicitly so we don't log below
                     data = {state: 'error', error: 'server error'};
+                    srdbg('m:', m);
                 }
                 else {
                     // HTML document with error msg in title

@@ -326,6 +326,7 @@ class _Dispatcher(PKDict):
                     )
                 )
             except Exception as e:
+                pkdp('\n\n\n\n\n EXCEPTION TRIGGERED WHILE HANDLING \n\n\n\n ')
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.
@@ -381,13 +382,19 @@ class _Dispatcher(PKDict):
                 # so not an issue to call before work is done.
                 self._fastcgi_msg_q.task_done()
                 await s.write(pkjson.dump_bytes(m) + b'\n')
-                pkdp('\n\n\n\n TRYING ...')
                 await self.job_cmd_reply(
                     m,
                     job.OP_ANALYSIS,
                     await s.read_until(b'\n', job.cfg.max_message_bytes),
                 )
-                pkdp('\n\n\n\n GOOD')
+                pkdp('\n\n\n\n self._read_buffer_size {}', s._read_buffer_size)
+
+        except tornado.iostream.StreamClosedError as e:
+            pkdp('STREAM CLOSED ERROR: {}', e)
+            pkdlog('msg={} error={} stack={}', m, e, pkdexc())
+            if not self.fastcgi_cmd:
+                return
+            await self._fastcgi_handle_error(m, e, pkdexc())
         except Exception as e:
             pkdlog('msg={} error={} stack={}', m, e, pkdexc())
             # If self.fastcgi_cmd is None we initiated the kill so not an error

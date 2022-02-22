@@ -204,6 +204,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     if (! scope.element) {
                         return;
                     }
+                    srdbg('DATA:', data);
                     forceRunCount = forceRunCount || 0;
                     if (data.x_range) {
                         scope.clearData();
