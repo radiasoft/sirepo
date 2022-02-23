@@ -387,14 +387,6 @@ class _Dispatcher(PKDict):
                     job.OP_ANALYSIS,
                     await s.read_until(b'\n', job.cfg.max_message_bytes),
                 )
-                pkdp('\n\n\n\n self._read_buffer_size {}', s._read_buffer_size)
-
-        except tornado.iostream.StreamClosedError as e:
-            pkdp('STREAM CLOSED ERROR: {}', e)
-            pkdlog('msg={} error={} stack={}', m, e, pkdexc())
-            if not self.fastcgi_cmd:
-                return
-            await self._fastcgi_handle_error(m, e, pkdexc())
         except Exception as e:
             pkdlog('msg={} error={} stack={}', m, e, pkdexc())
             # If self.fastcgi_cmd is None we initiated the kill so not an error

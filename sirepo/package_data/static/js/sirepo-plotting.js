@@ -201,6 +201,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     return;
                 }
                 panelState.requestData(scope.modelName, function(data) {
+                    srdbg('model:', appState.models[scope.modelName])
                     if (! scope.element) {
                         return;
                     }

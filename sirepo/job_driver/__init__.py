@@ -308,6 +308,8 @@ class DriverBase(PKDict):
                 c.reply = PKDict(state='error', error='no reply')
             if i in self.ops:
                 #SECURITY: only ops known to this driver can be replied to
+                if 'error' in c.reply:
+                    pkdp('IN INIT LOOKING FOR MESSAGE TOO BIG {}',c)
                 self.ops[i].reply_put(c.reply)
             else:
                 pkdlog(
