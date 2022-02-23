@@ -3212,18 +3212,21 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         template: `
             <div>
               <table class="table">
-                <thead ng-bind-html="getHeader()"></thead>
+                <thead>
+                  <th data-ng-show="!wantAdm">Name</th>
+                  <th data-ng-repeat="c in displayedCols">{{ data.header[c].title }}</th>
+                </thead>
                 <tbody>
                   <tr data-ng-repeat="j in data.jobs track by $index">
-                    <td data-ng-show="showOwnJobsFeatures()">
+                    <td data-ng-show="!wantAdm">
                       <a ng-href="{{ getJobLink(j) }}">
                         {{ j['simName'] }}
                       </a>
                     </td>
-                    <td data-ng-repeat="c in displayedCols track by $index">
-                      {{ getCellContent(j, c, $index) }}
+                    <td data-ng-repeat="c in displayedCols">
+                      {{ getCellContent(j, c) }}
                     </td>
-                    <td data-ng-show="showOwnJobsFeatures()">
+                    <td data-ng-show="!wantAdm">
                       <button class="btn btn-default" data-ng-click="endSimulation(j)">End Simulation</button>
                     </td>
                   </tr>
@@ -3233,14 +3236,8 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             </div>
         `,
         controller: function($scope, appState) {
-
             function dataLoaded(data, status) {
                 $scope.data = data;
-            }
-
-            function getStartIndex() {
-                // 'SimulationId' and
-                return $scope.wantAdm ? 0 : 2;
             }
 
             function getUrl(simulationId, app) {
@@ -3254,8 +3251,8 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             $scope.displayedCols = $scope.wantAdm ? [
                 'simulationType',
                 'simulationId',
-                'displayName',
                 'uid',
+                'displayName',
                 'startTime',
                 'lastUpdateTime',
                 'elapsedTime',
@@ -3281,29 +3278,19 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 };
                 const errorCallback = (request) => {
                     return (data) => {
-                        srlog('runCancel error=${data.error} from request=${request}');
+                        srlog(`runCancel error=${data.error} from request=${request}`);
                     };
                 };
                 requestSender.sendRequest('runCancel', successCallback, r, errorCallback(r));
             };
 
-            $scope.getCellContent = function(job, key, colIndex) {
+            $scope.getCellContent = function(job, key) {
                 const typeDispatch = {
                     DateTime: appState.formatDate,
                     Time: appState.formatTime,
                     String: function(s){return s;},
                 };
-                return typeDispatch[$scope.data.header[colIndex + getStartIndex() + ($scope.wantAdm ? 0 : 1)][1]](job[key]);
-            };
-
-            $scope.getHeader = function() {
-                var h = '';
-                if ($scope.data) {
-                    for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
-                        h += '<th>' + $scope.data.header[i][0] + '</th>';
-                    }
-                    return $sce.trustAsHtml(h);
-                }
+                return typeDispatch[$scope.data.header[key].type](job[key]);
             };
 
             $scope.getJobLink = function(job) {
@@ -3317,10 +3304,6 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     {
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
-            };
-
-            $scope.showOwnJobsFeatures = function() {
-                return ! $scope.wantAdm;
             };
 
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));

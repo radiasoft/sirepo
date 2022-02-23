@@ -463,24 +463,58 @@ class _ComputeJob(PKDict):
             return job._is_running_pending()
 
         def _get_header():
-            h = [
-                ['App', 'String'],
-                ['Simulation id', 'String'],
-                ['Start', 'DateTime'],
-                ['Last update', 'DateTime'],
-                ['Elapsed', 'Time'],
-                ['Status', 'String'],
-            ]
+            h = PKDict(
+                simulationType=PKDict(
+                    title='App',
+                    type='String',
+                ),
+                simulationId=PKDict(
+                    title='Simulation id',
+                    type='String',
+                ),
+                startTime=PKDict(
+                    title='Start',
+                    type='DateTime',
+                ),
+                lastUpdateTime=PKDict(
+                    title='Last Update',
+                    type='DateTime',
+                ),
+                elapsedTime=PKDict(
+                    title='Elapsed',
+                    type='Time',
+                ),
+                statusMessage=PKDict(
+                    title='Status',
+                    type='String',
+                ),
+            )
             if uid:
-                h.insert(l, ['Name', 'String'])
+                h.name = PKDict(
+                    title='Name',
+                    type='String',
+                )
             else:
-                h.insert(l, ['User id', 'String'])
-                h.insert(l, ['Display name', 'String'])
-                h.extend([
-                    ['Queued', 'Time'],
-                    ['Driver details', 'String'],
-                    ['Premium user', 'String'],
-                ])
+                h.uid = PKDict(
+                    title='User id',
+                    type='String',
+                )
+                h.displayName = PKDict(
+                    title='Display name',
+                    type='String',
+                )
+                h.queuedTime = PKDict(
+                    title='Queued',
+                    type='Time',
+                )
+                h.driverDetails = PKDict(
+                    title='Driver details',
+                    type='String',
+                )
+                h.isPremiumUser = PKDict(
+                    title='Premium user',
+                    type='String',
+                )
             return h
 
         def _get_jobs():
@@ -492,27 +526,26 @@ class _ComputeJob(PKDict):
             r = []
             with sirepo.auth_db.session():
                 for i in filter(_filter_jobs, cls.instances.values()):
-                    d = {
-                        'simulationType': i.db.simulationType,
-                        'simulationId': i.db.simulationId,
-                        'startTime': i.db.computeJobStart,
-                        'lastUpdateTime': i.db.lastUpdateTime,
-                        'elapsedTime': i.elapsed_time(),
-                        'statusMessage': i.db.get('jobStatusMessage', ''),
-                        'computeModel': sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
-                    }
+                    d = PKDict(
+                        simulationType=i.db.simulationType,
+                        simulationId=i.db.simulationId,
+                        startTime=i.db.computeJobStart,
+                        lastUpdateTime=i.db.lastUpdateTime,
+                        elapsedTime=i.elapsed_time(),
+                        statusMessage=i.db.get('jobStatusMessage', ''),
+                        computeModel=sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
+                    )
                     if uid:
-                        d['simName'] = i.db.simName
+                        d.simName = i.db.simName
                     else:
-                        d['uid'] = i.db.uid
-                        d['displayName'] = sirepo.auth_db.UserRegistration.search_by(uid=i.db.uid).display_name or 'n/a'
-                        d['queuedTime'] = _get_queued_time(i.db)
-                        d['driverDetails'] = ' | '.join(sorted(i.db.driverDetails.values()))
-                        d['isPremiumUser'] = i.db.isPremiumUser
+                        d.uid = i.db.uid
+                        d.displayName = sirepo.auth_db.UserRegistration.search_by(uid=i.db.uid).display_name or 'n/a'
+                        d.queuedTime = _get_queued_time(i.db)
+                        d.driverDetails = ' | '.join(sorted(i.db.driverDetails.values()))
+                        d.isPremiumUser = i.db.isPremiumUser
                     r.append(d)
             return r
 
-        l = 2
         return PKDict(header=_get_header(), jobs=_get_jobs())
 
     def _is_running_pending(self):
