@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.job
-import time
 
 
 def create_predefined(out_dir=None):

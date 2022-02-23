@@ -200,7 +200,6 @@ def agent_env(env=None, uid=None):
         SIREPO_JOB_PING_TIMEOUT_SECS=cfg.ping_timeout_secs,
         SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
     )
-    pkdp('\n\n\n\n\n MAX MESSAGE SIZE: {}', cfg.max_message_bytes)
     for k in env.keys():
         assert not pykern.pkdebug.SECRETS_RE.search(k), \
             'unexpected secret key={} match={}'.format(

@@ -326,7 +326,6 @@ class _Dispatcher(PKDict):
                     )
                 )
             except Exception as e:
-                pkdp('\n\n\n\n\n EXCEPTION TRIGGERED WHILE HANDLING \n\n\n\n ')
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.

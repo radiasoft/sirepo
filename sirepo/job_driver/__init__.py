@@ -296,7 +296,6 @@ class DriverBase(PKDict):
             or ('reply' in c and c.reply.get('state') == job.ERROR)
         ):
             pkdlog('{} error msg={}', self, c)
-            # pkdp('\n\n\n ERROR! {} error msg={}', self, c)
         elif c.opName == job.OP_JOB_CMD_STDERR:
             pkdlog('{} stderr from job_cmd msg={}', self, c)
             return
@@ -308,8 +307,6 @@ class DriverBase(PKDict):
                 c.reply = PKDict(state='error', error='no reply')
             if i in self.ops:
                 #SECURITY: only ops known to this driver can be replied to
-                if 'error' in c.reply:
-                    pkdp('IN INIT LOOKING FOR MESSAGE TOO BIG {}',c)
                 self.ops[i].reply_put(c.reply)
             else:
                 pkdlog(

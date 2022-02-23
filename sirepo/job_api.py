@@ -249,7 +249,6 @@ def _request(**kwargs):
         headers=PKDict({'Content-type': 'application/json'}),
         verify=sirepo.job.cfg.verify_tls,
     )
-
     r.raise_for_status()
     return pkjson.load_any(r.content)
 
