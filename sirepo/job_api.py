@@ -243,17 +243,12 @@ def _request(**kwargs):
         serverSecret=sirepo.job.cfg.server_secret,
     )
     pkdlog('api={} runDir={}', c.api, c.get('runDir'))
-    pkdp('\n\n\n ABOUT TO TRY')
-    # try:
-    pkdp('\n\n\n ABOUT TO POST')
     r = requests.post(
         u,
         data=pkjson.dump_bytes(c),
         headers=PKDict({'Content-type': 'application/json'}),
         verify=sirepo.job.cfg.verify_tls,
     )
-    # except Exception as e:
-    #     raise AssertionError(f'FIRED {e}')
 
     r.raise_for_status()
     return pkjson.load_any(r.content)

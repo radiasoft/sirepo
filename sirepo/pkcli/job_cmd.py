@@ -143,13 +143,9 @@ def _do_download_data_file(msg, template):
             c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
                 if u.endswith(('.py', '.txt', '.csv')) \
                 else r.filename.read_binary()
-            if len(c + b'\n') > job.cfg.max_message_bytes:
-                pkdp('\n\n\n\n\n MESSAGE WAS TOO BIG')
-                c = pkjson.dump_bytes(PKDict(
-                    state='complete',
-                    error='Message was too large',
-                    stack=''
-                )) + b'\n'
+            c, b = _change_message_too_big(c)
+            if b:
+                return c
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -209,18 +205,21 @@ def _do_fastcgi(msg, template):
                 'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
             c += 1
             r = _maybe_parse_user_alert(e)
-        # check size of r
-        pkdp('\n\n\n\n SIZE OF MESSAGE: {}', len(pkjson.dump_bytes(r) + b'\n'))
-        pkdp('\n\n\n\n MAX SIZE: {}', job.cfg.max_message_bytes)
-        if len(pkjson.dump_bytes(r) + b'\n') > job.cfg.max_message_bytes:
-            pkdp('\n\n\n\n\n MESSAGE WAS TOO BIG')
-            s.sendall(pkjson.dump_bytes(PKDict(
-                state='complete',
-                error='Message was too large',
-                stack=''
-            )) + b'\n')
-        else:
-            s.sendall(pkjson.dump_bytes(r) + b'\n')
+        s.sendall(_change_message_too_big(r)[0] + b'\n')
+
+
+def _change_message_too_big(msg):
+    b = False
+    if type(msg) != bytes:
+        msg = pkjson.dump_bytes(msg)
+    if len(msg + b'\n') > job.cfg.max_message_bytes:
+        msg = pkjson.dump_bytes(PKDict(
+                state=job.COMPLETED,
+                error='Data was too large',
+                stack='',
+            ))
+        b = True
+    return msg, b
 
 
 def _do_get_simulation_frame(msg, template):

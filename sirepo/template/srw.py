@@ -383,10 +383,6 @@ def extract_report_data(sim_in):
     )
     if out.dimensions == 3:
         res = _remap_3d(res, allrange, out, dm[r])
-    # res = PKDict(array=np.random.rand(90000, 9000))r
-    pkdp('\n\n\n\n Res Size: {}', sys.getsizeof(res))
-    if sys.getsizeof(res) > 50000:
-        raise AssertionError('Failed to load report because it was to large')
     return res
 
 
