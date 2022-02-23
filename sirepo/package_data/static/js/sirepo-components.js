@@ -3317,10 +3317,14 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             };
 
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
-            $scope.getJobs();
+            $scope.$on('$routeChangeSuccess', () => {
+                if ($location.path() == (SIREPO.APP_SCHEMA.route.admJobs)) {
+                    $scope.getJobs();
+                }
+            });
             panelState.waitForUI(() => {
                 $('#' + panelState.modalId('jobsListModal')).on('shown.bs.modal', function() {
-                $scope.getJobs();
+                    $scope.getJobs();
                 });
             });
         },
