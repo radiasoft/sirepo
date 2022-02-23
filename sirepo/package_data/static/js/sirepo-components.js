@@ -650,7 +650,7 @@ SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
         template: `
             <div class="panel panel-info">
               <div class="panel-heading clearfix" data-panel-heading="{{ panelHeading() }}" data-model-key="modelKey"></div>
-              <div data-show-loading-and-error="">
+              <div data-show-loading-and-error="" data-model-key="modelKey">
                 <div data-ng-show="showTranscludedElement()">
                   <transcluded-element></transcluded-element>
                 </div>
@@ -1713,6 +1713,9 @@ SIREPO.app.directive('safePath', function() {
 SIREPO.app.directive('showLoadingAndError', function(panelState) {
     return {
         transclude: true,
+        scope: {
+            modelKey: '@',
+        },
         template: `
             <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
@@ -2214,7 +2217,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-            '<div data-show-loading-and-error="">',
+            '<div data-show-loading-and-error="" data-model-key="modelKey">',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
                 '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
