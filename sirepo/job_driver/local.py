@@ -11,7 +11,6 @@ from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
 import sirepo.mpi
-import sirepo.srdb
 import subprocess
 import tornado.ioloop
 import tornado.process

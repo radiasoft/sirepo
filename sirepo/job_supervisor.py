@@ -630,16 +630,6 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req, recursion_depth=0):
-        def _set_error(compute_job_serial, internal_error):
-            if self.db.computeJobSerial != compute_job_serial:
-                # Another run has started
-                return
-            self.__db_update(
-                error='Server error',
-                internalError=internal_error,
-                status=job.ERROR,
-            )
-
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
             if f or not self._req_is_valid(req):
@@ -675,7 +665,6 @@ class _ComputeJob(PKDict):
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
         t = sirepo.srtime.utc_now_as_int()
-        s = self.db.status
         d = self.db
         self.__db_init(req, prev_db=d)
         self.__db_update(
@@ -689,48 +678,22 @@ class _ComputeJob(PKDict):
             status=job.PENDING,
         )
         self._purged_jids_cache.discard(self.__db_file(self.db.computeJid).purebasename)
-        c = self.db.computeJobSerial
-        try:
-            for i in range(_MAX_RETRIES):
-                try:
-                    await o.prepare_send()
-                    self.run_op = o
-                    o.make_lib_dir_symlink()
-                    o.send()
-                    r = self._status_reply(req)
-                    assert r
-                    o.run_callback = tornado.ioloop.IOLoop.current().call_later(
-                        0,
-                        self._run,
-                        o,
-                    )
-                    o = None
-                    return r
-                except Awaited:
-                    pass
-            else:
-                raise AssertionError('too many retries {}'.format(req))
-        except sirepo.util.ASYNC_CANCELED_ERROR:
-            if self.pkdel('_canceled_serial') == c:
-                # We were canceled due to api_runCancel.
-                # api_runCancel destroyed the op and updated the db
-                raise
-            # There was a timeout getting the run started. Set the
-            # error and let the user know. The timeout has destroyed
-            # the op so don't need to destroy here
-            _set_error(c, o.internal_error)
-            return self._status_reply(req)
-        except Exception as e:
-            # _run destroys in the happy path (never got to _run here)
-            o.destroy(cancel=False)
-            if isinstance(e, sirepo.util.SRException) and \
-               e.sr_args.params.get('isGeneral'):
-               self.__db_restore(d)
-            else:
-                _set_error(c, o.internal_error)
-            raise
+        self.run_op = o
+        r = self._status_reply(req)
+        assert r
+        o.run_callback = tornado.ioloop.IOLoop.current().call_later(
+            0,
+            self._run,
+            o,
+            self.db.computeJobSerial,
+            d,
+        )
+        o = None
+        return r
 
     async def _receive_api_runStatus(self, req):
+        if '_sr_exception' in self:
+            raise self.pkdel('_sr_exception')
         r = self._status_reply(req)
         if r:
             return r
@@ -801,9 +764,51 @@ class _ComputeJob(PKDict):
             )
         )
 
-    async def _run(self, op):
+    async def _run(self, op, compute_job_serial, prev_db):
+        def _set_error(compute_job_serial, internal_error):
+            if self.db.computeJobSerial != compute_job_serial:
+                # Another run has started
+                return
+            self.__db_update(
+                error='Server error',
+                internalError=internal_error,
+                status=job.ERROR,
+            )
+
+        async def _send_op(op, compute_job_serial, prev_db):
+            try:
+                for _ in range(_MAX_RETRIES):
+                    try:
+                        await op.prepare_send()
+                        break
+                    except Awaited:
+                        pass
+                else:
+                    raise AssertionError(f'too many retries {op}')
+            except sirepo.util.ASYNC_CANCELED_ERROR:
+                if self.pkdel('_canceled_serial') == compute_job_serial:
+                    # We were canceled due to api_runCancel.
+                    # api_runCancel destroyed the op and updated the db
+                    return
+                # There was a timeout getting the run started. Set the
+                # error and let the user know. The timeout has destroyed
+                # the op so don't need to destroy here
+                _set_error(compute_job_serial, op.internal_error)
+            except Exception as e:
+                op.destroy(cancel=False)
+                if isinstance(e, sirepo.util.SRException) and \
+                e.sr_args.params.get('isGeneral'):
+                    self.__db_restore(prev_db)
+                    self._sr_exception = e
+                    return
+                _set_error(compute_job_serial, op.internal_error)
+                raise
+            op.make_lib_dir_symlink()
+            op.send()
+
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
+        await _send_op(op, compute_job_serial, prev_db)
         try:
             with op.set_job_situation('Entered __create._run'):
                 while True:
