@@ -96,8 +96,17 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 
 
 @api_perm.require_user
-def api_ioJob():
-    return _request()
+def api_ioJob(simulation_type, simulation_id):
+    r = _request(
+        request_content=_request_content(
+            PKDict(
+                computeJobHash='unused',
+                req_data=PKDict(**sirepo.http_request.parse_post().req_data)
+            )
+        ),
+        runDir=None,
+    )
+    return r
 
 
 @api_perm.allow_visitor
