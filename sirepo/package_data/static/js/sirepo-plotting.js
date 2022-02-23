@@ -60,7 +60,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             if (frameCache.getCurrentFrame(scope.modelName) == scope.prevFrameIndex) {
                 return;
             }
-            panelState.setError(scope.modelName, '')
+            panelState.setError(scope.modelName, '');
             scope.prevFrameIndex = index;
             frameCache.getFrame(scope.modelName, index, scope.isPlaying, function(index, data) {
                 if (scope.element) {

@@ -2870,7 +2870,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (state.isStateError()) {
                 var e = state.getError();
                 if (e) {
-                    let m = e.split(/[\n\r]+/)[0]
+                    let m = e.split(/[\n\r]+/)[0];
                     if (m.toLowerCase().includes('504')){
                         return 'Timeout Error. Please contact support@radiasoft.net if the problem persists';
                     }
