@@ -947,7 +947,7 @@
                 "size": "45.0, 5.0, 25.0"
             }],
             "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
-            "poleLength":["Length [mm]", "Float", 5.0],
+            "poleLength": ["Length [mm]", "Float", 5.0],
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
             }],
@@ -1366,6 +1366,7 @@
             "title": "Termination",
             "basic": [],
             "advanced": [
+                "termination.object.name",
                 "termination.object.shapeButton",
                 "termination.object.size",
                 "termination.object.segments",

@@ -173,85 +173,6 @@ def extract_report_data(run_dir, sim_in):
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve or geometry change
 # begin deprrecating this...except for save field?
-def get_application_data(data, **kwargs):
-    if 'method' not in data:
-        raise RuntimeError('no application data method')
-    if data.method not in SCHEMA.constants.getDataMethods:
-        raise RuntimeError('unknown application data method: {}'.format(data.method))
-
-    g_id = -1
-    sim_id = data.simulationId
-    try:
-        g_id = _get_g_id()
-    except IOError as e:
-        if pkio.exception_is_not_found(e):
-            # No Radia dump file
-            return PKDict(warning='No Radia dump')
-        # propagate other errors
-    id_map = _read_id_map()
-    if data.method == 'get_field':
-        f_type = data.get('fieldType')
-        res = _generate_field_data(
-            sim_id, g_id, data.name, f_type, data.get('fieldPaths')
-        )
-        res.solution = _read_solution()
-        res.idMap = id_map
-        tmp_f_type = data.fieldType
-        data.fieldType = None
-        data.geomTypes = [SCHEMA.constants.geomTypeLines]
-        data.method = 'get_geom'
-        data.viewType = SCHEMA.constants.viewTypeObjects
-        new_res = get_application_data(data)
-        res.data += new_res.data
-        data.fieldType = tmp_f_type
-        return res
-
-    if data.method == 'get_field_integrals':
-        return _generate_field_integrals(sim_id, g_id, data.fieldPaths)
-    if data.method == 'get_kick_map':
-        return _read_or_generate_kick_map(g_id, data)
-    if data.method == 'get_geom':
-        g_types = data.get(
-            'geomTypes',
-            [SCHEMA.constants.geomTypeLines, SCHEMA.constants.geomTypePolys]
-        )
-        g_types.extend(['center', 'name', 'size', 'id'])
-        res = _read_or_generate(sim_id, g_id, data)
-        rd = res.data if 'data' in res else []
-        res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
-        res.idMap = id_map
-        return res
-    if data.method == 'save_field':
-        data.method = 'get_field'
-        res = get_application_data(data)
-        file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-            f'{sim_id}_{res.name}.{data.fileExt}'
-        )
-        # we save individual field paths, so there will be one item in the list
-        vectors = res.data[0].vectors
-        if data.exportType == 'sdds':
-            return _save_fm_sdds(
-                res.name,
-                vectors,
-                _AXIS_ROTATIONS[data.beamAxis],
-                file_path
-            )
-        elif data.exportType == 'csv':
-            return _save_field_csv(
-                data.fieldType,
-                vectors,
-                _AXIS_ROTATIONS[data.beamAxis],
-                file_path
-            )
-        elif data.exportType == 'SRW':
-            return _save_field_srw(
-                data.fieldType,
-                data.gap,
-                vectors,
-                _AXIS_ROTATIONS[data.beamAxis],
-                file_path
-            )
-        return res
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
@@ -540,7 +461,6 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
         for t in model.terminations:
             _SIM_DATA.update_model_defaults(t.object, t.object.type)
             t_grp.append(t.object)
-        pkdp('TERMS {}', model.terminations)
         geom_objs.extend(t_grp)
         geom_objs.append(
             _update_group(model.terminationGroup, t_grp, do_replace=True)
@@ -924,14 +844,22 @@ def _get_jay_points(o, stemmed_info):
 
 
 def _get_radia_objects(geom_objs, model):
-    o = PKDict()
+
+    o = PKDict(groupedObjects=PKDict())
+    o_ids = []
     for f in model:
         try:
             if '_super' in model[f] and 'radiaObject' in model[f]._super:
-                o[f] = (_find_by_id(geom_objs, model[f].id))
+                o[f] = _find_by_id(geom_objs, model[f].id)
+                o_ids.append(model[f].id)
         # ignore non-objects
         except TypeError:
             pass
+    for f in o:
+        if o[f].get('model') == 'geomGroup':
+            o.groupedObjects[f] = [
+                _find_by_id(geom_objs, m_id) for m_id in o[f].members if m_id not in o_ids
+            ]
     return o
 
 
@@ -1403,9 +1331,10 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     pos = (model.poleLength + model.numPeriods * model.periodLength) / 2 * d.length_dir
     for t in model.terminations:
         o = t.object
+        m = assembly.groupedObjects.get('terminationGroup', [])
         sz = numpy.array(sirepo.util.split_comma_delimited_string(o.size, float))
         _update_geom_obj(
-            o,
+            _find_by_id(m, o.id),
             center=pos + sz / 2 + t.airGap * d.length_dir + gap_half_height + t.gapOffset * d.height_dir,
         )
         pos += sz * d.length_dir + t.airGap * d.length_dir
