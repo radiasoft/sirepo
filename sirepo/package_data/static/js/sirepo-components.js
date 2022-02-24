@@ -1660,7 +1660,7 @@ SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
               <a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >
                 <span class="glyphicon glyphicon-hourglass"></span>
                 {{ simState.stateAsText() }}
-                <span data-ng-show="simState.isWaitingOnAnotherSimulation()"> (Waiting for another simulation to complete)</span>
+                <span data-ng-show="simState.isWaitingOnAnotherSimulation()"> ({{ simState.jobStatusMessage() }})</span>
                 {{ simState.dots }}
               </a>
             </div>
