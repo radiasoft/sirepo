@@ -3212,53 +3212,35 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         scope: {
             wantAdm: '<',
         },
-        template: [
-            '<div>',
-                '<table class="table">',
-                    '<thead ng-bind-html="getHeader()"></thead>',
-                    '<tbody ng-bind-html="getRows()"></tbody>',
-                '</table>',
-                '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div>
+              <table class="table">
+                <thead>
+                  <th data-ng-show="!wantAdm">Name</th>
+                  <th data-ng-repeat="c in displayedCols">{{ data.header[c].title }}</th>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="j in data.jobs track by $index">
+                    <td data-ng-show="!wantAdm">
+                      <a ng-href="{{ getJobLink(j) }}">
+                        {{ j['simName'] }}
+                      </a>
+                    </td>
+                    <td data-ng-repeat="c in displayedCols">
+                      {{ getCellContent(j, c) }}
+                    </td>
+                    <td data-ng-show="!wantAdm">
+                      <button class="btn btn-default" data-ng-click="endSimulation(j)">End Simulation</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>
+            </div>
+        `,
         controller: function($scope, appState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-            }
-
-            function getRow(row, nameIndex, simulationIdIndex, appIndex) {
-                var typeDispatch = {
-                    DateTime: appState.formatDate,
-                    Time: appState.formatTime,
-                    String: function(s){return s;},
-                };
-                var h = '';
-                for (var i = getStartIndex(); i < row.length; i++) {
-                    var v = typeDispatch[$scope.data.header[i][1]](row[i]);
-                    if (! v) {
-                        v = 'n/a';
-                    }
-                    if (!$scope.wantAdm && i === nameIndex) {
-                        v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
-                    }
-                    h += '<td>' + v + '</td>';
-                }
-                return h;
-            }
-
-            function getHeaderIndex(key) {
-                var h = $scope.data.header;
-                for (var i = 0; i<h.length; i++) {
-                    if (h[i][0] === key) {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            function getStartIndex() {
-                // 'SimulationId' and
-                return $scope.wantAdm ? 0 : 2;
             }
 
             function getUrl(simulationId, app) {
@@ -3269,14 +3251,53 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 );
             }
 
-            $scope.getHeader = function() {
-                var h = '';
-                if ($scope.data) {
-                    for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
-                        h += '<th>' + $scope.data.header[i][0] + '</th>';
-                    }
-                    return $sce.trustAsHtml(h);
-                }
+            $scope.displayedCols = $scope.wantAdm ? [
+                'simulationType',
+                'simulationId',
+                'uid',
+                'displayName',
+                'startTime',
+                'lastUpdateTime',
+                'elapsedTime',
+                'statusMessage',
+                'queuedTime',
+                'driverDetails',
+                'isPremiumUser'
+            ] : [
+                'startTime',
+                'lastUpdateTime',
+                'elapsedTime',
+                'statusMessage'
+            ];
+
+            $scope.endSimulation = function(job) {
+                const r = {
+                    simulationId: job.simulationId,
+                    report: job.computeModel,
+                    simulationType: job.simulationType,
+                };
+                const successCallback = () => {
+                    $scope.getJobs();
+                };
+                const errorCallback = (request) => {
+                    return (data) => {
+                        srlog(`runCancel error=${data.error} from request=${request}`);
+                    };
+                };
+                requestSender.sendRequest('runCancel', successCallback, r, errorCallback(r));
+            };
+
+            $scope.getCellContent = function(job, key) {
+                const typeDispatch = {
+                    DateTime: appState.formatDate,
+                    Time: appState.formatTime,
+                    String: function(s){return s;},
+                };
+                return typeDispatch[$scope.data.header[key].type](job[key]);
+            };
+
+            $scope.getJobLink = function(job) {
+                return getUrl(job.simulationId, job.simulationType);
             };
 
             $scope.getJobs = function () {
@@ -3286,23 +3307,6 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     {
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
-            };
-
-            $scope.getRows = function() {
-                var d = $scope.data;
-                if (d) {
-                    var n = getHeaderIndex('Name');
-                    var s = getHeaderIndex('Simulation id');
-                    var a = getHeaderIndex('App');
-                    if (a !== 0 && s !== 1) {
-                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + JSON.stringify($scope.data.header));
-                    }
-                    var h = '';
-                    for (var i in d.rows) {
-                        h += '<tr>' + getRow(d.rows[i], n, s, a) + '</tr>';
-                    }
-                    return $sce.trustAsHtml(h);
-                }
             };
 
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
