@@ -269,26 +269,49 @@ var shadowPlotLogic = function(appState, panelState, shadowService, $scope) {
 
 SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, utilities, $scope) {
     // Todo (gurhar1133): why does defining this func this as constant work, but as regular func def doesnt?
-    const computeHarmonicPhotonEnergy = utilities.debounce(() => {
-                if (appState.models.undulator.select_energy != 'harmonic') {
-                    return;
+    // const computeHarmonicPhotonEnergy = utilities.debounce(() => {
+    //             if (appState.models.undulator.select_energy != 'harmonic') {
+    //                 return;
+    //             }
+    //             shadowService.sendStatelessCompute(
+    //                 'compute_harmonic_photon_energy',
+    //                 appState,
+    //                 function(data) {
+    //                     if (appState.isLoaded()) {
+    //                         var und = appState.models.undulator;
+    //                         und.photon_energy = data.photon_energy.toFixed(2);
+    //                         und.maxangle = data.maxangle.toFixed(4);
+    //                     }
+    //                 },
+    //                 {
+    //                     undulator: appState.models.undulator,
+    //                     undulatorBeam: appState.models.undulatorBeam,
+    //                 }
+    //             );
+    //         }, 350);
+
+    function computeHarmonicPhotonEnergy() {
+        if (appState.models.undulator.select_energy != 'harmonic') {
+            return;
+        }
+        shadowService.sendStatelessCompute(
+            'compute_harmonic_photon_energy',
+            appState,
+            function(data) {
+                if (appState.isLoaded()) {
+                    var und = appState.models.undulator;
+                    und.photon_energy = data.photon_energy.toFixed(2);
+                    und.maxangle = data.maxangle.toFixed(4);
                 }
-                shadowService.sendStatelessCompute(
-                    'compute_harmonic_photon_energy',
-                    appState,
-                    function(data) {
-                        if (appState.isLoaded()) {
-                            var und = appState.models.undulator;
-                            und.photon_energy = data.photon_energy.toFixed(2);
-                            und.maxangle = data.maxangle.toFixed(4);
-                        }
-                    },
-                    {
-                        undulator: appState.models.undulator,
-                        undulatorBeam: appState.models.undulatorBeam,
-                    }
-                );
-            }, 350);
+            },
+            {
+                undulator: appState.models.undulator,
+                undulatorBeam: appState.models.undulatorBeam,
+            }
+        );
+    }
+
+
 
     function updateUndulatorFields() {
         var und = appState.models.undulator;

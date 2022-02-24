@@ -53,7 +53,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
 };
 
 SIREPO.viewLogic = function(name, init) {
-    SIREPO.app.directive(name, function(appState) {
+    SIREPO.app.directive(name, function(appState, utilities) {
         return {
             restrict: 'A',
             scope: {
@@ -78,7 +78,8 @@ SIREPO.viewLogic = function(name, init) {
                 if (scope.watchFields) {
                     for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
                         var fields = scope.watchFields[idx];
-                        var callback = scope.watchFields[idx + 1];
+                        srdbg('scope.watchFields:', scope.watchFields[idx + 1]);
+                        var callback = utilities.debounce(scope.watchFields[idx + 1], 350);
                         appState.watchModelFields(scope, fields, callback);
                     }
                 }

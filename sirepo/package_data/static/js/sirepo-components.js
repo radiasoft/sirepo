@@ -4586,6 +4586,7 @@ SIREPO.app.service('utilities', function($window, $interval) {
     // N milliseconds.
     // taken from http://davidwalsh.name/javascript-debounce-function
     this.debounce = function(delayedFunc, milliseconds) {
+        srdbg('debouncing');
         var debounceInterval = null;
         return function() {
             var context = this, args = arguments;
