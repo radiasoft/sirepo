@@ -810,7 +810,13 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         const schema = SIREPO.APP_SCHEMA.model[modelName];
         const fields = Object.keys(schema);
         for (let i = 0; i < fields.length; i++) {
-            self.setFieldDefaults(model, fields[i], schema[fields[i]]);
+            const s = schema[fields[i]];
+            self.setFieldDefaults(model, fields[i], s);
+            const m = self.parseModelField(s[SIREPO.INFO_INDEX_TYPE]);
+            if (! m || m[0] !== 'model') {
+                continue;
+            }
+            model[fields[i]] = self.setModelDefaults({}, m[1]);
         }
         return model;
     };
