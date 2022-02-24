@@ -786,29 +786,33 @@ class _ComputeJob(PKDict):
                 else:
                     raise AssertionError(f'too many retries {op}')
             except sirepo.util.ASYNC_CANCELED_ERROR:
-                if self.pkdel('_canceled_serial') == compute_job_serial:
+                if self.pkdel('_canceled_serial') != compute_job_serial:
+                    # There was a timeout getting the run started. Set the
+                    # error and let the user know. The timeout has destroyed
+                    # the op so don't need to destroy here
+                    _set_error(compute_job_serial, op.internal_error)
+                else:
                     # We were canceled due to api_runCancel.
                     # api_runCancel destroyed the op and updated the db
-                    return
-                # There was a timeout getting the run started. Set the
-                # error and let the user know. The timeout has destroyed
-                # the op so don't need to destroy here
-                _set_error(compute_job_serial, op.internal_error)
+                    pass
+                return False
             except Exception as e:
                 op.destroy(cancel=False)
                 if isinstance(e, sirepo.util.SRException) and \
                 e.sr_args.params.get('isGeneral'):
                     self.__db_restore(prev_db)
                     self._sr_exception = e
-                    return
+                    return False
                 _set_error(compute_job_serial, op.internal_error)
                 raise
             op.make_lib_dir_symlink()
             op.send()
+            return True
 
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
-        await _send_op(op, compute_job_serial, prev_db)
+        if not await _send_op(op, compute_job_serial, prev_db):
+            return
         try:
             with op.set_job_situation('Entered __create._run'):
                 while True:
