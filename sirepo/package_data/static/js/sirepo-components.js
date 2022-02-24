@@ -1655,13 +1655,16 @@ SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
         scope: {
             simState: '<',
         },
-        template: [
-            '<div data-ng-show="simState.isStatePending()">',
-              '<a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >',
-                '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
-              '</a>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-show="simState.isStatePending()">
+              <a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >
+                <span class="glyphicon glyphicon-hourglass"></span>
+                {{ simState.stateAsText() }}
+                <span data-ng-show="simState.isWaitingOnAnotherSimulation()"> (Waiting for another simulation to complete)</span>
+                {{ simState.dots }}
+              </a>
+            </div>
+        `,
         controller: function($scope) {
             $scope.requestSender = requestSender;
         },

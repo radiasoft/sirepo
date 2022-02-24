@@ -2831,6 +2831,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return ! state.isProcessing();
         };
 
+        state.isWaitingOnAnotherSimulation = function() {
+            return simulationStatus().jobStatusMessage === 'Waiting for another simulation to complete';
+        }
+
         state.resetSimulation = function() {
             setSimulationStatus({state: 'missing'});
             frameCache.setFrameCount(0);

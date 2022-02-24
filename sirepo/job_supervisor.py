@@ -901,6 +901,7 @@ class _ComputeJob(PKDict):
             if self._is_running_pending():
                 c = req.content
                 r.update(
+                    jobStatusMessage=self.db.jobStatusMessage,
                     nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
                         computeJobHash=self.db.computeJobHash,
