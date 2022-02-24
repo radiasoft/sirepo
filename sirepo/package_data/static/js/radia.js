@@ -2152,68 +2152,63 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
             object: '=',
         },
 
-        template: [
-            '<table class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col style="width: 20ex">',
-                '<col style="width: 20ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Object</th>',
-                  '<th>Air Gap [mm]</th>',
-                  '<th>Gap Offset [mm]</th>',
-                  '<th></th>',
-                '</tr>',
-              '</thead>',
-             '<tbody>',
-            '<tr>',
-            '</tr>',
-                '<tr data-ng-repeat="item in loadItems()">',
-                    '<td>{{ item.object.name }}</td>',
-                    '<td>{{ item.airGap }}</td>',
-                    '<td>{{ item.gapOffset }}</td>',
-                  '<td style="text-align: right">',
-                    '<div class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
-                            ' <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
-                        '</div>',
-                    '<div>',
-                  '</td>',
-                '</tr>',
-            '</tbody>',
-            '</table>',
-            '<button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>',
-        ].join(''),
+        template: `
+            <table class="table table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Object</th>
+                  <th>Air Gap [mm]</th>
+                  <th>Gap Offset [mm]</th>
+                  <th></th>
+                </tr>
+              </thead>
+             <tbody>
+            <tr>
+            </tr>
+                <tr data-ng-repeat="item in field">
+                    <td>{{ item.object.name }}</td>
+                    <td>{{ item.airGap }}</td>
+                    <td>{{ item.gapOffset }}</td>
+                  <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
+                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                  </td>
+                </tr>
+            </tbody>
+            </table>
+            <button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>
+        `,
         controller: function($scope, $element) {
             let isEditing = false;
             const itemModel = 'termination';
             const groupModel = 'terminationGroup';
             let watchedModels = [itemModel];
 
-            $scope.items = [];
             $scope.radiaService = radiaService;
-            $scope.selectedItem = null;
 
             function itemIndex(data) {
-                return $scope.items.indexOf(data);
+                return $scope.field.indexOf(data);
             }
 
             $scope.addItem = function() {
                 const item = appState.setModelDefaults({}, itemModel);
+                item.object.id = radiaService.generateId();
                 item.object.groupId = $scope.model[groupModel].id;
                 $scope.editItem(item, true);
             };
 
             $scope.deleteItem = function(item) {
-                var index = itemIndex(item);
-                if (index < 0) {
-                    return;
-                }
                 radiaService.deleteObject(radiaService.getObject(item.object.id));
-                $scope.field.splice(index, 1);
+                $scope.field.splice(itemIndex(item), 1);
                 appState.saveChanges([$scope.modelName, 'geometryReport']);
             };
 
@@ -2225,49 +2220,33 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 panelState.showModalEditor(itemModel);
             };
 
-            $scope.getSelected = function() {
-                return $scope.selectedItem;
-            };
+            $scope.$on('modelChanged', function(e, modelName) {
+                if (! watchedModels.includes(modelName)) {
+                    return;
+                }
+                if (! isEditing) {
+                    const item = appState.models[modelName];
+                    $scope.field.push(item);
+                    $scope.model[groupModel].members.push(item.object.id);
+                    radiaService.getObject(item.object.groupId).members.push(item.object.id);
+                    appState.models.geometryReport.objects.push(item.object);
+                    isEditing = true;
+                }
+                for (const item of $scope.field) {
+                    appState.models.geometryReport.objects[
+                        appState.models.geometryReport.objects.indexOf(
+                            radiaService.getObject(item.object.id)
+                        )
+                    ] = item.object;
+                }
+                appState.saveChanges('geometryReport');
+            });
 
-            $scope.loadItems = function() {
-                $scope.items = $scope.field;
-                return $scope.items;
-            };
-
-            appState.whenModelsLoaded($scope, function() {
-
-                $scope.$on('modelChanged', function(e, modelName) {
-                    if (watchedModels.indexOf(modelName) < 0) {
-                        return;
-                    }
-                    $scope.selectedItem = null;
-                    if (! isEditing) {
-                        const item = appState.models[modelName];
-                        $scope.field.push(item);
-                        $scope.model[groupModel].members.push(item.object.id);
-                        appState.models.geometryReport.objects.push(item.object);
-                        isEditing = true;
-                    }
-                    for (const item of $scope.field) {
-                        appState.models.geometryReport.objects[
-                            appState.models.geometryReport.objects.indexOf(
-                                radiaService.getObject(item.object.id)
-                            )
-                        ] = item.object;
-                    }
-                    appState.saveChanges('geometryReport', function () {
-                        $scope.loadItems();
-                    });
-                });
-
-                $scope.$on('cancelChanges', function(e, name) {
-                    if (watchedModels.indexOf(name) < 0) {
-                        return;
-                    }
-                    appState.removeModel(name);
-                });
-
-                $scope.loadItems();
+            $scope.$on('cancelChanges', function(e, name) {
+                if (! watchedModels.includes(name)) {
+                    return;
+                }
+                appState.removeModel(name);
             });
 
         },
