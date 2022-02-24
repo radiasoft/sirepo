@@ -268,6 +268,7 @@ var shadowPlotLogic = function(appState, panelState, shadowService, $scope) {
 });
 
 SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, $scope) {
+
     function computeHarmonicPhotonEnergy() {
         if (appState.models.undulator.select_energy != 'harmonic') {
             return;
@@ -288,8 +289,6 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, 
             }
         );
     }
-
-
 
     function updateUndulatorFields() {
         var und = appState.models.undulator;
