@@ -895,17 +895,19 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
     };
 });
 
-var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
+var srwGrazingAngleLogic = function(panelState, srwService, utilities, $scope) {
     var fields = [
         'normalVectorX', 'normalVectorY', 'normalVectorZ',
         'tangentialVectorX', 'tangentialVectorY',
     ];
-    function computeVectors(item) {
-        updateVectorFields(item);
-        if (item.grazingAngle && item.autocomputeVectors != 'none') {
-            srwService.computeFields('compute_grazing_orientation', item, fields);
-        }
-    }
+
+    const computeVectors = utilities.debounce(
+        (item) => {
+            updateVectorFields(item);
+            if (item.grazingAngle && item.autocomputeVectors != 'none') {
+                srwService.computeFields('compute_grazing_orientation', item, fields);
+            }
+        }, 350);
 
     function updateVectorFields(item) {
         panelState.enableFields(item.type, [
