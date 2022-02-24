@@ -22,6 +22,7 @@ import sirepo.util
 import subprocess
 import sys
 import time
+import os
 
 _MAX_FASTCGI_EXCEPTIONS = 3
 
@@ -89,7 +90,6 @@ def _do_cancel(msg, template):
         template.remove_last_frame(msg.runDir)
     return PKDict()
 
-
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
@@ -104,7 +104,11 @@ def _do_compute(msg, template):
             r = p.poll()
             i = r is None
             if not i:
+                if os.WIFSIGNALED(r):
+                    pkdp('\n\n\n\n --------- \n RET STATUS INFO: {} \n info:{}\n ------- \n\n\n\n', r, os.WTERMSIG(r))
+                    return PKDict(state=job.ERROR, error='Terminated Process. Possibly ran out of memory')
                 break
+
         if msg.isParallel:
             # TODO(e-carlin): This has a potential to fail. We likely
             # don't want the job to fail in this case
@@ -216,7 +220,6 @@ def _change_message_too_big(msg):
         msg = pkjson.dump_bytes(PKDict(
                 state=job.COMPLETED,
                 error='Data was too large',
-                stack='',
             ))
         b = True
     return msg, b

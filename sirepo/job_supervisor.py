@@ -381,7 +381,7 @@ class _ComputeJob(PKDict):
             simName=None,
             simulationId=data.simulationId,
             simulationType=data.simulationType,
-            status=job.MISSING,
+            status=job.MISSING, # TODO (gurhar1133): WHY DO WE DO THIS
             uid=data.uid,
         )
         r = data.get('jobRunMode')
@@ -523,6 +523,7 @@ class _ComputeJob(PKDict):
         self.__db_write()
         assert self.db.status == job.MISSING, \
             'expecting missing status={}'.format(self.db.status)
+        pkdp('\n\n\n\n ---------- \n\n\n\n\n NEW STATE : {}?', self.db.status)
         return PKDict(state=self.db.status)
 
     def _raise_if_purged_or_missing(self, req):
@@ -739,6 +740,7 @@ class _ComputeJob(PKDict):
             req,
             jobCmd='sequential_result',
         )
+        # pkdp('\n\n\n ------- \n request: {} \n --------- \n\n\n\n', r)
         if r.state == job.ERROR:
             return self._init_db_missing_response(req)
         return r
