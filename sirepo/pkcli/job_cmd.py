@@ -10,12 +10,14 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
+from rsa import sign
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
 import re
 import requests
+import signal
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -104,8 +106,7 @@ def _do_compute(msg, template):
             r = p.poll()
             i = r is None
             if not i:
-                if os.WIFSIGNALED(r):
-                    pkdp('\n\n\n\n --------- \n RET STATUS INFO: {} \n info:{}\n ------- \n\n\n\n', r, os.WTERMSIG(r))
+                if os.WIFSIGNALED(r) and abs(r) == signal.SIGKILL:
                     return PKDict(state=job.ERROR, error='Terminated Process. Possibly ran out of memory')
                 break
 
@@ -217,6 +218,8 @@ def _change_message_too_big(msg):
     if type(msg) != bytes:
         msg = pkjson.dump_bytes(msg)
     if len(msg + b'\n') > job.cfg.max_message_bytes:
+        # TODO (gurhar1133): Do we need to change things so that we don't have to send COMPLETED for
+        # this error case?
         msg = pkjson.dump_bytes(PKDict(
                 state=job.COMPLETED,
                 error='Data was too large',
