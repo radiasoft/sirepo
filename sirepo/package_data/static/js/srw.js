@@ -895,7 +895,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
     };
 });
 
-var srwGrazingAngleLogic = function(panelState, srwService, utilities, $scope) {
+var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
     var fields = [
         'normalVectorX', 'normalVectorY', 'normalVectorZ',
         'tangentialVectorX', 'tangentialVectorY',
@@ -1034,7 +1034,7 @@ SIREPO.viewLogic('brillianceReportView', function(appState, panelState, $scope) 
     ];
 });
 
-SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender, srwService, utilities, $scope) {
+SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender, srwService, $scope) {
 
     function computeCRLCharacteristics (item) {
         updateCRLFields(item);
