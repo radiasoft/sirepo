@@ -353,22 +353,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'simulation.beamAxis',
         'simulation.heightAxis',
     ];
-    const groupModels = [
-        'geomGroup',
-        'geomUndulatorGroup',
-    ];
     const watchedModels = [
-        'dipoleBasic',
-        'dipoleC',
-        'dipoleH',
-        'ell',
         'geomObject',
         'geomGroup',
-        'undulatorHybrid',
         'racetrack',
         'radiaObject',
         'simulation',
-        'undulator',
     ];
 
     self.axes = ['x', 'y', 'z'];
@@ -970,51 +960,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
-    function updateUndulatorEditor() {
-        let modelName = 'undulatorHybrid';
-        let u = appState.models[modelName];
-
-        panelState.enableField('undulatorHybrid', 'magnetLength', false);
-
-        for (const m of ['pole', 'magnet']) {
-            const matField = `${m}Material`;
-            panelState.showField(
-                modelName,
-                `${m}MaterialFile`,
-                u[matField] === 'custom'
-            );
-            const mag = Math.hypot(
-                ...radiaService.stringToFloatArray(u[`${m}Magnetization`] || SIREPO.ZERO_STR)
-            );
-            validationService.validateField(
-                modelName,
-                matField,
-                'select',
-                SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(u[matField]) < 0 || mag > 0,
-                anisotropicMaterialMsg
-            );
-        }
-        const lengthsValid = u.periodLength > u.poleLength / 2;
-        if (lengthsValid) {
-            u.magnetLength = u.periodLength / 2 - u.poleLength;
-            appState.saveQuietly(modelName);
-        }
-        validationService.validateField(
-            modelName,
-            'periodLength',
-            'input',
-            lengthsValid,
-            `Period length must be > pole length/2 (${u.poleLength / 2}mm)`
-        );
-        validationService.validateField(
-            modelName,
-            'poleLength',
-            'input',
-            lengthsValid,
-            `Pole length must be < 2*period length (${u.periodLength * 2}mm)`
-        );
-    }
-
     function updateObjectEditor() {
         var o = self.selectedObject;
         if (! o) {
@@ -1136,9 +1081,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.dropEnabled = val;
         });
 
-        //$scope.$parent.$on('sr-tabSelected', function(event, modelName) {
-        //    updateUndulatorEditor();
-        //});
     });
 });
 
@@ -3920,6 +3862,7 @@ for(const m of ['Dipole', 'Undulator']) {
                 return radiaService.getObject(activeModelId());
             }
 
+            //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
             const e = `watch${m}Editor`;
             if (e in SIREPO) {
                 SIREPO[e]($scope, appState, panelState, radiaService, validationService);
@@ -3927,82 +3870,6 @@ for(const m of ['Dipole', 'Undulator']) {
         });
     }
 }
-
-SIREPO.watchUndulatorEditor = (scope, appState, panelState, radiaService, validationService) => {
-
-    const modelName = scope.modelName;
-    let u = scope.model;
-
-    scope.watchFields.push(
-        [
-            `${modelName}.magnet.magnetization`,
-            `${modelName}.magnet.material`,
-        ]
-    );
-    scope.watchFields.push(updateEditor);
-    
-    function updateEditor(f)  {
-        //const u = scope.model;  //appState.models[modelName];
-        radiaService.validateMagnetization(scope.model.magnet.magnetization, scope.model.magnet.material);
-        panelState.showField(
-            'geomObject',
-            'materialFile',
-            u.magnet.material === 'custom'
-        );
-    }
-
-    const e = `watch${modelName.charAt(0).toUpperCase() + modelName.slice(1)}Editor`;
-    if (e in SIREPO) {
-        SIREPO[e](scope, appState, panelState, radiaService, validationService);
-    }
-
-};
-
-SIREPO.watchUndulatorHybridEditor = (scope, appState, panelState, radiaService, validationService) => {
-
-    const modelName = scope.modelName;
-    let u = scope.model;
-
-    scope.watchFields.push(
-        [
-            `${modelName}.periodLength`,
-            `${modelName}.poleLength`,
-            `${modelName}.pole.magnetization`,
-            `${modelName}.pole.material`,
-        ]
-    );
-    scope.watchFields.push(updateEditor);
-
-    function updateEditor(d)  {
-        radiaService.validateMagnetization(scope.model.pole.magnetization, scope.model.pole.material);
-        panelState.showField(
-            'geomObject',
-            'materialFile',
-            u.pole.material === 'custom'
-        );
-
-        const lengthsValid = u.periodLength > u.poleLength / 2;
-        if (lengthsValid) {
-            u.magnetLength = u.periodLength / 2 - u.poleLength;
-            appState.saveQuietly(scope.modelName);
-        }
-        validationService.validateField(
-            modelName,
-            'periodLength',
-            'input',
-            lengthsValid,
-            `Period length must be > pole length/2 (${u.poleLength / 2}mm)`
-        );
-        validationService.validateField(
-            modelName,
-            'poleLength',
-            'input',
-            lengthsValid,
-            `Pole length must be < 2*period length (${u.periodLength * 2}mm)`
-        );
-    }
-
-};
 
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 
