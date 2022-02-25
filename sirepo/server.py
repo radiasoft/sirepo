@@ -18,10 +18,14 @@ from sirepo import uri_router
 import contextlib
 import flask
 import re
+import sirepo.auth
+import sirepo.auth_db
+import sirepo.auth_role
 import sirepo.db_upgrade
 import sirepo.request
 import sirepo.resource
 import sirepo.sim_data
+import sirepo.smtp
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -81,8 +85,8 @@ class Request(sirepo.request.Base):
         # if hasattr(req.template, 'copy_related_files'):
         #     req.template.copy_related_files(data, str(src), str(target))
         return res
-    
-    
+
+
     @api_perm.require_user
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
@@ -95,8 +99,8 @@ class Request(sirepo.request.Base):
             outOfSessionSimulationId='',
         )
         return _save_new_and_reply(req, d)
-    
-    
+
+
     @api_perm.require_user
     def api_deleteFile(self):
         req = self.parse_post(filename=True, file_type=True)
@@ -107,19 +111,19 @@ class Request(sirepo.request.Base):
                 'fileList': e,
                 'fileName': req.filename,
             })
-    
+
         # Will not remove resource (standard) lib files
         pkio.unchecked_remove(_lib_file_write_path(req))
         return http_reply.gen_json_ok()
-    
-    
+
+
     @api_perm.require_user
     def api_deleteSimulation(self):
         req = self.parse_post(id=True)
         simulation_db.delete_simulation(req.type, req.id)
         return http_reply.gen_json_ok()
-    
-    
+
+
     @api_perm.require_user
     def api_downloadFile(self, simulation_type, simulation_id, filename):
         #TODO(pjm): simulation_id is an unused argument
@@ -132,8 +136,8 @@ class Request(sirepo.request.Base):
             if pkio.exception_is_not_found(e):
                 sirepo.util.raise_not_found('lib_file={} not found', p)
             raise
-    
-    
+
+
     @api_perm.allow_visitor
     def api_errorLogging(self):
         ip = flask.request.remote_addr
@@ -151,8 +155,8 @@ class Request(sirepo.request.Base):
                 flask.request.data and flask.request.data.decode('unicode-escape'),
             )
         return http_reply.gen_json_ok()
-    
-    
+
+
     @api_perm.require_user
     def api_exportArchive(self, simulation_type, simulation_id, filename):
         req = self.parse_params(
@@ -163,8 +167,8 @@ class Request(sirepo.request.Base):
         )
         from sirepo import exporter
         return exporter.create_archive(req)
-    
-    
+
+
     @api_perm.allow_visitor
     def api_favicon(self):
         """Routes to favicon.ico file."""
@@ -173,13 +177,13 @@ class Request(sirepo.request.Base):
             str(sirepo.resource.static('img', 'favicon.ico')),
             mimetype='image/vnd.microsoft.icon',
         )
-    
-    
+
+
     @api_perm.allow_visitor
     def api_forbidden(self):
         sirepo.util.raise_forbidden('app forced forbidden')
-    
-    
+
+
     @api_perm.require_user
     def api_listFiles(self, simulation_type, simulation_id, file_type):
         #TODO(pjm): simulation_id is an unused argument
@@ -187,8 +191,8 @@ class Request(sirepo.request.Base):
         return http_reply.gen_json(
             req.sim_data.lib_file_names_for_type(req.file_type),
         )
-    
-    
+
+
     @api_perm.allow_visitor
     def api_findByName(self, simulation_type, application_mode, simulation_name):
         req = self.parse_params(type=simulation_type)
@@ -200,8 +204,8 @@ class Request(sirepo.request.Base):
                 simulationName=simulation_name,
             ),
         )
-    
-    
+
+
     @api_perm.require_user
     def api_findByNameWithAuth(self, simulation_type, application_mode, simulation_name):
         req = self.parse_params(type=simulation_type)
@@ -247,15 +251,15 @@ class Request(sirepo.request.Base):
             PKDict(simulationId=rows[0].simulationId),
             query=m.includeMode and PKDict(application_mode=application_mode),
         )
-    
-    
+
+
     @api_perm.require_user
     def api_getApplicationData(self, filename=None):
         """Get some data from the template
-    
+
         Args:
             filename (str): if supplied, result is file attachment
-    
+
         Returns:
             response: may be a file or JSON
         """
@@ -271,8 +275,8 @@ class Request(sirepo.request.Base):
                     content_type=req.req_data.get('contentType', None)
                 )
             return http_reply.gen_json(res)
-    
-    
+
+
     @api_perm.allow_cookieless_require_user
     def api_importArchive(self):
         """
@@ -288,8 +292,8 @@ class Request(sirepo.request.Base):
             m.localRoute,
             PKDict(simulationId=data.models.simulation.simulationId),
         )
-    
-    
+
+
     @api_perm.require_user
     def api_importFile(self, simulation_type):
         """
@@ -300,10 +304,10 @@ class Request(sirepo.request.Base):
             folder: where to import to
         """
         import sirepo.importer
-    
+
         error = None
         f = None
-    
+
         try:
             f = flask.request.files.get('file')
             if not f:
@@ -321,12 +325,12 @@ class Request(sirepo.request.Base):
             )
             req.file_stream = f.stream
             req.import_file_arguments = flask.request.form.get('arguments', '')
-    
+
             def s(data):
                 data.models.simulation.folder = req.folder
                 data.models.simulation.isExample = False
                 return _save_new_and_reply(req, data)
-    
+
             if pkio.has_file_extension(req.filename, 'json'):
                 data = sirepo.importer.read_json(req.file_stream.read(), self, req.type)
             #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
@@ -362,13 +366,13 @@ class Request(sirepo.request.Base):
         return http_reply.gen_json({
             'error': error if error else 'An unknown error occurred',
         })
-    
-    
+
+
     @api_perm.allow_visitor
     def api_homePage(self, path_info=None):
         return self.call_api('staticFile', kwargs=PKDict(path_info='en/' + (path_info or 'landing.html')))
-    
-    
+
+
     @api_perm.require_user
     def api_exportJupyterNotebook(self, simulation_type, simulation_id, model=None, title=None):
         t = sirepo.template.import_module(simulation_type)
@@ -379,8 +383,8 @@ class Request(sirepo.request.Base):
             f"{d.models.simulation.name}{'-' + srschema.parse_name(title) if title else ''}.ipynb",
             content_type='application/json'
         )
-    
-    
+
+
     @api_perm.require_user
     def api_exportRSOptConfig(self, simulation_type, simulation_id, filename):
         t = sirepo.template.import_module(simulation_type)
@@ -391,8 +395,8 @@ class Request(sirepo.request.Base):
             filename,
             content_type='application/zip'
         )
-    
-    
+
+
     @api_perm.require_user
     def api_newSimulation(self):
         req = self.parse_post(template=True, folder=True, name=True)
@@ -407,8 +411,8 @@ class Request(sirepo.request.Base):
         if hasattr(req.template, 'new_simulation'):
             req.template.new_simulation(d, req.req_data)
         return _save_new_and_reply(req, d)
-    
-    
+
+
     @api_perm.require_user
     def api_pythonSource(self, simulation_type, simulation_id, model=None, title=None):
         req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
@@ -422,8 +426,8 @@ class Request(sirepo.request.Base):
                 'madx' if m == 'madx' else suffix,
             ),
         )
-    
-    
+
+
     @api_perm.allow_visitor
     def api_robotsTxt(self):
         """Disallow the app (dev, prod) or / (alpha, beta)"""
@@ -441,8 +445,8 @@ class Request(sirepo.request.Base):
                 ['User-agent: *\n'] + ['Disallow: /{}\n'.format(x) for x in u],
             )
         return flask.Response(_ROBOTS_TXT, mimetype='text/plain')
-    
-    
+
+
     @api_perm.allow_visitor
     def api_root(self, path_info):
         if path_info is None:
@@ -453,8 +457,8 @@ class Request(sirepo.request.Base):
         if u:
             return http_reply.gen_redirect(u)
         sirepo.util.raise_not_found(f'unknown path={path_info}')
-    
-    
+
+
     @api_perm.require_user
     def api_saveSimulationData(self):
         # do not fixup_old_data yet
@@ -465,12 +469,12 @@ class Request(sirepo.request.Base):
             req,
             simulation_db.save_simulation_json(d, fixup=True, modified=True),
         )
-    
-    
+
+
     @api_perm.require_user
     def api_simulationData(self, simulation_type, simulation_id, pretty=False, section=None):
         """First entry point for a simulation
-    
+
         Might be non-session simulation copy (see `simulation_db.CopyRedirect`).
         We have to allow a non-user to get data.
         """
@@ -484,8 +488,8 @@ class Request(sirepo.request.Base):
             if e.sr_response['redirect'] and section:
                 e.sr_response['redirect']['section'] = section
             return http_reply.headers_for_no_cache(http_reply.gen_json(e.sr_response))
-    
-    
+
+
     @api_perm.require_user
     def api_listSimulations(self):
         req = self.parse_post()
@@ -499,8 +503,8 @@ class Request(sirepo.request.Base):
                 key=lambda row: row['name'],
             )
         )
-    
-    
+
+
     # visitor rather than user because error pages are rendered by the application
     @api_perm.allow_visitor
     def api_simulationSchema(self):
@@ -511,13 +515,13 @@ class Request(sirepo.request.Base):
                 ).type,
             ),
         )
-    
-    
+
+
     @api_perm.allow_visitor
     def api_srwLight(self):
         return _render_root_page('light', PKDict())
-    
-    
+
+
     @api_perm.allow_visitor
     def api_srUnit(self):
         import sirepo.auth
@@ -531,12 +535,12 @@ class Request(sirepo.request.Base):
             sirepo.cookie.set_sentinel()
         v.op()
         return http_reply.gen_json_ok()
-    
-    
+
+
     @api_perm.allow_visitor
     def api_staticFile(self, path_info=None):
         """flask.send_from_directory for static folder.
-    
+
         Args:
             path_info (str): relative path to join
         Returns:
@@ -558,8 +562,8 @@ class Request(sirepo.request.Base):
         if re.match(r'^(html|en)/[^/]+html$', path_info):
             return http_reply.render_html(p)
         return flask.send_file(p, conditional=True)
-    
-    
+
+
     @api_perm.require_user
     def api_updateFolder(self):
         #TODO(robnagler) Folder should have a serial, or should it be on data
@@ -589,8 +593,8 @@ class Request(sirepo.request.Base):
                 continue
             simulation_db.save_simulation_json(r, fixup=False)
         return http_reply.gen_json_ok()
-    
-    
+
+
     @api_perm.require_user
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
         f = flask.request.files['file']

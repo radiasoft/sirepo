@@ -3438,6 +3438,56 @@ SIREPO.app.directive('modelArray', function() {
     };
 });
 
+SIREPO.app.directive('moderationRequest', function(appState, errorService, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+          <form>
+            <div class="form-group">
+              <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
+              <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
+            </div>
+            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+          </form>
+          <div data-ng-show="submitted">Response submitted.</div>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.data = {};
+            $scope.submitted = false;
+            $scope.submitRequest = function () {
+                const handleResponse = (data) => {
+                    if (data.state === 'error') {
+                        errorService.alertText(data.error);
+                    }
+                    $scope.submitted = true;
+                };
+                requestSender.sendRequest(
+                    'saveModerationReason',
+                    handleResponse,
+                    {
+                        reason: $scope.data.reason,
+                        simulationType: SIREPO.APP_NAME
+                    }
+                );
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('moderationPending', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+          <div>Your request to access {{ appName }} has been received. For additional information, contact 
+            <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
+          </div>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName;
+        },
+    };
+});
+
 SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -3567,6 +3617,64 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('admRolesList', function(appState, errorService, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+            <div>
+              <table class="table">
+              <thead>
+                <th data-ng-repeat="h in headers">{{ h[1] }}</th>
+              </thead>
+              <tbody>
+              <tr data-ng-repeat="r in rows track by $index">
+                <td data-ng-repeat="h in headers">{{ r[h[0]] }}</td>
+                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'approve')">Approve</button></td>
+                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'deny')">Deny</button></td>
+                <td><button class="btn btn-default" data-ng-show="r.status!=='clarify'" data-ng-click="setModerationStatus(r, 'clarify')">Clarify</button></td>
+              </tr>
+              </tbody>
+              </table>
+            </div>
+          <button type="submit" class="btn btn-primary" data-ng-click="getModerationRequestRows()">Refresh Table</button>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.rows = [];
+            $scope.headers = [];
+
+            $scope.getModerationRequestRows = function () {
+                const handleResponse = (r) => {
+                    $scope.rows = r.rows;
+                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleInviteColumns;
+                };
+                requestSender.sendRequest(
+                    'getModerationRequestRows',
+                    handleResponse,
+                    {}
+                );
+            };
+
+            $scope.setModerationStatus = function(info, status) {
+                const handleResponse = (data) => {
+                    if (data.state === 'error') {
+                        errorService.alertText(data.error);
+                    }
+                    $scope.getModerationRequestRows();
+                };
+                requestSender.sendRequest(
+                    'admModerate',
+                    handleResponse,
+                    {
+                        token: info.token,
+                        status: status,
+                    }
+                );
+            };
+
+            $scope.getModerationRequestRows();
+        },
+    };
+});
 
 SIREPO.app.directive('toolbar', function(appState) {
     return {

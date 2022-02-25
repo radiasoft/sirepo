@@ -7,6 +7,7 @@ u"""List of features available
 from __future__ import absolute_import, division, print_function
 # defer all imports so *_CODES is available to testing functions
 
+
 #: Codes that depend on other codes. [x][0] depends on [x][1]
 _DEPENDENT_CODES = [
     ['jspec', 'elegant'],
@@ -55,7 +56,7 @@ def auth_controlled_sim_types():
       frozenset:  enabled sim types that require role
     """
     return frozenset(
-        cfg().proprietary_sim_types.union(cfg().default_proprietary_sim_types),
+        cfg().proprietary_sim_types.union(cfg().moderated_sim_types),
     )
 
 
@@ -106,10 +107,10 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
-        default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
         schema_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),
+        moderated_sim_types=(set(), set, 'codes where all users must be authorized via moderation'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
@@ -136,15 +137,12 @@ def _init():
             display_test_boxes=b('Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
-    i = _cfg.proprietary_sim_types.intersection(_cfg.default_proprietary_sim_types)
-    assert not i, \
-        f'{i}: cannot be in proprietary_sim_types and default_proprietary_sim_types'
     s = set(
         _cfg.sim_types or (
             PROD_FOSS_CODES if pkconfig.channel_in('prod') else FOSS_CODES
         )
     )
-    s.update(_cfg.proprietary_sim_types, _cfg.default_proprietary_sim_types)
+    s.update(_cfg.proprietary_sim_types, _cfg.moderated_sim_types)
     for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])
