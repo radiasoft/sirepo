@@ -900,7 +900,6 @@ var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
         'normalVectorX', 'normalVectorY', 'normalVectorZ',
         'tangentialVectorX', 'tangentialVectorY',
     ];
-
     function computeVectors(item) {
         updateVectorFields(item);
         if (item.grazingAngle && item.autocomputeVectors != 'none') {
@@ -1036,7 +1035,7 @@ SIREPO.viewLogic('brillianceReportView', function(appState, panelState, $scope) 
 
 SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender, srwService, $scope) {
 
-    function computeCRLCharacteristics (item) {
+    function computeCRLCharacteristics(item) {
         updateCRLFields(item);
         requestSender.sendStatelessCompute(
             appState,
