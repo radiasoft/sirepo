@@ -1035,27 +1035,28 @@ SIREPO.viewLogic('brillianceReportView', function(appState, panelState, $scope) 
     ];
 });
 
-SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender, srwService, $scope) {
+SIREPO.beamlineItemLogic('crlView', function(appState, panelState, requestSender, srwService, utilities, $scope) {
 
-    function computeCRLCharacteristics(item) {
-        updateCRLFields(item);
-        requestSender.sendStatelessCompute(
-            appState,
-            function(data) {
-                srwService.formatFields(item, data, {
-                    refractiveIndex: 'formatMaterial',
-                    attenuationLength: 'formatMaterial',
-                    focalDistance: 'formatFloat4',
-                    absoluteFocusPosition: 'formatFloat4',
-                });
-            },
-            {
-                method: 'compute_crl_characteristics',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-            }
-        );
-    }
+    const computeCRLCharacteristics = utilities.debounce(
+        (item) => {
+            updateCRLFields(item);
+            requestSender.sendStatelessCompute(
+                appState,
+                function(data) {
+                    srwService.formatFields(item, data, {
+                        refractiveIndex: 'formatMaterial',
+                        attenuationLength: 'formatMaterial',
+                        focalDistance: 'formatFloat4',
+                        absoluteFocusPosition: 'formatFloat4',
+                    });
+                },
+                {
+                    method: 'compute_crl_characteristics',
+                    optical_element: item,
+                    photon_energy: appState.models.simulation.photonEnergy,
+                }
+            );
+        }, 350);
 
     function updateCRLFields(item) {
         panelState.enableField('crl', 'focalDistance', false);
