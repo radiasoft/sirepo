@@ -282,6 +282,19 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         upload(inputFile);
     };
 
+    self.validateMagnetization = (magnetization, material) => {
+        const mag = Math.hypot(
+            ...self.stringToFloatArray(magnetization || SIREPO.ZERO_STR)
+        );
+        validationService.validateField(
+            'geomObject',
+            'material',
+            'select',
+            SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(material) < 0 || mag > 0,
+            'Anisotropic materials require non-zero magnetization'
+        );
+    };
+
     function findPath(path) {
         for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
             var p = appState.models.fieldPaths.paths[i];
@@ -343,15 +356,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     const groupModels = [
         'geomGroup',
         'geomUndulatorGroup',
-    ];
-    const undulatorEditorFields = [
-        'undulatorHybrid.magnetMagnetization',
-        'undulatorHybrid.magnetMaterial',
-        'undulatorHybrid.periodLength',
-        'undulatorHybrid.poleLength',
-        'undulatorHybrid.poleMagnetization',
-        'undulatorHybrid.poleMaterial',
-        'simulation.beamAxis',
     ];
     const watchedModels = [
         'dipoleBasic',
@@ -425,7 +429,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         g.members.splice(g.members.indexOf(o.id), 1);
         appState.models.geomGroup = g;
         appState.saveQuietly('geomGroup');
-    }
+    };
 
     self.editItem = function(o) {
         self.editObject(o);
@@ -1022,16 +1026,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             o.material === 'custom'
         );
 
-        const mag = Math.hypot(
-            ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
-        );
-        validationService.validateField(
-            'geomObject',
-            'material',
-            'select',
-            SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) < 0 || mag > 0,
-            anisotropicMaterialMsg
-        );
+        radiaService.validateMagnetization(o.magnetization, o.material);
     }
 
     function updateToolEditor(toolItem) {
@@ -1054,9 +1049,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
             updateObjectEditor();
-        });
-        appState.watchModelFields($scope, undulatorEditorFields, function(d) {
-            updateUndulatorEditor();
         });
         if (! appState.models.geometryReport.objects) {
             appState.models.geometryReport.objects = [];
@@ -1144,9 +1136,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.dropEnabled = val;
         });
 
-        $scope.$parent.$on('sr-tabSelected', function(event, modelName) {
-            updateUndulatorEditor();
-        });
+        //$scope.$parent.$on('sr-tabSelected', function(event, modelName) {
+        //    updateUndulatorEditor();
+        //});
     });
 });
 
@@ -2139,7 +2131,7 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.app.directive('terminationTable', function(appState, panelState, radiaService) {
+SIREPO.app.directive('terminationTable', function(appState, panelState, radiaService, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -2189,11 +2181,17 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
         `,
         controller: function($scope, $element) {
             let isEditing = false;
+
+            const editorFields = [
+                'geomObject.magnetization',
+                'geomObject.material',
+            ];
+
             const itemModel = 'termination';
             const groupModel = 'terminationGroup';
+            let selectedItem =  null;
             let watchedModels = [itemModel];
 
-            $scope.radiaService = radiaService;
 
             function itemIndex(data) {
                 return $scope.field.indexOf(data);
@@ -2214,7 +2212,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
 
             $scope.editItem = function(item, isNew) {
                 isEditing = ! isNew;
-                $scope.selectedItem = item;
+                selectedItem = item;
                 appState.models[itemModel] = item;
                 appState.models.geomObject = item.object;
                 panelState.showModalEditor(itemModel);
@@ -2239,6 +2237,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                         )
                     ] = item.object;
                 }
+                selectedItem = null;
                 appState.saveChanges('geometryReport');
             });
 
@@ -2247,6 +2246,23 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                     return;
                 }
                 appState.removeModel(name);
+            });
+
+            appState.watchModelFields($scope, editorFields, function(d) {
+                if (! selectedItem) {
+                    return;
+                }
+                const o = selectedItem.object;
+                const mag = Math.hypot(
+                    ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
+                );
+                validationService.validateField(
+                    'geomObject',
+                    'material',
+                    'select',
+                    SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) < 0 || mag > 0,
+                    'Anisotropic materials require non-zero magnetization'
+                );
             });
 
         },
@@ -3833,14 +3849,18 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 });
 
 for(const m of ['Dipole', 'Undulator']) {
-    for (const d of SIREPO.APP_SCHEMA.enum[m + 'Type']) {
-        SIREPO.viewLogic(d[0] + 'View', function(appState, panelState, radiaService, $scope) {
+    for (const d of SIREPO.APP_SCHEMA.enum[`${m}Type`]) {
+        SIREPO.viewLogic(`${d[0]}View`, function(appState, panelState, radiaService, validationService, $scope) {
+
+            $scope.model = appState.models[$scope.modelName];
+            $scope.watchFields = [];
+
             let editedModels = [];
             let models = {};
             for (const p of $scope.$parent.advancedFields) {
                 const page = p[0];
                 models[page] = {};
-                // supports zero or one sub-model per page
+                // supports at most one sub-model per page
                 for (const f of p[1]) {
                     let m = appState.parseModelField(f);
                     if (! m) {
@@ -3853,7 +3873,7 @@ for(const m of ['Dipole', 'Undulator']) {
                     models[page] = {
                         objModelName: m[0],
                         obj: appState.models[$scope.modelName][m[0]],
-                    }
+                    };
                     break;
                 }
             }
@@ -3900,9 +3920,89 @@ for(const m of ['Dipole', 'Undulator']) {
                 return radiaService.getObject(activeModelId());
             }
 
+            const e = `watch${m}Editor`;
+            if (e in SIREPO) {
+                SIREPO[e]($scope, appState, panelState, radiaService, validationService);
+            }
         });
     }
 }
+
+SIREPO.watchUndulatorEditor = (scope, appState, panelState, radiaService, validationService) => {
+
+    const modelName = scope.modelName;
+    let u = scope.model;
+
+    scope.watchFields.push(
+        [
+            `${modelName}.magnet.magnetization`,
+            `${modelName}.magnet.material`,
+        ]
+    );
+    scope.watchFields.push(updateEditor);
+    
+    function updateEditor(f)  {
+        //const u = scope.model;  //appState.models[modelName];
+        radiaService.validateMagnetization(scope.model.magnet.magnetization, scope.model.magnet.material);
+        panelState.showField(
+            'geomObject',
+            'materialFile',
+            u.magnet.material === 'custom'
+        );
+    }
+
+    const e = `watch${modelName.charAt(0).toUpperCase() + modelName.slice(1)}Editor`;
+    if (e in SIREPO) {
+        SIREPO[e](scope, appState, panelState, radiaService, validationService);
+    }
+
+};
+
+SIREPO.watchUndulatorHybridEditor = (scope, appState, panelState, radiaService, validationService) => {
+
+    const modelName = scope.modelName;
+    let u = scope.model;
+
+    scope.watchFields.push(
+        [
+            `${modelName}.periodLength`,
+            `${modelName}.poleLength`,
+            `${modelName}.pole.magnetization`,
+            `${modelName}.pole.material`,
+        ]
+    );
+    scope.watchFields.push(updateEditor);
+
+    function updateEditor(d)  {
+        radiaService.validateMagnetization(scope.model.pole.magnetization, scope.model.pole.material);
+        panelState.showField(
+            'geomObject',
+            'materialFile',
+            u.pole.material === 'custom'
+        );
+
+        const lengthsValid = u.periodLength > u.poleLength / 2;
+        if (lengthsValid) {
+            u.magnetLength = u.periodLength / 2 - u.poleLength;
+            appState.saveQuietly(scope.modelName);
+        }
+        validationService.validateField(
+            modelName,
+            'periodLength',
+            'input',
+            lengthsValid,
+            `Period length must be > pole length/2 (${u.poleLength / 2}mm)`
+        );
+        validationService.validateField(
+            modelName,
+            'poleLength',
+            'input',
+            lengthsValid,
+            `Pole length must be < 2*period length (${u.periodLength * 2}mm)`
+        );
+    }
+
+};
 
 SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState, radiaService, $scope) {
 
