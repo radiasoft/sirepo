@@ -106,7 +106,7 @@ def _do_compute(msg, template):
             r = p.poll()
             i = r is None
             if not i:
-                if os.WIFSIGNALED(r) and abs(r) == signal.SIGKILL:
+                if r == -signal.SIGKILL:
                     return PKDict(state=job.ERROR, error='Terminated Process. Possibly ran out of memory')
                 break
 
@@ -148,9 +148,9 @@ def _do_download_data_file(msg, template):
             c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
                 if u.endswith(('.py', '.txt', '.csv')) \
                 else r.filename.read_binary()
-            c, b = _change_message_too_big(c)
-            if b:
-                return c
+            c = _validate_and_jsonl(c)
+            if 'error' in pkjson.load_any(c):
+                return pkjson.load_any(c)
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -210,22 +210,15 @@ def _do_fastcgi(msg, template):
                 'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
             c += 1
             r = _maybe_parse_user_alert(e)
-        s.sendall(_change_message_too_big(r)[0] + b'\n')
+        s.sendall(_validate_and_jsonl(r))
 
 
-def _change_message_too_big(msg):
-    b = False
+def _validate_and_jsonl(msg):
     if type(msg) != bytes:
         msg = pkjson.dump_bytes(msg)
-    if len(msg + b'\n') > job.cfg.max_message_bytes:
-        # TODO (gurhar1133): Do we need to change things so that we don't have to send COMPLETED for
-        # this error case?
-        msg = pkjson.dump_bytes(PKDict(
-                state=job.COMPLETED,
-                error='Data was too large',
-            ))
-        b = True
-    return msg, b
+    if len(msg) >=  job.cfg.max_message_bytes:
+        msg = pkjson.dump_bytes(PKDict(state=job.COMPLETED, error='Response is too large to send'))
+    return msg + b'\n'
 
 
 def _do_get_simulation_frame(msg, template):
