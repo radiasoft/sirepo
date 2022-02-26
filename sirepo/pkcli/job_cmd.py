@@ -148,9 +148,9 @@ def _do_download_data_file(msg, template):
             c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
                 if u.endswith(('.py', '.txt', '.csv')) \
                 else r.filename.read_binary()
-            c = _validate_and_jsonl(c)
-            if 'error' in pkjson.load_any(c):
-                return pkjson.load_any(c)
+            e = _validate_msg(c)
+            if e:
+                return e
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -210,15 +210,7 @@ def _do_fastcgi(msg, template):
                 'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
             c += 1
             r = _maybe_parse_user_alert(e)
-        s.sendall(_validate_and_jsonl(r))
-
-
-def _validate_and_jsonl(msg):
-    if type(msg) != bytes:
-        msg = pkjson.dump_bytes(msg)
-    if len(msg) >=  job.cfg.max_message_bytes:
-        msg = pkjson.dump_bytes(PKDict(state=job.COMPLETED, error='Response is too large to send'))
-    return msg + b'\n'
+        s.sendall(_validate_msg_and_json(r))
 
 
 def _do_get_simulation_frame(msg, template):
@@ -331,6 +323,19 @@ def _parse_python_errors(text):
     if m:
         return re.sub(r'\nTraceback.*$', '', m.group(1), flags=re.S).strip()
     return ''
+
+
+def _validate_msg(msg):
+    if len(msg) >=  job.cfg.max_message_bytes:
+        return PKDict(state=job.COMPLETED, error='Response is too large to send')
+    return None
+
+
+def _validate_msg_and_json(msg):
+    msg = pkjson.dump_bytes(msg)
+    if len(msg) >=  job.cfg.max_message_bytes:
+        msg = pkjson.dump_bytes(PKDict(state=job.COMPLETED, error='Response is too large to send'))
+    return msg + b'\n'
 
 
 def _write_parallel_status(msg, template, is_running):
