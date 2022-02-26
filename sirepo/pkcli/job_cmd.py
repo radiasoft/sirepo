@@ -332,10 +332,10 @@ def _validate_msg(msg):
 
 
 def _validate_msg_and_json(msg):
-    msg = pkjson.dump_bytes(msg)
-    if len(msg) >=  job.cfg.max_message_bytes:
-        msg = pkjson.dump_bytes(PKDict(state=job.COMPLETED, error='Response is too large to send'))
-    return msg + b'\n'
+    m = pkjson.dump_bytes(msg)
+    if len(m) >=  job.cfg.max_message_bytes:
+        m = pkjson.dump_bytes(PKDict(state=job.COMPLETED, error='Response is too large to send'))
+    return m + b'\n'
 
 
 def _write_parallel_status(msg, template, is_running):
