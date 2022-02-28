@@ -326,18 +326,17 @@ def _parse_python_errors(text):
 
 
 def _validate_msg(msg):
-    if type(msg) != bytes:
-        msg = pkjson.dump_bytes(msg)
     if len(msg) >=  job.cfg.max_message_bytes:
         return PKDict(state=job.COMPLETED, error='Response is too large to send')
     return None
 
 
 def _validate_msg_and_jsonl(msg):
-    r = _validate_msg(msg)
+    m = pkjson.dump_bytes(msg)
+    r = _validate_msg(m)
     if r:
-        msg = r
-    return pkjson.dump_bytes(msg) + b'\n'
+        m = pkjson.dump_bytes(r)
+    return m + b'\n'
 
 
 def _write_parallel_status(msg, template, is_running):
