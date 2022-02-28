@@ -3306,6 +3306,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             });
 
             $scope.start = function() {
+                srdbg('starting sim');
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
