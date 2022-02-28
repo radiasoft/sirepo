@@ -1344,6 +1344,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             $scope.markerWidth = 1;
             $scope.markerUnits = '';
             $scope.svgGroups = [];
+
             function adjustPosition(pos, x, y) {
                 var radAngle = latticeService.degreesToRadians(pos.angle);
                 pos.x += rpnValue(x) * Math.cos(radAngle);

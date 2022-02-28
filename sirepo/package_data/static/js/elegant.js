@@ -508,6 +508,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.outputFiles = [];
         self.outputFileMap = {};
         var similarRowCounts = {};
+
         outputInfo.forEach(function (info) {
             if (info.isAuxFile) {
                 return;
@@ -654,7 +655,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
         return self.simState.isStatePending();
     };
-
 });
 
 SIREPO.app.directive('appFooter', function() {
