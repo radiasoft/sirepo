@@ -104,11 +104,17 @@ class SimData(sirepo.sim_data.SimDataBase):
         del dm['hybridUndulator']
 
         g = dm.geometryReport
-        for f in ('halfPole', 'magnet', 'pole'):
-            pass
-        if 'magnetBaseObjectId' in dm:
-            o = sirepo.util.find_obj(g.objects, 'id', dm.magnetBaseObjectId)
-
+        u = dm.undulatorHybrid
+        for (k, v) in PKDict(
+            halfPole='Half Pole',
+            magnet='Magnet Block',
+            pole='Pole',
+            corePoleGroup='Magnet-Pole Pair',
+            terminations='Termination',
+            octantGroup='Octant'
+        ).items():
+            if k not in u:
+                u[k] = sirepo.util.find_obj(g.objects, 'name', v)
 
         if not dm.undulatorHybrid.get('terminations'):
             dm.undulatorHybrid.terminations = []
