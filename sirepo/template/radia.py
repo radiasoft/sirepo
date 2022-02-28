@@ -849,7 +849,10 @@ def _get_radia_objects(geom_objs, model):
     o_ids = []
     for f in model:
         try:
-            if '_super' in model[f] and 'radiaObject' in model[f]._super:
+            if '_super' not in model[f]:
+                continue
+            s = model[f]._super
+            if 'radiaObject' in s or 'radiaObject' in SCHEMA.model[s]._super:
                 o[f] = _find_by_id(geom_objs, model[f].id)
                 o_ids.append(model[f].id)
         # ignore non-objects
