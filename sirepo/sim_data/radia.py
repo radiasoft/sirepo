@@ -76,8 +76,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                         type='line'
                     ))
         if dm.simulation.magnetType == 'undulator':
-            if 'hybridUndulator' in dm:
-                cls._fixup_undulator(dm)
+            cls._fixup_undulator(dm)
         for o in dm.geometryReport.objects:
             if o.get('model') == 'box':
                 o.model = 'cuboid'
@@ -97,14 +96,18 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm[m][f] = '0'
         cls._organize_example(data)
 
+    @classmethod
     def _fixup_undulator(cls, dm):
         import sirepo.util
 
-        dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
-        del dm['hybridUndulator']
+        if 'hybridUndulator' in dm:
+            dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
+            del dm['hybridUndulator']
+            dm.simulation.undulatorType = 'undulatorHybrid'
 
-        g = dm.geometryReport
         u = dm.undulatorHybrid
+        g = dm.geometryReport
+
         for (k, v) in PKDict(
             halfPole='Half Pole',
             magnet='Magnet Block',
