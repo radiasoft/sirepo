@@ -2634,6 +2634,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.startSimulation = function() {
+                srdbg('appState.models at start sim: ', appState.models);
                 setActiveAnimation();
                 $scope.particleCount = 0;
                 // The available jobRunModes can change. Default to parallel if
@@ -3272,7 +3273,7 @@ SIREPO.app.directive('srwNumberList', function(appState) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
@@ -3305,8 +3306,47 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
                 $scope.reports = [];
             });
 
+            function isWatchpointReportModelName(name) {
+                return name.indexOf('watchpointReport') >= 0
+                    || name.indexOf('beamlineAnimation') >= 0;
+            }
+
             $scope.start = function() {
-                srdbg('starting sim');
+                srdbg('Beamline right before save:', appState.models.beamline);
+                // TODO (gurhar1133): check if below commented out is necessary for any reason
+                // appState.models.beamline.sort(function(a, b) {
+                //     return parseFloat(a.position) - parseFloat(b.position);
+                // });
+                // // culls and saves watchpoint models
+                // var watchpoints = {
+                //     // the first beamineAnimation is the initialIntensityReport equivalent
+                //     beamlineAnimation0: true,
+                // };
+                // for (var i = 0; i < appState.models.beamline.length; i++) {
+                //     var item = appState.models.beamline[i];
+                //     if (item.type == 'watch') {
+                //         watchpoints[beamlineService.watchpointReportName(item.id)] = true;
+                //     }
+                // }
+                // var savedModelValues = appState.applicationState();
+                // for (var modelName in appState.models) {
+                //     if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
+                //         // deleted watchpoint, remove the report model
+                //         delete appState.models[modelName];
+                //         delete savedModelValues[modelName];
+                //         continue;
+                //     }
+                //     if (isWatchpointReportModelName(modelName)) {
+                //         savedModelValues[modelName] = appState.cloneModel(modelName);
+                //     }
+                // }
+                // $scope.parentController.prepareToSave();
+
+                // TODO (gurhar1133): Also, check if needs to be done before starting sim in source tab
+                appState.saveChanges('beamline');
+                srdbg('saved');
+                srdbg('Beamline right before sim:', appState.models.beamline);
+
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
