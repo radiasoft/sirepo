@@ -1148,7 +1148,6 @@ def _output_info(run_dir):
                         field_range[col][1] = max(_fix(max(values)), field_range[col][1])
                     else:
                         field_range[col] = [_fix(min(values)), _fix(max(values))]
-            lattice_id = LatticeUtil.get_lattice_id_from_file_id(data, file_id)
             return PKDict(
                 isAuxFile=False if double_column_count > 1 else True,
                 filename=filename,
@@ -1158,7 +1157,7 @@ def _output_info(run_dir):
                 columns=column_names,
                 parameters=parameters,
                 parameterDefinitions=_defs(parameters),
-                latticeId=lattice_id,
+                latticeId=LatticeUtil.get_lattice_id_from_file_id(data, file_id),
                 plottableColumns=plottable_columns,
                 lastUpdateTime=int(os.path.getmtime(str(file_path))),
                 isHistogram=_is_histogram_file(filename, column_names),
