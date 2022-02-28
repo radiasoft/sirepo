@@ -1344,7 +1344,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             $scope.markerWidth = 1;
             $scope.markerUnits = '';
             $scope.svgGroups = [];
-
+            srdbg('model name in lattice: ', $scope.modelName);
             function adjustPosition(pos, x, y) {
                 var radAngle = latticeService.degreesToRadians(pos.angle);
                 pos.x += rpnValue(x) * Math.cos(radAngle);
@@ -1877,6 +1877,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function loadItemsFromBeamline(forceUpdate, beamline) {
+                // TODO (gurhar1133) : fix change BL bug
+                if (appState.models[$scope.modelName].latticeId){
+                    appState.models.beamlines.forEach((b) => {
+                        if (b.id == appState.models[$scope.modelName].latticeId) {
+                            beamline = b;
+                            return;
+                        }
+                    })
+                }
                 if ($scope.pathToModels) {
                     beamline = latticeService.elementForId(
                         appState.models[$scope.pathToModels].models.simulation.visualizationBeamlineId,

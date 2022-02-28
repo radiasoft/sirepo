@@ -508,7 +508,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.outputFiles = [];
         self.outputFileMap = {};
         var similarRowCounts = {};
-
+        srdbg('info from backend', outputInfo);
         outputInfo.forEach(function (info) {
             if (info.isAuxFile) {
                 return;
@@ -565,6 +565,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 }
             }
             appState.setModelDefaults(m, 'elementAnimation');
+            srdbg('modelKey about to get latticeId:', modelKey);
+            srdbg('latticeId about to get set: ', info.latticeId);
             m.valueList = {
                 x: info.plottableColumns,
                 y1: info.plottableColumns,
@@ -573,6 +575,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 y2File: info.similarFiles,
                 y3File: info.similarFiles,
             };
+            m.latticeId = info.latticeId
             m.panelTitle = cleanFilename(m.xFile);
             yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
@@ -588,6 +591,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 });
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
+        // appState.saveChanges(modelKey)
+        srdbg('appState.models: ', appState.models);
     }
 
     function yFileUpdate(modelKey) {
@@ -654,6 +659,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
         return self.simState.isStatePending();
     };
+
+    srdbg('self.outputFiles:', self.outputFiles);
 });
 
 SIREPO.app.directive('appFooter', function() {

@@ -1077,7 +1077,7 @@ def _is_histogram_file(filename, columns):
 
 
 def _output_info(run_dir):
-
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     def _info(filename, run_dir, file_id):
 
         def _defs(parameters):
@@ -1095,6 +1095,12 @@ def _output_info(run_dir):
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
                 return 0
             return v
+
+        def _get_lattice_id(data):
+            for c in data.models.commands:
+                if c._id == int(file_id.split('-')[0]): # TODO (gurhar1133): util function
+                    return c.use_beamline
+            return None
 
         file_path = run_dir.join(filename)
         if not re.search(r'.sdds$', filename, re.IGNORECASE):
@@ -1147,15 +1153,23 @@ def _output_info(run_dir):
                         field_range[col][1] = max(_fix(max(values)), field_range[col][1])
                     else:
                         field_range[col] = [_fix(min(values)), _fix(max(values))]
+
+            pkdp('\n\n\n\n FILE ID: {} \n\n\n\n', file_id)
+            lattice_id = _get_lattice_id(data)
+            pkdp('\n\n\n\n LATTICE ID: {} \n\n\n\n', lattice_id)
             return PKDict(
                 isAuxFile=False if double_column_count > 1 else True,
                 filename=filename,
-                id=file_id,
+                id=file_id, # TODO (gurhar1133): setup id might be right here
                 rowCounts=row_counts,
                 pageCount=page_count,
                 columns=column_names,
                 parameters=parameters,
                 parameterDefinitions=_defs(parameters),
+                latticeId=lattice_id,
+                # TODO (gurhar 1133):
+                # beamlineId = .. .. element animation modelname contains runsetup id,
+                # runsetup contains beamline id.
                 plottableColumns=plottable_columns,
                 lastUpdateTime=int(os.path.getmtime(str(file_path))),
                 isHistogram=_is_histogram_file(filename, column_names),
@@ -1177,7 +1191,6 @@ def _output_info(run_dir):
         except ValueError as e:
             pass
     _sdds_init()
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
     for k in filename_map.keys_in_order:
