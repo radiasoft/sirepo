@@ -45,10 +45,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        import sirepo.util
-
-        def _find_obj_by_name(obj_arr, obj_name):
-            return next((x for x in obj_arr if x.name == obj_name), None)
 
         dm = data.models
         cls._init_models(
@@ -81,19 +77,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     ))
         if dm.simulation.magnetType == 'undulator':
             if 'hybridUndulator' in dm:
-                dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
-                del dm['hybridUndulator']
-            if not dm.undulatorHybrid.get('terminations'):
-                dm.undulatorHybrid.terminations = []
-            b = _find_obj_by_name(dm.geometryReport.objects, 'End Block')
-            if b:
-                b.name = 'termination.magnet.0'
-                tt = cls.model_defaults('termination')
-                tt.length = sirepo.util.split_comma_delimited_string(b.size, float)[['x', 'y', 'z'].index(dm.simulation.beamAxis)]
-
-            if not dm.simulation.get('heightAxis'):
-                dm.simulation.heightAxis = 'z'
-
+                cls._fixup_undulator(dm)
         for o in dm.geometryReport.objects:
             if o.get('model') == 'box':
                 o.model = 'cuboid'
@@ -112,6 +96,32 @@ class SimData(sirepo.sim_data.SimDataBase):
             ]:
                 dm[m][f] = '0'
         cls._organize_example(data)
+
+    def _fixup_undulator(cls, dm):
+        import sirepo.util
+
+        dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
+        del dm['hybridUndulator']
+
+        g = dm.geometryReport
+        for f in ('halfPole', 'magnet', 'pole'):
+            pass
+        if 'magnetBaseObjectId' in dm:
+            o = sirepo.util.find_obj(g.objects, 'id', dm.magnetBaseObjectId)
+
+
+        if not dm.undulatorHybrid.get('terminations'):
+            dm.undulatorHybrid.terminations = []
+        b = sirepo.util.find_obj(dm.geometryReport.objects, 'name', 'End Block')
+        if b:
+            b.name = 'termination.magnet.0'
+            tt = cls.model_defaults('termination')
+            tt.length = sirepo.util.split_comma_delimited_string(b.size, float)[
+                ['x', 'y', 'z'].index(dm.simulation.beamAxis)]
+
+        if not dm.simulation.get('heightAxis'):
+            dm.simulation.heightAxis = 'z'
+
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
