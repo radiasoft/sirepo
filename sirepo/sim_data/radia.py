@@ -113,7 +113,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             magnet='Magnet Block',
             pole='Pole',
             corePoleGroup='Magnet-Pole Pair',
-            terminations='Termination',
+            terminationGroup='Termination',
             octantGroup='Octant'
         ).items():
             if k not in u:
