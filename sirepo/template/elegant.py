@@ -1096,12 +1096,6 @@ def _output_info(run_dir):
                 return 0
             return v
 
-        def _get_lattice_id(data):
-            for c in data.models.commands:
-                if c._id == int(file_id.split('-')[0]): # TODO (gurhar1133): util function
-                    return c.use_beamline
-            return None
-
         file_path = run_dir.join(filename)
         if not re.search(r'.sdds$', filename, re.IGNORECASE):
             if file_path.exists():
@@ -1154,22 +1148,17 @@ def _output_info(run_dir):
                     else:
                         field_range[col] = [_fix(min(values)), _fix(max(values))]
 
-            pkdp('\n\n\n\n FILE ID: {} \n\n\n\n', file_id)
-            lattice_id = _get_lattice_id(data)
-            pkdp('\n\n\n\n LATTICE ID: {} \n\n\n\n', lattice_id)
+            lattice_id = LatticeUtil.get_lattice_id_from_file_id(data, file_id)
             return PKDict(
                 isAuxFile=False if double_column_count > 1 else True,
                 filename=filename,
-                id=file_id, # TODO (gurhar1133): setup id might be right here
+                id=file_id,
                 rowCounts=row_counts,
                 pageCount=page_count,
                 columns=column_names,
                 parameters=parameters,
                 parameterDefinitions=_defs(parameters),
                 latticeId=lattice_id,
-                # TODO (gurhar 1133):
-                # beamlineId = .. .. element animation modelname contains runsetup id,
-                # runsetup contains beamline id.
                 plottableColumns=plottable_columns,
                 lastUpdateTime=int(os.path.getmtime(str(file_path))),
                 isHistogram=_is_histogram_file(filename, column_names),
