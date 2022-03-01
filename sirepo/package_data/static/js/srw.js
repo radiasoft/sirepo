@@ -3273,7 +3273,7 @@ SIREPO.app.directive('srwNumberList', function(appState) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, frameCache, persistentSimulation, srwService) {
     return {
         restrict: 'A',
         scope: {},
@@ -3306,49 +3306,139 @@ SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, fr
                 $scope.reports = [];
             });
 
+            // TODO (gurhar): start
             function isWatchpointReportModelName(name) {
                 return name.indexOf('watchpointReport') >= 0
                     || name.indexOf('beamlineAnimation') >= 0;
             }
 
+            function defaultItemPropagationParams() {
+                return [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+
+            function defaultDriftPropagationParams() {
+                return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+
+            function updateWatchpointReports() {
+                // special code to update initialIntensityReport and watchpointReports
+                // from beamlineAnimation models so sirepo_bluesky can continue to use those models
+                for (let name in appState.models) {
+                    let targetName;
+                    if (name == 'beamlineAnimation0') {
+                        targetName = 'initialIntensityReport';
+                    }
+                    else if (name.indexOf('beamlineAnimation') >= 0) {
+                        targetName = name.replace('beamlineAnimation', 'watchpointReport');
+                    }
+                    if (targetName) {
+                        appState.models[targetName] = appState.clone(appState.models[name]);
+                        appState.saveQuietly(targetName);
+                    }
+                }
+            }
+
+            const prepareToSave = () => {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                var beamline = appState.models.beamline;
+                if (! appState.models.propagation) {
+                    appState.models.propagation = {};
+                }
+                var propagation = appState.models.propagation;
+                self.propagations = [];
+                var i;
+                for (i = 0; i < beamline.length; i++) {
+                    if (! propagation[beamline[i].id]) {
+                        propagation[beamline[i].id] = [
+                            defaultItemPropagationParams(),
+                            defaultDriftPropagationParams(),
+                        ];
+                    }
+                    var p = propagation[beamline[i].id];
+
+                    if (beamline[i].type != 'watch' && beamline[i].type != 'grating' && beamline[i].type != 'crystal') {
+                        self.propagations.push({
+                            item: beamline[i],
+                            title: beamline[i].title,
+                            params: p[0],
+                            defaultparams: [p[0][12], p[0][13], p[0][14], p[0][15], p[0][16] ],
+                        });
+                    }
+
+                    if (beamline[i].type != 'watch' && (beamline[i].type == 'grating' || beamline[i].type == 'crystal')) {
+                        self.propagations.push({
+                            item: beamline[i],
+                            title: beamline[i].title,
+                            params: p[0],
+                            defaultparams: [beamline[i].outoptvx, beamline[i].outoptvy, beamline[i].outoptvz, beamline[i].outframevx, beamline[i].outframevy],
+                        });
+                    }
+
+                    if (i == beamline.length - 1) {
+                        break;
+                    }
+                    var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
+                    if (d > 0) {
+                        self.propagations.push({
+                            title: 'Drift ' + srwService.formatFloat4(d) + 'm',
+                            params: p[1],
+                            defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16] ],
+                        });
+                    }
+                }
+                if (! appState.models.postPropagation || appState.models.postPropagation.length === 0) {
+                    appState.models.postPropagation = defaultItemPropagationParams();
+                }
+                self.postPropagation = appState.models.postPropagation;
+
+                var newPropagations = {};
+                for (i = 0; i < appState.models.beamline.length; i++) {
+                    var item = appState.models.beamline[i];
+                    newPropagations[item.id] = appState.models.propagation[item.id];
+                }
+                appState.models.propagation = newPropagations;
+                updateWatchpointReports();
+            };
+
             $scope.start = function() {
-                srdbg('models right before save:', appState.models);
                 // TODO (gurhar1133): commented out below results in propogation model being updated,
                 // cant add beamline elems without updating propogation
 
-                // appState.models.beamline.sort(function(a, b) {
-                //     return parseFloat(a.position) - parseFloat(b.position);
-                // });
-                // // culls and saves watchpoint models
-                // var watchpoints = {
-                //     // the first beamineAnimation is the initialIntensityReport equivalent
-                //     beamlineAnimation0: true,
-                // };
-                // for (var i = 0; i < appState.models.beamline.length; i++) {
-                //     var item = appState.models.beamline[i];
-                //     if (item.type == 'watch') {
-                //         watchpoints[beamlineService.watchpointReportName(item.id)] = true;
-                //     }
-                // }
-                // var savedModelValues = appState.applicationState();
-                // for (var modelName in appState.models) {
-                //     if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
-                //         // deleted watchpoint, remove the report model
-                //         delete appState.models[modelName];
-                //         delete savedModelValues[modelName];
-                //         continue;
-                //     }
-                //     if (isWatchpointReportModelName(modelName)) {
-                //         savedModelValues[modelName] = appState.cloneModel(modelName);
-                //     }
-                // }
-                // $scope.parentController.prepareToSave();
-
+                appState.models.beamline.sort(function(a, b) {
+                    return parseFloat(a.position) - parseFloat(b.position);
+                });
+                // culls and saves watchpoint models
+                var watchpoints = {
+                    // the first beamineAnimation is the initialIntensityReport equivalent
+                    beamlineAnimation0: true,
+                };
+                for (var i = 0; i < appState.models.beamline.length; i++) {
+                    var item = appState.models.beamline[i];
+                    if (item.type == 'watch') {
+                        watchpoints[beamlineService.watchpointReportName(item.id)] = true;
+                    }
+                }
+                var savedModelValues = appState.applicationState();
+                for (var modelName in appState.models) {
+                    if (isWatchpointReportModelName(modelName) && ! watchpoints[modelName]) {
+                        // deleted watchpoint, remove the report model
+                        delete appState.models[modelName];
+                        delete savedModelValues[modelName];
+                        continue;
+                    }
+                    if (isWatchpointReportModelName(modelName)) {
+                        savedModelValues[modelName] = appState.cloneModel(modelName);
+                    }
+                }
+                prepareToSave();
                 // TODO (gurhar1133): Also, check if needs to be done before starting sim in source tab
                 appState.saveChanges('beamline');
+                appState.saveChanges('propagation');
                 srdbg('saved');
-                srdbg('Beamline right before sim:', appState.models.beamline);
-
+                srdbg('models right before sim:', appState.models);
+                // TODO (gurhar): end
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
