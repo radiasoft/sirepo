@@ -381,7 +381,7 @@ class _ComputeJob(PKDict):
             simName=None,
             simulationId=data.simulationId,
             simulationType=data.simulationType,
-            status=job.MISSING, # TODO (gurhar1133): WHY DO WE DO THIS
+            status=job.MISSING,
             uid=data.uid,
         )
         r = data.get('jobRunMode')

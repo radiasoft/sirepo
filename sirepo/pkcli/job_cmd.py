@@ -10,7 +10,6 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
-from rsa import sign
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -24,7 +23,6 @@ import sirepo.util
 import subprocess
 import sys
 import time
-import os
 
 _MAX_FASTCGI_EXCEPTIONS = 3
 
@@ -109,7 +107,6 @@ def _do_compute(msg, template):
                 if r == -signal.SIGKILL:
                     return PKDict(state=job.ERROR, error='Terminated Process. Possibly ran out of memory')
                 break
-
         if msg.isParallel:
             # TODO(e-carlin): This has a potential to fail. We likely
             # don't want the job to fail in this case

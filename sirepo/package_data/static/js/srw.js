@@ -3272,7 +3272,7 @@ SIREPO.app.directive('srwNumberList', function(appState) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, panelState, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
