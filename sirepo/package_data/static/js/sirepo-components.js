@@ -3213,7 +3213,7 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
-SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
     return {
         restrict: 'A',
         scope: {
@@ -3245,7 +3245,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
               <button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>
             </div>
         `,
-        controller: function($scope, appState) {
+        controller: function($scope, appState, panelState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
             }
