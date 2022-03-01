@@ -4,17 +4,18 @@ SIREPO.srdbg = console.log.bind(console);
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
+SIREPO.debounce_timeout = 350;
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.beamlineItemLogic = function(name, init) {
-    SIREPO.app.directive(name, function(beamlineService) {
+    SIREPO.app.directive(name, function(beamlineService, utilities) {
 
         function watchFields(scope, fieldInfo, filterOldUndefined) {
             for (var idx = 0; idx < fieldInfo.length; idx += 2) {
                 var fields = fieldInfo[idx];
-                var callback = fieldInfo[idx + 1];
+                var callback = utilities.debounce(fieldInfo[idx + 1], SIREPO.debounce_timeout);
                 beamlineService.watchBeamlineField(
                     scope, scope.modelName, fields, callback, filterOldUndefined);
             }
@@ -53,7 +54,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
 };
 
 SIREPO.viewLogic = function(name, init) {
-    SIREPO.app.directive(name, function(appState) {
+    SIREPO.app.directive(name, function(appState, utilities) {
         return {
             restrict: 'A',
             scope: {
@@ -78,7 +79,7 @@ SIREPO.viewLogic = function(name, init) {
                 if (scope.watchFields) {
                     for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
                         var fields = scope.watchFields[idx];
-                        var callback = scope.watchFields[idx + 1];
+                        var callback = utilities.debounce(scope.watchFields[idx + 1], SIREPO.debounce_timeout);
                         appState.watchModelFields(scope, fields, callback);
                     }
                 }
@@ -1901,7 +1902,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2112,7 +2113,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
                     }
                 }
             });
-        }, 350, 1);
+        }, SIREPO.debounce_timeout, 1);
     };
 
     self.getAuxiliaryData = function(name) {
@@ -2367,10 +2368,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         );
     };
 
-    self.sendRpn = function(appState, callback, data) {
-        data.variables = appState.models.rpnVariables;
-        self.sendStatefulCompute(appState, callback, data);
-    };
+    self.sendRpn = utilities.debounce(
+        (appState, callback, data) => {
+            data.variables = appState.models.rpnVariables;
+            self.sendStatefulCompute(appState, callback, data);
+        }, SIREPO.debounce_timeout);
 
     self.sendStatefulCompute = function(appState, callback, data) {
         sendWithSimulationFields('statefulCompute', appState, callback, data);
@@ -2837,6 +2839,14 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return ! state.isProcessing();
         };
 
+        state.isWaitingOnAnotherSimulation = function() {
+            return state.jobStatusMessage() === 'Waiting for another simulation to complete';
+        };
+
+        state.jobStatusMessage = function() {
+            return simulationStatus().jobStatusMessage;
+        };
+
         state.resetSimulation = function() {
             setSimulationStatus({state: 'missing'});
             frameCache.setFrameCount(0);
@@ -2876,7 +2886,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (state.isStateError()) {
                 var e = state.getError();
                 if (e) {
-                    return 'Error: ' + e.split(/[\n\r]+/)[0];
+                    let m = e.split(/[\n\r]+/)[0];
+                    if (m.toLowerCase().includes('504')){
+                        return 'Timeout Error. Please contact support@radiasoft.net if the problem persists';
+                    }
+                    return 'Error: ' + m;
                 }
             }
             return stringsService.ucfirst(simulationStatus().state);

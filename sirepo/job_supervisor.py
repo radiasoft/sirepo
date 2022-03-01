@@ -463,57 +463,90 @@ class _ComputeJob(PKDict):
             return job._is_running_pending()
 
         def _get_header():
-            h = [
-                ['App', 'String'],
-                ['Simulation id', 'String'],
-                ['Start', 'DateTime'],
-                ['Last update', 'DateTime'],
-                ['Elapsed', 'Time'],
-                ['Status', 'String'],
-            ]
+            h = PKDict(
+                simulationType=PKDict(
+                    title='App',
+                    type='String',
+                ),
+                simulationId=PKDict(
+                    title='Simulation id',
+                    type='String',
+                ),
+                startTime=PKDict(
+                    title='Start',
+                    type='DateTime',
+                ),
+                lastUpdateTime=PKDict(
+                    title='Last Update',
+                    type='DateTime',
+                ),
+                elapsedTime=PKDict(
+                    title='Elapsed',
+                    type='Time',
+                ),
+                statusMessage=PKDict(
+                    title='Status',
+                    type='String',
+                ),
+            )
             if uid:
-                h.insert(l, ['Name', 'String'])
+                h.name = PKDict(
+                    title='Name',
+                    type='String',
+                )
             else:
-                h.insert(l, ['User id', 'String'])
-                h.extend([
-                    ['Queued', 'Time'],
-                    ['Driver details', 'String'],
-                    ['Premium user', 'String'],
-                ])
+                h.uid = PKDict(
+                    title='User id',
+                    type='String',
+                )
+                h.displayName = PKDict(
+                    title='Display name',
+                    type='String',
+                )
+                h.queuedTime = PKDict(
+                    title='Queued',
+                    type='Time',
+                )
+                h.driverDetails = PKDict(
+                    title='Driver details',
+                    type='String',
+                )
+                h.isPremiumUser = PKDict(
+                    title='Premium user',
+                    type='String',
+                )
             return h
 
-        def _get_rows():
+        def _get_jobs():
             def _get_queued_time(db):
                 m = i.db.computeJobStart if i.db.status == job.RUNNING \
                     else sirepo.srtime.utc_now_as_int()
                 return m - db.computeJobQueued
 
             r = []
-            for i in filter(_filter_jobs, cls.instances.values()):
-                d = [
-                    i.db.simulationType,
-                    i.db.simulationId,
-                    i.db.computeJobStart,
-                    i.db.lastUpdateTime,
-                    i.elapsed_time(),
-                    i.db.get('jobStatusMessage', ''),
-                ]
-                if uid:
-                    d.insert(l, i.db.simName)
-                else:
-                    d.insert(l, i.db.uid)
-                    d.extend([
-                        _get_queued_time(i.db),
-                        ' | '.join(sorted(i.db.driverDetails.values())),
-                        i.db.isPremiumUser,
-                    ])
-                r.append(d)
-
-            r.sort(key=lambda x: x[l])
+            with sirepo.auth_db.session():
+                for i in filter(_filter_jobs, cls.instances.values()):
+                    d = PKDict(
+                        simulationType=i.db.simulationType,
+                        simulationId=i.db.simulationId,
+                        startTime=i.db.computeJobStart,
+                        lastUpdateTime=i.db.lastUpdateTime,
+                        elapsedTime=i.elapsed_time(),
+                        statusMessage=i.db.get('jobStatusMessage', ''),
+                        computeModel=sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
+                    )
+                    if uid:
+                        d.simName = i.db.simName
+                    else:
+                        d.uid = i.db.uid
+                        d.displayName = sirepo.auth_db.UserRegistration.search_by(uid=i.db.uid).display_name or 'n/a'
+                        d.queuedTime = _get_queued_time(i.db)
+                        d.driverDetails = ' | '.join(sorted(i.db.driverDetails.values()))
+                        d.isPremiumUser = i.db.isPremiumUser
+                    r.append(d)
             return r
 
-        l = 2
-        return PKDict(header=_get_header(), rows=_get_rows())
+        return PKDict(header=_get_header(), jobs=_get_jobs())
 
     def _is_running_pending(self):
         return self.db.status in (job.RUNNING, job.PENDING)
@@ -630,16 +663,6 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req, recursion_depth=0):
-        def _set_error(compute_job_serial, internal_error):
-            if self.db.computeJobSerial != compute_job_serial:
-                # Another run has started
-                return
-            self.__db_update(
-                error='Server error',
-                internalError=internal_error,
-                status=job.ERROR,
-            )
-
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
             if f or not self._req_is_valid(req):
@@ -675,7 +698,6 @@ class _ComputeJob(PKDict):
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
         t = sirepo.srtime.utc_now_as_int()
-        s = self.db.status
         d = self.db
         self.__db_init(req, prev_db=d)
         self.__db_update(
@@ -689,48 +711,22 @@ class _ComputeJob(PKDict):
             status=job.PENDING,
         )
         self._purged_jids_cache.discard(self.__db_file(self.db.computeJid).purebasename)
-        c = self.db.computeJobSerial
-        try:
-            for i in range(_MAX_RETRIES):
-                try:
-                    await o.prepare_send()
-                    self.run_op = o
-                    o.make_lib_dir_symlink()
-                    o.send()
-                    r = self._status_reply(req)
-                    assert r
-                    o.run_callback = tornado.ioloop.IOLoop.current().call_later(
-                        0,
-                        self._run,
-                        o,
-                    )
-                    o = None
-                    return r
-                except Awaited:
-                    pass
-            else:
-                raise AssertionError('too many retries {}'.format(req))
-        except sirepo.util.ASYNC_CANCELED_ERROR:
-            if self.pkdel('_canceled_serial') == c:
-                # We were canceled due to api_runCancel.
-                # api_runCancel destroyed the op and updated the db
-                raise
-            # There was a timeout getting the run started. Set the
-            # error and let the user know. The timeout has destroyed
-            # the op so don't need to destroy here
-            _set_error(c, o.internal_error)
-            return self._status_reply(req)
-        except Exception as e:
-            # _run destroys in the happy path (never got to _run here)
-            o.destroy(cancel=False)
-            if isinstance(e, sirepo.util.SRException) and \
-               e.sr_args.params.get('isGeneral'):
-               self.__db_restore(d)
-            else:
-                _set_error(c, o.internal_error)
-            raise
+        self.run_op = o
+        r = self._status_reply(req)
+        assert r
+        o.run_callback = tornado.ioloop.IOLoop.current().call_later(
+            0,
+            self._run,
+            o,
+            self.db.computeJobSerial,
+            d,
+        )
+        o = None
+        return r
 
     async def _receive_api_runStatus(self, req):
+        if '_sr_exception' in self:
+            raise self.pkdel('_sr_exception')
         r = self._status_reply(req)
         if r:
             return r
@@ -801,9 +797,55 @@ class _ComputeJob(PKDict):
             )
         )
 
-    async def _run(self, op):
+    async def _run(self, op, compute_job_serial, prev_db):
+        def _set_error(compute_job_serial, internal_error):
+            if self.db.computeJobSerial != compute_job_serial:
+                # Another run has started
+                return
+            self.__db_update(
+                error='Server error',
+                internalError=internal_error,
+                status=job.ERROR,
+            )
+
+        async def _send_op(op, compute_job_serial, prev_db):
+            try:
+                for _ in range(_MAX_RETRIES):
+                    try:
+                        await op.prepare_send()
+                        break
+                    except Awaited:
+                        pass
+                else:
+                    raise AssertionError(f'too many retries {op}')
+            except sirepo.util.ASYNC_CANCELED_ERROR:
+                if self.pkdel('_canceled_serial') != compute_job_serial:
+                    # There was a timeout getting the run started. Set the
+                    # error and let the user know. The timeout has destroyed
+                    # the op so don't need to destroy here
+                    _set_error(compute_job_serial, op.internal_error)
+                else:
+                    # We were canceled due to api_runCancel.
+                    # api_runCancel destroyed the op and updated the db
+                    pass
+                return False
+            except Exception as e:
+                op.destroy(cancel=False)
+                if isinstance(e, sirepo.util.SRException) and \
+                e.sr_args.params.get('isGeneral'):
+                    self.__db_restore(prev_db)
+                    self._sr_exception = e
+                    return False
+                _set_error(compute_job_serial, op.internal_error)
+                raise
+            op.make_lib_dir_symlink()
+            op.send()
+            return True
+
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
+        if not await _send_op(op, compute_job_serial, prev_db):
+            return
         try:
             with op.set_job_situation('Entered __create._run'):
                 while True:
@@ -892,6 +934,7 @@ class _ComputeJob(PKDict):
             if self._is_running_pending():
                 c = req.content
                 r.update(
+                    jobStatusMessage=self.db.jobStatusMessage,
                     nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
                         computeJobHash=self.db.computeJobHash,
