@@ -36,7 +36,7 @@ def main():
         exit(1)
     input_yaml, output_csv = sys.argv[1:]
     with open(input_yaml, 'r') as f:
-        params = yaml.load(f)
+        params = yaml.safe_load(f)
 
     if params['name'] == 'srunit_long_run':
         time.sleep(100)
