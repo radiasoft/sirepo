@@ -3312,8 +3312,10 @@ SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, fr
             }
 
             $scope.start = function() {
-                srdbg('Beamline right before save:', appState.models.beamline);
-                // TODO (gurhar1133): check if below commented out is necessary for any reason
+                srdbg('models right before save:', appState.models);
+                // TODO (gurhar1133): commented out below results in propogation model being updated,
+                // cant add beamline elems without updating propogation
+
                 // appState.models.beamline.sort(function(a, b) {
                 //     return parseFloat(a.position) - parseFloat(b.position);
                 // });
