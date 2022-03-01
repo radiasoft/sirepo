@@ -119,14 +119,16 @@ class SimData(sirepo.sim_data.SimDataBase):
             if k not in u:
                 u[k] = sirepo.util.find_obj(g.objects, 'name', v)
 
-        if not dm.undulatorHybrid.get('terminations'):
-            dm.undulatorHybrid.terminations = []
-        b = sirepo.util.find_obj(dm.geometryReport.objects, 'name', 'End Block')
-        if b:
-            b.name = 'termination.magnet.0'
-            tt = cls.model_defaults('termination')
-            tt.length = sirepo.util.split_comma_delimited_string(b.size, float)[
-                ['x', 'y', 'z'].index(dm.simulation.beamAxis)]
+        if not u.get('terminations'):
+            u.terminations = []
+        for t in u.terminations:
+            cls.update_model_defaults(t, 'termination')
+        t_ids = [t.object.id for t in u.terminations]
+        for t_id in u.terminationGroup.members:
+            if t_id not in t_ids:
+                t = cls.model_defaults('termination')
+                t.object = sirepo.util.find_obj(g.objects, 'id', t_id)
+                u.terminations.append(t)
 
         if not dm.simulation.get('heightAxis'):
             dm.simulation.heightAxis = 'z'

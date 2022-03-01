@@ -271,7 +271,8 @@
             "magnetType": "undulator",
             "name": "Undulator",
             "notes": "",
-            "outOfSessionSimulationId": ""
+            "outOfSessionSimulationId": "",
+            "undulatorType": "undulatorHybrid"
         },
         "undulator": {
             "_super": "radiaObject",
