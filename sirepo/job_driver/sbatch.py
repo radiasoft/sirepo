@@ -18,7 +18,6 @@ import datetime
 import errno
 import sirepo.job_supervisor
 import sirepo.simulation_db
-import sirepo.srdb
 import sirepo.util
 import tornado.gen
 import tornado.ioloop
