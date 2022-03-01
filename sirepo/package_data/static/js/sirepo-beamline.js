@@ -250,7 +250,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $rootScope) {
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
                     return;
@@ -413,6 +413,9 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 $scope.parentController.prepareToSave();
                 appState.saveChanges($scope.beamlineModels);
             };
+            $rootScope.$on('saveLattice', (e, d) => {
+                $scope.saveBeamlineChanges();
+            });
         },
     };
 });
