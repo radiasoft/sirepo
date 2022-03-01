@@ -413,6 +413,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 $scope.parentController.prepareToSave();
                 appState.saveChanges($scope.beamlineModels);
             };
+
             $rootScope.$on('saveLattice', (e, d) => {
                 $scope.saveBeamlineChanges();
             });

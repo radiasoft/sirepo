@@ -2,6 +2,7 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
+
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
     SIREPO.SHOW_HELP_BUTTONS = true;
@@ -3271,7 +3272,7 @@ SIREPO.app.directive('srwNumberList', function(appState) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, frameCache, persistentSimulation, srwService) {
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
