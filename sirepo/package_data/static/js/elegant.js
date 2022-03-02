@@ -573,6 +573,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 y2File: info.similarFiles,
                 y3File: info.similarFiles,
             };
+            m.latticeId = info.latticeId;
             m.panelTitle = cleanFilename(m.xFile);
             yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
