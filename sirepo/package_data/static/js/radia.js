@@ -2104,7 +2104,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
              <tbody>
             <tr>
             </tr>
-                <tr data-ng-repeat="item in field">
+                <tr data-ng-repeat="item in field track by $index">
                     <td>{{ item.object.name }}</td>
                     <td>{{ item.airGap }}</td>
                     <td>{{ item.gapOffset }}</td>
@@ -2148,7 +2148,9 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
 
             $scope.deleteItem = function(item) {
                 radiaService.deleteObject(radiaService.getObject(item.object.id));
-                $scope.field.splice(itemIndex(item), 1);
+                const i = itemIndex(item);
+                $scope.field.splice(i, 1);
+                $scope.model[groupModel].members.splice(i, 1);
                 appState.saveChanges([$scope.modelName, 'geometryReport']);
             };
 
