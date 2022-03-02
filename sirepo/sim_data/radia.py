@@ -134,7 +134,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             t = u.terminations[i]
             if 'object' not in t:
                 t.object = sirepo.util.find_obj(g.objects, 'id', t_id)
-                cls.update_model_defaults(t, 'termination')
+            cls.update_model_defaults(t, 'termination')
 
 
     @classmethod
