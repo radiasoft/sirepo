@@ -3297,7 +3297,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             <div data-watchpoint-report="" data-item-id="report.id"></div>
           </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $rootScope) {
             $scope.reports = [];
             $scope.simScope = $scope;
             $scope.simComputeModel = 'beamlineAnimation';
@@ -3306,6 +3306,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             });
 
             $scope.start = function() {
+                $rootScope.$broadcast('saveLattice', appState.models);
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
