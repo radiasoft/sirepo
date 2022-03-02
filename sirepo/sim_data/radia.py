@@ -100,6 +100,12 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _fixup_undulator(cls, dm):
         import sirepo.util
 
+        if not dm.simulation.get('heightAxis'):
+            dm.simulation.heightAxis = 'z'
+
+        if dm.simulation.undulatorType in ('undulatorBasic'):
+            return
+
         if 'hybridUndulator' in dm:
             dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
             del dm['hybridUndulator']
@@ -121,19 +127,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         if not u.get('terminations'):
             u.terminations = []
-        for t in u.terminations:
+        for i, t_id in enumerate(u.terminationGroup.members):
+            t = u.terminations[i]
             if 'object' not in t:
-                t.object = {}
-            cls.update_model_defaults(t, 'termination')
-        t_ids = [t.object.id for t in u.terminations]
-        for t_id in u.terminationGroup.members:
-            if t_id not in t_ids:
-                t = cls.model_defaults('termination')
                 t.object = sirepo.util.find_obj(g.objects, 'id', t_id)
-                u.terminations.append(t)
-
-        if not dm.simulation.get('heightAxis'):
-            dm.simulation.heightAxis = 'z'
+                cls.update_model_defaults(t, 'termination')
 
 
     @classmethod
