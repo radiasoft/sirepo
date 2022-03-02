@@ -10,6 +10,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.magnetType = 'freehand';
     SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'dipoleBasic';
     SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorBasic';
+    SIREPO.appDefaultSimulationValues.simulation.freehandType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
