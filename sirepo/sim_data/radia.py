@@ -122,6 +122,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not u.get('terminations'):
             u.terminations = []
         for t in u.terminations:
+            if 'object' not in t:
+                t.object = {}
             cls.update_model_defaults(t, 'termination')
         t_ids = [t.object.id for t in u.terminations]
         for t_id in u.terminationGroup.members:
