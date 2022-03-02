@@ -100,6 +100,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _fixup_undulator(cls, dm):
         import sirepo.util
 
+        pkdp('UND FIUX SIM {}', dm.simulation)
         if not dm.simulation.get('heightAxis'):
             dm.simulation.heightAxis = 'z'
 
@@ -107,12 +108,13 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
             del dm['hybridUndulator']
 
-        if dm.simulation.undulatorType == 'undulatorBasic':
+        if dm.simulation.get('undulatorType') == 'undulatorBasic':
             return
 
         dm.simulation.undulatorType = 'undulatorHybrid'
         
         u = dm.undulatorHybrid
+        u.undulatorType = 'undulatorHybrid'
         g = dm.geometryReport
 
         for (k, v) in PKDict(
