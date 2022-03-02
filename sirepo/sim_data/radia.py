@@ -103,14 +103,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not dm.simulation.get('heightAxis'):
             dm.simulation.heightAxis = 'z'
 
-        if dm.simulation.undulatorType in ('undulatorBasic'):
-            return
-
         if 'hybridUndulator' in dm:
             dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
             del dm['hybridUndulator']
-            dm.simulation.undulatorType = 'undulatorHybrid'
 
+        if dm.simulation.undulatorType == 'undulatorBasic':
+            return
+
+        dm.simulation.undulatorType = 'undulatorHybrid'
+        
         u = dm.undulatorHybrid
         g = dm.geometryReport
 
