@@ -100,7 +100,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _fixup_undulator(cls, dm):
         import sirepo.util
 
-        pkdp('UND FIUX SIM {}', dm.simulation)
         if not dm.simulation.get('heightAxis'):
             dm.simulation.heightAxis = 'z'
 
