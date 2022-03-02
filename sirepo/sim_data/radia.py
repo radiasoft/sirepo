@@ -107,14 +107,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'hybridUndulator' in dm:
             dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
             del dm['hybridUndulator']
+            dm.simulation.undulatorType = 'undulatorHybrid'
+            dm.undulatorHybrid.undulatorType = 'undulatorHybrid'
 
-        if dm.simulation.get('undulatorType') == 'undulatorBasic':
+        if dm.simulation.undulatorType == 'undulatorBasic':
             return
 
-        dm.simulation.undulatorType = 'undulatorHybrid'
-        
         u = dm.undulatorHybrid
-        u.undulatorType = 'undulatorHybrid'
         g = dm.geometryReport
 
         for (k, v) in PKDict(
