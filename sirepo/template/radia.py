@@ -1268,6 +1268,7 @@ def _update_undulatorBasic(model, assembly, **kwargs):
 def _update_undulatorHybrid(model, assembly, **kwargs):
     d = PKDict(kwargs)
 
+    dir_matrix = numpy.array([d.width_dir, d.height_dir, d.length_dir])
     pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
 
@@ -1297,6 +1298,9 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     _update_geom_obj(
         assembly.magnet,
         center=pos + sz / 2 + gap_half_height + gap_offset,
+        segments=dir_matrix.dot(
+            sirepo.util.split_comma_delimited_string(model.magnet.segments, int)
+        ),
         size=sz
     )
     pos += sz * d.length_dir
