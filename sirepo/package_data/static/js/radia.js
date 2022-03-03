@@ -416,17 +416,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }[self.getDipoleType()] || '') + ' Dipole';
     };
 
-    self.removeFromGroup = o => {
-        const gId = o.groupId;
-        if (gId !== 0 && (! gId || gId === '')) {
-            return;
-        }
-        let g = self.getObject(gId);
-        g.members.splice(g.members.indexOf(o.id), 1);
-        appState.models.geomGroup = g;
-        appState.saveQuietly('geomGroup');
-    };
-
     self.editItem = function(o) {
         self.editObject(o);
     };
