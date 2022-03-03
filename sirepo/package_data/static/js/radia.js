@@ -433,11 +433,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.showDesigner = function() {
-        return self.modelsLoaded && appState.models.simulation.magnetType === 'freehand';
+        return appState.models.simulation.magnetType === 'freehand';
     };
 
     self.showParams = function() {
-        return self.modelsLoaded && appState.models.simulation.magnetType !== 'freehand';
+        return appState.models.simulation.magnetType !== 'freehand';
     };
 
     self.getDipoleType = function() {
@@ -977,7 +977,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return baseShapeId(shape.id) === `${baseShape.id}`;
     }
 
-    self.modelsLoaded = true;
     // initial setup
     appState.watchModelFields($scope, editorFields, function(d) {
         updateObjectEditor();
