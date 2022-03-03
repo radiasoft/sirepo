@@ -352,7 +352,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
     var self = this;
 
-    const anisotropicMaterialMsg = 'Anisotropic materials require non-zero magnetization';
     const editorFields = [
         'geomObject.magnetization',
         'geomObject.material',
@@ -2177,16 +2176,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                     return;
                 }
                 const o = selectedItem.object;
-                const mag = Math.hypot(
-                    ...radiaService.stringToFloatArray(o.magnetization || SIREPO.ZERO_STR)
-                );
-                validationService.validateField(
-                    'geomObject',
-                    'material',
-                    'select',
-                    SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(o.material) < 0 || mag > 0,
-                    'Anisotropic materials require non-zero magnetization'
-                );
+                radiaService.validateMagnetization(o.magnetization, o.material);
             });
 
         },
