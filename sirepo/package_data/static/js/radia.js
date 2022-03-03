@@ -228,6 +228,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return type + 'Path';
     };
 
+    self.reloadGeometry = callback => {
+        const r = 'geometryReport';
+        panelState.clear(r);
+        panelState.requestData(r, callback, true);
+    };
+
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
@@ -990,98 +996,89 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return baseShapeId(shape.id) === `${baseShape.id}`;
     }
 
-    appState.whenModelsLoaded($scope, function() {
-        self.modelsLoaded = true;
-        // initial setup
-        appState.watchModelFields($scope, editorFields, function(d) {
-            updateObjectEditor();
-        });
-        if (! appState.models.geometryReport.objects) {
-            appState.models.geometryReport.objects = [];
+    self.modelsLoaded = true;
+    // initial setup
+    appState.watchModelFields($scope, editorFields, function(d) {
+        updateObjectEditor();
+    });
+    if (! appState.models.geometryReport.objects) {
+        appState.models.geometryReport.objects = [];
+    }
+    loadShapes();
+
+    $scope.$on('modelChanged', function(e, modelName) {
+        if (! watchedModels.includes(modelName)) {
+            return;
         }
-        loadShapes();
-
-        $scope.$on('modelChanged', function(e, modelName) {
-            if (watchedModels.indexOf(modelName) < 0) {
-                return;
-            }
-            if (
-                modelName === 'simulation' ||
-                Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
-            ) {
-                appState.models.geometryReport.lastModified = Date.now();
-                radiaService.setWidthAxis();
-                appState.saveQuietly('simulation');
-                appState.models.kickMapReport.periodLength = appState.models.undulatorHybrid.periodLength;
-                appState.saveQuietly('kickMapReport');
-            }
-            let o = self.selectedObject;
-            if (o) {
-                if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
-                    // catch unrelated saved objects
-                    if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
-                        addObject(o);
-                    }
-                    else {
-                        self.selectedObject = null;
-                    }
+        if (
+            modelName === 'simulation' ||
+            Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
+        ) {
+            appState.models.geometryReport.lastModified = Date.now();
+            radiaService.setWidthAxis();
+            appState.saveQuietly('simulation');
+            appState.models.kickMapReport.periodLength = appState.models.undulatorHybrid.periodLength;
+            appState.saveQuietly('kickMapReport');
+        }
+        let o = self.selectedObject;
+        if (o) {
+            if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
+                // catch unrelated saved objects
+                if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
+                    addObject(o);
                 }
-                if (o.type === 'racetrack') {
-                    // calculate the size
-                    let s = [0, 0, 0];
-                    const sides = utilities.splitCommaDelimitedString(o.sides, parseFloat);
-                    const radii = utilities.splitCommaDelimitedString(o.radii, parseFloat);
-                    const i = geometry.basis.indexOf(o.axis);
-                    s[i] = o.height;
-                    for (const j of [0, 1]) {
-                        s[(i + j + 1) % 3] = sides[j] + 2.0 * radii[1];
-                    }
-                    o.size = s.join(', ');
-                    appState.saveQuietly('racetrack');
-                }
-                if (o.materialFile) {
-                    o.hmFileName = o.materialFile.name;
-                    radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
+                else {
+                    self.selectedObject = null;
                 }
             }
-            const r = 'geometryReport';
-            radiaService.saveGeometry(true, false, () => {
-                panelState.clear(r);
-                // need to rebuild the geometry after changes were made
-                panelState.requestData(
-                    r,
-                    data => {
-                        if (self.selectedObject) {
-                            loadShapes();
-                        }
-                    },
-                    true
-                );
+            if (o.type === 'racetrack') {
+                // calculate the size
+                let s = [0, 0, 0];
+                const sides = utilities.splitCommaDelimitedString(o.sides, parseFloat);
+                const radii = utilities.splitCommaDelimitedString(o.radii, parseFloat);
+                const i = geometry.basis.indexOf(o.axis);
+                s[i] = o.height;
+                for (const j of [0, 1]) {
+                    s[(i + j + 1) % 3] = sides[j] + 2.0 * radii[1];
+                }
+                o.size = s.join(', ');
+                appState.saveQuietly('racetrack');
+            }
+            if (o.materialFile) {
+                o.hmFileName = o.materialFile.name;
+                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
+            }
+        }
+        radiaService.saveGeometry(true, false, () => {
+            radiaService.reloadGeometry(
+                data => {
+                    if (self.selectedObject) {
+                        loadShapes();
+                    }
             });
-
         });
 
-        $scope.$on('geomObject.editor.show', function(e, o) {
-            updateObjectEditor();
-        });
+    });
 
-        $scope.$on('tool.editor.show', function(e, o) {
-            updateToolEditor();
-        });
+    $scope.$on('geomObject.editor.show', function(e, o) {
+        updateObjectEditor();
+    });
 
-        $scope.$on('layout.object.dropped', function (e, lo) {
-            var m = appState.setModelDefaults({}, lo.model);
-            m.center = lo.center;
-            m.name = lo.type;
-            m.name = newObjectName(m);
-            m.model = lo.model;
-            self.editObject(m);
-        });
+    $scope.$on('tool.editor.show', function(e, o) {
+        updateToolEditor();
+    });
 
-        $scope.$on('drop.target.enabled', function (e, val) {
-            self.dropEnabled = val;
-        });
+    $scope.$on('layout.object.dropped', function (e, lo) {
+        var m = appState.setModelDefaults({}, lo.model);
+        m.center = lo.center;
+        m.name = lo.type;
+        m.name = newObjectName(m);
+        m.model = lo.model;
+        self.editObject(m);
+    });
 
+    $scope.$on('drop.target.enabled', function (e, val) {
+        self.dropEnabled = val;
     });
 });
 
@@ -3832,6 +3829,10 @@ for(const m of ['Dipole', 'Undulator']) {
             });
 
             $scope.$on('modelChanged', (e, d) => {
+                if (d === 'geometryReport') {
+                    radiaService.reloadGeometry();
+                    return;
+                }
                 if (d !== 'geomObject' || ! activeModelId()) {
                     return;
                 }
