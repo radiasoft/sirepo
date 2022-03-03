@@ -235,7 +235,7 @@
                     "airGap": 0,
                     "length": 9,
                     "object": {
-                        "name": "termination.magnet.0",
+                        "name": "Termination Magnet",
                         "model": "cuboid",
                         "color": "#00ffff",
                         "_super": "geomObject",
