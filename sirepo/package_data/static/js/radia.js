@@ -228,7 +228,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return type + 'Path';
     };
 
-    self.reloadGeometry = callback => {
+    self.reloadGeometry = (callback=() => {}) => {
         const r = 'geometryReport';
         panelState.clear(r);
         panelState.requestData(r, callback, true);
@@ -381,7 +381,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.dropEnabled = true;
-    self.modelsLoaded = false;
     self.selectedObject = null;
     self.shapes = [];
     self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
@@ -446,16 +445,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.showDesigner = function() {
-        if (! self.modelsLoaded) {
-            return false;
-        }
         return self.modelsLoaded && appState.models.simulation.magnetType === 'freehand';
     };
 
     self.showParams = function() {
-        if (! self.modelsLoaded) {
-            return false;
-        }
         return self.modelsLoaded && appState.models.simulation.magnetType !== 'freehand';
     };
 
