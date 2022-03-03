@@ -1128,10 +1128,6 @@ def _save_kick_map_sdds(name, x_vals, y_vals, h_vals, v_vals, path):
     return path
 
 
-def _undulator_termination_name(index, term_type):
-    return f'termination.{term_type}.{index}'
-
-
 # For consistency, always set the width and height axes of the extruded shape in
 # permutation order based on the extrusion axis:
 #   x -> (y, z), y -> (z, x), z -> (x, y)
@@ -1230,18 +1226,7 @@ def _update_geom_from_freehand(geom_objs, model, **kwargs):
 
 
 def _update_geom_from_undulator(geom_objs, model, **kwargs):
-
     _update_geom_objects(geom_objs)
-    #if 'terminations' in model:
-    #    t_grp = set(model.terminationGroup.members)
-    #    for t in model.terminations:
-    #        t_grp.add(
-    #            _update_geom_obj(
-    #                _find_by_id(geom_objs, _update_geom_obj(t.object).id), **t.object
-    #            ).id
-    #        )
-    #    model.terminationGroup.members = list(t_grp)
-
     return pkinspect.module_functions('_update_')[f'_update_{model.undulatorType}'](
         model,
         _get_radia_objects(geom_objs, model),
@@ -1285,10 +1270,7 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
 
     pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
-    #pole_sz = sirepo.util.split_comma_delimited_string(model.pole.size, float)
-    #mag_sz = sirepo.util.split_comma_delimited_string(model.magnet.size, float)
 
-    # convenient constants
     gap_half_height = model.gap / 2 * d.height_dir
     gap_offset = model.gapOffset * d.height_dir
 
@@ -1297,10 +1279,10 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
          d.height_dir * pole_x[1] + \
          model.poleLength / 2 * d.length_dir
 
-    #sz = pole_sz * d.width_dir / 2 + \
-    #     pole_sz * d.height_dir + \
-    #     pole_sz * d.length_dir / 2
-    for f in ['bevels', 'color', 'material', 'materialFile', 'remanentMag', 'type']:
+    for f in (
+        'bevels', 'color', 'material', 'materialFile', 'remanentMag', 'type',
+        'segments'
+    ):
         assembly.halfPole[f] = copy.deepcopy(assembly.pole[f])
     _update_geom_obj(
         assembly.halfPole,
@@ -1312,8 +1294,6 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     sz = mag_x[0] / 2 * d.width_dir + \
          mag_x[1] * d.height_dir + \
          (model.periodLength / 2 - model.poleLength) * d.length_dir
-    #sz = mag_sz * (d.width_dir / 2 + d.height_dir) + \
-    #     (model.periodLength / 2 * d.length_dir - pole_sz * d.length_dir)
     _update_geom_obj(
         assembly.magnet,
         center=pos + sz / 2 + gap_half_height + gap_offset,
@@ -1324,7 +1304,6 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     sz = pole_x[0] / 2 * d.width_dir + \
          d.height_dir * pole_x[1] + \
          model.poleLength * d.length_dir
-    #sz = pole_sz *(d.width_dir / 2 + d.height_dir + d.length_dir)
     _update_geom_obj(
         assembly.pole,
         center=pos + sz / 2 + gap_half_height,
