@@ -87,7 +87,7 @@ if nslice % 2 == 0:
     nslice += 1
 
 
-cavity_inputs = PKDict(
+cavity_inputs = PKDict( #TODO (gurhar1133): gotta be a cleaner way of doing this
     drift_right_length=L_cav / 2 - L_cryst / 2,
     drift_left_length=L_cav / 2 - L_cryst / 2,
     lens_left_focal_length=L_cav / 4 + dfR,
