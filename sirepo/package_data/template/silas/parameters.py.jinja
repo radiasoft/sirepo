@@ -1,10 +1,11 @@
 from pykern.pkcollections import PKDict
-from rslaser import cavity
-from scipy import ndimage, constants
+from rslaser.rscavity import laser_cavity
+from scipy import ndimage
 import array
 import h5py
 import math
 import numpy as np
+import scipy.constants as const
 import srwlib
 
 
@@ -66,7 +67,7 @@ n0 = {{ crystal_refractionIndex }}
 n2 = {{ crystal_radius }}
 
 wavefrontEnergy = {{ gaussianBeam_photonEnergy }} #Wavefront Energy [eV]. 1.55 eV is 800 nm wavelength
-lam = constants.c * constants.value('Planck constant in eV/Hz')/wavefrontEnergy # convert energy [eV] to wavelength [m]
+lam = const.c * const.value('Planck constant in eV/Hz')/wavefrontEnergy # convert energy [eV] to wavelength [m]
 
 L_eff = L_cav+(1/n0 - 1)*L_cryst #Define effective length as path length reduced by index of refraction n0
 print("L_eff=",L_eff)
@@ -85,23 +86,45 @@ sig_s = {{ simulationSettings_sig_s }} # rms length of Gaussian laser pulse [m]
 if nslice % 2 == 0:
     nslice += 1
 
-lc = cavity.LaserCavity(PKDict(
-    n0=n0,
-    n2=n2,
-    L_half_cryst=L_cryst / 2,
-    nslice=nslice,
+
+cavity_inputs = PKDict(
     drift_right_length=L_cav / 2 - L_cryst / 2,
     drift_left_length=L_cav / 2 - L_cryst / 2,
     lens_left_focal_length=L_cav / 4 + dfR,
     lens_right_focal_length=L_cav / 4 + dfL,
-    sigrW=sigx0,
-    propLen=propLen,
-    sig_s=sig_s,
-    pulseE=pulseE,
-    poltype=poltype,
-    phE=wavefrontEnergy,
-    sampFact=sampFact,
-))
+    n0=n0,
+    n2=n2,
+    L_half_cryst=L_cryst / 2,
+    pulse_params=PKDict(
+        phE=wavefrontEnergy,
+        nslice=nslice,
+        chirp=0,
+        w0=.1,
+        a0=.01,
+        dw0x=0.0,
+        dw0y=0.0,
+        z_waist=0,
+        dzwx=0.0,
+        dzwy=0.0,
+        tau_fwhm=0.1 / const.c / math.sqrt(2.),
+        z_center=0,
+        x_shift = 0.,
+        y_shift=0.,
+        d_to_w=0,
+        slice_params=PKDict(
+            sigrW=0.000186,
+            propLen=propLen,
+            pulseE=pulseE,
+            poltype=poltype,
+            sampFact=sampFact,
+            numsig=3.,
+            mx=0,
+            my=0
+        ),
+    )
+)
+
+lc = laser_cavity.LaserCavity(cavity_inputs)
 
 save_laser_pulse('{{ initialLaserFile }}', lc)
 
