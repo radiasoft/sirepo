@@ -245,10 +245,11 @@ def new_simulation(data, new_simulation_data):
         if s == 'undulatorBasic':
             data.models.geometryReport.isSolvable = '0'
         data.models.fieldPaths.paths.append(_build_field_axis(
-            (m.numPeriods + 0.5) * m.periodLength,
+            3 * (m.numPeriods + 0.5) * m.periodLength,
             new_simulation_data.beamAxis
         ))
         data.models.simulation.enableKickMaps = '1'
+        data.models.simulation.coordinateSystem = 'beam'
         _update_kickmap(data.models.kickMapReport, m, new_simulation_data.beamAxis)
 
 
@@ -458,6 +459,7 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
             _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
         )
         t_grp = []
+        #TODO(mvk): apply matrix to size of initial terminations
         for t in model.terminations:
             _SIM_DATA.update_model_defaults(t.object, t.object.type)
             t_grp.append(t.object)
@@ -672,6 +674,7 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.is_raw = v.exampleName in SCHEMA.constants.rawExamples
     v.magnetType = data.models.simulation.get('magnetType', 'freehand')
     dirs = _geom_directions(data.models.simulation.beamAxis, data.models.simulation.heightAxis)
+    v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f'{v.magnetType}Type'
     v[st] = data.models.simulation[st]
     pkinspect.module_functions('_update_geom_from_')[f'_update_geom_from_{v.magnetType}'](
@@ -775,6 +778,14 @@ def _get_cee_points(o, stemmed_info):
         ],
         stemmed_info.plane_ctr
     )
+
+
+def _get_coord_matrix(dirs, coords_type):
+    i = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    return PKDict(
+        beam=[dirs.width_dir.tolist(), dirs.height_dir.tolist(), dirs.length_dir.tolist()],
+        standard=i,
+    ).get(coords_type, i)
 
 
 def _get_ell_points(o, stemmed_info):
@@ -1268,7 +1279,6 @@ def _update_undulatorBasic(model, assembly, **kwargs):
 def _update_undulatorHybrid(model, assembly, **kwargs):
     d = PKDict(kwargs)
 
-    dir_matrix = numpy.array([d.width_dir, d.height_dir, d.length_dir])
     pole_x = sirepo.util.split_comma_delimited_string(model.poleCrossSection, float)
     mag_x = sirepo.util.split_comma_delimited_string(model.magnetCrossSection, float)
 
@@ -1298,9 +1308,6 @@ def _update_undulatorHybrid(model, assembly, **kwargs):
     _update_geom_obj(
         assembly.magnet,
         center=pos + sz / 2 + gap_half_height + gap_offset,
-        segments=dir_matrix.dot(
-            sirepo.util.split_comma_delimited_string(model.magnet.segments, int)
-        ),
         size=sz
     )
     pos += sz * d.length_dir

@@ -30,11 +30,12 @@ def _add_object(o, radia_objs, id_map):
     model = o.get('model')
     t = o.get('type')
     sc = o.get('super_classes', [])
+    mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
         ctr = sirepo.util.split_comma_delimited_string(o.center, float)
         sz = sirepo.util.split_comma_delimited_string(o.size, float)
-        m = sirepo.util.split_comma_delimited_string(o.magnetization, float)
-        segs = sirepo.util.split_comma_delimited_string(o.segments, int)
+        m = _apply_matrix(mat, sirepo.util.split_comma_delimited_string(o.magnetization, float))
+        segs = _apply_matrix(mat, sirepo.util.split_comma_delimited_string(o.segments, int))
     if t == _MODEL_CUBOID:
         g_id = radia_util.build_cuboid(
             center=ctr,
@@ -96,6 +97,12 @@ def _add_object(o, radia_objs, id_map):
     if not o.groupId:
         radia_objs.append(g_id)
     return g_id
+
+
+def _apply_matrix(m, v):
+    import numpy
+    return numpy.array(m).dot(v).tolist()
+
 
 def _build_radia_geom():
     id_map = PKDict()

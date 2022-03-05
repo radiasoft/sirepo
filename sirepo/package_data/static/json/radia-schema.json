@@ -262,6 +262,10 @@
             ["y", "y"],
             ["z", "z"]
         ],
+        "CoordinateSystem": [
+            ["standard", "Standard"],
+            ["beam", "Beam"]
+        ],
         "BevelEdge": [
             ["0", "Top Left"],
             ["1", "Top Right"],
@@ -835,6 +839,7 @@
         },
         "simulation": {
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
+            "coordinateSystem": ["Coordinate System", "CoordinateSystem" , "standard", "Ordering of spatial variables. Use Standard for [x, y, z] or Beam for [width, height, length]"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "0", "For use with undulators"],
             "freehandType": ["", "FreehandType", "freehand"],
@@ -924,7 +929,7 @@
             }],
             "magnet": ["Magnet Block", "model.geomObject", {
                 "color": "#00ffff",
-                "magnetization": "0.0, 0.0, -1.0",
+                "magnetization": "0.0, 0.0, 1.0",
                 "name": "magnet",
                 "remanentMag": 1.2,
                 "material": "NdFeB",
@@ -958,7 +963,7 @@
                         "gapOffset": 1,
                         "object": {
                             "color": "#00ffff",
-                            "magnetization": "0.0, -1.0, 0.0",
+                            "magnetization": "0.0, 0.0, 1.0",
                             "name": "Termination Magnet",
                             "remanentMag": 1.2,
                             "material": "NdFeB",

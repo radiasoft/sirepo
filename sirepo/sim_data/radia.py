@@ -103,6 +103,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not dm.simulation.get('heightAxis'):
             dm.simulation.heightAxis = 'z'
 
+        if not dm.simulation.get('coordinateSystem'):
+            dm.simulation.coordinateSystem = 'beam'
+
         if 'hybridUndulator' in dm:
             dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
             del dm['hybridUndulator']

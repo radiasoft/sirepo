@@ -95,11 +95,6 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
-def _apply_segments(g_id, segments):
-    if segments and any([s > 1 for s in segments]):
-        radia.ObjDivMag(g_id, segments)
-
-
 def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
     xf = radia.TrfTrsl(distance)
     if alternate_fields:
@@ -117,6 +112,11 @@ def _apply_rotation(g_id, xform):
             numpy.pi * float(xform.angle) / 180.
         )
     )
+
+
+def _apply_segments(g_id, segments):
+    if segments and any([s > 1 for s in segments]):
+        radia.ObjDivMag(g_id, segments)
 
 
 def _apply_symmetry(g_id, xform):
