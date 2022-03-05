@@ -14,6 +14,12 @@
             ]
         }
     },
+    "enum": {
+        "CatalogName": [
+            ["chx", "chx"],
+            ["csx", "csx"]
+        ]
+    },
     "frameIdFields": {
         "animation": []
     },
@@ -43,7 +49,14 @@
         "pollBlueskyForScansAnimation": {
             "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
         },
-        "scans": {},
+        "scans": {
+            "searchStartTime": ["Start", "DateTimePicker", null],
+	    "searchStopTime": ["Stop", "DateTimePicker", null],
+            "catalogName": ["Catalog Name", "CatalogName", ""]
+        },
+        "selectedScans": {
+	    "uids": ["", "SelectedScansTable", null]
+        },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
         }
@@ -70,7 +83,12 @@
         },
         "scans": {
             "title": "Scans",
-            "basic": [],
+            "basic": [
+                "catalogName",
+                "searchStartTime",
+                "searchStopTime",
+                "selectedScans.uids"
+            ],
             "advanced": []
         },
         "simulationStatus": {

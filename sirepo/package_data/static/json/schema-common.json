@@ -379,12 +379,6 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
-            "ownJobs": {
-                "route": "/own-jobs",
-                "config": {
-                  "templateUrl": "/static/html/own-jobs.html"
-                }
-            },
             "sbatchLogin": {
                 "route": "/sbatch-login/:isModal/:reason/:simulationType/:simulationId/:report/:host",
                 "config": {

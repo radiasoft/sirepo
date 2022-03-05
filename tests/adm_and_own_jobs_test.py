@@ -26,8 +26,7 @@ def test_adm_jobs(auth_fc):
             'admJobs',
             PKDict(simulationType=sim_type)
         )
-        pkunit.pkeq(len(r.rows[0]), len(r.header))
-        pkunit.pkeq('srw', r.rows[0][0])
+        pkunit.pkeq('srw', r.jobs[0].simulationType)
 
     _run_sim(auth_fc, _op)
 
@@ -63,8 +62,7 @@ def test_srw_get_own_jobs(auth_fc):
             'admJobs',
             PKDict(simulationType=sim_type)
         )
-        pkunit.pkeq(len(r.rows[0]), len(r.header))
-        pkunit.pkeq('srw', r.rows[0][0])
+        pkunit.pkeq('srw', r.jobs[0].simulationType)
 
     _run_sim(auth_fc, _op)
 
@@ -89,7 +87,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
             'admJobs' if adm else 'ownJobs',
             PKDict(simulationType=t)
         )
-        pkunit.pkeq(job_count, len(r.rows), 'job_count={} len_r={} r={}', len(r.rows), job_count, r)
+        pkunit.pkeq(job_count, len(r.jobs), 'job_count={} len_r={} r={}', len(r.jobs), job_count, r)
 
     def _get_simulation_running():
         d = auth_fc.sr_sim_data(sim_name=n, sim_type='srw')

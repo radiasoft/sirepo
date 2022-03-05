@@ -650,7 +650,7 @@ SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
         template: `
             <div class="panel panel-info">
               <div class="panel-heading clearfix" data-panel-heading="{{ panelHeading() }}" data-model-key="modelKey"></div>
-              <div data-show-loading-and-error="">
+              <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
                 <div data-ng-show="showTranscludedElement()">
                   <transcluded-element></transcluded-element>
                 </div>
@@ -880,25 +880,26 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<li data-ng-if="::authState.isGuestUser"><a data-ng-href="{{ ::authService.loginUrl }}"><span class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>',
-            '<li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">',
-              '<a href class="dropdown-toggle" data-toggle="dropdown">',
-                '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
-                '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
-                ' <span class="caret"></span>',
-              '</a>',
-              '<ul class="dropdown-menu">',
-                '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
-                '<li class="dropdown-header">{{ authState.paymentPlanName() }}</li>',
-                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
-                '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
-                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
-              '</ul>',
-            '</li>',
-        ].join(''),
-        controller: function($scope) {
+        template: `
+            <li data-ng-if="::authState.isGuestUser"><a data-ng-href="{{ ::authService.loginUrl }}"><span
+                    class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>
+            <li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">
+              <a href class="dropdown-toggle" data-toggle="dropdown">
+                <img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">
+                <span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>
+                <span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu">
+                <li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>
+                <li class="dropdown-header">{{ authState.paymentPlanName() }}</li>
+                <li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>
+                <li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl('admJobs') }}">Admin</a></li>
+                <li><a data-ng-click="showJobsList()" style="cursor:pointer">Jobs</a></li>
+                <li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>
+              </ul>
+            </li>
+        `,
+        controller: function($scope, panelState) {
             $scope.authState = authState;
             $scope.authService = authService;
 
@@ -908,6 +909,10 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
 
             $scope.showAdmJobs = function() {
                 return authState.roles.indexOf('adm') >= 0;
+            };
+
+            $scope.showJobsList = function() {
+                $('#' + panelState.modalId('jobsListModal')).modal('show');
             };
         },
     };
@@ -1649,21 +1654,23 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
     };
 });
 
-SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
+SIREPO.app.directive('pendingLinkToSimulations', function() {
     return {
         restrict: 'A',
         scope: {
             simState: '<',
         },
-        template: [
-            '<div data-ng-show="simState.isStatePending()">',
-              '<a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >',
-                '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
-              '</a>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.requestSender = requestSender;
+        template: `
+            <div data-ng-show="simState.isStatePending()">
+              <a data-ng-click="showJobsList()" style="cursor:pointer">
+                <span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}
+              </a>
+            </div>
+        `,
+        controller: function($scope, panelState) {
+            $scope.showJobsList = function() {
+                $('#' + panelState.modalId('jobsListModal')).modal('show');
+            };
         },
     };
 });
@@ -1713,6 +1720,9 @@ SIREPO.app.directive('safePath', function() {
 SIREPO.app.directive('showLoadingAndError', function(panelState) {
     return {
         transclude: true,
+        scope: {
+            modelKey: '@',
+        },
         template: `
             <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
@@ -2214,7 +2224,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
             modelKey: '@',
         },
         template: [
-            '<div data-show-loading-and-error="">',
+            '<div data-show-loading-and-error="" data-model-key="{{ modelKey }}">',
               '<div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">',
                 '<div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
@@ -2967,12 +2977,13 @@ SIREPO.app.directive('commonFooter', function() {
         scope: {
             nav: '=commonFooter',
         },
-        template: [
-            '<div data-delete-simulation-modal="nav"></div>',
-            '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>',
-            '<div data-sbatch-login-modal=""></div>',
-        ].join(''),
+        template: `
+            <div data-delete-simulation-modal="nav"></div>
+            <div data-reset-simulation-modal="nav"></div>
+            <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
+            <div data-sbatch-login-modal=""></div>
+            <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
+        `,
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
         }
@@ -3202,60 +3213,41 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
-
-SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
     return {
         restrict: 'A',
         scope: {
             wantAdm: '<',
         },
-        template: [
-            '<div>',
-                '<table class="table">',
-                    '<thead ng-bind-html="getHeader()"></thead>',
-                    '<tbody ng-bind-html="getRows()"></tbody>',
-                '</table>',
-                '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
-            '</div>',
-        ].join(''),
-        controller: function($scope, appState) {
+        template: `
+            <div>
+              <table class="table">
+                <thead>
+                  <th data-ng-show="!wantAdm">Name</th>
+                  <th data-ng-repeat="c in displayedCols">{{ data.header[c].title }}</th>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="j in data.jobs track by $index">
+                    <td data-ng-show="!wantAdm">
+                      <a ng-href="{{ getJobLink(j) }}">
+                        {{ j['simName'] }}
+                      </a>
+                    </td>
+                    <td data-ng-repeat="c in displayedCols">
+                      {{ getCellContent(j, c) }}
+                    </td>
+                    <td data-ng-show="!wantAdm">
+                      <button class="btn btn-default" data-ng-click="endSimulation(j)">End Simulation</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>
+            </div>
+        `,
+        controller: function($scope, appState, panelState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-            }
-
-            function getRow(row, nameIndex, simulationIdIndex, appIndex) {
-                var typeDispatch = {
-                    DateTime: appState.formatDate,
-                    Time: appState.formatTime,
-                    String: function(s){return s;},
-                };
-                var h = '';
-                for (var i = getStartIndex(); i < row.length; i++) {
-                    var v = typeDispatch[$scope.data.header[i][1]](row[i]);
-                    if (! v) {
-                        v = 'n/a';
-                    }
-                    if (!$scope.wantAdm && i === nameIndex) {
-                        v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
-                    }
-                    h += '<td>' + v + '</td>';
-                }
-                return h;
-            }
-
-            function getHeaderIndex(key) {
-                var h = $scope.data.header;
-                for (var i = 0; i<h.length; i++) {
-                    if (h[i][0] === key) {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            function getStartIndex() {
-                // 'SimulationId' and
-                return $scope.wantAdm ? 0 : 2;
             }
 
             function getUrl(simulationId, app) {
@@ -3266,14 +3258,53 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 );
             }
 
-            $scope.getHeader = function() {
-                var h = '';
-                if ($scope.data) {
-                    for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
-                        h += '<th>' + $scope.data.header[i][0] + '</th>';
-                    }
-                    return $sce.trustAsHtml(h);
-                }
+            $scope.displayedCols = $scope.wantAdm ? [
+                'simulationType',
+                'simulationId',
+                'uid',
+                'displayName',
+                'startTime',
+                'lastUpdateTime',
+                'elapsedTime',
+                'statusMessage',
+                'queuedTime',
+                'driverDetails',
+                'isPremiumUser'
+            ] : [
+                'startTime',
+                'lastUpdateTime',
+                'elapsedTime',
+                'statusMessage'
+            ];
+
+            $scope.endSimulation = function(job) {
+                const r = {
+                    simulationId: job.simulationId,
+                    report: job.computeModel,
+                    simulationType: job.simulationType,
+                };
+                const successCallback = () => {
+                    $scope.getJobs();
+                };
+                const errorCallback = (request) => {
+                    return (data) => {
+                        srlog(`runCancel error=${data.error} from request=${request}`);
+                    };
+                };
+                requestSender.sendRequest('runCancel', successCallback, r, errorCallback(r));
+            };
+
+            $scope.getCellContent = function(job, key) {
+                const typeDispatch = {
+                    DateTime: appState.formatDate,
+                    Time: appState.formatTime,
+                    String: function(s){return s;},
+                };
+                return typeDispatch[$scope.data.header[key].type](job[key]);
+            };
+
+            $scope.getJobLink = function(job) {
+                return getUrl(job.simulationId, job.simulationType);
             };
 
             $scope.getJobs = function () {
@@ -3285,27 +3316,45 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     });
             };
 
-            $scope.getRows = function() {
-                var d = $scope.data;
-                if (d) {
-                    var n = getHeaderIndex('Name');
-                    var s = getHeaderIndex('Simulation id');
-                    var a = getHeaderIndex('App');
-                    if (a !== 0 && s !== 1) {
-                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + JSON.stringify($scope.data.header));
-                    }
-                    var h = '';
-                    for (var i in d.rows) {
-                        h += '<tr>' + getRow(d.rows[i], n, s, a) + '</tr>';
-                    }
-                    return $sce.trustAsHtml(h);
-                }
-            };
-
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
-            $scope.getJobs();
-
+            $scope.$on('$routeChangeSuccess', () => {
+                if ($location.path() == (SIREPO.APP_SCHEMA.route.admJobs)) {
+                    $scope.getJobs();
+                }
+            });
+            panelState.waitForUI(() => {
+                $('#' + panelState.modalId('jobsListModal')).on('shown.bs.modal', function() {
+                    $scope.getJobs();
+                });
+            });
         },
+    };
+});
+
+SIREPO.app.directive('jobsListModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            title: '@',
+            id: '@',
+        },
+        template: `
+            <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                    <div data-jobs-list=""></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
     };
 });
 
