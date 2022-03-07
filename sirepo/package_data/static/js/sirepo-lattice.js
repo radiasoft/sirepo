@@ -1877,7 +1877,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function loadItemsFromBeamline(forceUpdate, beamline) {
-                if (appState.models[$scope.modelName].latticeId){
+                if (appState.models[$scope.modelName]
+                    && appState.models[$scope.modelName].latticeId) {
                     appState.models.beamlines.forEach((b) => {
                         if (b.id == appState.models[$scope.modelName].latticeId) {
                             beamline = b;
