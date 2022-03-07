@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 from pykern.pkcollections import PKDict
 from rslaser.rscavity import laser_cavity
-from rslaser.utils import defaults
 from scipy import ndimage
 import array
 import h5py
@@ -88,14 +87,17 @@ sig_s = {{ simulationSettings_sig_s }} # rms length of Gaussian laser pulse [m]
 if nslice % 2 == 0:
     nslice += 1
 
-pulse_params = defaults.LASER_PULSE_DEFAULTS.copy()
-pulse_params.phE = wavefrontEnergy
-pulse_params.nslice = nslice
-pulse_params.tau_fwhm = 0.1 / const.c / math.sqrt(2.)
-pulse_params.slice_params.propLen = propLen
-pulse_params.slice_params.pulseE = pulseE
-pulse_params.slice_params.poltype = poltype
-pulse_params.slice_params.sampFact = sampFact
+pulse_params = PKDict(
+    phE=wavefrontEnergy,
+    nslice=nslice,
+    tau_fwhm=0.1 / const.c / math.sqrt(2.),
+    slice_params=PKDict(
+        propLen=propLen,
+        pulseE=pulseE,
+        poltype=poltype,
+        sampFact=sampFact,
+    )
+)
 
 cavity_inputs = PKDict(
     drift_right_length=L_cav / 2 - L_cryst / 2,
