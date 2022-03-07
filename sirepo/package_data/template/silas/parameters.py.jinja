@@ -1,5 +1,7 @@
+from collections.abc import Iterable
 from pykern.pkcollections import PKDict
 from rslaser.rscavity import laser_cavity
+from rslaser.utils import defaults
 from scipy import ndimage
 import array
 import h5py
@@ -86,8 +88,16 @@ sig_s = {{ simulationSettings_sig_s }} # rms length of Gaussian laser pulse [m]
 if nslice % 2 == 0:
     nslice += 1
 
+pulse_params = defaults.LASER_PULSE_DEFAULTS.copy()
+pulse_params.phE = wavefrontEnergy
+pulse_params.nslice = nslice
+pulse_params.tau_fwhm = 0.1 / const.c / math.sqrt(2.)
+pulse_params.slice_params.propLen = propLen
+pulse_params.slice_params.pulseE = pulseE
+pulse_params.slice_params.poltype = poltype
+pulse_params.slice_params.sampFact = sampFact
 
-cavity_inputs = PKDict( #TODO (gurhar1133): gotta be a cleaner way of doing this
+cavity_inputs = PKDict(
     drift_right_length=L_cav / 2 - L_cryst / 2,
     drift_left_length=L_cav / 2 - L_cryst / 2,
     lens_left_focal_length=L_cav / 4 + dfR,
@@ -95,33 +105,7 @@ cavity_inputs = PKDict( #TODO (gurhar1133): gotta be a cleaner way of doing this
     n0=n0,
     n2=n2,
     L_half_cryst=L_cryst / 2,
-    pulse_params=PKDict(
-        phE=wavefrontEnergy,
-        nslice=nslice,
-        chirp=0,
-        w0=.1,
-        a0=.01,
-        dw0x=0.0,
-        dw0y=0.0,
-        z_waist=0,
-        dzwx=0.0,
-        dzwy=0.0,
-        tau_fwhm=0.1 / const.c / math.sqrt(2.),
-        z_center=0,
-        x_shift = 0.,
-        y_shift=0.,
-        d_to_w=0,
-        slice_params=PKDict(
-            sigrW=0.000186,
-            propLen=propLen,
-            pulseE=pulseE,
-            poltype=poltype,
-            sampFact=sampFact,
-            numsig=3.,
-            mx=0,
-            my=0
-        ),
-    )
+    pulse_params=pulse_params
 )
 
 lc = laser_cavity.LaserCavity(cavity_inputs)
