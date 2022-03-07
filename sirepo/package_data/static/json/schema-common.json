@@ -139,7 +139,6 @@
         "homePage": "/en/*<path_info>",
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
-        "ioJob": "/io-job",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
