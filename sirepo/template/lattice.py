@@ -626,6 +626,7 @@ class LatticeUtil(object):
             if model_type not in data.models:
                 continue
             for m in data.models[model_type]:
+                assert '_id' in m or 'id' in m, 'Missing id: {}'.format(m)
                 i = m._id if '_id' in m else m.id
                 if i > max_id:
                     max_id = i
