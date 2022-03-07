@@ -11,9 +11,11 @@ from pykern.pkdebug import pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.sim_data.controls import SimData
+from sirepo.template import particle_beam
 import copy
 import flask
 import http
+import numpy
 import os
 import re
 import sirepo.lib
@@ -121,7 +123,7 @@ def _format_prop_value(prop_name, value):
 
 
 def _load_sim(sim_type, sim_id):
-    return simulation_db.open_json_file(
+    data = simulation_db.open_json_file(
         sim_type,
         path=simulation_db.sim_data_file(
             sim_type,
@@ -135,22 +137,41 @@ def _load_sim(sim_type, sim_id):
             ),
         ),
     )
+    beam = data.models.command_beam
+    bunch = data.models.bunch
+    bunch.matchTwissParameters = '0'
+    madx = data.models.externalLattice
+    madx.models.command_beam = beam
+    madx.models.bunch = bunch
+    return data
 
 
-def _position_from_twiss_file(el, pv):
-    path = app.config['sim_dir'].join('twiss.file.tfs')
+
+def _position_from_twiss():
+    path = app.config['sim_dir'].join('ptc_track.file.tfsone')
     if not path.exists():
         _abort(f'missing {path.basename} result file')
-    columns = sirepo.template.madx_parser.parse_tfs_file(str(path))
-    for idx in range(len(columns.name)):
-        name = columns.name[idx].replace('"', '')
-        if name.upper() == el.name.upper():
-            if pv.pvDimension == 'horizontal':
-                return columns.x[idx]
-            if pv.pvDimension == 'vertical':
-                return columns.y[idx]
-            _abort(f'monitor {el.name} must have horizontal or vertical pvDimension')
-    _abort(f'monitor {el.name} missing value in {path.basename} result file')
+    beam_data, observes, columns = particle_beam.read_ptc_data(path)
+    columns = particle_beam.analyze_ptc_beam(
+        beam_data,
+        mc2=0.938272046,
+    )
+    if not columns:
+        _abort('simulation failed')
+    for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
+        if list(filter(lambda x: numpy.isnan(x), columns[c])):
+            _abort('twiss computation failed')
+    res = []
+    for i in range(len(observes)):
+        if '_MONITOR' in observes[i]:
+            res += [columns['x0'][i], columns['y0'][i]]
+        elif '_HMONITOR' in observes[i]:
+            res += [columns['x0'][i]]
+        elif '_VMONITOR' in observes[i]:
+            res += [columns['y0'][i]]
+        else:
+            pass
+    return res
 
 
 def _query_params(fields):
@@ -166,6 +187,8 @@ def _query_params(fields):
 
 def _read_values(params):
     res = ''
+    mon_count = 0
+    positions = _position_from_twiss()
     for idx in range(len(params.names)):
         name = params.names[idx]
         prop = params.props[idx]
@@ -181,7 +204,8 @@ def _read_values(params):
             # must be a monitor, get value from twiss output file
             if prop != _POSITION_PROP_NAME:
                 _abort(f'monitor position pv must be {_POSITION_PROP_NAME} not {prop}')
-            res += _format_prop_value(prop, _position_from_twiss_file(el, pv))
+            res += _format_prop_value(prop, positions[mon_count])
+            mon_count += 1
     return res
 
 

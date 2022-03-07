@@ -4,7 +4,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.sim_data.controls import AmpConverter
-from sirepo.template import madx_parser
 from sirepo.template import particle_beam
 import os
 import numpy as np
@@ -60,11 +59,10 @@ finished_sims = False
 {% if optimizerSettings_method == 'nmead' %}
 def _nelder_mead_cost_function(correctors):
 {% if controlSettings_operationMode == 'madx' %}
-    readings = update_and_run_simulation(correctors)
+    readings, cost = update_and_run_simulation(correctors)
 {% elif controlSettings_operationMode == 'DeviceServer' %}
-    readings = set_correctors_and_read_device_server(correctors)
+    readings, cost = set_correctors_and_read_device_server(correctors)
 {% endif %}
-    cost = np.sqrt(np.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / np.sum(targets[:,1])))
     return cost
 
 
@@ -77,7 +75,7 @@ def _optimize_nelder_mead(variable_count):
             'maxiter': 500,
             'maxfev': 500,
         },
-        tol=1e-4,
+        tol={{ optimizerSettings_tolerance }},
     )
     res = {
         'message': opt.message,
@@ -85,6 +83,12 @@ def _optimize_nelder_mead(variable_count):
     }
     if 'x' in opt and len(opt.x) == variable_count:
         res['result'] = opt.x
+        # run one last time with optimal settings
+{% if controlSettings_operationMode == 'DeviceServer' %}
+        set_correctors_and_read_device_server(opt.x)
+{% else %}
+        update_and_run_simulation(opt.x)
+{% endif %}
     return res
 {% endif %}
 
@@ -98,16 +102,16 @@ def _optimize_polyfit(variable_count):
     for i in range(0, len(settings_0)):
         for j in range(0, len(sets_a)):
             setting_test = sets[i,:] * sets_a[j]
-            readings[:,j] = update_and_run_simulation(setting_test)
+            readings[:,j] = update_and_run_simulation(setting_test)[0]
         for k in range(0, len(targets)):
             M[i,k] = np.polyfit(sets_a, readings[k,:], 1)[0]
     # inverse response matrix
     MI = np.linalg.pinv(M.T)
     # reset the beam-line
-    readings_1 = update_and_run_simulation(settings_0)
+    readings_1 = update_and_run_simulation(settings_0)[0]
     # create settings to cancel out offsets
     new_sets = np.dot(MI, -readings_1)
-    update_and_run_simulation(new_sets[:variable_count])
+    update_and_run_simulation(new_sets[:variable_count])[0]
     return {
         'message': '',
         'success': True,
@@ -117,14 +121,15 @@ def _optimize_polyfit(variable_count):
 
 {% if controlSettings_operationMode == 'madx' %}
 def check_twiss_success():
+    beam_data, observes, columns = particle_beam.read_ptc_data('ptc_track.file.tfsone')
     res = particle_beam.analyze_ptc_beam(
-        particle_beam.read_ptc_data('ptc_track.file.tfsone')[0],
+        beam_data,
         mc2={{ mc2 }},
     )
     for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
         if list(filter(lambda x: np.isnan(x), res[c])):
-            return False
-    return True
+            return None, None
+    return res, observes
 
 
 def run_simulation(correctors):
@@ -151,14 +156,9 @@ def run_simulation(correctors):
     p = subprocess.run(('madx', 'in.madx'), capture_output=True, text=True)
     pkio.write_text('madx.log', p.stdout)
     pkio.write_text('madx.err', p.stderr)
-    if p.returncode != 0:
-        return False
-    lost = p.stdout.count('is lost')
-    {% if isTrackingSim %}
-    return lost != {{ particleCount }} and check_twiss_success()
-    {% else %}
-    return lost != {{ particleCount }}
-    {% endif %}
+    if p.returncode != 0 or p.stdout.count('is lost') == {{ bunch_numberOfParticles }}:
+        return None, None
+    return check_twiss_success()
 
 
 def read_cols_and_save_report(default_file, save_file, cols_file):
@@ -173,27 +173,24 @@ def read_cols_and_save_report(default_file, save_file, cols_file):
 
 def update_and_run_simulation(correctors):
     global finished_sims
-    if run_simulation(correctors):
+    columns, observes = run_simulation(correctors)
+    if columns:
         readings = []
         finished_sims = True
-        columns = madx_parser.parse_tfs_file('twiss.file.tfs')
-        for i, k in enumerate(columns.keyword):
-            k = k.replace('"', '')
-            if k == 'MONITOR':
-                readings += [float(columns.x[i]), float(columns.y[i])]
-            elif k == 'HMONITOR':
-                readings += [float(columns.x[i])]
-            elif k == 'VMONITOR':
-                readings += [float(columns.y[i])]
+        for i in range(len(observes)):
+            if '_MONITOR' in observes[i]:
+                readings += [columns['x0'][i], columns['y0'][i]]
+            elif '_HMONITOR' in observes[i]:
+                readings += [columns['x0'][i]]
+            elif '_VMONITOR' in observes[i]:
+                readings += [columns['y0'][i]]
             else:
                 pass
         res = np.array(readings)
-        with open('{{ summaryCSV }}', 'a') as f:
-            f.write('{}\n'.format(','.join([str(x) for x in correctors.tolist() + readings])))
-            # POSIT: one table option is enabled.
+        cost = update_summary_csv(correctors.tolist(), readings)
         read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
-        return res
-    return np.full(int({{ monitorCount }}), 1e24)
+        return res, cost
+    return np.full(int({{ monitorCount }}), 1e24), 1e24
 {% elif controlSettings_operationMode == 'DeviceServer' %}
 
 {% for prop_type in property_types %}
@@ -254,7 +251,7 @@ def read_device_server():
         + '&props=' + ','.join([v['name'] for v in read_properties])
     response = requests.get(url)
     if response.status_code != requests.codes.ok:
-        return None
+        return None, None
     values = read_values(response.text)
     correctors = []
     readings = []
@@ -267,9 +264,10 @@ def read_device_server():
             readings += [float(v)]
         elif 'KICKER' in prop['type']:
             correctors += [float(v)]
-    with open('{{ summaryCSV }}', 'a') as f:
-        f.write('{}\n'.format(','.join([str(x) for x in correctors + readings])))
-    return readings
+    cost = update_summary_csv(correctors, readings)
+    # with open('{{ summaryCSV }}', 'a') as f:
+    #     f.write('{}\n'.format(','.join([str(x) for x in correctors + readings])))
+    return readings, cost
 
 
 context_id = None
@@ -290,14 +288,19 @@ def set_correctors_and_read_device_server(correctors):
     response = requests.put(url)
     if response.status_code != requests.codes.ok:
         raise AssertionError(f'set values request failed: {response.text}')
-    readings = read_device_server()
+    readings, cost = read_device_server()
     if not readings:
-        #TODO(pjm): replace with failed read values with correct size
-        assert False
-    return readings
+        return np.full(int({{ monitorCount }}), 1e24), 1e24
+    return readings, cost
 
 
 {% endif %}
+
+def update_summary_csv(correctors, readings):
+    cost = np.sqrt(np.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / np.sum(targets[:,1])))
+    with open('{{ summaryCSV }}', 'a') as f:
+        f.write('{},{}\n'.format(','.join([str(x) for x in correctors + readings]), cost))
+    return cost
 
 {% if controlSettings_operationMode == 'madx' %}
 sirepo.pkcli.controls.particle_file_for_external_lattice()
@@ -309,7 +312,7 @@ with open('{{ summaryCSV }}', 'w') as f:
 {% if optimizerSettings_method == 'nmead' %}
 {% if controlSettings_operationMode == 'DeviceServer' %}
 # check connectivity to DeviceServer first with a read
-if not read_device_server():
+if not read_device_server()[0]:
     raise AssertionError('Initial DeviceServer read failed')
 {% endif %}
 res = _optimize_nelder_mead({{ correctorCount }})
@@ -321,16 +324,18 @@ res = {
     'success': True,
 {% if controlSettings_operationMode == 'DeviceServer' %}
   {% if controlSettings_readOnly == '1' %}
-    'result': read_device_server(),
+    'result': read_device_server()[0],
   {% else %}
-    'result': set_correctors_and_read_device_server(np.array({{ initialCorrectors }})),
+    'result': set_correctors_and_read_device_server(np.array({{ initialCorrectors }}))[0],
   {% endif %}
 {% else %}
-    'result': update_and_run_simulation(np.array({{ initialCorrectors }})),
+    'result': update_and_run_simulation(np.array({{ initialCorrectors }}))[0],
 {% endif %}
 }
 {% else %}
 raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))
 {% endif %}
+{% if controlSettings_operationMode != 'DeviceServer' %}
 if not finished_sims:
     raise AssertionError(f'Optimization failed all minimization attempts')
+{% endif %}

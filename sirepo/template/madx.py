@@ -520,6 +520,7 @@ def _add_commands(data, util):
     commands.insert(idx + 1, PKDict(
         _type='use',
         sequence=util.select_beamline().id,
+        _id=LatticeUtil.max_id(data),
     ))
     if not util.find_first_command(data, PTC_LAYOUT_COMMAND):
         return
@@ -528,6 +529,7 @@ def _add_commands(data, util):
     commands.insert(idx + 1, PKDict(
         _type='call',
         file=PTC_PARTICLES_FILE,
+        _id=LatticeUtil.max_id(data),
     ))
 
 
@@ -545,14 +547,17 @@ def _add_marker_and_observe(data):
         items_copy = beam['items'].copy()
         for i, v in enumerate(items_copy):
             el = el_map[items_copy[i]]
-            if not el.get('l', 0):
+            if el.type == 'INSTRUMENT' or 'MONITOR' in el.type:
+                # always include instrument and monitor positions
+                pass
+            elif not el.get('l', 0):
                 continue
             m += 1
             beam['items'].insert(
                 (i * 2) + 1,
                 m,
             )
-            n = f'Marker{m}'
+            n = f'Marker{m}_{el.type}'
             markers[m] = n
             data.models.elements.append(PKDict(
                 _id=m,
@@ -578,9 +583,6 @@ def _add_marker_and_observe(data):
                 place=m,
             ))
 
-    if not data.get('report') == 'animation' or \
-       not int(data.models.simulation.computeTwissFromParticles):
-        return
     uniquify_elements(data)
     _add_ptc_observe(*_add_marker(data))
 

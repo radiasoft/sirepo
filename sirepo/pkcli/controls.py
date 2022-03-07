@@ -36,13 +36,11 @@ def particle_file_for_external_lattice():
     data = simulation_db.read_json(
         template_common.INPUT_BASE_NAME,
     )
-    b = [k for k in data.models.command_twiss
-        if k in data.models.externalLattice.models.bunch]
-    for p in b:
-        data.models.externalLattice.models.bunch[p] = data.models.command_twiss[p]
     beam = data.models.command_beam
+    bunch = data.models.bunch
+    bunch.matchTwissParameters = '0'
     data = data.models.externalLattice
     data.models.command_beam = beam
+    data.models.bunch = bunch
     data.report = 'unused'
-    data.models.bunch.matchTwissParameters = '0'
     sirepo.pkcli.madx.create_particle_file(pkio.py_path('.'), data)
