@@ -1804,7 +1804,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, utilities, validationService) {
+SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState, persistentSimulation, requestSender, srwService, utilities, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1812,38 +1812,41 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             form: '=',
             model: '=',
         },
-        template: [
-            '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
-              '<div style="overflow-y: scroll; overflow-x: hidden; height: 360px;">',
-              '<table class="table table-hover table-condensed" style="border-width: 1px; border-color: #00a2c5;">',
-                '<thead>',
-                    '<tr>',
-                        '<td style="font-weight: bold">Element</td>',
-                        '<td style="font-weight: bold">Parameter Variations</td>',
-                    '</tr>',
-                '</thead>',
-                '<tbody>',
-                    '<tr data-ng-repeat="e in rsOptElements track by $index">',
-                      '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change="updateTotalSamples()"> {{ e.title }}</label></div></td>',
-                      '<td data-ng-repeat="p in rsOptParams" data-ng-if="hasFields(e, p)">',
-                        '<div data-ng-show="showFields(e)" style="font-weight: bold; text-align: center; line-height: 2">{{ rsOptElementFields[$index] }}</div>',
-                        '<div data-ng-show="showFields(e)" data-model-field="srwService.rsOptElementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0" data-custom-info="elementInfo(e, p)"></div>',
-                      '</td>',
-                    '</tr>',
-                '</tbody>',
-              '</table>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="sr-object-table" style="border-width: 2px; border-color: black;">
+              <div style="overflow-y: scroll; overflow-x: hidden; height: 360px;">
+              <table class="table table-hover table-condensed" style="border-width: 1px; border-color: #00a2c5;">
+                <thead>
+                    <tr>
+                        <td style="font-weight: bold">Element</td>
+                        <td style="font-weight: bold">Parameter Variations</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr data-ng-repeat="e in rsOptElements track by $index">
+                      <td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change="updateTotalSamples()"> {{ e.title }}</label></div></td>
+                      <td data-ng-repeat="p in rsOptParams" data-ng-if="hasFields(e, p)">
+                        <div data-ng-show="showFields(e)" style="font-weight: bold; text-align: center; line-height: 2">{{ rsOptElementFields[$index] }}</div>
+                        <div data-ng-show="showFields(e)" data-model-field="srwService.rsOptElementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0" data-custom-info="elementInfo(e, p)"></div>
+                      </td>
+                    </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             const els = SIREPO.APP_SCHEMA.constants.rsOptElements;
             let exportFields = ['exportRsOpt.elements', 'exportRsOpt.numSamples', 'exportRsOpt.scanType'];
             let elementFields = [];
+            let self = this;
+            self.simScope = $scope;
 
             $scope.appState = appState;
             $scope.elementData = {};
             $scope.srwService = srwService;
             $scope.modelName = 'rsOptElement';
+            self.simComputeModel = 'exportRsOpt';
             $scope.rsOptElements = [];
             $scope.rsOptParams = [];
             $scope.rsOptElementFields = [];
@@ -1887,6 +1890,54 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                     Math.pow($scope.model.numSamples, numParams));
                 updateFormValid(numParams);
             };
+
+            self.simHandleStatus = data => {
+                srdbg(data);
+                /*
+                if ($scope.simState.isProcessing()) {
+
+                }
+                if (data.percentComplete) {
+
+                }
+                if (data.frameCount) {
+
+                }
+                else {
+                    frameCache.setFrameCount(0, $scope.model);
+                }
+
+                 */
+            };
+
+            self.startSimulation = function(model) {
+                self.simState.saveAndRunSimulation([model]);
+            };
+
+            self.simState = persistentSimulation.initSimulationState(self);
+
+            function doExport() {
+                requestSender.sendStatefulCompute(
+                    appState,
+                    function(data) {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        if (data.state !== 'completed') {
+                            throw new Error(`compute failed with state ${data.state}`);
+                        }
+                        srdbg('EXP DONE', data);
+                        //saveAs(
+                        //    utilities.base64ToBlob(data.content, {type: data.content_type}),
+                        //    data.filename
+                        //);
+                    },
+                    {
+                        method: 'export_rsopt_config',
+                        sim_id: appState.models.simulation.simulationId,
+                    }
+                );
+            }
 
             function updateElements() {
                 $scope.rsOptElements = srwService.updateRSOptElements();
@@ -1965,6 +2016,13 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {
+                    //requestSender.newWindow('exportArchive', {
+                    //    '<simulation_id>': appState.models.simulation.simulationId,
+                    //    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    //    '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`
+                    //});
+                    self.startSimulation($scope.modelName);
+                    /*
                     requestSender.newWindow('downloadDataFile', {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -1972,27 +2030,8 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                         '<frame>': -1,
                         '<suffix>': 'zip'
                     });
-                    /*
-                    requestSender.sendStatefulCompute(
-                        appState,
-                        function(data) {
-                            if (data.error) {
-                                throw new Error(data.error);
-                            }
-                            if (data.state !== 'completed') {
-                                throw new Error(`compute failed with state ${data.state}`);
-                            }
-                            saveAs(
-                                utilities.base64ToBlob(data.content, {type: data.content_type}),
-                                data.filename
-                            );
-                        },
-                        {
-                            method: 'export_rsopt_config',
-                            sim_id: appState.models.simulation.simulationId,
-                        }
-                    );
                     */
+                    //doExport();
                 });
             });
         },

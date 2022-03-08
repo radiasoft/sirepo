@@ -129,6 +129,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
         units=['m', 'm', '{intensity_units}'],
     ),
+    exportRsOpt=PKDict(filename='')
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
@@ -296,6 +297,20 @@ def compute_undulator_length(model):
     return PKDict()
 
 
+def create_archive(data):
+    from sirepo import http_reply
+    pkdp('ARC {}', data)
+    if 'rsOptExport' in data.filename:
+        _export_rsopt_config(data)
+    #if data.filename.endswith('dat'):
+    #    return sirepo.http_reply.gen_file_as_attachment(
+    #        simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
+    #        content_type='application/octet-stream',
+    #        filename=sim.filename,
+    #    )
+    return False
+
+
 def clean_run_dir(run_dir):
     zip_dir = run_dir.join(_TABULATED_UNDULATOR_DATA_DIR)
     if zip_dir.exists():
@@ -340,6 +355,8 @@ def extract_report_data(sim_in):
         return _extract_brilliance_report(dm.brillianceReport, out.filename)
     if r == 'trajectoryReport':
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
+    if r == 'exportRsOpt':
+        return PKDict(filename=f'{sim_in.models.simulation.name}-rsOptExport.zip')
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ('coherenceXAnimation', 'coherenceYAnimation'):
         _fix_file_header(out.filename)
@@ -384,12 +401,6 @@ def extract_report_data(sim_in):
     if out.dimensions == 3:
         res = _remap_3d(res, allrange, out, dm[r])
     return res
-
-
-def stateful_compute_export_rsopt_config(data):
-    return _export_rsopt_config(
-        simulation_db.read_simulation_json(SIM_TYPE, sid=data.sim_id)
-    )
 
 
 def get_application_data(data, **kwargs):
@@ -733,6 +744,12 @@ def stateful_compute_delete_user_models(data):
     return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
 
 
+def stateful_compute_export_rsopt_config(data):
+    return _export_rsopt_config(
+        simulation_db.read_simulation_json(SIM_TYPE, sid=data.sim_id)
+    )
+
+
 def stateful_compute_model_list(data):
     res = []
     model_name = data['model_name']
@@ -908,9 +925,15 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    if data.report == 'exportRsOpt':
+        p = ''
+        _export_rsopt_config(data)
+    else:
+        p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _trim(_generate_parameters_file(data, run_dir=run_dir))
+        #_trim(_generate_parameters_file(data, run_dir=run_dir))
+        p
     )
     if is_parallel:
         return template_common.get_exec_parameters_cmd(_SIM_DATA.is_run_mpi(data))
@@ -1253,6 +1276,7 @@ def _export_rsopt_config(data):
 
     filename = f'{data.models.simulation.name}-rsOptExport.zip'
     f = re.sub(r'[^\w.]+', '-', pkio.py_path(filename).purebasename).strip('-')
+    fz = pkio.py_path(filename)
     v.runDir = f'{f}_scan'
     v.fileBase = f
     tf = {k: PKDict(filename=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
@@ -1260,9 +1284,9 @@ def _export_rsopt_config(data):
         v[f'{t}FileName'] = tf[t].filename
     v.outFileName = f'{f}.out'
     v.readmeFileName = 'README.txt'
-    lf = _SIM_DATA.lib_files_for_export(data)
-    v.libFiles = [f.basename for f in lf]
-    v.hasLibFiles = len(v.libFiles) > 0
+    #lf = _SIM_DATA.lib_files_for_export(data)
+    #v.libFiles = [f.basename for f in lf]
+    #v.hasLibFiles = len(v.libFiles) > 0
     v.randomSeed = data.models.exportRsOpt.randomSeed if \
         data.models.exportRsOpt.randomSeed is not None else ''
 
@@ -1273,9 +1297,9 @@ def _export_rsopt_config(data):
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
 
-    b = io.BytesIO()
+    #b = io.BytesIO()
     with zipfile.ZipFile(
-        b,
+        fz,
         mode='w',
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
@@ -1286,13 +1310,13 @@ def _export_rsopt_config(data):
             v.readmeFileName,
             template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
         )
-        for f in lf:
-            z.write(f, f.basename)
+        #for f in lf:
+        #    z.write(f, f.basename)
 
     return PKDict(
         content_type='application/zip',
-        content=pkcompat.from_bytes(base64.b64encode(b.getvalue())),
-        filename=filename
+        #content=pkcompat.from_bytes(base64.b64encode(b.getvalue())),
+        filename=fz
     )
 
 
@@ -1784,7 +1808,8 @@ def _intensity_units(sim_in):
 
 
 def _is_for_rsopt(report):
-    return report == 'rsoptExport'
+    #return report == 'rsoptExport'
+    return report == 'exportRsOpt'
 
 
 def _load_user_model_list(model_name):

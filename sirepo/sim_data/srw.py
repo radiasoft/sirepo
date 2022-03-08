@@ -76,6 +76,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             return 'multiElectronAnimation'
         if 'beamlineAnimation' in analysis_model:
             return 'beamlineAnimation'
+        if 'exportRsOpt' in analysis_model:
+            return 'exportRsOpt'
         # SRW is different: it doesn't translate *Animation into animation
         return analysis_model
 
