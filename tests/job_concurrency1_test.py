@@ -60,7 +60,7 @@ def test_myapp_cancel(fc):
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(20):
+    for _ in range(50):
         pkdlog(r1)
         pkunit.pkok(r1.state != 'error', 'unexpected error state: {}')
         if r1.state == 'running':
