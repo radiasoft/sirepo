@@ -225,32 +225,20 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def new_simulation(data, new_simulation_data):
-    data.models.simulation.beamAxis = new_simulation_data.beamAxis
-    data.models.simulation.enableKickMaps = new_simulation_data.enableKickMaps
-    _prep_new_sim(data)
-    dirs = _geom_directions(new_simulation_data.beamAxis, new_simulation_data.heightAxis)
-    t = new_simulation_data.get('magnetType', 'freehand')
-    s = new_simulation_data[f'{t}Type']
+def new_simulation(data, new_sim_data):
+    _prep_new_sim(data, new_sim_data=new_sim_data)
+    dirs = _geom_directions(new_sim_data.beamAxis, new_sim_data.heightAxis)
+    t = new_sim_data.get('magnetType', 'freehand')
+    s = new_sim_data[f'{t}Type']
     m = data.models[s]
-    data.models.simulation.notes = _MAGNET_NOTES[t][s]
     pkinspect.module_functions('_build_')[f'_build_{t}_objects'](
         data.models.geometryReport.objects,
         m,
+        matrix=_get_coord_matrix(dirs, data.models.simulation.coordinateSystem),
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
         width_dir=dirs.width_dir,
     )
-    if t == 'undulator':
-        if s == 'undulatorBasic':
-            data.models.geometryReport.isSolvable = '0'
-        data.models.fieldPaths.paths.append(_build_field_axis(
-            3 * (m.numPeriods + 0.5) * m.periodLength,
-            new_simulation_data.beamAxis
-        ))
-        data.models.simulation.enableKickMaps = '1'
-        data.models.simulation.coordinateSystem = 'beam'
-        _update_kickmap(data.models.kickMapReport, m, new_simulation_data.beamAxis)
 
 
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
@@ -449,20 +437,27 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
 
     oct_grp = []
 
-    if model.undulatorType in ['undulatorBasic']:
+    if model.undulatorType in ('undulatorBasic',):
         oct_grp.extend([model.magnet])
 
-    if model.undulatorType in ['undulatorHybrid']:
+    if model.undulatorType in ('undulatorHybrid',):
         geom_objs.append(model.halfPole)
         geom_objs.append(model.pole)
         geom_objs.append(
             _update_group(model.corePoleGroup, [model.magnet, model.pole], do_replace=True)
         )
         t_grp = []
-        #TODO(mvk): apply matrix to size of initial terminations
         for t in model.terminations:
-            _SIM_DATA.update_model_defaults(t.object, t.object.type)
-            t_grp.append(t.object)
+            o = t.object
+            _SIM_DATA.update_model_defaults(o, o.type)
+            _update_geom_obj(
+                o,
+                size=radia_util.multiply_vector_by_matrix(
+                    sirepo.util.split_comma_delimited_string(o.size, float),
+                    kwargs['matrix']
+                )
+            )
+            t_grp.append(o)
         geom_objs.extend(t_grp)
         geom_objs.append(
             _update_group(model.terminationGroup, t_grp, do_replace=True)
@@ -935,8 +930,27 @@ def _parse_input_file_arg_str(s):
     return d
 
 
-def _prep_new_sim(data):
+def _prep_new_sim(data, new_sim_data=None):
     data.models.geometryReport.name = data.models.simulation.name
+    if new_sim_data is None:
+        return
+    data.models.simulation.beamAxis = new_sim_data.beamAxis
+    data.models.simulation.enableKickMaps = new_sim_data.enableKickMaps
+    t = new_sim_data.get('magnetType', 'freehand')
+    s = new_sim_data[f'{t}Type']
+    m = data.models[s]
+    data.models.simulation.notes = _MAGNET_NOTES[t][s]
+    if t != 'undulator':
+        return
+    data.models.simulation.coordinateSystem = 'beam'
+    if s == 'undulatorBasic':
+        data.models.geometryReport.isSolvable = '0'
+    data.models.fieldPaths.paths.append(_build_field_axis(
+        3 * (m.numPeriods + 0.5) * m.periodLength,
+        new_sim_data.beamAxis
+    ))
+    data.models.simulation.enableKickMaps = '1'
+    _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
 
 
 def _read_h5_path(filename, h5path):

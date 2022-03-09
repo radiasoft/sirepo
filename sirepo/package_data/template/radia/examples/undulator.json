@@ -324,7 +324,7 @@
             "outOfSessionSimulationId": "",
             "undulatorType": "undulatorHybrid"
         },
-        "undulator": {
+        "undulatorBasic": {
             "_super": "radiaObject",
             "color": "#cccccc",
             "enableKickMaps": "1",

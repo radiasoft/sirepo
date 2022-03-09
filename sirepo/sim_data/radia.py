@@ -112,6 +112,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm.simulation.undulatorType = 'undulatorHybrid'
             dm.undulatorHybrid.undulatorType = 'undulatorHybrid'
 
+        if dm.undulatorHybrid._super == 'undulator':
+            dm.undulatorHybrid._super = 'undulatorBasic'
+
         if dm.simulation.undulatorType == 'undulatorBasic':
             return
 

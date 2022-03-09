@@ -191,6 +191,10 @@ def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
 
 
+def multiply_vector_by_matrix(v, m):
+    return numpy.array(m).dot(numpy.array(v)).tolist()
+
+
 def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
