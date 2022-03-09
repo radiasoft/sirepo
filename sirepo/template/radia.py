@@ -170,11 +170,6 @@ def extract_report_data(run_dir, sim_in):
         )
 
 
-# if the file exists but the data we seek does not, have Radia generate it here.  We
-# should only have to blow away the file after a solve or geometry change
-# begin deprrecating this...except for save field?
-
-
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     assert model in _REPORTS, 'model={}: unknown report'.format(model)
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))

@@ -963,9 +963,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         radiaService.validateMagnetization(o.magnetization, o.material);
     }
 
-    function updateToolEditor(toolItem) {
-    }
-
     function virtualShapeId(shape) {
         return `${shape.id}-${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
     }
@@ -1041,13 +1038,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     });
 
-    $scope.$on('geomObject.editor.show', function(e, o) {
-        updateObjectEditor();
-    });
-
-    $scope.$on('tool.editor.show', function(e, o) {
-        updateToolEditor();
-    });
+    $scope.$on('geomObject.editor.show', updateObjectEditor);
 
     $scope.$on('layout.object.dropped', function (e, lo) {
         var m = appState.setModelDefaults({}, lo.model);

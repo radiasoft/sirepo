@@ -8,7 +8,6 @@ import math
 import radia
 
 
-# DEPRECATED
 def dipole_example():
 
     # Geometry Parameters
