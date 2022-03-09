@@ -4,7 +4,7 @@
             "colorMap": "viridis",
             "scaling": "linear"
         },
-         "fieldPaths": {
+        "fieldPaths": {
             "path": "line",
             "paths": [
                 {
@@ -50,7 +50,7 @@
                     "groupId": "a41746a3-88fd-4fde-980d-87f542158116",
                     "id": "c8950a0b-7663-4108-8fe0-0e49e6a4c4a4",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,-1.0,0.0",
+                    "magnetization": "0.0,0.0,1.0",
                     "material": "NdFeB",
                     "materialFile": "",
                     "model": "cuboid",
@@ -127,7 +127,7 @@
                     "division": "1,1,3",
                     "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,-1.0,0.0",
+                    "magnetization": "0.0,0.0,1.0",
                     "remanentMag": 1.2,
                     "material": "NdFeB",
                     "materialFile": "",
@@ -276,7 +276,7 @@
                         "segments": "1,1,3",
                         "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
                         "layoutShape": "rect",
-                        "magnetization": "0.0,1.0,0.0",
+                        "magnetization": "0.0,0.0,1.0",
                         "remanentMag": 1.2,
                         "material": "NdFeB",
                         "materialFile": "",
@@ -323,20 +323,6 @@
             "notes": "",
             "outOfSessionSimulationId": "",
             "undulatorType": "undulatorHybrid"
-        },
-        "undulatorBasic": {
-            "_super": "radiaObject",
-            "color": "#cccccc",
-            "enableKickMaps": "1",
-            "gap": 20,
-            "groupId": "",
-            "id": "",
-            "layoutShape": "rect",
-            "name": "",
-            "numPeriods": 2,
-            "periodLength": 46,
-            "transforms": [],
-            "transverseAxis": "x"
         }
     },
     "simulationType": "radia"
