@@ -153,6 +153,7 @@ class ParticleEnergy():
 
     @classmethod
     def compute_energy(cls, sim_type, particle, energy):
+        pkdp('\n\n\n SIM TYPE (in compute energy): {}', sim_type)
         p = PKDict(
             mass=cls.get_mass(sim_type, particle, energy),
             charge=cls.get_charge(sim_type, particle, energy),
@@ -203,6 +204,9 @@ class ParticleEnergy():
 
     @classmethod
     def __set_from_gamma(cls, particle, energy):
+        pkdp('\n\n\n\n Energy: {}', energy)
+        # if type(energy.gamma) == str:
+        #     energy.gamma = 3.
         assert energy.gamma >= 1, \
             'energy gamma out of range: {}'.format(energy.gamma)
         energy.energy = energy.gamma * particle.mass

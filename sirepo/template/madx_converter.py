@@ -36,6 +36,7 @@ class MadxConverter():
         return self._convert(self.__normalize_madx_beam(data))
 
     def from_madx_text(self, text):
+        pkdp('\n\n\n\n MadxConverter.from_madx_text text: {}', text)
         return self.from_madx(madx_parser.parse_file(text, self.downcase_variables))
 
     def to_madx(self, data):
@@ -144,6 +145,7 @@ class MadxConverter():
 
     def __normalize_madx_beam(self, data):
         # ensure particle, mass, charge, pc, ex and ey are set
+        pkdp('\n\n\n data at begining of __normalize_madx_beam: {}', data)
         self.beam = LatticeUtil.find_first_command(data, 'beam')
         self.particle_energy = ParticleEnergy.compute_energy(
             self.from_class.sim_type(),
@@ -152,6 +154,10 @@ class MadxConverter():
         )
         self.beam.mass = ParticleEnergy.get_mass(self.from_class.sim_type(), self.beam.particle, self.beam)
         self.beam.charge = ParticleEnergy.get_charge(self.from_class.sim_type(), self.beam.particle, self.beam)
+        pkdp('\n\n\n\n self.particle_energy.beta: {}', self.particle_energy.beta)
+        pkdp('\n\n\n\n self.particle_energy.gamma: {}', self.particle_energy.gamma)
+        # if type(self.particle_energy.gamma) == str:
+        #     self.particle_energy.gamma = 1.
         beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
         for dim in ('x', 'y'):
             if self.beam[f'e{dim}'] == self.from_class.schema().model.command_beam[f'e{dim}'][2] \
