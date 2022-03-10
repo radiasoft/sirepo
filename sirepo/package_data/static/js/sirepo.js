@@ -2813,6 +2813,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return simulationStatus().state == 'canceled';
         };
 
+        state.isStateCompleted = function() {
+            return simulationStatus().state == 'completed';
+        };
+
         state.isStateError = function() {
             return simulationStatus().state == 'error';
         };
