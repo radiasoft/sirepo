@@ -129,7 +129,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
         units=['m', 'm', '{intensity_units}'],
     ),
-    exportRsOpt=PKDict(filename='')
+    exportRsOpt=PKDict(filename='rsOptExport.zip')
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
@@ -297,20 +297,6 @@ def compute_undulator_length(model):
     return PKDict()
 
 
-def create_archive(data):
-    from sirepo import http_reply
-    pkdp('ARC {}', data)
-    if 'rsOptExport' in data.filename:
-        _export_rsopt_config(data)
-    #if data.filename.endswith('dat'):
-    #    return sirepo.http_reply.gen_file_as_attachment(
-    #        simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
-    #        content_type='application/octet-stream',
-    #        filename=sim.filename,
-    #    )
-    return False
-
-
 def clean_run_dir(run_dir):
     zip_dir = run_dir.join(_TABULATED_UNDULATOR_DATA_DIR)
     if zip_dir.exists():
@@ -356,7 +342,7 @@ def extract_report_data(sim_in):
     if r == 'trajectoryReport':
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
     if r == 'exportRsOpt':
-        return PKDict(filename=f'{sim_in.models.simulation.name}-rsOptExport.zip')
+        return out
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ('coherenceXAnimation', 'coherenceYAnimation'):
         _fix_file_header(out.filename)
@@ -1273,8 +1259,7 @@ def _enum_text(name, model, field):
 
 def _export_rsopt_config(data):
     v = _rsopt_jinja_context(data.models.exportRsOpt)
-
-    filename = f'{data.models.simulation.name}-rsOptExport.zip'
+    filename = 'rsOptExport.zip'
     f = re.sub(r'[^\w.]+', '-', pkio.py_path(filename).purebasename).strip('-')
     fz = pkio.py_path(filename)
     v.runDir = f'{f}_scan'
@@ -1284,9 +1269,9 @@ def _export_rsopt_config(data):
         v[f'{t}FileName'] = tf[t].filename
     v.outFileName = f'{f}.out'
     v.readmeFileName = 'README.txt'
-    #lf = _SIM_DATA.lib_files_for_export(data)
-    #v.libFiles = [f.basename for f in lf]
-    #v.hasLibFiles = len(v.libFiles) > 0
+    lf = _SIM_DATA.lib_file_basenames(data)
+    v.libFiles = lf
+    v.hasLibFiles = len(v.libFiles) > 0
     v.randomSeed = data.models.exportRsOpt.randomSeed if \
         data.models.exportRsOpt.randomSeed is not None else ''
 
@@ -1297,7 +1282,6 @@ def _export_rsopt_config(data):
             if t == 'py' else \
             template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
 
-    #b = io.BytesIO()
     with zipfile.ZipFile(
         fz,
         mode='w',
@@ -1310,12 +1294,11 @@ def _export_rsopt_config(data):
             v.readmeFileName,
             template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
         )
-        #for f in lf:
-        #    z.write(f, f.basename)
+        for f in lf:
+            z.write(pkio.py_path(f), f)
 
     return PKDict(
         content_type='application/zip',
-        #content=pkcompat.from_bytes(base64.b64encode(b.getvalue())),
         filename=fz
     )
 

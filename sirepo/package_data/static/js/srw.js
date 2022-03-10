@@ -1892,22 +1892,15 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
             };
 
             self.simHandleStatus = data => {
-                srdbg(data);
-                /*
-                if ($scope.simState.isProcessing()) {
-
+                if (self.simState.isStateCompleted()) {
+                    requestSender.newWindow('downloadDataFile', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<model>': 'exportRsOpt',
+                        '<frame>': -1,
+                        '<suffix>': 'zip'
+                    });
                 }
-                if (data.percentComplete) {
-
-                }
-                if (data.frameCount) {
-
-                }
-                else {
-                    frameCache.setFrameCount(0, $scope.model);
-                }
-
-                 */
             };
 
             self.startSimulation = function(model) {
@@ -1915,29 +1908,6 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
             };
 
             self.simState = persistentSimulation.initSimulationState(self);
-
-            function doExport() {
-                requestSender.sendStatefulCompute(
-                    appState,
-                    function(data) {
-                        if (data.error) {
-                            throw new Error(data.error);
-                        }
-                        if (data.state !== 'completed') {
-                            throw new Error(`compute failed with state ${data.state}`);
-                        }
-                        srdbg('EXP DONE', data);
-                        //saveAs(
-                        //    utilities.base64ToBlob(data.content, {type: data.content_type}),
-                        //    data.filename
-                        //);
-                    },
-                    {
-                        method: 'export_rsopt_config',
-                        sim_id: appState.models.simulation.simulationId,
-                    }
-                );
-            }
 
             function updateElements() {
                 $scope.rsOptElements = srwService.updateRSOptElements();
@@ -2016,22 +1986,7 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
                 $scope.$on('exportRsOpt.saved', () => {
-                    //requestSender.newWindow('exportArchive', {
-                    //    '<simulation_id>': appState.models.simulation.simulationId,
-                    //    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    //    '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`
-                    //});
                     self.startSimulation($scope.modelName);
-                    /*
-                    requestSender.newWindow('downloadDataFile', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<model>': 'exportRsOpt',
-                        '<frame>': -1,
-                        '<suffix>': 'zip'
-                    });
-                    */
-                    //doExport();
                 });
             });
         },
