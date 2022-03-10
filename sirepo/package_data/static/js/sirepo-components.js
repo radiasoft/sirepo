@@ -2402,6 +2402,11 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                       '<li data-help-link="helpUserManualURL" data-title="User Manual", data-icon="list-alt"></li>',
                       '<li data-help-link="helpUserForumURL" data-title="User Forum", data-icon="globe"></li>',
                       '<li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>',
+                      '<li>',
+                        '<a href="{{ slackURL }}" target="_blank">',
+                          '<span data-ng-class="glyphicon"><img width="14" src="/static/img/slack.png" /></span> Sirepo Slack',
+                        '</a>',
+                      '</li>',
                     '</ul>',
                   '</li>',
                 '</ul>',
@@ -2449,6 +2454,8 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 appState.models.simulation.folder = fileManager.defaultCreationFolderPath();
                 panelState.showModalEditor('simulation');
             };
+
+            $scope.slackURL = SIREPO.APP_SCHEMA.feature_config.join_slack_uri;
 
             $scope.hasDocumentationUrl = function() {
                 if (appState.isLoaded()) {
