@@ -17,7 +17,6 @@ import re
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
 OP_ERROR = 'error'
-OP_IO = 'io'
 OP_JOB_CMD_STDERR = 'job_cmd_stderr'
 OP_KILL = 'kill'
 OP_OK = 'ok'
