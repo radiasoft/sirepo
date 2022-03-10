@@ -730,12 +730,6 @@ def stateful_compute_delete_user_models(data):
     return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
 
 
-def stateful_compute_export_rsopt_config(data):
-    return _export_rsopt_config(
-        simulation_db.read_simulation_json(SIM_TYPE, sid=data.sim_id)
-    )
-
-
 def stateful_compute_model_list(data):
     res = []
     model_name = data['model_name']
@@ -1791,7 +1785,6 @@ def _intensity_units(sim_in):
 
 
 def _is_for_rsopt(report):
-    #return report == 'rsoptExport'
     return report == 'exportRsOpt'
 
 
