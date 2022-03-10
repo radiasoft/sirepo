@@ -270,6 +270,9 @@ class _Dispatcher(PKDict):
                 c.destroy()
         return None
 
+    async def _op_io(self, msg):
+        return await self._cmd(msg)
+
     async def _op_kill(self, msg):
         self.terminate()
         return None

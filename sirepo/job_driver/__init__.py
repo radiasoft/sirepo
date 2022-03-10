@@ -38,7 +38,7 @@ cfg = None
 
 OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
-_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
+_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_IO, job.OP_KILL, job.OP_OK))
 
 
 class AgentMsg(PKDict):
