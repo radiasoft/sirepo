@@ -2367,7 +2367,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, panelState, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, requestSender, panelState, $window) {
     return {
         restrict: 'A',
         transclude: {
@@ -2378,41 +2378,63 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         scope: {
             nav: '=appHeaderRight',
         },
-        template: [
-            '<div class="nav sr-navbar-right-flex">',
-                // spacer to fix wrapping problem in firefox
-                '<div style="width: 16px"></div>',
-                // the line below has to be a ngShow, not ngIf or the transcluded slot may get rendered empty in some cases
-                '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
-                    '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
-                    '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
-                    '<li data-settings-menu="nav">',
-                        '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
-                    '</li>',
-                '</ul>',
-                '<ul class="nav navbar-nav" data-ng-show="nav.isActive(\'simulations\')">',
-                    '<li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>',
-                    '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-                    '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
-                '</ul>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>',
-                    '<ul class="dropdown-menu">',
-                      '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
-                      '<li data-help-link="helpUserManualURL" data-title="User Manual", data-icon="list-alt"></li>',
-                      '<li data-help-link="helpUserForumURL" data-title="User Forum", data-icon="globe"></li>',
-                      '<li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>',
-                      '<li>',
-                        '<a href="{{ slackURL }}" target="_blank">',
-                          '<span data-ng-class="glyphicon"><img width="14" src="/static/img/slack.png" /></span> Sirepo Slack',
-                        '</a>',
-                      '</li>',
-                    '</ul>',
-                  '</li>',
-                '</ul>',
-                '<ul data-ng-if="::authState.isLoggedIn && ! authState.guestIsOnlyMethod" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="nav sr-navbar-right-flex">
+              <!--spacer to fix wrapping problem in firefox-->
+              <div style="width: 16px"></div>
+              <!--the line below has to be a ngShow, not ngIf or the transcluded slot may get rendered empty in some cases-->
+              <ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">
+                <li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>
+                <li data-ng-if="hasDocumentationUrl()">
+                  <a href data-ng-click="openDocumentation()">
+                    <span class="glyphicon glyphicon-book"></span> Notes
+                  </a>
+                </li>
+                <li data-settings-menu="nav">
+                  <app-settings data-ng-transclude="appSettingsSlot"></app-settings>
+                </li>
+              </ul>
+              <ul class="nav navbar-nav" data-ng-show="nav.isActive('simulations')">
+                <li class="sr-new-simulation-item">
+                  <a href data-ng-click="showSimulationModal()">
+                    <span class="glyphicon glyphicon-plus sr-small-icon"></span>
+                    <span class="glyphicon glyphicon-file"></span>
+                    {{ newSimulationLabel() }}
+                  </a>
+                </li>
+                <li>
+                  <a href data-ng-click="showNewFolderModal()">
+                    <span class="glyphicon glyphicon-plus sr-small-icon"></span>
+                    <span class="glyphicon glyphicon-folder-close"></span> New Folder
+                  </a>
+                </li>
+                <li data-ng-transclude="appHeaderRightSimListSlot"></li>
+              </ul>
+              <ul class="nav navbar-nav sr-navbar-right">
+                <li data-ng-show="slackLink">
+                  <a href="{{ slackLink }}" target="_blank" style="padding: 11px 0px 10px 0px;">
+                    <span><img class="sr-slack-img" width="70" src="/static/svg/slack.svg" title="Join us on Slack"/></span>
+                  </a>
+                </li>
+                <li class=dropdown>
+                  <a href class="dropdown-toggle" data-toggle="dropdown">
+                    <span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a href="https://github.com/radiasoft/sirepo/issues" target="_blank">
+                        <span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug
+                      </a>
+                    </li>
+                    <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
+                    <li data-help-link="helpUserForumURL" data-title="User Forum" data-icon="globe"></li>
+                    <li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
+                  </ul>
+                </li>
+              </ul>
+              <ul data-ng-if="::authState.isLoggedIn && ! authState.guestIsOnlyMethod" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>
+            </div>
+        `,
         link: function(scope) {
            scope.nav.isLoaded = scope.isLoaded;
            scope.nav.simulationName = scope.simulationName;
@@ -2428,6 +2450,12 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         controller: function($scope, stringsService) {
             $scope.authState = authState;
 
+            $scope.getSlackLink = function() {
+                const successCallback = (res) => {
+                    $scope.slackLink = res.url;
+                };
+                requestSender.sendRequest('slackLink', successCallback);
+            };
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -2455,7 +2483,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 panelState.showModalEditor('simulation');
             };
 
-            $scope.slackURL = SIREPO.APP_SCHEMA.feature_config.join_slack_uri;
+            $scope.slackLink = null;
 
             $scope.hasDocumentationUrl = function() {
                 if (appState.isLoaded()) {
@@ -2470,6 +2498,8 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
             };
+
+            $scope.getSlackLink();
         },
     };
 });
