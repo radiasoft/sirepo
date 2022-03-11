@@ -5,7 +5,7 @@ from scipy import ndimage
 import array
 import h5py
 import math
-import numpy as np
+import numpy
 import scipy.constants
 import srwlib
 
@@ -47,7 +47,7 @@ def save_laser_pulse(filename, cav):
     (lpsxvals,lpsyvals) = cav.laser_pulse.rmsvals()
     ivals = cav.laser_pulse.intensity_vals()
     evals = cav.laser_pulse.energyvals()
-    np.save(filename, np.array([
+    numpy.save(filename, numpy.array([
         svals,
         lpsxvals,
         lpsyvals,
