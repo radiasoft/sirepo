@@ -3932,7 +3932,7 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
         template: [
             '<div class="sr-svg-plot">',
                 '<svg></svg>',
-            '</div>'
+            '</div>',
         ].join(''),
         controller: function($scope, $element) {
 

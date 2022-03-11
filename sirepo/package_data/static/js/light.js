@@ -130,17 +130,15 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
     });
     Object.keys(appRoutes).forEach(function(key) {
         $routeProvider.when('/' + key, {
-            template: [
-                '<div data-page-heading="" data-lc="lc"></div>',
-                '<div class="container">',
-                    '<div class="row visible-xs">',
-                        '<div class="lead text-center" data-ng-bind="lc.pageName()"></div>',
-                    '</div>',
-                    '<div data-ng-repeat="item in lc.itemsForCategory()" data-',
-                    (key == 'light-sources' ? 'button-list' : 'big-button'),
-                    '="item"></div>',
-                '</div>',
-            ].join('')
+            template: `
+                <div data-page-heading="" data-lc="lc"></div>
+                <div class="container">
+                    <div class="row visible-xs">
+                        <div class="lead text-center" data-ng-bind="lc.pageName()"></div>
+                    </div>
+                    <div data-ng-repeat="item in lc.itemsForCategory()" data-${key === 'light-sources' ? 'button-list' : 'big-button'}="item"></div>
+                </div>
+            `,
         });
     });
     $routeProvider.otherwise({

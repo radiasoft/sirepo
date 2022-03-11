@@ -955,7 +955,6 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
                     '<td class="form-group form-group-sm">',
                       '<input data-ng-model="model.header[col]" class="form-control" data-lpignore="true" required />',
                     '</td>',
-
                     '<td data-ng-show="! isAnalysis" class="text-center">',
                       '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
                     '</td>',

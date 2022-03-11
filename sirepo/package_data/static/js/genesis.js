@@ -43,7 +43,7 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: [
-            '<div data-common-footer="nav"></div>'
+            '<div data-common-footer="nav"></div>',
         ].join(''),
     };
 });
