@@ -951,7 +951,6 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                   '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
                   '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="source.copyConductor(conductorType)" class="btn btn-info btn-xs sr-hover-button">Copy</button> <button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
-
                 // 2D layout
                 '<tr data-ng-if="! warpvndService.is3D()" class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
                   '<td></td><td></td><th style="text-align: right">Center Z</th><th style="text-align: right">Center X</th>',
@@ -962,7 +961,6 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                   '<td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>',
                   '<td style="text-align: right">{{ formatSize(conductor.xCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
-
                 // 3D layout
                 '<tr data-ng-if="warpvndService.is3D()" class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
                   '<td></td><th style="text-align: right">Center Z</th><th style="text-align: right">Center X</th><th style="text-align: right">Center Y</th>',

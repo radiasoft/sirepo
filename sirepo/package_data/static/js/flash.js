@@ -627,7 +627,7 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
                   '</button>',
                 '</div>',
               '</div>',
-            '</div>'
+            '</div>',
         ].join(''),
         controller: function($scope, appState, flashService, requestSender) {
             $scope.showSetupCommand= function() {

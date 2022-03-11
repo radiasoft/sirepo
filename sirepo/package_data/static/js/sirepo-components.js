@@ -503,7 +503,7 @@ SIREPO.app.directive('disableAfterClick', function() {
         restrict: 'A',
         transclude: true,
         template: [
-            '<fieldset ng-disabled="isDisabled" data-ng-click="click()"><ng-transclude></ng-transclude>'
+            '<fieldset ng-disabled="isDisabled" data-ng-click="click()"><ng-transclude></ng-transclude>',
         ].join(''),
         controller: function($scope, $timeout) {
             $scope.isDisabled = false;
@@ -583,7 +583,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate
         },
         template: [
             '<span data-ng-show="hasTooltip()" class="glyphicon glyphicon-info-sign sr-info-pointer"></span>',
-        ],
+        ].join(''),
         controller: function($scope, $element) {
             let tooltipLinked = false;
 
@@ -635,7 +635,7 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
         },
         template: [
             '<label><span data-text-with-math="label"></span>&nbsp;<span data-sr-tooltip="{{ tooltip }}"></span></label>',
-        ],
+        ].join(''),
     };
 });
 
@@ -871,7 +871,7 @@ SIREPO.app.directive('loadingSpinner', function() {
             '<div data-ng-if="!sentinel" class="sr-loading-spinner">',
                 '<img src="/static/img/sirepo_animated.gif" />',
             '</div>',
-            '<ng-transclude data-ng-if="sentinel"></ng-transclude>'
+            '<ng-transclude data-ng-if="sentinel"></ng-transclude>',
         ].join(''),
     };
 });
@@ -1305,7 +1305,7 @@ SIREPO.app.directive('headerTooltip', function() {
         },
         template: [
             '<span data-ng-class="className()"></span>',
-        ],
+        ].join(''),
         controller: function link($scope, $element) {
             $scope.className = function() {
                 return 'glyphicon sr-info-pointer glyphicon-' + ({
@@ -1814,7 +1814,7 @@ SIREPO.app.directive('textWithMath', function(mathRendering, $sce) {
         },
         template: [
             '<span data-ng-bind-html="::getHTML()"></span>',
-        ],
+        ].join(''),
         controller: function($scope) {
             $scope.getHTML = function() {
                 return $sce.trustAsHtml(mathRendering.mathAsHTML($scope.textWithMath));
@@ -1926,7 +1926,6 @@ SIREPO.app.directive('collapsableNotes', function() {
             ' <span data-ng-show="! openNotes() && hasNotes()">...</span>',
             ' <span data-ng-show="! openNotes() && ! hasNotes()" style="font-style: italic; font-size: small">click to enter notes</span>',
             '</a>',
-
             '<textarea data-ng-show="openNotes()" data-ng-model="model[field]" class="form-control" style="resize: vertical; min-height: 2em;"></textarea>',
             '</div>',
         ].join(''),
@@ -1986,7 +1985,7 @@ SIREPO.app.directive('numberList', function() {
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
             '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
             '<input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
-            '</div>'
+            '</div>',
         ].join(''),
         controller: function($scope) {
             let lastModel = null;

@@ -1237,7 +1237,7 @@ SIREPO.app.directive('enumList', function() {
                     'class="form-control sr-number-list" data-ng-model="values[$index]" data-ng-change="didChange()"',
                     'data-ng-options="item[0] as item[1] for item in typeList">',
                 '</select>',
-            '</div>'
+            '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.values = null;
