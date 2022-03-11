@@ -295,7 +295,6 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
               '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>',
               '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
             '</ul>',
-
         ].join(''),
         controller: function($scope, stringsService) {
             $scope.rs4piService = rs4piService;

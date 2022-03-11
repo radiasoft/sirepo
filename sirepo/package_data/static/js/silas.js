@@ -324,13 +324,11 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, uti
                   '<g class="colorbar"></g>',
                 '</svg></div>',
               '</td></tr></table>',
-
               '<div style="margin-top: 1ex" class="row">',
                 '<div class="col-sm-4">',
                   '<input data-ng-model="showEdges" data-ng-change="resize()" type="checkbox" id="showEdges" checked="checked" /> <label for="showEdges">Show Edges</label>',
                 '</div>',
                 '<div class="col-sm-7">',
-
             '<div class="row form-horizontal">',
             '<div class="col-sm-6 control-label"><label>Cutoff Axis</label></div>',
             '<div class="col-sm-6"><select class="form-control" data-ng-model="boundAxis" data-ng-change="resize()" data-ng-options="axis for axis in axes"></select></div>',
@@ -340,7 +338,6 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, uti
                   '<span class="s_slider_label light left">{{ bound | number : 2 }} cm</span>',
                 '</div>',
               '</div>',
-
             '</div>',
             '</div>',
             '</div>',
