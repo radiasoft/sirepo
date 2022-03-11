@@ -1439,9 +1439,9 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
             title: '@',
         },
         template: `
-            <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
-              <div class="modal-dialog modal-lg">',
-                <div class="modal-content">',
+            <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
                   <div class="modal-header bg-info">
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <div data-help-button="{{ title }}"></div>
@@ -1452,7 +1452,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                         <form>
                         <div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>
+                            <button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{'disabled': isMissingImportFile() }">Import File</button>
                              <button data-dismiss="modal" class="btn btn-default">Cancel</button>
                           </div>
                         </form>
