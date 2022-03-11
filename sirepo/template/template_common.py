@@ -205,8 +205,8 @@ class ParticleEnergy():
     @classmethod
     def __set_from_gamma(cls, particle, energy):
         pkdp('\n\n\n\n Energy: {}', energy)
-        # if type(energy.gamma) == str:
-        #     energy.gamma = 3.
+        pkdp('\n\n\n\n Energy.gamma = {}, and is of type = {}', energy.gamma, type(energy.gamma))
+
         assert energy.gamma >= 1, \
             'energy gamma out of range: {}'.format(energy.gamma)
         energy.energy = energy.gamma * particle.mass
