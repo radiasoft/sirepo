@@ -35,6 +35,7 @@ class MadXParser(lattice.LatticeParser):
         from sirepo.template import madx
         lattice_text = re.sub(r',\s*,', ',', lattice_text)
         res = super().parse_file(lattice_text)
+        pkdp('\n\n\n\n lattice_text: {}', lattice_text)
         self._add_variables_for_lattice_references()
         cv = madx.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)

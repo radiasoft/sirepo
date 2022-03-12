@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo.template import madx
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.template_common import ParticleEnergy
@@ -147,6 +148,9 @@ class MadxConverter():
         # ensure particle, mass, charge, pc, ex and ey are set
         pkdp('\n\n\n data at begining of __normalize_madx_beam: {}', data)
         self.beam = LatticeUtil.find_first_command(data, 'beam')
+        cv = madx.code_var(data.models.rpnVariables)
+        for f in ParticleEnergy.ENERGY_PRIORITY.madx:
+            self.beam[f] = cv.eval_var_with_assert(self.beam[f])
         self.particle_energy = ParticleEnergy.compute_energy(
             self.from_class.sim_type(),
             self.beam.particle,
@@ -154,10 +158,6 @@ class MadxConverter():
         )
         self.beam.mass = ParticleEnergy.get_mass(self.from_class.sim_type(), self.beam.particle, self.beam)
         self.beam.charge = ParticleEnergy.get_charge(self.from_class.sim_type(), self.beam.particle, self.beam)
-        pkdp('\n\n\n\n self.particle_energy.beta: {}', self.particle_energy.beta)
-        pkdp('\n\n\n\n self.particle_energy.gamma: {}', self.particle_energy.gamma)
-        # if type(self.particle_energy.gamma) == str:
-        #     self.particle_energy.gamma = 1.
         beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
         for dim in ('x', 'y'):
             if self.beam[f'e{dim}'] == self.from_class.schema().model.command_beam[f'e{dim}'][2] \
