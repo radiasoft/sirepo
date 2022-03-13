@@ -30,24 +30,26 @@ _PTC_TRACK_FILE = 'track.tfs'
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
-        e = _read_summary_line(run_dir)
+        e, mt = _read_summary_line(run_dir)
         return PKDict(
             percentComplete=0,
-            frameCount=1 if e else 0,
+            frameCount=mt if mt else 0,
             elementValues=e,
             ptcTrackColumns=_get_ptc_track_columns(run_dir),
             twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
+            #elementModifiedTime=mt,
         )
-    e = _read_summary_line(
+    e, mt = _read_summary_line(
         run_dir,
         SCHEMA.constants.maxBPMPoints,
     )
     return PKDict(
         percentComplete=100,
-        frameCount=1 if e else 0,
+        frameCount=mt if mt else 0,
         elementValues=e,
         ptcTrackColumns=_get_ptc_track_columns(run_dir),
         twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
+        #elementModifiedTime=mt,
     )
 
 
@@ -60,7 +62,6 @@ def _get_ptc_track_columns(run_dir):
 def _get_target_info(info_all, frame_args):
     data = frame_args.sim_in
     idx = data.models[frame_args.frameReport].id
-    #idx = frame_args.sim_in.models[frame_args.frameReport].id
     elements = frame_args.sim_in.models.externalLattice.models.elements
     target = -1
     for i in range(len(elements)):
@@ -68,23 +69,20 @@ def _get_target_info(info_all, frame_args):
             target += 1
         if idx == i:
             break
-    # n = frame_args.sim_in.models.externalLattice.models.elements[
-    #     data.models[frame_args.frameReport].id].name
-    # for i, o in enumerate(info_all):
-    #     if o.name == target.upper():
-    #         return o, i
     if target < 0:
         raise AssertionError(f'no target={elements[idx]} in info_all={info_all}')
     count = -1
+    page = -1
     target_rec = None
     for rec in info_all:
+        page += 1
         if re.search(r'MARKER\d+_INSTRUMENT', rec.name):
             count += 1
             if count == target:
                 target_rec = rec
                 break;
     target_rec.name = elements[idx].name
-    return target_rec, count
+    return target_rec, page
 
 
 def sim_frame(frame_args):
@@ -98,11 +96,12 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
         data.models[data.report] = frame_args
         return sirepo.template.madx.extract_report_twissFromParticlesAnimation(data, run_dir, _PTC_TRACK_FILE)
     a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
-    frame_args.plotRangeType = 'fixed'
-    frame_args.verticalSize = frame_args.particlePlotSize
-    frame_args.verticalOffset = 0
-    frame_args.horizontalSize = frame_args.particlePlotSize
-    frame_args.horizontalOffset = 0
+    if frame_args.x == 'x' and frame_args.y1 == 'y':
+        frame_args.plotRangeType = 'fixed'
+        frame_args.verticalSize = frame_args.particlePlotSize
+        frame_args.verticalOffset = 0
+        frame_args.horizontalSize = frame_args.particlePlotSize
+        frame_args.horizontalOffset = 0
     i, x = _get_target_info(a, frame_args)
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
     data.models[frame_args.frameReport] = frame_args
@@ -217,7 +216,7 @@ def _delete_unused_madx_commands(data):
     data.models.commands = [
         PKDict(
             _type='option',
-            _id=LatticeUtil.max_id(data),
+            _id=LatticeUtil.max_id(data) + 1,
             echo='0',
         ),
         beam,
@@ -244,8 +243,6 @@ def _generate_parameters_file(data):
     _generate_parameters(v, data)
     if data.models.controlSettings.operationMode == 'DeviceServer':
         _validate_process_variables(v, data)
-    else:
-        sirepo.template.madx._add_marker_and_observe(data.models.externalLattice)
     v.optimizerTargets = data.models.optimizerSettings.targets
     v.summaryCSV = _SUMMARY_CSV_FILE
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
@@ -300,7 +297,7 @@ def _generate_parameters(v, data):
     v.monitorCount = len(header)
     v.mc2 = SCHEMA.constants.particleMassAndCharge.proton[0]
     if data.models.controlSettings.operationMode == 'madx':
-        data.models.externalLattice.report = ''
+        data.models.externalLattice.models.simulation.computeTwissFromParticles = '1'
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
 
 
@@ -323,7 +320,7 @@ def _has_kickers(model):
 def _read_summary_line(run_dir, line_count=None):
     path = run_dir.join(_SUMMARY_CSV_FILE)
     if not path.exists():
-        return None
+        return None, None
     header = None
     rows = []
     with open(str(path)) as f:
@@ -337,17 +334,18 @@ def _read_summary_line(run_dir, line_count=None):
                 rows.append(row)
                 if len(rows) > line_count:
                     rows.pop(0)
+    res = None
     if line_count:
         res = []
         for row in rows:
             res.append(PKDict(zip(header, row)))
-        return res
-    line = template_common.read_last_csv_line(path)
-    if header and line:
-        line = line.split(',')
-        if len(header) == len(line):
-            return [PKDict(zip(header, line))]
-    return None
+    else:
+        line = template_common.read_last_csv_line(path)
+        if header and line:
+            line = line.split(',')
+            if len(header) == len(line):
+                res = [PKDict(zip(header, line))]
+    return res, int(path.mtime() * 1000)
 
 
 def _validate_process_variables(v, data):

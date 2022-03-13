@@ -8,21 +8,17 @@
     <div class="col-sm-12 col-xxl-6">
       <div data-simple-panel="beamline">
         <div id="sr-lattice" data-lattice="" class="sr-plot" data-margin="40" data-model-name="beamlines" data-path-to-models="externalLattice"></div>
-        <div class="row">
-          <div style="position: relative;" class="col-sm-5" data-ng-if="controls.twissReport && ! controls.controlsService.isDeviceServer()" data-ng-show="controls.simState.hasFrames()">
-            <h4 style="position: absolute; top: -2%; left: 10%;">Twiss Parameters</h4>
-            <button style="position: absolute; top: -1%; right: 5%;" ng-click="controls.showTwissEditor()" class="btn bg-info">
-              <span class="glyphicon glyphicon-pencil text-primary"></span>
-            </button>
-            <div data-report-content="parameterWithExternalLattice" data-model-key="{{ controls.twissReport.modelKey }}" data-panel-title="{{ controls.twissReport.getData().panelTitle }}"></div>
-          </div>
-        </div>
       </div>
     </div>
-    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState">
+    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState && ! controls.controlsService.isDeviceServerReadOnly()">
       <div data-simple-panel="optimizerInputsTab" >
         <div data-optimization-picker=""></div>
         <div data-sim-status-panel="controls.simState" data-start-function="controls.startSimulation()" data-cancel-callback="controls.cancelCallback()"></div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="controls.simState && controls.controlsService.isDeviceServerReadOnly()">
+      <div data-simple-panel="deviceServerMonitor">
+        <div data-device-server-monitor="controls.simState"></div>
       </div>
     </div>
     <div class="col-md-6 col-xl-4 col-xxl-3" data-ng-if="! controls.controlsService.isDeviceServer()">

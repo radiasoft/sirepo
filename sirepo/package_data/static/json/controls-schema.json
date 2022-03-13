@@ -61,15 +61,13 @@
             "y2",
             "y3",
             "histogramBins",
-            "particlePlotSize",
-            "refreshId"
+            "particlePlotSize"
         ],
         "instrumentAnimationTwiss": [
             "x",
             "y1",
             "y2",
-            "y3",
-            "refreshId"
+            "y3"
         ]
     },
     "localRoutes": {
@@ -125,6 +123,8 @@
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
+        },
+        "deviceServerMonitor": {
         },
         "initialMonitorPositionsReport": {},
         "instrumentAnimation":{
@@ -278,10 +278,13 @@
                 ]]
             ]
         },
+        "deviceServerMonitor": {
+            "title": "DeviceServer Monitor",
+            "advanced": []
+        },
         "optimizerInputsTab": {
             "title": "Optimization",
             "advanced": []
-
         },
         "command_beam": {
             "title": "Beam Settings",

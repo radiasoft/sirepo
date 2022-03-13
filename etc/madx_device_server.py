@@ -53,7 +53,7 @@ app = flask.Flask(__name__)
 def device_context():
     res = pkio.random_base62(12)
     _SET_CONTEXT[res] = _query_params(['user', 'procName', 'procId', 'machine'])
-    return res
+    return _http_response(res)
 
 
 @app.route('/DeviceServer/api/device/list/value', methods=['PUT', 'GET'])
@@ -61,7 +61,7 @@ def list_value():
     v = _query_params(['names', 'props'])
     _assert_lengths(v, 'names', 'props')
     if flask.request.method == 'GET':
-        return _read_values(v)
+        return _http_response(_read_values(v))
     v.update(_query_params(['values', 'context']))
     _assert_lengths(v, 'names', 'values')
     if v.context not in _SET_CONTEXT:
@@ -69,7 +69,7 @@ def list_value():
             f'set context: {v.context} not found in server state',
             http.HTTPStatus.PRECONDITION_FAILED.value,
         )
-    return _update_values(v)
+    return _http_response(_update_values(v))
 
 
 @app.route('/')
@@ -120,6 +120,12 @@ def _format_prop_value(prop_name, value):
         #TODO(pjm): assumes the first value is the one which will be used
         return f'[{value},0,0,0]'
     return value
+
+
+def _http_response(content):
+    res = flask.make_response(content)
+    res.headers['sirepo-dev'] = '1'
+    return res
 
 
 def _load_sim(sim_type, sim_id):
@@ -213,6 +219,7 @@ def _run_sim():
     outpath = app.config['sim_dir']
     if not outpath.exists():
         pkio.mkdir_parent(outpath)
+    app.config['sim'].models.externalLattice.models.simulation.computeTwissFromParticles = '1'
     d = sirepo.lib.SimData(
         copy.deepcopy(app.config['sim'].models.externalLattice),
         outpath.join('in.madx'),

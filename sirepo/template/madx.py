@@ -49,6 +49,8 @@ _FIELD_UNITS = PKDict(
     s='m',
     x='m',
     y='m',
+    x0='m',
+    y0='m',
 )
 
 _PI = 4 * math.atan(1)
@@ -270,6 +272,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
         PKDict(
             y_label='',
             x_label=field_label(x),
+            dynamicYLabel=True,
         )
     )
     if filename == _TWISS_OUTPUT_FILE and not results:
@@ -288,7 +291,9 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
 
 def generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
-    _add_marker_and_observe(data)
+    if data.get('report') == 'animation' or \
+       data.models.simulation.computeTwissFromParticles == '1':
+        _add_marker_and_observe(data)
     util = LatticeUtil(data, SCHEMA)
     filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
@@ -545,7 +550,9 @@ def _add_marker_and_observe(data):
         for el in data.models.elements:
             el_map[el._id] = el
         items_copy = beam['items'].copy()
+        bi = 0
         for i, v in enumerate(items_copy):
+            bi += 1
             el = el_map[items_copy[i]]
             if el.type == 'INSTRUMENT' or 'MONITOR' in el.type:
                 # always include instrument and monitor positions
@@ -553,10 +560,8 @@ def _add_marker_and_observe(data):
             elif not el.get('l', 0):
                 continue
             m += 1
-            beam['items'].insert(
-                (i * 2) + 1,
-                m,
-            )
+            beam['items'].insert(bi, m)
+            bi += 1
             n = f'Marker{m}_{el.type}'
             markers[m] = n
             data.models.elements.append(PKDict(

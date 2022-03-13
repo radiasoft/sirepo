@@ -19,10 +19,11 @@ def run(cfg_dir):
     d = pkio.py_path(cfg_dir)
     template_common.write_sequential_result(
         PKDict(
+            #TODO(pjm): do not call private method
             elementValues=template._read_summary_line(
                 d,
                 simulation_db.get_schema(template.SIM_TYPE).constants.maxBPMPoints,
-            )
+            )[0],
         ),
         run_dir=d,
     )

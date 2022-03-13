@@ -78,6 +78,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'bunch',
                 'command_beam',
                 'dataFile',
+                'deviceServerMonitor',
                 'initialMonitorPositionsReport',
                 'instrumentAnimationAll',
                 'instrumentAnimationTwiss',

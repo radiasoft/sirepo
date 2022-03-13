@@ -54,22 +54,22 @@ targets = np.array([
 ])
 
 finished_sims = False
+_FAIL_COST = 1e24
 
+
+def _failed_sim_results():
+    return np.full({{ monitorCount }}, _FAIL_COST), _FAIL_COST
 
 {% if optimizerSettings_method == 'nmead' %}
 def _nelder_mead_cost_function(correctors):
-{% if controlSettings_operationMode == 'madx' %}
-    readings, cost = update_and_run_simulation(correctors)
-{% elif controlSettings_operationMode == 'DeviceServer' %}
-    readings, cost = set_correctors_and_read_device_server(correctors)
-{% endif %}
+    readings, cost = update_and_read_results(correctors)
     return cost
 
 
-def _optimize_nelder_mead(variable_count):
+def _optimize_nelder_mead(initial_correctors):
     opt = scipy.optimize.minimize(
         _nelder_mead_cost_function,
-        np.zeros(variable_count),
+        initial_correctors,
         method='Nelder-Mead',
         options={
             'maxiter': 500,
@@ -81,14 +81,10 @@ def _optimize_nelder_mead(variable_count):
         'message': opt.message,
         'success': opt.success,
     }
-    if 'x' in opt and len(opt.x) == variable_count:
+    if 'x' in opt and len(opt.x) == len(initial_correctors):
         res['result'] = opt.x
         # run one last time with optimal settings
-{% if controlSettings_operationMode == 'DeviceServer' %}
-        set_correctors_and_read_device_server(opt.x)
-{% else %}
-        update_and_run_simulation(opt.x)
-{% endif %}
+        update_and_read_results(opt.x)
     return res
 {% endif %}
 
@@ -97,26 +93,57 @@ def _optimize_polyfit(variable_count):
     settings_0 = np.zeros(variable_count)
     sets = np.identity(variable_count)
     M = np.zeros([variable_count, len(targets)])
-    sets_a = np.linspace(-5, 5, 5) * 0.01
+    sets_a = np.linspace(-5, 5, 5) * 0.00001
     readings = np.zeros([len(targets), 5])
     for i in range(0, len(settings_0)):
         for j in range(0, len(sets_a)):
             setting_test = sets[i,:] * sets_a[j]
-            readings[:,j] = update_and_run_simulation(setting_test)[0]
+            r, cost = update_and_read_results(setting_test)
+            if cost == _FAIL_COST:
+                raise AssertionError(f'Linear optimization step failed')
+            readings[:,j] = r
         for k in range(0, len(targets)):
             M[i,k] = np.polyfit(sets_a, readings[k,:], 1)[0]
     # inverse response matrix
     MI = np.linalg.pinv(M.T)
     # reset the beam-line
-    readings_1 = update_and_run_simulation(settings_0)[0]
+    readings_1, cost = update_and_read_results(settings_0)
+    if cost == _FAIL_COST:
+        raise AssertionError('Linear optimization reset failed')
     # create settings to cancel out offsets
-    new_sets = np.dot(MI, -readings_1)
-    update_and_run_simulation(new_sets[:variable_count])[0]
+    new_sets = np.dot(MI, -np.array(readings_1))
+    if update_and_read_results(new_sets[:variable_count])[1] == _FAIL_COST:
+        raise AssertionError(f'Final optimization failed')
     return {
         'message': '',
         'success': True,
         'result': new_sets,
     }
+{% endif %}
+
+def update_and_read_results(correctors):
+{% if controlSettings_operationMode == 'DeviceServer' %}
+    return set_correctors_and_read_device_server(correctors)
+{% else %}
+    global finished_sims
+    columns, observes = run_simulation(correctors)
+    if columns:
+        readings = []
+        finished_sims = True
+        for i in range(len(observes)):
+            if '_MONITOR' in observes[i]:
+                readings += [columns['x0'][i], columns['y0'][i]]
+            elif '_HMONITOR' in observes[i]:
+                readings += [columns['x0'][i]]
+            elif '_VMONITOR' in observes[i]:
+                readings += [columns['y0'][i]]
+            else:
+                pass
+        res = np.array(readings)
+        cost = update_summary_csv(correctors.tolist(), readings)
+        read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
+        return res, cost
+    return _failed_sim_results()
 {% endif %}
 
 {% if controlSettings_operationMode == 'madx' %}
@@ -171,26 +198,6 @@ def read_cols_and_save_report(default_file, save_file, cols_file):
         pkio.write_text(cols_file, ','.join(cols))
         os.rename(default_file, save_file)
 
-def update_and_run_simulation(correctors):
-    global finished_sims
-    columns, observes = run_simulation(correctors)
-    if columns:
-        readings = []
-        finished_sims = True
-        for i in range(len(observes)):
-            if '_MONITOR' in observes[i]:
-                readings += [columns['x0'][i], columns['y0'][i]]
-            elif '_HMONITOR' in observes[i]:
-                readings += [columns['x0'][i]]
-            elif '_VMONITOR' in observes[i]:
-                readings += [columns['y0'][i]]
-            else:
-                pass
-        res = np.array(readings)
-        cost = update_summary_csv(correctors.tolist(), readings)
-        read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
-        return res, cost
-    return np.full(int({{ monitorCount }}), 1e24), 1e24
 {% elif controlSettings_operationMode == 'DeviceServer' %}
 
 {% for prop_type in property_types %}
@@ -251,7 +258,10 @@ def read_device_server():
         + '&props=' + ','.join([v['name'] for v in read_properties])
     response = requests.get(url)
     if response.status_code != requests.codes.ok:
-        return None, None
+        return _failed_sim_results()
+    assert 'sirepo-dev' in response.headers \
+        and response.headers['sirepo-dev'] == '1', \
+        'ATTEMPT TO RUN SIREPO AGAINST NON-DEV DEVICE SERVER'
     values = read_values(response.text)
     correctors = []
     readings = []
@@ -265,8 +275,6 @@ def read_device_server():
         elif 'KICKER' in prop['type']:
             correctors += [float(v)]
     cost = update_summary_csv(correctors, readings)
-    # with open('{{ summaryCSV }}', 'a') as f:
-    #     f.write('{}\n'.format(','.join([str(x) for x in correctors + readings])))
     return readings, cost
 
 
@@ -288,10 +296,7 @@ def set_correctors_and_read_device_server(correctors):
     response = requests.put(url)
     if response.status_code != requests.codes.ok:
         raise AssertionError(f'set values request failed: {response.text}')
-    readings, cost = read_device_server()
-    if not readings:
-        return np.full(int({{ monitorCount }}), 1e24), 1e24
-    return readings, cost
+    return read_device_server()
 
 
 {% endif %}
@@ -309,33 +314,37 @@ sirepo.pkcli.controls.particle_file_for_external_lattice()
 with open('{{ summaryCSV }}', 'w') as f:
     f.write('{}\n'.format('{{ summaryCSVHeader }}'))
 
-{% if optimizerSettings_method == 'nmead' %}
-{% if controlSettings_operationMode == 'DeviceServer' %}
+{% if controlSettings_operationMode == 'DeviceServer' and controlSettings_readOnly == '1' %}
+# monitor only
+import time
+while True:
+    read_device_server()
+    time.sleep(2)
+{% else %}
+  {% if optimizerSettings_method == 'nmead' %}
+    {% if controlSettings_operationMode == 'DeviceServer' %}
 # check connectivity to DeviceServer first with a read
-if not read_device_server()[0]:
+if read_device_server()[1] == _FAIL_COST:
     raise AssertionError('Initial DeviceServer read failed')
-{% endif %}
-res = _optimize_nelder_mead({{ correctorCount }})
-{% elif optimizerSettings_method == 'polyfit' %}
+    {% endif %}
+res = _optimize_nelder_mead({{ initialCorrectors }})
+  {% elif optimizerSettings_method == 'polyfit' %}
 res = _optimize_polyfit({{ correctorCount }})
-{% elif optimizerSettings_method == 'runOnce' %}
+  {% elif optimizerSettings_method == 'runOnce' %}
 res = {
     'message': '',
     'success': True,
-{% if controlSettings_operationMode == 'DeviceServer' %}
-  {% if controlSettings_readOnly == '1' %}
+    {% if controlSettings_operationMode == 'DeviceServer' and controlSettings_readOnly == '1' %}
     'result': read_device_server()[0],
-  {% else %}
-    'result': set_correctors_and_read_device_server(np.array({{ initialCorrectors }}))[0],
-  {% endif %}
-{% else %}
-    'result': update_and_run_simulation(np.array({{ initialCorrectors }}))[0],
-{% endif %}
+    {% else %}
+    'result': update_and_read_results(np.array({{ initialCorrectors }}))[0],
+    {% endif %}
 }
-{% else %}
+  {% else %}
 raise AssertionError('invalid optimizerSettings method: {}'.format('{{ optimizerSettings_method }}'))
-{% endif %}
-{% if controlSettings_operationMode != 'DeviceServer' %}
+  {% endif %}
+  {% if controlSettings_operationMode != 'DeviceServer' and optimizerSettings_method != 'runOnce' %}
 if not finished_sims:
     raise AssertionError(f'Optimization failed all minimization attempts')
+  {% endif %}
 {% endif %}
