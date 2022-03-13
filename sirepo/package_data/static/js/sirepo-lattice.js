@@ -1877,6 +1877,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function loadItemsFromBeamline(forceUpdate, beamline) {
+                if (appState.models[$scope.modelName]
+                    && appState.models[$scope.modelName].latticeId) {
+                    appState.models.beamlines.forEach((b) => {
+                        if (b.id == appState.models[$scope.modelName].latticeId) {
+                            beamline = b;
+                            return;
+                        }
+                    });
+                }
                 if ($scope.pathToModels) {
                     beamline = latticeService.elementForId(
                         appState.models[$scope.pathToModels].models.simulation.visualizationBeamlineId,
@@ -2555,9 +2564,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             '<div data-element-picker="" data-controller="controller" data-title="New Beamline Element" data-id="sr-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>',
             '<div data-confirmation-modal="" data-id="sr-element-in-use-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong> is used by the <strong>{{ latticeService.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>',
             '<div data-confirmation-modal="" data-id="sr-delete-element-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="latticeService.deleteElement()">Delete {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong>?</div>',
-
             '<div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>',
-
             '<div data-ng-if=":: latticeService.wantRpnVariables" data-var-editor=""></div>',
             '<div class="modal fade" id="sr-lattice-twiss-plot" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',

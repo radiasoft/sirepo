@@ -2470,7 +2470,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
               '<div class="progress" data-ng-if="simState.isProcessing()">',
                 '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
               '</div>',
-
               '<div data-ng-if="simState.isProcessing()">',
                 '<div class="col-sm-6">',
                   '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
@@ -3297,7 +3296,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             <div data-watchpoint-report="" data-item-id="report.id"></div>
           </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $rootScope) {
             $scope.reports = [];
             $scope.simScope = $scope;
             $scope.simComputeModel = 'beamlineAnimation';
@@ -3306,6 +3305,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             });
 
             $scope.start = function() {
+                $rootScope.$broadcast('saveLattice', appState.models);
                 appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],

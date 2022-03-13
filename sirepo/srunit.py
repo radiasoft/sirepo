@@ -511,7 +511,7 @@ class _TestClient(flask.testing.FlaskClient):
             self.sr_sbatch_login(compute_model, d)
             self.sr_sbatch_logged_in = True
         self.sr_animation_run(
-            sim_name,
+            self.sr_sim_data(sim_name),
             compute_model,
             reports,
             # Things take longer with Slurm.

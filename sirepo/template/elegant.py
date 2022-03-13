@@ -1077,6 +1077,7 @@ def _is_histogram_file(filename, columns):
 
 
 def _output_info(run_dir):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
 
     def _info(filename, run_dir, file_id):
 
@@ -1156,6 +1157,7 @@ def _output_info(run_dir):
                 columns=column_names,
                 parameters=parameters,
                 parameterDefinitions=_defs(parameters),
+                latticeId=LatticeUtil.get_lattice_id_from_file_id(data, file_id),
                 plottableColumns=plottable_columns,
                 lastUpdateTime=int(os.path.getmtime(str(file_path))),
                 isHistogram=_is_histogram_file(filename, column_names),
@@ -1177,7 +1179,6 @@ def _output_info(run_dir):
         except ValueError as e:
             pass
     _sdds_init()
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
     for k in filename_map.keys_in_order:

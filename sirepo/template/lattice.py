@@ -598,6 +598,13 @@ class LatticeUtil(object):
             data.models[m] = add_list[m]
 
     @classmethod
+    def get_lattice_id_from_file_id(cls, data, file_id):
+        for c in data.models.commands:
+            if c._id == int(file_id.split(LatticeUtil._FILE_ID_SEP)[0]) and 'use_beamline' in c:
+                return c.use_beamline
+        return None
+
+    @classmethod
     def is_command(cls, model):
         """Is the model a command or a lattice element?
         """

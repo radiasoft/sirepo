@@ -16,6 +16,7 @@ from sirepo.template import template_common
 import contextlib
 import re
 import requests
+import signal
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -89,7 +90,6 @@ def _do_cancel(msg, template):
         template.remove_last_frame(msg.runDir)
     return PKDict()
 
-
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
@@ -104,6 +104,8 @@ def _do_compute(msg, template):
             r = p.poll()
             i = r is None
             if not i:
+                if r == -signal.SIGKILL:
+                    return PKDict(state=job.ERROR, error='Terminated Process. Possibly ran out of memory')
                 break
         if msg.isParallel:
             # TODO(e-carlin): This has a potential to fail. We likely
@@ -143,6 +145,9 @@ def _do_download_data_file(msg, template):
             c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
                 if u.endswith(('.py', '.txt', '.csv')) \
                 else r.filename.read_binary()
+            e = _validate_msg(c)
+            if e:
+                return e
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -202,7 +207,7 @@ def _do_fastcgi(msg, template):
                 'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
             c += 1
             r = _maybe_parse_user_alert(e)
-        s.sendall(pkjson.dump_bytes(r) + b'\n')
+        s.sendall(_validate_msg_and_jsonl(r))
 
 
 def _do_get_simulation_frame(msg, template):
@@ -315,6 +320,20 @@ def _parse_python_errors(text):
     if m:
         return re.sub(r'\nTraceback.*$', '', m.group(1), flags=re.S).strip()
     return ''
+
+
+def _validate_msg(msg):
+    if len(msg) >=  job.cfg.max_message_bytes:
+        return PKDict(state=job.COMPLETED, error='Response is too large to send')
+    return None
+
+
+def _validate_msg_and_jsonl(msg):
+    m = pkjson.dump_bytes(msg)
+    r = _validate_msg(m)
+    if r:
+        m = pkjson.dump_bytes(r)
+    return m + b'\n'
 
 
 def _write_parallel_status(msg, template, is_running):
