@@ -322,10 +322,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
+        `,
     };
 });
 
@@ -335,27 +335,26 @@ SIREPO.app.directive('appHeader', function(appState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                    '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                    '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                    '<li class="sim-section" data-ng-if="showVisualizationTab()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-              //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                    <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                    <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                    <li class="sim-section" data-ng-if="showVisualizationTab()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.hasLattice = function() {
                 return appState.isLoaded();
@@ -376,19 +375,19 @@ SIREPO.app.directive('summaryTable', function() {
         scope: {
             modelName: '@summaryTable',
         },
-        template: [
-            '<div class="col-sm-12">',
-              '<div class="lead" data-ng-if="summaryRows">Results</div>',
-                '<table>',
-                '<tr data-ng-repeat="item in summaryRows">',
-                  '<td data-ng-if="item.length == 1"><br /><strong>{{ item[0] }}</strong></td>',
-                  '<td data-ng-if="item.length > 1">{{ item[0] }}:</td>',
-                  '<td>&nbsp;</td>',
-                  '<td>{{ item[1] }}</td>',
-                '</tr>',
-              '</table>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-sm-12">
+              <div class="lead" data-ng-if="summaryRows">Results</div>
+                <table>
+                <tr data-ng-repeat="item in summaryRows">
+                  <td data-ng-if="item.length == 1"><br /><strong>{{ item[0] }}</strong></td>
+                  <td data-ng-if="item.length > 1">{{ item[0] }}:</td>
+                  <td>&nbsp;</td>
+                  <td>{{ item[1] }}</td>
+                </tr>
+              </table>
+            </div>
+        `,
         controller: function($scope) {
             function parseSummaryRows(summaryText) {
                 var text = summaryText.replace(/^(\n|.)*RESULTS\n+==+/, '').replace(/==+/, '');

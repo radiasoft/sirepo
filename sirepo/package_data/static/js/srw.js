@@ -850,11 +850,11 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-python=""></div>',
-            '<div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-python=""></div>
+            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
+        `,
         controller: function($scope) {
 
             function createNewSim(data) {
@@ -1615,31 +1615,31 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-ng-if="srwService.isApplicationMode(\'calculator\')">',
-              navHeader('calculator', 'SR Calculator'),
-              '<ul data-ng-if="nav.isLoaded()" class="nav navbar-nav navbar-right">',
-                '<li data-settings-menu="nav"></li>',
-                '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Issues</a></li>',
-              '</ul>',
-              '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isLoaded()">',
-                '<li data-ng-if="nav.hasDocumentationUrl()"><a href data-ng-click="nav.openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
-              '</ul>',
-            '</div>',
-            '<div data-ng-if="srwService.isApplicationMode(\'wavefront\')">',
-              navHeader('wavefront', 'Wavefront Propagation'),
-              rightNav,
-            '</div>',
-            '<div data-ng-if="srwService.isApplicationMode(\'light-sources\')">',
-              navHeader('light-sources', 'Light Source Facilities'),
-              rightNav,
-            '</div>',
-            '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="" data-app-url="{{ ::appURL() }}"></div>',
-              '<div class="navbar-left" data-app-header-left="nav"></div>',
-              rightNav,
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="srwService.isApplicationMode(\'calculator\')">
+              ${navHeader('calculator', 'SR Calculator')}
+              <ul data-ng-if="nav.isLoaded()" class="nav navbar-nav navbar-right">
+                <li data-settings-menu="nav"></li>
+                <li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Issues</a></li>
+              </ul>
+              <ul class="nav navbar-nav navbar-right" data-ng-show="nav.isLoaded()">
+                <li data-ng-if="nav.hasDocumentationUrl()"><a href data-ng-click="nav.openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>
+              </ul>
+            </div>
+            <div data-ng-if="srwService.isApplicationMode(\'wavefront\')">
+              ${navHeader('wavefront', 'Wavefront Propagation')}
+              ${rightNav}
+            </div>
+            <div data-ng-if="srwService.isApplicationMode(\'light-sources\')">
+              ${navHeader('light-sources', 'Light Source Facilities')}
+              ${rightNav}
+            </div>
+            <div data-ng-if="srwService.isApplicationMode(\'default\')">
+              <div data-app-header-brand="" data-app-url="{{ ::appURL() }}"></div>
+              <div class="navbar-left" data-app-header-left="nav"></div>
+              ${rightNav}
+            </div>
+        `,
         controller: function($scope) {
             $scope.srwService = srwService;
 
@@ -1678,39 +1678,39 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="modal fade" id="srw-simulation-import" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<div data-help-button="{{ title }}"></div>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<form name="importForm">',
-                        '<div class="form-group">',
-                          '<label>Select File</label>',
-                          '<input id="srw-python-file-import" type="file" data-file-model="pythonFile">',
-                          '<div data-ng-if="fileType(pythonFile)"></div>',
-                          '<br />',
-                          '<div class="srw-python-file-import-args"><label>Optional arguments:</label><input type="text" style="width: 100%" data-ng-model="importArgs"></div><br>',
-                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                        '</div>',
-                        '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
-                        '<div class="clearfix"></div>',
-                        '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary" data-ng-disabled="isUploading || ! pythonFile">Import File</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
-                        '</div>',
-                      '</form>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" id="srw-simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <form name="importForm">
+                        <div class="form-group">
+                          <label>Select File</label>
+                          <input id="srw-python-file-import" type="file" data-file-model="pythonFile">
+                          <div data-ng-if="fileType(pythonFile)"></div>
+                          <br />
+                          <div class="srw-python-file-import-args"><label>Optional arguments:</label><input type="text" style="width: 100%" data-ng-model="importArgs"></div><br>
+                          <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                        </div>
+                        <div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>
+                        <div class="clearfix"></div>
+                        <div class="col-sm-6 pull-right">
+                          <button data-ng-click="importPythonFile(pythonFile, importArgs)" class="btn btn-primary" data-ng-disabled="isUploading || ! pythonFile">Import File</button>
+                           <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
@@ -1777,11 +1777,11 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
             field: '=',
             model: '=',
         },
-        template: [
-            '<div data-file-field="field" data-file-type="mirror" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error">',
-              '<button type="button" title="View Graph" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-file-field="field" data-file-type="mirror" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error">
+              <button type="button" title="View Graph" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>
+            </div>
+        `,
         controller: function($scope) {
             $scope.showFileReport = function() {
                 var beamline = panelState.findParentAttribute($scope, 'beamline');
@@ -1812,29 +1812,29 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
             form: '=',
             model: '=',
         },
-        template: [
-            '<div class="sr-object-table" style="border-width: 2px; border-color: black;">',
-              '<div style="overflow-y: scroll; overflow-x: hidden; height: 360px;">',
-              '<table class="table table-hover table-condensed" style="border-width: 1px; border-color: #00a2c5;">',
-                '<thead>',
-                    '<tr>',
-                        '<td style="font-weight: bold">Element</td>',
-                        '<td style="font-weight: bold">Parameter Variations</td>',
-                    '</tr>',
-                '</thead>',
-                '<tbody>',
-                    '<tr data-ng-repeat="e in rsOptElements track by $index">',
-                      '<td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change="updateTotalSamples()"> {{ e.title }}</label></div></td>',
-                      '<td data-ng-repeat="p in rsOptParams" data-ng-if="hasFields(e, p)">',
-                        '<div data-ng-show="showFields(e)" style="font-weight: bold; text-align: center; line-height: 2">{{ rsOptElementFields[$index] }}</div>',
-                        '<div data-ng-show="showFields(e)" data-model-field="srwService.rsOptElementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0" data-custom-info="elementInfo(e, p)"></div>',
-                      '</td>',
-                    '</tr>',
-                '</tbody>',
-              '</table>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="sr-object-table" style="border-width: 2px; border-color: black;">
+              <div style="overflow-y: scroll; overflow-x: hidden; height: 360px;">
+              <table class="table table-hover table-condensed" style="border-width: 1px; border-color: #00a2c5;">
+                <thead>
+                    <tr>
+                        <td style="font-weight: bold">Element</td>
+                        <td style="font-weight: bold">Parameter Variations</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr data-ng-repeat="e in rsOptElements track by $index">
+                      <td><div class="checkbox checkbox-inline"><label><input type="checkbox" data-ng-model="e.enabled" data-ng-change="updateTotalSamples()"> {{ e.title }}</label></div></td>
+                      <td data-ng-repeat="p in rsOptParams" data-ng-if="hasFields(e, p)">
+                        <div data-ng-show="showFields(e)" style="font-weight: bold; text-align: center; line-height: 2">{{ rsOptElementFields[$index] }}</div>
+                        <div data-ng-show="showFields(e)" data-model-field="srwService.rsOptElementOffsetField(p)" data-model-name="modelName" data-model-data="elementModelData(e)" data-label-size="0" data-custom-info="elementInfo(e, p)"></div>
+                      </td>
+                    </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             const els = SIREPO.APP_SCHEMA.constants.rsOptElements;
             let exportFields = ['exportRsOpt.elements', 'exportRsOpt.numSamples', 'exportRsOpt.scanType'];
@@ -1994,11 +1994,11 @@ SIREPO.app.directive('mobileAppTitle', function(srwService) {
         scope: {
             nav: '=mobileAppTitle',
         },
-        template: [
-            mobileTitle('calculator', 'SR Calculator'),
-            mobileTitle('wavefront', 'Wavefront Propagation'),
-            mobileTitle('light-sources', 'Light Source Facilities'),
-        ].join(''),
+        template: `
+            ${mobileTitle('calculator', 'SR Calculator')}
+            ${mobileTitle('wavefront', 'Wavefront Propagation')}
+            ${mobileTitle('light-sources', 'Light Source Facilities')}
+        `,
         controller: function($scope) {
             $scope.srwService = srwService;
         },
@@ -2014,22 +2014,22 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
             field: '=',
             fieldClass: '=',
         },
-        template: [
-            '<div class="dropdown" data-ng-class="fieldClass">',
-              '<button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>',
-              '<ul class="dropdown-menu" style="margin-left: 15px">',
-                '<li data-ng-if="isElectronBeam()" class="dropdown-header">Predefined Electron Beams</li>',
-                '<li data-ng-repeat="item in modelList | orderBy:\'name\' track by item.name">',
-                  '<a href data-ng-click="selectItem(item)">{{ item.name }}</a>',
-                '</li>',
-                '<li data-ng-if="isElectronBeam() && userModelList.length" class="divider"></li>',
-                '<li data-ng-if="isElectronBeam() && userModelList.length" class="dropdown-header">User Defined Electron Beams</li>',
-                '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="sr-model-list-item">',
-                  '<a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
-                '</li>',
-              '</ul>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="dropdown" data-ng-class="fieldClass">
+              <button style="display: inline-block" class="btn btn-default dropdown-toggle form-control" type="button" data-toggle="dropdown">{{ model[field] }} <span class="caret"></span></button>
+              <ul class="dropdown-menu" style="margin-left: 15px">
+                <li data-ng-if="isElectronBeam()" class="dropdown-header">Predefined Electron Beams</li>
+                <li data-ng-repeat="item in modelList | orderBy:\'name\' track by item.name">
+                  <a href data-ng-click="selectItem(item)">{{ item.name }}</a>
+                </li>
+                <li data-ng-if="isElectronBeam() && userModelList.length" class="divider"></li>
+                <li data-ng-if="isElectronBeam() && userModelList.length" class="dropdown-header">User Defined Electron Beams</li>
+                <li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="sr-model-list-item">
+                  <a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>
+                </li>
+              </ul>
+            </div>
+        `,
         controller: function($scope, requestSender) {
 
             function addNewModel(model) {
@@ -2142,15 +2142,15 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
             disabled: '=',
             prop: '='
         },
-        template: [
-            '<div data-ng-switch="::paramInfo.fieldType">',
-              '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
-              '<select data-ng-switch-when="WavefrontShiftTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::wavefrontShiftTreatmentEnum"></select>',
-              '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
-              '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
-              '<button class="btn btn-default btn-xs" data-ng-disabled="disabled" data-ng-switch-when="Button" data-ng-model="param[paramInfo.fieldIndex]" data-ng-click="resetDefault()"><span class="glyphicon glyphicon-repeat"> </span></button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-switch="::paramInfo.fieldType">
+              <select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>
+              <select data-ng-switch-when="WavefrontShiftTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::wavefrontShiftTreatmentEnum"></select>
+              <input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">
+              <input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">
+              <button class="btn btn-default btn-xs" data-ng-disabled="disabled" data-ng-switch-when="Button" data-ng-model="param[paramInfo.fieldIndex]" data-ng-click="resetDefault()"><span class="glyphicon glyphicon-repeat"> </span></button>
+            </div>
+        `,
         controller: function($scope) {
             $scope.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
             $scope.wavefrontShiftTreatmentEnum = SIREPO.APP_SCHEMA.enum.WavefrontShiftTreatment;
@@ -2175,36 +2175,36 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
             propagations: '=',
             postPropagation: '=',
         },
-        template: [
-            '<div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<div data-help-button="Propagation Parameters"></div>',
-                    '<span class="lead modal-title text-info">Propagation Parameters</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<ul class="nav nav-tabs">',
-                          '<li data-ng-repeat="item in ::propagationSections track by $index" data-ng-class="{active: isPropagationSectionActive($index)}">',
-                            '<a href data-ng-click="setPropagationSection($index)">{{:: item }} <span data-ng-if="propagationInfo[$index]" data-header-tooltip="propagationInfo[$index]"></span></a>',
-                          '</li>',
-                        '</ul>',
-                        '<div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-sections="propagationSections"  data-section-params="parametersBySection[$index]" data-prop-type-index="propTypeIndex" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>',
-                      '</div>',
-                      '<div class="row">',
-                        '<div class="col-sm-offset-6 col-sm-3">',
-                          '<button data-dismiss="modal" class="btn btn-primary"style="width: 100%" >Close</button>',
-                        '</div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" id="srw-propagation-parameters" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="Propagation Parameters"></div>
+                    <span class="lead modal-title text-info">Propagation Parameters</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <ul class="nav nav-tabs">
+                          <li data-ng-repeat="item in ::propagationSections track by $index" data-ng-class="{active: isPropagationSectionActive($index)}">
+                            <a href data-ng-click="setPropagationSection($index)">{{:: item }} <span data-ng-if="propagationInfo[$index]" data-header-tooltip="propagationInfo[$index]"></span></a>
+                          </li>
+                        </ul>
+                        <div data-propagation-parameters-table="" data-section-index="{{:: $index }}" data-sections="propagationSections"  data-section-params="parametersBySection[$index]" data-prop-type-index="propTypeIndex" data-propagations="propagations" data-post-propagation="postPropagation" data-ng-repeat="item in ::propagationSections track by $index"></div>
+                      </div>
+                      <div class="row">
+                        <div class="col-sm-offset-6 col-sm-3">
+                          <button data-dismiss="modal" class="btn btn-primary"style="width: 100%" >Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             var activePropagationSection = 0;
             $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation', 'Grid Shift'];
@@ -2247,32 +2247,32 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
             propagations: '=',
             postPropagation: '=',
         },
-        template: [
-            '<div data-ng-class="::classForSection(sectionIndex)" data-ng-show="$parent.isPropagationSectionActive(sectionIndex)">',
-              '<table class="table table-striped table-condensed">',
-                '<thead>',
-                  '<tr>',
-                    '<th>Element</th>',
-                    '<th class="srw-tiny-heading" data-ng-repeat="item in ::parameterInfo track by $index">{{:: item.headingText }} <span data-ng-if="::item.headingTooltip" data-header-tooltip="::item.headingTooltip"</span></th>',
-                  '</tr>',
-                '</thead>',
-                '<tbody>',
-                  '<tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop)}" >',
-                    '<td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>',
-                    '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-prop="prop" data-param="prop.params" data-param-info="paramInfo" data-row-index="$index" data-disabled="isControlDisabledForProp(prop)"></div>',
-                    '</td>',
-                  '</tr>',
-                  '<tr class="warning">',
-                    '<td class="input-sm">Final post-propagation</td>',
-                    '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
-                      '<div data-propagation-parameter-field-editor="" data-prop="prop" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
-                    '</td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-class="::classForSection(sectionIndex)" data-ng-show="$parent.isPropagationSectionActive(sectionIndex)">
+              <table class="table table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Element</th>
+                    <th class="srw-tiny-heading" data-ng-repeat="item in ::parameterInfo track by $index">{{:: item.headingText }} <span data-ng-if="::item.headingTooltip" data-header-tooltip="::item.headingTooltip"</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="prop in propagations track by $index" data-ng-class="{\'srw-disabled-item\': isDisabledPropagation(prop), \'sr-disabled-text\': isControlDisabledForProp(prop)}" >
+                    <td class="input-sm" style="vertical-align: middle">{{ prop.title }}</td>
+                    <td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">
+                      <div data-propagation-parameter-field-editor="" data-prop="prop" data-param="prop.params" data-param-info="paramInfo" data-row-index="$index" data-disabled="isControlDisabledForProp(prop)"></div>
+                    </td>
+                  </tr>
+                  <tr class="warning">
+                    <td class="input-sm">Final post-propagation</td>
+                    <td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">
+                      <div data-propagation-parameter-field-editor="" data-prop="prop" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        `,
         controller: function($scope) {
 
             function initParameters() {
@@ -2323,20 +2323,20 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
 SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
     return {
         restrict: 'A',
-        template: [
-            '<div class="col-xs-5" style="white-space: nowrap">',
-              '<select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select> ',
-              '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>',
-            '</div>',
-            '<div class="col-sm-12">',
-              '<div class="lead text-center">',
-                '<span data-ng-if="errorMessage">{{ errorMessage }}</span>',
-                '<span data ng-if="isLoading && ! errorMessage">Loading image ...</span>',
-                '</div>',
-              '{{ loadImageFile() }}',
-              '<img class="img-responsive srw-processed-image" />',
-            '</div>',
-          ].join(''),
+        template: `
+            <div class="col-xs-5" style="white-space: nowrap">
+              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select> 
+              <a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>
+            </div>
+            <div class="col-sm-12">
+              <div class="lead text-center">
+                <span data-ng-if="errorMessage">{{ errorMessage }}</span>
+                <span data ng-if="isLoading && ! errorMessage">Loading image ...</span>
+                </div>
+              {{ loadImageFile() }}
+              <img class="img-responsive srw-processed-image" />
+            </div>
+          `,
         controller: function($scope) {
             var imageData;
             $scope.isLoading = false;
@@ -2422,11 +2422,11 @@ SIREPO.app.directive('sampleRandomShapes', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div data-ng-repeat="shape in shapes track by shape.id" style="display: inline-block; margin-right: 1em">',
-              '<div class="checkbox"><label><input type="checkbox" value="{{ shape.id }}" data-ng-click="toggle(shape)" data-ng-checked="isChecked(shape)">{{ shape.name }}</label></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-repeat="shape in shapes track by shape.id" style="display: inline-block; margin-right: 1em">
+              <div class="checkbox"><label><input type="checkbox" value="{{ shape.id }}" data-ng-click="toggle(shape)" data-ng-checked="isChecked(shape)">{{ shape.name }}</label></div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.shapes = ['Rectangle', 'Ellipse', 'Triangle', 'Polygon'].map(
                 function(name, idx) {
@@ -2464,49 +2464,48 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             model: '@simulationStatusPanel',
             title: '@',
         },
-        template: [
-            '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
-              '<div data-canceled-due-to-timeout-alert="simState"></div>',
-              '<div class="progress" data-ng-if="simState.isProcessing()">',
-                '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
-              '</div>',
-              '<div data-ng-if="simState.isProcessing()">',
-                '<div class="col-sm-6">',
-                  '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
-                  '<div data-ng-show="simState.isInitializing()">',
-                    '<span class="glyphicon glyphicon-hourglass"></span> {{ initMessage() }} {{ simState.dots }}',
-                  '</div>',
-                  '<div data-ng-show="simState.isStateRunning() && ! simState.isInitializing()">',
-                    '{{ simState.stateAsText() }} {{ simState.dots }}',
-                    '<div data-ng-show="! simState.isStatePending() && particleNumber">',
-                      'Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}',
-                    '</div>',
-                    '<div data-simulation-status-timer="simState" data-ng-show="! isFluxWithApproximateMethod()"></div>',
-                  '</div>',
-                '</div>',
-                '<div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">',
-                  '<button data-ng-show="! isLoading()" class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>',
-                '</div>',
-              '</div>',
-              '<div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">',
-                '<div data-simulation-stopped-status="simState"></div>',
-                  '<div class="col-sm-12" data-ng-show="showFrameCount()">',
-                    'Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}',
-                  '</div>',
-                '<div class="col-sm-12" data-simulation-status-timer="simState"></div>',
-                //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
-                '<div data-ng-if="simState.showJobSettings()">',
-                  '<div class="form-group form-group-sm">',
-                    '<div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
-                    '<div data-sbatch-options="simState"></div>',
-                  '</div>',
-                '</div>',
-                '<div class="col-sm-6 pull-right">',
-                  '<button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>',
-                '</div>',
-              '</div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form name="form" class="form-horizontal" autocomplete="off" novalidate>
+              <div data-canceled-due-to-timeout-alert="simState"></div>
+              <div class="progress" data-ng-if="simState.isProcessing()">
+                <div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
+              </div>
+              <div data-ng-if="simState.isProcessing()">
+                <div class="col-sm-6">
+                  <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
+                  <div data-ng-show="simState.isInitializing()">
+                    <span class="glyphicon glyphicon-hourglass"></span> {{ initMessage() }} {{ simState.dots }}
+                  </div>
+                  <div data-ng-show="simState.isStateRunning() && ! simState.isInitializing()">
+                    {{ simState.stateAsText() }} {{ simState.dots }}
+                    <div data-ng-show="! simState.isStatePending() && particleNumber">
+                      Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
+                    </div>
+                    <div data-simulation-status-timer="simState" data-ng-show="! isFluxWithApproximateMethod()"></div>
+                  </div>
+                </div>
+                <div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">
+                  <button data-ng-show="! isLoading()" class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>
+                </div>
+              </div>
+              <div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">
+                <div data-simulation-stopped-status="simState"></div>
+                  <div class="col-sm-12" data-ng-show="showFrameCount()">
+                    Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
+                  </div>
+                <div class="col-sm-12" data-simulation-status-timer="simState"></div>
+                <div data-ng-if="simState.showJobSettings()">
+                  <div class="form-group form-group-sm">
+                    <div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+                    <div data-sbatch-options="simState"></div>
+                  </div>
+                </div>
+                <div class="col-sm-6 pull-right">
+                  <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>
+                </div>
+              </div>
+            </form>
+        `,
         controller: function($scope, appState, authState, stringsService) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
@@ -2676,19 +2675,17 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             modelName: '@',
             reportId: '<',
         },
-        template: [
-            '<div style="float: right; margin-top: -10px; margin-bottom: 5px;">',
-            '<div style="display: inline-block" data-ng-repeat="dim in ::dimensions track by $index">',
-            '<button data-ng-attr-class="btn btn-{{ selectedDimension == dim ? \'primary\' : \'default\' }}" data-ng-click="setCamera(dim)">{{ dim | uppercase }}{{ viewDirection[dim] > 0 ? \'+\' : \'-\' }}</button>&nbsp;',
-            '</div>',
-            '</div>',
-            '<div style="padding-bottom:1px; clear: both; border: 1px solid black">',
-              //TODO(pjm): use explicity width/height, update in resize()
-              '<div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>',
-            '</div>',
-            // force the Download Report menu to appear
-            '<svg></svg>',
-        ].join(''),
+        template: `
+            <div style="float: right; margin-top: -10px; margin-bottom: 5px;">
+            <div style="display: inline-block" data-ng-repeat="dim in ::dimensions track by $index">
+            <button data-ng-attr-class="btn btn-{{ selectedDimension == dim ? \'primary\' : \'default\' }}" data-ng-click="setCamera(dim)">{{ dim | uppercase }}{{ viewDirection[dim] > 0 ? \'+\' : \'-\' }}</button>&nbsp;
+            </div>
+            </div>
+            <div style="padding-bottom:1px; clear: both; border: 1px solid black">
+              <div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>
+            </div>
+            <svg></svg>
+        `,
         controller: function($scope, $element) {
             var LABEL_FONT_HEIGHT = 96;
             var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
@@ -3235,16 +3232,16 @@ SIREPO.app.directive('srwNumberList', function(appState) {
             type: '@',
             count: '@',
         },
-        template: [
-            '<div class="row" data-ng-repeat="defaultSelection in parseValues() track by $index">',
-            '<div class="col-sm-5 text-right control-label">',
-                '<label>{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
-            '</div>',
-            '<div class="col-sm-7">',
-                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
-            '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="row" data-ng-repeat="defaultSelection in parseValues() track by $index">
+            <div class="col-sm-5 text-right control-label">
+                <label>{{ valueLabels[$index] || \'Plane \' + $index }}</label>
+            </div>
+            <div class="col-sm-7">
+                <input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />
+            </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             let lastModel = null;
             // NOTE: does not appear to like 'model.field' format

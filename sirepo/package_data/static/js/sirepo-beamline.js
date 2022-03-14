@@ -223,33 +223,33 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             showActiveWatchpoints: '<',
             activeWatchpointTitle: '@',
        },
-        template: [
-            '<div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">',
-              '<div data-ng-transclude=""></div>',
-              '<p class="lead text-center">beamline definition area ',
-                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>',
-                '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
-              '<div class="srw-beamline-container">',
-                '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div>',
-                  '<div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
-                    'data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)" ',
-                    'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
-                    'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">',
-                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data, $event)"> </div>',
-                '</div>',
-            '</div>',
-            '<div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>',
-              '<div class="row">',
-                '<form>',
-                  '<div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">',
-                    '<button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save Changes</button> ',
-                    '<button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>',
-                  '</div>',
-                '</form>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">
+              <div data-ng-transclude=""></div>
+              <p class="lead text-center">beamline definition area 
+                <button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>
+                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>
+              <div class="srw-beamline-container">
+                <div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">
+                  <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div>
+                  <div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item="" 
+                    data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)" 
+                    class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" 
+                    data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">
+                  </div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data, $event)"> </div>
+                </div>
+            </div>
+            <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
+              <div class="row">
+                <form>
+                  <div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">
+                    <button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save Changes</button> 
+                    <button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+        `,
         controller: function($scope, $rootScope) {
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
@@ -426,12 +426,12 @@ SIREPO.app.directive('beamlineIcon', function() {
         scope: {
             item: '=',
         },
-        template: [
-            '<div data-ng-if="::isSVG">',
-              '<data-ng-include src="::iconUrl" data-onload="iconLoaded()"/>',
-            '</div>',
-            '<img class="srw-beamline-item-icon" data-ng-if="::! isSVG" data-ng-attr-src="{{ ::iconUrl }}"/>',
-        ].join(''),
+        template: `
+            <div data-ng-if="::isSVG">
+              <data-ng-include src="::iconUrl" data-onload="iconLoaded()"/>
+            </div>
+            <img class="srw-beamline-item-icon" data-ng-if="::! isSVG" data-ng-attr-src="{{ ::iconUrl }}"/>
+        `,
         controller: function($scope, $element) {
             var adjustmentsByType = {
                 // height, x, y
@@ -494,17 +494,17 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             isWatchpointActive: '&',
             setWatchpointActive: '&',
         },
-        template: [
-            '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>',
-            '<span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>',
-            '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
-            '<div class="srw-beamline-image">',
-              '<span data-beamline-icon="" data-item="item"></span>',
-            '</div>',
-            '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>',
-        ].join(''),
+        template: `
+            <span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>
+            <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>
+            <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>
+            <span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>
+            <span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>
+            <div class="srw-beamline-image">
+              <span data-beamline-icon="" data-item="item"></span>
+            </div>
+            <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>
+        `,
         controller: function($scope, $element) {
             $scope.beamlineService = beamlineService;
             $scope.showItemButtons = function() {
@@ -629,26 +629,26 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
             modelName: '@',
             parentController: '=',
         },
-        template: [
-            '<div>',
-              '<button type="button" class="close" data-ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>',
-              '<div data-help-button="{{ title }}"></div>',
-              '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
-                '<div class="sr-beamline-element-title">{{ title }}</div>',
-                '<div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>',
-                '<div class="form-group">',
-                  '<div class="col-sm-offset-6 col-sm-3">',
-                    '<button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-disabled="! form.$valid">Close</button>',
-                  '</div>',
-                '</div>',
-                '<div class="form-group" data-ng-show="beamlineService.isTouchscreen() && beamlineService.isEditable()">',
-                  '<div class="col-sm-offset-6 col-sm-3">',
-                    '<button ng-click="beamlineService.removeActiveItem()" style="width: 100%" type="submit" class="btn btn-danger">Delete</button>',
-                  '</div>',
-                '</div>',
-              '</form>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div>
+              <button type="button" class="close" data-ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>
+              <div data-help-button="{{ title }}"></div>
+              <form name="form" class="form-horizontal" autocomplete="off" novalidate>
+                <div class="sr-beamline-element-title">{{ title }}</div>
+                <div data-advanced-editor-pane="" data-view-name="modelName" data-model-data="modelAccess" data-parent-controller="parentController"></div>
+                <div class="form-group">
+                  <div class="col-sm-offset-6 col-sm-3">
+                    <button ng-click="beamlineService.dismissPopup()" style="width: 100%" type="submit" class="btn btn-primary" data-ng-disabled="! form.$valid">Close</button>
+                  </div>
+                </div>
+                <div class="form-group" data-ng-show="beamlineService.isTouchscreen() && beamlineService.isEditable()">
+                  <div class="col-sm-offset-6 col-sm-3">
+                    <button ng-click="beamlineService.removeActiveItem()" style="width: 100%" type="submit" class="btn btn-danger">Delete</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+        `,
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
             $scope.title = appState.viewInfo($scope.modelName).title;
@@ -670,14 +670,14 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div data-column-for-aspect-ratio="initialIntensityReport">',
-              '<div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>',
-            '</div>',
-            '<div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
-              '<div data-watchpoint-report="" data-item-id="item.id"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-column-for-aspect-ratio="initialIntensityReport">
+              <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>
+            </div>
+            <div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">
+              <div data-watchpoint-report="" data-item-id="item.id"></div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
         },
@@ -691,28 +691,28 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             toolbarItemNames: '=beamlineToolbar',
             parentController: '=',
         },
-        template: [
-            '<div class="row">',
-              '<div class="col-sm-12">',
-                '<div class="text-center bg-info sr-toolbar-holder">',
-                  '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
-                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>',
-                    '<span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
-                      '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
-                    '</span>',
-                  '</div>',
-                  '<span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
-                    '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
-                  '</span>',
-                '</div>',
-              '</div>',
-            '</div>',
-            '<div class="srw-editor-holder" style="display:none">',
-              '<div data-ng-repeat="item in ::allItems">',
-                '<div class="sr-beamline-editor" id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="row">
+              <div class="col-sm-12">
+                <div class="text-center bg-info sr-toolbar-holder">
+                  <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
+                    <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>
+                    <span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
+                      <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                    </span>
+                  </div>
+                  <span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
+                    <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="srw-editor-holder" style="display:none">
+              <div data-ng-repeat="item in ::allItems">
+                <div class="sr-beamline-editor" id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.allItems = [];
             function addItem(name, items) {
@@ -761,9 +761,9 @@ SIREPO.app.directive('watchpointModalEditor', function(beamlineService) {
             parentController: '=',
             itemId: '=',
         },
-        template: [
-            '<div data-modal-editor="" view-name="{{ modelName }}" data-parent-controller="parentController" data-model-data="modelAccess" data-modal-title="reportTitle()"></div>',
-        ].join(''),
+        template: `
+            <div data-modal-editor="" view-name="{{ modelName }}" data-parent-controller="parentController" data-model-data="modelAccess" data-modal-title="reportTitle()"></div>
+        `,
         controller: function($scope) {
             $scope.modelName = $scope.itemId ? 'watchpointReport' : 'initialIntensityReport';
             beamlineService.setupWatchpointDirective($scope);
@@ -776,11 +776,11 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
         scope: {
             itemId: '=',
         },
-        template: [
-            '<div data-column-for-aspect-ratio="{{ watchpointModelName }}">',
-              '<div data-report-panel="3d" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-column-for-aspect-ratio="{{ watchpointModelName }}">
+              <div data-report-panel="3d" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.modelName = $scope.itemId ? 'watchpointReport' : 'initialIntensityReport';
             beamlineService.setupWatchpointDirective($scope);
@@ -796,9 +796,9 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as wpOptionTitle(item) for item in watchItems"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as wpOptionTitle(item) for item in watchItems"></select>
+        `,
         controller: function($scope, $element) {
             $scope.watchItems = null;
             $scope.wpOptionTitle = function(item) {
