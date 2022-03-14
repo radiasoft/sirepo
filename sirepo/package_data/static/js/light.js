@@ -254,8 +254,7 @@ app.directive('pageHeading', function() {
             <nav class="navbar navbar-default navbar-static-top">
               <div class="container-fluid">
                 <a class="navbar-brand" href="/en/xray-beamlines.html">
-                  <img style="width: 40px; margin-top: -10px" src="/static/img/sirepo.gif
-                    ${SIREPO.SOURCE_CACHE_KEY,'">'}
+                  <img style="width: 40px; margin-top: -10px" src="/static/img/sirepo.gif${SIREPO.SOURCE_CACHE_KEY}">
                 </a>
                 <div class="navbar-brand">
                   <a data-ng-if="lc.pageName()" href="#home">Synchrotron Radiation Workshop</a>
