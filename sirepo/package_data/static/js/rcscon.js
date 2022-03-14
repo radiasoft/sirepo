@@ -74,10 +74,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
+        `,
     };
 });
 
@@ -87,27 +87,26 @@ SIREPO.app.directive('appHeader', function(appState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>',
-                  '<li class="sim-section" data-ng-if="hasFiles()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>',
-                  '<li class="sim-section" data-ng-if="hasFilesAndPartition()" data-ng-class="{active: nav.isActive(\'machine-learning\')}"><a href data-ng-click="nav.openSection(\'machine-learning\')"><span class="glyphicon glyphicon-qrcode"></span> Machine Learning</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
+                  <li class="sim-section" data-ng-if="hasFiles()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>
+                  <li class="sim-section" data-ng-if="hasFilesAndPartition()" data-ng-class="{active: nav.isActive(\'machine-learning\')}"><a href data-ng-click="nav.openSection(\'machine-learning\')"><span class="glyphicon glyphicon-qrcode"></span> Machine Learning</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.hasFiles = function() {
                 if (appState.isLoaded()) {
@@ -193,10 +192,10 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
             modelName: '@',
             reportId: '<',
         },
-        template: [
-            '<div data-report-content="rawSVG" data-model-key="mlModelGraph" data-report-cfg="reportCfg">',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-report-content="rawSVG" data-model-key="mlModelGraph" data-report-cfg="reportCfg">
+            </div>
+        `,
         controller: function($scope, $element) {
 
             var scale = 0.75;
@@ -292,18 +291,18 @@ SIREPO.app.directive('partitionSelection', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form name="form" class="form-horizontal" data-ng-style="formStyle">',
-              '<div class="form-group form-group-sm">',
-                '<div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>',
-                '<div data-ng-repeat="field in fields track by $index" class="col-sm-4">',
-                  '<p class="form-control-static text-center">{{ selectedRange(field) }}</p>',
-                '</div>',
-                '<div data-ng-if="hasTrainingAndTesting()" data-model-field="\'trainTestPercent\'" data-model-name="\'partition\'"></div>',
-              '</div>',
-              '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form name="form" class="form-horizontal" data-ng-style="formStyle">
+              <div class="form-group form-group-sm">
+                <div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>
+                <div data-ng-repeat="field in fields track by $index" class="col-sm-4">
+                  <p class="form-control-static text-center">{{ selectedRange(field) }}</p>
+                </div>
+                <div data-ng-if="hasTrainingAndTesting()" data-model-field="\'trainTestPercent\'" data-model-name="\'partition\'"></div>
+              </div>
+              <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>
+            </form>
+        `,
         controller: function($scope) {
             var dragCarat, plotRefresh, plotScope;
             $scope.modelName = 'partition';
@@ -495,12 +494,12 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
         scope: {
             controller: '=',
         },
-        template: [
-            '{{ statusText }}',
-            '<div class="progress" data-ng-if="simState.isProcessing()" >',
-              '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: 100%"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            {{ statusText }}
+            <div class="progress" data-ng-if="simState.isProcessing()" >
+              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: 100%"></div>
+            </div>
+        `,
         controller: function($scope) {
             var self = this;
             self.simScope = $scope;
@@ -678,37 +677,37 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form name="form" class="form-horizontal">',
-              '<div class="form-group form-group-sm">',
-                '<table class="table table-striped table-condensed">',
-                  '<tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">',
-                    '<td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">',
-                      '<div data-ng-if="fieldInfo.field">',
-                        '<b>{{ fieldInfo.label }}</b>',
-                        '<div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>',
-                      '</div>',
-                    '</td>',
-                    '<td style="padding-top: 2em;">',
-                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteLayer($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
-                    '</td>',
-                  '<tr>',
-                    '<td>',
-                      '<b>Add Layer</b>',
-                        '<select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>',
-                    '</td>',
-                    '<td></td>',
-                    '<td></td>',
-                    '<td></td>',
-                  '</tr>',
-                '</table>',
-              '</div>',
-              '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
-                '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
-                '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
-              '</div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form name="form" class="form-horizontal">
+              <div class="form-group form-group-sm">
+                <table class="table table-striped table-condensed">
+                  <tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">
+                    <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
+                      <div data-ng-if="fieldInfo.field">
+                        <b>{{ fieldInfo.label }}</b>
+                        <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>
+                      </div>
+                    </td>
+                    <td style="padding-top: 2em;">
+                      <button class="btn btn-danger btn-xs" data-ng-click="deleteLayer($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
+                    </td>
+                  <tr>
+                    <td>
+                      <b>Add Layer</b>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
+              <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
+                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+              </div>
+            </form>
+        `,
         controller: function($scope, $element) {
             var layerFields = {};
             var layerInfo = [];
@@ -803,15 +802,14 @@ SIREPO.app.directive('rcsconLattice', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            //'<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
-            '<div class="col-sm-12">',
-              '<div class="rcscon-lattice">',
-                '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
-              '</div>',
-              '<div class="lead">DTL Tank</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-sm-12">
+              <div class="rcscon-lattice">
+                <div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>
+              </div>
+              <div class="lead">DTL Tank</div>
+            </div>
+        `,
         controller: function($scope) {
             var axis, latticeScope;
 

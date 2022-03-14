@@ -308,10 +308,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import MAD-X File" data-description="Select a MAD-X file." data-file-formats=".madx,.zip,.seq"></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog="" data-title="Import MAD-X File" data-description="Select a MAD-X file." data-file-formats=".madx,.zip,.seq"></div>
+        `,
     };
 });
 
@@ -322,28 +322,27 @@ SIREPO.app.directive('appHeader', function(appState, madxService, latticeService
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-                  '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-ng-if="nav.isLoaded()" data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>
+                  <li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
 
@@ -378,9 +377,9 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelStat
         scope: {
             reportInfo: '=',
         },
-        template: [
-            '<div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess"></div>',
-        ].join(''),
+        template: `
+            <div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess"></div>
+        `,
         controller: function($scope) {
             $scope.modelKey = $scope.reportInfo.modelAccess.modelKey;
             $scope.viewName = $scope.reportInfo.viewName;
@@ -402,9 +401,9 @@ SIREPO.app.directive('madXLatticeList', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>
+        `,
         controller: function($scope) {
             $scope.elegantLatticeList = function() {
                 if (! appState.isLoaded() || ! $scope.model) {
@@ -438,9 +437,9 @@ SIREPO.app.directive('matchSummaryPanel', function(appState, plotting) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<pre>{{ summaryText }}</pre>',
-        ].join(''),
+        template: `
+            <pre>{{ summaryText }}</pre>
+        `,
         controller: function($scope) {
             plotting.setTextOnlyReport($scope);
             $scope.load = function(json) {

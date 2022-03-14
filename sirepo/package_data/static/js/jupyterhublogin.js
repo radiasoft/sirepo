@@ -36,10 +36,10 @@ SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-right="nav"></div>',
-        ].join('')
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-right="nav"></div>
+        `
     };
 });
 

@@ -120,27 +120,25 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
     });
 
     $routeProvider.when('/home', {
-        template: [
-            '<div data-page-heading="" data-lc="lc"></div>',
-            '<div class="container">',
-              '<div data-ng-repeat="item in lc.srwExamples" data-big-button="item"></div>',
-              '<div class="lp-launch-button text-center" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
-            '</div>',
-        ].join('')
+        template: `
+            <div data-page-heading="" data-lc="lc"></div>
+            <div class="container">
+              <div data-ng-repeat="item in lc.srwExamples" data-big-button="item"></div>
+              <div class="lp-launch-button text-center" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>
+            </div>
+        `
     });
     Object.keys(appRoutes).forEach(function(key) {
         $routeProvider.when('/' + key, {
-            template: [
-                '<div data-page-heading="" data-lc="lc"></div>',
-                '<div class="container">',
-                    '<div class="row visible-xs">',
-                        '<div class="lead text-center" data-ng-bind="lc.pageName()"></div>',
-                    '</div>',
-                    '<div data-ng-repeat="item in lc.itemsForCategory()" data-',
-                    (key == 'light-sources' ? 'button-list' : 'big-button'),
-                    '="item"></div>',
-                '</div>',
-            ].join('')
+            template: `
+                <div data-page-heading="" data-lc="lc"></div>
+                <div class="container">
+                    <div class="row visible-xs">
+                        <div class="lead text-center" data-ng-bind="lc.pageName()"></div>
+                    </div>
+                    <div data-ng-repeat="item in lc.itemsForCategory()" data-${key === 'light-sources' ? 'button-list' : 'big-button'}="item"></div>
+                </div>
+            `,
         });
     });
     $routeProvider.otherwise({
@@ -189,13 +187,13 @@ app.directive('bigButton', function() {
             item: '=bigButton',
             wideCol: '@',
         },
-        template: [
-            '<div class="row">',
-              '<div data-ng-class="item.class">',
-                '<a data-ng-href="{{ item.url }}" class="btn btn-default thumbnail lp-big-button"><h3 data-ng-if="item.name">{{ item.name }}</h3><img data-ng-if="item.image" data-ng-src="/static/img/{{ item.image }}" alt="{{ item.name }}" /><span class="lead text-primary" style="white-space: pre" data-ng-if="item.buttonText">{{ item.buttonText }}</span></a>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="row">
+              <div data-ng-class="item.class">
+                <a data-ng-href="{{ item.url }}" class="btn btn-default thumbnail lp-big-button"><h3 data-ng-if="item.name">{{ item.name }}</h3><img data-ng-if="item.image" data-ng-src="/static/img/{{ item.image }}" alt="{{ item.name }}" /><span class="lead text-primary" style="white-space: pre" data-ng-if="item.buttonText">{{ item.buttonText }}</span></a>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             var current = $scope;
             var controller;
@@ -220,16 +218,16 @@ app.directive('buttonList', function() {
         scope: {
             item: '=buttonList',
         },
-        template: [
-            '<div class="row">',
-              '<div class="col-md-8 col-md-offset-2">',
-                '<div class="well">',
-                  '<h3>{{ item.name }}</h3>',
-                  '<div data-ng-repeat="item in item.simulations" data-big-button="item" data-wide-col="1"></div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="row">
+              <div class="col-md-8 col-md-offset-2">
+                <div class="well">
+                  <h3>{{ item.name }}</h3>
+                  <div data-ng-repeat="item in item.simulations" data-big-button="item" data-wide-col="1"></div>
+                </div>
+              </div>
+            </div>
+        `,
     };
 });
 
@@ -240,9 +238,9 @@ app.directive('launchButton', function() {
             label: '<',
             url: '<',
         },
-        template: [
-            '<a class="btn btn-default" data-ng-href="{{ url }}"><h4>{{ label }}</h4></a>',
-        ].join(''),
+        template: `
+            <a class="btn btn-default" data-ng-href="{{ url }}"><h4>{{ label }}</h4></a>
+        `,
     };
 });
 
@@ -252,21 +250,20 @@ app.directive('pageHeading', function() {
         scope: {
             lc: '=',
         },
-        template: [
-            '<nav class="navbar navbar-default navbar-static-top">',
-              '<div class="container-fluid">',
-                '<a class="navbar-brand" href="/en/xray-beamlines.html">',
-                  '<img style="width: 40px; margin-top: -10px" src="/static/img/sirepo.gif',
-                    SIREPO.SOURCE_CACHE_KEY,'">',
-                '</a>',
-                '<div class="navbar-brand">',
-                  '<a data-ng-if="lc.pageName()" href="#home">Synchrotron Radiation Workshop</a>',
-                  '<span data-ng-if="! lc.pageName()">Synchrotron Radiation Workshop</span>',
-                  ' <span class="hidden-xs" data-ng-if="lc.pageName()">-</span> ',
-                  '<span class="hidden-xs" data-ng-if="lc.pageName()" data-ng-bind="lc.pageName()"></span>',
-                '</div>',
-              '</div>',
-            '</nav>',
-        ].join(''),
+        template: `
+            <nav class="navbar navbar-default navbar-static-top">
+              <div class="container-fluid">
+                <a class="navbar-brand" href="/en/xray-beamlines.html">
+                  <img style="width: 40px; margin-top: -10px" src="/static/img/sirepo.gif${SIREPO.SOURCE_CACHE_KEY}">
+                </a>
+                <div class="navbar-brand">
+                  <a data-ng-if="lc.pageName()" href="#home">Synchrotron Radiation Workshop</a>
+                  <span data-ng-if="! lc.pageName()">Synchrotron Radiation Workshop</span>
+                   <span class="hidden-xs" data-ng-if="lc.pageName()">-</span> 
+                  <span class="hidden-xs" data-ng-if="lc.pageName()" data-ng-bind="lc.pageName()"></span>
+                </div>
+              </div>
+            </nav>
+        `,
     };
 });
