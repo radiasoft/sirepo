@@ -20,7 +20,6 @@ from sirepo import uri_router
 import contextlib
 import flask
 import re
-import sirepo.auth
 import sirepo.db_upgrade
 import sirepo.resource
 import sirepo.sim_data
@@ -491,14 +490,6 @@ def api_simulationData(simulation_type, simulation_id, pretty=False, section=Non
     return http_reply.headers_for_no_cache(resp)
 
 
-@api_perm.allow_visitor
-def api_slackLink():
-    return http_reply.gen_json({
-        'url': sirepo.feature_config.cfg().sim_common.join_slack_uri +
-               (sirepo.auth.logged_in_user() if sirepo.auth.is_logged_in() else 'login')
-    })
-
-
 @api_perm.require_user
 def api_listSimulations():
     req = http_request.parse_post()
@@ -533,6 +524,7 @@ def api_srwLight():
 
 @api_perm.allow_visitor
 def api_srUnit():
+    import sirepo.auth
     import sirepo.cookie
     v = getattr(sirepo.util.flask_app(), SRUNIT_TEST_IN_REQUEST)
     u =  contextlib.nullcontext

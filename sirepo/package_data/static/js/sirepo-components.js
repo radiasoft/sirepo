@@ -2451,10 +2451,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
             $scope.authState = authState;
 
             $scope.getSlackLink = function() {
-                const successCallback = (res) => {
-                    $scope.slackLink = res.url;
-                };
-                requestSender.sendRequest('slackLink', successCallback);
+                $scope.slackLink = authState.slackUri;
             };
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
