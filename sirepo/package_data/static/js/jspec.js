@@ -260,10 +260,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
+        `,
     };
 });
 
@@ -273,23 +273,22 @@ SIREPO.app.directive('appHeader', function() {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+              </app-header-right-sim-list>
+            </div>
+        `,
     };
 });
 
@@ -297,29 +296,29 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div data-ng-if="! rates">',
-              '<div class="lead">&nbsp;</div>',
-            '</div>',
-            '<div data-ng-if="rates">',
-              '<div class="col-sm-12" style="margin-top: 1ex;">',
-                '<table class="table">',
-                  '<thead>',
-                  '<tr>',
-                    '<th>&nbsp;</th>',
-                    '<th class="text-right">Horizontal</th>',
-                    '<th class="text-right">Vertical</th>',
-                    '<th class="text-right">Longitudinal</th>',
-                  '</tr>',
-                  '</thead>',
-                  '<tr data-ng-repeat="rate in rates">',
-                    '<td><label>{{ rate[0] }}</label></td>',
-                    '<td data-ng-repeat="value in rate[1] track by $index" class="text-right">{{ value }}</td>',
-                  '</tr>',
-                '</table>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="! rates">
+              <div class="lead">&nbsp;</div>
+            </div>
+            <div data-ng-if="rates">
+              <div class="col-sm-12" style="margin-top: 1ex;">
+                <table class="table">
+                  <thead>
+                  <tr>
+                    <th>&nbsp;</th>
+                    <th class="text-right">Horizontal</th>
+                    <th class="text-right">Vertical</th>
+                    <th class="text-right">Longitudinal</th>
+                  </tr>
+                  </thead>
+                  <tr data-ng-repeat="rate in rates">
+                    <td><label>{{ rate[0] }}</label></td>
+                    <td data-ng-repeat="value in rate[1] track by $index" class="text-right">{{ value }}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             plotting.setTextOnlyReport($scope);
             $scope.load = function(json) {
@@ -341,11 +340,11 @@ SIREPO.app.directive('twissFileField', function(appState, panelState) {
             model: '=',
             modelName: '=',
         },
-        template: [
-            '<div data-file-field="field" data-model="model" data-model-name="modelName" data-selection-required="true">',
-              '<button type="button" title="View Twiss Parameters" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-file-field="field" data-model="model" data-model-name="modelName" data-selection-required="true">
+              <button type="button" title="View Twiss Parameters" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>
+            </div>
+        `,
         controller: function($scope) {
             $scope.showFileReport = function() {
                 appState.saveChanges('ring');

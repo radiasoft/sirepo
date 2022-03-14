@@ -286,9 +286,9 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, $location) {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+        `,
         controller: function($scope) {
             $scope.$on('$routeChangeSuccess', function() {
                 if ($location.path() == SIREPO.APP_SCHEMA.localRoutes.simulations.route) {
@@ -312,23 +312,22 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-user"></span> DICOM Viewer</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-picture"></span> Dose Comparison</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-user"></span> DICOM Viewer</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-picture"></span> Dose Comparison</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+              </app-header-right-sim-list>
+            </div>
+        `,
     };
 });
 
@@ -448,19 +447,18 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
             modelName: '@',
             reportId: '<',
         },
-        template: [
-            '<div data-ng-if="! is3dViewActivated">',
-              '<div style="background: black; color: white; margin-bottom: 0; padding-top: 48%; padding-bottom: 48%">',
-                '<div style="cursor: pointer" class="lead text-center"  data-ng-click="activate3dView()" data-ng-if="iradService.getROIPoints()">Click to view 3D model</div>',
-              '</div>',
-            '</div>',
-            '<div data-ng-if="is3dViewActivated">',
-              '<div data-dicom-orientation-marker=""></div>',
-              '<div class="sr-dicom3d-content" style="max-width: 100vh; max-height: 100vh"></div>',
-              // force the Download Report menu to appear
-              '<svg style="display: none"></svg>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="! is3dViewActivated">
+              <div style="background: black; color: white; margin-bottom: 0; padding-top: 48%; padding-bottom: 48%">
+                <div style="cursor: pointer" class="lead text-center"  data-ng-click="activate3dView()" data-ng-if="iradService.getROIPoints()">Click to view 3D model</div>
+              </div>
+            </div>
+            <div data-ng-if="is3dViewActivated">
+              <div data-dicom-orientation-marker=""></div>
+              <div class="sr-dicom3d-content" style="max-width: 100vh; max-height: 100vh"></div>
+              <svg style="display: none"></svg>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.iradService = iradService;
             var fsRenderer, pngCanvas;
@@ -1149,25 +1147,25 @@ SIREPO.app.directive('dicomPlot', function(appState, iradService, panelState, pl
             isComparePlot: '@',
             isDifferencePlot: '@',
         },
-        template: [
-          '<div style="position: relative; background: black" ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
-            '<canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;"></canvas>',
-            '<div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight}}">',
-              '<g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
-                '<svg class="plot-viewport" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}">',
-                  '<rect class="overlay mouse-zoom" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>',
-                  '<defs>',
-                    '<clippath id="{{ modelName }}-clip">',
-                      '<rect ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>',
-                    '</clippath>',
-                  '</defs>',
-                  '<g class="draw-area" ng-attr-clip-path="url(#{{ modelName }}-clip)"></g>',
-                '</svg>',
-              '</g>',
-            '</svg></div>',
-          '</div>',
-          '<input class="irad-dicom-slider" data-ng-model="model.frameIdx" selected data-ng-change="rangeChanged()" type="range" min="0" max="{{ maxFrame }}" step="1" />',
-        ].join(''),
+        template: `
+          <div style="position: relative; background: black" ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
+            <canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;"></canvas>
+            <div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight}}">
+              <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+                <svg class="plot-viewport" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}">
+                  <rect class="overlay mouse-zoom" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>
+                  <defs>
+                    <clippath id="{{ modelName }}-clip">
+                      <rect ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>
+                    </clippath>
+                  </defs>
+                  <g class="draw-area" ng-attr-clip-path="url(#{{ modelName }}-clip)"></g>
+                </svg>
+              </g>
+            </svg></div>
+          </div>
+          <input class="irad-dicom-slider" data-ng-model="model.frameIdx" selected data-ng-change="rangeChanged()" type="range" min="0" max="{{ maxFrame }}" step="1" />
+        `,
         controller: function($scope) {
             $scope.canvasHeight = 0;
             $scope.canvasWidth = 0;
@@ -1733,46 +1731,45 @@ SIREPO.app.directive('dicomObjectSelector', function(activeSection, appState, ir
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            //TODO(pjm): move style into classes
-            '<div data-ng-repeat="row in rows" style="padding: 0.5ex 0; white-space: nowrap; overflow: hidden">',
-              '<div>',
-                '<div style="display: inline-block; cursor: pointer; margin-right: 5px; white-space: nowrap" data-ng-click="toggleExpanded(row)">',
-                  '<span class="glyphicon" data-ng-class="row.isExpanded ? \'glyphicon-collapse-up\' : \'glyphicon-collapse-down\'"></span>',
-                '</div>',
-                '<div style="display: inline-block; cursor: pointer; white-space: nowrap" data-ng-click="toggleSelected(row)">',
-                  '<span class="glyphicon" data-ng-class="appState.models.dicomSettings[row.showField] == \'1\' ? \'glyphicon-check\' : \'glyphicon-unchecked\'"></span>',
-                  ' {{ row.name }}',
-                '</div>',
-              '</div>',
-              '<div data-ng-show="row.isExpanded">',
-                '<div data-ng-repeat="item in row.items" style="padding: 0.3ex 0;">',
-                  '<div style="white-space: nowrap; overflow: hidden; padding-left: 18px;">',
-                    ' <div style="display: inline-block; cursor: pointer" data-ng-click="toggleSubitem(row, item)">',
-                      '<span class="glyphicon" data-ng-class="appState.models.dicomSettings.selectedROIs[item.id] == \'1\' ? \'glyphicon-check\' : \'glyphicon-unchecked\'"></span>',
-                      ' <div class="irad-circle" data-ng-if="item.color" style="background-color: {{ itemColor(item) }}"> </div>',
-                      ' {{ item.name }}',
-                    '</div>',
-                  '</div>',
-                '</div>',
-                '<div data-ng-switch="row.type">',
-                  '<div data-ng-switch-when="CT" style="padding-left: 18px;">',
-                    '<table>',
-                      '<tr><td class="text-right">X:</td><td class="text-right">&nbsp;{{ pointInfo.point[0] | number: 4 }}</td></tr>',
-                      '<tr><td class="text-right">Y:</td><td class="text-right">&nbsp;{{ pointInfo.point[1] | number: 4 }}</td></tr>',
-                      '<tr><td class="text-right">HU:</td><td>&nbsp;{{ pointInfo.ct }}</td></tr>',
-                    '</table>',
-                    '<div data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="dicomWindow" style="margin-left: -18px; border: 1px solid lightgray;"></div>',
-                  '</div>',
-                  '<div data-ng-switch-when="RTDose" style="padding-left: 18px;">',
-                    '<div>GY: {{ pointInfo.dose | number: 4 }}</div>',
-                    '<div data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="doseWindow" style="margin-left: -18px; border: 1px solid lightgray;"></div>',
-                    '<div data-ng-show="showDoseDifference()" data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="doseDifferenceWindow" style="margin-top: 10px; margin-left: -18px; border: 1px solid lightgray;"></div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-repeat="row in rows" style="padding: 0.5ex 0; white-space: nowrap; overflow: hidden">
+              <div>
+                <div style="display: inline-block; cursor: pointer; margin-right: 5px; white-space: nowrap" data-ng-click="toggleExpanded(row)">
+                  <span class="glyphicon" data-ng-class="row.isExpanded ? \'glyphicon-collapse-up\' : \'glyphicon-collapse-down\'"></span>
+                </div>
+                <div style="display: inline-block; cursor: pointer; white-space: nowrap" data-ng-click="toggleSelected(row)">
+                  <span class="glyphicon" data-ng-class="appState.models.dicomSettings[row.showField] == \'1\' ? \'glyphicon-check\' : \'glyphicon-unchecked\'"></span>
+                   {{ row.name }}
+                </div>
+              </div>
+              <div data-ng-show="row.isExpanded">
+                <div data-ng-repeat="item in row.items" style="padding: 0.3ex 0;">
+                  <div style="white-space: nowrap; overflow: hidden; padding-left: 18px;">
+                     <div style="display: inline-block; cursor: pointer" data-ng-click="toggleSubitem(row, item)">
+                      <span class="glyphicon" data-ng-class="appState.models.dicomSettings.selectedROIs[item.id] == \'1\' ? \'glyphicon-check\' : \'glyphicon-unchecked\'"></span>
+                       <div class="irad-circle" data-ng-if="item.color" style="background-color: {{ itemColor(item) }}"> </div>
+                       {{ item.name }}
+                    </div>
+                  </div>
+                </div>
+                <div data-ng-switch="row.type">
+                  <div data-ng-switch-when="CT" style="padding-left: 18px;">
+                    <table>
+                      <tr><td class="text-right">X:</td><td class="text-right">&nbsp;{{ pointInfo.point[0] | number: 4 }}</td></tr>
+                      <tr><td class="text-right">Y:</td><td class="text-right">&nbsp;{{ pointInfo.point[1] | number: 4 }}</td></tr>
+                      <tr><td class="text-right">HU:</td><td>&nbsp;{{ pointInfo.ct }}</td></tr>
+                    </table>
+                    <div data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="dicomWindow" style="margin-left: -18px; border: 1px solid lightgray;"></div>
+                  </div>
+                  <div data-ng-switch-when="RTDose" style="padding-left: 18px;">
+                    <div>GY: {{ pointInfo.dose | number: 4 }}</div>
+                    <div data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="doseWindow" style="margin-left: -18px; border: 1px solid lightgray;"></div>
+                    <div data-ng-show="showDoseDifference()" data-color-scale-selector="" data-model-name="dicomReport" data-window-model-name="doseDifferenceWindow" style="margin-top: 10px; margin-left: -18px; border: 1px solid lightgray;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.appState = appState;
             $scope.itemColor = function(item) {
@@ -1901,9 +1898,9 @@ SIREPO.app.directive('toggleReportButton', function(appState) {
         scope: {
             selected: '@toggleReportButton',
         },
-        template: [
-            '<a href data-ng-click="toggleReport()">{{ label }}</a>',
-        ].join(''),
+        template: `
+            <a href data-ng-click="toggleReport()">{{ label }}</a>
+        `,
         controller: function($scope) {
             $scope.label = appState.enumDescription('ReportToggle', $scope.selected);
 
@@ -1921,15 +1918,15 @@ SIREPO.app.directive('downloadStatus', function(iradService) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div data-ng-if="iradService.downloadStatus" class="col-sm-12">',
-              '<div class="progress" style="height: 28px; margin-bottom: 5px">',
-                '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%; font-size: 24px">',
-                  '<span class="glyphicon glyphicon-hourglass"></span> {{ iradService.downloadStatus }}',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="iradService.downloadStatus" class="col-sm-12">
+              <div class="progress" style="height: 28px; margin-bottom: 5px">
+                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%; font-size: 24px">
+                  <span class="glyphicon glyphicon-hourglass"></span> {{ iradService.downloadStatus }}
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.iradService = iradService;
         },
@@ -1943,16 +1940,16 @@ SIREPO.app.directive('colorScaleSelector', function(appState, iradService, plott
             modelName: '@',
             windowModelName: '@',
         },
-        template: [
-            '<div style="margin-left: 5px; margin-bottom: -15px;" data-ng-if="windowModelName == \'doseDifferenceWindow\'">Dose Difference:</div>',
-            '<svg class="sr-plot sr-histogram" width="100%" ng-attr-height="{{ height + margin.top + margin.bottom }}">',
-              '<g class="plot-g" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
-                '<g class="x axis" ng-attr-transform="translate(0, {{ height }})">',
-                  '<text class="x-axis-label" ng-attr-x="{{ width / 2 }}" y="40">{{ axisLabel }}</text>',
-                '</g>',
-              '</g>',
-            '</svg>',
-        ].join(''),
+        template: `
+            <div style="margin-left: 5px; margin-bottom: -15px;" data-ng-if="windowModelName == \'doseDifferenceWindow\'">Dose Difference:</div>
+            <svg class="sr-plot sr-histogram" width="100%" ng-attr-height="{{ height + margin.top + margin.bottom }}">
+              <g class="plot-g" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+                <g class="x axis" ng-attr-transform="translate(0, {{ height }})">
+                  <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" y="40">{{ axisLabel }}</text>
+                </g>
+              </g>
+            </svg>
+        `,
         controller: function($scope) {
             var MIN_HEIGHT = 40;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 20};

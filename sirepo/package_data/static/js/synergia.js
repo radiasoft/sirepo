@@ -203,10 +203,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Synergia File" data-description="Select an MAD-X (.madx), MAD8 (.mad8), elegant (.lte) or Sirepo Export (.zip)" data-file-formats=".madx,.mad8,.lte,.zip"></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog="" data-title="Import Synergia File" data-description="Select an MAD-X (.madx), MAD8 (.mad8), elegant (.lte) or Sirepo Export (.zip)" data-file-formats=".madx,.mad8,.lte,.zip"></div>
+        `,
     };
 });
 
@@ -216,27 +216,26 @@ SIREPO.app.directive('appHeader', function(latticeService) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-ng-if="nav.isLoaded()" data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
         },
@@ -250,9 +249,9 @@ SIREPO.app.directive('turnCountField', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in turnCountList()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in turnCountList()"></select>
+        `,
         controller: function($scope) {
             var turnCountList = [];
             $scope.turnCountList = function() {

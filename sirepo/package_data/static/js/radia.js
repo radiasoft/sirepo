@@ -1241,26 +1241,26 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li data-ng-if="! isImported()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                    '<li><a href data-ng-click="exportDmp()"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li data-ng-if="! isImported()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+                    <li><a href data-ng-click="exportDmp()"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.exportDmp = function() {
                 requestSender.newWindow('exportArchive', {
@@ -1298,43 +1298,43 @@ SIREPO.app.directive('bevelTable', function(appState, panelState, radiaService) 
             object: '=',
         },
 
-        template: [
-            '<table class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col style="width: 20ex">',
-                '<col style="width: 20ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Cut Axis</th>',
-                  '<th>Cut Edge</th>',
-                  '<th>Vertical Distance From Corner</th>',
-                  '<th>Horizontal Distance From Corner</th>',
-                  '<th></th>',
-                '</tr>',
-              '</thead>',
-             '<tbody>',
-            '<tr>',
-            '</tr>',
-                '<tr data-ng-repeat="item in loadItems()">',
-                    '<td>{{ item.cutAxis }}</td>',
-                    '<td>{{ bevelEdge(item.edge) }}</td>',
-                    '<td>{{ item.amountVert }}mm</td>',
-                    '<td>{{ item.amountHoriz }}mm</td>',
-                  '<td style="text-align: right">',
-                    '<div class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
-                            ' <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
-                        '</div>',
-                    '<div>',
-                  '</td>',
-                '</tr>',
-            '</tbody>',
-            '</table>',
-            '<button data-ng-click="addItem()" id="sr-new-bevel" class="btn btn-info btn-xs pull-right">New Bevel <span class="glyphicon glyphicon-plus"></span></button>',
-        ].join(''),
+        template: `
+            <table class="table table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Cut Axis</th>
+                  <th>Cut Edge</th>
+                  <th>Vertical Distance From Corner</th>
+                  <th>Horizontal Distance From Corner</th>
+                  <th></th>
+                </tr>
+              </thead>
+             <tbody>
+            <tr>
+            </tr>
+                <tr data-ng-repeat="item in loadItems()">
+                    <td>{{ item.cutAxis }}</td>
+                    <td>{{ bevelEdge(item.edge) }}</td>
+                    <td>{{ item.amountVert }}mm</td>
+                    <td>{{ item.amountHoriz }}mm</td>
+                  <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
+                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                  </td>
+                </tr>
+            </tbody>
+            </table>
+            <button data-ng-click="addItem()" id="sr-new-bevel" class="btn btn-info btn-xs pull-right">New Bevel <span class="glyphicon glyphicon-plus"></span></button>
+        `,
         controller: function($scope, $element) {
             let isEditing = false;
             let itemModel = 'objectBevel';
@@ -1580,55 +1580,55 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
         restrict: 'A',
         scope: {
         },
-        template: [
-            '<div class="modal fade" tabindex="-1" role="dialog" id="sr-field-download" data-small-element-class="col-sm-2">',
-                '<div class="modal-dialog modal-lg">',
-                    '<div class="modal-content">',
-                        '<div class="modal-header bg-info">',
-                            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                            '<span class="lead modal-title text-info">{{ svc.selectedPath.name }}</span>',
-                        '</div>',
-                        '<div class="modal-body">',
-                            '<div class="form-horizontal">',
-                                '<div class="form-group form-group-sm" data-ng-show="! isFieldMap()">',
-                                    '<div class="control-label col-sm-5">',
-                                        '<label><span>Field</span></label>',
-                                    '</div>',
-                                    '<div class="col-sm-5">',
-                                        '<select data-ng-model="tModel.type" class="form-control">',
-                                            '<option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>',
-                                        '</select>',
-                                    '</div>',
-                                '</div>',
-                                '<div class="control-label col-sm-5">',
-                                    '<label><span>Export to</span></label>',
-                                '</div>',
-                                '<div class="form-group form-group-sm">',
-                                    '<div class="col-sm-5">',
-                                        '<select data-ng-model="tModel.exportType" class="form-control">',
-                                            '<option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>',
-                                        '</select>',
-                                    '</div>',
-                                '</div>',
-                                '<div data-ng-show="tModel.exportType == \'SRW\'">',
-                                    '<div class="control-label col-sm-5">',
-                                        '<label><span>Magnetic Gap [mm]</span></label>',
-                                    '</div>',
-                                    '<div class="form-group form-group-sm">',
-                                        '<div class="col-sm-5">',
-                                            '<input data-string-to-number="" data-ng-model="tModel.gap" data-min="0" required />',
-                                        '</div>',
-                                    '</div>',
-                                '</div>',
-                                '<div class="row">',
-                                    '<button data-ng-click="download()" class="btn btn-default col-sm-offset-6">Download</button>',
-                                '</div>',
-                            '</div>',
-                        '</div>',
-                    '</div>',
-                '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" tabindex="-1" role="dialog" id="sr-field-download" data-small-element-class="col-sm-2">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info">
+                            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                            <span class="lead modal-title text-info">{{ svc.selectedPath.name }}</span>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-horizontal">
+                                <div class="form-group form-group-sm" data-ng-show="! isFieldMap()">
+                                    <div class="control-label col-sm-5">
+                                        <label><span>Field</span></label>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <select data-ng-model="tModel.type" class="form-control">
+                                            <option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control-label col-sm-5">
+                                    <label><span>Export to</span></label>
+                                </div>
+                                <div class="form-group form-group-sm">
+                                    <div class="col-sm-5">
+                                        <select data-ng-model="tModel.exportType" class="form-control">
+                                            <option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div data-ng-show="tModel.exportType == \'SRW\'">
+                                    <div class="control-label col-sm-5">
+                                        <label><span>Magnetic Gap [mm]</span></label>
+                                    </div>
+                                    <div class="form-group form-group-sm">
+                                        <div class="col-sm-5">
+                                            <input data-string-to-number="" data-ng-model="tModel.gap" data-min="0" required />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <button data-ng-click="download()" class="btn btn-default col-sm-offset-6">Download</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.svc = radiaService;
 
@@ -1680,11 +1680,11 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
         scope: {
             modelName: '@'
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div data-ng-if="! dataCleared && hasPaths()" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldLineoutReport"></div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.dataCleared = true;
 
@@ -1718,29 +1718,29 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
             id: '@',
             smallElementClass: '@',
         },
-        template: [
-            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<div data-field-editor="\'path\'" data-label-size="" data-field-size="3" style="text-align: right" data-model-name="modelName" data-model="model"></div>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div data-field-editor="\'path\'" data-label-size="" data-field-size="3" style="text-align: right" data-model-name="modelName" data-model="model"></div>
+                      </div>
+                      <br />
+                      <div class="row">
+                        <div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.pathType = null;
@@ -1793,41 +1793,41 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
         scope: {
             modelName: '@',
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div class="panel panel-info">',
-                    '<div class="panel-heading">',
-                        '<span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>',
-                        '<div class="sr-panel-options pull-right">',
-                        '<a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-                        '</div>',
-                    '</div>',
-                    '<div class="panel-body">',
-                        '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
-                          '<colgroup>',
-                            '<col style="width: 20ex">',
-                            '<col>',
-                            '<col>',
-                          '</colgroup>',
-                          '<thead>',
-                            '<tr>',
-                              '<th data-ng-repeat="h in HEADING">{{ h }}</th>',
-                            '</tr>',
-                          '</thead>',
-                          '<tbody>',
-                            '<tr data-ng-repeat="path in linePaths()">',
-                              '<td>{{ path.name }}</td>',
-                              '<td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>',
-                              '<td>',
-                                '<div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>',
-                              '</td>',
-                            '</tr>',
-                          '</tbody>',
-                        '</table>',
-                    '</div>',
-                '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div class="panel panel-info">
+                    <div class="panel-heading">
+                        <span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>
+                        <div class="sr-panel-options pull-right">
+                        <a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> 
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+                          <colgroup>
+                            <col style="width: 20ex">
+                            <col>
+                            <col>
+                          </colgroup>
+                          <thead>
+                            <tr>
+                              <th data-ng-repeat="h in HEADING">{{ h }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr data-ng-repeat="path in linePaths()">
+                              <td>{{ path.name }}</td>
+                              <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
+                              <td>
+                                <div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `,
         controller: function($scope) {
 
             $scope.CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
@@ -1909,44 +1909,44 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
         scope: {
             paths: '='
         },
-        template: [
-            '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col style="width: 10ex">',
-                '<col style="width: 10ex">',
-                '<col style="width: 100%">',
-                '<col style="width: 10ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                  '<th>Type</th>',
-                  '<th>Num. points</th>',
-                  '<th>Details</th>',
-                  '<th></th>',
-                '</tr>',
-              '</thead>',
-              '<tbody>',
-                '<tr data-ng-repeat="path in paths track by $index">',
-                  '<td><div class="badge sr-badge-icon sr-lattice-icon"><span>{{ path.name }}</span></div></td>',
-                  '<td><span>{{ path.type }}</span></td>',
-                  '<td><span>{{ path.numPoints }}</span></td>',
-                  '<td><span>{{ pathDetails(path) }}</span></td>',
-                  '<td style="text-align: right">',
-                    '<div class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
-                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>',
-                            ' <button data-ng-click="editPath(path)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-click="svc.showFieldDownload(true, path)" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-cloud-download"></span></button>',
-                            ' <button data-ng-click="deletePath(path, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
-                        '</div>',
-                    '<div>',
-                  '</td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
+        template: `
+            <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col style="width: 10ex">
+                <col style="width: 10ex">
+                <col style="width: 100%">
+                <col style="width: 10ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Num. points</th>
+                  <th>Details</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-ng-repeat="path in paths track by $index">
+                  <td><div class="badge sr-badge-icon sr-lattice-icon"><span>{{ path.name }}</span></div></td>
+                  <td><span>{{ path.type }}</span></td>
+                  <td><span>{{ path.numPoints }}</span></td>
+                  <td><span>{{ pathDetails(path) }}</span></td>
+                  <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
+                            <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>
+                             <button data-ng-click="editPath(path)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="svc.showFieldDownload(true, path)" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-cloud-download"></span></button>
+                             <button data-ng-click="deletePath(path, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+        `,
         controller: function($scope) {
             const watchedModels = SIREPO.APP_SCHEMA.enum.PathType.map(function (e) {
                 return e[SIREPO.ENUM_INDEX_VALUE];
@@ -2009,28 +2009,28 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             field: '=',
             model: '=',
         },
-        template: [
-            '<div style="height: 100px; overflow-y: scroll; overflow-x: hidden;">',
-            '<table style="table-layout: fixed;" class="table table-hover">',
-                '<tr style="background-color: lightgray;" data-ng-show="field.length > 0">',
-                  '<th>Members</th>',
-                  '<th></th>',
-                '</tr>',
-                '<tr data-ng-repeat="mId in field">',
-                    '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>',
-                    '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
-                '</tr>',
-                '<tr style="background-color: lightgray;">',
-                  '<th>Ungrouped</th>',
-                  '<th></th>',
-                '</tr>',
-                '<tr data-ng-repeat="oId in getIds() | filter:hasNoGroup">',
-                  '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>',
-                  '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>',
-                '</tr>',
-            '</table>',
-             '</div>',
-        ].join(''),
+        template: `
+            <div style="height: 100px; overflow-y: scroll; overflow-x: hidden;">
+            <table style="table-layout: fixed;" class="table table-hover">
+                <tr style="background-color: lightgray;" data-ng-show="field.length > 0">
+                  <th>Members</th>
+                  <th></th>
+                </tr>
+                <tr data-ng-repeat="mId in field">
+                    <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>
+                    <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="ungroupObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                </tr>
+                <tr style="background-color: lightgray;">
+                  <th>Ungrouped</th>
+                  <th></th>
+                </tr>
+                <tr data-ng-repeat="oId in getIds() | filter:hasNoGroup">
+                  <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>
+                  <td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>
+                </tr>
+            </table>
+             </div>
+        `,
         controller: function($scope) {
 
             $scope.objects = appState.models.geometryReport.objects;
@@ -2096,11 +2096,11 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
             direction: '@',
             viewName: '@',
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>
+            </div>
+        `,
         controller: function($scope) {
 
             $scope.dataCleared = true;
@@ -2129,41 +2129,41 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
             object: '=',
         },
 
-        template: [
-            '<table class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col style="width: 20ex">',
-                '<col style="width: 20ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Object Type</th>',
-                  '<th>Length</th>',
-                  '<th>Air Gap</th>',
-                  '<th></th>',
-                '</tr>',
-              '</thead>',
-             '<tbody>',
-            '<tr>',
-            '</tr>',
-                '<tr data-ng-repeat="item in loadItems()">',
-                    '<td>{{ item.type }}</td>',
-                    '<td>{{ item.length }}mm</td>',
-                    '<td>{{ item.airGap }}mm</td>',
-                  '<td style="text-align: right">',
-                    '<div class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
-                            ' <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
-                        '</div>',
-                    '<div>',
-                  '</td>',
-                '</tr>',
-            '</tbody>',
-            '</table>',
-            '<button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>',
-        ].join(''),
+        template: `
+            <table class="table table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Object Type</th>
+                  <th>Length</th>
+                  <th>Air Gap</th>
+                  <th></th>
+                </tr>
+              </thead>
+             <tbody>
+            <tr>
+            </tr>
+                <tr data-ng-repeat="item in loadItems()">
+                    <td>{{ item.type }}</td>
+                    <td>{{ item.length }}mm</td>
+                    <td>{{ item.airGap }}mm</td>
+                  <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
+                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                  </td>
+                </tr>
+            </tbody>
+            </table>
+            <button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>
+        `,
         controller: function($scope, $element) {
             let isEditing = false;
             let itemModel = 'termination';
@@ -2250,29 +2250,27 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             modelName: '=',
             parentController: '='
         },
-        template: [
-            '<div data-toolbar="toolbarSections" data-item-filter="itemFilter" data-parent-controller="parentController"></div>',
-            '<div class="sr-object-table">',
-              '<p class="lead text-center"><small><em>drag and drop {{ itemClass.toLowerCase() }}s or use arrows to reorder the list</em></small></p>',
-              '<div style="overflow-y: scroll; overflow-x: hidden; height: 100px;">',
-              '<table class="table table-hover" style="width: 100%; height: 15%; table-layout: fixed;">',
-                '<tr data-ng-repeat="item in loadItems()">',
-                  '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
-                    '<div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="item">',
-                      '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>',
-                    '</div>',
-                    '<div data-ng-show="! isExpanded(item) && itemDetails(item)" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ itemDetails(item) }}</div>',
-                    '<div data-ng-show="isExpanded(item) && itemDetails(item)" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ itemDetails(item) }}</div>',
-                  '</td>',
-                '</tr>',
-                '<tr><td style="height: 3em; text-align: center; color: #aaaaaa;" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><em>*drop here*</em></td></tr>',
-              '</table>',
-            '</div>',
-            '</div>',
-            //'<div data-advanced-editor-pane="" data-view-name="tbItem.model" data-parent-controller="parentController" data-ng-repeat="tbItem in toolbarItems" data-ng-show="selectedItem.model === tbItem.model"></div>',
-            //'<div data-confirmation-modal="" data-id="sr-delete-item-confirmation" data-title="Delete {{ itemClass }}?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
-        ].join(''),
+        template: `
+            <div data-toolbar="toolbarSections" data-item-filter="itemFilter" data-parent-controller="parentController"></div>
+            <div class="sr-object-table">
+              <p class="lead text-center"><small><em>drag and drop {{ itemClass.toLowerCase() }}s or use arrows to reorder the list</em></small></p>
+              <div style="overflow-y: scroll; overflow-x: hidden; height: 100px;">
+              <table class="table table-hover" style="width: 100%; height: 15%; table-layout: fixed;">
+                <tr data-ng-repeat="item in loadItems()">
+                  <td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">
+                    <div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                    <div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="item">
+                      <a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>
+                    </div>
+                    <div data-ng-show="! isExpanded(item) && itemDetails(item)" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ itemDetails(item) }}</div>
+                    <div data-ng-show="isExpanded(item) && itemDetails(item)" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ itemDetails(item) }}</div>
+                  </td>
+                </tr>
+                <tr><td style="height: 3em; text-align: center; color: #aaaaaa;" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><em>*drop here*</em></td></tr>
+              </table>
+            </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             var expanded = {};
             var isEditing = false;
@@ -2471,21 +2469,19 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
         scope: {
             modelName: '@',
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div class="panel panel-info">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>',
-                    '<div class="panel-body">',
-                        '<button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>',
-                        '<div data-field-path-table="" data-paths="model.paths"></div>',
-                        '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>',
-                    '</div>',
-                '</div>',
-            '</div>',
-            //'<div data-confirmation-modal="" data-id="sr-delete-path-confirmation" data-title="Delete Path?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
-            '<div data-confirmation-modal="" data-id="sr-clear-paths-confirmation" data-title="Clear All Paths?" data-ok-text="OK" data-ok-clicked="clearPaths()">Clear All Paths?</div>',
-
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div class="panel panel-info">
+                    <div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>
+                    <div class="panel-body">
+                        <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
+                        <div data-field-path-table="" data-paths="model.paths"></div>
+                        <button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>
+                    </div>
+                </div>
+            </div>
+            <div data-confirmation-modal="" data-id="sr-clear-paths-confirmation" data-title="Clear All Paths?" data-ok-text="OK" data-ok-clicked="clearPaths()">Clear All Paths?</div>
+        `,
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.pathTypes = appState.enumVals('PathType');
@@ -2526,12 +2522,12 @@ SIREPO.app.directive('radiaGeomObjInfo', function(appState, panelState, radiaSer
         scope: {
             model: '=',
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ model.name }}" data-tooltip=""></div>',
-                '<div data-field-editor="\'color\'" data-model-name="geomObject" data-model="model"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ model.name }}" data-tooltip=""></div>
+                <div data-field-editor="\'color\'" data-model-name="geomObject" data-model="model"></div>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.radiaService = radiaService;
             appState.whenModelsLoaded($scope, function () {
@@ -2549,25 +2545,24 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             viz: '<',
             modelName: '@',
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div data-basic-editor-panel="" data-view-name="solverAnimation">',
-                        '<div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>',
-                        '<div data-ng-show="viz.solution">',
-                                '<div><strong>Time:</strong> {{ solution().time }}ms</div>',
-                                '<div><strong>Step Count:</strong> {{ solution().steps }}</div>',
-                                '<div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>',
-                                '<div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>',
-                        '</div>',
-                        '<div data-ng-hide="viz.solution">No solution found</div>',
-                        '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
-                            '<button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>',
-                        '</div>',
-                    '</div>',
-                '</div>',
-            '</div>',
-
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div data-basic-editor-panel="" data-view-name="solverAnimation">
+                        <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation(modelName)"></div>
+                        <div data-ng-show="viz.solution">
+                                <div><strong>Time:</strong> {{ solution().time }}ms</div>
+                                <div><strong>Step Count:</strong> {{ solution().steps }}</div>
+                                <div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>
+                                <div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>
+                        </div>
+                        <div data-ng-hide="viz.solution">No solution found</div>
+                        <div class="col-sm-6 pull-right" style="padding-top: 8px;">
+                            <button class="btn btn-default" data-ng-click="viz.resetSimulation()">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
         controller: function($scope, $element) {
 
             $scope.model = appState.models[$scope.modelName];
@@ -2610,18 +2605,16 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             modelName: '@',
             viz: '<',
         },
-        template: [
-            '<div class="col-md-6">',
-                '<div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>',
-                    //'<div data-vtk-axes="" data-width="canvasGeometry().size.width" data-height="canvasGeometry().size.height" data-bound-obj="beamAxisObj" data-axis-cfg="beamAxisCfg"></div>',
-                    '<div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">',
-                        '<div class="colorbar"></div>',
-                    '</div>',
-                '</div>',
-            '</div>',
-
-        ].join(''),
+        template: `
+            <div class="col-md-6">
+                <div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">
+                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+                    <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
+                        <div class="colorbar"></div>
+                    </div>
+                </div>
+            </div>
+        `,
         controller: function($scope, $element) {
 
             $scope.axisObj = null;
@@ -3688,11 +3681,11 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
             modelName: '=',
             fieldClass: '=',
         },
-        template: [
-          '<div data-ng-class="fieldClass">',
-            btn.toTemplate(),
-          '</div>',
-        ].join(''),
+        template: `
+          <div data-ng-class="fieldClass">
+            ${btn.toTemplate()}
+          </div>
+        `,
         controller: function($scope, $element) {
             plotting.setupSelector($scope, $element);
 
@@ -3755,11 +3748,11 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
             viewName: '=',
             object: '=',
         },
-        template: [
-          '<div data-ng-class="fieldClass">',
-            sel.toTemplate(),
-          '</div>',
-        ].join(''),
+        template: `
+          <div data-ng-class="fieldClass">
+            ${sel.toTemplate()}
+          </div>
+        `,
         controller: function($scope, $element) {
             plotting.setupSelector($scope, $element);
         },

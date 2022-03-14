@@ -591,55 +591,55 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         scope: {
             shiftClickHandler: '&?',
         },
-        template: [
-            '<div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
-              '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
-                '<div class="sr-panel-options pull-right">',
-                  '<a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
-                '</div>',
-              '</div>',
-              '<div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
-                '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
-                '<div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
-                  '<div style="display: inline-block;" class="sr-editor-item-hover">',
-                    '<div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-mousedown="onMouseDown(item, $event)" oncontextmenu="return false" data-ng-click="clickItem(item, $event)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="itemClass(item)">{{ item.name }}<span data-app-beamline-item-info="item" data-item-cache="itemCache"></span></div>',
-                    ' <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>',
-                  '</div>',
-                '</div>',
-                '<div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> ',
-                  '<div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>',
-                '</div>',
-              '</div>',
-            '</div>',
-            '<div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>',
-            '<div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">',
-              '<form class="form-horizontal" autocomplete="off">',
-                '<label class="col-sm-4 control-label">Beamline Name</label>',
-                '<div class="col-sm-8">',
-                  '<input data-safe-path="" class="form-control" data-ng-model="newBeamline.name" required/>',
-                  '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
-                '</div>',
-              '</form>',
-            '</div>',
-            '<div style="display:none">',
-            '<div data-ng-class="::popoverInfo.modifyBeamline.class">',
-              '<div class="text-center">',
-                '<button class="btn btn-default" data-ng-click="unpackBeamline()">Unpack</button>',
-                ' <button class="btn btn-default" data-ng-if=":: canReverseBeamline()" data-ng-click="reverseBeamline()">Reverse</button>',
-                ' <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>',
-              '</div>',
-            '</div>',
-            '<div data-ng-class="::popoverInfo.elementPosition.class">',
-              '<div style="margin-bottom: 10px">',
-                '<input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />',
-              '</div>',
-              '<div class="text-center">',
-                '<button class="btn btn-primary" data-ng-click="setElementPosition()">Save Changes</button>',
-                ' <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>',
-              '</div>',
-            '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">
+              <div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>
+                <div class="sr-panel-options pull-right">
+                  <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+                </div>
+              </div>
+              <div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
+                <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>
+                <div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">
+                  <div style="display: inline-block;" class="sr-editor-item-hover">
+                    <div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-mousedown="onMouseDown(item, $event)" oncontextmenu="return false" data-ng-click="clickItem(item, $event)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="itemClass(item)">{{ item.name }}<span data-app-beamline-item-info="item" data-item-cache="itemCache"></span></div>
+                     <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>
+                  </div>
+                </div>
+                <div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> 
+                  <div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>
+                </div>
+              </div>
+            </div>
+            <div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>
+            <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">
+              <form class="form-horizontal" autocomplete="off">
+                <label class="col-sm-4 control-label">Beamline Name</label>
+                <div class="col-sm-8">
+                  <input data-safe-path="" class="form-control" data-ng-model="newBeamline.name" required/>
+                  <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
+                </div>
+              </form>
+            </div>
+            <div style="display:none">
+            <div data-ng-class="::popoverInfo.modifyBeamline.class">
+              <div class="text-center">
+                <button class="btn btn-default" data-ng-click="unpackBeamline()">Unpack</button>
+                 <button class="btn btn-default" data-ng-if=":: canReverseBeamline()" data-ng-click="reverseBeamline()">Reverse</button>
+                 <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
+              </div>
+            </div>
+            <div data-ng-class="::popoverInfo.elementPosition.class">
+              <div style="margin-bottom: 10px">
+                <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
+              </div>
+              <div class="text-center">
+                <button class="btn btn-primary" data-ng-click="setElementPosition()">Save Changes</button>
+                 <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
+              </div>
+            </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
             $scope.beamlineItems = [];
@@ -1174,53 +1174,53 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
             id: '@',
             smallElementClass: '@',
         },
-        template: [
-            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row" data-ng-show="::showTabs">',
-                        '<div class="col-sm-12">',
-                          '<ul class="nav nav-tabs">',
-                            '<li role="presentation" data-ng-class="{active: activeTab == \'basic\'}"><a href data-ng-click="activeTab = \'basic\'">Basic</a></li>',
-                            '<li role="presentation" data-ng-class="{active: activeTab == \'advanced\'}"><a href data-ng-click="activeTab = \'advanced\'">Advanced</a></li>',
-                            '<li role="presentation" data-ng-class="{active: activeTab == \'all\'}"><a href data-ng-click="activeTab = \'all\'">All Elements</a></li>',
-                          '</ul>',
-                        '</div>',
-                      '</div>',
-                      '<br />',
-                      '<div data-ng-if="activeTab == \'basic\'" class="row">',
-                        '<div data-ng-repeat="name in controller.basicNames" class="col-sm-4">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<div data-ng-if="activeTab == \'advanced\'" class="row">',
-                        '<div data-ng-repeat="name in controller.advancedNames" class="{{ smallElementClass }}">',
-                          '<button style="width: 100%; margin-bottom: 1ex; overflow: hidden;" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<div data-ng-if="activeTab == \'all\'" class="row">',
-                        '<div data-ng-repeat="name in allNames" class="{{ smallElementClass }}">',
-                          '<button style="width: 100%; margin-bottom: 1ex; overflow: hidden" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div class="col-sm-offset-6 col-sm-3">',
-                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
-                        '</div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row" data-ng-show="::showTabs">
+                        <div class="col-sm-12">
+                          <ul class="nav nav-tabs">
+                            <li role="presentation" data-ng-class="{active: activeTab == \'basic\'}"><a href data-ng-click="activeTab = \'basic\'">Basic</a></li>
+                            <li role="presentation" data-ng-class="{active: activeTab == \'advanced\'}"><a href data-ng-click="activeTab = \'advanced\'">Advanced</a></li>
+                            <li role="presentation" data-ng-class="{active: activeTab == \'all\'}"><a href data-ng-click="activeTab = \'all\'">All Elements</a></li>
+                          </ul>
+                        </div>
+                      </div>
+                      <br />
+                      <div data-ng-if="activeTab == \'basic\'" class="row">
+                        <div data-ng-repeat="name in controller.basicNames" class="col-sm-4">
+                          <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
+                        </div>
+                      </div>
+                      <div data-ng-if="activeTab == \'advanced\'" class="row">
+                        <div data-ng-repeat="name in controller.advancedNames" class="{{ smallElementClass }}">
+                          <button style="width: 100%; margin-bottom: 1ex; overflow: hidden;" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
+                        </div>
+                      </div>
+                      <div data-ng-if="activeTab == \'all\'" class="row">
+                        <div data-ng-repeat="name in allNames" class="{{ smallElementClass }}">
+                          <button style="width: 100%; margin-bottom: 1ex; overflow: hidden" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
+                        </div>
+                      </div>
+                      <br />
+                      <div class="row">
+                        <div class="col-sm-offset-6 col-sm-3">
+                          <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.activeTab = 'basic';
             $scope.allNames = $scope.controller.basicNames.concat($scope.controller.advancedNames).sort();
@@ -1257,10 +1257,10 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
             pathToModels: '@',
             showTable: '@',
         },
-        template: [
-            '<div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-show-table-"{{ showTable }}" data-path-to-models="{{ pathToModels }}" data-flatten="1"></div></div>',
-            '<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-show-table-"{{ showTable }}" data-path-to-models="{{ pathToModels }}" data-flatten="1"></div></div>
+            <div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>
+        `,
         controller: function($scope, $element) {
             var latticeScope, plotScope;
             var isNestedSVG = false;
@@ -2149,9 +2149,9 @@ SIREPO.app.directive('latticeBeamlineList', function(appState) {
             field: '=',
             isOptional: '@',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in beamlineList()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in beamlineList()"></select>
+        `,
         controller: function($scope) {
             var list = [
                 {
@@ -2182,50 +2182,50 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col style="width: 100%">',
-                '<col data-ng-show="isLargeWindow()" style="width: 10ex">',
-                '<col data-ng-show="isLargeWindow()" style="width: 12ex">',
-                '<col style="width: 12ex">',
-                '<col style="width: 10ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                  '<th>Description</th>',
-                  '<th data-ng-show="isLargeWindow()">Elements</th>',
-                  '<th data-ng-show="isLargeWindow()">Start-End</th>',
-                  '<th>Length</th>',
-                  '<th>Bend</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody>',
-                '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in appState.models.beamlines track by beamline.id">',
-                  '<td><div class="badge sr-badge-icon sr-lattice-icon" data-ng-class="{\'sr-lattice-icon-disabled\': wouldBeamlineSelfNest(beamline)}"><span data-ng-drag="! wouldBeamlineSelfNest(beamline)" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
-                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
-                  '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
-                  '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}',
-                    '<span data-ng-if="beamlineBend(beamline)">&deg;</span>',
-                    '<div class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar" data-ng-class="{\'sr-button-bar-active\': isActiveBeamline(beamline)}" >',
-                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyBeamline(beamline)">Copy</button>',
-                            '<span data-ng-show="! isActiveBeamline(beamline)" >',
-                            ' <button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="latticeService.addToBeamline(beamline)">Add to Beamline</button>',
-                            ' <button data-ng-click="latticeService.editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-show="! isActiveBeamline(beamline)" data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
-                            '</span>',
-                        '</div>',
-                    '<div>',
-                  '</td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
+        template: `
+            <table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col style="width: 100%">
+                <col data-ng-show="isLargeWindow()" style="width: 10ex">
+                <col data-ng-show="isLargeWindow()" style="width: 12ex">
+                <col style="width: 12ex">
+                <col style="width: 10ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th data-ng-show="isLargeWindow()">Elements</th>
+                  <th data-ng-show="isLargeWindow()">Start-End</th>
+                  <th>Length</th>
+                  <th>Bend</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in appState.models.beamlines track by beamline.id">
+                  <td><div class="badge sr-badge-icon sr-lattice-icon" data-ng-class="{\'sr-lattice-icon-disabled\': wouldBeamlineSelfNest(beamline)}"><span data-ng-drag="! wouldBeamlineSelfNest(beamline)" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>
+                  <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>
+                  <td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>
+                  <td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>
+                  <td style="text-align: right">{{ beamlineLength(beamline) }}</td>
+                  <td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}
+                    <span data-ng-if="beamlineBend(beamline)">&deg;</span>
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="{\'sr-button-bar-active\': isActiveBeamline(beamline)}" >
+                            <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyBeamline(beamline)">Copy</button>
+                            <span data-ng-show="! isActiveBeamline(beamline)" >
+                             <button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="latticeService.addToBeamline(beamline)">Add to Beamline</button>
+                             <button data-ng-click="latticeService.editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-show="! isActiveBeamline(beamline)" data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                            </span>
+                        </div>
+                    <div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+        `,
         controller: function($scope) {
             $scope.appState = appState;
             $scope.latticeService = latticeService;
@@ -2361,33 +2361,33 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="col-sm-12 col-md-6 col-xl-5">',
-              '<div data-split-panels="" style="height: {{ panelHeight() }}">',
-                '<div id="sr-top-panel" class="split split-vertical">',
-                  '<div class="panel panel-info" style="margin-bottom: 0">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Beamlines</span></div>',
-                    '<div class="panel-body" style="padding-bottom: 0">',
-                      '<button class="btn btn-info btn-xs pull-right" accesskey="b" data-ng-click="latticeService.newBeamline()"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>',
-                      '<div data-lattice-beamline-table=""></div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-                '<div id="sr-bottom-panel" class="split split-vertical">',
-                  '<div class="panel panel-info" style="margin-bottom: 10px">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>',
-                    '<div class="panel-body">',
-                      '<div class="pull-right">',
-                        '<button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> ',
-                        '<button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>',
-                      '</div>',
-                      '<div data-lattice-element-table=""></div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-sm-12 col-md-6 col-xl-5">
+              <div data-split-panels="" style="height: {{ panelHeight() }}">
+                <div id="sr-top-panel" class="split split-vertical">
+                  <div class="panel panel-info" style="margin-bottom: 0">
+                    <div class="panel-heading"><span class="sr-panel-heading">Beamlines</span></div>
+                    <div class="panel-body" style="padding-bottom: 0">
+                      <button class="btn btn-info btn-xs pull-right" accesskey="b" data-ng-click="latticeService.newBeamline()"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>
+                      <div data-lattice-beamline-table=""></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="sr-bottom-panel" class="split split-vertical">
+                  <div class="panel panel-info" style="margin-bottom: 10px">
+                    <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
+                    <div class="panel-body">
+                      <div class="pull-right">
+                        <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> 
+                        <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                      </div>
+                      <div data-lattice-element-table=""></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
         },
@@ -2398,35 +2398,35 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col>',
-                '<col style="width: 12ex">',
-                '<col style="width: 10ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                  '<th>Description</th>',
-                  '<th>Length</th>',
-                  '<th>Bend</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody data-ng-repeat="category in tree track by category.name">',
-                '<tr>',
-                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': ! category.isCollapsed, \'glyphicon-chevron-down\': category.isCollapsed}"></span> <b>{{ category.name }}</b></td>',
-                '</tr>',
-                '<tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">',
-                  '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
-                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>',
-                  '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
+        template: `
+            <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col>
+                <col style="width: 12ex">
+                <col style="width: 10ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Length</th>
+                  <th>Bend</th>
+                </tr>
+              </thead>
+              <tbody data-ng-repeat="category in tree track by category.name">
+                <tr>
+                  <td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': ! category.isCollapsed, \'glyphicon-chevron-down\': category.isCollapsed}"></span> <b>{{ category.name }}</b></td>
+                </tr>
+                <tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">
+                  <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>
+                  <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>
+                  <td style="text-align: right">{{ elementLength(element) }}</td>
+                  <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                </tr>
+              </tbody>
+            </table>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
             $scope.tree = [];
@@ -2544,57 +2544,57 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
         scope: {
             controller: '=',
         },
-        template: [
-            '<div class="container-fluid">',
-              '<div class="row">',
-                '<div class="col-sm-12 col-md-6 col-xl-7">',
-                  '<div class="row">',
-                    '<div data-ng-if="latticeService.activeBeamlineId" class="col-sm-12">',
-                      '<div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="showTwissReportButton()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>{{ twissReportTitle() }}</a></div>',
-                    '</div>',
-                    '<div class="col-sm-12">',
-                      '<div data-beamline-editor=""></div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-                '<div lattice-element-panels=""></div>',
-              '</div>',
-            '</div>',
-            '<div data-ng-drag-clone=""><div class="badge sr-badge-icon sr-item-selected"><span>{{ clonedData.name }}</span></div></div>',
-            '<div data-element-picker="" data-controller="controller" data-title="New Beamline Element" data-id="sr-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>',
-            '<div data-confirmation-modal="" data-id="sr-element-in-use-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong> is used by the <strong>{{ latticeService.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>',
-            '<div data-confirmation-modal="" data-id="sr-delete-element-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="latticeService.deleteElement()">Delete {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong>?</div>',
-            '<div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>',
-            '<div data-ng-if=":: latticeService.wantRpnVariables" data-var-editor=""></div>',
-            '<div class="modal fade" id="sr-lattice-twiss-plot" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-warning">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ twissReportTitle() }}</span>',
-                    '<div class="sr-panel-options pull-right">',
-                      '<a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
-                    '</div>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<div class="col-sm-12" data-ng-if="twissReportShown">',
-                          '<div data-report-content="parameterWithLattice" data-model-key="twissReport" data-report-id="reportId"></div>',
-                        '</div>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div class="col-sm-offset-6 col-sm-3">',
-                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
-                        '</div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-sm-12 col-md-6 col-xl-7">
+                  <div class="row">
+                    <div data-ng-if="latticeService.activeBeamlineId" class="col-sm-12">
+                      <div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="showTwissReportButton()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>{{ twissReportTitle() }}</a></div>
+                    </div>
+                    <div class="col-sm-12">
+                      <div data-beamline-editor=""></div>
+                    </div>
+                  </div>
+                </div>
+                <div lattice-element-panels=""></div>
+              </div>
+            </div>
+            <div data-ng-drag-clone=""><div class="badge sr-badge-icon sr-item-selected"><span>{{ clonedData.name }}</span></div></div>
+            <div data-element-picker="" data-controller="controller" data-title="New Beamline Element" data-id="sr-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>
+            <div data-confirmation-modal="" data-id="sr-element-in-use-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong> is used by the <strong>{{ latticeService.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>
+            <div data-confirmation-modal="" data-id="sr-delete-element-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="latticeService.deleteElement()">Delete {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong>?</div>
+            <div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>
+            <div data-ng-if=":: latticeService.wantRpnVariables" data-var-editor=""></div>
+            <div class="modal fade" id="sr-lattice-twiss-plot" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ twissReportTitle() }}</span>
+                    <div class="sr-panel-options pull-right">
+                      <a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+                    </div>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="col-sm-12" data-ng-if="twissReportShown">
+                          <div data-report-content="parameterWithLattice" data-model-key="twissReport" data-report-id="reportId"></div>
+                        </div>
+                      </div>
+                      <br />
+                      <div class="row">
+                        <div class="col-sm-offset-6 col-sm-3">
+                          <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             $scope.latticeService = latticeService;
@@ -2645,9 +2645,9 @@ SIREPO.app.directive('rpnBoolean', function(rpnService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in rpnBooleanValues()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in rpnBooleanValues()"></select>
+        `,
         controller: function($scope) {
             $scope.rpnBooleanValues = function() {
                 return rpnService.getRpnBooleanForField($scope.model, $scope.field);
@@ -2663,9 +2663,9 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>',
-        ].join(''),
+        template: `
+            <div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>
+        `,
         controller: function($scope) {
             $scope.computedRpnValue = function() {
                 return rpnService.getRpnValueForField($scope.model, $scope.field);
@@ -2677,15 +2677,14 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
 SIREPO.app.directive('rpnEditor', function() {
     return {
         restrict: 'A',
-        template: [
-          '<div data-ng-class="fieldClass">',
-            '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
-          '</div>',
-          //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
-          '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
-            '<div data-rpn-static="" data-model="model" data-field="field"></div>',
-          '</div>',
-        ].join(''),
+        template: `
+          <div data-ng-class="fieldClass">
+            <input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />
+          </div>
+          <div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">
+            <div data-rpn-static="" data-model="model" data-field="field"></div>
+          </div>
+        `,
     };
 });
 
@@ -2758,74 +2757,74 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
 SIREPO.app.directive('varEditor', function(appState, latticeService, requestSender) {
     return {
         scope: {},
-        template: [
-            '<div class="modal fade" data-backdrop="static" id="sr-variables" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">Variables</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<form name="form" class="form-horizontal" autocomplete="off">',
-                        '<div class="form-group form-group-sm" style="max-height: 75vh; overflow-y: auto;">',
-                          '<table class="table table-striped table-condensed">',
-                            '<colgroup>',
-                              '<col style="width: 25%">',
-                              '<col style="width: 50%">',
-                              '<col style="width: 25%">',
-                              '<col>',
-                            '</colgroup>',
-                            '<thead>',
-                              '<tr>',
-                                '<th>Variable Name</th>',
-                                '<th>Value</th>',
-                                '<th> </th>',
-                                '<th> </th>',
-                              '</tr>',
-                            '</thead>',
-                            '<tbody>',
-                              '<tr data-ng-repeat="var in appState.models.rpnVariables">',
-                                '<td>{{ var.name }}</td>',
-                                '<td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="var"></div></td>',
-                                '<td><div class="col-sm-12" data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>',
-                                '<td style="vertical-align: middle">',
-                                  ' <div data-disable-after-click="">',
-                                    '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
-                                  '</div>',
-                                '</td>',
-                              '</tr>',
-                              '<tr>',
-                                '<td>',
-                                  '<div class="row"><div class="col-sm-12">',
-                                    '<input class="form-control" data-var-name="" data-ng-model="newVar.name" />',
-                                  '</div></div>',
-                                '</td>',
-                                '<td>',
-                                  '<div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="newVar"></div>',
-                                '</td>',
-                                '<td><div class="col-sm-12" data-rpn-static="" data-model="newVar" data-field="\'value\'"></div></td>',
-                                '<td>',
-                                  '<button class="btn btn-primary btn-xs" data-ng-disabled="! hasNewVar()" data-ng-click="addVar()" title="Add Variable"><span class="glyphicon glyphicon-plus"></span></button>',
-                                '</td>',
-                              '</tr>',
-                            '</tbody>',
-                          '</table>',
-                        '</div>',
-                        '<div class="row">',
-                          '<div class="col-sm-6 pull-right">',
-                            '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
-                            '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
-                          '</div>',
-                        '</div>',
-                      '</form>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" data-backdrop="static" id="sr-variables" tabindex="-1" role="dialog">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">Variables</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <form name="form" class="form-horizontal" autocomplete="off">
+                        <div class="form-group form-group-sm" style="max-height: 75vh; overflow-y: auto;">
+                          <table class="table table-striped table-condensed">
+                            <colgroup>
+                              <col style="width: 25%">
+                              <col style="width: 50%">
+                              <col style="width: 25%">
+                              <col>
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                <th>Variable Name</th>
+                                <th>Value</th>
+                                <th> </th>
+                                <th> </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr data-ng-repeat="var in appState.models.rpnVariables">
+                                <td>{{ var.name }}</td>
+                                <td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="var"></div></td>
+                                <td><div class="col-sm-12" data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>
+                                <td style="vertical-align: middle">
+                                   <div data-disable-after-click="">
+                                    <button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  <div class="row"><div class="col-sm-12">
+                                    <input class="form-control" data-var-name="" data-ng-model="newVar.name" />
+                                  </div></div>
+                                </td>
+                                <td>
+                                  <div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="newVar"></div>
+                                </td>
+                                <td><div class="col-sm-12" data-rpn-static="" data-model="newVar" data-field="\'value\'"></div></td>
+                                <td>
+                                  <button class="btn btn-primary btn-xs" data-ng-disabled="! hasNewVar()" data-ng-click="addVar()" title="Add Variable"><span class="glyphicon glyphicon-plus"></span></button>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <div class="row">
+                          <div class="col-sm-6 pull-right">
+                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                            <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.appState = appState;
 
