@@ -212,6 +212,7 @@ class OpalMadxConverter(MadxConverter):
                     madx.models.bunch.beamDefinition = f
         od = LatticeUtil.find_first_command(data, 'distribution')
         #TODO(pjm): save dist in vars
+        pkdp('\n\n\n\n res of to_madx: {}', madx)
         return madx
 
     def from_madx(self, madx):
@@ -427,7 +428,16 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        return OpalMadxConverter().to_madx_text(data)
+        # pkdp('\n\n\n\n data.models {} \n\n\n', data.models)
+        # for d in data:
+        #     pkdp('\n\n\n\n {} \n\n\n', d)
+        for d in data.models.rpnVariables:
+            pkdp('\n\n\n\n d.value: {}', d.value)
+            if type(d.value) == str and 'EMASS' in d.value:
+                d.value = d.value.replace('EMASS', '0.51099892e-03')
+        t = OpalMadxConverter().to_madx_text(data)
+        pkdp('\n\n\n res of OpalMadxConverter.to_madx_text(data): {}', t)
+        return t
     return _generate_parameters_file(data)
 
 
