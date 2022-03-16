@@ -427,6 +427,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
+    import ast
     if model == 'madx':
         # pkdp('\n\n\n\n data.models {} \n\n\n', data.models)
         # for d in data:
@@ -435,6 +436,13 @@ def python_source_for_model(data, model):
             pkdp('\n\n\n\n d.value: {}', d.value)
             if type(d.value) == str and 'EMASS' in d.value:
                 d.value = d.value.replace('EMASS', '0.51099892e-03')
+            if type(d.value) == str and 'pow' in d.value:
+                pkdp('\n\n\n EXPR for madx conversion containing pow: {}', d.value)
+                pkdp('\n\n\n ast.parse(d.value) {}', ast.dump(ast.parse(d.value, mode='eval')))
+                pkdp('\n\n\n EXPR code_var {}', code_var(data.models.rpnVariables).eval_var(d.value))
+                for n in ast.walk(ast.parse(d.value)):
+                    pkdp('\n\n\n n: {}, n.id: {}', ast.dump(n), n.Call)
+
         t = OpalMadxConverter().to_madx_text(data)
         pkdp('\n\n\n res of OpalMadxConverter.to_madx_text(data): {}', t)
         return t
