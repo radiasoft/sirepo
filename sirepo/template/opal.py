@@ -442,7 +442,6 @@ def python_source_for_model(data, model):
                 pkdp('\n\n\n EXPR code_var {}', code_var(data.models.rpnVariables).eval_var(d.value))
                 for n in ast.walk(ast.parse(d.value)):
                     pkdp('\n\n\n n: {}, n.id: {}', ast.dump(n), n.Call)
-
         t = OpalMadxConverter().to_madx_text(data)
         pkdp('\n\n\n res of OpalMadxConverter.to_madx_text(data): {}', t)
         return t
