@@ -36,9 +36,9 @@ _DEFAULT_MODULE = 'local'
 
 cfg = None
 
-OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
+OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_IO, job.OP_RUN))
 
-_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_IO, job.OP_KILL, job.OP_OK))
+_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 
 
 class AgentMsg(PKDict):
@@ -343,7 +343,7 @@ class DriverBase(PKDict):
     async def _slots_ready(self, op):
         """Only one op of each type allowed"""
         n = op.opName
-        if n in (job.OP_CANCEL, job.OP_IO, job.OP_KILL):
+        if n in (job.OP_CANCEL, job.OP_KILL,):
             return
         if n == job.OP_SBATCH_LOGIN:
             l = [o for o in self.ops.values() if o.opId != op.opId]
@@ -352,6 +352,8 @@ class DriverBase(PKDict):
             return
         await op.op_slot.alloc('Waiting for another simulation to complete')
         await op.run_dir_slot.alloc('Waiting for access to simulation state')
+        if n in (job.OP_IO,):
+            return
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
         await op.cpu_slot.alloc('Waiting for CPU resources')
