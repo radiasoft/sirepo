@@ -212,7 +212,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
-        srdbg('SAVE GEOM GEN?', doGenerate, 'Q?', isQuiet);
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
             appState.saveQuietly('geometryReport');
@@ -824,7 +823,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function loadShapes() {
-        srdbg('LS');
         self.shapes = [];
         appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
@@ -1087,18 +1085,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             const r = 'geometryReport';
             radiaService.saveGeometry(true, false, () => {
-                return;
-                panelState.clear(r);
-                // need to rebuild the geometry after changes were made
-                panelState.requestData(
-                    r,
-                    data => {
-                        if (self.selectedObject) {
-                            loadShapes();
-                        }
-                    },
-                    true
-                );
+                if (self.selectedObject) {
+                    loadShapes();
+                }
             });
 
         });
@@ -3382,7 +3371,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
-                srdbg('SETUP', data);
                 displayVals = getDisplayVals();
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
