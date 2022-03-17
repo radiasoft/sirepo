@@ -29,6 +29,26 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 OPAL_INPUT_FILE = 'opal.in'
 OPAL_OUTPUT_FILE = 'opal.out'
 OPAL_POSITION_FILE = 'opal-vtk.py'
+_OPAL_PI = 3.14159265358979323846
+_OPAL_CONSTANTS = PKDict(
+            pi=_OPAL_PI,
+            twopi=_OPAL_PI * 2.0,
+            raddeg=180.0 / _OPAL_PI,
+            degrad=_OPAL_PI / 180.0,
+            e=2.7182818284590452354,
+            emass=0.51099892e-03,
+            pmass=0.93827204e+00,
+            hmmass=0.939277e+00,
+            umass=238 * 0.931494027e+00,
+            cmass=12 * 0.931494027e+00,
+            mmass=0.10565837,
+            dmass=2*0.931494027e+00,
+            xemass=124*0.931494027e+00,
+            clight=299792458.0,
+            p0=1,
+            seed=123456789,
+        )
+
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -311,24 +331,7 @@ def code_var(variables):
     class _P(code_variable.PurePythonEval):
         #TODO(pjm): parse from opal files into schema
         _OPAL_PI = 3.14159265358979323846
-        _OPAL_CONSTANTS = PKDict(
-            pi=_OPAL_PI,
-            twopi=_OPAL_PI * 2.0,
-            raddeg=180.0 / _OPAL_PI,
-            degrad=_OPAL_PI / 180.0,
-            e=2.7182818284590452354,
-            emass=0.51099892e-03,
-            pmass=0.93827204e+00,
-            hmmass=0.939277e+00,
-            umass=238 * 0.931494027e+00,
-            cmass=12 * 0.931494027e+00,
-            mmass=0.10565837,
-            dmass=2*0.931494027e+00,
-            xemass=124*0.931494027e+00,
-            clight=299792458.0,
-            p0=1,
-            seed=123456789,
-        )
+        _OPAL_CONSTANTS = _OPAL_CONSTANTS
 
         def __init__(self):
             super().__init__(self._OPAL_CONSTANTS)
@@ -426,22 +429,63 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
+
+
+
 def python_source_for_model(data, model):
     import ast
+    import astunparse
+
+    def pow_tfm(l_op, r_op):
+        return l_op + '**' + r_op
+
+    class Visitor(ast.NodeTransformer):
+        def visit_Call(self, node):
+            # pkdp('\n\n\n\n node.args: {}', node.args)
+            # pkdp('\n\n\n\n node.func: {}', node.func.id)
+            if node.func.id == 'pow':
+                pkdp('\n\n\n node {}, args {}', ast.dump(node), node.args)
+                return ast.BinOp(
+                    left=node.args[0],
+                    op=ast.Pow(),
+                    right=node.args[1],
+                    keywords=[]
+                )
+            return node
+
     if model == 'madx':
-        # pkdp('\n\n\n\n data.models {} \n\n\n', data.models)
+        pkdp('\n\n\n\n data.models {} \n\n\n', data.models)
         # for d in data:
         #     pkdp('\n\n\n\n {} \n\n\n', d)
         for d in data.models.rpnVariables:
             pkdp('\n\n\n\n d.value: {}', d.value)
-            if type(d.value) == str and 'EMASS' in d.value:
-                d.value = d.value.replace('EMASS', '0.51099892e-03')
+            # TODO (gurhar1133): do for all opal constants and move this and the
+            # ast.manipulation to OpalMadxConverter.to_madx_text
+            if type(d.value) == str:
+                for k in _OPAL_CONSTANTS:
+                    v = PKDict(
+                            name=k,
+                            value=_OPAL_CONSTANTS[k],
+                        )
+                    if k in d.value.lower() and v not in data.models.rpnVariables:
+                        data.models.rpnVariables.insert(0, v)
+
+                # d.value = d.value.replace('EMASS', '0.51099892e-03')
             if type(d.value) == str and 'pow' in d.value:
                 pkdp('\n\n\n EXPR for madx conversion containing pow: {}', d.value)
                 pkdp('\n\n\n ast.parse(d.value) {}', ast.dump(ast.parse(d.value, mode='eval')))
                 pkdp('\n\n\n EXPR code_var {}', code_var(data.models.rpnVariables).eval_var(d.value))
-                for n in ast.walk(ast.parse(d.value)):
-                    pkdp('\n\n\n n: {}, n.id: {}', ast.dump(n), n.Call)
+                tree = ast.parse(d.value)
+                for n in ast.walk(tree):
+                    Visitor().visit(n)
+                    ast.fix_missing_locations(n)
+                fixed = astunparse.unparse(tree)
+                pkdp('\n\n\n ------ result parsed: {}', ast.dump(tree))
+                pkdp('\n\n\n ------ result unparsed: {}', fixed)
+                d.value = astunparse.unparse(tree).strip()
+
+
+
         t = OpalMadxConverter().to_madx_text(data)
         pkdp('\n\n\n res of OpalMadxConverter.to_madx_text(data): {}', t)
         return t
