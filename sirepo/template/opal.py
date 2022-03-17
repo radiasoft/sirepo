@@ -235,6 +235,57 @@ class OpalMadxConverter(MadxConverter):
         pkdp('\n\n\n\n res of to_madx: {}', madx)
         return madx
 
+    def to_madx_text(self, data):
+        import ast
+        import astunparse
+
+
+        class Visitor(ast.NodeTransformer):
+            def visit_Call(self, node):
+                # pkdp('\n\n\n\n node.args: {}', node.args)
+                # pkdp('\n\n\n\n node.func: {}', node.func.id)
+                if node.func.id == 'pow':
+                    pkdp('\n\n\n node {}, args {}', ast.dump(node), node.args)
+                    return ast.BinOp(
+                        left=node.args[0],
+                        op=ast.Pow(),
+                        right=node.args[1],
+                        keywords=[]
+                    )
+                return node
+
+        pkdp('\n\n\n\n data.models {} \n\n\n', data.models)
+        # for d in data:
+        #     pkdp('\n\n\n\n {} \n\n\n', d)
+        for d in data.models.rpnVariables:
+            pkdp('\n\n\n\n d.value: {}', d.value)
+            # TODO (gurhar1133): do for all opal constants and move this and the
+            # ast.manipulation to OpalMadxConverter.to_madx_text
+            if type(d.value) == str:
+                for k in _OPAL_CONSTANTS:
+                    v = PKDict(
+                            name=k,
+                            value=_OPAL_CONSTANTS[k],
+                        )
+                    if k in d.value.lower() and v not in data.models.rpnVariables:
+                        data.models.rpnVariables.insert(0, v)
+
+                # d.value = d.value.replace('EMASS', '0.51099892e-03')
+            if type(d.value) == str and 'pow' in d.value:
+                pkdp('\n\n\n EXPR for madx conversion containing pow: {}', d.value)
+                pkdp('\n\n\n ast.parse(d.value) {}', ast.dump(ast.parse(d.value, mode='eval')))
+                pkdp('\n\n\n EXPR code_var {}', code_var(data.models.rpnVariables).eval_var(d.value))
+                tree = ast.parse(d.value)
+                for n in ast.walk(tree):
+                    Visitor().visit(n)
+                    ast.fix_missing_locations(n)
+                fixed = astunparse.unparse(tree)
+                pkdp('\n\n\n ------ result parsed: {}', ast.dump(tree))
+                pkdp('\n\n\n ------ result unparsed: {}', fixed)
+                d.value = astunparse.unparse(tree).strip()
+
+        return super().to_madx_text(data)
+
     def from_madx(self, madx):
         data = super().from_madx(madx)
         data.models.simulation.elementPosition = 'relative'
@@ -433,62 +484,8 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
-    import ast
-    import astunparse
-
-    def pow_tfm(l_op, r_op):
-        return l_op + '**' + r_op
-
-    class Visitor(ast.NodeTransformer):
-        def visit_Call(self, node):
-            # pkdp('\n\n\n\n node.args: {}', node.args)
-            # pkdp('\n\n\n\n node.func: {}', node.func.id)
-            if node.func.id == 'pow':
-                pkdp('\n\n\n node {}, args {}', ast.dump(node), node.args)
-                return ast.BinOp(
-                    left=node.args[0],
-                    op=ast.Pow(),
-                    right=node.args[1],
-                    keywords=[]
-                )
-            return node
-
     if model == 'madx':
-        pkdp('\n\n\n\n data.models {} \n\n\n', data.models)
-        # for d in data:
-        #     pkdp('\n\n\n\n {} \n\n\n', d)
-        for d in data.models.rpnVariables:
-            pkdp('\n\n\n\n d.value: {}', d.value)
-            # TODO (gurhar1133): do for all opal constants and move this and the
-            # ast.manipulation to OpalMadxConverter.to_madx_text
-            if type(d.value) == str:
-                for k in _OPAL_CONSTANTS:
-                    v = PKDict(
-                            name=k,
-                            value=_OPAL_CONSTANTS[k],
-                        )
-                    if k in d.value.lower() and v not in data.models.rpnVariables:
-                        data.models.rpnVariables.insert(0, v)
-
-                # d.value = d.value.replace('EMASS', '0.51099892e-03')
-            if type(d.value) == str and 'pow' in d.value:
-                pkdp('\n\n\n EXPR for madx conversion containing pow: {}', d.value)
-                pkdp('\n\n\n ast.parse(d.value) {}', ast.dump(ast.parse(d.value, mode='eval')))
-                pkdp('\n\n\n EXPR code_var {}', code_var(data.models.rpnVariables).eval_var(d.value))
-                tree = ast.parse(d.value)
-                for n in ast.walk(tree):
-                    Visitor().visit(n)
-                    ast.fix_missing_locations(n)
-                fixed = astunparse.unparse(tree)
-                pkdp('\n\n\n ------ result parsed: {}', ast.dump(tree))
-                pkdp('\n\n\n ------ result unparsed: {}', fixed)
-                d.value = astunparse.unparse(tree).strip()
-
-
-
-        t = OpalMadxConverter().to_madx_text(data)
-        pkdp('\n\n\n res of OpalMadxConverter.to_madx_text(data): {}', t)
-        return t
+        return OpalMadxConverter().to_madx_text(data)
     return _generate_parameters_file(data)
 
 

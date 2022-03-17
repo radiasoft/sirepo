@@ -49,6 +49,7 @@ class MadxConverter():
 
     def to_madx_text(self, data):
         from sirepo.template import madx
+
         return madx.python_source_for_model(self.to_madx(data), None)
 
     def _build_field_map(self, field_map):
