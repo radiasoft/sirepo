@@ -16,6 +16,7 @@ from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
 from sirepo.template import template_common
+import sirepo.template.madx
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import copy
@@ -330,6 +331,19 @@ class ElegantMadxConverter(MadxConverter):
 
     def from_madx(self, madx):
         data = super().from_madx(madx)
+        n = [v.name for v in data.models.rpnVariables]
+        for v in data.models.rpnVariables:
+            if type(v.value) == str:
+                for c in sirepo.template.madx.MADX_CONSTANTS:
+                    if c in v.value and c not in n:
+                        data.models.rpnVariables.insert(
+                            0,
+                            PKDict(
+                                name=c,
+                                value=sirepo.template.madx.MADX_CONSTANTS[c]
+                            )
+                        )
+                        n.append(c)
         eb = LatticeUtil.find_first_command(data, 'bunched_beam')
         mb = LatticeUtil.find_first_command(madx, 'beam')
         for f in self._BEAM_VARS:

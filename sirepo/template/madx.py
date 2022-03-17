@@ -53,7 +53,7 @@ _FIELD_UNITS = PKDict(
 
 _PI = 4 * math.atan(1)
 
-_MADX_CONSTANTS = PKDict(
+MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
     raddeg=180.0 / _PI,
@@ -205,7 +205,7 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     return code_variable.CodeVar(
         variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        code_variable.PurePythonEval(MADX_CONSTANTS),
         case_insensitive=True,
     )
 
