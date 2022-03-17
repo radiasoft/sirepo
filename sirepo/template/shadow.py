@@ -145,30 +145,6 @@ def _compute_harmonic_photon_energy(data):
     )
 
 
-def _divide_drifts(beamline, count):
-    pos = 0
-    res = []
-    current_id = 1e5
-    for item in beamline:
-        if _is_disabled(item):
-            continue
-        if item.position - pos > 1e-3:
-            delta = (item.position - pos) / count
-            while (pos + delta) < item.position:
-                pos += delta
-                res.append(PKDict(
-                    alpha=0,
-                    id=current_id,
-                    position=pos,
-                    title='D',
-                    type='emptyElement',
-                ))
-                current_id += 1
-        res.append(item)
-        pos = item.position
-    return res
-
-
 def _eq(item, field, *values):
     t = SCHEMA.model[item.type][field][1]
     for v, n in SCHEMA.enum[t]:
@@ -210,8 +186,6 @@ def _generate_autotune_element(item):
 
 def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
     beamline = models.beamline
-    if calc_beam_stats:
-        beamline = _divide_drifts(beamline, models.beamStatisticsReport.driftDivisions)
     res = ''
     prev_position = source_position = 0
     last_element = False
@@ -223,6 +197,10 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
             continue
         count += 1
         source_distance = item.position - prev_position
+        if calc_beam_stats and source_distance >= 1e-3:
+            res += f'\n\npos = divide_drift(pos, {count}, {source_distance})'
+            source_distance = source_distance / models.beamStatisticsReport.driftDivisions
+            count += models.beamStatisticsReport.driftDivisions - 1
         from_source = item.position - source_position
         image_distance = 0
         for j in range(i + 1, len(beamline)):
@@ -276,7 +254,7 @@ oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
 '''
             res += _generate_trace(source_distance, trace_method, count)
             if calc_beam_stats:
-                res += '\n' + 'pos = calculate_stats(pos, oe)'
+                res += '\npos = calculate_stats(pos, oe)'
         if last_element:
             break
         prev_position = item.position

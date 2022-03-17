@@ -1,6 +1,7 @@
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import Shadow
 import numpy as np
+import scipy.linalg as sla
 
 def shadow_src_beam(n_rays=10000, ran_seed=15829, dist_type=3, sigx=4.42e-05, sigz=2.385e-05, sigdix=3.52e-05, sigdiz = 2.875e-05, hdiv1 = 0.0, hdiv2 = 0.0, vdiv1 =0.0, vdiv2=0.0, ph_energy = 1e3):
     """
@@ -248,3 +249,41 @@ def tmat_calc(beam, epsilon):
     Tmat=np.matrix(np.transpose([[Tmatx0,Tmatxp0,Tmatz0,Tmatzp0],[Tmatx1,Tmatxp1,Tmatz1,Tmatzp1],[Tmatx2,Tmatxp2,Tmatz2,Tmatzp2],[Tmatx3,Tmatxp3,Tmatz3,Tmatzp3]]))
 
     return Tmat, x_prop_cen, xp_prop_cen, z_prop_cen, zp_prop_cen
+
+
+#---
+# from https://github.com/radiasoft/rslight/blob/main/Gaussian/gauss_apert-01.py
+
+#  Propagate a 4x4 covariance matrix Sigma through a Gaussian aperture of (Gaussian, not not hard-edge)
+#  size parameters a_gx, a_gy
+#  NB:  assumed ordering of the variables is x, y, theta_x, theta_y
+def gauss_apert_4x4(Sigma, lambda_rad, a_gx, a_gy):
+      Sigma_inv = sla.inv(Sigma)
+      A = 1.0 *Sigma_inv[0:2,0:2]
+      B = 1.0 *Sigma_inv[0:2,2:4]
+      C = np.transpose(B)
+      D = 1.0 *Sigma_inv[2:4,2:4]
+
+      A_A = np.zeros([2,2], dtype=np.float32)
+      A_A[0,0] = 2. /a_gx**2
+      A_A[1,1] = 2. /a_gy**2
+
+      D_inv = sla.inv(D)
+      D_A_inv = np.zeros([2,2], dtype=np.float32)
+      D_A_inv[0,0] = 1. /a_gx**2
+      D_A_inv[1,1] = 1. /a_gy**2
+      D_A_inv *= lambda_rad**2 /(8. *np.pi *np.pi)
+
+      D_f = sla.inv(D_inv +D_A_inv)
+      BDi = np.matmul(B, D_inv)
+      DiC = np.matmul(D_inv, C)  #  == np.transpose(BDi)
+      C_f = np.matmul(D_f, DiC)
+      B_f = np.transpose(C_f)    #  ==  np.matmul(BDi, D_f)
+      A_f = A +A_A -np.matmul(BDi, C) +np.matmul(BDi, np.matmul(D_f, DiC))
+
+      Sigma_inv[0:2,0:2] = 1.0 *A_f
+      Sigma_inv[0:2,2:4] = 1.0 *B_f
+      Sigma_inv[2:4,0:2] = 1.0 *C_f
+      Sigma_inv[2:4,2:4] = 1.0 *D_f
+
+      return sla.inv(Sigma_inv)

@@ -52,6 +52,16 @@ sigma_mat = numpy.matrix([
 ])
 alpha = 0
 
+def apply_aperture(oe):
+    # sigma matrix adjustment for aperture goes here
+    # sigma_mat = transfer_mat_bl.gauss_apert_4x4(
+    #     sigma_mat,
+    #     lambda_radiation,
+    #     oe.RX_SLIT[0] * 1e2,
+    #     oe.RZ_SLIT[0] * 1e2,
+    # )
+    pass
+
 def calculate_stats(pos, oe):
     global alpha
     Tmat, x_prop_cen, xp_prop_cen, z_prop_cen, zp_prop_cen = transfer_mat_bl.tmat_calc(beam.duplicate(), epsilon)
@@ -74,6 +84,23 @@ def calculate_stats(pos, oe):
         sigmaz=math.sqrt(res[2, 2]) * 1e-2,
         sigdiz=math.sqrt(res[3, 3]),
     ))
+    if oe and oe.I_STOP[0] == 0 and oe.RX_SLIT[0] != 0 and oe.RZ_SLIT[0] != 0:
+        apply_aperture(oe)
+    return pos
+
+def divide_drift(pos, count, distance, divisions={{ beamStatisticsReport_driftDivisions }}):
+    if distance < 1e-3:
+        return
+    for i in range(divisions - 1):
+        oe = Shadow.OE()
+        oe.DUMMY = 1.0
+        oe.set_empty(ALPHA=0)
+        oe.FWRITE = 3
+        oe.T_IMAGE = 0.0
+        oe.T_SOURCE = distance / divisions
+        beam.traceOE(oe, count)
+        count += 1
+        pos = calculate_stats(pos, oe)
     return pos
 
 def process_stats():
@@ -104,6 +131,6 @@ def process_stats():
     return res
 
 pos = calculate_stats(0, None)
-{{beamlineOptics}}
+{{- beamlineOptics}}
 
 pkjson.dump_pretty(process_stats(), filename='{{beamStatsFile}}')

@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
           '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
