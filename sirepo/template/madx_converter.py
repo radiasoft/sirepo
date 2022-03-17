@@ -37,7 +37,6 @@ class MadxConverter():
         return self._convert(self.__normalize_madx_beam(data))
 
     def from_madx_text(self, text):
-        pkdp('\n\n\n\n MadxConverter.from_madx_text text: {}', text)
         return self.from_madx(madx_parser.parse_file(text, self.downcase_variables))
 
     def to_madx(self, data):
@@ -147,7 +146,6 @@ class MadxConverter():
 
     def __normalize_madx_beam(self, data):
         # ensure particle, mass, charge, pc, ex and ey are set
-        pkdp('\n\n\n data at begining of __normalize_madx_beam: {}', data)
         self.beam = LatticeUtil.find_first_command(data, 'beam')
         cv = madx.code_var(data.models.rpnVariables)
         for f in ParticleEnergy.ENERGY_PRIORITY.madx:

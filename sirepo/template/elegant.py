@@ -604,7 +604,6 @@ def parse_input_text(path, text=None, input_data=None, update_filenames=True):
             _map(data)
         return data
     if e == '.madx':
-        pkdp('\n\n\n\nelegant.py text prior to ElegantMadxConverter.from_text {}', text)
         return ElegantMadxConverter().from_madx_text(text)
     raise IOError(f'{path.basename}: invalid file format; expecting .madx, .ele, or .lte')
 
