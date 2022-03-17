@@ -250,12 +250,6 @@ class OpalMadxConverter(MadxConverter):
                 return node
 
         for d in data.models.rpnVariables:
-            if type(d.value) == str:
-                for k in _OPAL_CONSTANTS:
-                    v = PKDict(name=k, value=_OPAL_CONSTANTS[k])
-                    if k in d.value.lower() and v not in data.models.rpnVariables:
-                        data.models.rpnVariables.insert(0, v)
-
             if type(d.value) == str and 'pow' in d.value:
                 tree = ast.parse(d.value)
                 for n in ast.walk(tree):
