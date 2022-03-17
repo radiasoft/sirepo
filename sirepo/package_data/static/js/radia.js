@@ -212,6 +212,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
+        srdbg('SAVE GEOM GEN?', doGenerate, 'Q?', isQuiet);
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
             appState.saveQuietly('geometryReport');
@@ -823,6 +824,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function loadShapes() {
+        srdbg('LS');
         self.shapes = [];
         appState.models.geometryReport.objects.forEach(addShapesForObject);
         addBeamAxis();
@@ -1085,6 +1087,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             const r = 'geometryReport';
             radiaService.saveGeometry(true, false, () => {
+                return;
                 panelState.clear(r);
                 // need to rebuild the geometry after changes were made
                 panelState.requestData(
@@ -3379,6 +3382,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                srdbg('SETUP', data);
                 displayVals = getDisplayVals();
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
@@ -3831,7 +3835,7 @@ for (const d of SIREPO.APP_SCHEMA.enum.DipoleType) {
         $scope.$on('modelChanged', (e, d) => {
             if (d === 'geomObject' && appState.models.geomObject.id === activeModel().id) {
                 appState.models[$scope.modelName][activeObjName()] = appState.models.geomObject;
-                appState.saveChanges($scope.modelName);
+                appState.saveQuietly($scope.modelName);
             }
         });
 
@@ -3841,7 +3845,7 @@ for (const d of SIREPO.APP_SCHEMA.enum.DipoleType) {
             // also set the base model and its superclasses
             appState.models[$scope.modelName][activeObjName()] = o;
             editedModels = radiaService.updateModelAndSuperClasses(o.type, o);
-            appState.saveChanges([$scope.modelName, ...editedModels]);
+            appState.saveQuietly([$scope.modelName, ...editedModels]);
         };
 
         function activeModel() {
