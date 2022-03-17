@@ -1028,6 +1028,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         }
         radiaService.saveGeometry(true, false, () => {
+            //GET RID OF RELOADGEOM
             radiaService.reloadGeometry(
                 data => {
                     if (self.selectedObject) {
@@ -3793,6 +3794,7 @@ for(const m of ['Dipole', 'Undulator']) {
 
             $scope.$on('modelChanged', (e, d) => {
                 if (d === 'geometryReport') {
+                    //GET RID OF RELOADGEOM
                     radiaService.reloadGeometry();
                     return;
                 }
