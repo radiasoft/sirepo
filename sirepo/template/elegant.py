@@ -5,6 +5,7 @@ u"""elegant execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import ast
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -16,7 +17,6 @@ from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
 from sirepo.template import template_common
-import sirepo.template.madx
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import copy
@@ -46,6 +46,10 @@ _ERROR_RE = re.compile(
 _ERROR_IGNORE_RE = re.compile(
     r'^warn.* does not have a parameter',
     re.IGNORECASE,
+)
+
+_ELEGANT_CONSTANTS = PKDict(
+    pi=3.141592653589793,
 )
 
 _ELEGANT_SEMAPHORE_FILE = 'run_setup.semaphore'
@@ -330,20 +334,33 @@ class ElegantMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP, downcase_variables=True)
 
     def from_madx(self, madx):
+        import sirepo.template.madx
+        class Visitor(ast.NodeVisitor):
+            def visit_Name(self, node):
+                return node.id
+
         data = super().from_madx(madx)
         n = [v.name for v in data.models.rpnVariables]
         for v in data.models.rpnVariables:
+            values = set()
             if type(v.value) == str:
-                for c in sirepo.template.madx.MADX_CONSTANTS:
-                    if c in v.value and c not in n:
-                        data.models.rpnVariables.insert(
-                            0,
-                            PKDict(
-                                name=c,
-                                value=sirepo.template.madx.MADX_CONSTANTS[c]
-                            )
+                tree = ast.parse(v.value)
+                for node in ast.walk(tree):
+                    values.add(Visitor().visit(node))
+
+            for c in sirepo.template.madx.MADX_CONSTANTS.keys() - _ELEGANT_CONSTANTS.keys():
+                if type(v.value) == str and c in values and c not in n:
+
+                    data.models.rpnVariables.insert(
+                        0,
+                        PKDict(
+                            name=c,
+                            value=sirepo.template.madx.MADX_CONSTANTS[c]
                         )
-                        n.append(c)
+                    )
+
+                    n.append(c)
+
         eb = LatticeUtil.find_first_command(data, 'bunched_beam')
         mb = LatticeUtil.find_first_command(madx, 'beam')
         for f in self._BEAM_VARS:

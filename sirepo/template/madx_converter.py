@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template import madx
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.template_common import ParticleEnergy
@@ -145,7 +144,7 @@ class MadxConverter():
                 data.models.rpnVariables)
 
     def __normalize_madx_beam(self, data):
-        # ensure particle, mass, charge, pc, ex and ey are set
+        from sirepo.template import madx
         self.beam = LatticeUtil.find_first_command(data, 'beam')
         cv = madx.code_var(data.models.rpnVariables)
         for f in ParticleEnergy.ENERGY_PRIORITY.madx:
