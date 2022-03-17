@@ -30,7 +30,7 @@ _PTC_TRACK_FILE = 'track.tfs'
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
-        e, mt = _read_summary_line(run_dir)
+        e, mt = read_summary_line(run_dir)
         return PKDict(
             percentComplete=0,
             frameCount=mt if mt else 0,
@@ -39,7 +39,7 @@ def background_percent_complete(report, run_dir, is_running):
             twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
             #elementModifiedTime=mt,
         )
-    e, mt = _read_summary_line(
+    e, mt = read_summary_line(
         run_dir,
         SCHEMA.constants.maxBPMPoints,
     )
@@ -51,6 +51,38 @@ def background_percent_complete(report, run_dir, is_running):
         twissColumns=sirepo.template.madx.PTC_OBSERVE_TWISS_COLS,
         #elementModifiedTime=mt,
     )
+
+
+def read_summary_line(run_dir, line_count=None):
+    path = run_dir.join(_SUMMARY_CSV_FILE)
+    if not path.exists():
+        return None, None
+    header = None
+    rows = []
+    with open(str(path)) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if header == None:
+                header = row
+                if not line_count:
+                    break
+            else:
+                rows.append(row)
+                if len(rows) > line_count:
+                    rows.pop(0)
+    res = None
+    if line_count:
+        res = []
+        for row in rows:
+            if len(header) == len(row):
+                res.append(PKDict(zip(header, row)))
+    else:
+        line = template_common.read_last_csv_line(path)
+        if header and line:
+            line = line.split(',')
+            if len(header) == len(line):
+                res = [PKDict(zip(header, line))]
+    return res, int(path.mtime() * 1000)
 
 
 def _get_ptc_track_columns(run_dir):
@@ -248,8 +280,20 @@ def _generate_parameters_file(data):
     v.ptcTrackColumns = _PTC_TRACK_COLUMNS_FILE
     v.ptcTrackFile = _PTC_TRACK_FILE
     if data.get('report') == 'initialMonitorPositionsReport':
+        if data.models.initialMonitorPositionsReport.readOnly == '1':
+            v.controlSettings_readOnly = '1'
         v.optimizerSettings_method = 'runOnce'
-    return res + template_common.render_jinja(SIM_TYPE, v)
+    elif data.models.controlSettings.operationMode == 'DeviceServer':
+        if v.controlSettings_readOnly == '1':
+            v.optimizerSettings_method = 'monitor'
+    return res \
+        + template_common.render_jinja(SIM_TYPE, v, 'base.py') \
+        + template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            '{}.py'.format(
+                'device-server' if v.controlSettings_operationMode == 'DeviceServer' else 'madx',
+            ))
 
 
 def _generate_parameters(v, data):
@@ -261,10 +305,13 @@ def _generate_parameters(v, data):
     v.ampTables = data.models.get('ampTables', PKDict())
 
     def _set_opt(el, field, all_correctors):
+        all_correctors.header.append(_format_header(el._id, _SIM_DATA.current_field(field)))
+        if data.models.controlSettings.operationMode == 'DeviceServer':
+            if not _is_enabled(data, el):
+                return
         count = len(all_correctors.corrector)
         all_correctors.corrector.append(el[_SIM_DATA.current_field(field)])
         el[field] = '{' + f'sr_opt{count}' + '}'
-        all_correctors.header.append(_format_header(el._id, _SIM_DATA.current_field(field)))
         v.ampTableNames.append(el.ampTable if 'ampTable' in el else None)
 
     c = PKDict(
@@ -272,18 +319,17 @@ def _generate_parameters(v, data):
         corrector=[],
     )
     madx = data.models.externalLattice.models
-    k = data.models.optimizerSettings.inputs.kickers
-    q = data.models.optimizerSettings.inputs.quads
     header = []
     for el in _SIM_DATA.beamline_elements(madx):
-        if el.type == 'KICKER' and k[str(el._id)]:
+        if data.models.controlSettings.operationMode != 'DeviceServer':
+            if not _is_enabled(data, el):
+                continue
+        if el.type == 'KICKER':
             _set_opt(el, 'hkick', c)
             _set_opt(el, 'vkick', c)
-        # elif el.type == 'INSTRUMENT':
-        #     i.append(el)
-        elif el.type in ('HKICKER', 'VKICKER') and k[str(el._id)]:
+        elif el.type in ('HKICKER', 'VKICKER'):
             _set_opt(el, 'kick', c)
-        elif el.type == 'QUADRUPOLE' and q[str(el._id)]:
+        elif el.type == 'QUADRUPOLE':
             _set_opt(el, 'k1', c)
         elif el.type == 'MONITOR':
             header += [_format_header(el._id, x) for x in ('x', 'y')]
@@ -317,35 +363,12 @@ def _has_kickers(model):
     return False
 
 
-def _read_summary_line(run_dir, line_count=None):
-    path = run_dir.join(_SUMMARY_CSV_FILE)
-    if not path.exists():
-        return None, None
-    header = None
-    rows = []
-    with open(str(path)) as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if header == None:
-                header = row
-                if not line_count:
-                    break
-            else:
-                rows.append(row)
-                if len(rows) > line_count:
-                    rows.pop(0)
-    res = None
-    if line_count:
-        res = []
-        for row in rows:
-            res.append(PKDict(zip(header, row)))
-    else:
-        line = template_common.read_last_csv_line(path)
-        if header and line:
-            line = line.split(',')
-            if len(header) == len(line):
-                res = [PKDict(zip(header, line))]
-    return res, int(path.mtime() * 1000)
+def _is_enabled(data, el):
+    if 'KICKER' in el.type:
+        return data.models.optimizerSettings.inputs.kickers[str(el._id)]
+    if el.type == 'QUADRUPOLE':
+        return data.models.optimizerSettings.inputs.quads[str(el._id)]
+    return True
 
 
 def _validate_process_variables(v, data):
@@ -355,8 +378,9 @@ def _validate_process_variables(v, data):
     elmap = PKDict({e._id: e for e in data.models.externalLattice.models.elements})
     properties = PKDict(
         read=[],
-        write=[],
     )
+    if v.controlSettings_readOnly == '0':
+        properties.write = []
     for pv in settings.processVariables:
         el = elmap[pv.elId]
         name = el.name
@@ -371,19 +395,24 @@ def _validate_process_variables(v, data):
             if m:
                 idx = int(m.group(1))
                 values[1] = re.sub(r'\[.*$', '', values[1])
-        properties['write' if pv.isWritable == '1' else 'read'].append(PKDict(
-            device=values[0],
-            name=values[1],
-            index=idx,
-            type=el.type,
-        ))
+        if pv.isWritable == '1' and not _is_enabled(data, el):
+            continue
+        k = 'write' if pv.isWritable == '1' else 'read'
+        if k in properties:
+            properties[k].append(PKDict(
+                device=values[0],
+                name=values[1],
+                index=idx,
+                type=el.type,
+            ))
     v.properties = properties
     v.property_types = properties.keys()
     config = PKDict(
         #TODO(pjm): set from config
         user='pmoeller',
         procName='RadiaSoft/Sirepo',
-        procId=os.getpid(),
+        #procId=os.getpid(),
+        procId=1,
         machine=socket.gethostname(),
     )
     v.deviceServerSetContext = '&'.join([

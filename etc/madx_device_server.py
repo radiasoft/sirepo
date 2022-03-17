@@ -20,7 +20,6 @@ import os
 import re
 import sirepo.lib
 import sirepo.template.madx
-import sirepo.template.madx_parser
 import sys
 
 
@@ -118,7 +117,7 @@ def _find_process_variable(pv_name):
 def _format_prop_value(prop_name, value):
     if prop_name in _ARRAY_PROP_NAMES:
         #TODO(pjm): assumes the first value is the one which will be used
-        return f'[{value},0,0,0]'
+        return f'[{value} 0 0 0]'
     return value
 
 
@@ -126,6 +125,28 @@ def _http_response(content):
     res = flask.make_response(content)
     res.headers['sirepo-dev'] = '1'
     return res
+
+
+def _init_sim():
+    data = app.config['sim']
+    beam = data.models.command_beam
+    bunch = data.models.bunch
+    bunch.matchTwissParameters = '0'
+    madx = data.models.externalLattice
+    madx.models.command_beam = beam
+    madx.models.bunch = bunch
+    madx.models.simulation.computeTwissFromParticles = '1'
+    fmap = PKDict(
+        current_k1='k1',
+        current_kick='kick',
+        current_vkick='vkick',
+        current_hkick='hkick',
+    )
+    for el in madx.models.elements:
+        for f in el:
+            if f in fmap:
+                el[fmap[f]] = _convert_amps_to_k(el, float(el[f]))
+    _run_sim()
 
 
 def _load_sim(sim_type, sim_id):
@@ -143,14 +164,7 @@ def _load_sim(sim_type, sim_id):
             ),
         ),
     )
-    beam = data.models.command_beam
-    bunch = data.models.bunch
-    bunch.matchTwissParameters = '0'
-    madx = data.models.externalLattice
-    madx.models.command_beam = beam
-    madx.models.bunch = bunch
     return data
-
 
 
 def _position_from_twiss():
@@ -170,11 +184,11 @@ def _position_from_twiss():
     res = []
     for i in range(len(observes)):
         if '_MONITOR' in observes[i]:
-            res += [columns['x0'][i], columns['y0'][i]]
+            res += [columns['x0'][i] * 1e6, columns['y0'][i] * 1e6]
         elif '_HMONITOR' in observes[i]:
-            res += [columns['x0'][i]]
+            res += [columns['x0'][i] * 1e6]
         elif '_VMONITOR' in observes[i]:
-            res += [columns['y0'][i]]
+            res += [columns['y0'][i] * 1e6]
         else:
             pass
     return res
@@ -200,7 +214,7 @@ def _read_values(params):
         prop = params.props[idx]
         pv, el = _find_element(f'{name}:{prop}')
         if res:
-            res += ','
+            res += ' '
         if el.type in _PV_TO_ELEMENT_FIELD:
             if prop != _READ_CURRENT_PROP_NAME:
                 _abort(f'read current pv must be {_READ_CURRENT_PROP_NAME} not {prop}')
@@ -219,7 +233,6 @@ def _run_sim():
     outpath = app.config['sim_dir']
     if not outpath.exists():
         pkio.mkdir_parent(outpath)
-    app.config['sim'].models.externalLattice.models.simulation.computeTwissFromParticles = '1'
     d = sirepo.lib.SimData(
         copy.deepcopy(app.config['sim'].models.externalLattice),
         outpath.join('in.madx'),
@@ -254,5 +267,5 @@ if __name__ == '__main__':
     app.config['sim'] = _load_sim('controls', simulation_db.assert_sid(sys.argv[1]))
     app.config['sim_dir'] = pkio.py_path(_SIM_OUTPUT_DIR)
     # prep for initial queries by running sim with no changes
-    _run_sim()
+    _init_sim()
     app.run()

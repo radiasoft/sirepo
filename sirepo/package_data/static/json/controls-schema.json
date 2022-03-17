@@ -118,7 +118,7 @@
             "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
             "processVariables": ["", "ProcessVariables"],
             "readOnly": ["Read Only", "Boolean", "1"],
-            "particlePlotSize": ["Plot Dimension [m]", "Float", 0.1],
+            "particlePlotSize": ["Particle Plot Dimension [m]", "Float", 0.1],
             "bpmPlotSize": ["Monitor Dimension [m]", "Float", 0.0021]
         },
         "dataFile": {
@@ -126,7 +126,9 @@
         },
         "deviceServerMonitor": {
         },
-        "initialMonitorPositionsReport": {},
+        "initialMonitorPositionsReport": {
+            "readOnly": ["Read Only", "Boolean", "0"]
+        },
         "instrumentAnimation":{
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "x": ["Horizontal Value to Plot", "ValueList", "x"],
@@ -215,7 +217,7 @@
     },
     "view": {
         "instrumentAnimation": {
-                "title": "Cross Section",
+                "title": "Particle Plot",
                 "model": "instrumentAnimation",
                 "advanced": [
                     [
@@ -231,7 +233,7 @@
                 ]
         },
         "instrumentAnimationAll": {
-            "title": "Cross Section",
+            "title": "Particle Plots",
             "model": "instrumentAnimationAll",
             "advanced": [
                 [

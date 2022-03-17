@@ -1,0 +1,1289 @@
+{
+    "models": {
+        "beamlines": [],
+        "bunch": {
+            "alfx": 0.8,
+            "alfy": -0.07,
+            "beamDefinition": "gamma",
+            "betx": 10,
+            "bety": 7,
+            "ex": 1e-06,
+            "ey": 1e-06,
+            "longitudinalMethod": "2",
+            "matchTwissParameters": "0",
+            "numberOfParticles": 100,
+            "px": 0,
+            "py": 0,
+            "randomSeed": 123456789,
+            "x": 0.001,
+            "y": -0.001
+        },
+        "command_beam": {
+            "_id": 115,
+            "_type": "beam",
+            "bcurrent": 0,
+            "beta": 0.999999869700802,
+            "brho": 3.33897659310099,
+            "bunched": "1",
+            "bv": 1,
+            "charge": 1,
+            "energy": 1.0010001304797258,
+            "et": 0.001,
+            "ex": 4.6e-08,
+            "exn": 0,
+            "ey": 4.6e-08,
+            "eyn": 0,
+            "gamma": 1958.908474421938,
+            "kbunch": 1,
+            "kinetic_energy": 1.0004891315517257,
+            "mass": 0.0005109989461,
+            "name": null,
+            "npart": 1,
+            "particle": "electron",
+            "pc": 1.0010000000000001,
+            "radiate": "0",
+            "sequence": "",
+            "sige": 0.001,
+            "sigt": 0.00065
+        },
+        "commands": [],
+        "controlSettings": {
+            "bpmPlotSize": 0.0021,
+            "deviceServerURL": "http://localhost:5000/DeviceServer",
+            "operationMode": "madx",
+            "particlePlotSize": 0.01,
+            "processVariables": [
+                {
+                    "elId": 102,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh1:readbackM[0]"
+                },
+                {
+                    "elId": 102,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh1:currentS"
+                },
+                {
+                    "elId": 102,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv1:readbackM[0]"
+                },
+                {
+                    "elId": 102,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv1:currentS"
+                },
+                {
+                    "elId": 106,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.mh1:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 106,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.mv1:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 103,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh2:readbackM[0]"
+                },
+                {
+                    "elId": 103,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh2:currentS"
+                },
+                {
+                    "elId": 103,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv2:readbackM[0]"
+                },
+                {
+                    "elId": 103,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv2:currentS"
+                },
+                {
+                    "elId": 135,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.mh2:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 135,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.mv2:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 108,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quadf1:readbackM[0]"
+                },
+                {
+                    "elId": 107,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quadd1:readbackM[0]"
+                },
+                {
+                    "elId": 104,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh3:readbackM[0]"
+                },
+                {
+                    "elId": 104,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh3:currentS"
+                },
+                {
+                    "elId": 104,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv3:readbackM[0]"
+                },
+                {
+                    "elId": 104,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv3:currentS"
+                },
+                {
+                    "elId": 147,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.mh3:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 147,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.mv3:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 105,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh4:readbackM[0]"
+                },
+                {
+                    "elId": 105,
+                    "isWritable": "1",
+                    "pvDimension": "horizontal",
+                    "pvName": "power.kh4:currentS"
+                },
+                {
+                    "elId": 105,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv4:readbackM[0]"
+                },
+                {
+                    "elId": 105,
+                    "isWritable": "1",
+                    "pvDimension": "vertical",
+                    "pvName": "power.kv4:currentS"
+                },
+                {
+                    "elId": 155,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.mh4:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 155,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.mv4:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 159,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quadf2:readbackM[0]"
+                },
+                {
+                    "elId": 162,
+                    "isWritable": "0",
+                    "pvDimension": "none",
+                    "pvName": "power.quadd2:readbackM[0]"
+                },
+                {
+                    "elId": 165,
+                    "isWritable": "0",
+                    "pvDimension": "horizontal",
+                    "pvName": "bpms.mh5:tbtOrbPositionM[0]"
+                },
+                {
+                    "elId": 165,
+                    "isWritable": "0",
+                    "pvDimension": "vertical",
+                    "pvName": "bpms.mv5:tbtOrbPositionM[0]"
+                }
+            ],
+            "readOnly": "0"
+        },
+        "dataFile": {
+            "madxSirepo": "uqYNQ4dz"
+        },
+        "deviceServerMonitor": {},
+        "elements": [],
+        "externalLattice": {
+            "models": {
+                "beamlines": [
+                    {
+                        "angle": 0,
+                        "count": 18,
+                        "distance": 3.4000000000000012,
+                        "id": 114,
+                        "items": [
+                            101,
+                            125,
+                            102,
+                            126,
+                            127,
+                            123,
+                            106,
+                            128,
+                            129,
+                            130,
+                            131,
+                            103,
+                            132,
+                            133,
+                            134,
+                            135,
+                            136,
+                            137,
+                            138,
+                            108,
+                            139,
+                            140,
+                            107,
+                            141,
+                            142,
+                            143,
+                            104,
+                            144,
+                            145,
+                            146,
+                            147,
+                            148,
+                            149,
+                            150,
+                            151,
+                            105,
+                            152,
+                            153,
+                            154,
+                            155,
+                            156,
+                            157,
+                            158,
+                            159,
+                            160,
+                            161,
+                            162,
+                            163,
+                            164,
+                            165
+                        ],
+                        "length": 3.4000000000000012,
+                        "name": "LINE"
+                    }
+                ],
+                "bunch": {
+                    "alfx": 0.8,
+                    "alfy": -0.07,
+                    "beamDefinition": "gamma",
+                    "betx": 10,
+                    "bety": 7,
+                    "ex": 1e-06,
+                    "ey": 1e-06,
+                    "longitudinalMethod": "2",
+                    "matchTwissParameters": "0",
+                    "numberOfParticles": 100,
+                    "px": 0,
+                    "py": 0,
+                    "randomSeed": 123456789,
+                    "x": 0.001,
+                    "y": -0.001
+                },
+                "commands": [
+                    {
+                        "_id": 124,
+                        "_type": "option",
+                        "bborbit": "",
+                        "debug": "",
+                        "echo": "0",
+                        "echomacro": "",
+                        "info": "",
+                        "no_fatal_stop": "",
+                        "rbarc": "",
+                        "reset": "",
+                        "sympl": "",
+                        "tell": "",
+                        "thin_foc": "",
+                        "threader": "",
+                        "trace": "",
+                        "twiss_print": "",
+                        "verbose": "",
+                        "verify": "",
+                        "warn": ""
+                    },
+                    {
+                        "_id": 115,
+                        "_type": "beam",
+                        "bcurrent": 0,
+                        "beta": 0.999999869700802,
+                        "brho": 3.33897659310099,
+                        "bunched": "1",
+                        "bv": 1,
+                        "charge": 1,
+                        "energy": 1.0010001304797258,
+                        "et": 0.001,
+                        "ex": 4.6e-08,
+                        "exn": 0,
+                        "ey": 4.6e-08,
+                        "eyn": 0,
+                        "gamma": 1958.908474421938,
+                        "kbunch": 1,
+                        "kinetic_energy": 1.0004891315517257,
+                        "mass": 0.0005109989461,
+                        "name": null,
+                        "npart": 1,
+                        "particle": "electron",
+                        "pc": 1.0010000000000001,
+                        "radiate": "0",
+                        "sequence": "",
+                        "sige": 0.001,
+                        "sigt": 0.00065
+                    },
+                    {
+                        "_id": 166,
+                        "_type": "ptc_create_universe",
+                        "ntpsa": "0",
+                        "sector_nmul": -1,
+                        "sector_nmul_max": -1,
+                        "symprint": "1"
+                    },
+                    {
+                        "_id": 167,
+                        "_type": "ptc_create_layout",
+                        "errors_out": "0",
+                        "even": "1",
+                        "exact": "0",
+                        "magnet_name": "",
+                        "method": 2,
+                        "model": "1",
+                        "nst": 1,
+                        "offset_deltap": 0,
+                        "resplit": "0",
+                        "thin": 0.001,
+                        "time": "1",
+                        "xbend": -1
+                    },
+                    {
+                        "_id": 168,
+                        "_type": "ptc_track",
+                        "beam_envelope": "0",
+                        "closed_orbit": "0",
+                        "deltap": 0,
+                        "element_by_element": "0",
+                        "ffile": 1,
+                        "file": "1",
+                        "icase": "6",
+                        "maxaper": "0, 0, 0, 0, 0, 0",
+                        "norm_no": 1,
+                        "norm_out": "0",
+                        "onetable": "0",
+                        "radiation": "0",
+                        "radiation_energy_loss": "0",
+                        "radiation_model1": "0",
+                        "radiation_quad": "0",
+                        "recloss": "0",
+                        "space_charge": "0",
+                        "turns": 0
+                    },
+                    {
+                        "_id": 169,
+                        "_type": "ptc_track_end"
+                    },
+                    {
+                        "_id": 170,
+                        "_type": "ptc_end"
+                    }
+                ],
+                "elements": [
+                    {
+                        "_id": 101,
+                        "l": 0.1,
+                        "name": "D1",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 123,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "I1",
+                        "type": "INSTRUMENT"
+                    },
+                    {
+                        "_id": 102,
+                        "_super": "_APERTURE_ELEMENT",
+                        "ampTable": "",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_hkick": 0,
+                        "current_vkick": 0,
+                        "hkick": 0,
+                        "l": 0,
+                        "name": "HV_KICKER_1",
+                        "tilt": 0,
+                        "type": "KICKER",
+                        "vkick": 0.002161403290763227
+                    },
+                    {
+                        "_id": 103,
+                        "_super": "_APERTURE_ELEMENT",
+                        "ampTable": "",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_hkick": 0,
+                        "current_vkick": 0,
+                        "hkick": 0,
+                        "l": 0,
+                        "name": "HV_KICKER_2",
+                        "tilt": 0,
+                        "type": "KICKER",
+                        "vkick": 0
+                    },
+                    {
+                        "_id": 104,
+                        "_super": "_APERTURE_ELEMENT",
+                        "ampTable": "",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_hkick": 0,
+                        "current_vkick": 0,
+                        "hkick": 0,
+                        "l": 0,
+                        "name": "HV_KICKER_3",
+                        "tilt": 0,
+                        "type": "KICKER",
+                        "vkick": 0
+                    },
+                    {
+                        "_id": 105,
+                        "_super": "_APERTURE_ELEMENT",
+                        "ampTable": "",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_hkick": 0,
+                        "current_vkick": 0,
+                        "hkick": 0,
+                        "l": 0,
+                        "name": "HV_KICKER_4",
+                        "tilt": 0,
+                        "type": "KICKER",
+                        "vkick": 0
+                    },
+                    {
+                        "_id": 106,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "BPM_1",
+                        "type": "MONITOR",
+                        "x": 0.0009914723395696,
+                        "y": -0.001004229241802392
+                    },
+                    {
+                        "_id": 107,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_k1": -0.16694882950259454,
+                        "k1": 5,
+                        "k1s": 0,
+                        "l": 0.05,
+                        "name": "D_QUAD",
+                        "thick": "0",
+                        "tilt": 0,
+                        "type": "QUADRUPOLE"
+                    },
+                    {
+                        "_id": 108,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_k1": 0.16694882950259454,
+                        "k1": -5,
+                        "k1s": 0,
+                        "l": 0.05,
+                        "name": "F_QUAD",
+                        "thick": "0",
+                        "tilt": 0,
+                        "type": "QUADRUPOLE"
+                    },
+                    {
+                        "_id": 125,
+                        "l": 0.1,
+                        "name": "D2",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 126,
+                        "l": 0.1,
+                        "name": "D3",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 127,
+                        "l": 0.1,
+                        "name": "D4",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 128,
+                        "l": 0.1,
+                        "name": "D5",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 129,
+                        "l": 0.1,
+                        "name": "D6",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 130,
+                        "l": 0.1,
+                        "name": "D7",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 131,
+                        "l": 0.1,
+                        "name": "D8",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 132,
+                        "l": 0.1,
+                        "name": "D9",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 133,
+                        "l": 0.1,
+                        "name": "D10",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 134,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "I2",
+                        "type": "INSTRUMENT"
+                    },
+                    {
+                        "_id": 135,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "BPM_2",
+                        "type": "MONITOR",
+                        "x": 0.0009972855915827998,
+                        "y": -0.0010078811834050001
+                    },
+                    {
+                        "_id": 136,
+                        "l": 0.1,
+                        "name": "D11",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 137,
+                        "l": 0.1,
+                        "name": "D12",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 138,
+                        "l": 0.1,
+                        "name": "D13",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 139,
+                        "l": 0.1,
+                        "name": "D14",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 140,
+                        "l": 0.1,
+                        "name": "D15",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 141,
+                        "l": 0.1,
+                        "name": "D16",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 142,
+                        "l": 0.1,
+                        "name": "D17",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 143,
+                        "l": 0.1,
+                        "name": "D18",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 144,
+                        "l": 0.1,
+                        "name": "D19",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 145,
+                        "l": 0.1,
+                        "name": "D20",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 146,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "I3",
+                        "type": "INSTRUMENT"
+                    },
+                    {
+                        "_id": 147,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "BPM_3",
+                        "type": "MONITOR",
+                        "x": 0.0010619489247437,
+                        "y": -0.0009433699642288
+                    },
+                    {
+                        "_id": 148,
+                        "l": 0.1,
+                        "name": "D21",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 149,
+                        "l": 0.1,
+                        "name": "D22",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 150,
+                        "l": 0.1,
+                        "name": "D23",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 151,
+                        "l": 0.1,
+                        "name": "D24",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 152,
+                        "l": 0.1,
+                        "name": "D25",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 153,
+                        "l": 0.1,
+                        "name": "D26",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 154,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "I4",
+                        "type": "INSTRUMENT"
+                    },
+                    {
+                        "_id": 155,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "BPM_4",
+                        "type": "MONITOR",
+                        "x": 0.0011168670477072,
+                        "y": -0.0009964662045587
+                    },
+                    {
+                        "_id": 156,
+                        "l": 0.1,
+                        "name": "D27",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 157,
+                        "l": 0.1,
+                        "name": "D28",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 158,
+                        "l": 0.1,
+                        "name": "D29",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 159,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_k1": 0.16694882950259454,
+                        "k1": -5,
+                        "k1s": 0,
+                        "l": 0.05,
+                        "name": "F_QUAD2",
+                        "thick": "0",
+                        "tilt": 0,
+                        "type": "QUADRUPOLE"
+                    },
+                    {
+                        "_id": 160,
+                        "l": 0.1,
+                        "name": "D30",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 161,
+                        "l": 0.1,
+                        "name": "D31",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 162,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "current_k1": -0.16694882950259454,
+                        "k1": 5,
+                        "k1s": 0,
+                        "l": 0.05,
+                        "name": "D_QUAD2",
+                        "thick": "0",
+                        "tilt": 0,
+                        "type": "QUADRUPOLE"
+                    },
+                    {
+                        "_id": 163,
+                        "l": 0.1,
+                        "name": "D32",
+                        "type": "DRIFT"
+                    },
+                    {
+                        "_id": 164,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "I5",
+                        "type": "INSTRUMENT"
+                    },
+                    {
+                        "_id": 165,
+                        "_super": "_APERTURE_ELEMENT",
+                        "aper_offset": "0",
+                        "aper_tol": "0 0 0",
+                        "aperture": "0",
+                        "apertype": "circle",
+                        "l": 0,
+                        "name": "BPM_5",
+                        "type": "MONITOR",
+                        "x": 0.001389292778071,
+                        "y": -0.0011273796077982002
+                    }
+                ],
+                "rpnVariables": [
+                    {
+                        "name": "sr_alpha_x",
+                        "value": 1
+                    },
+                    {
+                        "name": "sr_alpha_y",
+                        "value": 1
+                    },
+                    {
+                        "name": "sr_beta_x",
+                        "value": 10
+                    },
+                    {
+                        "name": "sr_beta_y",
+                        "value": 10
+                    },
+                    {
+                        "name": "sr_dp_s_coupling",
+                        "value": 0
+                    },
+                    {
+                        "name": "sr_gamma_x",
+                        "value": 0.2
+                    },
+                    {
+                        "name": "sr_gamma_y",
+                        "value": 0.2
+                    },
+                    {
+                        "name": "sr_n_particles_per_bunch",
+                        "value": 5000
+                    }
+                ],
+                "simulation": {
+                    "activeBeamlineId": 114,
+                    "commandTemplate": "particle",
+                    "computeTwissFromParticles": "1",
+                    "documentationUrl": "",
+                    "enableParticleTracking": "1",
+                    "folder": "/",
+                    "isExample": false,
+                    "lastModified": 1647043556917,
+                    "name": "webcon_fodo with ending monitor and instruments",
+                    "notes": "",
+                    "outOfSessionSimulationId": "",
+                    "simulationId": "uqYNQ4dz",
+                    "simulationSerial": 1647043556916561,
+                    "visualizationBeamlineId": 114
+                },
+                "twissReport": {
+                    "includeLattice": "1",
+                    "y1": "betx",
+                    "y2": "bety",
+                    "y3": "dx"
+                }
+            },
+            "simulationType": "madx",
+            "version": "20220307.204534"
+        },
+        "initialMonitorPositionsReport": {
+            "readOnly": "0"
+        },
+        "instrumentAnimation1": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "id": 1,
+            "particlePlotSize": 0.01,
+            "valueList": {
+                "x": [],
+                "y1": []
+            },
+            "x": "x",
+            "y1": "y"
+        },
+        "instrumentAnimation18": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "id": 18,
+            "particlePlotSize": 0.01,
+            "valueList": {
+                "x": [],
+                "y1": []
+            },
+            "x": "x",
+            "y1": "y"
+        },
+        "instrumentAnimation30": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "id": 30,
+            "particlePlotSize": 0.01,
+            "valueList": {
+                "x": [],
+                "y1": []
+            },
+            "x": "x",
+            "y1": "y"
+        },
+        "instrumentAnimation38": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "id": 38,
+            "particlePlotSize": 0.01,
+            "valueList": {
+                "x": [],
+                "y1": []
+            },
+            "x": "x",
+            "y1": "y"
+        },
+        "instrumentAnimation48": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "id": 48,
+            "particlePlotSize": 0.01,
+            "valueList": {
+                "x": [],
+                "y1": []
+            },
+            "x": "x",
+            "y1": "y"
+        },
+        "instrumentAnimationAll": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "particlePlotSize": 0.01,
+            "valueList": {
+                "x": [
+                    "x",
+                    "px",
+                    "y",
+                    "py",
+                    "t",
+                    "pt",
+                    "s",
+                    "e"
+                ],
+                "y1": [
+                    "x",
+                    "px",
+                    "y",
+                    "py",
+                    "t",
+                    "pt",
+                    "s",
+                    "e"
+                ]
+            },
+            "x": "x",
+            "y1": "y"
+        },
+        "instrumentAnimationTwiss": {
+            "includeLattice": 0,
+            "panelTitle": "Twiss Report",
+            "particlePlotSize": 0.01,
+            "refreshId": 0.8016480983100516,
+            "valueList": {
+                "x": [
+                    "None",
+                    "W",
+                    "alfx",
+                    "alfy",
+                    "betx",
+                    "bety",
+                    "ct0",
+                    "ctct",
+                    "ctpt",
+                    "emit_t",
+                    "emit_x",
+                    "emit_y",
+                    "eta_px",
+                    "eta_py",
+                    "eta_x",
+                    "eta_y",
+                    "gamma_x",
+                    "gamma_y",
+                    "n",
+                    "pt0",
+                    "ptpt",
+                    "px0",
+                    "pxct",
+                    "pxpt",
+                    "pxpx",
+                    "pxpy",
+                    "pxy",
+                    "py0",
+                    "pyct",
+                    "pypt",
+                    "pypy",
+                    "s",
+                    "x0",
+                    "xct",
+                    "xpt",
+                    "xpx",
+                    "xpy",
+                    "xx",
+                    "xy",
+                    "y0",
+                    "yct",
+                    "ypt",
+                    "ypy",
+                    "yy"
+                ],
+                "y1": [
+                    "None",
+                    "W",
+                    "alfx",
+                    "alfy",
+                    "betx",
+                    "bety",
+                    "ct0",
+                    "ctct",
+                    "ctpt",
+                    "emit_t",
+                    "emit_x",
+                    "emit_y",
+                    "eta_px",
+                    "eta_py",
+                    "eta_x",
+                    "eta_y",
+                    "gamma_x",
+                    "gamma_y",
+                    "n",
+                    "pt0",
+                    "ptpt",
+                    "px0",
+                    "pxct",
+                    "pxpt",
+                    "pxpx",
+                    "pxpy",
+                    "pxy",
+                    "py0",
+                    "pyct",
+                    "pypt",
+                    "pypy",
+                    "s",
+                    "x0",
+                    "xct",
+                    "xpt",
+                    "xpx",
+                    "xpy",
+                    "xx",
+                    "xy",
+                    "y0",
+                    "yct",
+                    "ypt",
+                    "ypy",
+                    "yy"
+                ],
+                "y2": [
+                    "None",
+                    "W",
+                    "alfx",
+                    "alfy",
+                    "betx",
+                    "bety",
+                    "ct0",
+                    "ctct",
+                    "ctpt",
+                    "emit_t",
+                    "emit_x",
+                    "emit_y",
+                    "eta_px",
+                    "eta_py",
+                    "eta_x",
+                    "eta_y",
+                    "gamma_x",
+                    "gamma_y",
+                    "n",
+                    "pt0",
+                    "ptpt",
+                    "px0",
+                    "pxct",
+                    "pxpt",
+                    "pxpx",
+                    "pxpy",
+                    "pxy",
+                    "py0",
+                    "pyct",
+                    "pypt",
+                    "pypy",
+                    "s",
+                    "x0",
+                    "xct",
+                    "xpt",
+                    "xpx",
+                    "xpy",
+                    "xx",
+                    "xy",
+                    "y0",
+                    "yct",
+                    "ypt",
+                    "ypy",
+                    "yy"
+                ],
+                "y3": [
+                    "None",
+                    "W",
+                    "alfx",
+                    "alfy",
+                    "betx",
+                    "bety",
+                    "ct0",
+                    "ctct",
+                    "ctpt",
+                    "emit_t",
+                    "emit_x",
+                    "emit_y",
+                    "eta_px",
+                    "eta_py",
+                    "eta_x",
+                    "eta_y",
+                    "gamma_x",
+                    "gamma_y",
+                    "n",
+                    "pt0",
+                    "ptpt",
+                    "px0",
+                    "pxct",
+                    "pxpt",
+                    "pxpx",
+                    "pxpy",
+                    "pxy",
+                    "py0",
+                    "pyct",
+                    "pypt",
+                    "pypy",
+                    "s",
+                    "x0",
+                    "xct",
+                    "xpt",
+                    "xpx",
+                    "xpy",
+                    "xx",
+                    "xy",
+                    "y0",
+                    "yct",
+                    "ypt",
+                    "ypy",
+                    "yy"
+                ]
+            },
+            "x": "s",
+            "y1": "x0",
+            "y2": "y0",
+            "y3": "None"
+        },
+        "optimizerSettings": {
+            "inputs": {
+                "kickers": {
+                    "102": true,
+                    "103": true,
+                    "104": true,
+                    "105": true
+                },
+                "quads": {
+                    "107": false,
+                    "108": false,
+                    "159": false,
+                    "162": false
+                }
+            },
+            "method": "nmead",
+            "targets": [
+                {
+                    "name": "BPM_1",
+                    "weight": 0.1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "name": "BPM_2",
+                    "weight": 0.2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "name": "BPM_3",
+                    "weight": 0.3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "name": "BPM_4",
+                    "weight": 0.4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "name": "BPM_5",
+                    "weight": 0.5,
+                    "x": 0,
+                    "y": 0
+                }
+            ],
+            "tolerance": 0.001
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "name": "FODO with instruments"
+        }
+    },
+    "simulationType": "controls"
+}
