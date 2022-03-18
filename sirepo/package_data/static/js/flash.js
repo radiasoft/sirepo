@@ -385,10 +385,10 @@ SIREPO.app.directive('appFooter', function(flashService) {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
+        `,
     };
 });
 
@@ -398,30 +398,29 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'config\')}"><a href data-ng-click="nav.openSection(\'config\')"><span class="glyphicon glyphicon-list"></span> Config</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'setup\')}"><a href data-ng-click="nav.openSection(\'setup\')"><span class="glyphicon glyphicon-tasks"></span> Setup</a></li>',
-                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>',
-                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>',
-                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'params\')}"><a href data-ng-click="nav.openSection(\'params\')"><span class="glyphicon glyphicon-edit"></span> Parameters</a></li>',
-                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'runtimeParams\')}"><a href data-ng-click="nav.openSection(\'runtimeParams\')"><span class="glyphicon glyphicon-scale"></span> Runtime Params</a></li>',
-                  '<li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'config\')}"><a href data-ng-click="nav.openSection(\'config\')"><span class="glyphicon glyphicon-list"></span> Config</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'setup\')}"><a href data-ng-click="nav.openSection(\'setup\')"><span class="glyphicon glyphicon-tasks"></span> Setup</a></li>
+                  <li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-th"></span> Source</a></li>
+                  <li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'physics\')}"><a href data-ng-click="nav.openSection(\'physics\')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>
+                  <li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'params\')}"><a href data-ng-click="nav.openSection(\'params\')"><span class="glyphicon glyphicon-edit"></span> Parameters</a></li>
+                  <li data-ng-if="appState.models.flashSchema" class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function(appState, $scope) {
             $scope.appState = appState;
         },
@@ -509,18 +508,18 @@ SIREPO.app.directive('plotFileSelectionList', function() {
             field: '=',
             modelName: '=',
         },
-        template: [
-            '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
-              '<table class="table table-condensed table-hover" style="margin:0">',
-                '<tbody>',
-                  '<tr data-ng-repeat="file in plotFiles track by $index" data-ng-click="toggleFile(file.filename)">',
-                    '<td>{{ file.time }}</td>',
-                    '<td><input type="checkbox" data-ng-checked="isSelected(file.filename)"></td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">
+              <table class="table table-condensed table-hover" style="margin:0">
+                <tbody>
+                  <tr data-ng-repeat="file in plotFiles track by $index" data-ng-click="toggleFile(file.filename)">
+                    <td>{{ file.time }}</td>
+                    <td><input type="checkbox" data-ng-checked="isSelected(file.filename)"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        `,
         controller: function($scope, appState) {
             function loadPlotFiles() {
                 $scope.plotFiles = appState.models.oneDimensionProfileAnimation.plotFiles;
@@ -558,11 +557,11 @@ SIREPO.app.directive('parametersPanel', function() {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div style="margin-bottom: 1ex" data-ng-repeat="name in modelNames track by name">',
-            '<button class="btn btn-default" data-ng-click="showModal(name)">{{ name }}</button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div style="margin-bottom: 1ex" data-ng-repeat="name in modelNames track by name">
+            <button class="btn btn-default" data-ng-click="showModal(name)">{{ name }}</button>
+            </div>
+        `,
         controller: function(appState, panelState, $scope) {
             $scope.showModal = (name) => panelState.showModalEditor(name);
 
@@ -597,38 +596,38 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div>',
-              '<div class="modal fade" id="sr-setup-command" tabindex="-1" role="dialog">',
-                '<div class="modal-dialog modal-lg">',
-                  '<div class="modal-content">',
-                    '<div class="modal-header bg-warning">',
-                      '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                      '<span class="lead modal-title text-info">Setup Command</span>',
-                    '</div>',
-                    '<div data-loading-spinner data-sentinel="setupCommand" class="modal-body">',
-                      '<div class="container-fluid">',
-                        '<div class="row">',
-                          '<pre><code>{{ setupCommand }}</code></pre>',
-                        '</div>',
-                        '<br />',
-                        '<div class="row">',
-                          '<div class="col-sm-offset-6 col-sm-3">',
-                            '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
-                          '</div>',
-                        '</div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-                '<div data-basic-editor-panel="" data-view-name="setupArguments">',
-                  '<button type="button" class="btn btn-secondary" data-ng-click="showSetupCommand()">',
-                    '<span aria-hidden="true">Show setup command</span>',
-                  '</button>',
-                '</div>',
-              '</div>',
-            '</div>'
-        ].join(''),
+        template: `
+            <div>
+              <div class="modal fade" id="sr-setup-command" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                      <span class="lead modal-title text-info">Setup Command</span>
+                    </div>
+                    <div data-loading-spinner data-sentinel="setupCommand" class="modal-body">
+                      <div class="container-fluid">
+                        <div class="row">
+                          <pre><code>{{ setupCommand }}</code></pre>
+                        </div>
+                        <br />
+                        <div class="row">
+                          <div class="col-sm-offset-6 col-sm-3">
+                            <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div data-basic-editor-panel="" data-view-name="setupArguments">
+                  <button type="button" class="btn btn-secondary" data-ng-click="showSetupCommand()">
+                    <span aria-hidden="true">Show setup command</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope, appState, flashService, requestSender) {
             $scope.showSetupCommand= function() {
                 $scope.setupCommand = '';

@@ -832,10 +832,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-stl-import-dialog="" data-title="STL" data-description="Use conductors from STL file"></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-stl-import-dialog="" data-title="STL" data-description="Use conductors from STL file"></div>
+        `,
     };
 });
 
@@ -845,27 +845,26 @@ SIREPO.app.directive('appHeader', function(appState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav" data-new-template="newTemplate" data-new-callback="newCallback">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                  '<li class="sim-section" data-ng-show="showOptimization()" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav" data-new-template="newTemplate" data-new-callback="newCallback">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                  <li class="sim-section" data-ng-show="showOptimization()" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.showOptimization = function() {
                 if (appState.isLoaded()) {
@@ -880,9 +879,9 @@ SIREPO.app.directive('appHeader', function(appState) {
 SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService) {
     return {
         restrict: 'A',
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in cellList()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in cellList()"></select>
+        `,
         controller: function($scope) {
             var cells = null;
             $scope.cellList = function() {
@@ -934,48 +933,44 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
         scope: {
             source: '=controller',
         },
-        template: [
-            '<table data-ng-show="conductorTypes().length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
-              '<colgroup>',
-                '<col>',
-                '<col style="width: 12ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody data-ng-repeat="conductorType in conductorTypes() track by conductorType.id">',
-                '<tr>',
-                  '<td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
-                  '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
-                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="source.copyConductor(conductorType)" class="btn btn-info btn-xs sr-hover-button">Copy</button> <button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
-                '</tr>',
-
-                // 2D layout
-                '<tr data-ng-if="! warpvndService.is3D()" class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
-                  '<td></td><td></td><th style="text-align: right">Center Z</th><th style="text-align: right">Center X</th>',
-                '</tr>',
-                '<tr data-ng-if="! warpvndService.is3D()" data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">',
-                  '<td></td>',
-                  '<td></td>',
-                  '<td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>',
-                  '<td style="text-align: right">{{ formatSize(conductor.xCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
-                '</tr>',
-
-                // 3D layout
-                '<tr data-ng-if="warpvndService.is3D()" class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
-                  '<td></td><th style="text-align: right">Center Z</th><th style="text-align: right">Center X</th><th style="text-align: right">Center Y</th>',
-                '</tr>',
-                '<tr data-ng-if="warpvndService.is3D()" data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">',
-                  '<td></td>',
-                  '<td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>',
-                  '<td style="text-align: right">{{ formatSize(conductor.xCenter) }}</td>',
-                  '<td style="text-align: right">{{ formatSize(conductor.yCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
+        template: `
+            <table data-ng-show="conductorTypes().length" style="width: 100%;  table-layout: fixed" class="table table-hover">
+              <colgroup>
+                <col>
+                <col style="width: 12ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                </tr>
+              </thead>
+              <tbody data-ng-repeat="conductorType in conductorTypes() track by conductorType.id">
+                <tr>
+                  <td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>
+                  <td style="text-align: right">{{ conductorType.zLength }}µm</td>
+                  <td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="source.copyConductor(conductorType)" class="btn btn-info btn-xs sr-hover-button">Copy</button> <button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                </tr>
+                <tr data-ng-if="! warpvndService.is3D()" class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">
+                  <td></td><td></td><th style="text-align: right">Center Z</th><th style="text-align: right">Center X</th>
+                </tr>
+                <tr data-ng-if="! warpvndService.is3D()" data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">
+                  <td></td>
+                  <td></td>
+                  <td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>
+                  <td style="text-align: right">{{ formatSize(conductor.xCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                </tr>
+                <tr data-ng-if="warpvndService.is3D()" class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">
+                  <td></td><th style="text-align: right">Center Z</th><th style="text-align: right">Center X</th><th style="text-align: right">Center Y</th>
+                </tr>
+                <tr data-ng-if="warpvndService.is3D()" data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">
+                  <td></td>
+                  <td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>
+                  <td style="text-align: right">{{ formatSize(conductor.xCenter) }}</td>
+                  <td style="text-align: right">{{ formatSize(conductor.yCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                </tr>
+              </tbody>
+            </table>
+        `,
         controller: function($scope) {
             $scope.appState = appState;
             $scope.warpvndService = warpvndService;
@@ -1979,9 +1974,9 @@ SIREPO.app.directive('fieldAnimation', function(appState, panelState, plotting, 
         scope: {
             modelName: '@',
         },
-        template: [
-            '<div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>',
-        ].join(''),
+        template: `
+            <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
+        `,
         controller: function($scope) {
 
             appState.whenModelsLoaded($scope, function () {
@@ -2005,11 +2000,11 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
         scope: {
             modelName: '@fieldCalculationAnimation',
         },
-        template: [
-            '<div data-simple-panel="{{ modelName }}">',
-                '<div data-sim-status-panel="simState""></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-simple-panel="{{ modelName }}">
+                <div data-sim-status-panel="simState""></div>
+            </div>
+        `,
         controller: function($scope) {
             var self = this;
             self.simScope = $scope;
@@ -2046,94 +2041,94 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="well" data-ng-show="! optFields.length">',
-            'Select fields for optimization on the <i>Source</i> tab.',
-            '</div>',
-            '<form name="form" class="form-horizontal" data-ng-show="::optFields.length">',
-            '<div class="form-group form-group-sm">',
-              '<h4>Bounds</h4>',
-              '<table class="table table-striped table-condensed">',
-                '<thead>',
-                  '<tr>',
-                    '<th>Field</th>',
-                    '<th>Minimum</th>',
-                    '<th>Maximum</th>',
-                    '<th> </th>',
-                  '</tr>',
-                '</thead>',
-                '<tbody>',
-                  '<tr data-ng-repeat="optimizerField in appState.models.optimizer.fields track by $index">',
-                    '<td>',
-                      '<div class="form-control-static">{{ labelForField(optimizerField.field) }}</div>',
-                    '</td><td>',
-                      '<div class="row" data-field-editor="\'minimum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>',
-                    '</td><td>',
-                      '<div class="row" data-field-editor="\'maximum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>',
-                    '</td>',
-                    '<td style="vertical-align: middle">',
-                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteField($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
-                    '</td>',
-                  '</tr>',
-                  '<tr>',
-                    '<td>',
-                      '<select class="input-sm form-control" data-ng-model="selectedField" data-ng-options="f.field as f.label for f in unboundedOptFields" data-ng-change="addField()"></select>',
-                    '</td>',
-                    '<td></td>',
-                    '<td></td>',
-                    '<td></td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-            '<div class="form-group form-group-sm" data-ng-show="appState.models.optimizer.fields.length">',
-              '<h4>Constraints</h4>',
-              '<table class="table table-striped table-condensed">',
-                '<thead>',
-                  '<tr>',
-                    '<th>Bounded Field</th>',
-                    '<th> </th>',
-                    '<th>Field</th>',
-                    '<th> </th>',
-                  '</tr>',
-                '</thead>',
-                '<tbody>',
-                  '<tr data-ng-repeat="constraint in appState.models.optimizer.constraints track by $index">',
-                    '<td>',
-                      '<div class="form-control-static">{{ labelForField(constraint[0]) }}</div>',
-                    '</td>',
-                    '<td style="vertical-align: middle">{{ constraint[1] }}</td>',
-                    '<td>',
-                      '<div class="form-control-static">{{ labelForField(constraint[2]) }}</div>',
-                    '</td>',
-                    '<td style="vertical-align: middle">',
-                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteConstraint($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
-                    '</td>',
-                  '</tr>',
-                  '<tr>',
-                    '<td>',
-                      '<select class="input-sm form-control" data-ng-model="selectedConstraint" data-ng-options="f.field as labelForField(f.field) for f in appState.models.optimizer.fields"></select>',
-                    '</td>',
-                    '<td>=</td>',
-                    '<td>',
-                      '<select data-ng-show="selectedConstraint" class="input-sm form-control" data-ng-model="selectedConstraint2" data-ng-options="f.field as f.label for f in ::optFields" data-ng-change="addConstraint()"></select>',
-                    '</td>',
-                    '<td style="vertical-align: middle">',
-                      '<button  data-ng-show="selectedConstraint" class="btn btn-danger btn-xs" data-ng-click="deleteSelectedConstraint()" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
-                    '</td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-            '<div class="form-group form-group-sm">',
-              '<div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>',
-            '</div>',
-            '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
-              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
-              '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
-            '</div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <div class="well" data-ng-show="! optFields.length">
+            Select fields for optimization on the <i>Source</i> tab.
+            </div>
+            <form name="form" class="form-horizontal" data-ng-show="::optFields.length">
+            <div class="form-group form-group-sm">
+              <h4>Bounds</h4>
+              <table class="table table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Minimum</th>
+                    <th>Maximum</th>
+                    <th> </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="optimizerField in appState.models.optimizer.fields track by $index">
+                    <td>
+                      <div class="form-control-static">{{ labelForField(optimizerField.field) }}</div>
+                    </td><td>
+                      <div class="row" data-field-editor="\'minimum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>
+                    </td><td>
+                      <div class="row" data-field-editor="\'maximum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>
+                    </td>
+                    <td style="vertical-align: middle">
+                      <button class="btn btn-danger btn-xs" data-ng-click="deleteField($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <select class="input-sm form-control" data-ng-model="selectedField" data-ng-options="f.field as f.label for f in unboundedOptFields" data-ng-change="addField()"></select>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group form-group-sm" data-ng-show="appState.models.optimizer.fields.length">
+              <h4>Constraints</h4>
+              <table class="table table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Bounded Field</th>
+                    <th> </th>
+                    <th>Field</th>
+                    <th> </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="constraint in appState.models.optimizer.constraints track by $index">
+                    <td>
+                      <div class="form-control-static">{{ labelForField(constraint[0]) }}</div>
+                    </td>
+                    <td style="vertical-align: middle">{{ constraint[1] }}</td>
+                    <td>
+                      <div class="form-control-static">{{ labelForField(constraint[2]) }}</div>
+                    </td>
+                    <td style="vertical-align: middle">
+                      <button class="btn btn-danger btn-xs" data-ng-click="deleteConstraint($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <select class="input-sm form-control" data-ng-model="selectedConstraint" data-ng-options="f.field as labelForField(f.field) for f in appState.models.optimizer.fields"></select>
+                    </td>
+                    <td>=</td>
+                    <td>
+                      <select data-ng-show="selectedConstraint" class="input-sm form-control" data-ng-model="selectedConstraint2" data-ng-options="f.field as f.label for f in ::optFields" data-ng-change="addConstraint()"></select>
+                    </td>
+                    <td style="vertical-align: middle">
+                      <button  data-ng-show="selectedConstraint" class="btn btn-danger btn-xs" data-ng-click="deleteSelectedConstraint()" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group form-group-sm">
+              <div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>
+            </div>
+            <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
+              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+              <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+            </div>
+            </form>
+        `,
         controller: function($scope, $element) {
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.appState = appState;
@@ -2297,22 +2292,22 @@ SIREPO.app.directive('optimizationResults', function(appState, warpvndService) {
         scope: {
             simState: '=optimizationResults',
         },
-        template: [
-            '<div data-ng-show="results && simState.getFrameCount() > 0" class="well warpvnd-well">',
-              '{{ results }}',
-            '</div>',
-            '<div data-ng-show="showCurrentStatus()"  class="well warpvnd-well">',
-              '{{ currentSimStatus }}',
-              '<div style="height: 124px; overflow-y: scroll; margin-top: 10px;">',
-                '<table class="table table-striped table-condensed" style="margin-bottom: 0;">',
-                  '<tr style="position: sticky; top: 0"><th class="text-right">Steps</th><th class="text-right">Time [s]</th><th class="text-right">Tolerance</th><th class="text-right">Result</th></tr>',
-                  '<tr data-ng-repeat="row in statusRows track by $index">',
-                    '<td class="text-right">{{ row[0] }}</td><td class="text-right">{{ row[1] }}</td><td class="text-right">{{ row[2] }}</td><td class="text-right">{{ row[3] }}</td>',
-                  '</tr>',
-                '</table>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-show="results && simState.getFrameCount() > 0" class="well warpvnd-well">
+              {{ results }}
+            </div>
+            <div data-ng-show="showCurrentStatus()"  class="well warpvnd-well">
+              {{ currentSimStatus }}
+              <div style="height: 124px; overflow-y: scroll; margin-top: 10px;">
+                <table class="table table-striped table-condensed" style="margin-bottom: 0;">
+                  <tr style="position: sticky; top: 0"><th class="text-right">Steps</th><th class="text-right">Time [s]</th><th class="text-right">Tolerance</th><th class="text-right">Result</th></tr>
+                  <tr data-ng-repeat="row in statusRows track by $index">
+                    <td class="text-right">{{ row[0] }}</td><td class="text-right">{{ row[1] }}</td><td class="text-right">{{ row[2] }}</td><td class="text-right">{{ row[3] }}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             function labelAndValue(optFields, fields, value, idx) {
                 var field = fields[idx].field;
@@ -2393,10 +2388,10 @@ SIREPO.app.directive('fieldComparison', function(appState, warpvndService) {
             modelName: '@',
             parentController: '<',
         },
-        template: [
-            '<div data-report-panel="parameter" data-request-priority="0" data-model-name="fieldComparisonAnimation">',
-            '</div>',
-       ].join(''),
+        template: `
+            <div data-report-panel="parameter" data-request-priority="0" data-model-name="fieldComparisonAnimation">
+            </div>
+       `,
         controller: function($scope) {
             var lastSimMode = '';
             var ranIn3d = false;
@@ -2440,20 +2435,16 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             modelName: '@',
             parentController: '<',
         },
-        template: [
-            '<div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldCalcAnimation">',
-                '<div data-ng-show="showSliceRange()" >',
-                    '<div data-ng-class="utilities.modelFieldID(modelName, \'slice\')">',
-                        '<div data-label-with-tooltip="" class="control-label col-sm-5" data-ng-class="labelClass" data-label="Slice" data-tooltip=""></div>',
-                    '</div>',
-                    '<div class="col-sm-8" data-range-slider="" data-field="\'slice\'" data-field-delegate="sliceDelegate" data-model-name="modelName" data-model="model"></div>',
-                //'<div class="col-sm-8">',
-                //    '<input type="checkbox" checked data-ng-click="toggleConductors()"> Show Conductors',
-                //'</div>',
-                //'<div data-3d-slice-widget="" data-axis-info="axisInfo" data-slice-axis="sliceAxis" data-model="model" data-field="\'slice\'"></div>',
-                '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldCalcAnimation">
+                <div data-ng-show="showSliceRange()" >
+                    <div data-ng-class="utilities.modelFieldID(modelName, \'slice\')">
+                        <div data-label-with-tooltip="" class="control-label col-sm-5" data-ng-class="labelClass" data-label="Slice" data-tooltip=""></div>
+                    </div>
+                    <div class="col-sm-8" data-range-slider="" data-field="\'slice\'" data-field-delegate="sliceDelegate" data-model-name="modelName" data-model="model"></div>
+                </div>
+            </div>
+        `,
         controller: function($scope, $element) {
 
             var lastSimMode = '';
@@ -2541,37 +2532,37 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
         scope: {
             modelName: '@simulationStatusPanel',
         },
-        template: [
-            '<div data-simple-panel="{{ modelName }}">',
-                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
-                  '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
-                  '<div data-ng-show="simState.isStateRunning()">',
-                    '<div class="col-sm-12">',
-                      '<div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">',
-                        'Running Simulation ',
-                        '<span data-ng-if="mpiCores">with {{ mpiCores }} CPU Cores </span>',
-                        '{{ simState.dots }}',
-                      '</div>',
-                      '<div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() < 100">',
-                        'Completed frame: {{ simState.getFrameCount() }}',
-                      '</div>',
-                      '<div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() >= 100">',
-                        'Tracing Particles',
-                      '</div>',
-                      '<div class="progress">',
-                        '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                  '<div class="col-sm-6 pull-right">',
-                    '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
-                  '</div>',
-                '</form>',
-                '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
-                  '<div data-ng-transclude=""></div>',
-                '</form>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-simple-panel="{{ modelName }}">
+                <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">
+                  <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
+                  <div data-ng-show="simState.isStateRunning()">
+                    <div class="col-sm-12">
+                      <div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">
+                        Running Simulation 
+                        <span data-ng-if="mpiCores">with {{ mpiCores }} CPU Cores </span>
+                        {{ simState.dots }}
+                      </div>
+                      <div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() < 100">
+                        Completed frame: {{ simState.getFrameCount() }}
+                      </div>
+                      <div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() >= 100">
+                        Tracing Particles
+                      </div>
+                      <div class="progress">
+                        <div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-sm-6 pull-right">
+                    <button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>
+                  </div>
+                </form>
+                <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">
+                  <div data-ng-transclude=""></div>
+                </form>
+            </div>
+        `,
         controller: function($scope, stringsService) {
             var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation', 'particle3d'];
             var self = this;
@@ -2753,11 +2744,11 @@ SIREPO.app.directive('optimizationFieldPicker', function(appState, warpvndServic
             model: '=',
             field: '=',
         },
-        template: [
-            '<div class="input-group">',
-              '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.index as item.name for item in optimizationFields()"></select>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="input-group">
+              <select class="form-control" data-ng-model="model[field]" data-ng-options="item.index as item.name for item in optimizationFields()"></select>
+            </div>
+        `,
         controller: function($scope) {
             var list = null;
 
@@ -2997,9 +2988,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             parentController: '=',
             reportId: '<',
         },
-        template: [
-            '', //'<div></div>',
-        ].join(''),
+        template: `
+            ', //'<div></div>
+        `,
         controller: function($scope, $element) {
 
             var rpt = 'fieldComparisonAnimation';

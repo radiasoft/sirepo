@@ -47,12 +47,12 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select a zgoubi.dat file." data-file-formats=".dat,.res">',
-              '<div data-zgoubi-import-options=""></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select a zgoubi.dat file." data-file-formats=".dat,.res">
+              <div data-zgoubi-import-options=""></div>
+            </div>
+        `,
     };
 });
 
@@ -62,28 +62,27 @@ SIREPO.app.directive('appHeader', function(latticeService) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'twiss\')}"><a data-ng-href="{{ nav.sectionURL(\'twiss\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Twiss</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'twiss\')}"><a data-ng-href="{{ nav.sectionURL(\'twiss\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Twiss</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
         },
@@ -857,22 +856,22 @@ SIREPO.app.directive('changref2Fields', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div class="form-group form-group-sm">',
-            '<div class="col-sm-5">',
-            '<div class="text-center"><b>Type</b></div>',
-            '</div>',
-            '<div class="col-sm-6">',
-            '<div class="text-center"><b>Amount</b></div>',
-            '</div>',
-            '</div>',
-            '<div data-ng-repeat="idx in fieldRows()">',
-              '<div class="form-group form-group-sm">',
-                '<div data-field-editor="\'transformType\'" data-model-name="\'CHANGREF_VALUE\'" data-model="model[field][idx]"></div>',
-                '<div data-field-editor="\'transformValue\'" data-model-name="\'CHANGREF_VALUE\'" data-model="model[field][idx]" data-field-size="6"></div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="form-group form-group-sm">
+            <div class="col-sm-5">
+            <div class="text-center"><b>Type</b></div>
+            </div>
+            <div class="col-sm-6">
+            <div class="text-center"><b>Amount</b></div>
+            </div>
+            </div>
+            <div data-ng-repeat="idx in fieldRows()">
+              <div class="form-group form-group-sm">
+                <div data-field-editor="\'transformType\'" data-model-name="\'CHANGREF_VALUE\'" data-model="model[field][idx]"></div>
+                <div data-field-editor="\'transformValue\'" data-model-name="\'CHANGREF_VALUE\'" data-model="model[field][idx]" data-field-size="6"></div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             var MAX_FIELDS = 9;
             var range = d3.range(1);
@@ -912,9 +911,9 @@ SIREPO.app.directive('exportZgoubiLink', function(appState, panelState, requestS
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<a data-ng-show="showLink" data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>',
-        ].join(''),
+        template: `
+            <a data-ng-show="showLink" data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>
+        `,
         controller: function($scope) {
             $scope.showLink = false;
 
@@ -943,11 +942,11 @@ SIREPO.app.directive('magnetFiles', function(appState, magnetService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div data-ng-repeat="idx in fileRange()">',
-              '<select style="margin-bottom: 1ex" class="form-control" data-ng-model="model[field][idx]" data-ng-options="item for item in model.allFileNames track by item"></select>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-repeat="idx in fileRange()">
+              <select style="margin-bottom: 1ex" class="form-control" data-ng-model="model[field][idx]" data-ng-options="item for item in model.allFileNames track by item"></select>
+            </div>
+        `,
         controller: function($scope) {
             var range = [];
 
@@ -972,24 +971,24 @@ SIREPO.app.directive('twissSummaryPanel', function(appState, plotting) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="form-horizontal">',
-              '<div class="form-group sr-parameter-table-row" data-ng-repeat="item in ::summaryValues">',
-                '<div class="col-sm-6 control-label"><div data-label-with-tooltip="" label="{{ item[1] }}" tooltip="{{ item[0] }}"></div></div>',
-                '<div class="col-sm-6 form-control-static">{{ item[2] }}</div>',
-              '</div>',
-              '<div class="row">&nbsp;</div>',
-              '<div class="row" data-ng-show="columnValues">',
-                '<div class="col-sm-3 col-sm-offset-6 lead text-center">Horizontal</div>',
-                '<div class="col-sm-3 lead text-center">Vertical</div>',
-              '</div>',
-              '<div class="form-group sr-parameter-table-row" data-ng-repeat="item in ::columnValues">',
-                '<div class="col-sm-6 control-label"><div data-label-with-tooltip="" label="{{ item[0][1] }}" tooltip="{{ item[0][0] }}, {{ item[1][0] }}"></div></div>',
-                '<div class="col-sm-3 form-control-static">{{ item[0][2] }}</div>',
-                '<div class="col-sm-3 form-control-static">{{ item[1][2] }}</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="form-horizontal">
+              <div class="form-group sr-parameter-table-row" data-ng-repeat="item in ::summaryValues">
+                <div class="col-sm-6 control-label"><div data-label-with-tooltip="" label="{{ item[1] }}" tooltip="{{ item[0] }}"></div></div>
+                <div class="col-sm-6 form-control-static">{{ item[2] }}</div>
+              </div>
+              <div class="row">&nbsp;</div>
+              <div class="row" data-ng-show="columnValues">
+                <div class="col-sm-3 col-sm-offset-6 lead text-center">Horizontal</div>
+                <div class="col-sm-3 lead text-center">Vertical</div>
+              </div>
+              <div class="form-group sr-parameter-table-row" data-ng-repeat="item in ::columnValues">
+                <div class="col-sm-6 control-label"><div data-label-with-tooltip="" label="{{ item[0][1] }}" tooltip="{{ item[0][0] }}, {{ item[1][0] }}"></div></div>
+                <div class="col-sm-3 form-control-static">{{ item[0][2] }}</div>
+                <div class="col-sm-3 form-control-static">{{ item[1][2] }}</div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             function addSummaryRows(rows) {
                 $scope.columnValues = {};
@@ -1042,13 +1041,13 @@ SIREPO.app.directive('twissSummaryPanel', function(appState, plotting) {
 SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) {
     return {
         restrict: 'A',
-        template: [
-            '<div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">',
-            '<div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>',
-            '<input id="file-import" type="file" data-file-model="toscaFile.file" accept="*.zip">',
-            '<div data-ng-if="uploadDatafile()"></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">
+            <div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>
+            <input id="file-import" type="file" data-file-model="toscaFile.file" accept="*.zip">
+            <div data-ng-if="uploadDatafile()"></div>
+            </div>
+        `,
 
         controller: function($scope) {
             var parentScope = $scope.$parent;
@@ -1122,13 +1121,13 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
             modelName: '@',
             reportId: '<',
         },
-        template: [
-            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
-              '<div class="main-title text-center">{{ title }}</div>',
-              '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
+              <div class="main-title text-center">{{ title }}</div>
+              <div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">
+              </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             var fsRenderer = null;
             var actors = [];

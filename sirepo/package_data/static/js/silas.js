@@ -177,10 +177,10 @@ SIREPO.app.directive('appFooter', function(appState, silasService) {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
+        `,
     };
 });
 
@@ -190,25 +190,25 @@ SIREPO.app.directive('appHeader', function(appState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'laser-cavity\')}"><a href data-ng-click="nav.openSection(\'laser-cavity\')"><span class="glyphicon glyphicon-option-horizontal"></span> Laser Cavity</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'crystal\')}"><a href data-ng-click="nav.openSection(\'crystal\')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'laser-cavity\')}"><a href data-ng-click="nav.openSection(\'laser-cavity\')"><span class="glyphicon glyphicon-option-horizontal"></span> Laser Cavity</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'crystal\')}"><a href data-ng-click="nav.openSection(\'crystal\')"><span class="glyphicon glyphicon-th"></span> Crystal</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
     };
 });
 
@@ -219,9 +219,9 @@ SIREPO.app.directive('selectElement', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in elementList()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in elementList()"></select>
+        `,
         controller: function($scope) {
             var list;
 
@@ -314,37 +314,33 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, uti
             modelName: '@',
             reportId: '<',
         },
-        template: [
-            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
-            //TODO(pjm): use better layout than table
-              '<table><tr><td width="100%">',
-                '<div class="sr-plot vtk-canvas-holder"></div>',
-              '</td><td>',
-                '<div style="margin-left: 1em"><svg width="80" ng-attr-height="{{canvasHeight}}">',
-                  '<g class="colorbar"></g>',
-                '</svg></div>',
-              '</td></tr></table>',
-
-              '<div style="margin-top: 1ex" class="row">',
-                '<div class="col-sm-4">',
-                  '<input data-ng-model="showEdges" data-ng-change="resize()" type="checkbox" id="showEdges" checked="checked" /> <label for="showEdges">Show Edges</label>',
-                '</div>',
-                '<div class="col-sm-7">',
-
-            '<div class="row form-horizontal">',
-            '<div class="col-sm-6 control-label"><label>Cutoff Axis</label></div>',
-            '<div class="col-sm-6"><select class="form-control" data-ng-model="boundAxis" data-ng-change="resize()" data-ng-options="axis for axis in axes"></select></div>',
-            '<div class="col-sm-12">',
-                  '<div>Thickness cutoff</div>',
-                  '<input data-ng-model="sliderValue" data-ng-change="resize()" class="s_range_slider" type="range" min="0" max="100" />',
-                  '<span class="s_slider_label light left">{{ bound | number : 2 }} cm</span>',
-                '</div>',
-              '</div>',
-
-            '</div>',
-            '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
+              <table><tr><td width="100%">
+                <div class="sr-plot vtk-canvas-holder"></div>
+              </td><td>
+                <div style="margin-left: 1em"><svg width="80" ng-attr-height="{{canvasHeight}}">
+                  <g class="colorbar"></g>
+                </svg></div>
+              </td></tr></table>
+              <div style="margin-top: 1ex" class="row">
+                <div class="col-sm-4">
+                  <input data-ng-model="showEdges" data-ng-change="resize()" type="checkbox" id="showEdges" checked="checked" /> <label for="showEdges">Show Edges</label>
+                </div>
+                <div class="col-sm-7">
+            <div class="row form-horizontal">
+            <div class="col-sm-6 control-label"><label>Cutoff Axis</label></div>
+            <div class="col-sm-6"><select class="form-control" data-ng-model="boundAxis" data-ng-change="resize()" data-ng-options="axis for axis in axes"></select></div>
+            <div class="col-sm-12">
+                  <div>Thickness cutoff</div>
+                  <input data-ng-model="sliderValue" data-ng-change="resize()" class="s_range_slider" type="range" min="0" max="100" />
+                  <span class="s_slider_label light left">{{ bound | number : 2 }} cm</span>
+                </div>
+              </div>
+            </div>
+            </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             let colorbar, data, fsRenderer, orientationMarker;
             let mapName = 'Viridis (matplotlib)';

@@ -283,20 +283,19 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
-              '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>',
-              '<li data-ng-show="rs4piService.hasDoseFrames()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>',
-            '</ul>',
-            '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>',
-              '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
-            '</ul>',
-
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>
+            <ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">
+              <li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>
+              <li data-ng-show="rs4piService.hasDoseFrames()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">
+              <li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>
+              <li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>
+            </ul>
+        `,
         controller: function($scope, stringsService) {
             $scope.rs4piService = rs4piService;
             $scope.importDicomModal = function() {
@@ -325,9 +324,9 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-dicom-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-dicom-import-dialog=""></div>
+        `,
     };
 });
 
@@ -362,9 +361,9 @@ SIREPO.app.directive('roiSelector', function(appState, rs4piService) {
             field: '=',
         },
         restrict: 'A',
-        template: [
-            '<select class="form-control" data-ng-model="field" data-ng-options="item.roiNumber as item.name for item in roiList"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="field" data-ng-options="item.roiNumber as item.name for item in roiList"></select>
+        `,
         controller: function($scope) {
             function loadROIPoints() {
                 $scope.roiList = rs4piService.getSortedList();
@@ -384,18 +383,18 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
             modelName: '=',
         },
         restrict: 'A',
-        template: [
-            '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
-              '<table class="table table-condensed table-hover" style="margin:0">',
-                '<tbody>',
-                  '<tr data-ng-repeat="roi in roiList | filter:canSelectROI track by $index" data-ng-click="toggleROI(roi)">',
-                    '<td>{{ roi.name }}</td>',
-                    '<td><input type="checkbox" data-ng-checked="isSelected(roi)"></td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">
+              <table class="table table-condensed table-hover" style="margin:0">
+                <tbody>
+                  <tr data-ng-repeat="roi in roiList | filter:canSelectROI track by $index" data-ng-click="toggleROI(roi)">
+                    <td>{{ roi.name }}</td>
+                    <td><input type="checkbox" data-ng-checked="isSelected(roi)"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        `,
         controller: function($scope) {
             function loadROIPoints() {
                 $scope.roiList = rs4piService.getSortedList();
@@ -437,17 +436,17 @@ SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piServ
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form class="form-horizontal">',
-            '<div data-model-field="\'selectedPTV\'" data-model-name="\'doseCalculation\'" data-label-size="3"></div>',
-            '<div data-model-field="\'selectedOARs\'" data-model-name="\'doseCalculation\'" data-label-size="3"></div>',
-            '<div class="col-sm-10">',
-              '<div class="pull-right">',
-                '<button class="btn btn-default" data-ng-disabled="! appState.models.doseCalculation.selectedPTV" data-ng-click="updatePTV()">Compute Dose</button>',
-              '</div>',
-            '</div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form class="form-horizontal">
+            <div data-model-field="\'selectedPTV\'" data-model-name="\'doseCalculation\'" data-label-size="3"></div>
+            <div data-model-field="\'selectedOARs\'" data-model-name="\'doseCalculation\'" data-label-size="3"></div>
+            <div class="col-sm-10">
+              <div class="pull-right">
+                <button class="btn btn-default" data-ng-disabled="! appState.models.doseCalculation.selectedPTV" data-ng-click="updatePTV()">Compute Dose</button>
+              </div>
+            </div>
+            </form>
+        `,
         controller: function($scope) {
             $scope.appState = appState;
             $scope.doseController = panelState.findParentAttribute($scope, 'dose');
@@ -493,51 +492,51 @@ SIREPO.app.directive('dicomImportDialog', function(appState, fileManager, fileUp
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="modal fade" data-backdrop="static" id="dicom-import" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<div data-help-button="{{ title }}"></div>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                        '<form class="form-horizontal" name="importForm">',
-                          '<div data-ng-show="filename" class="form-group">',
-                            '<label class="col-xs-4 control-label">Importing file</label>',
-                            '<div class="col-xs-8">',
-                              '<p class="form-control-static">{{ filename }}</p>',
-                            '</div>',
-                          '</div>',
-                          '<div data-ng-show="isState(\'ready\')">',
-                            '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select DICOM Series (.zip) File</label>',
-                              '<input id="dicom-file-import" type="file" data-file-model="dicomFile" accept=".zip" />',
-                              '<br />',
-                              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                            '</div>',
-                            '<div class="col-sm-6 pull-right">',
-                              '<button data-ng-click="importDicomFile(dicomFile)" class="btn btn-primary" data-ng-disabled="! dicomFile">Import File</button>',
-                              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-                            '</div>',
-                          '</div>',
-                          '<div data-ng-show="isState(\'import\')" class="col-sm-12">',
-                            '<div class="text-center">',
-                              '<span class="glyphicon glyphicon-hourglass"> </span> ',
-                              'Importing file - please wait.',
-                              '<br /><br />',
-                            '</div>',
-                          '</div>',
-                        '</form>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" data-backdrop="static" id="dicom-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                        <form class="form-horizontal" name="importForm">
+                          <div data-ng-show="filename" class="form-group">
+                            <label class="col-xs-4 control-label">Importing file</label>
+                            <div class="col-xs-8">
+                              <p class="form-control-static">{{ filename }}</p>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState(\'ready\')">
+                            <div data-ng-show="isState(\'ready\')" class="form-group">
+                              <label>Select DICOM Series (.zip) File</label>
+                              <input id="dicom-file-import" type="file" data-file-model="dicomFile" accept=".zip" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importDicomFile(dicomFile)" class="btn btn-primary" data-ng-disabled="! dicomFile">Import File</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState(\'import\')" class="col-sm-12">
+                            <div class="text-center">
+                              <span class="glyphicon glyphicon-hourglass"> </span> 
+                              Importing file - please wait.
+                              <br /><br />
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.title = 'Import DICOM File';
             $scope.state = 'ready';
@@ -603,15 +602,15 @@ SIREPO.app.directive('dicomHistogram', function(appState, plotting, rs4piService
         scope: {
             modelName: '@',
         },
-        template: [
-            '<svg class="sr-plot sr-histogram" width="100%" ng-attr-height="{{ height + margin.top + margin.bottom }}">',
-              '<g class="plot-g" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
-                '<g class="x axis" ng-attr-transform="translate(0, {{ height }})">',
-                  '<text class="x-axis-label" ng-attr-x="{{ width / 2 }}" y="40">Hounsfield Units (HU)</text>',
-                '</g>',
-              '</g>',
-            '</svg>',
-        ].join(''),
+        template: `
+            <svg class="sr-plot sr-histogram" width="100%" ng-attr-height="{{ height + margin.top + margin.bottom }}">
+              <g class="plot-g" ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+                <g class="x axis" ng-attr-transform="translate(0, {{ height }})">
+                  <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" y="40">Hounsfield Units (HU)</text>
+                </g>
+              </g>
+            </svg>
+        `,
         controller: function($scope) {
             var MIN_HEIGHT = 40;
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 20};
@@ -1713,14 +1712,14 @@ SIREPO.app.directive('roiConfirmForm', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form name="form" data-ng-if="isDirty()" class="panel panel-default" novalidate>',
-              '<div class="panel-body">',
-                '<div><p>Update the ROI contours?</p></div>',
-                '<div class="pull-right" data-buttons="" data-model-name="modelName" data-fields="fields"></div>',
-              '</div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form name="form" data-ng-if="isDirty()" class="panel panel-default" novalidate>
+              <div class="panel-body">
+                <div><p>Update the ROI contours?</p></div>
+                <div class="pull-right" data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+              </div>
+            </form>
+        `,
         controller: function($scope) {
             $scope.modelName = 'dicomEditorState';
             $scope.fields = ['editCounter'];
@@ -1740,27 +1739,27 @@ SIREPO.app.directive('roiTable', function(appState, panelState, rs4piService) {
         scope: {
             source: '=controller',
         },
-        template: [
-            '<button data-ng-click="newRegion()" class="btn btn-info btn-xs pull-right"><span class="glyphicon glyphicon-plus"></span> New Region</button>',
-            '<table style="width: 100%;  table-layout: fixed" class="table table-hover">',
-              '<colgroup>',
-                '<col>',
-                '<col style="width: 8ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                  '<th style="white-space: nowrap">Color</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody>',
-                '<tr data-ng-show="showROI(roi)" data-ng-click="activate(roi)" data-ng-repeat="roi in roiList track by roi.name" data-ng-class="{warning: isActive(roi)}">',
-                  '<td style="padding-left: 1em">{{ roi.name }}</td>',
-                  '<td><div style="border: 1px solid #333; background-color: {{ d3Color(roi.color) }}">&nbsp;</div></td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
+        template: `
+            <button data-ng-click="newRegion()" class="btn btn-info btn-xs pull-right"><span class="glyphicon glyphicon-plus"></span> New Region</button>
+            <table style="width: 100%;  table-layout: fixed" class="table table-hover">
+              <colgroup>
+                <col>
+                <col style="width: 8ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th style="white-space: nowrap">Color</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-ng-show="showROI(roi)" data-ng-click="activate(roi)" data-ng-repeat="roi in roiList track by roi.name" data-ng-class="{warning: isActive(roi)}">
+                  <td style="padding-left: 1em">{{ roi.name }}</td>
+                  <td><div style="border: 1px solid #333; background-color: {{ d3Color(roi.color) }}">&nbsp;</div></td>
+                </tr>
+              </tbody>
+            </table>
+        `,
         controller: function($scope) {
             $scope.rs4piService = rs4piService;
             $scope.roiList = null;
@@ -1845,10 +1844,10 @@ SIREPO.app.directive('roiTable', function(appState, panelState, rs4piService) {
 SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
     return {
         restrict: 'A',
-        template: [
-            '<div style="border: 1px solid #bce8f1; border-radius: 4px; margin: 20px 0;" class="sr-roi-3d">',
-            '</div>',
-        ].join(''),
+        template: `
+            <div style="border: 1px solid #bce8f1; border-radius: 4px; margin: 20px 0;" class="sr-roi-3d">
+            </div>
+        `,
         controller: function($scope, $element) {
 
             var activeRoi = null;

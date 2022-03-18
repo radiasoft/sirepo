@@ -221,12 +221,12 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in or .madx file." data-file-formats=".in,.madx,.zip">',
-              '<div data-opal-import-options=""></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in or .madx file." data-file-formats=".in,.madx,.zip">
+              <div data-opal-import-options=""></div>
+            </div>
+        `,
     };
 });
 
@@ -237,28 +237,27 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-                  '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-ng-if="nav.isLoaded()" data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>
+                  <li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
 
@@ -418,9 +417,9 @@ SIREPO.app.directive('commandList', function(appState, latticeService, panelStat
             field: '=',
             commandType: '@',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item._id as item.name for item in listCommands()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item._id as item.name for item in listCommands()"></select>
+        `,
         controller: function($scope) {
             var list = [
                 {
@@ -587,20 +586,20 @@ SIREPO.app.directive('srCommanddistributionEditor', function(appState, panelStat
 SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
     return {
         restrict: 'A',
-        template: [
-            '<div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">',
-              '<div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>',
-              '<div data-ng-repeat="info in missingFiles">',
-                '<div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">',
-                  '<span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>',
-                  '<label>{{ info.filename }}</label> ',
-                  '({{ info.label + ": " + info.type }})',
-                  '<input id="file-import" type="file" data-file-model="info.file">',
-                  '<div data-ng-if="uploadDatafile(info)"></div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">
+              <div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>
+              <div data-ng-repeat="info in missingFiles">
+                <div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">
+                  <span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>
+                  <label>{{ info.filename }}</label> 
+                  ({{ info.label + ": " + info.type }})
+                  <input id="file-import" type="file" data-file-model="info.file">
+                  <div data-ng-if="uploadDatafile(info)"></div>
+                </div>
+              </div>
+            </div>
+        `,
 
         controller: function($scope) {
             var parentScope = $scope.$parent;
