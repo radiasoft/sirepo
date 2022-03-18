@@ -229,13 +229,18 @@ class OpalMadxConverter(MadxConverter):
                     )
                 return node
 
-        for d in data.models.rpnVariables:
+        for i, d in enumerate(data.models.rpnVariables):
             if type(d.value) == str and 'pow' in d.value:
                 tree = ast.parse(d.value)
                 for n in ast.walk(tree):
                     Visitor().visit(n)
                     ast.fix_missing_locations(n)
-                d.value = astunparse.unparse(tree).strip()
+                v = astunparse.unparse(tree)
+                new_val = v.strip().replace('**', '^')
+                d.value = new_val
+
+        for var in data.models.rpnVariables:
+            pkdp('\n\n\n\n variable: {}', var)
 
         return super().to_madx_text(data)
 

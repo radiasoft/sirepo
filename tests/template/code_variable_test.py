@@ -223,6 +223,9 @@ def test_infix_to_postfix():
     pkeq(code_var.infix_to_postfix('-(x + +x)'), 'x x + chs')
     # leave alone if already in postfix format
     pkeq(code_var.infix_to_postfix('x x + chs'), 'x x + chs')
+    pkeq('2 3 pow', code_var.infix_to_postfix('2 ^ 3'))
+    pkeq('2 3 pow', code_var.infix_to_postfix('pow(2, 3)'))
+    pkeq('2 3 pow', code_var.infix_to_postfix('2 ** 3'))
 
 
 def test_postfix_to_infix():
