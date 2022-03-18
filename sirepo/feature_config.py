@@ -130,8 +130,8 @@ def _init():
         ),
         sim_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
-            join_slack_uri=('https://slack.sirepo.com/v1/', str,
-                            'Link to Sirepo Slack workspace. v1 has uid, or "login" if not logged in.'),
+            join_slack_uri=('https://slack.com/', str,
+                            'Link to Sirepo Slack workspace. v1 has uid if logged in.'),
         ),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(

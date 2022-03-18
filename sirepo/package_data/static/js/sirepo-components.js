@@ -2392,8 +2392,8 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 <li data-ng-transclude="appHeaderRightSimListSlot"></li>
               </ul>
               <ul class="nav navbar-nav sr-navbar-right">
-                <li data-ng-show="slackLink">
-                  <a href="{{ slackLink }}" target="_blank" style="padding: 11px 0px 10px 0px;">
+                <li>
+                  <a href="{{ slackUri }}" target="_blank" style="padding: 11px 0px 10px 0px;">
                     <span><img class="sr-slack-img" width="70" src="/static/svg/slack.svg" title="Join us on Slack"/></span>
                   </a>
                 </li>
@@ -2426,10 +2426,8 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         },
         controller: function($scope, stringsService) {
             $scope.authState = authState;
+            $scope.slackUri = $scope.authState.slackUri;
 
-            $scope.getSlackLink = function() {
-                $scope.slackLink = authState.slackUri;
-            };
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -2456,9 +2454,6 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 appState.models.simulation.folder = fileManager.defaultCreationFolderPath();
                 panelState.showModalEditor('simulation');
             };
-
-            $scope.slackLink = null;
-
             $scope.hasDocumentationUrl = function() {
                 if (appState.isLoaded()) {
                     return appState.models.simulation.documentationUrl;
@@ -2472,8 +2467,6 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
             };
-
-            $scope.getSlackLink();
         },
     };
 });
