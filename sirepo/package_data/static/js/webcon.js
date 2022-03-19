@@ -578,24 +578,23 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, webconSer
             modelName: '@',
             modelData: '=',
         },
-        template: [
-            //TODO(pjm): improve close button position, want it positioned relative to panel body, not full panel
-            '<button data-ng-if="isSubreport()" data-ng-click="closeSubreport()" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">',
-              '<span>&times;</span>',
-            '</button>',
-            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">',
-              '<div class="clearfix"></div>',
-              '<div data-ng-repeat="view in viewNames track by $index" style="margin-top: -40px;">',
-                '<div data-ng-if="isActiveView(view)" style="margin-top:3ex;">',
-                  '<div data-advanced-editor-pane="" data-model-data="modelData" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>',
-                '</div>',
-              '</div>',
-              '<div class="clearfix"></div>',
-              '<div data-ng-show="showFFT()">',
-                '<div data-fft-report="" data-model-data="modelData" style="margin-top: 5px;"></div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <button data-ng-if="isSubreport()" data-ng-click="closeSubreport()" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">
+              <span>&times;</span>
+            </button>
+            <div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">
+              <div class="clearfix"></div>
+              <div data-ng-repeat="view in viewNames track by $index" style="margin-top: -40px;">
+                <div data-ng-if="isActiveView(view)" style="margin-top:3ex;">
+                  <div data-advanced-editor-pane="" data-model-data="modelData" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>
+                </div>
+              </div>
+              <div class="clearfix"></div>
+              <div data-ng-show="showFFT()">
+                <div data-fft-report="" data-model-data="modelData" style="margin-top: 5px;"></div>
+              </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             var analysisReport;
             var isFirstRefresh = true;
@@ -788,9 +787,9 @@ SIREPO.app.directive('analysisParameter', function(appState, webconService) {
             field: '=',
             isOptional: '@',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>
+        `,
         controller: function($scope) {
             $scope.parameterValues = function() {
                 return webconService.buildParameterList($scope.isOptional);
@@ -805,9 +804,9 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+        `,
     };
 });
 
@@ -817,23 +816,22 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+              </app-header-right-sim-list>
+            </div>
+        `,
     };
 });
 
@@ -841,9 +839,9 @@ SIREPO.app.directive('beamSteeringResults', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div data-ng-if="showStatus()" class="well" style="margin-top: 10px; margin-bottom: 0;">{{ status }}<br />{{ message }}</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="showStatus()" class="well" style="margin-top: 10px; margin-bottom: 0;">{{ status }}<br />{{ message }}</div>
+        `,
         controller: function($scope) {
             $scope.showStatus = function() {
                 if (! appState.isLoaded()) {
@@ -879,18 +877,18 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div style="margin: -3px 0 5px 0; min-height: 34px; max-height: 13.4em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
-              '<table class="table table-condensed table-hover" style="margin:0">',
-                '<tbody>',
-                  '<tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">',
-                    '<td>{{ item.name }}</td>',
-                    '<td><input type="checkbox" data-ng-checked="isSelected(item)"></td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div style="margin: -3px 0 5px 0; min-height: 34px; max-height: 13.4em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">
+              <table class="table table-condensed table-hover" style="margin:0">
+                <tbody>
+                  <tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">
+                    <td>{{ item.name }}</td>
+                    <td><input type="checkbox" data-ng-checked="isSelected(item)"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        `,
         controller: function($scope) {
             var itemList, paramList;
 
@@ -928,11 +926,11 @@ SIREPO.app.directive('refreshButton', function(appState) {
         scope: {
             modelName: '@refreshButton',
         },
-        template: [
-            '<div class="pull-right btn-default btn" data-ng-click="refreshReport()">',
-              '<span class="glyphicon glyphicon-refresh"></span>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="pull-right btn-default btn" data-ng-click="refreshReport()">
+              <span class="glyphicon glyphicon-refresh"></span>
+            </div>
+        `,
         controller: function($scope) {
             $scope.refreshReport = function() {
                 appState.models[$scope.modelName].refreshTime = Date.now();
@@ -945,12 +943,12 @@ SIREPO.app.directive('refreshButton', function(appState) {
 SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     return {
         scope: {},
-        template: [
-            '<div data-report-panel="parameter" data-model-name="correctorSettingReport">',
-              '<div data-refresh-button="correctorSettingReport"></div>',
-              '<button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-report-panel="parameter" data-model-name="correctorSettingReport">
+              <div data-refresh-button="correctorSettingReport"></div>
+              <button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.modelName = 'correctorSettingReport';
             $scope.spreadView = false;
@@ -1030,12 +1028,12 @@ SIREPO.app.directive('equation', function(appState, webconService, $timeout) {
             field: '=',
             form: '=',
         },
-        template: [
-            '<div>',
-                '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
-                '<input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables',
-            '</div>',
-        ].join(''),
+        template: `
+            <div>
+                <input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>
+                <input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables
+            </div>
+        `,
         controller: function ($scope) {
 
             var defaultFitVars = ['x', 'y', 'z', 't'];
@@ -1118,12 +1116,12 @@ SIREPO.app.directive('equationVariables', function(webconService, $timeout) {
             isVariable: '<',
             model: '=',
         },
-        template: [
-            '<div>',
-                '<input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />',
-            '</div>',
-            '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
-        ].join(''),
+        template: `
+            <div>
+                <input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />
+            </div>
+            <div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>
+        `,
         controller: function($scope, $element) {
         },
     };
@@ -1134,9 +1132,9 @@ SIREPO.app.directive('fftReport', function(appState) {
         scope: {
             modelData: '=',
         },
-        template: [
-            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
-        ].join(''),
+        template: `
+            <div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>
+        `,
         controller: function($scope, $element) {
             $scope.modelKey = 'fftReport';
             if ($scope.modelData) {
@@ -1166,13 +1164,13 @@ SIREPO.app.directive('plotActionButtons', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div class="text-center">',
-            '<div class="btn-group">',
-              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
-            '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="text-center">
+            <div class="btn-group">
+              <button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
+            </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
 
@@ -1194,11 +1192,11 @@ SIREPO.app.directive('trimButton', function(appState, webconService) {
             field: '=',
             modelName: '=',
         },
-        template: [
-            '<div class="text-center">',
-              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="text-center">
+              <button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>
+            </div>
+        `,
         controller: function($scope) {
             $scope.trimPlot = function() {
                 var action = {};
@@ -1275,21 +1273,21 @@ SIREPO.app.directive('webconLattice', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
-              '<div class="webcon-lattice">',
-                '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
-                '<div class="row">',
-                  '<div class="col-xs-2">HV KICKER 1</div>',
-                  '<div class="col-xs-2">HV KICKER 2</div>',
-                  '<div class="col-xs-2 text-right">F/D QUAD 1</div>',
-                  '<div class="col-xs-2">HV KICKER 3</div>',
-                  '<div class="col-xs-2">HV KICKER 4</div>',
-                  '<div class="col-xs-2 text-center">F/D QUAD 2</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">
+              <div class="webcon-lattice">
+                <div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>
+                <div class="row">
+                  <div class="col-xs-2">HV KICKER 1</div>
+                  <div class="col-xs-2">HV KICKER 2</div>
+                  <div class="col-xs-2 text-right">F/D QUAD 1</div>
+                  <div class="col-xs-2">HV KICKER 3</div>
+                  <div class="col-xs-2">HV KICKER 4</div>
+                  <div class="col-xs-2 text-center">F/D QUAD 2</div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             var axis, latticeScope;
 

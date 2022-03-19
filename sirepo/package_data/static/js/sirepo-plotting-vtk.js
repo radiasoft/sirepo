@@ -771,10 +771,10 @@ SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) 
             require: '<',
             title: '@',
         },
-        template: [
-            '<div data-file-chooser=""  data-url="url" data-input-file="inputFile" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-file-chooser=""  data-url="url" data-input-file="inputFile" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">
+            </div>
+        `,
         controller: function($scope) {
             $scope.validate = function (file) {
                 $scope.url = URL.createObjectURL(file);
@@ -797,30 +797,30 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
             description: '@',
             title: '@',
         },
-        template: [
-            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<div data-help-button="{{ title }}"></div>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                        '<form>',
-                        '<div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
-                          '<div class="col-sm-6 pull-right">',
-                            '<button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
-                            ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-                          '</div>',
-                        '</form>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                        <form>
+                        <div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>
+                          <div class="col-sm-6 pull-right">
+                            <button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>
+                             <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                          </div>
+                        </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.inputFile = null;
             $scope.fileURL = null;
@@ -1609,23 +1609,23 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             height: '<',
             width: '<',
         },
-        template: [
-            '<svg data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">',
-            '<g class="vtk-axes">',
-                '<g data-ng-repeat="dim in geometry.basis">',
-                    '<g class="{{ dim }} axis"></g>',
-                    '<text class="{{ dim }}-axis-label"></text>',
-                    '<text class="{{ dim }} axis-end low"></text>',
-                    '<text class="{{ dim }} axis-end high"></text>',
-                '</g>',
-                '<g data-ng-repeat="dim in geometry.basis">',
-                    '<g class="{{ dim }}-axis-central" data-ng-show="axisCfg[dim].showCentral">',
-                        '<line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />',
-                    '</g>',
-                '</g>',
-            '</g>',
-            '</svg>',
-        ].join(''),
+        template: `
+            <svg data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
+            <g class="vtk-axes">
+                <g data-ng-repeat="dim in geometry.basis">
+                    <g class="{{ dim }} axis"></g>
+                    <text class="{{ dim }}-axis-label"></text>
+                    <text class="{{ dim }} axis-end low"></text>
+                    <text class="{{ dim }} axis-end high"></text>
+                </g>
+                <g data-ng-repeat="dim in geometry.basis">
+                    <g class="{{ dim }}-axis-central" data-ng-show="axisCfg[dim].showCentral">
+                        <line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
+                    </g>
+                </g>
+            </g>
+            </svg>
+        `,
         controller: function($scope, $element) {
 
             $scope.axesMargins = {
