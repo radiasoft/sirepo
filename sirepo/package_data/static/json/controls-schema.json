@@ -55,6 +55,8 @@
         ]
     },
     "frameIdFields": {
+        "beamPositionAnimation": [
+        ],
         "instrumentAnimation": [
             "x",
             "y1",
@@ -88,16 +90,7 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
-        "command_beam": {
-            "particle": ["Particle", "ParticleType", "electron", "The name of particles in the beam."],
-            "mass": ["Mass [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
-            "charge": ["Charge [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
-            "gamma": ["Gamma", "Float", 1.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles.", 1e-99],
-            "ex": ["Horizontal Emittance [m]", "Float", 1.0],
-            "ey": ["Vertical Emittance [m]", "Float", 1.0],
-            "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance $\\epsilon_t$"],
-            "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
-            "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
+        "beamPositionAnimation": {
         },
         "bunch": {
             "beamDefinition": ["Beam Definition", "BeamDefinition", "gamma"],
@@ -113,13 +106,28 @@
             "x": ["Horizontal Centroid [m]", "Float", 0.0],
             "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
+        "command_beam": {
+            "particle": ["Particle", "ParticleType", "electron", "The name of particles in the beam."],
+            "mass": ["Mass [GeV]", "Float", 0.0005109989461, "The restmass of the particles in the beam."],
+            "charge": ["Charge [qp]", "Float", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
+            "gamma": ["Gamma", "Float", 1.0, "Relativistic factor, ie the ratio between total energy and rest energy of the particles.", 1e-99],
+            "ex": ["Horizontal Emittance [m]", "Float", 1.0],
+            "ey": ["Vertical Emittance [m]", "Float", 1.0],
+            "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance $\\epsilon_t$"],
+            "sigt": ["Bunch Length [m]", "Float", 1.0, "The bunch length $c\\space \\sigma_t$ (SIGT)."],
+            "sige": ["Relative Energy Spread", "Float", 0.001, "The relative energy spread $\\sigma_E / E$ (SIGE)."]
+        },
         "controlSettings": {
             "operationMode": ["Operation Mode", "OperationMode", "madx"],
             "deviceServerURL": ["DeviceServer URL", "OptionalString", ""],
             "processVariables": ["", "ProcessVariables"],
             "readOnly": ["Read Only", "Boolean", "1"],
             "particlePlotSize": ["Particle Plot Dimension [m]", "Float", 0.1],
-            "bpmPlotSize": ["Monitor Dimension [m]", "Float", 0.0021]
+            "bpmPlotSize": ["Monitor Dimension [m]", "Float", 0.0021],
+            "deviceServerUser": ["DeviceServer user", "OptionalString", "", "the user that will be making future requests to set values"],
+            "deviceServerProcName": ["DeviceServer procName", "OptionalString", "", "the name of the process or application making the set requests"],
+            "deviceServerProcId": ["DeviceServer procId", "OptionalString", "", "the process ID of process making the sets"],
+            "deviceServerMachine": ["DeviceServer machine", "OptionalString", "", "the name or IP address of the machine making the request"]
         },
         "dataFile": {
             "madxSirepo": ["Madx Simulation", "MadxSimList", true]
@@ -148,7 +156,6 @@
             "y1": ["Vertical Value to Plot", "ValueList", "x0"],
             "y2": ["Vertical Value to Plot", "ValueList", "y0"],
             "y3": ["Vertical Value to Plot", "ValueList", "None"],
-            "panelTitle": ["Twiss Report Title", "String", "Twiss Report"],
             "includeLattice": ["Include the lattice", "Boolean", 0]
         },
         "optimizerSettings": {
@@ -216,52 +223,9 @@
         "typeOfSimulation": "optimization"
     },
     "view": {
-        "instrumentAnimation": {
-                "title": "Particle Plot",
-                "model": "instrumentAnimation",
-                "advanced": [
-                    [
-                        ["Horizontal", [
-                            "x"
-                        ]],
-                        ["Vertical", [
-                            "y1"
-                        ]]
-                    ],
-                    "histogramBins",
-                    "colorMap"
-                ]
-        },
-        "instrumentAnimationAll": {
-            "title": "Particle Plots",
-            "model": "instrumentAnimationAll",
-            "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1"
-                    ]]
-                ],
-                "histogramBins",
-                "colorMap"
-            ]
-    },
-        "instrumentAnimationTwiss": {
-            "title": "Twiss Report",
-            "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ]
-            ]
+        "beamPositionAnimation": {
+            "title": "Beam Position at Monitors",
+            "advanced": []
         },
         "beamline": {
             "title": "Beamline",
@@ -269,7 +233,11 @@
                 ["Settings", [
                     "controlSettings.operationMode",
                     "controlSettings.deviceServerURL",
-                    "controlSettings.readOnly"
+                    "controlSettings.readOnly",
+                    "controlSettings.deviceServerUser",
+                    "controlSettings.deviceServerProcName",
+                    "controlSettings.deviceServerProcId",
+                    "controlSettings.deviceServerMachine"
                 ]],
                 ["Process Variables", [
                     "controlSettings.processVariables"
@@ -279,14 +247,6 @@
                     "controlSettings.particlePlotSize"
                 ]]
             ]
-        },
-        "deviceServerMonitor": {
-            "title": "DeviceServer Monitor",
-            "advanced": []
-        },
-        "optimizerInputsTab": {
-            "title": "Optimization",
-            "advanced": []
         },
         "command_beam": {
             "title": "Beam Settings",
@@ -344,16 +304,71 @@
             ],
             "advanced": []
         },
+        "deviceServerMonitor": {
+            "title": "DeviceServer Monitor",
+            "advanced": []
+        },
         "initialMonitorPositionsReport": {
             "title": "",
             "advanced": []
         },
-        "simulationStatus": {
-            "title": "Optimization Targets",
+        "instrumentAnimation": {
+                "title": "Particle Plot",
+                "model": "instrumentAnimation",
+                "advanced": [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "colorMap"
+                ]
+        },
+        "instrumentAnimationAll": {
+            "title": "Particle Plots",
+            "model": "instrumentAnimationAll",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap"
+            ]
+        },
+        "instrumentAnimationTwiss": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1",
+                        "y2",
+                        "y3"
+                    ]]
+                ]
+            ]
+        },
+        "optimizerInputsTab": {
+            "title": "Optimization",
             "advanced": []
         },
         "monitors": {
             "title": "Monitors",
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Optimization Targets",
             "advanced": []
         },
         "HKICKER": {

@@ -53,6 +53,10 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
 def read_summary_line(run_dir, line_count=None):
     path = run_dir.join(_SUMMARY_CSV_FILE)
     if not path.exists():
@@ -85,71 +89,8 @@ def read_summary_line(run_dir, line_count=None):
     return res, int(path.mtime() * 1000)
 
 
-def _get_ptc_track_columns(run_dir):
-    if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
-        return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
-    return []
-
-
-def _get_target_info(info_all, frame_args):
-    data = frame_args.sim_in
-    idx = data.models[frame_args.frameReport].id
-    elements = frame_args.sim_in.models.externalLattice.models.elements
-    target = -1
-    for i in range(len(elements)):
-        if elements[i].type == 'INSTRUMENT':
-            target += 1
-        if idx == i:
-            break
-    if target < 0:
-        raise AssertionError(f'no target={elements[idx]} in info_all={info_all}')
-    count = -1
-    page = -1
-    target_rec = None
-    for rec in info_all:
-        page += 1
-        if re.search(r'MARKER\d+_INSTRUMENT', rec.name):
-            count += 1
-            if count == target:
-                target_rec = rec
-                break;
-    target_rec.name = elements[idx].name
-    return target_rec, page
-
-
 def sim_frame(frame_args):
     return _extract_report_elementAnimation(frame_args, frame_args.run_dir, _PTC_TRACK_FILE)
-
-
-def _extract_report_elementAnimation(frame_args, run_dir, filename):
-    data = frame_args.sim_in
-    if frame_args.frameReport == 'instrumentAnimationTwiss':
-        data.report = frame_args.frameReport
-        data.models[data.report] = frame_args
-        return sirepo.template.madx.extract_report_twissFromParticlesAnimation(data, run_dir, _PTC_TRACK_FILE)
-    a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
-    if frame_args.x == 'x' and frame_args.y1 == 'y':
-        frame_args.plotRangeType = 'fixed'
-        frame_args.verticalSize = frame_args.particlePlotSize
-        frame_args.verticalOffset = 0
-        frame_args.horizontalSize = frame_args.particlePlotSize
-        frame_args.horizontalOffset = 0
-    i, x = _get_target_info(a, frame_args)
-    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
-    data.models[frame_args.frameReport] = frame_args
-    return template_common.heatmap(
-        [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
-        frame_args,
-        PKDict(
-            x_label=sirepo.template.madx.field_label(frame_args.x),
-            y_label=sirepo.template.madx.field_label(frame_args.y1),
-            title='{}-{} at {:.3f}m, {}'.format(
-                frame_args.x, frame_args.y1, float(i.s), i.name,
-            ),
-            global_min=0,
-            global_max=2,
-        ),
-    )
 
 
 def stateful_compute_get_madx_sim_list(data):
@@ -204,10 +145,6 @@ def stateless_compute_kick_to_current(data):
     return PKDict(
         current=AmpConverter(data.command_beam, data.amp_table).kick_to_current(data.kick),
     )
-
-
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -268,6 +205,104 @@ def _delete_unused_madx_models(data):
             'bunch',
         ]:
             data.models.pkdel(m)
+
+
+def _extract_beam_position_report(data, run_dir):
+    summary = read_summary_line(run_dir)[0][0]
+    elmap = PKDict()
+    for k in summary:
+        m = re.search(r'el_(\d+)\.(x|y)', k)
+        if not m:
+            continue
+        el_id = int(m.group(1))
+        dim = m.group(2)
+        if el_id not in elmap:
+            elmap[el_id] = PKDict()
+        elmap[el_id][dim] = summary[k]
+    points = PKDict(
+        s=[],
+        x=[],
+        y=[],
+    )
+    p = 0
+    for el in _SIM_DATA.beamline_elements(data.models.externalLattice.models):
+        if 'l' in el:
+            p += el.l
+        if el._id in elmap:
+            points.s.append(p)
+            points.x.append(elmap[el._id].get('x', None))
+            points.y.append(elmap[el._id].get('y', None))
+    ymin = 1e24
+    ymax = -1e24
+    for i in range(len(points.s)):
+        for dim in ('x', 'y'):
+            if points[dim][i] is not None:
+                points[dim][i] = float(points[dim][i])
+            if dim == 'y' and points.y[i] is not None:
+                if points.y[i] < ymin:
+                    ymin = points.y[i]
+                elif points.y[i] > ymax:
+                    ymax = points.y[i]
+
+    return PKDict(
+        y_label='',
+        x_label='s [m]',
+        dynamicYLabel=True,
+        x_points=points.s,
+        x_range=[points.s[0], points.s[-1]],
+        plots=[
+            PKDict(
+                field='x',
+                points=points.x,
+                label='x [m]',
+                style='scatter',
+                symbol='triangle-up',
+                color='#1f77b4',
+            ),
+            PKDict(
+                field='y',
+                points=points.y,
+                label='y [m]',
+                style='scatter',
+                symbol='triangle-down',
+                color='#ff7f0e',
+            ),
+        ],
+        y_range=[ymin, ymax],
+    )
+
+
+def _extract_report_elementAnimation(frame_args, run_dir, filename):
+    data = frame_args.sim_in
+    if frame_args.frameReport == 'instrumentAnimationTwiss':
+        data.report = frame_args.frameReport
+        data.models[data.report] = frame_args
+        return sirepo.template.madx.extract_report_twissFromParticlesAnimation(data, run_dir, _PTC_TRACK_FILE)
+    if frame_args.frameReport == 'beamPositionAnimation':
+        return _extract_beam_position_report(data, run_dir)
+    a = madx_parser.parse_tfs_page_info(run_dir.join(filename))
+    if frame_args.x == 'x' and frame_args.y1 == 'y':
+        frame_args.plotRangeType = 'fixed'
+        frame_args.verticalSize = frame_args.particlePlotSize
+        frame_args.verticalOffset = 0
+        frame_args.horizontalSize = frame_args.particlePlotSize
+        frame_args.horizontalOffset = 0
+    i, x = _get_target_info(a, frame_args)
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
+    data.models[frame_args.frameReport] = frame_args
+    return template_common.heatmap(
+        [sirepo.template.madx.to_floats(t[frame_args.x]), sirepo.template.madx.to_floats(t[frame_args.y1])],
+        frame_args,
+        PKDict(
+            x_label=sirepo.template.madx.field_label(frame_args.x),
+            y_label=sirepo.template.madx.field_label(frame_args.y1),
+            title='{}-{} at {:.3f}m, {}'.format(
+                frame_args.x, frame_args.y1, float(i.s), i.name,
+            ),
+            global_min=0,
+            global_max=2,
+        ),
+    )
 
 
 def _generate_parameters_file(data):
@@ -347,6 +382,38 @@ def _generate_parameters(v, data):
         v.madxSource = sirepo.template.madx.generate_parameters_file(data.models.externalLattice)
 
 
+def _get_ptc_track_columns(run_dir):
+    if run_dir.join(_PTC_TRACK_COLUMNS_FILE).exists():
+        return pkio.read_text(_PTC_TRACK_COLUMNS_FILE).split(',')
+    return []
+
+
+def _get_target_info(info_all, frame_args):
+    data = frame_args.sim_in
+    idx = data.models[frame_args.frameReport].id
+    elements = frame_args.sim_in.models.externalLattice.models.elements
+    target = -1
+    for i in range(len(elements)):
+        if elements[i].type == 'INSTRUMENT':
+            target += 1
+        if idx == i:
+            break
+    if target < 0:
+        raise AssertionError(f'no target={elements[idx]} in info_all={info_all}')
+    count = -1
+    page = -1
+    target_rec = None
+    for rec in info_all:
+        page += 1
+        if re.search(r'MARKER\d+_INSTRUMENT', rec.name):
+            count += 1
+            if count == target:
+                target_rec = rec
+                break;
+    target_rec.name = elements[idx].name
+    return target_rec, page
+
+
 def _has_beamline(model):
     return model.elements and model.beamlines
 
@@ -407,14 +474,12 @@ def _validate_process_variables(v, data):
             ))
     v.properties = properties
     v.property_types = properties.keys()
-    config = PKDict(
-        #TODO(pjm): set from config
-        user='pmoeller',
-        procName='RadiaSoft/Sirepo',
-        #procId=os.getpid(),
-        procId=1,
-        machine=socket.gethostname(),
-    )
+    config = PKDict()
+    for k in ('user', 'procName', 'procId', 'machine'):
+        f = 'deviceServer' + k[0].upper() + k[1:]
+        if not settings[f]:
+            raise AssertionError(f'Missing DeviceServer field: {k}')
+        config[k] = settings[f]
     v.deviceServerSetContext = '&'.join([
         f'{k}={config[k]}' for k in config
     ])

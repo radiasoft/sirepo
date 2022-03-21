@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
-    SIREPO.SINGLE_FRAME_ANIMATION = ['instrumentAnimationTwiss'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamPositionAnimation', 'instrumentAnimationTwiss'];
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="MadxSimList" data-ng-class="fieldClass">
           <div data-sim-list="" data-model="model" data-field="field" data-code="madx" data-route="lattice"></div>
@@ -81,7 +81,7 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
     };
 
     self.computeModel = (analysisModel) => {
-	if (analysisModel.includes('instrument')) {
+	if (analysisModel.includes('instrument') || analysisModel == 'beamPositionAnimation') {
 	    return 'instrumentAnimation';
 	}
 	return 'animation';
@@ -162,7 +162,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     self.simScope = $scope;
     let beamlineElementChanged = false;
 
-    // TODO(e-carlin): sort
     self.simAnalysisModel = 'instrumentAnimation';
     function buildWatchColumns() {
         self.watches = [];
@@ -321,7 +320,12 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     self.simHandleStatus = data => {
         if (self.simState.isProcessing()) {
-            controlsService.runningMessage = 'Running Optimization';
+            if (controlsService.isDeviceServerReadOnly()) {
+                controlsService.runningMessage = 'Monitoring Beamline';
+            }
+            else {
+                controlsService.runningMessage = 'Running Optimization';
+            }
             $scope.isRunningOptimizer = true;
         }
         controlsService.optimizationCost = 0;
@@ -468,9 +472,6 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         }
         const m = [];
         self.instrumentAnimations.forEach((e, i) => {
-            if (e.modelKey == 'instrumentAnimationAll' || e.modelKey == 'instrumentAnimationTwiss'){
-                return;
-            }
             for (const key in appState.models[e.modelKey]) {
                 if (key != 'id'){
                     appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
@@ -643,7 +644,10 @@ SIREPO.viewLogic('beamlineView', function(appState, controlsService, panelState,
 
     function updateURLField() {
         panelState.showFields('controlSettings', [
-            ['deviceServerURL', 'readOnly'], controlsService.isDeviceServer(),
+            [
+                'deviceServerURL', 'readOnly', 'deviceServerUser', 'deviceServerProcName',
+                'deviceServerProcId', 'deviceServerMachine',
+            ], controlsService.isDeviceServer(),
         ]);
     }
 
@@ -830,7 +834,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
                 </div>
                 <div class="text-center" data-ng-if="controlsService.runningMessage" style="margin-left: 3em">
                   <span class="glyphicon glyphicon-repeat sr-running-icon"></span>
-                  {{ controlsService.runningMessage }}<span data-ng-if="controlsService.optimizationCost">, cost: {{ controlsService.optimizationCost | number : 6 }}</span>
+                   {{ controlsService.runningMessage }}<span data-ng-if="controlsService.optimizationCost"></span><span data-ng-if="controlsService.optimizationCost != 0 && ! controlsService.isDeviceServerReadOnly()">, cost: {{ controlsService.optimizationCost | number : 6 }}</span>
                 </div>
               </div>
 
@@ -839,7 +843,12 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
                 <button style="position: absolute; top: -1%; right: 5%;" ng-click="showTwissEditor()" class="btn bg-info">
                   <span class="glyphicon glyphicon-pencil text-primary"></span>
                 </button>
-                <div data-report-content="parameterWithExternalLattice" data-model-key="{{ twissReport.modelKey }}" data-panel-title="{{ twissReport.getData().panelTitle }}"></div>
+                <div data-report-content="parameter" data-model-key="instrumentAnimationTwiss""></div>
+              </div>
+
+              <div style="position: relative; margin: 0 -15px; padding: 0" class="col-sm-4 col-xl-5" data-ng-if="hasBeamPositionAnimation()">
+                <h4 style="position: absolute; top: -2%; left: 10%;">Beam Position at Monitors</h4>
+                <div data-report-content="parameter" data-model-key="beamPositionAnimation"></div>
               </div>
 
             </div>
@@ -1010,10 +1019,6 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
                     y2: data.twissColumns,
                     y3: data.twissColumns,
                 };
-                $scope.twissReport = {
-                    modelKey: 'instrumentAnimationTwiss',
-                    getData: () => appState.models.instrumentAnimationTwiss,
-                };
                 if (data.frameCount) {
                     frameCache.setFrameCount(data.frameCount, 'instrumentAnimationTwiss');
                     frameCache.setCurrentFrame('instrumentAnimationTwiss', data.frameCount);
@@ -1076,6 +1081,11 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
             }
 
             $scope.destroy = () => $('.sr-lattice-label').off();
+
+            $scope.hasBeamPositionAnimation = () => {
+                return appState.applicationState().controlSettings.operationMode == 'DeviceServer'
+                    && frameCache.getFrameCount('beamPositionAnimation');
+            };
 
             $scope.hasTwissReport = () => {
                 if (controlsService.isDeviceServer()) {
@@ -1330,6 +1340,9 @@ SIREPO.app.directive('deviceServerMonitor', function(appState, controlsService) 
         template: `
             <button data-ng-show="! simState.isProcessing()" class="btn btn-default" data-ng-click="startMonitor()">Start Monitor</button>
             <button data-ng-show="simState.isProcessing()" class="btn btn-default" data-ng-click="stopMonitor()">Stop Monitor</button>
+            <div style="margin-top: 1em" data-ng-show="simState.isStateError()">
+              <div class="col-sm-12">{{ simState.stateAsText() }}</div>
+            </div>
         `,
         controller: function($scope) {
             $scope.startMonitor = () => {

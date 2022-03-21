@@ -75,6 +75,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                'beamPositionAnimation',
                 'bunch',
                 'command_beam',
                 'dataFile',
@@ -181,7 +182,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if 'instrument' in analysis_model:
+        if 'instrument' in analysis_model or analysis_model == 'beamPositionAnimation':
             return 'instrumentAnimation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 

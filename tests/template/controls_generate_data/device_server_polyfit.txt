@@ -326,7 +326,7 @@ def _read_values(text):
 def _update_and_read_results(correctors):
     global context_id
     if not context_id:
-        url = _DEVICE_SERVER_BASEPATH + '/api/device/context?user=pmoeller&procName=RadiaSoft/Sirepo&procId=1&machine=v.radia.run'
+        url = _DEVICE_SERVER_BASEPATH + '/api/device/context?user=testuser&procName=RadiaSoft-Sirepo&procId=123456&machine=host02'
         response = requests.get(url)
         if response.status_code != requests.codes.ok:
             raise AssertionError(f'set context request failed: {response.text}')

@@ -291,8 +291,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
 
 def generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
-    if data.get('report') == 'animation' or \
-       data.models.simulation.computeTwissFromParticles == '1':
+    if data.models.simulation.computeTwissFromParticles == '1':
         _add_marker_and_observe(data)
     util = LatticeUtil(data, SCHEMA)
     filename_map = _build_filename_map_from_util(util)
