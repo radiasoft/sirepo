@@ -218,6 +218,9 @@ class OpalMadxConverter(MadxConverter):
 
     def to_madx_text(self, data):
 
+        import astunparse
+        import ast
+        pkdp('\n\n\n *** data:{}', data.models.rpnVariables)
         class Visitor(ast.NodeTransformer):
             def visit_Call(self, node):
                 if node.func.id == 'pow':
