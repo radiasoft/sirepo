@@ -7,7 +7,6 @@ u"""PyTest for :mod:`sirepo.template.controls`
 from pykern import pkio
 from pykern import pkunit
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
 
 
 def test_controls_monitor(fc):
@@ -68,7 +67,6 @@ def _run_test(sim, report, expect_file):
             deviceServerProcId='123456',
             deviceServerMachine='host02',
         ))
-        pkdp('updated settings: {}', sim.models.controlSettings)
     pkunit.file_eq(
         pkunit.data_dir().join(expect_file),
         actual=controls.python_source_for_model(sim, report),
