@@ -1,0 +1,23 @@
+title, "test4";
+
+REAL lt = 9.25;
+REAL sr_alpha_x = -1.0;
+REAL sr_alpha_y = -0.0;
+REAL sr_gamma = 1.01;
+REAL sr_beta = sqrt(1 - (1 / (sr_gamma ^ 2)));
+REAL sr_beta_x = 1.1;
+REAL sr_beta_y = 0.7;
+REAL sr_dp_s_coupling = -0.09950371902099893;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 5000;
+
+B_0: DRIFT;
+M_DL_D.00: DRIFT,l=1.750;
+T_AR_D.01: DRIFT,l:=LT - (((10 * pi) / 180) * 3);
+BL1: LINE=(B_0,M_DL_D.00,T_AR_D.01);
+
+
+beam,ex=1.4e-06,ey=1.5e-06,particle=electron,pc=1.0010000000000001,sige=0.004280050616574745,sigt=0.002981166677631146;
+use,sequence=BL1;
+twiss,file="twiss.file.tfs";

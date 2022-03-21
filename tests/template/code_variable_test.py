@@ -226,6 +226,7 @@ def test_infix_to_postfix():
     pkeq('2 3 pow', code_var.infix_to_postfix('2 ^ 3'))
     pkeq('2 3 pow', code_var.infix_to_postfix('pow(2, 3)'))
     pkeq('2 3 pow', code_var.infix_to_postfix('2 ** 3'))
+    pkeq('1 1 gamma 2 pow / - sqrt', code_var.infix_to_postfix('sqrt(1 - 1 / gamma ** 2)'))
 
 
 def test_postfix_to_infix():
