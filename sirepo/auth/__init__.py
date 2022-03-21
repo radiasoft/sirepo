@@ -579,10 +579,12 @@ def _auth_hook_from_header(values):
 
 
 def _auth_state():
+
     def get_slack_uri():
-        return sirepo.feature_config.cfg().sim_common.join_slack_uri \
-               + (_get_user() or '')
+        return sirepo.feature_config.sim_common().slack_uri + (_get_user() or '')
+
     import sirepo.simulation_db
+
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
         avatarUrl=None,
