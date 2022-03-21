@@ -1,8 +1,0 @@
-% 9.25 sto LT
-% 1.01 sto sr_gamma
-% 1 1 sr_gamma 2 pow / - sqrt sto sr_beta
-
-B-0: DRIFT
-"M/DL-D.00": EDRIFT,l=1.750
-"T:AR-D.01": EDRIFT,l="LT 10 pi * 180 / 3 * -"
-"BL1": LINE=("B-0", "M/DL-D.00", "T:AR-D.01")

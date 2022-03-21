@@ -5,6 +5,7 @@ u"""PyTest for :mod:`sirepo.template.madx_converter`
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from importlib.resources import read_text
 from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
@@ -48,19 +49,6 @@ def test_import_elegant_export_madx(import_req):
 
 # TODO (gurhar1133): does it matter that we cant convert elegant: x y pow to madx: x ^ y?
 # Pretty sure we are good on madx: x ^ y to elegant: x y pow
-
-def test_import_madx_export_elegant(import_req):
-    from pykern.pkunit import pkeq, file_eq
-    from sirepo.template import elegant
-    from sirepo.template.elegant import ElegantMadxConverter
-    data = elegant.import_file(import_req(pkunit.data_dir().join('test4.madx')))
-    # this is updated from javascript unfortunately
-    data.models.bunch.longitudinalMethod = '3'
-    actual = ElegantMadxConverter().from_madx(data)
-    file_eq(
-        'test4.lte',
-        actual=actual,
-    )
 
 def test_import_opal_export_madx(import_req):
     from pykern.pkunit import pkeq, file_eq
