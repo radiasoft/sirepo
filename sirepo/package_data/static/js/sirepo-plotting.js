@@ -906,15 +906,15 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 SIREPO.app.directive('animationButtons', function() {
     return {
         restrict: 'A',
-        template: [
-            '<div data-ng-if="isAnimation && hasManyFrames()" style="width: 100%;" class="text-center">',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1, true)"><span class="glyphicon glyphicon-step-backward"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-click="togglePlay()"><span class="glyphicon glyphicon-{{ isPlaying ? \'pause\' : \'play\' }}"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="advanceFrame(1, true)"><span class="glyphicon glyphicon-step-forward"></span></button>',
-              '<button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="isAnimation && hasManyFrames()" style="width: 100%;" class="text-center">
+              <button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="firstFrame()"><span class="glyphicon glyphicon-backward"></span></button>
+              <button type="button" class="btn btn-default" data-ng-disabled="isFirstFrame()" data-ng-click="advanceFrame(-1, true)"><span class="glyphicon glyphicon-step-backward"></span></button>
+              <button type="button" class="btn btn-default" data-ng-click="togglePlay()"><span class="glyphicon glyphicon-{{ isPlaying ? \'pause\' : \'play\' }}"></span></button>
+              <button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="advanceFrame(1, true)"><span class="glyphicon glyphicon-step-forward"></span></button>
+              <button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>
+            </div>
+        `,
     };
 });
 
@@ -929,20 +929,20 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
             model: '=',
             form: '<',
         },
-        template: [
-            '<div>',
-                '<button class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>',
-                '<ul class="dropdown-menu">',
-                    '<div class="container col-sm-8">',
-                        '<div data-ng-repeat="r in range(rows) track by $index" class="row">',
-                            '<li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">',
-                                '<button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>',
-                            '</li>',
-                        '<div>',
-                    '<div>',
-                '</ul>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div>
+                <button class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>
+                <ul class="dropdown-menu">
+                    <div class="container col-sm-8">
+                        <div data-ng-repeat="r in range(rows) track by $index" class="row">
+                            <li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">
+                                <button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>
+                            </li>
+                        <div>
+                    <div>
+                </ul>
+            </div>
+        `,
         controller: function($scope) {
 
             var origColor = null;
@@ -1747,11 +1747,11 @@ SIREPO.app.directive('columnForAspectRatio', function(appState) {
             modelName: '@columnForAspectRatio',
         },
         transclude: true,
-        template: [
-            '<div class="{{ columnClass() }}">',
-              '<div data-ng-transclude=""></div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="{{ columnClass() }}">
+              <div data-ng-transclude=""></div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.columnClass = function() {
                 if (appState.isLoaded()) {
@@ -2036,35 +2036,32 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
         scope: {
             focusPoints: '=',
         },
-        template: [
-            '<g class="popup-group">',
-              '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">',
-                '<g>',
-                  '<rect class="report-window" rx="4px" ry="4px" x="0" y="0"></rect>',
-                  '<g ng-drag-handle="">',
-                    '<rect class="report-window-title-bar" x="1" y="1"></rect>',
-                    '<text class="report-window-title-icon report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
-                    '<text class="report-window-title-icon report-window-copy" y="0" dy="1.5em" dx="0.5em">',
-                      '&#xe205;',
-                    '</text>',
-                  '</g>',
-                '</g>',
-                '<g class="text-block">',
-                  '<text id="x-text" class="focus-text-popup" x="0" dx="0.5em"> </text>',
-                  '<g class="text-group" data-ng-repeat="fp in focusPoints">',
-                  // the space value is needed for PNG download on MSIE 11
-                    '<g data-ng-attr-id="y-text-{{$index}}"></g>',
-                    '<g class="fwhm-text-group">',
-                      '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
-                    '</g>',
-                  '</g>',
-                '</g>',
-              '</g>',
-              // this element is used to check the size of strings for wrapping.  It cannot be hidden or the size
-              // will be 0, so instead we make the text transparent
-              '<text class="hidden-txt-layout" fill="none"></text>',
-            '</g>',
-        ].join(''),
+        template: `
+            <g class="popup-group">
+              <g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">
+                <g>
+                  <rect class="report-window" rx="4px" ry="4px" x="0" y="0"></rect>
+                  <g ng-drag-handle="">
+                    <rect class="report-window-title-bar" x="1" y="1"></rect>
+                    <text class="report-window-title-icon report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>
+                    <text class="report-window-title-icon report-window-copy" y="0" dy="1.5em" dx="0.5em">
+                      &#xe205;
+                    </text>
+                  </g>
+                </g>
+                <g class="text-block">
+                  <text id="x-text" class="focus-text-popup" x="0" dx="0.5em"> </text>
+                  <g class="text-group" data-ng-repeat="fp in focusPoints">
+                    <g data-ng-attr-id="y-text-{{$index}}"></g>
+                    <g class="fwhm-text-group">
+                      <text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>
+                    </g>
+                  </g>
+                </g>
+              </g>
+              <text class="hidden-txt-layout" fill="none"></text>
+            </g>
+        `,
         controller: function($scope, $element) {
             if (! $scope.focusPoints) {
                 // popupReport only applies if focusPoints are defined on the plot
@@ -3935,11 +3932,11 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
             modelName: '@',
             reportCfg: '<',
         },
-        template: [
-            '<div class="sr-svg-plot">',
-                '<svg></svg>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="sr-svg-plot">
+                <svg></svg>
+            </div>
+        `,
         controller: function($scope, $element) {
 
             function load() {

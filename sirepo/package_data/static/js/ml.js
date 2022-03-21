@@ -195,10 +195,10 @@ SIREPO.app.directive('appFooter', function(mlService) {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
+        `,
     };
 });
 
@@ -208,29 +208,28 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'data\')}"><a href data-ng-click="nav.openSection(\'data\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>',
-                  '<li class="sim-section" data-ng-if="hasFile() && isAnalysis()" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
-                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! isAnalysis()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>',
-                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && appModeIn([\'regression\'])" data-ng-class="{active: nav.isActive(\'regression\')}"><a href data-ng-click="nav.openSection(\'regression\')"><span class="glyphicon glyphicon-qrcode"></span> Regression</a></li>',
-                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && appModeIn([\'classification\'])" data-ng-class="{active: nav.isActive(\'classification\')}"><a href data-ng-click="nav.openSection(\'classification\')"><span class="glyphicon glyphicon-tag"></span> Classification</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-               //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="nav"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-sim-sections="">
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'data\')}"><a href data-ng-click="nav.openSection(\'data\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
+                  <li class="sim-section" data-ng-if="hasFile() && isAnalysis()" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! isAnalysis()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>
+                  <li class="sim-section" data-ng-if="hasInputsAndOutputs() && appModeIn([\'regression\'])" data-ng-class="{active: nav.isActive(\'regression\')}"><a href data-ng-click="nav.openSection(\'regression\')"><span class="glyphicon glyphicon-qrcode"></span> Regression</a></li>
+                  <li class="sim-section" data-ng-if="hasInputsAndOutputs() && appModeIn([\'classification\'])" data-ng-class="{active: nav.isActive(\'classification\')}"><a href data-ng-click="nav.openSection(\'classification\')"><span class="glyphicon glyphicon-tag"></span> Classification</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.appModeIn = mlService.appModeIn;
             $scope.hasFile = function() {
@@ -536,24 +535,23 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, mlService
             modelName: '@',
             modelData: '=',
         },
-        template: [
-            //TODO(pjm): improve close button position, want it positioned relative to panel body, not full panel
-            '<button data-ng-if="isSubreport()" data-ng-click="closeSubreport()" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">',
-              '<span>&times;</span>',
-            '</button>',
-            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">',
-              '<div class="clearfix"></div>',
-              '<div data-ng-repeat="view in viewNames track by $index" style="margin-top: -40px;">',
-                '<div data-ng-if="isActiveView(view)" style="margin-top:3ex;">',
-                  '<div data-advanced-editor-pane="" data-model-data="modelData" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>',
-                '</div>',
-              '</div>',
-              '<div class="clearfix"></div>',
-              '<div data-ng-if="showFFT()">',
-                '<div data-fft-report="" data-model-data="modelData" style="margin-top: 5px;"></div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <button data-ng-if="isSubreport()" data-ng-click="closeSubreport()" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">
+              <span>&times;</span>
+            </button>
+            <div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">
+              <div class="clearfix"></div>
+              <div data-ng-repeat="view in viewNames track by $index" style="margin-top: -40px;">
+                <div data-ng-if="isActiveView(view)" style="margin-top:3ex;">
+                  <div data-advanced-editor-pane="" data-model-data="modelData" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>
+                </div>
+              </div>
+              <div class="clearfix"></div>
+              <div data-ng-if="showFFT()">
+                <div data-fft-report="" data-model-data="modelData" style="margin-top: 5px;"></div>
+              </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             var analysisReport;
             var isFirstRefresh = true;
@@ -746,9 +744,9 @@ SIREPO.app.directive('analysisParameter', function(appState, mlService) {
             field: '=',
             isOptional: '@',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>
+        `,
         controller: function($scope) {
             $scope.parameterValues = function() {
                 return mlService.buildParameterList($scope.isOptional)
@@ -764,21 +762,21 @@ SIREPO.app.directive('columnReports', function(appState, mlService) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div data-ng-repeat="report in reports track by report.columnNumber">',
-              '<div class="col-sm-3 col-xl-2">',
-                '<div class="sr-height-panel" data-report-panel="parameter" data-model-name="fileColumnReport" data-model-data="report.data" data-panel-title="{{ report.title }}" data-ng-style="reportStyle">',
-                  '<button data-ng-click="closeReport(report.columnNumber)" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">',
-                    '<span>&times;</span>',
-                  '</button>',
-                  '<div>{{ computeHeight() }}</div>',
-                  '<form class="form-horizontal">',
-                    '<div class="form-group form-group-sm" data-model-field="\'x\'" data-model-name="\'fileColumnReport\'" data-model-data="report.data" data-label-size="4" data-field-size="8"></div>',
-                  '</form>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-repeat="report in reports track by report.columnNumber">
+              <div class="col-sm-3 col-xl-2">
+                <div class="sr-height-panel" data-report-panel="parameter" data-model-name="fileColumnReport" data-model-data="report.data" data-panel-title="{{ report.title }}" data-ng-style="reportStyle">
+                  <button data-ng-click="closeReport(report.columnNumber)" title="close" type="button" class="close" style="position: absolute; top: 55px; right: 25px">
+                    <span>&times;</span>
+                  </button>
+                  <div>{{ computeHeight() }}</div>
+                  <form class="form-horizontal">
+                    <div class="form-group form-group-sm" data-model-field="\'x\'" data-model-name="\'fileColumnReport\'" data-model-data="report.data" data-label-size="4" data-field-size="8"></div>
+                  </form>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope, $element) {
             $scope.reportStyle = {
                 'min-height': 0,
@@ -830,11 +828,11 @@ SIREPO.app.directive('xColumn', function(appState, mlService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div class="col-sm-8">',
-            '<select class="form-control" data-ng-model="model[field]" data-ng-change="columnChanged()" data-ng-options="item as header(item) for item in getItems()"></select>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="col-sm-8">
+            <select class="form-control" data-ng-model="model[field]" data-ng-change="columnChanged()" data-ng-options="item as header(item) for item in getItems()"></select>
+            </div>
+        `,
         controller: function($scope) {
             $scope.appState = appState;
             $scope.columnChanged = function() {
@@ -876,18 +874,18 @@ SIREPO.app.directive('clusterFields', function(appState, mlService) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div style="margin: -3px 0 5px 0; min-height: 34px; max-height: 13.4em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
-              '<table class="table table-condensed table-hover" style="margin:0">',
-                '<tbody>',
-                  '<tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">',
-                    '<td>{{ item.name }}</td>',
-                    '<td><input type="checkbox" data-ng-checked="isSelected(item)"></td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div style="margin: -3px 0 5px 0; min-height: 34px; max-height: 13.4em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">
+              <table class="table table-condensed table-hover" style="margin:0">
+                <tbody>
+                  <tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">
+                    <td>{{ item.name }}</td>
+                    <td><input type="checkbox" data-ng-checked="isSelected(item)"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        `,
         controller: function($scope) {
             var itemList, paramList;
 
@@ -924,60 +922,60 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState,
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form name="form">',
-              '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
-                '<colgroup>',
-                  '<col style="width: 3em">',
-                  '<col style="width: 100%">',
-                  '<col style="width: 6em">',
-                  '<col style="width: 6em">',
-                  '<col style="width: 6em">',
-                '</colgroup>',
-                '<thead>',
-                  '<tr>',
-                    '<th> </th>',
-                    '<th>Column Name</th>',
-                    '<th data-ng-show="! isAnalysis" class="text-center">Input</th>',
-                    '<th data-ng-show="! isAnalysis" class="text-center">Output</th>',
-                    '<th data-ng-show="isAnalysis" class="text-center"><span class="glyphicon glyphicon-filter"></span></th>',
-                    '<th></th>',
-                  '</tr>',
-                '</thead>',
-                '<tbody>',
-                  '<tr>',
-                    '<td> </td><td> </td>',
-                    '<td data-ng-repeat="(k, g) in selectionGroups" data-ng-show="groupVisible(g)" class="text-center"><input data-ng-model="g.val" type="checkbox" class="sr-checkbox" data-ng-click="toggleGroup(k)"/></td>',
-                    '<td> </td>',
-                  '</tr>',
-                  '<tr data-ng-repeat="col in getPage() track by col">',
-                    '<td class="form-group form-group-sm"><p class="form-control-static">{{ col + 1 }}</p></td>',
-                    '<td class="form-group form-group-sm">',
-                      '<input data-ng-model="model.header[col]" class="form-control" data-lpignore="true" required />',
-                    '</td>',
-                    '<td data-ng-show="! isAnalysis" class="text-center">',
-                      '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />',
-                    '</td>',
-                    '<td data-ng-show="! isAnalysis" class="text-center">',
-                      '<input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />',
-                    '</td>',
-                    '<td data-ng-show="isAnalysis" class="text-center">',
-                      '<input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" data-ng-click="validateNumSelected(col)"/>',
-                    '</td>',
-                  '</tr>',
-                '</tbody>',
-              '</table>',
-              '<div class="sr-input-warning"></div>',
-              '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>',
-            '</form>',
-            '<nav class="pull-right">',
-              '<span>{{ pageText() }}&nbsp;&nbsp;</span>',
-              '<ul class="pagination">',
-                '<li class="page-item"><button type="button" class="btn btn-outline-info" data-ng-disabled="pageIdx < 1" data-ng-click="changePage(-1)"><<</button></li>',
-                '<li class="page-item"><button type="button" class="btn btn-outline-info" data-ng-disabled="pageIdx > pages.length - 2" data-ng-click="changePage(1)">>></button></li>',
-              '</ul>',
-            '</nav>',
-        ].join(''),
+        template: `
+            <form name="form">
+              <table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">
+                <colgroup>
+                  <col style="width: 3em">
+                  <col style="width: 100%">
+                  <col style="width: 6em">
+                  <col style="width: 6em">
+                  <col style="width: 6em">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th> </th>
+                    <th>Column Name</th>
+                    <th data-ng-show="! isAnalysis" class="text-center">Input</th>
+                    <th data-ng-show="! isAnalysis" class="text-center">Output</th>
+                    <th data-ng-show="isAnalysis" class="text-center"><span class="glyphicon glyphicon-filter"></span></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td> </td><td> </td>
+                    <td data-ng-repeat="(k, g) in selectionGroups" data-ng-show="groupVisible(g)" class="text-center"><input data-ng-model="g.val" type="checkbox" class="sr-checkbox" data-ng-click="toggleGroup(k)"/></td>
+                    <td> </td>
+                  </tr>
+                  <tr data-ng-repeat="col in getPage() track by col">
+                    <td class="form-group form-group-sm"><p class="form-control-static">{{ col + 1 }}</p></td>
+                    <td class="form-group form-group-sm">
+                      <input data-ng-model="model.header[col]" class="form-control" data-lpignore="true" required />
+                    </td>
+                    <td data-ng-show="! isAnalysis" class="text-center">
+                      <input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'input\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                    <td data-ng-show="! isAnalysis" class="text-center">
+                      <input data-ng-model="model.inputOutput[col]" class="sr-checkbox" data-ng-true-value="\'output\'" data-ng-false-value="\'none\'" type="checkbox" />
+                    </td>
+                    <td data-ng-show="isAnalysis" class="text-center">
+                      <input data-ng-model="model.selected[col]" class="sr-checkbox" type="checkbox" data-ng-click="validateNumSelected(col)"/>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="sr-input-warning"></div>
+              <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+            </form>
+            <nav class="pull-right">
+              <span>{{ pageText() }}&nbsp;&nbsp;</span>
+              <ul class="pagination">
+                <li class="page-item"><button type="button" class="btn btn-outline-info" data-ng-disabled="pageIdx < 1" data-ng-click="changePage(-1)"><<</button></li>
+                <li class="page-item"><button type="button" class="btn btn-outline-info" data-ng-disabled="pageIdx > pages.length - 2" data-ng-click="changePage(1)">>></button></li>
+              </ul>
+            </nav>
+        `,
         controller: function($scope, $sce) {
             $scope.modelName = 'columnInfo';
             $scope.fields = ['header', 'inputOutput'];
@@ -1164,12 +1162,12 @@ SIREPO.app.directive('equation', function(appState, mlService, $timeout) {
             field: '=',
             form: '=',
         },
-        template: [
-            '<div>',
-                '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
-                '<input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables',
-            '</div>',
-        ].join(''),
+        template: `
+            <div>
+                <input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>
+                <input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables
+            </div>
+        `,
         controller: function ($scope) {
 
             var defaultFitVars = ['x', 'y', 'z', 't'];
@@ -1252,12 +1250,12 @@ SIREPO.app.directive('equationVariables', function() {
             isVariable: '<',
             model: '=',
         },
-        template: [
-            '<div>',
-                '<input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />',
-            '</div>',
-            '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
-        ].join(''),
+        template: `
+            <div>
+                <input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />
+            </div>
+            <div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>
+        `,
         controller: function($scope, $element) {
         },
     };
@@ -1268,10 +1266,10 @@ SIREPO.app.directive('fftReport', function(appState) {
         scope: {
             modelData: '=',
         },
-        template: [
-            '<div data-advanced-editor-pane data-model-data="modelData" data-view-name="modelKey" data-want-buttons="1"></div>',
-            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
-        ].join(''),
+        template: `
+            <div data-advanced-editor-pane data-model-data="modelData" data-view-name="modelKey" data-want-buttons="1"></div>
+            <div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>
+        `,
         controller: function($scope, $element) {
             $scope.modelKey = 'fftReport';
             if ($scope.modelData) {
@@ -1386,13 +1384,13 @@ SIREPO.app.directive('plotActionButtons', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div class="text-center">',
-            '<div class="btn-group">',
-              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
-            '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="text-center">
+            <div class="btn-group">
+              <button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
+            </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
 
@@ -1440,52 +1438,52 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form name="form" class="form-horizontal">',
-              '<div class="form-group form-group-sm">',
-                '<table class="table table-striped table-condensed">',
-                  '<tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">',
-                    '<td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">',
-                      '<div data-ng-if="fieldInfo.field">',
-                        '<b>{{ fieldInfo.label }}</b>',
-                        '<div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>',
-                      '</div>',
-                    '</td>',
-                    '<td>',
-                      '<div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
-                    '</td>',
-                  '<tr>',
-                    '<td>',
-                      '<b>Add Layer</b>',
-                        '<select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>',
-                    '</td>',
-                    '<td></td>',
-                    '<td></td>',
-                    '<td></td>',
-                  '</tr>',
-                  '<tr>',
-                    '<td>',
-                      '<b>Output Layer</b>',
-                      '<p class="form-control-static">Densely Connected NN</p>',
-                    '</td>',
-                    '<td>',
-                      '<b>Dimensionality</b>',
-                      '<p class="form-control-static text-right">{{ outputColCount()  }}</p>',
-                    '</td>',
-                    '<td>',
-                      '<b>Activation</b>',
-                      '<p class="form-control-static">Linear (identity)</p>',
-                    '</td>',
-                    '<td></td>',
-                    '</tr>',
-                '</table>',
-              '</div>',
-              '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
-                '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
-                '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
-              '</div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form name="form" class="form-horizontal">
+              <div class="form-group form-group-sm">
+                <table class="table table-striped table-condensed">
+                  <tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">
+                    <td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">
+                      <div data-ng-if="fieldInfo.field">
+                        <b>{{ fieldInfo.label }}</b>
+                        <div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="sr-button-bar-parent pull-right"><div class="ml-button-bar"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveLayer(-1, $index)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == appState.models.neuralNet.layers.length - 1" data-ng-click="moveLayer(1, $index)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button data-ng-click="deleteLayer($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                    </td>
+                  <tr>
+                    <td>
+                      <b>Add Layer</b>
+                        <select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <b>Output Layer</b>
+                      <p class="form-control-static">Densely Connected NN</p>
+                    </td>
+                    <td>
+                      <b>Dimensionality</b>
+                      <p class="form-control-static text-right">{{ outputColCount()  }}</p>
+                    </td>
+                    <td>
+                      <b>Activation</b>
+                      <p class="form-control-static">Linear (identity)</p>
+                    </td>
+                    <td></td>
+                    </tr>
+                </table>
+              </div>
+              <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
+                <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+              </div>
+            </form>
+        `,
         controller: function($scope, $element) {
             var layerFields = {};
             var layerInfo = [];
@@ -1599,18 +1597,18 @@ SIREPO.app.directive('partitionSelection', function(appState) {
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<form name="form" class="form-horizontal" data-ng-style="formStyle">',
-              '<div class="form-group form-group-sm">',
-                '<div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>',
-                '<div data-ng-repeat="field in fields track by $index" class="col-sm-4">',
-                  '<p class="form-control-static text-center">{{ selectedRange(field) }}</p>',
-                '</div>',
-                '<div data-ng-if="hasTrainingAndTesting()" data-model-field="\'trainTestPercent\'" data-model-name="\'partition\'"></div>',
-              '</div>',
-              '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>',
-            '</form>',
-        ].join(''),
+        template: `
+            <form name="form" class="form-horizontal" data-ng-style="formStyle">
+              <div class="form-group form-group-sm">
+                <div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>
+                <div data-ng-repeat="field in fields track by $index" class="col-sm-4">
+                  <p class="form-control-static text-center">{{ selectedRange(field) }}</p>
+                </div>
+                <div data-ng-if="hasTrainingAndTesting()" data-model-field="\'trainTestPercent\'" data-model-name="\'partition\'"></div>
+              </div>
+              <div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>
+            </form>
+        `,
         controller: function($scope) {
             var dragCarat, plotRefresh, plotScope;
             $scope.modelName = 'partition';
@@ -1790,24 +1788,24 @@ SIREPO.app.directive('tablePanel', function(plotting) {
         scope: {
             modelName: "@"
         },
-        template: [
-            '<div data-ng-if="! tableHeaders">',
-              '<div class="lead">&nbsp;</div>',
-            '</div>',
-            '<div data-ng-if="tableHeaders">',
-              '<div class="col-sm-12" style="margin-top: 1ex;">',
-                '<table class="table">',
-                  '<caption>{{ title }}</caption>',
-                  '<thead>',
-                    '<tr>',
-                      '<th data-ng-repeat="h in tableHeaders">{{h}}</th>',
-                    '</tr>',
-                  '</thead>',
-                  '<tr data-ng-repeat="r in tableRows" data-ng-bind-html=row(r)></tr>',
-                '</table>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="! tableHeaders">
+              <div class="lead">&nbsp;</div>
+            </div>
+            <div data-ng-if="tableHeaders">
+              <div class="col-sm-12" style="margin-top: 1ex;">
+                <table class="table">
+                  <caption>{{ title }}</caption>
+                  <thead>
+                    <tr>
+                      <th data-ng-repeat="h in tableHeaders">{{h}}</th>
+                    </tr>
+                  </thead>
+                  <tr data-ng-repeat="r in tableRows" data-ng-bind-html=row(r)></tr>
+                </table>
+              </div>
+            </div>
+        `,
         controller: function($scope, $sce) {
             plotting.setTextOnlyReport($scope);
             $scope.row = (row) => {
@@ -1852,11 +1850,11 @@ SIREPO.app.directive('trimButton', function(appState, mlService) {
             field: '=',
             modelName: '=',
         },
-        template: [
-            '<div class="text-center">',
-              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="text-center">
+              <button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>
+            </div>
+        `,
         controller: function($scope) {
             $scope.trimPlot = function() {
                 var action = {};
