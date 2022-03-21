@@ -85,16 +85,6 @@ def for_sim_type(sim_type):
     ).pkupdate(c.common)
 
 
-def sim_common():
-    """Get cfg to use across all simulations. Separate from global cfg
-
-    Returns:
-        dict: common sim config
-    """
-    import pykern.pkcollections
-    return pykern.pkcollections.PKDict(cfg()).sim_common
-
-
 def _data_dir(value):
     import sirepo.srdb
     return sirepo.srdb.root().join(value)
