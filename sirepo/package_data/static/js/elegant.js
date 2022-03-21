@@ -663,10 +663,10 @@ SIREPO.app.directive('appFooter', function() {
         scope: {
             nav: '=appFooter',
         },
-        template: [
-            '<div data-common-footer="nav"></div>',
-            '<div data-elegant-import-dialog=""></div>',
-        ].join(''),
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-elegant-import-dialog=""></div>
+        `,
     };
 });
 
@@ -677,28 +677,27 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
         scope: {
             nav: '=appHeader',
         },
-        template: [
-            '<div data-app-header-brand="" data-app-url="/en/particle-accelerators.html"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
-                  '<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
-                  '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-app-header-brand="" data-app-url="/en/particle-accelerators.html"></div>
+            <div data-app-header-left="nav"></div>
+            <div data-app-header-right="nav">
+              <app-header-right-sim-loaded>
+                <div data-ng-if="nav.isLoaded()" data-sim-sections="">
+                  <li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>
+                  <li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                </div>
+              </app-header-right-sim-loaded>
+              <app-settings>
+              </app-settings>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
+            </div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
 
@@ -735,9 +734,9 @@ SIREPO.app.directive('elegantLatticeList', function(appState) {
             model: '=',
             field: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>
+        `,
         controller: function($scope) {
             $scope.elegantLatticeList = function() {
                 if (! appState.isLoaded() || ! $scope.model) {
@@ -772,9 +771,9 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelStat
         scope: {
             reportInfo: '=',
         },
-        template: [
-            '<div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess"></div>',
-        ].join(''),
+        template: `
+            <div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess"></div>
+        `,
         controller: function($scope) {
             var isFirstVisit = true;
             var plotRangeWatchers = [];
@@ -830,70 +829,70 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<div data-help-button="{{ title }}"></div>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                        '<form class="form-horizontal" name="importForm">',
-                          '<div data-ng-show="filename" class="form-group">',
-                            '<label class="col-xs-4 control-label">Importing file</label>',
-                            '<div class="col-xs-8">',
-                              '<p class="form-control-static">{{ filename }}</p>',
-                            '</div>',
-                          '</div>',
-                          '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
-                            '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Command (.ele), Lattice (.lte or .madx), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
-                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />',
-                              '<br />',
-                              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                            '</div>',
-                            '<div data-ng-show="isState(\'lattice\')" class="form-group">',
-                              '<label>Select Lattice File ({{ latticeFileName }})</label>',
-                              '<input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept=".lte" />',
-                              '<br />',
-                              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                            '</div>',
-                            '<div class="col-sm-6 pull-right">',
-                              '<button data-ng-click="importElegantFile(elegantFile)" data-ng-disabled="isMissingImportFile()" class="btn btn-primary">Import File</button>',
-                              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-                            '</div>',
-                          '</div>',
-                          '<div data-ng-show="isState(\'import\') || isState(\'load-file-lists\')" class="col-sm-6 col-sm-offset-6">',
-                            'Uploading file - please wait.',
-                            '<br /><br />',
-                          '</div>',
-                          '<div data-ng-show="isState(\'missing-files\')">',
-                            '<p>Please upload the files below which are referenced in the ', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>',
-                            '<div class="form-group" data-ng-repeat="item in missingFiles">',
-                              '<div class="col-sm-11 col-sm-offset-1">',
-                                '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',
-                                '<span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>',
-                                '<label>{{ auxFileLabel(item) }}</label> ({{ auxFileName(item) }})',
-                                '<input type="file" data-file-model="item[5]" />',
-                              '</div>',
-                            '</div>',
-                            '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                            '<div class="col-sm-6 pull-right">',
-                              '<button data-ng-click="importMissingFiles()" data-ng-disabled="isMissingFiles()"" class="btn btn-primary">{{ importMissingFilesButtonText() }}</button>',
-                              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-                            '</div>',
-                          '</div>',
-                        '</form>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                        <form class="form-horizontal" name="importForm">
+                          <div data-ng-show="filename" class="form-group">
+                            <label class="col-xs-4 control-label">Importing file</label>
+                            <div class="col-xs-8">
+                              <p class="form-control-static">{{ filename }}</p>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState(\'ready\') || isState(\'lattice\')">
+                            <div data-ng-show="isState(\'ready\')" class="form-group">
+                              <label>Select Command (.ele), Lattice (.lte or .madx), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>
+                              <input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div data-ng-show="isState(\'lattice\')" class="form-group">
+                              <label>Select Lattice File ({{ latticeFileName }})</label>
+                              <input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept=".lte" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importElegantFile(elegantFile)" data-ng-disabled="isMissingImportFile()" class="btn btn-primary">Import File</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState(\'import\') || isState(\'load-file-lists\')" class="col-sm-6 col-sm-offset-6">
+                            Uploading file - please wait.
+                            <br /><br />
+                          </div>
+                          <div data-ng-show="isState(\'missing-files\')">
+                            <p>Please upload the files below which are referenced in the ', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>
+                            <div class="form-group" data-ng-repeat="item in missingFiles">
+                              <div class="col-sm-11 col-sm-offset-1">
+                                <span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> 
+                                <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>
+                                <label>{{ auxFileLabel(item) }}</label> ({{ auxFileName(item) }})
+                                <input type="file" data-file-model="item[5]" />
+                              </div>
+                            </div>
+                            <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importMissingFiles()" data-ng-disabled="isMissingFiles()"" class="btn btn-primary">{{ importMissingFilesButtonText() }}</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
             $scope.title = 'Import ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName + ' File';
             // states: ready, import, lattice, load-file-lists, missing-files
@@ -1204,13 +1203,13 @@ SIREPO.app.directive('inputFileXY', function() {
             model: '=',
             field: '=',
         },
-        template: [
-            '<div style="display: inline-block" data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>',
-            ' <label style="margin: 0 1ex">X</label> ',
-            '<input data-ng-model="model[fieldX()]" style="display: inline-block; width: 8em" class="form-control" />',
-            ' <label style="margin: 0 1ex">Y</label> ',
-            '<input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />',
-        ].join(''),
+        template: `
+            <div style="display: inline-block" data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>
+             <label style="margin: 0 1ex">X</label> 
+            <input data-ng-model="model[fieldX()]" style="display: inline-block; width: 8em" class="form-control" />
+             <label style="margin: 0 1ex">Y</label> 
+            <input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />
+        `,
         controller: function($scope) {
             $scope.fieldX = function() {
                 return $scope.field + 'X';
@@ -1230,15 +1229,15 @@ SIREPO.app.directive('enumList', function() {
             info: '<',
             typeList: '<',
         },
-        template: [
-            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-                '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
-                '<select ',
-                    'class="form-control sr-number-list" data-ng-model="values[$index]" data-ng-change="didChange()"',
-                    'data-ng-options="item[0] as item[1] for item in typeList">',
-                '</select>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
+                <label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>
+                <select 
+                    class="form-control sr-number-list" data-ng-model="values[$index]" data-ng-change="didChange()"
+                    data-ng-options="item[0] as item[1] for item in typeList">
+                </select>
+            </div>
+        `,
         controller: function($scope) {
             $scope.values = null;
             $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
@@ -1260,20 +1259,20 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         restrict: 'A',
         scope: {
         },
-        template: [
-            '<div data-ng-if="outputInfo">',
-              '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable">',
-                '<form name="form" class="form-horizontal" autocomplete="off">',
-                  '<div data-ng-repeat="item in parameterRows">',
-                    '<div class="sr-parameter-table-row form-group">',
-                      '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>',
-                      '<div class="col-sm-5 form-control-static">{{ item.value }}<span ng-bind-html="item.units"></span></span></div>',
-                    '</div>',
-                  '</div>',
-                '</form>',
-              '</div>',
-            '</div>',
-        ].join(''),
+        template: `
+            <div data-ng-if="outputInfo">
+              <div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable">
+                <form name="form" class="form-horizontal" autocomplete="off">
+                  <div data-ng-repeat="item in parameterRows">
+                    <div class="sr-parameter-table-row form-group">
+                      <div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>
+                      <div class="col-sm-5 form-control-static">{{ item.value }}<span ng-bind-html="item.units"></span></span></div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+        `,
         controller: function($scope) {
 
             function fileChanged() {

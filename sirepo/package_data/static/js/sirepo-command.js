@@ -93,24 +93,24 @@ SIREPO.app.directive('commandTab', function(latticeService, commandService) {
         scope: {
             controller: '=',
         },
-        template: [
-            '<div class="container-fluid">',
-              '<div class="row">',
-                '<div class="col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
-                  '<div class="panel panel-info">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Commands</span></div>',
-                    '<div class="panel-body">',
-                      '<div data-command-table=""></div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-            '<div data-var-editor=""></div>',
-            '<div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>',
-            '<div data-confirmation-modal="" data-id="sr-command-in-use-dialog" data-title="Command in Use" data-ok-text="" data-cancel-text="Close">{{ commandService.deleteCommandWarning  }} and can not be deleted.</div>',
-            '<div data-element-picker="" data-controller="controller" data-title="New Command" data-id="sr-newCommand-editor" data-small-element-class="col-sm-3"></div>',
-        ].join(''),
+        template: `
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">
+                  <div class="panel panel-info">
+                    <div class="panel-heading"><span class="sr-panel-heading">Commands</span></div>
+                    <div class="panel-body">
+                      <div data-command-table=""></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div data-var-editor=""></div>
+            <div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>
+            <div data-confirmation-modal="" data-id="sr-command-in-use-dialog" data-title="Command in Use" data-ok-text="" data-cancel-text="Close">{{ commandService.deleteCommandWarning  }} and can not be deleted.</div>
+            <div data-element-picker="" data-controller="controller" data-title="New Command" data-id="sr-newCommand-editor" data-small-element-class="col-sm-3"></div>
+        `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
             $scope.commandService = commandService;
@@ -122,32 +122,32 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
     return {
         restrict: 'A',
         scope: {},
-        template: [
-            '<div class="sr-command-table">',
-            '<div class="pull-right">',
-                '<button data-ng-if=":: wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> ',
-                '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
-              '</div>',
-              '<p class="lead text-center"><small><em>drag and drop commands or use arrows to reorder the list</em></small></p>',
-              '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
-                '<tr data-ng-repeat="cmd in commands">',
-                  '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
-                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(cmd), \'glyphicon-chevron-down\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
-                    '<div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
-                      '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ commandName(cmd) }}</a>',
-                    '</div>',
-                    '<div data-ng-show="! isExpanded(cmd) && cmd.description" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ cmd.description }}</div>',
-                    '<div data-ng-show="isExpanded(cmd) && cmd.description" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ cmd.description }}</div>',
-                  '</td>',
-                '</tr>',
-                '<tr><td style="height: 3em" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> </td></tr>',
-              '</table>',
-              '<div data-ng-show="commands.length > 2" class="pull-right">',
-                '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
-              '</div>',
-            '</div>',
-            '<div data-confirmation-modal="" data-id="sr-delete-command-confirmation" data-title="Delete Command?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
-        ].join(''),
+        template: `
+            <div class="sr-command-table">
+            <div class="pull-right">
+                <button data-ng-if=":: wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> 
+                <button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>
+              </div>
+              <p class="lead text-center"><small><em>drag and drop commands or use arrows to reorder the list</em></small></p>
+              <table class="table table-hover" style="width: 100%; table-layout: fixed">
+                <tr data-ng-repeat="cmd in commands">
+                  <td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">
+                    <div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(cmd), \'glyphicon-chevron-down\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                    <div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">
+                      <a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ commandName(cmd) }}</a>
+                    </div>
+                    <div data-ng-show="! isExpanded(cmd) && cmd.description" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ cmd.description }}</div>
+                    <div data-ng-show="isExpanded(cmd) && cmd.description" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ cmd.description }}</div>
+                  </td>
+                </tr>
+                <tr><td style="height: 3em" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> </td></tr>
+              </table>
+              <div data-ng-show="commands.length > 2" class="pull-right">
+                <button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>
+              </div>
+            </div>
+            <div data-confirmation-modal="" data-id="sr-delete-command-confirmation" data-title="Delete Command?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>
+        `,
         controller: function($scope) {
             var selectedItemId = null;
             var expanded = {};
@@ -384,9 +384,9 @@ SIREPO.app.directive('outputFileField', function(appState, commandService) {
             field: '=outputFileField',
             model: '=',
         },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>',
-        ].join(''),
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>
+        `,
         controller: function($scope) {
             var items = [];
             var filename = '';
