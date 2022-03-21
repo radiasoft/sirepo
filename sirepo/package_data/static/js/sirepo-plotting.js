@@ -3594,6 +3594,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .style('fill', function (d, j) {
                                     return rgbaToCSS(pointColorMod[j]);
                                 })
+                                .style('opacity', (d, j) => {
+                                    if (d === null) {
+                                        return 0;
+                                    }
+                                    return 100;
+                                })
                                 .style('stroke', 'black')
                                 .style('stroke-width', 0.5);
                         }
