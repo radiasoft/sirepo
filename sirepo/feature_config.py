@@ -82,7 +82,7 @@ def for_sim_type(sim_type):
     c = cfg()
     return pykern.pkcollections.PKDict(
         c[sim_type] if sim_type in c else {}
-    )
+    ).pkupdate(c.common)
 
 
 def sim_common():
@@ -115,6 +115,9 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
+        common=dict(
+            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
+        ),
         default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
@@ -127,9 +130,6 @@ def _init():
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         raydata=dict(
             data_dir=(None, _data_dir, 'abspath of dir to store raydata analysis output'),
-        ),
-        sim_common=dict(
-            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
