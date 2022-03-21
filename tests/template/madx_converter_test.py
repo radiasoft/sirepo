@@ -46,6 +46,9 @@ def test_import_elegant_export_madx(import_req):
         actual=actual,
     )
 
+# TODO (gurhar1133): does it matter that we cant convert elegant: x y pow to madx: x ^ y?
+# Pretty sure we are good on madx: x ^ y to elegant: x y pow
+
 def test_import_madx_export_elegant(import_req):
     from pykern.pkunit import pkeq, file_eq
     from sirepo.template import elegant
