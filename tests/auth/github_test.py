@@ -30,9 +30,9 @@ def test_guest_merge(monkeypatch):
         ),
     )
     guest_uid = fc.sr_auth_state().uid
-    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
+    fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     state = oc.values.state
-    s = fc.sr_auth_state(isLoggedIn=True, method='guest')
+    fc.sr_auth_state(isLoggedIn=True, method='guest')
     fc.sr_get('authGithubAuthorized', query={'state': state})
     fc.sr_auth_state(method='github', uid=guest_uid)
     fc.sr_post(
