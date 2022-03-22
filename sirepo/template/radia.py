@@ -667,13 +667,14 @@ def _generate_parameters_file(data, is_parallel, for_export=False, run_dir=None)
     v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f'{v.magnetType}Type'
     v[st] = data.models.simulation[st]
-    pkinspect.module_functions('_update_geom_from_')[f'_update_geom_from_{v.magnetType}'](
-        g.objects,
-        data.models[v[st]],
-        height_dir=dirs.height_dir,
-        length_dir=dirs.length_dir,
-        width_dir=dirs.width_dir,
-    )
+    if not v.is_raw:
+        pkinspect.module_functions('_update_geom_from_')[f'_update_geom_from_{v.magnetType}'](
+            g.objects,
+            data.models[v[st]],
+            height_dir=dirs.height_dir,
+            length_dir=dirs.length_dir,
+            width_dir=dirs.width_dir,
+        )
     v.objects = g.get('objects', [])
     _validate_objects(v.objects)
 
