@@ -104,7 +104,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if f in dm.bunch:
                     dm.bunch[f] = dm.command_twiss[f]
             del dm['command_twiss']
-            cls.add_ptc_track_commands(dm.externalLattice)
+            if 'externalLattice' in dm:
+                cls.add_ptc_track_commands(dm.externalLattice)
 
 
     @classmethod
