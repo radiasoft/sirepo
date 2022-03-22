@@ -41,7 +41,6 @@ def test_import_elegant_export_madx(import_req):
     data = elegant.import_file(import_req(pkunit.data_dir().join('test1.lte')), test_data=data)
     # this is updated from javascript unfortunately
     data.models.bunch.longitudinalMethod = '3'
-    pkdp('\n\n Data.models.rnpVariabls: {}', data.models.rpnVariables)
     actual = ElegantMadxConverter().to_madx_text(data)
     file_eq(
         'test1.madx',
@@ -56,7 +55,6 @@ def test_elegant_from_madx():
     # this is updated from javascript unfortunately
     data = madx_parser.parse_file(pkio.read_text(
                 pkunit.data_dir().join('test1.madx')))
-    pkdp('data.models: {}', data.models)
     actual = ElegantMadxConverter().from_madx(data)
     file_eq(
         'test_ele_from_madx.txt',

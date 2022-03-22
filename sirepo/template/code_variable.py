@@ -171,8 +171,6 @@ class CodeVar():
                 rpn = cls.__parse_expr_infix(expr)
                 expr = rpn
         except Exception as e:
-            pkdp('\n\n\n expr: {}, type(expr): {}', expr, type(expr))
-            pkdp('\n this expr triggered exception: {}', e)
             pass
         return expr
 

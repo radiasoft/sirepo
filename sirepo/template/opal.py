@@ -216,33 +216,6 @@ class OpalMadxConverter(MadxConverter):
         #TODO(pjm): save dist in vars
         return madx
 
-    def to_madx_text(self, data):
-
-        import astunparse
-        import ast
-        pkdp('\n\n\n *** data:{}', data.models.rpnVariables)
-        class Visitor(ast.NodeTransformer):
-            def visit_Call(self, node):
-                if node.func.id == 'pow':
-                    return ast.BinOp(
-                        left=node.args[0],
-                        op=ast.Pow(),
-                        right=node.args[1],
-                        keywords=[]
-                    )
-                return node
-
-        for _, d in enumerate(data.models.rpnVariables):
-            if type(d.value) == str and 'pow' in d.value:
-                tree = ast.parse(d.value)
-                for n in ast.walk(tree):
-                    Visitor().visit(n)
-                    ast.fix_missing_locations(n)
-                v = astunparse.unparse(tree)
-                new_val = v.strip().replace('**', '^')
-                d.value = new_val
-        return super().to_madx_text(data)
-
     def from_madx(self, madx):
         data = super().from_madx(madx)
         data.models.simulation.elementPosition = 'relative'
