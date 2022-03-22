@@ -105,6 +105,12 @@
       margin-right: 1em;
       margin-bottom: 4px;
     }
+    .sr-slack-img {
+        filter: invert(0.5);
+    }
+    .sr-slack-img:hover {
+      filter: invert(0.25);
+    }
     .sr-toolbar-holder {
       padding: 0 -12px;
       margin-bottom: 10px;

@@ -1,0 +1,112 @@
+# -*- python -*-
+from pykern import pkio
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdlog
+from sirepo.sim_data.controls import AmpConverter
+from sirepo.template import particle_beam
+import numpy
+import os
+import re
+import requests
+import scipy.optimize
+import sirepo.template.madx
+import subprocess
+import time
+
+_FAIL_COST = 1e24
+
+targets = numpy.array([
+    # [target value, weight]
+{% for v in optimizerTargets %}
+  {% if 'x' in v %}
+    [{{ v.x }}, {{ v.weight }}],
+  {% endif %}
+  {% if 'y' in v %}
+    [{{ v.y }}, {{ v.weight }}],
+  {% endif %}
+{% endfor %}
+])
+
+
+def _assert_update_and_read_results(correctors, failure_message):
+    readings, cost = _update_and_read_results(correctors)
+    if cost == _FAIL_COST:
+        raise AssertionError(failure_message)
+    return readings, cost
+
+
+def _failed_sim_results():
+    return numpy.full({{ monitorCount }}, _FAIL_COST), _FAIL_COST
+
+
+def _update_summary_csv(correctors, readings):
+    cost = numpy.sqrt(numpy.mean(((readings - targets[:,0]) * 1000) ** 2 * targets[:,1] / numpy.sum(targets[:,1])))
+    with open('{{ summaryCSV }}', 'a') as f:
+        f.write('{},{}\n'.format(','.join([str(x) for x in correctors + readings]), cost))
+    return readings, cost
+
+
+{% if optimizerSettings_method == 'nmead' %}
+def _nelder_mead_cost_function(correctors):
+    return _update_and_read_results(correctors)[1]
+
+
+def _optimize_nelder_mead(initial_correctors):
+    opt = scipy.optimize.minimize(
+        _nelder_mead_cost_function,
+        initial_correctors,
+        method='Nelder-Mead',
+        options={
+            'maxiter': 500,
+            'maxfev': 500,
+        },
+        tol={{ optimizerSettings_tolerance }},
+    )
+    res = {
+        'message': opt.message,
+        'success': opt.success,
+    }
+    if 'x' in opt and len(opt.x) == len(initial_correctors):
+        res['result'] = opt.x
+        # run one last time with optimal settings
+        _assert_update_and_read_results(opt.x, 'Final optimization failed')
+    return res
+
+
+def _run_optimizer():
+    _optimize_nelder_mead({{ initialCorrectors }})
+
+{% elif optimizerSettings_method == 'polyfit' %}
+def _optimize_polyfit(variable_count):
+    settings_0 = numpy.zeros(variable_count)
+    sets = numpy.identity(variable_count)
+    M = numpy.zeros([variable_count, len(targets)])
+    sets_a = numpy.linspace(-5, 5, 5) * 0.00001
+    readings = numpy.zeros([len(targets), 5])
+    for i in range(0, len(settings_0)):
+        for j in range(0, len(sets_a)):
+            setting_test = sets[i,:] * sets_a[j]
+            r, cost = _assert_update_and_read_results(setting_test, 'Linear optimization step failed')
+            readings[:,j] = r
+        for k in range(0, len(targets)):
+            M[i,k] = numpy.polyfit(sets_a, readings[k,:], 1)[0]
+    # inverse response matrix
+    MI = numpy.linalg.pinv(M.T)
+    # reset the beam-line
+    readings_1, cost = _assert_update_and_read_results(settings_0, 'Linear optimization reset failed')
+    # create settings to cancel out offsets
+    new_sets = numpy.dot(MI, -numpy.array(readings_1))
+    _assert_update_and_read_results(new_sets[:variable_count], 'Final optimization failed')
+    return {
+        'message': '',
+        'success': True,
+        'result': new_sets,
+    }
+
+
+def _run_optimizer():
+    _optimize_polyfit({{ correctorCount }})
+
+{% endif %}
+with open('{{ summaryCSV }}', 'w') as f:
+    f.write('{}\n'.format('{{ summaryCSVHeader }}'))

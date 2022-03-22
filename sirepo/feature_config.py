@@ -82,7 +82,7 @@ def for_sim_type(sim_type):
     c = cfg()
     return pykern.pkcollections.PKDict(
         c[sim_type] if sim_type in c else {}
-    ).pkupdate(c.common)
+    ).pkupdate(c.gui)
 
 
 def _data_dir(value):
@@ -105,10 +105,11 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
-        common=dict(
-            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
-        ),
         default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
+        gui=dict(
+            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
+            slack_uri=('https://slack.com/', str, 'Link to Sirepo Slack workspace; uid will be appended'),
+        ),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),

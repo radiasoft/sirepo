@@ -11,14 +11,15 @@ from pykern.pkdebug import pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.sim_data.controls import SimData
+from sirepo.template import particle_beam
 import copy
 import flask
 import http
+import numpy
 import os
 import re
 import sirepo.lib
 import sirepo.template.madx
-import sirepo.template.madx_parser
 import sys
 
 
@@ -51,7 +52,7 @@ app = flask.Flask(__name__)
 def device_context():
     res = pkio.random_base62(12)
     _SET_CONTEXT[res] = _query_params(['user', 'procName', 'procId', 'machine'])
-    return res
+    return _http_response(res)
 
 
 @app.route('/DeviceServer/api/device/list/value', methods=['PUT', 'GET'])
@@ -59,7 +60,7 @@ def list_value():
     v = _query_params(['names', 'props'])
     _assert_lengths(v, 'names', 'props')
     if flask.request.method == 'GET':
-        return _read_values(v)
+        return _http_response(_read_values(v))
     v.update(_query_params(['values', 'context']))
     _assert_lengths(v, 'names', 'values')
     if v.context not in _SET_CONTEXT:
@@ -67,7 +68,7 @@ def list_value():
             f'set context: {v.context} not found in server state',
             http.HTTPStatus.PRECONDITION_FAILED.value,
         )
-    return _update_values(v)
+    return _http_response(_update_values(v))
 
 
 @app.route('/')
@@ -116,8 +117,35 @@ def _find_process_variable(pv_name):
 def _format_prop_value(prop_name, value):
     if prop_name in _ARRAY_PROP_NAMES:
         #TODO(pjm): assumes the first value is the one which will be used
-        return f'[{value},0,0,0]'
+        return f'[{value} 0 0 0]'
     return value
+
+
+def _http_response(content):
+    res = flask.make_response(content)
+    res.headers['sirepo-dev'] = '1'
+    return res
+
+
+def _init_sim():
+    data = app.config['sim']
+    beam = data.models.command_beam
+    bunch = data.models.bunch
+    bunch.matchTwissParameters = '0'
+    madx = data.models.externalLattice
+    madx.models.command_beam = beam
+    madx.models.bunch = bunch
+    madx.models.simulation.computeTwissFromParticles = '1'
+    fmap = PKDict(
+        current_k1='k1',
+        current_kick='kick',
+        current_vkick='vkick',
+        current_hkick='hkick',
+    )
+    for el in madx.models.elements:
+        for f in [x for x in el if x in fmap]:
+            el[fmap[f]] = _convert_amps_to_k(el, float(el[f]))
+    _run_sim()
 
 
 def _load_sim(sim_type, sim_id):
@@ -137,20 +165,31 @@ def _load_sim(sim_type, sim_id):
     )
 
 
-def _position_from_twiss_file(el, pv):
-    path = app.config['sim_dir'].join('twiss.file.tfs')
+def _position_from_twiss():
+    path = app.config['sim_dir'].join('ptc_track.file.tfsone')
     if not path.exists():
         _abort(f'missing {path.basename} result file')
-    columns = sirepo.template.madx_parser.parse_tfs_file(str(path))
-    for idx in range(len(columns.name)):
-        name = columns.name[idx].replace('"', '')
-        if name.upper() == el.name.upper():
-            if pv.pvDimension == 'horizontal':
-                return columns.x[idx]
-            if pv.pvDimension == 'vertical':
-                return columns.y[idx]
-            _abort(f'monitor {el.name} must have horizontal or vertical pvDimension')
-    _abort(f'monitor {el.name} missing value in {path.basename} result file')
+    beam_data, observes, columns = particle_beam.read_ptc_data(path)
+    columns = particle_beam.analyze_ptc_beam(
+        beam_data,
+        mc2=0.938272046,
+    )
+    if not columns:
+        _abort('simulation failed')
+    for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
+        if list(filter(lambda x: numpy.isnan(x), columns[c])):
+            _abort('twiss computation failed')
+    res = []
+    for i in range(len(observes)):
+        if '_MONITOR' in observes[i]:
+            res += [columns['x0'][i] * 1e6, columns['y0'][i] * 1e6]
+        elif '_HMONITOR' in observes[i]:
+            res += [columns['x0'][i] * 1e6]
+        elif '_VMONITOR' in observes[i]:
+            res += [columns['y0'][i] * 1e6]
+        else:
+            pass
+    return res
 
 
 def _query_params(fields):
@@ -166,12 +205,14 @@ def _query_params(fields):
 
 def _read_values(params):
     res = ''
+    mon_count = 0
+    positions = _position_from_twiss()
     for idx in range(len(params.names)):
         name = params.names[idx]
         prop = params.props[idx]
         pv, el = _find_element(f'{name}:{prop}')
         if res:
-            res += ','
+            res += ' '
         if el.type in _PV_TO_ELEMENT_FIELD:
             if prop != _READ_CURRENT_PROP_NAME:
                 _abort(f'read current pv must be {_READ_CURRENT_PROP_NAME} not {prop}')
@@ -181,7 +222,8 @@ def _read_values(params):
             # must be a monitor, get value from twiss output file
             if prop != _POSITION_PROP_NAME:
                 _abort(f'monitor position pv must be {_POSITION_PROP_NAME} not {prop}')
-            res += _format_prop_value(prop, _position_from_twiss_file(el, pv))
+            res += _format_prop_value(prop, positions[mon_count])
+            mon_count += 1
     return res
 
 
@@ -223,5 +265,5 @@ if __name__ == '__main__':
     app.config['sim'] = _load_sim('controls', simulation_db.assert_sid(sys.argv[1]))
     app.config['sim_dir'] = pkio.py_path(_SIM_OUTPUT_DIR)
     # prep for initial queries by running sim with no changes
-    _run_sim()
+    _init_sim()
     app.run()
