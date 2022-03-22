@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import copy
 import sirepo.sim_data
 
 
@@ -44,10 +45,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        import sirepo.util
-
-        def _find_obj_by_name(obj_arr, obj_name):
-            return next((x for x in obj_arr if x.name == obj_name), None)
 
         dm = data.models
         cls._init_models(
@@ -79,27 +76,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                         type='line'
                     ))
         if dm.simulation.magnetType == 'undulator':
-            if not dm.hybridUndulator.get('magnetBaseObjectId'):
-                dm.hybridUndulator.magnetBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Magnet Block').id
-            if not dm.hybridUndulator.get('poleBaseObjectId'):
-                dm.hybridUndulator.poleBaseObjectId = _find_obj_by_name(dm.geometryReport.objects, 'Pole').id
-            if not dm.hybridUndulator.get('terminations'):
-                dm.hybridUndulator.terminations = []
-            t = _find_obj_by_name(dm.geometryReport.objects, 'Termination')
-            if not t:
-                t = cls.model_defaults('geomGroup')
-                t.name = 'Termination'
-                dm.geometryReport.objects.append(t)
-                _find_obj_by_name(dm.geometryReport.objects, 'Octant')
-            b = _find_obj_by_name(dm.geometryReport.objects, 'End Block')
-            if b:
-                b.name = 'termination.magnet.0'
-                tt = cls.model_defaults('termination')
-                tt.length = sirepo.util.split_comma_delimited_string(b.size, float)[['x', 'y', 'z'].index(dm.simulation.beamAxis)]
-
-            if not dm.simulation.get('heightAxis'):
-                dm.simulation.heightAxis = 'z'
-
+            cls._fixup_undulator(dm)
         for o in dm.geometryReport.objects:
             if o.get('model') == 'box':
                 o.model = 'cuboid'
@@ -118,6 +95,51 @@ class SimData(sirepo.sim_data.SimDataBase):
             ]:
                 dm[m][f] = '0'
         cls._organize_example(data)
+
+    @classmethod
+    def _fixup_undulator(cls, dm):
+        import sirepo.util
+
+        if not dm.simulation.get('heightAxis'):
+            dm.simulation.heightAxis = 'z'
+
+        if not dm.simulation.get('coordinateSystem'):
+            dm.simulation.coordinateSystem = 'beam'
+
+        if 'hybridUndulator' in dm:
+            dm.undulatorHybrid = copy.deepcopy(dm.hybridUndulator)
+            del dm['hybridUndulator']
+            dm.simulation.undulatorType = 'undulatorHybrid'
+            dm.undulatorHybrid.undulatorType = 'undulatorHybrid'
+
+        if dm.undulatorHybrid._super == 'undulator':
+            dm.undulatorHybrid._super = 'undulatorBasic'
+
+        if dm.simulation.undulatorType == 'undulatorBasic':
+            return
+
+        u = dm.undulatorHybrid
+        g = dm.geometryReport
+
+        for (k, v) in PKDict(
+            halfPole='Half Pole',
+            magnet='Magnet Block',
+            pole='Pole',
+            corePoleGroup='Magnet-Pole Pair',
+            terminationGroup='Termination',
+            octantGroup='Octant'
+        ).items():
+            if k not in u:
+                u[k] = sirepo.util.find_obj(g.objects, 'name', v)
+
+        if not u.get('terminations'):
+            u.terminations = []
+        for i, t_id in enumerate(u.terminationGroup.members):
+            t = u.terminations[i]
+            if 'object' not in t:
+                t.object = sirepo.util.find_obj(g.objects, 'id', t_id)
+            cls.update_model_defaults(t, 'termination')
+
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir, post_init=False):

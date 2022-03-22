@@ -9,12 +9,33 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.template_common import ParticleEnergy
 import math
+import numpy
 import re
 import sirepo.sim_data
 import sirepo.simulation_db
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+
+    @classmethod
+    def add_ptc_track_commands(cls, data):
+
+        def _set_ptc_ids(ptc_commands, data):
+            m = LatticeUtil.max_id(data) + 1
+            for i,  c in enumerate(ptc_commands):
+                c._id = m + i
+            return ptc_commands
+        data.models.bunch.beamDefinition = 'gamma'
+        data.models.commands.extend(_set_ptc_ids(
+            [
+                PKDict(_type='ptc_create_universe'),
+                PKDict(_type='ptc_create_layout'),
+                PKDict(_type='ptc_track', file='1', icase='6'),
+                PKDict(_type='ptc_track_end'),
+                PKDict(_type='ptc_end'),
+            ],
+            data,
+        ))
 
     @classmethod
     def beamline_elements(cls, madx):
@@ -54,9 +75,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                'beamPositionAnimation',
+                'bunch',
                 'command_beam',
-                'command_twiss',
                 'dataFile',
+                'deviceServerMonitor',
                 'initialMonitorPositionsReport',
                 'instrumentAnimationAll',
                 'instrumentAnimationTwiss',
@@ -69,13 +92,19 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'controlSettings' not in dm:
                 cls.init_process_variables(dm)
                 cls.init_currents(dm.command_beam, dm.externalLattice.models)
-            cls._init_models(dm, ('controlSettings',))
+            cls._init_models(dm, ('controlSettings', 'optimizerSettings'))
             if 'inputs' not in dm.optimizerSettings:
                 cls.init_optimizer_inputs(dm.optimizerSettings, dm.externalLattice.models)
-            cls._remove_select_command(dm.externalLattice.models)
+            cls._remove_old_command(dm.externalLattice.models)
         if dm.command_beam.gamma == 0 and 'pc' in dm.command_beam and dm.command_beam.pc > 0:
             cls.update_beam_gamma(dm.command_beam)
             dm.command_beam.pc = 0
+        if 'command_twiss' in dm:
+            for f in dm.command_twiss:
+                if f in dm.bunch:
+                    dm.bunch[f] = dm.command_twiss[f]
+            del dm['command_twiss']
+            cls.add_ptc_track_commands(dm.externalLattice)
 
 
     @classmethod
@@ -153,7 +182,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if 'instrument' in analysis_model:
+        if 'instrument' in analysis_model or analysis_model == 'beamPositionAnimation':
             return 'instrumentAnimation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
@@ -162,11 +191,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         return []
 
     @classmethod
-    def _remove_select_command(cls, dm):
+    def _remove_old_command(cls, dm):
         cmds = []
         for cmd in dm.commands:
-            if cmd._type != 'select':
-                cmds.append(cmd)
+            if cmd._type == 'select' or cmd._type == 'twiss':
+                continue
+            cmds.append(cmd)
         dm.commands = cmds
 
 
@@ -181,22 +211,8 @@ class AmpConverter():
         if amp_table and len(amp_table[0]) < 2:
             raise AssertionError('invalid amp_table: {}'.format(amp_table))
         self._computed_reverse_table = False
-        self._amp_table = amp_table
+        self._amp_table = [r for r in map(lambda x: [x[0], x[1]], amp_table or [])]
         self._beam_info = self.__beam_info(beam)
-
-    def build_reverse_map(self):
-        if self._computed_reverse_table:
-            return self._amp_table
-        table = self._amp_table
-        if table:
-            for row in table:
-                k = self.__compute_kick(row[0], row[1])
-                if len(row) > 2:
-                    row[2] = k
-                else:
-                    row.append(k)
-        self._computed_reverse_table = True
-        return table
 
     def current_to_kick(self, current):
         return self.__compute_kick(
@@ -204,7 +220,9 @@ class AmpConverter():
             self.__interpolate_table(current, 0, 1))
 
     def kick_to_current(self, kick):
-        self.build_reverse_map()
+        if not self._computed_reverse_table:
+            self._computed_reverse_table = True
+            self.__build_reverse_map()
         return self.__compute_current(
             float(kick),
             self.__interpolate_table(kick, 2, 1))
@@ -221,6 +239,11 @@ class AmpConverter():
             beta=math.sqrt(1 - (1 / (beam.gamma * beam.gamma))),
         )
 
+    def __build_reverse_map(self):
+        if self._amp_table:
+            for row in self._amp_table:
+                row.append(self.__compute_kick(row[0], row[1]))
+
     def __compute_current(self, kick, factor):
         b = self._beam_info
         return kick * b.gamma * b.mass * b.beta * self._SCHEMA.constants.clight \
@@ -232,15 +255,7 @@ class AmpConverter():
             / (b.gamma * b.mass * b.beta * self._SCHEMA.constants.clight)
 
     def __interpolate_table(self, value, from_index, to_index):
-        table = self._amp_table
-        if not table:
+        if not self._amp_table:
             return self._DEFAULT_FACTOR
-        if len(table) == 1 or value < table[0][from_index]:
-            return table[0][to_index]
-        i = 1
-        while i < len(table):
-            if table[i][from_index] > value:
-                return (value - table[i-1][from_index]) / (table[i][from_index] - table[i-1][from_index]) \
-                    * (table[i][to_index] - table[i-1][to_index]) + table[i-1][to_index]
-            i += 1
-        return table[-1][to_index]
+        table = numpy.vstack(self._amp_table)
+        return numpy.interp(value, table[:,from_index], table[:,to_index])
