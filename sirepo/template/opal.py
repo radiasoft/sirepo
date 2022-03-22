@@ -313,23 +313,23 @@ def code_var(variables):
         #TODO(pjm): parse from opal files into schema
         _OPAL_PI = 3.14159265358979323846
         _OPAL_CONSTANTS = PKDict(
-                    pi=_OPAL_PI,
-                    twopi=_OPAL_PI * 2.0,
-                    raddeg=180.0 / _OPAL_PI,
-                    degrad=_OPAL_PI / 180.0,
-                    e=2.7182818284590452354,
-                    emass=0.51099892e-03,
-                    pmass=0.93827204e+00,
-                    hmmass=0.939277e+00,
-                    umass=238 * 0.931494027e+00,
-                    cmass=12 * 0.931494027e+00,
-                    mmass=0.10565837,
-                    dmass=2*0.931494027e+00,
-                    xemass=124*0.931494027e+00,
-                    clight=299792458.0,
-                    p0=1,
-                    seed=123456789,
-                )
+            pi=_OPAL_PI,
+            twopi=_OPAL_PI * 2.0,
+            raddeg=180.0 / _OPAL_PI,
+            degrad=_OPAL_PI / 180.0,
+            e=2.7182818284590452354,
+            emass=0.51099892e-03,
+            pmass=0.93827204e+00,
+            hmmass=0.939277e+00,
+            umass=238 * 0.931494027e+00,
+            cmass=12 * 0.931494027e+00,
+            mmass=0.10565837,
+            dmass=2*0.931494027e+00,
+            xemass=124*0.931494027e+00,
+            clight=299792458.0,
+            p0=1,
+            seed=123456789,
+        )
 
         def __init__(self):
             super().__init__(self._OPAL_CONSTANTS)
@@ -425,9 +425,6 @@ def prepare_sequential_output_file(run_dir, data):
             except IOError:
                 # the output file isn't readable
                 pass
-
-
-
 
 
 def python_source_for_model(data, model):

@@ -338,7 +338,6 @@ class ElegantMadxConverter(MadxConverter):
         class Visitor(ast.NodeVisitor):
             def visit_Name(self, node):
                 return node.id
-
         data = super().from_madx(madx)
         n = [v.name for v in data.models.rpnVariables]
         for v in data.models.rpnVariables:
@@ -347,10 +346,8 @@ class ElegantMadxConverter(MadxConverter):
                 tree = ast.parse(v.value)
                 for node in ast.walk(tree):
                     values.add(Visitor().visit(node))
-
             for c in sirepo.template.madx.MADX_CONSTANTS.keys() - _ELEGANT_CONSTANTS.keys():
                 if type(v.value) == str and c in values and c not in n:
-
                     data.models.rpnVariables.insert(
                         0,
                         PKDict(
@@ -358,9 +355,7 @@ class ElegantMadxConverter(MadxConverter):
                             value=sirepo.template.madx.MADX_CONSTANTS[c]
                         )
                     )
-
                     n.append(c)
-
         eb = LatticeUtil.find_first_command(data, 'bunched_beam')
         mb = LatticeUtil.find_first_command(madx, 'beam')
         for f in self._BEAM_VARS:
