@@ -1,0 +1,121 @@
+
+_DEVICE_SERVER_BASEPATH = '{{ controlSettings_deviceServerURL }}'
+
+{% if controlSettings_readOnly == '0' %}
+context_id = None
+{% endif %}
+
+value_regexp = [
+    r'^\s*(\[.*?\])\s*,?',
+    r'^\s*(.+?)\s*(?:,|$)',
+]
+
+{% for prop_type in property_types %}
+{{ prop_type }}_properties = [
+  {% for prop in properties[prop_type] %}
+    PKDict(
+        device='{{ prop.device }}',
+        name='{{ prop.name }}',
+        type='{{ prop.type }}',
+        {% if prop.index is not none %}
+        index={{ prop.index }},
+        {% endif %}
+    ),
+  {% endfor %}
+]
+{% endfor %}
+
+
+def _next_value(text):
+    def parse_array(text):
+        if text[0] == '[':
+            text = re.sub(r'\[|\]', '', text)
+            return list(re.split(' ', text))
+        return text
+    for regexp in value_regexp:
+        m = re.search(regexp, text)
+        if m:
+            v = m.group(1)
+            assert v
+            text = re.sub(regexp, '', text).strip()
+            return text, parse_array(v)
+    raise AssertionError(f'Un-parse-able value: "{text}"')
+
+
+def _read_device_server():
+    # call DeviceServer to read all process variables
+    # write to summaryCSV
+    # return monitor values
+    url = _DEVICE_SERVER_BASEPATH + '/api/device/list/value?' \
+        + 'names=' + ','.join([v['device'] for v in read_properties]) \
+        + '&props=' + ','.join([v['name'] for v in read_properties])
+    response = requests.get(url)
+    if response.status_code != requests.codes.ok:
+        return _failed_sim_results()
+    assert 'sirepo-dev' in response.headers \
+        and response.headers['sirepo-dev'] == '1', \
+        'ATTEMPT TO RUN SIREPO AGAINST NON-DEV DEVICE SERVER'
+    values = _read_values(response.text)
+    correctors = []
+    readings = []
+    for idx in range(len(values)):
+        prop = read_properties[idx]
+        v = values[idx]
+        if 'index' in prop:
+            v = v[prop['index']]
+        if 'MONITOR' in prop['type']:
+            readings += [float(v) * 1e-6]
+        elif 'KICKER' in prop['type'] or prop['type'] == 'QUADRUPOLE':
+            correctors += [float(v)]
+    return _update_summary_csv(correctors, readings)
+
+
+def _read_values(text):
+    res = []
+    while True:
+        text, v = _next_value(text.strip())
+        res.append(v)
+        if not text:
+            break
+    return res
+
+{% if controlSettings_readOnly == '0' %}
+
+def _update_and_read_results(correctors):
+    global context_id
+    if not context_id:
+        url = _DEVICE_SERVER_BASEPATH + '/api/device/context?{{ deviceServerSetContext }}'
+        response = requests.get(url)
+        if response.status_code != requests.codes.ok:
+            raise AssertionError(f'set context request failed: {response.text}')
+        context_id = response.text.strip()
+    url = _DEVICE_SERVER_BASEPATH + '/api/device/list/value?' \
+        + 'names=' + ','.join([v['device'] for v in write_properties]) \
+        + '&props=' + ','.join([v['name'] for v in write_properties]) \
+        + '&values=' + ','.join([str(v) for v in correctors.tolist()]) \
+        + '&context=' + context_id
+    response = requests.put(url)
+    if response.status_code != requests.codes.ok:
+        raise AssertionError(f'set values request failed: {response.text}')
+    return _read_device_server()
+{% endif %}
+
+
+{% if optimizerSettings_method == 'runOnce' %}
+    {% if controlSettings_readOnly == '1' %}
+_read_device_server()
+    {% else %}
+_assert_update_and_read_results(numpy.array({{ initialCorrectors }}), 'Beamline update failed')
+    {% endif %}
+{% elif optimizerSettings_method == 'monitor' %}
+# monitor only
+while True:
+    _read_device_server()
+    time.sleep(2)
+{% else %}
+# check connectivity to DeviceServer first with a read
+if _read_device_server()[1] == _FAIL_COST:
+    raise AssertionError('Initial DeviceServer read failed')
+
+_run_optimizer()
+{% endif %}

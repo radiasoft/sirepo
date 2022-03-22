@@ -33,7 +33,7 @@ def run_background(cfg_dir):
 
 def create_particle_file(cfg_dir, data):
     twiss = PKDict()
-    if _is_matched_bunch(data):
+    if data.models.bunch.matchTwissParameters == '1':
         report = data.report
         # run twiss report and copy results into beam
         data.models.simulation.activeBeamlineId = data.models.simulation.visualizationBeamlineId
@@ -56,10 +56,10 @@ def _generate_ptc_particles_file(run_dir, data, twiss):
         bunch.numberOfParticles,
         float(bunch.betx),
         float(bunch.alfx),
-        float(bunch.ex),
+        float(beam.ex),
         float(bunch.bety),
         float(bunch.alfy),
-        bunch.ey,
+        beam.ey,
         beam.sigt,
         beam.sige,
         iseed=bunch.randomSeed,
@@ -82,10 +82,6 @@ def _generate_ptc_particles_file(run_dir, data, twiss):
            r += f', {f}={v[f][i]}'
         r +=';\n'
     pkio.write_text(run_dir.join(template.PTC_PARTICLES_FILE), r)
-
-
-def _is_matched_bunch(data):
-    return data.models.bunch.matchTwissParameters == '1'
 
 
 def _need_particle_file(data):
