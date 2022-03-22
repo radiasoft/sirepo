@@ -61,7 +61,7 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
         VKICKER: 'KICK',
     };
 
-    self.beamlineElements = (models) => {
+    self.beamlineElements = models => {
         if (! models) {
             models = self.latticeModels();
         }
@@ -80,8 +80,8 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
             ) < 0;
     };
 
-    self.computeModel = (analysisModel) => {
-	if (analysisModel.includes('instrument') || analysisModel == 'beamPositionAnimation') {
+    self.computeModel = analysisModel => {
+	if (analysisModel.includes('instrument') || analysisModel === 'beamPositionAnimation') {
 	    return 'instrumentAnimation';
 	}
 	return 'animation';
@@ -112,21 +112,21 @@ SIREPO.app.factory('controlsService', function(appState, latticeService, request
 
     self.hasMadxLattice = () => appState.applicationState().externalLattice;
 
-    self.isDeviceServer = () => appState.models.controlSettings.operationMode == 'DeviceServer';
+    self.isDeviceServer = () => appState.models.controlSettings.operationMode === 'DeviceServer';
 
     self.isDeviceServerReadOnly = () => {
         return self.isDeviceServer()
-            && appState.models.controlSettings.readOnly == '1';
+            && appState.models.controlSettings.readOnly === '1';
     };
 
     self.isDeviceServerWithUpdates = () => {
         return self.isDeviceServer()
-            && appState.models.controlSettings.readOnly == '0';
+            && appState.models.controlSettings.readOnly === '0';
     };
 
     self.isMonitor = (el) => el.type.indexOf('MONITOR') >= 0;
 
-    self.isQuadOrKicker = (elType) => elType == 'QUADRUPOLE' || elType.indexOf('KICKER') >= 0;
+    self.isQuadOrKicker = (elType) => elType === 'QUADRUPOLE' || elType.indexOf('KICKER') >= 0;
 
     self.kickField = (currentField) => currentField.replace('current_', '');
 
@@ -168,9 +168,9 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         for (let el of controlsService.beamlineElements()) {
             if (controlsService.isMonitor(el)) {
                 const m = modelDataForElement(el);
-                m.plotType = el.type == 'MONITOR'
+                m.plotType = el.type === 'MONITOR'
                     ? 'bpmMonitor'
-                    : (el.type == 'HMONITOR'
+                    : (el.type === 'HMONITOR'
                        ? 'bpmHMonitor'
                        : 'bpmVMonitor');
                 m.modelKey += 'Report';
@@ -248,12 +248,12 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         panelState.clear('initialMonitorPositionsReport');
         panelState.requestData(
             'initialMonitorPositionsReport',
-            (data) => {
+            data => {
                 controlsService.runningMessage = '';
                 handleElementValues(data, true);
             },
             false,
-            (err) => {
+            err => {
                 controlsService.runningMessage = '';
             });
     }
@@ -293,7 +293,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
             return;
         }
         for (let k in values[values.length - 1]) {
-            if (k == 'cost') {
+            if (k === 'cost') {
                 continue;
             }
             let mf = k.split('.');
@@ -467,13 +467,13 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
     });
     $scope.$on('initialMonitorPositionsReport.changed', getInitialMonitorPositions);
     $scope.$on('instrumentAnimationAll.changed', () => {
-        if (!self.instrumentAnimations){
+        if (! self.instrumentAnimations) {
             return;
         }
         const m = [];
         self.instrumentAnimations.forEach((e, i) => {
             for (const key in appState.models[e.modelKey]) {
-                if (key != 'id'){
+                if (key != 'id') {
                     appState.models[e.modelKey][key] = appState.models.instrumentAnimationAll[key];
                 }
             }
@@ -604,7 +604,7 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, panelState, plot2dServ
                     .attr('cy', $scope.graphLine.y())
                     .attr('style', (d, i) => {
                         if (i == points.length - 1) {
-                            return `fill: rgba(0, 0, 255, 0.7); stroke-width: 4; stroke: orange`;
+                            return 'fill: rgba(0, 0, 255, 0.7); stroke-width: 4; stroke: orange';
                         }
                         let opacity = (i + 1) / points.length * 0.5;
                         return `fill: rgba(0, 0, 255, ${opacity}); stroke-width: 0`;
@@ -661,7 +661,7 @@ SIREPO.viewLogic('commandBeamView', function(appState, panelState, $scope) {
 
     function updateParticleFields() {
         panelState.showFields('command_beam', [
-            ['mass', 'charge'], appState.models.command_beam.particle == 'other',
+            ['mass', 'charge'], appState.models.command_beam.particle === 'other',
         ]);
     }
 
@@ -680,7 +680,7 @@ SIREPO.viewLogic('commandBeamView', function(appState, panelState, $scope) {
                 panelState.enableFields('KICKER', [
                     ['current_hkick', 'current_vkick'], r,
                 ]);
-                ['HKICKER', 'VKICKER'].forEach((m) => {
+                ['HKICKER', 'VKICKER'].forEach(m => {
                     panelState.enableField(m, 'current_kick', r);
                 });
             };
@@ -897,7 +897,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
 
             function elementForName(name) {
                 let res;
-                controlsService.latticeModels().elements.some((el) => {
+                controlsService.latticeModels().elements.some(el => {
                     if (el.name == name) {
                         res = el;
                         return true;
@@ -1083,7 +1083,7 @@ SIREPO.app.directive('latticeFooter', function(appState, controlsService, frameC
             $scope.destroy = () => $('.sr-lattice-label').off();
 
             $scope.hasBeamPositionAnimation = () => {
-                return appState.applicationState().controlSettings.operationMode == 'DeviceServer'
+                return appState.applicationState().controlSettings.operationMode === 'DeviceServer'
                     && frameCache.getFrameCount('beamPositionAnimation');
             };
 
@@ -1195,7 +1195,7 @@ SIREPO.app.directive('ampTable', function(appState, controlsService, latticeServ
 
             function selectFile() {
                 const v = $scope.model[$scope.field];
-                if (v == addNewFile || !v) {
+                if (v == addNewFile || ! v) {
                     $scope.showFile = true;
                 }
                 else {
@@ -1229,7 +1229,7 @@ SIREPO.app.directive('ampTable', function(appState, controlsService, latticeServ
 
             $scope.$watch('ampTableFile', () => {
                 if ($scope.ampTableFile) {
-                    $scope.ampTableFile.text().then((text) => {
+                    $scope.ampTableFile.text().then(text => {
                         const table = parseText(text);
                         if (validateTable(table)) {
                             const name = $scope.ampTableFile.name;
@@ -1311,7 +1311,7 @@ SIREPO.app.directive('elementPvFields', function(appState, controlsService, latt
 
             $scope.getValue = (pv, field) => {
                 const el = controlsService.elementForId(pv.elId);
-                if (field == 'description') {
+                if (field === 'description') {
                     let res = '';
                     if (pv.pvDimension != 'none') {
                         res += pv.pvDimension + ' ';
@@ -1322,7 +1322,7 @@ SIREPO.app.directive('elementPvFields', function(appState, controlsService, latt
                     else if (controlsService.isQuadOrKicker(el.type)) {
                         res += 'current ';
                     }
-                    res += pv.isWritable == '1' ? 'setting' : 'reading';
+                    res += pv.isWritable === '1' ? 'setting' : 'reading';
                     return res;
                 }
                 return el[field];

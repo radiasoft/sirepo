@@ -1242,7 +1242,7 @@
                     "162": false
                 }
             },
-            "method": "nmead",
+            "method": "polyfit",
             "targets": [
                 {
                     "name": "BPM_1",

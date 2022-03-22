@@ -143,14 +143,13 @@ def _init_sim():
         current_hkick='hkick',
     )
     for el in madx.models.elements:
-        for f in el:
-            if f in fmap:
-                el[fmap[f]] = _convert_amps_to_k(el, float(el[f]))
+        for f in [x for x in el if x in fmap]:
+            el[fmap[f]] = _convert_amps_to_k(el, float(el[f]))
     _run_sim()
 
 
 def _load_sim(sim_type, sim_id):
-    data = simulation_db.open_json_file(
+    return simulation_db.open_json_file(
         sim_type,
         path=simulation_db.sim_data_file(
             sim_type,
@@ -164,7 +163,6 @@ def _load_sim(sim_type, sim_id):
             ),
         ),
     )
-    return data
 
 
 def _position_from_twiss():
