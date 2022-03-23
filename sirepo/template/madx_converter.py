@@ -28,6 +28,31 @@ class MadxConverter():
         self.downcase_variables = downcase_variables
         self.full_field_map = self._build_field_map(field_map)
 
+    def fill_in_missing_constants(self, data, constants):
+        import sirepo.template.madx
+        import ast
+        class Visitor(ast.NodeVisitor):
+            def visit_Name(self, node):
+                return node.id
+        n = [v.name for v in data.models.rpnVariables]
+        for v in data.models.rpnVariables:
+            values = set()
+            if type(v.value) == str:
+                tree = ast.parse(v.value)
+                for node in ast.walk(tree):
+                    values.add(Visitor().visit(node))
+            for c in sirepo.template.madx.MADX_CONSTANTS.keys() - constants.keys():
+                if type(v.value) == str and c in values and c not in n:
+                    data.models.rpnVariables.insert(
+                        0,
+                        PKDict(
+                            name=c,
+                            value=sirepo.template.madx.MADX_CONSTANTS[c]
+                        )
+                    )
+                    n.append(c)
+        return data
+
     def from_madx(self, data):
         from sirepo.template import madx
         self.__init_direction(data, madx.SIM_TYPE, self.sim_type)
