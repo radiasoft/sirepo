@@ -5,7 +5,6 @@ u"""PyTest for :mod:`sirepo.template.madx_converter`
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from importlib.resources import read_text
 from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc

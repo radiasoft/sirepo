@@ -68,8 +68,7 @@ class MadxConverter():
         self.__init_direction(data, self.sim_type, madx.SIM_TYPE)
         self.field_map = self.full_field_map.to_madx
         self.drift_type = self.full_field_map.from_madx.DRIFT[0]
-        d = self._convert(data)
-        return d
+        return self._convert(data)
 
     def to_madx_text(self, data):
         from sirepo.template import madx

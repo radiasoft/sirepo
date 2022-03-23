@@ -5,7 +5,6 @@ u"""elegant execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-import ast
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
