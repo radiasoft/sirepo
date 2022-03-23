@@ -55,7 +55,7 @@ _FIELD_UNITS = PKDict(
 
 _PI = 4 * math.atan(1)
 
-_MADX_CONSTANTS = PKDict(
+MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
     raddeg=180.0 / _PI,
@@ -207,7 +207,7 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     return code_variable.CodeVar(
         variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        code_variable.PurePythonEval(MADX_CONSTANTS),
         case_insensitive=True,
     )
 
@@ -804,8 +804,27 @@ def _format_field_value(state, model, field, el_type):
 
 
 def _format_rpn_value(value):
-    return code_variable.PurePythonEval.postfix_to_infix(value
-    )
+    import astunparse
+    import ast
+    class Visitor(ast.NodeTransformer):
+        def visit_Call(self, node):
+            if node.func.id == 'pow':
+                return ast.BinOp(
+                    left=node.args[0],
+                    op=ast.Pow(),
+                    right=node.args[1],
+                    keywords=[]
+                )
+            return node
+
+    r = code_variable.PurePythonEval.postfix_to_infix(value)
+    if type(r) == str and 'pow' in r:
+        tree = ast.parse(r)
+        for n in ast.walk(tree):
+            Visitor().visit(n)
+            ast.fix_missing_locations(n)
+        r = astunparse.unparse(tree).strip().replace('**', '^')
+    return r
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
