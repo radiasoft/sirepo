@@ -46,7 +46,6 @@ def create_particle_file(cfg_dir, data):
         data.models.bunch.update(twiss)
         # restore the original report and generate new source with the updated beam values
         data.report = report
-        # pkdp('\n\n\n data.models.bunch in if: {}', data.models.bunch)
         if data.report == 'animation':
             template.write_parameters(data, pkio.py_path(cfg_dir), False)
     _generate_ptc_particles_file(cfg_dir, data, twiss)
@@ -66,7 +65,7 @@ def _generate_ptc_particles_file(run_dir, data, twiss):
         bunch.numberOfParticles,
         float(bunch.betx),
         float(bunch.alfx),
-        c.eval_var_with_assert(beam.ey),
+        float(c.eval_var_with_assert(beam.ex)),
         float(bunch.bety),
         float(bunch.alfy),
         c.eval_var_with_assert(beam.ey),
