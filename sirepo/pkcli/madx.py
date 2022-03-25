@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from py import code
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
@@ -12,6 +13,7 @@ from sirepo import simulation_db
 from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx import code_var
 import glob
 import numpy
 import os
@@ -33,6 +35,27 @@ def run_background(cfg_dir):
 
 def create_particle_file(cfg_dir, data):
     twiss = PKDict()
+    for p in data.models:
+        pkdp('\n\n\n {}: {}', p, data.models[p])
+    # pkdp('\n\n\n type(data.models.bunch): {}, \n data.models.bunch: {}', type(data.models.bunch), data.models.bunch)
+    pkdp('\n\n\n before: {}', data.models.command_beam)
+    vars = []
+    for key in data.models.command_beam:
+        vars.append(PKDict(
+            name=key,
+            value=data.models.command_beam[key],
+        ))
+    # pkdp('\n\n\n vars: {}', vars)
+    for key in data.models.command_beam:
+        value = data.models.command_beam.get(key)
+        # pkdp('\n\n\n value: {}', value)
+        if type(value) == str:
+            e = code_var(vars).eval_var(value)
+            # pkdp('\n now {} = {}', key, e)
+            if e[0]:
+                data.models.command_beam[key] = e[0]
+    pkdp('\n\n\n after : {}', data.models.command_beam)
+    data.models.commands[0] = data.models.command_beam
     if data.models.bunch.matchTwissParameters == '1':
         report = data.report
         # run twiss report and copy results into beam
@@ -44,6 +67,7 @@ def create_particle_file(cfg_dir, data):
         data.models.bunch.update(twiss)
         # restore the original report and generate new source with the updated beam values
         data.report = report
+        # pkdp('\n\n\n data.models.bunch in if: {}', data.models.bunch)
         if data.report == 'animation':
             template.write_parameters(data, pkio.py_path(cfg_dir), False)
     _generate_ptc_particles_file(cfg_dir, data, twiss)
