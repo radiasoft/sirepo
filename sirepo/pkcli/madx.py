@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from py import code
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
