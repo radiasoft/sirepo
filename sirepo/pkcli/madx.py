@@ -35,8 +35,9 @@ def run_background(cfg_dir):
 
 def create_particle_file(cfg_dir, data):
     twiss = PKDict()
-    for p in data.models:
-        pkdp('\n\n\n {}: {}', p, data.models[p])
+    pkdp('\n\n\n Entering create_particle_file')
+    # for p in data.models:
+    #     pkdp('\n\n\n {}: {}', p, data.models[p])
     # pkdp('\n\n\n type(data.models.bunch): {}, \n data.models.bunch: {}', type(data.models.bunch), data.models.bunch)
     pkdp('\n\n\n before: {}', data.models.command_beam)
     vars = []
@@ -46,14 +47,16 @@ def create_particle_file(cfg_dir, data):
             value=data.models.command_beam[key],
         ))
     # pkdp('\n\n\n vars: {}', vars)
+    #TODO (gurhar1133): do we want to fill in vals in other areas of data.models from rpnCache?
+    #TODO (gurhar1133): Also, how to we get rpnCache? is it exhaustive?
     for key in data.models.command_beam:
         value = data.models.command_beam.get(key)
         # pkdp('\n\n\n value: {}', value)
-        if type(value) == str:
-            e = code_var(vars).eval_var(value)
-            # pkdp('\n now {} = {}', key, e)
-            if e[0]:
-                data.models.command_beam[key] = e[0]
+        if value in data.models.rpnCache:
+            data.models.command_beam[key] = data.models.rpnCache[value]
+            # e = code_var(vars).eval_var(value)
+            # if e[0]:
+            #     data.models.command_beam[key] = e[0]
     pkdp('\n\n\n after : {}', data.models.command_beam)
     data.models.commands[0] = data.models.command_beam
     if data.models.bunch.matchTwissParameters == '1':
