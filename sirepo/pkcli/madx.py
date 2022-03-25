@@ -35,30 +35,6 @@ def run_background(cfg_dir):
 
 def create_particle_file(cfg_dir, data):
     twiss = PKDict()
-    pkdp('\n\n\n Entering create_particle_file')
-    # for p in data.models:
-    #     pkdp('\n\n\n {}: {}', p, data.models[p])
-    # pkdp('\n\n\n type(data.models.bunch): {}, \n data.models.bunch: {}', type(data.models.bunch), data.models.bunch)
-    pkdp('\n\n\n before: {}', data.models.command_beam)
-    vars = []
-    for key in data.models.command_beam:
-        vars.append(PKDict(
-            name=key,
-            value=data.models.command_beam[key],
-        ))
-    # pkdp('\n\n\n vars: {}', vars)
-    #TODO (gurhar1133): do we want to fill in vals in other areas of data.models from rpnCache?
-    #TODO (gurhar1133): Also, how to we get rpnCache? is it exhaustive?
-    for key in data.models.command_beam:
-        value = data.models.command_beam.get(key)
-        # pkdp('\n\n\n value: {}', value)
-        if value in data.models.rpnCache:
-            data.models.command_beam[key] = data.models.rpnCache[value]
-            # e = code_var(vars).eval_var(value)
-            # if e[0]:
-            #     data.models.command_beam[key] = e[0]
-    pkdp('\n\n\n after : {}', data.models.command_beam)
-    data.models.commands[0] = data.models.command_beam
     if data.models.bunch.matchTwissParameters == '1':
         report = data.report
         # run twiss report and copy results into beam
@@ -79,16 +55,23 @@ def create_particle_file(cfg_dir, data):
 def _generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
     beam = LatticeUtil.find_first_command(data, 'beam')
+    c = code_var([
+            PKDict(name='ex', value=beam.ex),
+            PKDict(name='ey', value=beam.ey),
+            PKDict(name='sigt', value=beam.sigt),
+            PKDict(name='sige', value=beam.sige),
+        ]
+    )
     p = particle_beam.populate_uncoupled_beam(
         bunch.numberOfParticles,
         float(bunch.betx),
         float(bunch.alfx),
-        float(beam.ex),
+        c.eval_var_with_assert(beam.ey),
         float(bunch.bety),
         float(bunch.alfy),
-        beam.ey,
-        beam.sigt,
-        beam.sige,
+        c.eval_var_with_assert(beam.ey),
+        c.eval_var_with_assert(beam.sigt),
+        c.eval_var_with_assert(beam.sige),
         iseed=bunch.randomSeed,
     )
     v = PKDict(
