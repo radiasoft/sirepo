@@ -53,13 +53,7 @@ def create_particle_file(cfg_dir, data):
 def _generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
     beam = LatticeUtil.find_first_command(data, 'beam')
-    c = code_var([
-            PKDict(name='ex', value=beam.ex),
-            PKDict(name='ey', value=beam.ey),
-            PKDict(name='sigt', value=beam.sigt),
-            PKDict(name='sige', value=beam.sige),
-        ]
-    )
+    c = code_var(data.models.rpnVariables)
     p = particle_beam.populate_uncoupled_beam(
         bunch.numberOfParticles,
         float(bunch.betx),
