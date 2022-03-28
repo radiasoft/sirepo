@@ -12,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx import code_var
 import glob
 import numpy
 import os
@@ -52,16 +53,17 @@ def create_particle_file(cfg_dir, data):
 def _generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
     beam = LatticeUtil.find_first_command(data, 'beam')
+    c = code_var(data.models.rpnVariables)
     p = particle_beam.populate_uncoupled_beam(
         bunch.numberOfParticles,
         float(bunch.betx),
         float(bunch.alfx),
-        float(beam.ex),
+        float(c.eval_var_with_assert(beam.ex)),
         float(bunch.bety),
         float(bunch.alfy),
-        beam.ey,
-        beam.sigt,
-        beam.sige,
+        c.eval_var_with_assert(beam.ey),
+        c.eval_var_with_assert(beam.sigt),
+        c.eval_var_with_assert(beam.sige),
         iseed=bunch.randomSeed,
     )
     v = PKDict(
