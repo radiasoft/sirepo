@@ -310,9 +310,13 @@ def generate_parameters_file(data):
 
     beam = LatticeUtil.find_first_command(data, 'beam')
     for k in data.models.bunch:
-        data.models.bunch[k] = _format_rpn_value(data.models.bunch[k], postfix=False)
+        v = data.models.bunch[k]
+        if type(v) == str and 'pow' in v:
+            data.models.bunch[k] = eval(v)
     for k in beam:
-        beam[k] = _format_rpn_value(beam[k], postfix=False)
+        v = beam[k]
+        if type(v) == str and 'pow' in v:
+            beam[k] = eval(v)
 
     for i, c in enumerate(data.models.commands):
         if c._id == beam._id:
@@ -821,7 +825,7 @@ def _format_field_value(state, model, field, el_type):
     return [field, v]
 
 
-def _format_rpn_value(value, postfix=True):
+def _format_rpn_value(value):
     import astunparse
     import ast
     class Visitor(ast.NodeTransformer):
@@ -834,19 +838,14 @@ def _format_rpn_value(value, postfix=True):
                     keywords=[]
                 )
             return node
-    # pkdp('\n\n\n in _format_rpn_value pre post_to_in: {}', value)
-
-    if postfix:
-        value = code_variable.PurePythonEval.postfix_to_infix(value)
-
-    # pkdp('\n\n\n in _format_rpn_value post post_to_in: {}', value)
-    if type(value) == str and 'pow' in value:
-        tree = ast.parse(value)
+    r = code_variable.PurePythonEval.postfix_to_infix(value)
+    if type(r) == str and 'pow' in r:
+        tree = ast.parse(r)
         for n in ast.walk(tree):
             Visitor().visit(n)
             ast.fix_missing_locations(n)
-        value = astunparse.unparse(tree).strip().replace('**', '^')
-    return value
+        r = astunparse.unparse(tree).strip().replace('**', '^')
+    return r
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
@@ -882,7 +881,6 @@ def _generate_lattice(filename_map, util):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        pkdp('\n\n variables[name]: {}', variables[name])
         res += 'REAL {} = {};\n'.format(name, _format_rpn_value(variables[name]))
         visited[name] = True
     return res
