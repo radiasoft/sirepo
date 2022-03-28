@@ -9,9 +9,9 @@ that can't be controlled by the test.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 
+import sirepo.util
 
 
 def test_myapp_cancel(fc):
@@ -98,6 +98,92 @@ def test_myapp_cancel(fc):
         pkunit.pkfail('runStatus: failed to start running: {}', r1)
     c = fc.sr_post('runCancel', r1.nextRequest)
     pkunit.pkeq('canceled', c.state)
+
+
+#def test_myapp_io(fc):
+def test_srw_io(fc):
+    import time
+    import threading
+    from pykern import pkunit
+    from pykern.pkdebug import pkdlog
+    from pykern.pkcollections import PKDict
+
+    #d = fc.sr_sim_data()
+    d = fc.sr_sim_data('NSLS-II TES beamline')
+    d.models.simulation.name = 'srunit_long_run'
+    #report = 'heightWeightReport'
+    report = 'beamlineAnimation'
+    num_runs = 3
+    runs = []
+    for i in range(num_runs + 1):
+        runs.append(PKDict(res={}, done=False))
+
+    def _monitor_run(i):
+        r = runs[i]
+        for _ in range(100):
+            time.sleep(.1)
+            if r.done:
+                break
+            r.res = fc.sr_post('runStatus', r.res.nextRequest)
+        pkdlog('** IO RUN {} COMPLETE **', i)
+
+    def _start_run(i):
+        pkdlog('** IO RUN {} STARTING **', i)
+        r = runs[i]
+        r.res = fc.sr_post(
+            'runSimulation',
+            PKDict(
+                forceRun=False,
+                models=d.models,
+                report=report,
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
+            ),
+        )
+        pkdlog('** IO RUN {} 1ST RES {} **', i, r.res)
+        for _ in range(50):
+            pkunit.pkok(r.res.state != 'error', 'unexpected error state: {}')
+            if r.res.state == 'pending' or r.res.state == 'running':
+                break
+            time.sleep(.1)
+            r.res = fc.sr_post('runStatus', r.res.nextRequest)
+        else:
+            pkunit.pkfail('runStatus: failed to start running: {}', r.res)
+        threading.Thread(target=_get_t(i + 1)).start()
+        _monitor_run(i)
+        time.sleep(.1)
+
+    def _tn():
+        pkdlog('** IO DOWNLOAD **')
+        try:
+            runs[num_runs].res = fc.sr_get(
+                'downloadDataFile',
+                PKDict(
+                    simulation_type=d.simulationType,
+                    simulation_id=d.models.simulation.simulationId,
+                    model=report,
+                    frame='0',
+                    suffix='dat',
+                    #suffix='csv',
+                ),
+            )
+        except Exception as e:
+            runs[num_runs].res = str(e)
+            pass
+        for r in runs:
+            r.done = True
+        time.sleep(1)
+
+    def _get_t(i):
+        if i < num_runs:
+            return lambda: _start_run(i)
+        return _tn
+
+    _get_t(0)()
+
+    pkdlog('** FINAL {} **', runs)
+    s = runs[num_runs - 1].res.state
+    pkunit.pkok(s == 'pending', 'unexpected run state: {}', s)
 
 
 def test_elegant_concurrent_sim_frame(fc):
