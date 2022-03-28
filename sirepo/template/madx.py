@@ -304,6 +304,24 @@ def generate_parameters_file(data):
         v.twissOutputFilename = _TWISS_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
     _add_commands(data, util)
+
+    pkdp('\n\n\n busted data.models.commands: {}', data.models.commands)
+    pkdp('\n\n\n busted data.models.bunch: {}', data.models.bunch)
+
+    beam = LatticeUtil.find_first_command(data, 'beam')
+    for k in data.models.bunch:
+        data.models.bunch[k] = _format_rpn_value(data.models.bunch[k], postfix=False)
+    for k in beam:
+        beam[k] = _format_rpn_value(beam[k], postfix=False)
+
+    for i, c in enumerate(data.models.commands):
+        if c._id == beam._id:
+            data.models.commands[i] = beam
+
+    pkdp('\n\n\n fixed data.models.commands: {}', data.models.commands)
+    pkdp('\n\n\n fixed data.models.bunch: {}', data.models.bunch)
+
+
     v.commands = _generate_commands(filename_map, util)
     v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
     if not v.hasTwiss:
@@ -803,7 +821,7 @@ def _format_field_value(state, model, field, el_type):
     return [field, v]
 
 
-def _format_rpn_value(value):
+def _format_rpn_value(value, postfix=True):
     import astunparse
     import ast
     class Visitor(ast.NodeTransformer):
@@ -816,15 +834,19 @@ def _format_rpn_value(value):
                     keywords=[]
                 )
             return node
+    # pkdp('\n\n\n in _format_rpn_value pre post_to_in: {}', value)
 
-    r = code_variable.PurePythonEval.postfix_to_infix(value)
-    if type(r) == str and 'pow' in r:
-        tree = ast.parse(r)
+    if postfix:
+        value = code_variable.PurePythonEval.postfix_to_infix(value)
+
+    # pkdp('\n\n\n in _format_rpn_value post post_to_in: {}', value)
+    if type(value) == str and 'pow' in value:
+        tree = ast.parse(value)
         for n in ast.walk(tree):
             Visitor().visit(n)
             ast.fix_missing_locations(n)
-        r = astunparse.unparse(tree).strip().replace('**', '^')
-    return r
+        value = astunparse.unparse(tree).strip().replace('**', '^')
+    return value
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
@@ -860,6 +882,7 @@ def _generate_lattice(filename_map, util):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
+        pkdp('\n\n variables[name]: {}', variables[name])
         res += 'REAL {} = {};\n'.format(name, _format_rpn_value(variables[name]))
         visited[name] = True
     return res
