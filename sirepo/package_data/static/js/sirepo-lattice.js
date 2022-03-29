@@ -595,7 +595,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             <div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">
               <div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>
                 <div class="sr-panel-options pull-right">
-                  <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+                  <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
                 </div>
               </div>
               <div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
@@ -606,7 +606,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                      <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>
                   </div>
                 </div>
-                <div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> 
+                <div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)">
                   <div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>
                 </div>
               </div>
@@ -1453,10 +1453,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         var exitEdge = rpnValue(item.e2 || 0);
                         if (item.type.indexOf('RBEN') >= 0) {
                             if (SIREPO.APP_SCHEMA.simulationType == 'opal') {
-                                enterEdge = exitEdge = 0;
+                                exitEdge = angle - enterEdge;
+
+                            } else { // TODO (gurhar1133): unsure about this edge
+                                enterEdge += angle / 2;
+                                exitEdge += angle / 2;
                             }
-                            enterEdge += angle / 2;
-                            exitEdge += angle / 2;
+
                         }
                         if ($scope.flatten) {
                             enterEdge = 0;
@@ -1464,7 +1467,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                         var exit = [enter[0] + radius + Math.cos(angle) * radius,
                                     pos.y + Math.sin(angle) * radius];
+
+
                         var exitAngle = exitEdge - angle;
+
+
+
                         var points = [
                                 [enter[0] - Math.sin(-enterEdge) * height / 2,
                                  enter[1] - Math.cos(-enterEdge) * height / 2],
@@ -2378,7 +2386,7 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                     <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
                     <div class="panel-body">
                       <div class="pull-right">
-                        <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> 
+                        <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
                         <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
                       </div>
                       <div data-lattice-element-table=""></div>
@@ -2573,7 +2581,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">{{ twissReportTitle() }}</span>
                     <div class="sr-panel-options pull-right">
-                      <a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+                      <a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
                     </div>
                   </div>
                   <div class="modal-body">
@@ -2814,7 +2822,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         </div>
                         <div class="row">
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
                             <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
                           </div>
                         </div>
