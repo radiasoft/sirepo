@@ -289,6 +289,12 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
     return res
 
 
+def _eval_source_exprs(vals):
+    for k in vals:
+        if type(vals[k]) == str and 'pow' in vals[k]:
+            vals[k] = eval(vals[k])
+
+
 def generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     if data.models.simulation.computeTwissFromParticles == '1':
@@ -304,28 +310,8 @@ def generate_parameters_file(data):
         v.twissOutputFilename = _TWISS_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
     _add_commands(data, util)
-
-    pkdp('\n\n\n busted data.models.commands: {}', data.models.commands)
-    pkdp('\n\n\n busted data.models.bunch: {}', data.models.bunch)
-
-    beam = LatticeUtil.find_first_command(data, 'beam')
-    for k in data.models.bunch:
-        v = data.models.bunch[k]
-        if type(v) == str and 'pow' in v:
-            data.models.bunch[k] = eval(v)
-    for k in beam:
-        v = beam[k]
-        if type(v) == str and 'pow' in v:
-            beam[k] = eval(v)
-
-    for i, c in enumerate(data.models.commands):
-        if c._id == beam._id:
-            data.models.commands[i] = beam
-
-    pkdp('\n\n\n fixed data.models.commands: {}', data.models.commands)
-    pkdp('\n\n\n fixed data.models.bunch: {}', data.models.bunch)
-
-
+    _eval_source_exprs(data.models.bunch)
+    _eval_source_exprs(LatticeUtil.find_first_command(data, 'beam'))
     v.commands = _generate_commands(filename_map, util)
     v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
     if not v.hasTwiss:
