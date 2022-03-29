@@ -6,6 +6,7 @@ u"""simulation data operations
 """
 from __future__ import absolute_import, division, print_function
 
+import numpy
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
@@ -133,13 +134,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 u[k] = sirepo.util.find_obj(g.objects, 'name', v)
 
         if not u.get('terminations'):
-            u.terminations = []
+            u.terminations = [PKDict() for _ in range(len(u.terminationGroup.members))]
         for i, t_id in enumerate(u.terminationGroup.members):
             t = u.terminations[i]
-            if 'object' not in t:
-                t.object = sirepo.util.find_obj(g.objects, 'id', t_id)
             cls.update_model_defaults(t, 'termination')
-
+            t.object = sirepo.util.find_obj(g.objects, 'id', t_id)
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
