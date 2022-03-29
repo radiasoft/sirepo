@@ -4,7 +4,7 @@
             "colorMap": "viridis",
             "scaling": "linear"
         },
-         "fieldPaths": {
+        "fieldPaths": {
             "path": "line",
             "paths": [
                 {
@@ -28,7 +28,7 @@
                     "_super": "geomObject",
                     "center": "11.25,1.25,-22.5",
                     "color": "#ff00ff",
-                    "division": "2,2,5",
+                    "division": "2,5,2",
                     "groupId": "630ea5d1-4948-498e-8ef3-1f2d86d51e57",
                     "id": "b861cdfe-879d-48c2-9fb9-b9095a0e7f3e",
                     "layoutShape": "rect",
@@ -36,7 +36,7 @@
                     "material": "custom",
                     "materialFile": "VaPermendur.csv",
                     "model": "cuboid",
-                    "name": "Half Pole",
+                    "name": "half pole",
                     "remanentMag": 0,
                     "size": "22.5,2.5,25.0",
                     "transforms": [],
@@ -46,15 +46,15 @@
                     "_super": "geomObject",
                     "center": "16.25,11.5,-33.5",
                     "color": "#00ffff",
-                    "division": "1,3,1",
+                    "division": "1,1,3",
                     "groupId": "a41746a3-88fd-4fde-980d-87f542158116",
                     "id": "c8950a0b-7663-4108-8fe0-0e49e6a4c4a4",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,-1.0,0.0",
+                    "magnetization": "0.0,0.0,1.0",
                     "material": "NdFeB",
                     "materialFile": "",
                     "model": "cuboid",
-                    "name": "Magnet Block",
+                    "name": "magnet",
                     "remanentMag": 1.2,
                     "size": "32.5,18.0,45.0",
                     "transforms": [],
@@ -64,7 +64,7 @@
                     "_super": "geomObject",
                     "center": "11.25,23.0,-22.5",
                     "color": "#ff00ff",
-                    "division": "2,2,5",
+                    "division": "2,5,2",
                     "groupId": "a41746a3-88fd-4fde-980d-87f542158116",
                     "id": "8b2628eb-2df7-46e3-a01f-d3ff76d7da2a",
                     "layoutShape": "rect",
@@ -72,7 +72,7 @@
                     "material": "custom",
                     "materialFile": "VaPermendur.csv",
                     "model": "cuboid",
-                    "name": "Pole",
+                    "name": "pole",
                     "remanentMag": 0,
                     "size": "22.5,5.0,25.0",
                     "transforms": [],
@@ -89,7 +89,7 @@
                         "8b2628eb-2df7-46e3-a01f-d3ff76d7da2a"
                     ],
                     "model": "geomGroup",
-                    "name": "Magnet-Pole Pair",
+                    "name": "core + pole",
                     "transforms": [
                         {
                             "_super": "transform",
@@ -117,17 +117,17 @@
                     ]
                 },
                 {
-                    "name": "termination.magnet.0",
+                    "name": "Termination Magnet",
                     "model": "cuboid",
                     "color": "#00ffff",
                     "_super": "geomObject",
                     "type": "cuboid",
                     "bevels": [],
                     "center": "16.25,53.0,-33.5",
-                    "division": "1,3,1",
+                    "division": "1,1,3",
                     "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
                     "layoutShape": "rect",
-                    "magnetization": "0.0,-1.0,0.0",
+                    "magnetization": "0.0,0.0,1.0",
                     "remanentMag": 1.2,
                     "material": "NdFeB",
                     "materialFile": "",
@@ -161,7 +161,7 @@
                         "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c"
                     ],
                     "model": "geomGroup",
-                    "name": "Octant",
+                    "name": "octant",
                     "transforms": [
                         {
                             "_super": "transform",
@@ -200,45 +200,94 @@
                 }
             ]
         },
-        "hybridUndulator": {
-            "_super": "undulator",
+        "undulatorHybrid": {
+            "_super": "undulatorBasic",
             "color": "#cccccc",
+            "corePoleGroup": {
+                "_super": "radiaObject",
+                "id": "a41746a3-88fd-4fde-980d-87f542158116",
+                "name": "core + pole"
+            },
             "enableKickMaps": "1",
             "gap": 20,
             "gapOffset": 1,
             "groupId": "",
+            "halfPole": {
+                "_super": "geomObject",
+                "id": "b861cdfe-879d-48c2-9fb9-b9095a0e7f3e",
+                "name": "half pole"
+            },
             "id": "",
             "layoutShape": "rect",
-            "magnetBaseObjectId": "c8950a0b-7663-4108-8fe0-0e49e6a4c4a4",
-            "magnetColor": "#00ffff",
-            "magnetCrossSection": "65.0, 45.0",
-            "magnetDivision": "1, 1, 3",
-            "magnetLength": 18,
-            "magnetMagnetization": "0.0, 0.0, -1.0",
-            "magnetMaterial": "NdFeB",
-            "magnetMaterialFile": "",
-            "magnetRemanentMag": 1.2,
+            "magnet": {
+                "_super": "geomObject",
+                "color": "#00ffff",
+                "id": "c8950a0b-7663-4108-8fe0-0e49e6a4c4a4",
+                "magnetization": "0.0, 0.0, 1.0",
+                "name": "magnet",
+                "remanentMag": 1.2,
+                "material": "NdFeB",
+                "type": "cuboid",
+                "segments": "1, 1, 3",
+                "size": "65.0, 18.0, 45.0"
+            },
             "name": "",
             "numPeriods": 2,
+            "octantGroup": {
+                "_super": "radiaObject",
+                "id": "630ea5d1-4948-498e-8ef3-1f2d86d51e57",
+                "name": "octant"
+            },
             "periodLength": 46,
-            "poleBaseObjectId": "8b2628eb-2df7-46e3-a01f-d3ff76d7da2a",
-            "poleColor": "#ff00ff",
-            "poleCrossSection": "45.0, 25.0",
-            "poleDivision": "2, 5, 2",
-            "poleLength": 5,
-            "poleMagnetization": "0.0, 0.0, 0.0",
-            "poleMaterial": "custom",
-            "poleMaterialFile": "VaPermendur.csv",
-            "poleRemanentMag": 0,
+            "pole": {
+                "_super": "geomObject",
+                "bevels": [],
+                "color": "#ff00ff",
+                "segments": "2, 5, 2",
+                "id": "8b2628eb-2df7-46e3-a01f-d3ff76d7da2a",
+                "magnetization": "0.0, 0.0, 0.0",
+                "materialFile": "VaPermendur.csv",
+                "name": "pole",
+                "remanentMag": 0.0,
+                "material": "custom",
+                "type": "cuboid",
+                "size": "45.0, 5.0, 25.0"
+            },
+            "terminationGroup": {
+                "_super": "radiaObject",
+                "id": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c",
+                "members": [
+                    "b40f7233-89ba-49d5-90bc-f4efb4e0e421"
+                ],
+                "name": "terminations"
+            },
             "terminations": [
                 {
                     "airGap": 0,
-                    "length": 9,
-                    "type": "magnet"
+                    "gapOffset": 1,
+                    "object": {
+                        "name": "Termination Magnet",
+                        "model": "cuboid",
+                        "color": "#00ffff",
+                        "_super": "geomObject",
+                        "type": "cuboid",
+                        "bevels": [],
+                        "center": "16.25,53.0,-33.5",
+                        "segments": "1,1,3",
+                        "id": "b40f7233-89ba-49d5-90bc-f4efb4e0e421",
+                        "layoutShape": "rect",
+                        "magnetization": "0.0,0.0,1.0",
+                        "remanentMag": 1.2,
+                        "material": "NdFeB",
+                        "materialFile": "",
+                        "size": "32.5,9.0,45.0",
+                        "transforms": [],
+                        "groupId": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c",
+                        "h_m_curve": null
+                    }
                 }
             ],
-            "transforms": [],
-            "transverseAxis": "x"
+            "transforms": []
         },
         "kickMapReport": {
             "begin": "0, -52.5, 0",
@@ -263,6 +312,7 @@
         "simFolder": {},
         "simulation": {
             "beamAxis": "y",
+            "coordinateSystem": "beam",
             "documentationUrl": "",
             "enableKickMaps": "1",
             "folder": "/Examples",
@@ -271,21 +321,8 @@
             "magnetType": "undulator",
             "name": "Undulator",
             "notes": "",
-            "outOfSessionSimulationId": ""
-        },
-        "undulator": {
-            "_super": "radiaObject",
-            "color": "#cccccc",
-            "enableKickMaps": "1",
-            "gap": 20,
-            "groupId": "",
-            "id": "",
-            "layoutShape": "rect",
-            "name": "",
-            "numPeriods": 2,
-            "periodLength": 46,
-            "transforms": [],
-            "transverseAxis": "x"
+            "outOfSessionSimulationId": "",
+            "undulatorType": "undulatorHybrid"
         }
     },
     "simulationType": "radia"

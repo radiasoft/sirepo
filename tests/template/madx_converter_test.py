@@ -32,7 +32,6 @@ def test_from_elegant_to_madx_and_back():
                 ),
             )
 
-
 def test_import_elegant_export_madx(import_req):
     from pykern.pkunit import pkeq, file_eq
     from sirepo.template import elegant
@@ -47,6 +46,20 @@ def test_import_elegant_export_madx(import_req):
         actual=actual,
     )
 
+def test_elegant_from_madx():
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import elegant
+    from sirepo.template.elegant import ElegantMadxConverter
+    from sirepo.template import madx_parser
+    # this is updated from javascript unfortunately
+    data = madx_parser.parse_file(pkio.read_text(
+                pkunit.data_dir().join('test1.madx')))
+    actual = ElegantMadxConverter().from_madx(data)
+    file_eq(
+        'test_ele_from_madx.txt',
+        actual=elegant.python_source_for_model(actual, None),
+    )
+
 def test_import_opal_export_madx(import_req):
     from pykern.pkunit import pkeq, file_eq
     from sirepo.template import opal
@@ -55,6 +68,17 @@ def test_import_opal_export_madx(import_req):
     actual = OpalMadxConverter().to_madx_text(data)
     file_eq(
         'test2.madx',
+        actual=actual,
+    )
+
+def test_import_opal_export_madx_pow(import_req):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import opal
+    from sirepo.template.opal import OpalMadxConverter
+    data = opal.import_file(import_req(pkunit.data_dir().join('test3.in')))
+    actual = OpalMadxConverter().to_madx_text(data)
+    file_eq(
+        'test3.madx',
         actual=actual,
     )
 

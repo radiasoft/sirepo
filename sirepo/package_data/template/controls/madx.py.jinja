@@ -1,0 +1,107 @@
+
+lattice_file = """
+option,echo=false,info=false;
+{{ madxSource -}}
+"""
+
+finished_sims = False
+
+amp_tables_by_name = PKDict({
+  {% for k in ampTables %}
+    "{{ k }}": [
+        {% for row in ampTables[k] %}
+        [{{ row[0] }}, {{ row[1] }}],
+        {% endfor %}
+    ],
+  {% endfor %}
+})
+
+amp_table_for_corrector = [
+  {% for row in ampTableNames %}
+    {% if row %}
+    amp_tables_by_name['{{ row }}'],
+    {% else %}
+    None,
+    {% endif %}
+  {% endfor %}
+]
+
+
+def _check_twiss_success():
+    beam_data, observes, columns = particle_beam.read_ptc_data('ptc_track.file.tfsone')
+    res = particle_beam.analyze_ptc_beam(
+        beam_data,
+        mc2={{ mc2 }},
+    )
+    for c in ('beta_x', 'beta_y', 'alpha_x', 'alpha_y'):
+        if list(filter(lambda x: numpy.isnan(x), res[c])):
+            return None, None
+    return res, observes
+
+
+def _read_cols_and_save_report(default_file, save_file, cols_file):
+    if pkio.py_path(default_file).exists():
+        cols = sirepo.template.madx.file_info(
+                default_file,
+                pkio.py_path('.'),
+                'unused',
+            ).plottableColumns
+        pkio.write_text(cols_file, ','.join(cols))
+        os.rename(default_file, save_file)
+
+def _run_simulation(correctors):
+    lattice = lattice_file
+    values = {}
+    for idx in range(len(correctors)):
+        ac = AmpConverter(
+            PKDict(
+                {% if command_beam_particle == 'other' %}
+                mass={{command_beam_mass}},
+                charge={{command_beam_charge}},
+                {% else %}
+                particle="{{command_beam_particle}}",
+                {% endif %}
+                gamma={{command_beam_gamma}},
+            ),
+            amp_table_for_corrector[idx],
+        )
+        values[f'sr_opt{idx}'] = ac.current_to_kick(correctors[idx])
+    with open('in.madx', 'w') as f:
+        for k in values:
+            lattice = re.sub('{' + k + '}', str(values[k]), lattice)
+        f.write(lattice)
+    p = subprocess.run(('madx', 'in.madx'), capture_output=True, text=True)
+    pkio.write_text('madx.log', p.stdout)
+    pkio.write_text('madx.err', p.stderr)
+    if p.returncode != 0 or p.stdout.count('is lost') == {{ bunch_numberOfParticles }}:
+        return None, None
+    return _check_twiss_success()
+
+def _update_and_read_results(correctors):
+    global finished_sims
+    columns, observes = _run_simulation(correctors)
+    if columns:
+        readings = []
+        finished_sims = True
+        for i in range(len(observes)):
+            if '_MONITOR' in observes[i]:
+                readings += [columns['x0'][i], columns['y0'][i]]
+            elif '_HMONITOR' in observes[i]:
+                readings += [columns['x0'][i]]
+            elif '_VMONITOR' in observes[i]:
+                readings += [columns['y0'][i]]
+            else:
+                pass
+        _read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
+        return _update_summary_csv(correctors.tolist(), readings)
+    return _failed_sim_results()
+{% if optimizerSettings_method == 'runOnce' %}
+
+_assert_update_and_read_results(numpy.array({{ initialCorrectors }}), 'Beamline update failed')
+{% else %}
+
+_run_optimizer()
+
+if not finished_sims:
+    raise AssertionError('Optimization failed all minimization attempts')
+{% endif %}

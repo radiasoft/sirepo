@@ -82,17 +82,7 @@ def for_sim_type(sim_type):
     c = cfg()
     return pykern.pkcollections.PKDict(
         c[sim_type] if sim_type in c else {}
-    )
-
-
-def sim_common():
-    """Get cfg to use across all simulations. Separate from global cfg
-
-    Returns:
-        dict: common sim config
-    """
-    import pykern.pkcollections
-    return pykern.pkcollections.PKDict(cfg()).sim_common
+    ).pkupdate(c.schema_common)
 
 
 def _data_dir(value):
@@ -116,6 +106,9 @@ def _init():
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
         default_proprietary_sim_types=(set(), set, 'codes where all users are authorized by default but that authorization can be revoked'),
+        schema_common=dict(
+            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
+        ),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
@@ -128,10 +121,8 @@ def _init():
         raydata=dict(
             data_dir=(None, _data_dir, 'abspath of dir to store raydata analysis output'),
         ),
-        sim_common=dict(
-            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
-        ),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
+        slack_uri=('https://slack.com/', str, 'Link to Sirepo Slack workspace; uid will be appended'),
         srw=dict(
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
             mask_in_toolbar=b('Show the mask element in toolbar'),

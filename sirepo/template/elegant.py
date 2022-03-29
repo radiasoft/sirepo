@@ -47,6 +47,26 @@ _ERROR_IGNORE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_ELEGANT_CONSTANTS = PKDict(
+    pi=3.141592653589793,
+    c_cgs=2.99792458e10,
+    c_mks=2.99792458e8,
+    e_cgs=4.80325e-10,
+    e_mks=1.60217733e-19,
+    me_cgs=9.1093897e-28,
+    me_mks=9.1093897e-31,
+    re_cgs=2.81794092e-13,
+    re_mks=2.81794092e-15,
+    kb_cgs=1.380658e-16,
+    kb_mks=1.380658e-23,
+    mev=0.51099906,
+    hbar_mks=1.0545887e-34,
+    hbar_MeVs=6.582173e-22,
+    mp_mks=1.6726485e-27,
+    mu_o=1.25663706143592e-06,
+    eps_o=8.85418781762039e-12,
+)
+
 _ELEGANT_SEMAPHORE_FILE = 'run_setup.semaphore'
 
 _MPI_IO_WRITE_BUFFER_SIZE = '1048576'
@@ -329,7 +349,7 @@ class ElegantMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP, downcase_variables=True)
 
     def from_madx(self, madx):
-        data = super().from_madx(madx)
+        data = self.fill_in_missing_constants(super().from_madx(madx), _ELEGANT_CONSTANTS)
         eb = LatticeUtil.find_first_command(data, 'bunched_beam')
         mb = LatticeUtil.find_first_command(madx, 'beam')
         for f in self._BEAM_VARS:

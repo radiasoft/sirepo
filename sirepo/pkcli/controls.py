@@ -4,45 +4,40 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern import pkio, pkjson
-from pykern.pkdebug import pkdp
+from pykern import pkio
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp
+from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.pkcli.madx
 import sirepo.template.controls as template
-from sirepo import simulation_db
 
 
 def run(cfg_dir):
+    cfg_dir = pkio.py_path(cfg_dir)
+    _create_particle_file_for_external_lattice(cfg_dir)
     template_common.exec_parameters()
-    d = pkio.py_path(cfg_dir)
     template_common.write_sequential_result(
         PKDict(
-            elementValues=template._read_summary_line(
-                d,
+            elementValues=template.read_summary_line(
+                cfg_dir,
                 simulation_db.get_schema(template.SIM_TYPE).constants.maxBPMPoints,
-            )
+            )[0],
         ),
-        run_dir=d,
+        run_dir=cfg_dir,
     )
 
 
 def run_background(cfg_dir):
+    _create_particle_file_for_external_lattice(pkio.py_path(cfg_dir))
     template_common.exec_parameters()
 
 
-def particle_file_for_external_lattice():
-    data = simulation_db.read_json(
-        template_common.INPUT_BASE_NAME,
-    )
-    b = [k for k in data.models.command_twiss
-        if k in data.models.externalLattice.models.bunch]
-    for p in b:
-        data.models.externalLattice.models.bunch[p] = data.models.command_twiss[p]
-    beam = data.models.command_beam
-    data = data.models.externalLattice
-    data.models.command_beam = beam
-    data.report = 'unused'
-    data.models.bunch.matchTwissParameters = '0'
-    sirepo.pkcli.madx.create_particle_file(pkio.py_path('.'), data)
+def _create_particle_file_for_external_lattice(cfg_dir):
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if data.models.controlSettings.operationMode == 'madx':
+        madx = data.models.externalLattice
+        madx.models.command_beam = data.models.command_beam
+        madx.models.bunch = data.models.bunch
+        madx.models.bunch.matchTwissParameters = '0'
+        sirepo.pkcli.madx.create_particle_file(cfg_dir, madx)
