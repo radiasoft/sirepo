@@ -847,14 +847,14 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                               <p class="form-control-static">{{ filename }}</p>
                             </div>
                           </div>
-                          <div data-ng-show="isState(\'ready\') || isState(\'lattice\')">
-                            <div data-ng-show="isState(\'ready\')" class="form-group">
-                              <label>Select Command (.ele), Lattice (.lte or .madx), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>
+                          <div data-ng-show="isState('ready') || isState('lattice')">
+                            <div data-ng-show="isState('ready')" class="form-group">
+                              <label>Select Command (.ele), Lattice (.lte or .madx), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)</label>
                               <input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />
                               <br />
                               <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                             </div>
-                            <div data-ng-show="isState(\'lattice\')" class="form-group">
+                            <div data-ng-show="isState('lattice')" class="form-group">
                               <label>Select Lattice File ({{ latticeFileName }})</label>
                               <input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept=".lte" />
                               <br />
@@ -865,15 +865,15 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                                <button data-dismiss="modal" class="btn btn-default">Cancel</button>
                             </div>
                           </div>
-                          <div data-ng-show="isState(\'import\') || isState(\'load-file-lists\')" class="col-sm-6 col-sm-offset-6">
+                          <div data-ng-show="isState('import') || isState('load-file-lists')" class="col-sm-6 col-sm-offset-6">
                             Uploading file - please wait.
                             <br /><br />
                           </div>
-                          <div data-ng-show="isState(\'missing-files\')">
-                            <p>Please upload the files below which are referenced in the ', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>
+                          <div data-ng-show="isState('missing-files')">
+                            <p>Please upload the files below which are referenced in the ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName} file.</p>
                             <div class="form-group" data-ng-repeat="item in missingFiles">
                               <div class="col-sm-11 col-sm-offset-1">
-                                <span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> 
+                                <span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span>
                                 <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>
                                 <label>{{ auxFileLabel(item) }}</label> ({{ auxFileName(item) }})
                                 <input type="file" data-file-model="item[5]" />
@@ -1205,9 +1205,9 @@ SIREPO.app.directive('inputFileXY', function() {
         },
         template: `
             <div style="display: inline-block" data-file-field="field" data-model="model" data-model-name="modelName" data-empty-selection-text="No File Selected"></div>
-             <label style="margin: 0 1ex">X</label> 
+            <label style="margin: 0 1ex">X</label>
             <input data-ng-model="model[fieldX()]" style="display: inline-block; width: 8em" class="form-control" />
-             <label style="margin: 0 1ex">Y</label> 
+            <label style="margin: 0 1ex">Y</label>
             <input data-ng-model="model[fieldY()]" style="display: inline-block; width: 8em" class="form-control" />
         `,
         controller: function($scope) {
@@ -1231,8 +1231,8 @@ SIREPO.app.directive('enumList', function() {
         },
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
-                <label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>
-                <select 
+                <label style="margin-right: 1ex">{{valueLabels[$index] || 'Plane ' + $index}}</label>
+                <select
                     class="form-control sr-number-list" data-ng-model="values[$index]" data-ng-change="didChange()"
                     data-ng-options="item[0] as item[1] for item in typeList">
                 </select>
