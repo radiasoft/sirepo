@@ -54,11 +54,14 @@ class CodeVar():
         if not self.is_var_value(expr):
             return expr, None
         expr = self.infix_to_postfix(self.canonicalize(expr))
-        return self.evaluator.eval_var(
+        pkdp('\n\n\n expr about to be eval_var() : {}', expr)
+        res = self.evaluator.eval_var(
             expr,
             self.get_expr_dependencies(expr),
             self.postfix_variables,
         )
+        pkdp('\n\n\n res : {}', res)
+        return res
 
     def eval_var_with_assert(self, expr):
         (v, err) = self.eval_var(expr)

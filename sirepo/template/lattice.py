@@ -619,10 +619,15 @@ class LatticeUtil(object):
         for name in names:
             for m in self.data.models[name]:
                 model_schema = self.schema.model[self.model_name_for_data(m)]
+                super_schema = None
+                if '_super' in model_schema:
+                    super_schema = self.schema.model[model_schema._super[2]]
                 iterator.start(m)
                 for k in sorted(m):
                     if k in model_schema:
                         iterator.field(m, model_schema[k], k)
+                    elif super_schema and k in super_schema:
+                        iterator.field(m, super_schema[k], k)
                 iterator.end(m)
         return iterator
 
@@ -656,6 +661,7 @@ class LatticeUtil(object):
         from sirepo.template.code_variable import CodeVar
         res = ''
         for el in fields:
+
             # el is [model, [[f, v], [f, v]...]]
             el_type = self.type_for_data(el[0])
             if want_name:
@@ -666,6 +672,7 @@ class LatticeUtil(object):
             for f in el[1]:
                 var_assign = ''
                 if want_var_assign:
+                    pkdp('\n\n\n f: {}', f)
                     s = self.schema.model[el_type]
                     if f[0] in s and s[f[0]][1] == 'RPNValue' and CodeVar.is_var_value(f[1]):
                         var_assign = ':'
