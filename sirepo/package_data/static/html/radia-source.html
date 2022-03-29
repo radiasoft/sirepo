@@ -1,14 +1,8 @@
 <div class="container-fluid">
   <div data-ng-if="src.showDesigner()">
-      <div class="row">
-          <div data-toolbar="src.toolbarSections" data-ng-show="src.isEditable()" data-parent-controller="src"></div>
-      </div>
-      <div>
-          <div data-3d-builder="" data-model-name="geometryReport" data-cfg="src.builderCfg" data-controller="src"></div>
-      </div>
-      </div>
+      <div data-freehand-designer="" data-controller="src"></div>
+  </div>
   <div class="col-md-12" data-ng-if="src.showParams()">
-    <div data-ng-if="src.getMagnetType() === 'undulator'" data-basic-editor-panel="" data-view-name="{{ src.getUndulatorType()}}" data-parent-controller="src" data-panel-title="Undulator"></div>
-    <div data-ng-if="src.getMagnetType() === 'dipole'" data-basic-editor-panel="" data-view-name="{{ src.getDipoleType()}}" data-parent-controller="src" data-panel-title="{{ src.dipoleTitle() }}"></div>
+    <div data-basic-editor-panel="" data-view-name="{{ src.getView() }}" data-parent-controller="src" data-panel-title="{{ src.viewTitle() }}"></div>
   </div>
 </div>
