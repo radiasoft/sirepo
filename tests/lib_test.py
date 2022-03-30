@@ -9,19 +9,18 @@ from pykern.pkdebug import pkdp
 import pytest
 
 def test_elegant():
-    _code([['%s.cen']])
+    _code()
 
 
 def test_opal():
     _code()
 
 
-def _code(files=None):
+def _code():
     from pykern import pkunit, pkio, pkjson
     from pykern.pkdebug import pkdp
     import inspect
     import sirepo.lib
-
     for i, s in enumerate(pkio.sorted_glob(pkunit.data_dir().join(
             f'{inspect.stack()[1].function.split("_")[1]}_*',
     ))):
@@ -37,12 +36,7 @@ def _code(files=None):
         pkunit.file_eq(s.join('out.json'), d2)
         w = pkunit.work_dir().join(s.basename)
         r = d.write_files(w)
+        pkjson.dump_pretty(r.output_files, filename=w.join('output_files.json'))
         for o in pkio.sorted_glob(pkunit.data_dir().join(s.basename, '*.out')):
             pkunit.file_eq(o, actual_path=w.join(o.basename).new(ext=''))
-        if files:
-            pkunit.pkok(
-                set(files[i]).issubset(set(r.output_files)),
-                'expecting files={} to be subset of output_files={}',
-                files,
-                r.output_files,
-            )
+
