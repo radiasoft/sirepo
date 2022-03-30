@@ -67,6 +67,7 @@ class LibAdapterBase:
     def _verify_files(self, path, filenames):
         for f in filenames:
             p = path.dirpath().join(f)
+            pkdp('p: {}', p)
             assert p.check(file=True), \
                 f'file={f} missing'
 
