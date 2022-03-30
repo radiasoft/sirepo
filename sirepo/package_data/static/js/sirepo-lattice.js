@@ -1455,6 +1455,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             if (SIREPO.APP_SCHEMA.simulationType == 'opal') {
                                 // enterEdge = exitEdge = 0;
                                 exitEdge = angle - enterEdge;
+
                             }
                             else { // TODO (gurhar1133): unsure about this else
                                 enterEdge += angle / 2;
