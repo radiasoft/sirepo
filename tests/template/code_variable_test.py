@@ -44,9 +44,6 @@ def test_cache():
                         ),
                     ],
                     commands=[],
-                    bunch=PKDict(
-                        energy='x + 2 * y',
-                    )
                 )
             ),
             # schema
@@ -56,9 +53,6 @@ def test_cache():
                         p1=["P1", "RPNValue", 0],
                         p2=["P2", "RPNValue", 0],
                     ),
-                    bunch=PKDict(
-                        energy=['Energy', 'RPNValue', 0],
-                    )
                 ),
             ),
         ),
