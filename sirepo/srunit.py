@@ -515,7 +515,7 @@ class _TestClient(flask.testing.FlaskClient):
             compute_model,
             reports,
             # Things take longer with Slurm.
-            timeout=60,
+            timeout=90,
             **kwargs,
         )
 
