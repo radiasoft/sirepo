@@ -1453,9 +1453,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         var exitEdge = rpnValue(item.e2 || 0);
                         if (item.type.indexOf('RBEN') >= 0) {
                             if (SIREPO.APP_SCHEMA.simulationType == 'opal') {
+                                // enterEdge = exitEdge = 0;
                                 exitEdge = angle - enterEdge;
-
-                            } else { // TODO (gurhar1133): unsure about this edge
+                            }
+                            else { // TODO (gurhar1133): unsure about this else
                                 enterEdge += angle / 2;
                                 exitEdge += angle / 2;
                             }
