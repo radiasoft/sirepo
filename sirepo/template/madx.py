@@ -295,24 +295,15 @@ def _iterate_and_format_rpns(data, schema):
         def field(self, model, field_schema, field):
             if field_schema[1] == 'RPNValue':
                 if code_variable.CodeVar.is_var_value(model[field]):
-                    pkdp('before: {} = {}', field, model[field])
-                    model[field] = _format_rpn_value(model[field], postfix=False)
-                    if model[field][-1] == ')' and model[field][0] == '(':
-                        model[field] = model[field][1:-1]
-                    pkdp('after: {} = {}', field, model[field])
-
-
-
+                    model[field] = _format_rpn_value(model[field])
     it = RPNExpressionIterator()
-    l = lattice.LatticeUtil(data, schema)
-    l.iterate_models(it)
+    lattice.LatticeUtil(data, schema).iterate_models(it)
     return data
 
 
 
 def generate_parameters_file(data):
     data = _iterate_and_format_rpns(data, SCHEMA)
-    pkdp('\n\n\n data.models.elements: {}', data.models.elements)
     res, v = template_common.generate_parameters_file(data)
     if data.models.simulation.computeTwissFromParticles == '1':
         _add_marker_and_observe(data)
@@ -321,7 +312,6 @@ def generate_parameters_file(data):
     report = data.get('report', '')
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
     v.lattice = _generate_lattice(filename_map, util)
-    pkdp('\n\n\n v.lattice: {}', v.lattice)
     v.variables = code_var(data.models.rpnVariables).generate_variables(_generate_variable)
     v.useBeamline = util.select_beamline().name
     if report == 'twissReport' or _is_report('bunchReport', report):
@@ -827,10 +817,10 @@ def _format_field_value(state, model, field, el_type):
     return [field, v]
 
 
-def _format_rpn_value(value, postfix=True):
-    o = value
+def _format_rpn_value(value):
     import astunparse
     import ast
+
     class Visitor(ast.NodeTransformer):
         def visit_Call(self, node):
             if node.func.id == 'pow':
@@ -841,19 +831,15 @@ def _format_rpn_value(value, postfix=True):
                     keywords=[]
                 )
             return node
+
     if code_variable.CodeVar.infix_to_postfix(value) == value:
         value = code_variable.PurePythonEval.postfix_to_infix(value)
-
     if type(value) == str and 'pow' in value:
-
         tree = ast.parse(value)
         for n in ast.walk(tree):
             Visitor().visit(n)
             ast.fix_missing_locations(n)
         value = astunparse.unparse(tree).strip().replace('**', '^')
-    if o != value:
-
-        pkdp('\n\n\n original: {}, now: {}', o, value)
     return value
 
 def _generate_commands(filename_map, util):

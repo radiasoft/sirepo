@@ -661,7 +661,6 @@ class LatticeUtil(object):
         from sirepo.template.code_variable import CodeVar
         res = ''
         for el in fields:
-
             # el is [model, [[f, v], [f, v]...]]
             el_type = self.type_for_data(el[0])
             if want_name:
@@ -672,7 +671,6 @@ class LatticeUtil(object):
             for f in el[1]:
                 var_assign = ''
                 if want_var_assign:
-                    pkdp('\n\n\n f: {}', f)
                     s = self.schema.model[el_type]
                     if f[0] in s and s[f[0]][1] == 'RPNValue' and CodeVar.is_var_value(f[1]):
                         var_assign = ':'
