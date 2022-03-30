@@ -4,7 +4,6 @@ u"""MAD-X execution template.
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from statistics import mode
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -299,7 +298,6 @@ def _iterate_and_format_rpns(data, schema):
     it = RPNExpressionIterator()
     lattice.LatticeUtil(data, schema).iterate_models(it)
     return data
-
 
 
 def generate_parameters_file(data):
