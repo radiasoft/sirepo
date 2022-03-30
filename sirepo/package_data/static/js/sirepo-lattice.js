@@ -1457,7 +1457,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 exitEdge = angle - enterEdge;
 
                             }
-                            else { // TODO (gurhar1133): unsure about this else
+                            else { // TODO (gurhar1133): double check this else
                                 enterEdge += angle / 2;
                                 exitEdge += angle / 2;
                             }
