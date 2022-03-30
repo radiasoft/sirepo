@@ -52,7 +52,7 @@ def test_cache():
                     point=PKDict(
                         p1=["P1", "RPNValue", 0],
                         p2=["P2", "RPNValue", 0],
-                    ),
+                    )
                 ),
             ),
         ),
