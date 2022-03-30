@@ -1466,12 +1466,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                         var exit = [enter[0] + radius + Math.cos(angle) * radius,
                                     pos.y + Math.sin(angle) * radius];
-
-
                         var exitAngle = exitEdge - angle;
-
-
-
                         var points = [
                                 [enter[0] - Math.sin(-enterEdge) * height / 2,
                                  enter[1] - Math.cos(-enterEdge) * height / 2],
