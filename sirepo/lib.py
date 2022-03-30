@@ -66,8 +66,6 @@ class LibAdapterBase:
 
     def _verify_files(self, path, filenames):
         for f in filenames:
-            assert sirepo.util.secure_filename(f) == f, \
-                f'file={f} must be a simple name'
             p = path.dirpath().join(f)
             assert p.check(file=True), \
                 f'file={f} missing'
@@ -80,7 +78,9 @@ class LibAdapterBase:
         ):
             f = self._sim_data.lib_file_name_without_type(f)
             try:
-                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+                d = dest_dir.join(f)
+                pykern.pkio.mkdir_parent_only(d)
+                d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
             except py.error.EEXIST:
                 pass
 

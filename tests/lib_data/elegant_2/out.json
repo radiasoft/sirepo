@@ -1,0 +1,195 @@
+{
+    "models": {
+        "beamlineReport": {},
+        "beamlines": [
+            {
+                "id": 5,
+                "items": [
+                    4
+                ],
+                "name": "BL1"
+            }
+        ],
+        "bunch": {
+            "alpha_x": 0.0,
+            "alpha_y": 0.0,
+            "alpha_z": 0.0,
+            "beta_x": 1.0,
+            "beta_y": 1.0,
+            "beta_z": 0.0,
+            "centroid": "0, 0, 0, 0, 0, 0",
+            "distribution_cutoff": "3, 3, 3",
+            "distribution_type": "gaussian, gaussian, gaussian",
+            "dp_s_coupling": 0.0,
+            "emit_nx": 0.0,
+            "emit_ny": 0.0,
+            "emit_x": 4.6e-08,
+            "emit_y": 4.6e-08,
+            "emit_z": 0.0,
+            "enforce_rms_values": "1, 1, 1",
+            "eta_x": 0.0,
+            "eta_y": 0.0,
+            "etap_x": 0.0,
+            "etap_y": 0.0,
+            "halton_radix": "0, 0, 0, 0, 0, 0",
+            "halton_sequence": "0, 0, 0",
+            "limit_in_4d": "0",
+            "limit_invariants": 0,
+            "longitudinalMethod": "1",
+            "momentum_chirp": 0.0,
+            "n_particles_per_bunch": 5000,
+            "optimized_halton": "0",
+            "p_central_mev": 1001.0,
+            "randomize_order": "0, 0, 0",
+            "sigma_dp": 0.001,
+            "sigma_s": 0.00065,
+            "symmetrize": "0",
+            "time_start": 0.0
+        },
+        "bunchFile": {
+            "sourceFile": null
+        },
+        "bunchReport1": {
+            "histogramBins": 200,
+            "x": "x",
+            "y": "xp"
+        },
+        "bunchReport2": {
+            "histogramBins": 200,
+            "x": "y",
+            "y": "yp"
+        },
+        "bunchReport3": {
+            "histogramBins": 200,
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "histogramBins": 200,
+            "x": "t",
+            "y": "p"
+        },
+        "bunchSource": {
+            "inputSource": "bunched_beam"
+        },
+        "commands": [
+            {
+                "_id": 1,
+                "_type": "run_setup",
+                "acceptance": "",
+                "always_change_p0": "0",
+                "back_tracking": "0",
+                "centroid": "",
+                "combine_bunch_statistics": "0",
+                "concat_order": 0.0,
+                "correction_iterations": 1.0,
+                "default_order": 2.0,
+                "echo_lattice": "0",
+                "element_divisions": 0.0,
+                "expand_for": "distr/distribution.sdds",
+                "final": "",
+                "final_pass": "0",
+                "lattice": "lattice.lte",
+                "load_balancing_on": 0.0,
+                "losses": "",
+                "losses_include_global_coordinates": "0",
+                "losses_s_limit": "-1.79E308, 1.79E308",
+                "magnets": "",
+                "monitor_memory_usage": "0",
+                "output": "",
+                "p_central": 0.0,
+                "p_central_mev": 0.0,
+                "parameters": "",
+                "print_statistics": "0",
+                "random_number_seed": 987654321.0,
+                "rfc_reference_output": "",
+                "show_element_timing": "0",
+                "sigma": "",
+                "suppress_parameter_defaults": "0",
+                "tracking_updates": "1",
+                "use_beamline": 5,
+                "wrap_around": "1"
+            },
+            {
+                "_id": 2,
+                "_type": "run_control",
+                "bunch_frequency": 0.0,
+                "first_is_fiducial": "0",
+                "n_indices": 0.0,
+                "n_passes": 1.0,
+                "n_passes_fiducial": 0.0,
+                "n_steps": 1.0,
+                "reset_rf_for_each_step": "1",
+                "restrict_fiducialization": "0"
+            },
+            {
+                "_id": 3,
+                "_type": "sdds_beam",
+                "center_arrival_time": "0",
+                "center_transversely": "0",
+                "duplicate_stagger": "0, 0, 0, 0, 0, 0",
+                "fiducialization_bunch": 0.0,
+                "input": "distr/distribution.sdds",
+                "input_type": "elegant",
+                "n_duplicates": 0.0,
+                "n_particles_per_ring": 0.0,
+                "n_tables_to_skip": 0.0,
+                "one_random_bunch": "0",
+                "p_lower": 0.0,
+                "p_upper": 0.0,
+                "prebunched": -1.0,
+                "reuse_bunch": "0",
+                "reverse_t_sign": 0.0,
+                "sample_fraction": 1.0,
+                "sample_interval": "1",
+                "save_initial_coordinates": "1",
+                "selection_parameter": "",
+                "selection_string": "",
+                "track_pages_separately": "0",
+                "use_bunched_mode": "0"
+            }
+        ],
+        "elements": [
+            {
+                "_id": 4,
+                "acausal_allowed": "0",
+                "allow_long_beam": "0",
+                "bunched_beam_mode": "1",
+                "change_p0": "0",
+                "charge": 0.0,
+                "factor": 1.0,
+                "group": "",
+                "inputfile": "distr/wake.sdds",
+                "interpolate": "0",
+                "n_bins": 128.0,
+                "name": "ZWAKE",
+                "ramp_passes": 0.0,
+                "sg_halfwidth": 4.0,
+                "sg_order": 1.0,
+                "smoothing": "0",
+                "tcolumn": "t",
+                "type": "WAKE",
+                "wcolumn": "W"
+            }
+        ],
+        "rpnCache": {},
+        "rpnVariables": [],
+        "simulation": {
+            "activeBeamlineId": 5,
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "Example",
+            "notes": "",
+            "simulationMode": "serial",
+            "simulationSerial": 0,
+            "visualizationBeamlineId": 5
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betax",
+            "y2": "betay",
+            "y3": "etax"
+        }
+    },
+    "simulationType": "elegant"
+}
