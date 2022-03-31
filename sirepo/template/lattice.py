@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
+from sirepo.template import code_variable
 import re
 
 
@@ -118,6 +119,20 @@ class LatticeIterator(ElementIterator):
     def is_ignore_field(self, field):
         return field in ['name', 'type', '_id'] or re.search('(X|Y|File)$', field)
 
+class DownCaseIterator(ModelIterator):
+    def field(self, model, field_schema, field):
+        if field_schema[1] == 'RPNValue':
+            if code_variable.CodeVar.is_var_value(model[field]):
+                model[field] = model[field].lower()
+
+
+class ToFloatIterator(ModelIterator):
+    def field(self, model, field_schema, field):
+        if field_schema[1] == 'RPNValue':
+            if not code_variable.CodeVar.is_var_value(model[field]):
+                pkdp('in toFLoatIterator.field(): {}', model[field])
+                model[field] = float(model[field])
+
 
 class LatticeParser(object):
     COMMAND_PREFIX = 'command_'
@@ -173,17 +188,21 @@ class LatticeParser(object):
                         ))
 
     def _code_variables_to_float(self, code_var):
+        pkdp('\n\n\n ***** CALLING CODE_VARIABLES_TO_FLOAT ******')
         for v in self.data.models.rpnVariables:
             if not code_var.is_var_value(v.value):
                 v.value = float(v.value)
-        for container in ('elements', 'commands'):
 
-            for el in self.data.models[container]:
-                model_name = LatticeUtil.model_name_for_data(el)
-                for f in self.schema.model[model_name]:
-                    if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
-                        if not code_var.is_var_value(el[f]):
-                            el[f] = float(el[f])
+        it = ToFloatIterator()
+        LatticeUtil(self.data, self.schema).iterate_models(it)
+
+        # for container in ('elements', 'commands'):
+        #     for el in self.data.models[container]:
+        #         model_name = LatticeUtil.model_name_for_data(el)
+        #         for f in self.schema.model[model_name]:
+        #             if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
+        #                 if not code_var.is_var_value(el[f]):
+        #                     el[f] = float(el[f])
 
     def _compute_drifts(self, code_var):
         drifts = PKDict()
@@ -195,17 +214,22 @@ class LatticeParser(object):
         return drifts
 
     def _downcase_variables(self, code_var):
+        pkdp('\n\n\n **** CALLING DOWNCASE_VARIABLES ***')
         for v in self.data.models.rpnVariables:
             v.name = v.name.lower()
             if code_var.is_var_value(v.value):
                 v.value = v.value.lower()
-        for container in ('elements', 'commands'):
-            for el in self.data.models[container]:
-                model_name = LatticeUtil.model_name_for_data(el)
-                for f in self.schema.model[model_name]:
-                    if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
-                        if code_var.is_var_value(el[f]):
-                            el[f] = el[f].lower()
+
+        it = DownCaseIterator()
+        LatticeUtil(self.data, self.schema).iterate_models(it)
+        pkdp(self.data.models)
+        # for container in ('elements', 'commands'):
+        #     for el in self.data.models[container]:
+        #         model_name = LatticeUtil.model_name_for_data(el)
+        #         for f in self.schema.model[model_name]:
+        #             if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
+        #                 if code_var.is_var_value(el[f]):
+        #                     el[f] = el[f].lower()
 
     def _eval_var(self, code_var, value):
         return code_var.eval_var_with_assert(value)
