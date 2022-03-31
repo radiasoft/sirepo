@@ -177,6 +177,7 @@ class LatticeParser(object):
             if not code_var.is_var_value(v.value):
                 v.value = float(v.value)
         for container in ('elements', 'commands'):
+
             for el in self.data.models[container]:
                 model_name = LatticeUtil.model_name_for_data(el)
                 for f in self.schema.model[model_name]:
