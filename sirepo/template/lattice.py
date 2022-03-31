@@ -119,6 +119,7 @@ class LatticeIterator(ElementIterator):
     def is_ignore_field(self, field):
         return field in ['name', 'type', '_id'] or re.search('(X|Y|File)$', field)
 
+
 class DownCaseIterator(ModelIterator):
     def field(self, model, field_schema, field):
         if field_schema[1] == 'RPNValue':
@@ -129,8 +130,10 @@ class DownCaseIterator(ModelIterator):
 class ToFloatIterator(ModelIterator):
     def field(self, model, field_schema, field):
         if field_schema[1] == 'RPNValue':
-            if not code_variable.CodeVar.is_var_value(model[field]):
+            if not code_variable.CodeVar.is_var_value(model[field]) and type(model[field]) != float:
+
                 pkdp('in toFLoatIterator.field(): {}', model[field])
+                pkdp('\n field: {}', field)
                 model[field] = float(model[field])
 
 
@@ -195,7 +198,6 @@ class LatticeParser(object):
 
         it = ToFloatIterator()
         LatticeUtil(self.data, self.schema).iterate_models(it)
-
         # for container in ('elements', 'commands'):
         #     for el in self.data.models[container]:
         #         model_name = LatticeUtil.model_name_for_data(el)
@@ -222,7 +224,7 @@ class LatticeParser(object):
 
         it = DownCaseIterator()
         LatticeUtil(self.data, self.schema).iterate_models(it)
-        pkdp(self.data.models)
+        # pkdp(self.data.models)
         # for container in ('elements', 'commands'):
         #     for el in self.data.models[container]:
         #         model_name = LatticeUtil.model_name_for_data(el)

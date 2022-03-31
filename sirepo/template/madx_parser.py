@@ -38,6 +38,7 @@ class MadXParser(lattice.LatticeParser):
         self._add_variables_for_lattice_references()
         cv = madx.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
+        pkdp('\n\n\n in madxParser: {}', self.data.models.commands[0])
         self.__convert_sequences_to_beamlines(cv)
         self._set_default_beamline('use', 'sequence', 'period')
         self.__convert_references_to_ids()
