@@ -1631,6 +1631,12 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             });
 
             $scope.$on('fieldPaths.changed', setPathIfMissing);
+
+            appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
+                if ($scope.model.fieldPath.axis) {
+                    $scope.model.plotAxis = $scope.model.fieldPath.axis;
+                }
+            });
             setPathIfMissing();
         },
     };
