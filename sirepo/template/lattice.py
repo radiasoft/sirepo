@@ -5,6 +5,7 @@ u"""Lattice utilities.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from turtle import up
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
@@ -120,21 +121,13 @@ class LatticeIterator(ElementIterator):
         return field in ['name', 'type', '_id'] or re.search('(X|Y|File)$', field)
 
 
-class DownCaseIterator(ModelIterator):
+class UpdateIterator(ModelIterator):
+    def __init__(self, update_func):
+        self.update_func = update_func
+
     def field(self, model, field_schema, field):
         if field_schema[1] == 'RPNValue':
-            if code_variable.CodeVar.is_var_value(model[field]):
-                model[field] = model[field].lower()
-
-
-class ToFloatIterator(ModelIterator):
-    def field(self, model, field_schema, field):
-        if field_schema[1] == 'RPNValue':
-            if not code_variable.CodeVar.is_var_value(model[field]) and type(model[field]) != float:
-
-                pkdp('in toFLoatIterator.field(): {}', model[field])
-                pkdp('\n field: {}', field)
-                model[field] = float(model[field])
+            self.update_func(model, field)
 
 
 class LatticeParser(object):
@@ -191,20 +184,17 @@ class LatticeParser(object):
                         ))
 
     def _code_variables_to_float(self, code_var):
-        pkdp('\n\n\n ***** CALLING CODE_VARIABLES_TO_FLOAT ******')
+
+        def _float_update(model, field):
+            if not code_variable.CodeVar.is_var_value(model[field]) and type(model[field]) != float:
+                model[field] = float(model[field])
+
         for v in self.data.models.rpnVariables:
             if not code_var.is_var_value(v.value):
                 v.value = float(v.value)
-
-        it = ToFloatIterator()
+        it = UpdateIterator(_float_update)
         LatticeUtil(self.data, self.schema).iterate_models(it)
-        # for container in ('elements', 'commands'):
-        #     for el in self.data.models[container]:
-        #         model_name = LatticeUtil.model_name_for_data(el)
-        #         for f in self.schema.model[model_name]:
-        #             if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
-        #                 if not code_var.is_var_value(el[f]):
-        #                     el[f] = float(el[f])
+
 
     def _compute_drifts(self, code_var):
         drifts = PKDict()
@@ -216,22 +206,17 @@ class LatticeParser(object):
         return drifts
 
     def _downcase_variables(self, code_var):
-        pkdp('\n\n\n **** CALLING DOWNCASE_VARIABLES ***')
+
+        def _downcase_update(model, field):
+            if code_var.is_var_value(model[field]):
+                model[field] = model[field].lower()
+
         for v in self.data.models.rpnVariables:
             v.name = v.name.lower()
             if code_var.is_var_value(v.value):
                 v.value = v.value.lower()
-
-        it = DownCaseIterator()
+        it = UpdateIterator(_downcase_update)
         LatticeUtil(self.data, self.schema).iterate_models(it)
-        # pkdp(self.data.models)
-        # for container in ('elements', 'commands'):
-        #     for el in self.data.models[container]:
-        #         model_name = LatticeUtil.model_name_for_data(el)
-        #         for f in self.schema.model[model_name]:
-        #             if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
-        #                 if code_var.is_var_value(el[f]):
-        #                     el[f] = el[f].lower()
 
     def _eval_var(self, code_var, value):
         return code_var.eval_var_with_assert(value)
