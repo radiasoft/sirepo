@@ -619,10 +619,15 @@ class LatticeUtil(object):
         for name in names:
             for m in self.data.models[name]:
                 model_schema = self.schema.model[self.model_name_for_data(m)]
+                super_schema = None
+                if '_super' in model_schema:
+                    super_schema = self.schema.model[model_schema._super[2]]
                 iterator.start(m)
                 for k in sorted(m):
                     if k in model_schema:
                         iterator.field(m, model_schema[k], k)
+                    elif super_schema and k in super_schema:
+                        iterator.field(m, super_schema[k], k)
                 iterator.end(m)
         return iterator
 

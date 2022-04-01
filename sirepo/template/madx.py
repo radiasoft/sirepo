@@ -289,7 +289,19 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
     return res
 
 
+def _iterate_and_format_rpns(data, schema):
+    class RPNExpressionIterator(lattice.ModelIterator):
+        def field(self, model, field_schema, field):
+            if field_schema[1] == 'RPNValue':
+                if code_variable.CodeVar.is_var_value(model[field]):
+                    model[field] = _format_rpn_value(model[field])
+    it = RPNExpressionIterator()
+    lattice.LatticeUtil(data, schema).iterate_models(it)
+    return data
+
+
 def generate_parameters_file(data):
+    data = _iterate_and_format_rpns(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
     if data.models.simulation.computeTwissFromParticles == '1':
         _add_marker_and_observe(data)
@@ -806,6 +818,7 @@ def _format_field_value(state, model, field, el_type):
 def _format_rpn_value(value):
     import astunparse
     import ast
+
     class Visitor(ast.NodeTransformer):
         def visit_Call(self, node):
             if node.func.id == 'pow':
@@ -817,14 +830,15 @@ def _format_rpn_value(value):
                 )
             return node
 
-    r = code_variable.PurePythonEval.postfix_to_infix(value)
-    if type(r) == str and 'pow' in r:
-        tree = ast.parse(r)
+    if code_variable.CodeVar.infix_to_postfix(value) == value:
+        value = code_variable.PurePythonEval.postfix_to_infix(value)
+    if type(value) == str and 'pow' in value:
+        tree = ast.parse(value)
         for n in ast.walk(tree):
             Visitor().visit(n)
             ast.fix_missing_locations(n)
-        r = astunparse.unparse(tree).strip().replace('**', '^')
-    return r
+        value = astunparse.unparse(tree).strip().replace('**', '^')
+    return value
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
