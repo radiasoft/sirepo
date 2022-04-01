@@ -4,6 +4,9 @@
             "colorMap": "viridis",
             "scaling": "linear"
         },
+        "fieldLineoutReport": {
+            "plotAxis": "y"
+        },
         "fieldPaths": {
             "path": "line",
             "paths": [
@@ -12,9 +15,11 @@
                     "begin": "-0.0,-150,-0.0",
                     "end": "0.0,150,0.0",
                     "id": "6233b2ae-cc3e-4ec8-a746-b1e947a67ca0",
-                    "name": "y axis",
+                    "name": "Y-Axis",
                     "numPoints": 301,
-                    "type": "line"
+                    "start": -150,
+                    "stop": 150,
+                    "type": "axis"
                 }
             ]
         },
