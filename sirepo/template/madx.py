@@ -837,7 +837,7 @@ def _format_rpn_value(value):
             Visitor().visit(n)
             ast.fix_missing_locations(n)
         return astunparse.unparse(tree).strip().replace('**', '^')
-    if type(value) == str and '-' in value:
+    if type(value) == str and '-' in value and '^' in value:
         value = '(' + value + ')'
     return value
 
