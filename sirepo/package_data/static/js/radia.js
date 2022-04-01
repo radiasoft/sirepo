@@ -3107,7 +3107,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
     };
 });
 
-SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaService) {
+SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaPathService) {
 
     return {
         restrict: 'A',
@@ -3119,7 +3119,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
                 <div class="panel panel-info">
                     <div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>
                     <div class="panel-body">
-                        <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
+                        <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaPathService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
                         <div data-field-path-table="" data-paths="model.paths"></div>
                         <button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>
                     </div>
@@ -3130,7 +3130,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.pathTypes = appState.enumVals('PathType');
-            $scope.radiaService = radiaService;
+            $scope.radiaPathService = radiaPathService;
 
             $scope.getPathType = function() {
                 return ($scope.model || {}).path;
