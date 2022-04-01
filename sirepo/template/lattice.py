@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
-from sirepo.template import code_variable
 import re
 
 
@@ -185,7 +184,7 @@ class LatticeParser(object):
     def _code_variables_to_float(self, code_var):
 
         def _float_update(model, field):
-            if not code_variable.CodeVar.is_var_value(model[field]) and type(model[field]) != float:
+            if not code_var.is_var_value(model[field]) and type(model[field]) != float:
                 model[field] = float(model[field])
 
         for v in self.data.models.rpnVariables:
