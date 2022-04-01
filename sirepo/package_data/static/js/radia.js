@@ -93,23 +93,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.selectedObject = null;
 
-    self.addOrModifyPath = function(type) {
-        var p = appState.models[self.pathTypeModel(type)];
-        if (! appState.models.fieldPaths.paths) {
-            appState.models.fieldPaths.paths = [];
-        }
-        if (! findPath(p)) {
-            if (type === 'file') {
-                p.fileName = p.fileModel.name;
-                upload((p.fileModel));
-            }
-            appState.models.fieldPaths.paths.push(p);
-        }
-        appState.saveChanges('fieldPaths', function (d) {
-            self.showPathPicker(false);
-        });
-    };
-
     self.alphaDelegate = function() {
         var m = 'magnetDisplay';
         var f = 'alpha';
@@ -133,25 +116,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return self.axes.filter((a) => {
             return a !== depthAxis && a !== heightAxis;
         })[0];
-    };
-
-    self.createPathModel = function(type) {
-        var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
-        var model = {
-            id: numPathsOfType(appState.models.fieldPaths.path),
-        };
-        appState.models[t] = appState.setModelDefaults(model, t);
-
-        // set to fill bounds if any actors exist
-        //TODO: must use OBJECT bounds, not the bounds of a vector field!
-        if (t === 'fieldMapPath' && self.objBounds) {
-            appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
-            appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
-            appState.models[t].lenZ = Math.abs(self.objBounds[5] - self.objBounds[4]);
-            appState.models[t].ctrX = (self.objBounds[1] + self.objBounds[0]) / 2.0;
-            appState.models[t].ctrY = (self.objBounds[3] + self.objBounds[2]) / 2.0;
-            appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
-        }
     };
 
     self.deleteObject = o => {
@@ -200,34 +164,14 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return appState.models.geometryReport.objects || [];
     };
 
-    self.getPathType = function() {
-        return (appState.models.fieldTypes || {}).path;
-    };
-
     self.getSelectedObject = function() {
         return self.selectedObject;
     };
-
-    self.newPath = function() {
-        self.showPathPicker(true, true);
-    };
-
 
     // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
     // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => utilities.randomString(16);
-
-    self.pathEditorTitle = function() {
-        if (! appState.models.fieldPaths) {
-            return '';
-        }
-        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.path;
-    };
-
-    self.pathTypeModel = function(type) {
-        return type + 'Path';
-    };
 
     self.reloadGeometry = (callback=() => {}) => {
         const r = 'geometryReport';
@@ -257,16 +201,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.showFieldDownload = function(doShow, path) {
         self.selectedPath = path;
         $('#sr-field-download').modal(doShow ? 'show' : 'hide');
-    };
-
-    self.showPathPicker = function(doShow, isNew) {
-        self.isEditing = doShow && ! isNew;
-        if (doShow) {
-            if (isNew) {
-                self.createPathModel();
-            }
-        }
-        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
     self.stringToFloatArray = function (str, scale) {
@@ -303,22 +237,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         );
     };
 
-    function findPath(path) {
-        for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
-            var p = appState.models.fieldPaths.paths[i];
-            if (p.type === path.type && p.id === path.id) {
-                return path;
-            }
-        }
-        return null;
-    }
-
-    function numPathsOfType(type) {
-        return (appState.models.fieldPaths.paths || []).filter(function (p) {
-            return p.type === type;
-        }).length;
-    }
-
     function removeFromGroup(o) {
         const gId = o.groupId;
         if (gId !== 0 && (! gId || gId === '')) {
@@ -345,6 +263,95 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             }, function (err) {
                 throw new Error(inputFile + ': Error during upload ' + err);
             });
+    }
+
+    return self;
+});
+
+SIREPO.app.factory('radiaPathService', function(appState, fileUpload, geometry, panelState) {
+    var self = {};
+
+    self.isEditing = false;
+
+    self.addOrModifyPath = function(type) {
+        var p = appState.models[self.pathTypeModel(type)];
+        if (! appState.models.fieldPaths.paths) {
+            appState.models.fieldPaths.paths = [];
+        }
+        if (! findPath(p)) {
+            if (type === 'file') {
+                p.fileName = p.fileModel.name;
+                upload((p.fileModel));
+            }
+            appState.models.fieldPaths.paths.push(p);
+        }
+        appState.saveChanges('fieldPaths', function (d) {
+            self.showPathPicker(false);
+        });
+    };
+
+    self.createPathModel = function(type) {
+        var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
+        var model = {
+            id: numPathsOfType(appState.models.fieldPaths.path),
+        };
+        appState.models[t] = appState.setModelDefaults(model, t);
+
+        // set to fill bounds if any actors exist
+        //TODO: must use OBJECT bounds, not the bounds of a vector field!
+        if (t === 'fieldMapPath' && self.objBounds) {
+            appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
+            appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
+            appState.models[t].lenZ = Math.abs(self.objBounds[5] - self.objBounds[4]);
+            appState.models[t].ctrX = (self.objBounds[1] + self.objBounds[0]) / 2.0;
+            appState.models[t].ctrY = (self.objBounds[3] + self.objBounds[2]) / 2.0;
+            appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
+        }
+    };
+
+    self.getPathType = function() {
+        return (appState.models.fieldTypes || {}).path;
+    };
+
+    self.newPath = function() {
+        self.showPathPicker(true, true);
+    };
+
+    self.pathEditorTitle = function() {
+        if (! appState.models.fieldPaths) {
+            return '';
+        }
+        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.path;
+    };
+
+    self.pathTypeModel = function(type) {
+        return type + 'Path';
+    };
+
+    self.showPathPicker = function(doShow, isNew) {
+        self.isEditing = doShow && ! isNew;
+        if (doShow) {
+            if (isNew) {
+                self.createPathModel();
+            }
+        }
+        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
+    };
+
+    function findPath(path) {
+        for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
+            var p = appState.models.fieldPaths.paths[i];
+            if (p.type === path.type && p.id === path.id) {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    function numPathsOfType(type) {
+        return (appState.models.fieldPaths.paths || []).filter(function (p) {
+            return p.type === type;
+        }).length;
     }
 
     return self;
@@ -1651,7 +1658,7 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
     };
 });
 
-SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
+SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaPathService) {
 
     return {
         restrict: 'A',
@@ -1677,7 +1684,7 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                       </div>
                       <br />
                       <div class="row">
-                        <div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">
+                        <div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaPathService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">
                       </div>
                     </div>
                   </div>
@@ -1689,8 +1696,8 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
             $scope.modelsLoaded = false;
             $scope.pathType = null;
             $scope.pathTypes = appState.enumVals('PathType');
-            $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
-            $scope.radiaService = radiaService;
+            $scope.pathTypeModels = $scope.pathTypes.map(radiaPathService.pathTypeModel);
+            $scope.radiaPathService = radiaPathService;
 
             $scope.getPathType = function() {
                return ($scope.model || {}).path;
@@ -1699,15 +1706,15 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.pathTypes.forEach(function (t) {
-                    var pt = radiaService.pathTypeModel(t);
+                    var pt = radiaPathService.pathTypeModel(t);
                     $scope.$on(pt + '.changed', function () {
-                        radiaService.addOrModifyPath(t);
+                        radiaPathService.addOrModifyPath(t);
                     });
                 });
 
                 let el = $('#sr-fieldpaths-editor');
                 el.on('hidden.bs.modal', function() {
-                    appState.cancelChanges(radiaService.pathTypeModel($scope.getPathType()));
+                    appState.cancelChanges(radiaPathService.pathTypeModel($scope.getPathType()));
                     $scope.$apply();
                 });
 
@@ -1716,13 +1723,13 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                         return;
                     }
                     appState.removeModel(name);
-                    radiaService.showPathPicker(false);
+                    radiaPathService.showPathPicker(false);
                 });
                 $scope.$watch('model.path', function (m) {
                     var o = $($element).find('.modal').css('opacity');
-                    if (o == 1 && ! radiaService.isEditing) {
+                    if (o == 1 && ! radiaPathService.isEditing) {
                         // displaying editor but not editing, must be new
-                        radiaService.createPathModel();
+                        radiaPathService.createPathModel();
                     }
                 });
                 $scope.modelsLoaded = true;
@@ -1847,7 +1854,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
     };
 });
 
-SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaService, utilities) {
+SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaService, radiaPathService) {
     return {
         restrict: 'A',
         scope: {
@@ -1907,7 +1914,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                 copy.name = newPathName(copy);
                 copy.id = radiaService.generateId();
                 $scope.paths.push(copy);
-                appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], function () {
+                appState.saveChanges(['fieldPaths', radiaPathService.pathTypeModel(copy.type)], function () {
                     $scope.editPath(copy);
                 });
             };
@@ -1918,14 +1925,14 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
            };
 
            $scope.editPath = function(path) {
-               appState.models[radiaService.pathTypeModel(path.type)] = path;
+               appState.models[radiaPathService.pathTypeModel(path.type)] = path;
                appState.models.fieldPaths.path = path.type;
-               radiaService.showPathPicker(true, false);
+               radiaPathService.showPathPicker(true, false);
            };
 
            $scope.pathDetails = function(path) {
                var res = '';
-               var pt = radiaService.pathTypeModel(path.type);
+               var pt = radiaPathService.pathTypeModel(path.type);
                var info = appState.modelInfo(pt);
                var d = SIREPO.APP_SCHEMA.constants.detailFields.fieldPath[pt];
                d.forEach(function (f, i) {
