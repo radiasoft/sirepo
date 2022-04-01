@@ -1615,8 +1615,12 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             $scope.dataCleared = true;
             $scope.model = appState.models[$scope.modelName];
 
+            function isFieldPathValid(p) {
+                return ! $.isEmptyObject(p) && p.type
+            }
+
             function setPathIfMissing() {
-                if ($.isEmptyObject($scope.model.fieldPath) && $scope.hasPaths() ) {
+                if (! isFieldPathValid($scope.model.fieldPath) && $scope.hasPaths() ) {
                     $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
                     appState.saveQuietly($scope.modelName);
                 }
