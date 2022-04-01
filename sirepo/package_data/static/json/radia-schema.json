@@ -708,6 +708,7 @@
             "type": ["_", "PathType", "fieldMap"]
         },
         "fieldPath": {
+            "id": ["_", "RandomId", ""],
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {

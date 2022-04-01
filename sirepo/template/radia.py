@@ -282,13 +282,15 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
     return _update_geom_from_dipole(geom_objs, model, **kwargs)
 
 
-def _build_field_axis(length, beam_axis):
-    beam_dir = radia_util.AXIS_VECTORS[beam_axis]
+def _build_field_axis(length, axis):
+    beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
         begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
         end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
-        name=f'{beam_axis} axis',
-        numPoints=round(length / 2) + 1
+        name=f'{axis.upper()}-Axis',
+        numPoints=round(length / 2) + 1,
+        start=-length / 2,
+        stop=length / 2
     )
     _SIM_DATA.update_model_defaults(f, 'linePath')
     return f
