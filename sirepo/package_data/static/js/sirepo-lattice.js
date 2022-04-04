@@ -1356,7 +1356,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             function itemTrackHash(item, group, length, angle) {
                 return group.items.length + '-' + item.name + '-' + item._id + '-' + length + '-'
                     + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0)
-                    + '-' + item.beamlineIndex + '-' + (item.elemedge || 0);
+                    + '-' + item.beamlineIndex + '-' + (item.elemedge || 0)
+                    + '-' + (item.open_side || '');
             }
 
             function subScaleWatch() {
@@ -1550,7 +1551,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 groupItem.x -= 0.01;
                                 groupItem.width = 0.02;
                             }
-                            groupItem.opening = elRadius || 0.1;
+                            if (groupItem.element.open_side) {
+                                groupItem.openSide = groupItem.element.open_side == '+x'
+                                    ? 'right'
+                                    : groupItem.openSide = groupItem.element.open_side == '-x'
+                                        ? 'left'
+                                        : '';
+                            }
+                            groupItem.opening = 0.1;
+                            updateBounds(pos.bounds, pos.x, pos.y, 1);
                         }
                         else if (picType == 'alpha') {
                             var alphaAngle = 40.71;
