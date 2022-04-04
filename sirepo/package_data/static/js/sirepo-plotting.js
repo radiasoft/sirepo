@@ -1510,13 +1510,13 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
         }
 
         function calcFormat(count, unit, base, isBaseFormat) {
-            var code = 'e';
-            var tickValues = self.scale.ticks(count);
-            var v0 = applyUnit(tickValues[0] - (base || 0), unit);
-            var v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
-            var p0 = valuePrecision(v0);
-            var p1 = valuePrecision(v1);
-            var decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
+            let code = 'e';
+            const tickValues = self.scale.ticks(count);
+            const v0 = applyUnit(tickValues[0] - (base || 0), unit);
+            const v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
+            const p0 = valuePrecision(v0);
+            const p1 = valuePrecision(v1);
+            let decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
             if (isBaseFormat || useFloatFormat(decimals)) {
                 if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
                     code = 'f';
@@ -1532,6 +1532,9 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                 else {
                     decimals -= Math.max(p0, p1);
                 }
+            }
+            if (code == 'e' && decimals >= 0) {
+                decimals = -(p0 - decimals);
             }
             decimals = decimals < 0 ? Math.abs(decimals) : 0;
             return {
