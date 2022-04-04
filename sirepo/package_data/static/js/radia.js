@@ -475,6 +475,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.undulatorType;
     };
 
+    self.getView = () => {
+        return `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
+    };
+
     self.isDropEnabled = function() {
         return self.dropEnabled;
     };
@@ -571,6 +575,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             shape.draggable = false;
         }
         return shape;
+    };
+
+    self.viewTitle = () => {
+        return {
+            dipole: (
+                {
+                    dipoleBasic: 'Basic',
+                    dipoleC: 'C-Bend',
+                    dipoleH: 'H-Bend',
+                }[self.getDipoleType()] || ''
+            ) + ' Dipole',
+            undulator: (
+                {
+                    undulatorBasic: 'Basic',
+                    undulatorHybrid: 'Hybrid',
+                }[self.getUndulatorType()] || ''
+            ) + ' Undulator',
+        }[self.getMagnetType()];
     };
 
     function addBeamAxis() {
