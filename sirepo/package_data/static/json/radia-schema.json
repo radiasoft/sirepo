@@ -32,6 +32,7 @@
         },
         "detailFields": {
             "fieldPath": {
+                "axisPath": ["start", "stop"],
                 "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
                 "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
                 "filePath": ["fileName"],
@@ -327,6 +328,7 @@
             ["tee", "Extruded Tee"]
         ],
         "PathType": [
+            ["axis", "Axis"],
             ["line", "Line"],
             ["circle", "Circle"],
             ["manual", "Manual Group"],
@@ -385,6 +387,13 @@
         }
     },
     "model": {
+        "axisPath": {
+            "_super": ["_", "model", "linePath"],
+            "axis": ["Axis", "BeamAxis", "z"],
+            "start": ["Start", "Float", -10.0, "Start point"],
+            "stop": ["End", "Float", 10.0, "End point"],
+            "type": ["_", "PathType", "axis"]
+        },
         "cuboid": {
             "_super": ["_", "model", "geomObject"],
             "type": ["_", "ObjectType", "cuboid"]
@@ -678,10 +687,11 @@
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
         "fieldLineoutReport": {
-            "fieldPath": ["_", "Object", {}],
+            "fieldPath": ["_", "model.fieldPath", {}],
             "fieldPaths": ["Path", "FieldPaths", []],
             "fieldType": ["Field", "FieldType", "B"],
-            "inProgressText": ["_", "String", "Calculating"]
+            "inProgressText": ["_", "String", "Calculating"],
+            "plotAxis": ["Plot Axis", "BeamAxis", "z"]
         },
         "fieldIntegralReport": {
             "lastCalculated": ["_", "Integer", -1]
@@ -698,6 +708,7 @@
             "type": ["_", "PathType", "fieldMap"]
         },
         "fieldPath": {
+            "id": ["_", "RandomId", ""],
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {
@@ -986,6 +997,15 @@
         "typeOfSimulation": "solve"
     },
     "view": {
+        "axisPath": {
+            "title": "Axis",
+            "basic": [
+                "axis",
+                "start",
+                "stop",
+                "numPoints"
+            ]
+        },
         "circlePath": {
             "title": "Circle",
             "basic": [
@@ -1099,12 +1119,10 @@
             "title": "Field on Path",
             "advanced": [
                 "fieldPaths",
-                "fieldType"
+                "fieldType",
+                "plotAxis"
             ],
-             "basic": [
-                 "fieldPaths",
-                 "fieldType"
-            ]
+            "basic": []
         },
         "fieldMapPath": {
             "title": "Field Map",

@@ -312,7 +312,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, simulationDataCache, utilities, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -796,7 +796,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.setFieldDefaults = function(model, field, fieldInfo, overWrite=false) {
-        let defaultVal = fieldInfo[2];
+        let defaultVal = fieldInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE];
+        if (fieldInfo[SIREPO.INFO_INDEX_TYPE] === 'RandomId') {
+            defaultVal = utilities.randomString();
+        }
         if (! model[field] || overWrite) {
             if (defaultVal !== undefined) {
                 // for cases where the default value is an object, we must

@@ -154,7 +154,7 @@ class OpalMadxConverter(MadxConverter):
             ['SBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
         ],
         ['RBEND',
-            ['RBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+            ['RBEND', 'l', 'angle', 'e1', 'gap=hgap', 'psi=tilt'],
         ],
         ['QUADRUPOLE',
             ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],

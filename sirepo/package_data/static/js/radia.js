@@ -137,9 +137,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.createPathModel = function(type) {
         var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
-        var model = {
-            id: numPathsOfType(appState.models.fieldPaths.path),
-        };
+        var model = {};
         appState.models[t] = appState.setModelDefaults(model, t);
 
         // set to fill bounds if any actors exist
@@ -1615,22 +1613,35 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
         `,
         controller: function($scope) {
             $scope.dataCleared = true;
+            $scope.model = appState.models[$scope.modelName];
+
+            function isFieldPathValid(p) {
+                return ! $.isEmptyObject(p) && p.type
+            }
+
+            function setPathIfMissing() {
+                if (! isFieldPathValid($scope.model.fieldPath) && $scope.hasPaths() ) {
+                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
+                    appState.saveQuietly($scope.modelName);
+                }
+            }
 
             $scope.hasPaths = () => {
                 return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
             };
 
-            appState.whenModelsLoaded($scope, () => {
-                $scope.model = appState.models[$scope.modelName];
-                if ($.isEmptyObject($scope.model.fieldPath) && $scope.hasPaths() ) {
-                    $scope.model.fieldPath = appState.models.fieldPaths.paths[0];
-                    appState.saveQuietly($scope.modelName);
-                }
-               // wait until we have some data
-               $scope.$on('radiaViewer.loaded', () => {
-                   $scope.dataCleared = false;
-               });
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
             });
+
+            $scope.$on('fieldPaths.changed', setPathIfMissing);
+
+            appState.watchModelFields($scope, [`${$scope.modelName}.fieldPath`],  () => {
+                if ($scope.model.fieldPath.axis) {
+                    $scope.model.plotAxis = $scope.model.fieldPath.axis;
+                }
+            });
+            setPathIfMissing();
         },
     };
 });
@@ -1762,6 +1773,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
+            $scope.model = appState.models[$scope.modelName];
 
             $scope.download = function() {
                 var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
@@ -1799,7 +1811,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             $scope.isLine = function(p) {
-                return p.type === 'line';
+                return p.type === 'line' || p.type === 'axis';
             };
 
             $scope.linePaths = function () {
@@ -1815,23 +1827,13 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 }, true);
             }
 
-            $scope.$on('fieldPaths.changed', function () {
-                updateTable();
-            });
-
-           appState.whenModelsLoaded($scope, function() {
-               $scope.model = appState.models[$scope.modelName];
-               // wait until we have some data to update
-               $scope.$on('radiaViewer.loaded', function () {
-                    updateTable();
-               });
-            });
-
+            $scope.$on('radiaViewer.loaded', updateTable);
+            $scope.$on('fieldPaths.changed', updateTable);
         },
     };
 });
 
-SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaService, utilities) {
+SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, radiaService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1880,6 +1882,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                 return e[SIREPO.ENUM_INDEX_VALUE];
             });
 
+            $scope.paths = appState.models.fieldPaths.paths;
             $scope.svc = radiaService;
 
             $scope.hasPaths = function() {
@@ -1923,8 +1926,12 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                return appState.uniqueName(appState.models.fieldPaths, 'name', path.name + ' {}');
            }
 
-           appState.whenModelsLoaded($scope, function() {
-               $scope.paths = appState.models.fieldPaths.paths;
+           $scope.$on('axisPath.changed', (e, d) => {
+               let m = appState.models.axisPath;
+               m.name = `${m.axis.toUpperCase()}-Axis`;
+               m.begin = geometry.basisVectors[m.axis].map(x => m.start * x).join(',');
+               m.end = geometry.basisVectors[m.axis].map(x => m.stop * x).join(',');
+               appState.saveQuietly('axisPath');
            });
         },
     };
@@ -3846,6 +3853,8 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             return;
         }
         const isDipole = model.magnetType === 'dipole';
+        const isImported =  ! ! appState.models.simulation.dmpImportFile;
+        const enableAxes = isImported || (isNew() && ! isDipole);
         panelState.enableField(
             $scope.modelName,
             'magnetType',
@@ -3853,26 +3862,26 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         );
 
         for(const m of ['dipole', 'undulator']) {
-            const t = m + 'Type';
+            const t = `${m}Type`;
             panelState.showField($scope.modelName, t, model.magnetType === m);
             panelState.enableField($scope.modelName, t, isNew() && model.magnetType === m);
         }
 
         //TODO(mvk): setting the beamAxis/heightAxis to anything other than x/z for dipoles causes
         // the magnet to be built incorrectly. For now set those values and disable the fields
-        if (model.magnetType === 'dipole') {
+        if (isDipole) {
             model.beamAxis = 'x';
             model.heightAxis = 'z';
         }
         panelState.enableField(
             $scope.modelName,
             'beamAxis',
-            isNew() && model.magnetType !== 'dipole'
+            enableAxes
         );
         panelState.enableField(
             $scope.modelName,
             'heightAxis',
-            isNew() && ! isDipole
+            enableAxes
         );
 
         for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
