@@ -67,13 +67,11 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
 
     def parse_file(self, path):
         from sirepo.template import opal_parser
-        pkdp('\n\n\n *** in opal libadapter.parse_file, path: {}', path)
         data, input_files = opal_parser.parse_file(
             pkio.read_text(path),
             filename=path.basename,
-            preserve_output_filenames=True,
+            update_filenames=False,
         )
-        pkdp('\n\n\n *** input_files: {}', input_files)
         self._verify_files(path, [f.filename for f in input_files])
         return self._convert(data)
 

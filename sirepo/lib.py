@@ -7,6 +7,7 @@ Use this to call sirepo from other packages or Python notebooks.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from codecs import ignore_errors
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
@@ -22,10 +23,11 @@ import sirepo.util
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def __init__(self):
+    def __init__(self, ignore_files):
         m = inspect.getmodule(self)
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
+        self._ignore_files = ignore_files
 
     def _convert(self, data):
         def _model(model, name):
@@ -68,7 +70,10 @@ class LibAdapterBase:
         pkdp('\n\n\n *** filenames in _verify_files: {}', filenames)
         pkdp('\n *** path in _verify_files: {}', path)
         pkdp('\n *** path.dirpath() in _verify_files: {}', path.dirpath())
+
         for f in filenames:
+            if f in self._ignore_files:
+                continue
             p = path.dirpath().join(f)
             pkdp('\n\n\n *** Path right before assertion: {}', p)
             assert p.check(file=True), \
@@ -84,7 +89,8 @@ class LibAdapterBase:
             try:
                 d = dest_dir.join(f)
                 pykern.pkio.mkdir_parent_only(d)
-                d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
+                if f not in self._ignore_files:
+                    d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
             except py.error.EEXIST:
                 pass
 
@@ -103,10 +109,10 @@ class GenerateBase:
 
 class Importer:
 
-    def __init__(self, sim_type):
+    def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
 
-        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter()
+        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(ignore_files or [])
 
     def parse_file(self, path):
         p = pykern.pkio.py_path(path)

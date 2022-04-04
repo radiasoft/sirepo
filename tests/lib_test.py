@@ -25,7 +25,7 @@ def _code():
             f'{inspect.stack()[1].function.split("_")[1]}_*',
     ))):
         t = s.basename.split('_')[0]
-        d = sirepo.lib.Importer(t).parse_file(
+        d = sirepo.lib.Importer(t, ignore_files=['Should_be_ignored.T7']).parse_file(
             pkio.sorted_glob(s.join('first*'))[0]
         )
         pkdp('\n\n\n ** D: {}', d)
@@ -37,6 +37,7 @@ def _code():
         pkunit.file_eq(s.join('out.json'), d2)
         w = pkunit.work_dir().join(s.basename)
         r = d.write_files(w)
+        assert not w.join('Should_be_ignored.T7').check(link=True)
         pkjson.dump_pretty(r.output_files, filename=w.join('output_files.json'))
         for o in pkio.sorted_glob(pkunit.data_dir().join(s.basename, '*.out')):
             pkunit.file_eq(o, actual_path=w.join(o.basename).new(ext=''))
