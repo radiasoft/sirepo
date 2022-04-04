@@ -290,13 +290,12 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
 
 
 def _iterate_and_format_rpns(data, schema):
-    class RPNExpressionIterator(lattice.ModelIterator):
-        def field(self, model, field_schema, field):
-            if field_schema[1] == 'RPNValue':
-                if code_variable.CodeVar.is_var_value(model[field]):
-                    model[field] = _format_rpn_value(model[field])
-    it = RPNExpressionIterator()
-    lattice.LatticeUtil(data, schema).iterate_models(it)
+
+    def _rpn_update(model, field):
+        if code_variable.CodeVar.is_var_value(model[field]):
+            model[field] = _format_rpn_value(model[field])
+
+    lattice.LatticeUtil(data, schema).iterate_models(lattice.UpdateIterator(_rpn_update))
     return data
 
 
@@ -837,7 +836,9 @@ def _format_rpn_value(value):
         for n in ast.walk(tree):
             Visitor().visit(n)
             ast.fix_missing_locations(n)
-        value = astunparse.unparse(tree).strip().replace('**', '^')
+        return astunparse.unparse(tree).strip().replace('**', '^')
+    if type(value) == str and '-' in value and '^' in value:
+        value = '(' + value + ')'
     return value
 
 def _generate_commands(filename_map, util):
