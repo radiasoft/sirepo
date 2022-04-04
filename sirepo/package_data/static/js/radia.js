@@ -93,6 +93,23 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.selectedObject = null;
 
+    self.addOrModifyPath = function(type) {
+        var p = appState.models[self.pathTypeModel(type)];
+        if (! appState.models.fieldPaths.paths) {
+            appState.models.fieldPaths.paths = [];
+        }
+        if (! findPath(p)) {
+            if (type === 'file') {
+                p.fileName = p.fileModel.name;
+                upload((p.fileModel));
+            }
+            appState.models.fieldPaths.paths.push(p);
+        }
+        appState.saveChanges('fieldPaths', function (d) {
+            self.showPathPicker(false);
+        });
+    };
+
     self.alphaDelegate = function() {
         var m = 'magnetDisplay';
         var f = 'alpha';
@@ -116,6 +133,23 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return self.axes.filter((a) => {
             return a !== depthAxis && a !== heightAxis;
         })[0];
+    };
+
+    self.createPathModel = function(type) {
+        var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
+        var model = {};
+        appState.models[t] = appState.setModelDefaults(model, t);
+
+        // set to fill bounds if any actors exist
+        //TODO: must use OBJECT bounds, not the bounds of a vector field!
+        if (t === 'fieldMapPath' && self.objBounds) {
+            appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
+            appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
+            appState.models[t].lenZ = Math.abs(self.objBounds[5] - self.objBounds[4]);
+            appState.models[t].ctrX = (self.objBounds[1] + self.objBounds[0]) / 2.0;
+            appState.models[t].ctrY = (self.objBounds[3] + self.objBounds[2]) / 2.0;
+            appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
+        }
     };
 
     self.deleteObject = o => {
@@ -164,14 +198,34 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return appState.models.geometryReport.objects || [];
     };
 
+    self.getPathType = function() {
+        return (appState.models.fieldTypes || {}).path;
+    };
+
     self.getSelectedObject = function() {
         return self.selectedObject;
     };
+
+    self.newPath = function() {
+        self.showPathPicker(true, true);
+    };
+
 
     // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
     // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => utilities.randomString(16);
+
+    self.pathEditorTitle = function() {
+        if (! appState.models.fieldPaths) {
+            return '';
+        }
+        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.path;
+    };
+
+    self.pathTypeModel = function(type) {
+        return type + 'Path';
+    };
 
     self.reloadGeometry = (callback=() => {}) => {
         const r = 'geometryReport';
@@ -201,6 +255,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.showFieldDownload = function(doShow, path) {
         self.selectedPath = path;
         $('#sr-field-download').modal(doShow ? 'show' : 'hide');
+    };
+
+    self.showPathPicker = function(doShow, isNew) {
+        self.isEditing = doShow && ! isNew;
+        if (doShow) {
+            if (isNew) {
+                self.createPathModel();
+            }
+        }
+        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
     self.stringToFloatArray = function (str, scale) {
@@ -237,6 +301,22 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         );
     };
 
+    function findPath(path) {
+        for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
+            var p = appState.models.fieldPaths.paths[i];
+            if (p.type === path.type && p.id === path.id) {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    function numPathsOfType(type) {
+        return (appState.models.fieldPaths.paths || []).filter(function (p) {
+            return p.type === type;
+        }).length;
+    }
+
     function removeFromGroup(o) {
         const gId = o.groupId;
         if (gId !== 0 && (! gId || gId === '')) {
@@ -268,88 +348,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     return self;
 });
 
-SIREPO.app.factory('radiaPathService', function(appState, fileUpload, geometry, panelState) {
-    var self = {};
-
-    self.isEditing = false;
-
-    self.addOrModifyPath = function(type) {
-        var p = appState.models[self.pathTypeModel(type)];
-        if (! appState.models.fieldPaths.paths) {
-            appState.models.fieldPaths.paths = [];
-        }
-        if (! findPath(p)) {
-            if (type === 'file') {
-                p.fileName = p.fileModel.name;
-                radiaService.upload((p.fileModel));
-            }
-            appState.models.fieldPaths.paths.push(p);
-        }
-        appState.saveChanges('fieldPaths', function (d) {
-            self.showPathPicker(false);
-        });
-    };
-
-    self.createPathModel = function(type) {
-        var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
-        var model = {};
-        appState.models[t] = appState.setModelDefaults(model, t);
-
-        // set to fill bounds if any actors exist
-        //TODO: must use OBJECT bounds, not the bounds of a vector field!
-        if (t === 'fieldMapPath' && self.objBounds) {
-            appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
-            appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
-            appState.models[t].lenZ = Math.abs(self.objBounds[5] - self.objBounds[4]);
-            appState.models[t].ctrX = (self.objBounds[1] + self.objBounds[0]) / 2.0;
-            appState.models[t].ctrY = (self.objBounds[3] + self.objBounds[2]) / 2.0;
-            appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
-        }
-    };
-
-    self.getPathType = function() {
-        return (appState.models.fieldTypes || {}).path;
-    };
-
-    self.newPath = function() {
-        self.showPathPicker(true, true);
-    };
-
-    self.pathEditorTitle = function() {
-        if (! appState.models.fieldPaths) {
-            return '';
-        }
-        return (self.isEditing ? 'Edit ' : 'New ') + appState.models.fieldPaths.path;
-    };
-
-    self.pathTypeModel = function(type) {
-        return type + 'Path';
-    };
-
-    self.showPathPicker = function(doShow, isNew) {
-        self.isEditing = doShow && ! isNew;
-        if (doShow) {
-            if (isNew) {
-                self.createPathModel();
-            }
-        }
-        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
-    };
-
-    function findPath(path) {
-        for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
-            var p = appState.models.fieldPaths.paths[i];
-            if (p.type === path.type && p.id === path.id) {
-                return path;
-            }
-        }
-        return null;
-    }
-
-
-    return self;
-});
-
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
     var self = this;
 
@@ -369,9 +367,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     ];
 
     self.axes = ['x', 'y', 'z'];
+    self.builderCfg = {
+        fitToObjects: true,
+        fixedDomain: false,
+        initDomian: {
+            x: [-0.025, 0.025],
+            y: [-0.025, 0.025],
+            z: [-0.025, 0.025],
+        },
+        preserveShape: true,
+    };
 
     self.dropEnabled = true;
     self.selectedObject = null;
+    self.shapes = [];
+    self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
+        return item.name !== 'In Progress' && item.name.indexOf('Transforms') < 0;
+    });
+
 
     self.copyObject = function(o) {
         var copy = appState.clone(o);
@@ -379,6 +392,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         copy.groupId = '';
         addObject(copy);
         self.editObject(copy);
+    };
+
+    self.editTool = function(tool) {
+        if (tool.isInactive) {
+            return;
+        }
+        panelState.showModalEditor(tool.model);
     };
 
     self.deleteObject = function(o) {
@@ -394,22 +414,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }[self.getDipoleType()] || '') + ' Dipole';
     };
 
-    self.viewTitle = () => {
-        return {
-            dipole: (
-                {
-                    dipoleBasic: 'Basic',
-                    dipoleC: 'C-Bend',
-                    dipoleH: 'H-Bend',
-                }[self.getDipoleType()] || ''
-            ) + ' Dipole',
-            undulator: (
-                {
-                    undulatorBasic: 'Basic',
-                    undulatorHybrid: 'Hybrid',
-                }[self.getUndulatorType()] || ''
-            ) + ' Undulator',
-        }[self.getMagnetType()];
+    self.editItem = function(o) {
+        self.editObject(o);
     };
 
     self.editObjectWithId = function(id) {
@@ -452,6 +458,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return radiaService.getObjects();
     };
 
+    self.getShape = function(id) {
+        return self.shapes.filter(function (s) {
+            return s.id === id;
+        })[0];
+    };
+
+    self.getShapes = function() {
+        return self.shapes;
+    };
+
     self.getUndulatorType = () => {
         if (self.getMagnetType() !== 'undulator') {
             return null;
@@ -459,8 +475,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.undulatorType;
     };
 
-    self.getView = () => {
-        return `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
+    self.isDropEnabled = function() {
+        return self.dropEnabled;
+    };
+
+    self.isEditable = function() {
+        return true;
     };
 
     self.objectBounds = function() {
@@ -481,6 +501,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         });
         return t.sort();
+    };
+
+    self.pass = function() {
+        return function(item) {
+            return true;
+        };
     };
 
     self.saveObject = function(id, callback) {
@@ -508,6 +534,43 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.selectObjectWithId = function(id) {
         return self.selectObject(self.getObject(id));
+    };
+
+    self.shapeBounds = function() {
+        return shapesBounds(self.shapes);
+    };
+
+    // seems like a lot of this shape stuff can be refactored out to a common area
+    self.shapeForObject = function(o) {
+        var center = radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        var size =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        var isGroup = o.members && o.members.length;  //false;
+
+        if (o.members && o.members.length) {
+            isGroup = true;
+            var b = groupBounds(o.members.map(function (id) {
+                return self.getObject(id);
+            }));
+            center = b.map(function (c) {
+                return (c[0] + c[1]) / 2;
+            });
+            size = b.map(function (c) {
+                return Math.abs((c[1] - c[0]));
+            });
+        }
+
+        var shape = vtkPlotting.plotShape(
+            o.id, o.name,
+            center, size,
+            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
+            o.layoutShape
+        );
+        if (isGroup) {
+            shape.outlineOffset = 5.0;
+            shape.strokeWidth = 0.75;
+            shape.draggable = false;
+        }
+        return shape;
     };
 
     function addBeamAxis() {
@@ -543,6 +606,159 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         addShapesForObject(o);
     }
 
+    function addShapesForObject(o) {
+        let baseShape = self.getShape(o.id);
+        if (! baseShape) {
+            baseShape = self.shapeForObject(o);
+            self.shapes.push(baseShape);
+        }
+
+        let txArr = [];
+        let plIds = [];
+        // probably better to create a transform and let svg do this work
+        o.transforms.forEach(function (xform) {
+            // draw the shapes for symmetry planes once
+            if (xform.model === 'symmetryTransform') {
+                plIds.push(...addSymmetryPlane(baseShape, xform));
+            }
+            // each successive transform must be applied to all previous shapes
+            [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
+                // these transforms do not copy the object
+                if (xform.model === 'rotate') {
+                    txArr.push(rotateFn(xform, 1));
+                    return;
+                }
+                if (xform.model === 'translate') {
+                    txArr.push(offsetFn(xform, 1));
+                    return;
+                }
+
+                let xo = self.getObject(xShape.id);
+                let linkTx;
+                if (xform.model === 'cloneTransform') {
+                    let clones = [];
+                    for (let i = 1; i <= xform.numCopies; ++i) {
+                        let cloneTx = txArr.slice(0);
+                        linkTx = composeFn(cloneTx);
+                        for (let j = 0; j < xform.transforms.length; ++j) {
+                            let cloneXform = xform.transforms[j];
+                            if (cloneXform.model === 'translateClone') {
+                                cloneTx.push(offsetFn(cloneXform, i));
+                            }
+                            if (cloneXform.model === 'rotateClone') {
+                                cloneTx.push(rotateFn(cloneXform, i));
+                            }
+                        }
+                        addTxShape(xShape, xform, linkTx);
+                        clones.push(...transformMembers(xo, xform, linkTx, clones));
+                    }
+                }
+                if (xform.model === 'symmetryTransform') {
+                    linkTx = mirrorFn(xform);
+                    addTxShape(xShape, xform, linkTx);
+                    transformMembers(xo, xform, linkTx);
+                }
+            });
+        });
+
+        // apply non-copying transforms to the object and its members (if any)
+        composeFn(txArr)(baseShape, baseShape);
+        for (const m of getMembers(o)) {
+            let s = self.getShape(m.id);
+            composeFn(txArr)(s, s);
+        }
+
+        if (o.groupId !== '') {
+            let gShape = self.getShape(o.groupId);
+            if (! gShape) {
+                gShape = self.shapeForObject(self.getObject(o.groupId));
+                self.shapes.push(gShape);
+            }
+            fit(baseShape, gShape);
+            baseShape.addLink(gShape, fit);
+        }
+        //srdbg('shapes', self.shapes);
+        //srdbg(o.id, 'num shapes', self.shapes.length);
+    }
+
+    function addSymmetryPlane(baseShape, xform) {
+        let plIds = [];
+        for (const p in vtkPlotting.COORDINATE_PLANES) {
+            const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
+            const spl = geometry.plane(
+                radiaService.stringToFloatArray(xform.symmetryPlane),
+                geometry.pointFromArr( radiaService.stringToFloatArray(
+                    xform.symmetryPoint,
+                    SIREPO.APP_SCHEMA.constants.objectScale)
+                ));
+            if (cpl.equals(spl) || ! spl.intersection(cpl)) {
+                continue;
+            }
+            var pl = vtkPlotting.plotLine(
+                virtualShapeId(baseShape), baseShape.name, spl.intersection(cpl),
+                baseShape.color, 1.0, 'dashed', "8,8,4,8"
+            );
+            pl.coordPlane = p;
+            self.shapes.push(pl);
+            plIds.push(pl.id);
+        }
+        return plIds;
+    }
+
+    function addTxShape(sourceShape, xform, link) {
+        let nextShape = txShape(sourceShape, xform);
+        sourceShape.addLink(nextShape, link);
+        self.shapes.push(nextShape);
+        link(sourceShape, nextShape);
+        return nextShape;
+    }
+
+    function baseShapeId(id) {
+        return `${id}`.split('-')[0];
+    }
+
+    function composeFn(fnArr) {
+        return function(shape1, shape2) {
+            var prevShape = shape1;
+            fnArr.forEach(function (tx) {
+                prevShape = tx(prevShape, shape2);
+            });
+            return shape2;
+        };
+    }
+
+    function deleteShapesForObject(o) {
+        for (const s of getTransformedShapes(o)) {
+            self.shapes.splice(indexOfShape(s), 1);
+        }
+        let shape = self.shapeForObject(o);
+        for (const s of getVirtualShapes(shape)) {
+            self.shapes.splice(indexOfShape(s), 1);
+        }
+        self.shapes.splice(indexOfShape(shape), 1);
+    }
+
+    // shape - in group; linkedShape: group
+    function fit(shape, groupShape) {
+        const o = self.getObject(shape.id);
+        const groupId = o.groupId;
+        if (groupId === '' || groupId !== groupShape.id) {
+            groupShape.center = shape.center.join(',');
+            groupShape.size = shape.size.join(',');
+            return groupShape;
+        }
+        let mShapes = self.getObject(groupShape.id).members.map(function (mId) {
+            return self.getShape(mId);
+        }).filter(function (s) {
+            return ! ! s;
+        });
+        const newBounds = shapesBounds(mShapes);
+        for (const dim in newBounds) {
+            groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+            groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
+        }
+        return groupShape;
+    }
 
     // recursive dive through all subgroups
     function getMembers(o) {
@@ -556,6 +772,31 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             members.push(...getMembers(m));
         }
         return members;
+    }
+
+    function getTransformedShapes(o) {
+        let xfIds = o.transforms.map(function (tx) {
+            return tx.id;
+        });
+        if (! xfIds.length) {
+            return [];
+        }
+        return self.shapes.filter(function (s) {
+            return xfIds.indexOf(s.txId) >= 0;
+        });
+    }
+
+    // may have to flatten
+    function getVirtualShapes(baseShape, excludedIds = []) {
+        let v = self.shapes.filter(function (s) {
+            return excludedIds.indexOf(s.id) < 0 && hasBaseShape(s, baseShape);
+        });
+        let v2 = [];
+        for (const s of v) {
+            v2.push(...getVirtualShapes(s, excludedIds));
+        }
+        v.push(...v2);
+        return v;
     }
 
     function groupBounds(objs) {
@@ -575,8 +816,135 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return b;
     }
 
+    // indexOf does not work right...explicitly match by id here
+    function indexOfShape(shape) {
+        for (let i = 0; i < self.shapes.length; ++i) {
+            if (self.shapes[i].id === shape.id) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function loadShapes() {
+        self.shapes = [];
+        appState.models.geometryReport.objects.forEach(addShapesForObject);
+        addBeamAxis();
+    }
+
+    function mirrorFn(xform) {
+        return function (shape1, shape2) {
+            var pl = geometry.plane(
+                radiaService.stringToFloatArray(xform.symmetryPlane),
+                geometry.pointFromArr(radiaService.stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
+            );
+            shape2.setCenter(
+                pl.mirrorPoint(geometry.pointFromArr(
+                [shape1.center.x, shape1.center.y, shape1.center.z]
+                )).coords()
+            );
+            shape2.setSize(shape1.getSizeCoords());
+            return shape2;
+        };
+    }
+
     function newObjectName(o) {
         return appState.uniqueName(appState.models.geometryReport.objects, 'name', o.name + ' {}');
+    }
+
+    function offsetFn(xform, i) {
+        return function(shape1, shape2) {
+            const d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            shape2.setCenter(
+                shape1.getCenterCoords().map(function (c, j) {
+                    return c + i * d[j];
+                })
+            );
+            return shape2;
+        };
+    }
+
+    function rotateFn(xform, i) {
+        return function(shape1, shape2) {
+            var ctr =  radiaService.stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
+            var axis =  radiaService.stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
+            // need a 4-vector to account for translation
+            var shapeCtr4 = shape1.getCenterCoords();
+            shapeCtr4.push(0);
+            var angle = Math.PI * parseFloat(xform.angle) / 180.0;
+            var a = i * angle;
+            var m = geometry.rotationMatrix(ctr, axis, a);
+            shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
+            shape2.rotationAngle = -180.0 * a / Math.PI;
+            return shape2;
+        };
+    }
+
+    function shapesBounds(shapes) {
+        let b = {
+            x: [Number.MAX_VALUE, -Number.MAX_VALUE],
+            y: [Number.MAX_VALUE, -Number.MAX_VALUE],
+            z: [Number.MAX_VALUE, -Number.MAX_VALUE]
+        };
+        shapes.forEach(function (s) {
+            let vs = getVirtualShapes(s);
+            let sr = shapesBounds(vs);
+            for (const dim in b) {
+                b[dim] = [
+                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
+                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
+                ];
+            }
+        });
+        return b;
+    }
+
+    function transformMembers(o, xform, txFunction, excludedIds=[]) {
+        if (! o) {
+            return;
+        }
+        let txm = [];
+        for (const m of getMembers(o)) {
+            let shape = self.getShape(m.id);
+            if (! shape) {
+                // may be later in array if created externally
+                addShapesForObject(self.getObject(m.id));
+                shape = self.getShape(m.id);
+            }
+            let v = getVirtualShapes(shape, excludedIds);
+            txm.push(addTxShape(shape, xform, txFunction).id);
+            for (const s of v) {
+                txm.push(addTxShape(s, xform, txFunction).id);
+            }
+        }
+        return txm;
+    }
+
+    function transformShapesForObject(o) {
+        let baseShape = self.getShape(o.id);
+        [baseShape, ...getVirtualShapes(baseShape)].forEach(function (s) {
+            s.runLinks();
+        });
+    }
+
+    function transformShapesForObjects() {
+        for (const o of self.getObjects()) {
+            transformShapesForObject(o);
+        }
+    }
+
+    function txShape(shape, tx) {
+        var sh = vtkPlotting.plotShape(
+            virtualShapeId(shape),
+            shape.name,
+            SIREPO.ZERO_ARR,
+            shape.getSizeCoords(),
+            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+            shape.layoutShape
+        );
+        sh.draggable = false;
+        sh.txId = tx.id;
+        return sh;
     }
 
     function updateObjectEditor() {
@@ -593,6 +961,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         radiaService.validateMagnetization(o.magnetization, o.material);
     }
 
+    function virtualShapeId(shape) {
+        return `${shape.id}-${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
+    }
+
+    function hasBaseShape(shape, baseShape) {
+        // base shape is not its own base
+        if (shape.id === baseShape.id) {
+            return false;
+        }
+        return baseShapeId(shape.id) === `${baseShape.id}`;
+    }
+
     // initial setup
     appState.watchModelFields($scope, editorFields, function(d) {
         updateObjectEditor();
@@ -600,6 +980,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
+    loadShapes();
 
     $scope.$on('modelChanged', function(e, modelName) {
         if (! watchedModels.includes(modelName)) {
@@ -658,6 +1039,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     $scope.$on('geomObject.editor.show', updateObjectEditor);
 
+    $scope.$on('layout.object.dropped', function (e, lo) {
+        var m = appState.setModelDefaults({}, lo.model);
+        m.center = lo.center;
+        m.name = lo.type;
+        m.name = newObjectName(m);
+        m.model = lo.model;
+        self.editObject(m);
+    });
+
+    $scope.$on('drop.target.enabled', function (e, val) {
+        self.dropEnabled = val;
+    });
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
@@ -1253,7 +1646,7 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
     };
 });
 
-SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaPathService) {
+SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
 
     return {
         restrict: 'A',
@@ -1279,7 +1672,7 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaPath
                       </div>
                       <br />
                       <div class="row">
-                        <div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaPathService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">
+                        <div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">
                       </div>
                     </div>
                   </div>
@@ -1291,8 +1684,8 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaPath
             $scope.modelsLoaded = false;
             $scope.pathType = null;
             $scope.pathTypes = appState.enumVals('PathType');
-            $scope.pathTypeModels = $scope.pathTypes.map(radiaPathService.pathTypeModel);
-            $scope.radiaPathService = radiaPathService;
+            $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
+            $scope.radiaService = radiaService;
 
             $scope.getPathType = function() {
                return ($scope.model || {}).path;
@@ -1301,15 +1694,15 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaPath
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.pathTypes.forEach(function (t) {
-                    var pt = radiaPathService.pathTypeModel(t);
+                    var pt = radiaService.pathTypeModel(t);
                     $scope.$on(pt + '.changed', function () {
-                        radiaPathService.addOrModifyPath(t);
+                        radiaService.addOrModifyPath(t);
                     });
                 });
 
                 let el = $('#sr-fieldpaths-editor');
                 el.on('hidden.bs.modal', function() {
-                    appState.cancelChanges(radiaPathService.pathTypeModel($scope.getPathType()));
+                    appState.cancelChanges(radiaService.pathTypeModel($scope.getPathType()));
                     $scope.$apply();
                 });
 
@@ -1318,13 +1711,13 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaPath
                         return;
                     }
                     appState.removeModel(name);
-                    radiaPathService.showPathPicker(false);
+                    radiaService.showPathPicker(false);
                 });
                 $scope.$watch('model.path', function (m) {
                     var o = $($element).find('.modal').css('opacity');
-                    if (o == 1 && ! radiaPathService.isEditing) {
+                    if (o == 1 && ! radiaService.isEditing) {
                         // displaying editor but not editing, must be new
-                        radiaPathService.createPathModel();
+                        radiaService.createPathModel();
                     }
                 });
                 $scope.modelsLoaded = true;
@@ -1440,7 +1833,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
     };
 });
 
-SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaService, radiaPathService) {
+SIREPO.app.directive('fieldPathTable', function(appState, geometry, panelState, radiaService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1501,7 +1894,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                 copy.name = newPathName(copy);
                 copy.id = radiaService.generateId();
                 $scope.paths.push(copy);
-                appState.saveChanges(['fieldPaths', radiaPathService.pathTypeModel(copy.type)], function () {
+                appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], function () {
                     $scope.editPath(copy);
                 });
             };
@@ -1512,14 +1905,14 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
            };
 
            $scope.editPath = function(path) {
-               appState.models[radiaPathService.pathTypeModel(path.type)] = path;
+               appState.models[radiaService.pathTypeModel(path.type)] = path;
                appState.models.fieldPaths.path = path.type;
-               radiaPathService.showPathPicker(true, false);
+               radiaService.showPathPicker(true, false);
            };
 
            $scope.pathDetails = function(path) {
                var res = '';
-               var pt = radiaPathService.pathTypeModel(path.type);
+               var pt = radiaService.pathTypeModel(path.type);
                var info = appState.modelInfo(pt);
                var d = SIREPO.APP_SCHEMA.constants.detailFields.fieldPath[pt];
                d.forEach(function (f, i) {
@@ -1540,685 +1933,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                m.end = geometry.basisVectors[m.axis].map(x => m.stop * x).join(',');
                appState.saveQuietly('axisPath');
            });
-        },
-    };
-});
-
-SIREPO.app.directive('freehandDesigner', function(appState, geometry, panelState, radiaService, validationService, vtkPlotting) {
-    return {
-        restrict: 'A',
-        scope: {
-            controller: '=',
-        },
-        template: `
-          <div class="row">
-              <div data-toolbar="toolbarSections" data-ng-show="isEditable()"></div>
-          </div>
-          <div>
-              <div data-3d-builder="" data-model-name="geometryReport" data-cfg="builderCfg" data-controller="controller"></div>
-          </div>
-        `,
-        controller: function($scope, $element) {
-            const editorFields = [
-                'geomObject.magnetization',
-                'geomObject.material',
-                'geomObject.symmetryType',
-                'simulation.beamAxis',
-                'simulation.heightAxis',
-            ];
-            const watchedModels = [
-                'geomObject',
-                'geomGroup',
-                'racetrack',
-                'radiaObject',
-                'simulation',
-            ];
-
-            $scope.axes = ['x', 'y', 'z'];
-            $scope.builderCfg = {
-                fitToObjects: true,
-                fixedDomain: false,
-                initDomian: {
-                    x: [-0.025, 0.025],
-                    y: [-0.025, 0.025],
-                    z: [-0.025, 0.025],
-                },
-                preserveShape: true,
-            };
-
-            $scope.dropEnabled = true;
-            $scope.selectedObject = null;
-            $scope.shapes = [];
-            $scope.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
-                return item.name !== 'In Progress' && item.name.indexOf('Transforms') < 0;
-            });
-
-
-            $scope.copyObject = function(o) {
-                var copy = appState.clone(o);
-                copy.name = newObjectName(copy);
-                copy.groupId = '';
-                addObject(copy);
-                $scope.editObject(copy);
-            };
-
-            $scope.editTool = function(tool) {
-                if (tool.isInactive) {
-                    return;
-                }
-                panelState.showModalEditor(tool.model);
-            };
-
-            $scope.deleteObject = function(o) {
-                deleteShapesForObject(o);
-                radiaService.deleteObject(o);
-            };
-
-            $scope.editItem = function(o) {
-                $scope.editObject(o);
-            };
-
-            $scope.editObjectWithId = function(id) {
-                var o = $scope.getObject(id);
-                if (! o) {
-                    return;
-                }
-                $scope.editObject(o);
-            };
-
-            $scope.editObject = function(o) {
-                $scope.selectObject(o);
-                panelState.showModalEditor(o.model);
-            };
-
-            self.getObject = function(id) {
-                return radiaService.getObject(id);
-            };
-
-            self.getObjects = function() {
-                return radiaService.getObjects();
-            };
-
-            $scope.getShape = function(id) {
-                return $scope.shapes.filter(function (s) {
-                    return s.id === id;
-                })[0];
-            };
-
-            $scope.getShapes = function() {
-                return $scope.shapes;
-            };
-
-            $scope.isDropEnabled = function() {
-                return $scope.dropEnabled;
-            };
-
-            $scope.isEditable = function() {
-                return true;
-            };
-
-            $scope.objectBounds = function() {
-                return groupBounds();
-            };
-
-            $scope.objectsOfType = function(type) {
-                return appState.models.geometryReport.objects.filter(function (o) {
-                    return o.type === type;
-                });
-            };
-
-            $scope.objectTypes = function() {
-                var t = [];
-                appState.models.geometryReport.objects.forEach(function (o) {
-                    if (t.indexOf(o.type) < 0) {
-                        t.push(o.type);
-                    }
-                });
-                return t.sort();
-            };
-
-            $scope.saveObject = function(id, callback) {
-                if (! $scope.selectObjectWithId(id)) {
-                    return;
-                }
-                appState.saveChanges('geomObject', function (d) {
-                    transformShapesForObjects();
-                    $scope.selectedObject = null;
-                    radiaService.setSelectedObject(null);
-                    if (callback) {
-                        callback(d);
-                    }
-                });
-            };
-
-            $scope.selectObject = function(o) {
-                if (o) {
-                    $scope.selectedObject = o;
-                    radiaService.setSelectedObject(o);
-                    appState.models[panelState.getBaseModelKey(o.model)] = o;
-                }
-                return o;
-            };
-
-            $scope.selectObjectWithId = function(id) {
-                return $scope.selectObject($scope.getObject(id));
-            };
-
-            $scope.shapeBounds = function() {
-                return shapesBounds($scope.shapes);
-            };
-
-            // seems like a lot of this shape stuff can be refactored out to a common area
-            $scope.shapeForObject = function(o) {
-                var center = radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                var size =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                var isGroup = o.members && o.members.length;  //false;
-
-                if (o.members && o.members.length) {
-                    isGroup = true;
-                    var b = groupBounds(o.members.map(function (id) {
-                        return $scope.getObject(id);
-                    }));
-                    center = b.map(function (c) {
-                        return (c[0] + c[1]) / 2;
-                    });
-                    size = b.map(function (c) {
-                        return Math.abs((c[1] - c[0]));
-                    });
-                }
-
-                var shape = vtkPlotting.plotShape(
-                    o.id, o.name,
-                    center, size,
-                    o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
-                    o.layoutShape
-                );
-                if (isGroup) {
-                    shape.outlineOffset = 5.0;
-                    shape.strokeWidth = 0.75;
-                    shape.draggable = false;
-                }
-                return shape;
-            };
-
-            function addBeamAxis() {
-                const axis = appState.models.simulation.beamAxis;
-                for (const p in vtkPlotting.COORDINATE_PLANES) {
-                    if (p.indexOf(axis) < 0) {
-                        continue;
-                    }
-                    //let dim = p.replace(axis, '');
-                    let p1 = geometry.point();
-                    p1[axis] = -1;
-                    let p2 = geometry.point();
-                    p2[axis] = 1;
-                    let pl = vtkPlotting.plotLine(
-                        `beamAxis-${appState.models.simulation.beamAxis}-${p}`,
-                        `beamAxis-${appState.models.simulation.beamAxis}`,
-                        geometry.line(p1, p2),
-                        '#000000', 1.0, 'dashed', "4,4"
-                    );
-                    pl.coordPlane = p;
-                    pl.endMark = 'arrow';
-                    $scope.shapes.push(pl);
-                }
-            }
-
-            function addObject(o) {
-                o.id  = radiaService.generateId();
-                appState.models.geometryReport.objects.push(o);
-                // for groups, set the group id of all members
-                (o.members || []).forEach(oId => {
-                    $scope.getObject(oId).groupId = o.id;
-                });
-                addShapesForObject(o);
-            }
-
-            function addShapesForObject(o) {
-                let baseShape = $scope.getShape(o.id);
-                if (! baseShape) {
-                    baseShape = $scope.shapeForObject(o);
-                    $scope.shapes.push(baseShape);
-                }
-
-                let txArr = [];
-                let plIds = [];
-                // probably better to create a transform and let svg do this work
-                o.transforms.forEach(function (xform) {
-                    // draw the shapes for symmetry planes once
-                    if (xform.model === 'symmetryTransform') {
-                        plIds.push(...addSymmetryPlane(baseShape, xform));
-                    }
-                    // each successive transform must be applied to all previous shapes
-                    [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
-                        // these transforms do not copy the object
-                        if (xform.model === 'rotate') {
-                            txArr.push(rotateFn(xform, 1));
-                            return;
-                        }
-                        if (xform.model === 'translate') {
-                            txArr.push(offsetFn(xform, 1));
-                            return;
-                        }
-
-                        let xo = $scope.getObject(xShape.id);
-                        let linkTx;
-                        if (xform.model === 'cloneTransform') {
-                            let clones = [];
-                            for (let i = 1; i <= xform.numCopies; ++i) {
-                                let cloneTx = txArr.slice(0);
-                                linkTx = composeFn(cloneTx);
-                                for (let j = 0; j < xform.transforms.length; ++j) {
-                                    let cloneXform = xform.transforms[j];
-                                    if (cloneXform.model === 'translateClone') {
-                                        cloneTx.push(offsetFn(cloneXform, i));
-                                    }
-                                    if (cloneXform.model === 'rotateClone') {
-                                        cloneTx.push(rotateFn(cloneXform, i));
-                                    }
-                                }
-                                addTxShape(xShape, xform, linkTx);
-                                clones.push(...transformMembers(xo, xform, linkTx, clones));
-                            }
-                        }
-                        if (xform.model === 'symmetryTransform') {
-                            linkTx = mirrorFn(xform);
-                            addTxShape(xShape, xform, linkTx);
-                            transformMembers(xo, xform, linkTx);
-                        }
-                    });
-                });
-
-                // apply non-copying transforms to the object and its members (if any)
-                composeFn(txArr)(baseShape, baseShape);
-                for (const m of getMembers(o)) {
-                    let s = $scope.getShape(m.id);
-                    composeFn(txArr)(s, s);
-                }
-
-                if (o.groupId !== '') {
-                    let gShape = $scope.getShape(o.groupId);
-                    if (! gShape) {
-                        gShape = $scope.shapeForObject($scope.getObject(o.groupId));
-                        $scope.shapes.push(gShape);
-                    }
-                    fit(baseShape, gShape);
-                    baseShape.addLink(gShape, fit);
-                }
-                //srdbg('shapes', $scope.shapes);
-                //srdbg(o.id, 'num shapes', $scope.shapes.length);
-            }
-
-            function addSymmetryPlane(baseShape, xform) {
-                let plIds = [];
-                for (const p in vtkPlotting.COORDINATE_PLANES) {
-                    const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
-                    const spl = geometry.plane(
-                        radiaService.stringToFloatArray(xform.symmetryPlane),
-                        geometry.pointFromArr( radiaService.stringToFloatArray(
-                            xform.symmetryPoint,
-                            SIREPO.APP_SCHEMA.constants.objectScale)
-                        ));
-                    if (cpl.equals(spl) || ! spl.intersection(cpl)) {
-                        continue;
-                    }
-                    var pl = vtkPlotting.plotLine(
-                        virtualShapeId(baseShape), baseShape.name, spl.intersection(cpl),
-                        baseShape.color, 1.0, 'dashed', "8,8,4,8"
-                    );
-                    pl.coordPlane = p;
-                    $scope.shapes.push(pl);
-                    plIds.push(pl.id);
-                }
-                return plIds;
-            }
-
-            function addTxShape(sourceShape, xform, link) {
-                let nextShape = txShape(sourceShape, xform);
-                sourceShape.addLink(nextShape, link);
-                $scope.shapes.push(nextShape);
-                link(sourceShape, nextShape);
-                return nextShape;
-            }
-
-            function baseShapeId(id) {
-                return `${id}`.split('-')[0];
-            }
-
-            function composeFn(fnArr) {
-                return function(shape1, shape2) {
-                    var prevShape = shape1;
-                    fnArr.forEach(function (tx) {
-                        prevShape = tx(prevShape, shape2);
-                    });
-                    return shape2;
-                };
-            }
-
-            function deleteShapesForObject(o) {
-                for (const s of getTransformedShapes(o)) {
-                    $scope.shapes.splice(indexOfShape(s), 1);
-                }
-                let shape = $scope.shapeForObject(o);
-                for (const s of getVirtualShapes(shape)) {
-                    $scope.shapes.splice(indexOfShape(s), 1);
-                }
-                $scope.shapes.splice(indexOfShape(shape), 1);
-            }
-
-            // shape - in group; linkedShape: group
-            function fit(shape, groupShape) {
-                const o = $scope.getObject(shape.id);
-                const groupId = o.groupId;
-                if (groupId === '' || groupId !== groupShape.id) {
-                    groupShape.center = shape.center.join(',');
-                    groupShape.size = shape.size.join(',');
-                    return groupShape;
-                }
-                let mShapes = $scope.getObject(groupShape.id).members.map(function (mId) {
-                    return $scope.getShape(mId);
-                }).filter(function (s) {
-                    return ! ! s;
-                });
-                const newBounds = shapesBounds(mShapes);
-                for (const dim in newBounds) {
-                    groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
-                    groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
-                }
-                return groupShape;
-            }
-
-            // recursive dive through all subgroups
-            function getMembers(o) {
-                if (! o) {
-                    return [];
-                }
-                let members = (o.members || []).map(function (id) {
-                    return $scope.getObject(id);
-                });
-                for (const m of members) {
-                    members.push(...getMembers(m));
-                }
-                return members;
-            }
-
-            function getTransformedShapes(o) {
-                let xfIds = o.transforms.map(function (tx) {
-                    return tx.id;
-                });
-                if (! xfIds.length) {
-                    return [];
-                }
-                return $scope.shapes.filter(function (s) {
-                    return xfIds.indexOf(s.txId) >= 0;
-                });
-            }
-
-            // may have to flatten
-            function getVirtualShapes(baseShape, excludedIds = []) {
-                let v = $scope.shapes.filter(function (s) {
-                    return excludedIds.indexOf(s.id) < 0 && hasBaseShape(s, baseShape);
-                });
-                let v2 = [];
-                for (const s of v) {
-                    v2.push(...getVirtualShapes(s, excludedIds));
-                }
-                v.push(...v2);
-                return v;
-            }
-
-            function groupBounds(objs) {
-                let b = [
-                    [Number.MAX_VALUE, -Number.MAX_VALUE],
-                    [Number.MAX_VALUE, -Number.MAX_VALUE],
-                    [Number.MAX_VALUE, -Number.MAX_VALUE]
-                ];
-                b.forEach(function (c, i) {
-                    (objs || appState.models.geometryReport.objects || []).forEach(function (o) {
-                        var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                        var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                        c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
-                        c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
-                    });
-                });
-                return b;
-            }
-
-            // indexOf does not work right...explicitly match by id here
-            function indexOfShape(shape) {
-                for (let i = 0; i < $scope.shapes.length; ++i) {
-                    if ($scope.shapes[i].id === shape.id) {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            function loadShapes() {
-                $scope.shapes = [];
-                appState.models.geometryReport.objects.forEach(addShapesForObject);
-                addBeamAxis();
-            }
-
-            function mirrorFn(xform) {
-                return function (shape1, shape2) {
-                    var pl = geometry.plane(
-                        radiaService.stringToFloatArray(xform.symmetryPlane),
-                        geometry.pointFromArr(radiaService.stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
-                    );
-                    shape2.setCenter(
-                        pl.mirrorPoint(geometry.pointFromArr(
-                        [shape1.center.x, shape1.center.y, shape1.center.z]
-                        )).coords()
-                    );
-                    shape2.setSize(shape1.getSizeCoords());
-                    return shape2;
-                };
-            }
-
-            function newObjectName(o) {
-                return appState.uniqueName(appState.models.geometryReport.objects, 'name', o.name + ' {}');
-            }
-
-            function offsetFn(xform, i) {
-                return function(shape1, shape2) {
-                    const d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
-                    shape2.setCenter(
-                        shape1.getCenterCoords().map(function (c, j) {
-                            return c + i * d[j];
-                        })
-                    );
-                    return shape2;
-                };
-            }
-
-            function rotateFn(xform, i) {
-                return function(shape1, shape2) {
-                    var ctr =  radiaService.stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
-                    var axis =  radiaService.stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
-                    // need a 4-vector to account for translation
-                    var shapeCtr4 = shape1.getCenterCoords();
-                    shapeCtr4.push(0);
-                    var angle = Math.PI * parseFloat(xform.angle) / 180.0;
-                    var a = i * angle;
-                    var m = geometry.rotationMatrix(ctr, axis, a);
-                    shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
-                    shape2.rotationAngle = -180.0 * a / Math.PI;
-                    return shape2;
-                };
-            }
-
-            function shapesBounds(shapes) {
-                let b = {
-                    x: [Number.MAX_VALUE, -Number.MAX_VALUE],
-                    y: [Number.MAX_VALUE, -Number.MAX_VALUE],
-                    z: [Number.MAX_VALUE, -Number.MAX_VALUE]
-                };
-                shapes.forEach(function (s) {
-                    let vs = getVirtualShapes(s);
-                    let sr = shapesBounds(vs);
-                    for (const dim in b) {
-                        b[dim] = [
-                            Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
-                            Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
-                        ];
-                    }
-                });
-                return b;
-            }
-
-            function transformMembers(o, xform, txFunction, excludedIds=[]) {
-                if (! o) {
-                    return;
-                }
-                let txm = [];
-                for (const m of getMembers(o)) {
-                    let shape = $scope.getShape(m.id);
-                    if (! shape) {
-                        // may be later in array if created externally
-                        addShapesForObject($scope.getObject(m.id));
-                        shape = $scope.getShape(m.id);
-                    }
-                    let v = getVirtualShapes(shape, excludedIds);
-                    txm.push(addTxShape(shape, xform, txFunction).id);
-                    for (const s of v) {
-                        txm.push(addTxShape(s, xform, txFunction).id);
-                    }
-                }
-                return txm;
-            }
-
-            function transformShapesForObject(o) {
-                let baseShape = $scope.getShape(o.id);
-                [baseShape, ...getVirtualShapes(baseShape)].forEach(function (s) {
-                    s.runLinks();
-                });
-            }
-
-            function transformShapesForObjects() {
-                for (const o of $scope.getObjects()) {
-                    transformShapesForObject(o);
-                }
-            }
-
-            function txShape(shape, tx) {
-                var sh = vtkPlotting.plotShape(
-                    virtualShapeId(shape),
-                    shape.name,
-                    SIREPO.ZERO_ARR,
-                    shape.getSizeCoords(),
-                    shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-                    shape.layoutShape
-                );
-                sh.draggable = false;
-                sh.txId = tx.id;
-                return sh;
-            }
-
-            function updateObjectEditor() {
-                var o = $scope.selectedObject;
-                if (! o) {
-                    return;
-                }
-                panelState.showField(
-                    'geomObject',
-                    'materialFile',
-                    o.material === 'custom'
-                );
-
-                radiaService.validateMagnetization(o.magnetization, o.material);
-            }
-
-            function virtualShapeId(shape) {
-                return `${shape.id}-${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
-            }
-
-            function hasBaseShape(shape, baseShape) {
-                // base shape is not its own base
-                if (shape.id === baseShape.id) {
-                    return false;
-                }
-                return baseShapeId(shape.id) === `${baseShape.id}`;
-            }
-
-            // initial setup
-            appState.watchModelFields($scope, editorFields, function(d) {
-                updateObjectEditor();
-            });
-            if (! appState.models.geometryReport.objects) {
-                appState.models.geometryReport.objects = [];
-            }
-            loadShapes();
-
-            $scope.$on('modelChanged', function(e, modelName) {
-                if (! watchedModels.includes(modelName)) {
-                    return;
-                }
-                if (
-                    modelName === 'simulation' ||
-                    Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
-                ) {
-                    appState.models.geometryReport.lastModified = Date.now();
-                    radiaService.setWidthAxis();
-                    appState.saveQuietly('simulation');
-                    appState.models.kickMapReport.periodLength = appState.models.undulatorHybrid.periodLength;
-                    appState.saveQuietly('kickMapReport');
-                }
-                let o = $scope.selectedObject;
-                if (o) {
-                    if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
-                        // catch unrelated saved objects
-                        if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
-                            addObject(o);
-                        }
-                        else {
-                            $scope.selectedObject = null;
-                        }
-                    }
-                    if (o.type === 'racetrack') {
-                        // calculate the size
-                        let s = [0, 0, 0];
-                        const sides = utilities.splitCommaDelimitedString(o.sides, parseFloat);
-                        const radii = utilities.splitCommaDelimitedString(o.radii, parseFloat);
-                        const i = geometry.basis.indexOf(o.axis);
-                        s[i] = o.height;
-                        for (const j of [0, 1]) {
-                            s[(i + j + 1) % 3] = sides[j] + 2.0 * radii[1];
-                        }
-                        o.size = s.join(', ');
-                        appState.saveQuietly('racetrack');
-                    }
-                    if (o.materialFile) {
-                        o.hmFileName = o.materialFile.name;
-                        radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
-                    }
-                }
-                radiaService.saveGeometry(true, false, () => {
-                    //GET RID OF RELOADGEOM
-                    radiaService.reloadGeometry(
-                        data => {
-                            if ($scope.selectedObject) {
-                                loadShapes();
-                            }
-                    });
-                });
-
-            });
-
-            $scope.$on('geomObject.editor.show', updateObjectEditor);
-
-            $scope.$on('layout.object.dropped', function (e, lo) {
-                var m = appState.setModelDefaults({}, lo.model);
-                m.center = lo.center;
-                m.name = lo.type;
-                m.name = newObjectName(m);
-                m.model = lo.model;
-                $scope.editObject(m);
-            });
-
-            $scope.$on('drop.target.enabled', function (e, val) {
-                $scope.dropEnabled = val;
-            });
         },
     };
 });
@@ -2693,7 +2407,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
     };
 });
 
-SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaPathService) {
+SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaService) {
 
     return {
         restrict: 'A',
@@ -2705,7 +2419,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaPath
                 <div class="panel panel-info">
                     <div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>
                     <div class="panel-body">
-                        <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaPathService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
+                        <button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>
                         <div data-field-path-table="" data-paths="model.paths"></div>
                         <button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>
                     </div>
@@ -2716,7 +2430,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaPath
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.pathTypes = appState.enumVals('PathType');
-            $scope.radiaPathService = radiaPathService;
+            $scope.radiaService = radiaService;
 
             $scope.getPathType = function() {
                 return ($scope.model || {}).path;
@@ -4202,4 +3916,3 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
     });
 
 });
-
