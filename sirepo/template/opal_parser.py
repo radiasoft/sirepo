@@ -53,6 +53,7 @@ class OpalParser(lattice.LatticeParser):
         self.__combine_options()
         self.__dedup_elements()
         self.__remove_unused_drifts()
+        pkdp('\n\n\n input_files in OpalParser.parse_file: {}', input_files)
         return res, input_files
 
     def __combine_options(self):
@@ -302,7 +303,12 @@ class OpalParser(lattice.LatticeParser):
                         if not preserve_output_filenames:
                             el[f] = '1'
                     elif el_schema[f][1] == 'InputFile' and el[f]:
-                        el[f] = self.sim_data.lib_file_name_without_type(os.path.basename(el[f]))
+                        pkdp('\n\n\n **** TARGET? : {}', el[f])
+                        if el[f] == './map/TESLA_SF7.T7':
+                            pass
+                        else:
+                            el[f] = self.sim_data.lib_file_name_without_type(os.path.basename(el[f]))
+                        pkdp('\n\n\n **** MODIFIED? : {}', el[f])
                         filename = self.sim_data.lib_file_name_with_model_field(
                             model_name, f, el[f])
                         if filename not in visited:

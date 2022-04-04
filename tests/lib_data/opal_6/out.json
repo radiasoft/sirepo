@@ -314,7 +314,7 @@
                 "dy": 0.0,
                 "dz": 0.0,
                 "fast": "1",
-                "fmapfn": "TESLA_SF7.T7",
+                "fmapfn": "./map/TESLA_SF7.T7",
                 "freq": 1300.0,
                 "frequency_model": "",
                 "gapwidth": 0.0,

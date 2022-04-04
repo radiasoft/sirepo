@@ -71,8 +71,8 @@ class LibAdapterBase:
         for f in filenames:
             p = path.dirpath().join(f)
             pkdp('\n\n\n *** Path right before assertion: {}', p)
-            # assert p.check(file=True), \
-            #     f'file={f} missing'
+            assert p.check(file=True), \
+                f'file={f} missing'
 
     def _write_input_files(self, data, source_path, dest_dir):
         for f in set(
