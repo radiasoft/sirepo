@@ -67,15 +67,10 @@ class LibAdapterBase:
         return data
 
     def _verify_files(self, path, filenames):
-        pkdp('\n\n\n *** filenames in _verify_files: {}', filenames)
-        pkdp('\n *** path in _verify_files: {}', path)
-        pkdp('\n *** path.dirpath() in _verify_files: {}', path.dirpath())
-
         for f in filenames:
             if f in self._ignore_files:
                 continue
             p = path.dirpath().join(f)
-            pkdp('\n\n\n *** Path right before assertion: {}', p)
             assert p.check(file=True), \
                 f'file={f} missing'
 
@@ -116,7 +111,6 @@ class Importer:
 
     def parse_file(self, path):
         p = pykern.pkio.py_path(path)
-        pkdp('\n\n\n\n **** PATH in parse_file(): {}', p)
         with pykern.pkio.save_chdir(p.dirpath()):
             return SimData(
                 self.__adapter.parse_file(p),
