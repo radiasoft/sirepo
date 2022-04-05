@@ -234,6 +234,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
+        appState.models.geometryReport.lastModified = Date.now();
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
             appState.saveQuietly('geometryReport');
@@ -349,6 +350,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 });
 
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
+    //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
+
     var self = this;
 
     const editorFields = [
@@ -363,7 +366,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomGroup',
         'racetrack',
         'radiaObject',
-        'simulation',
     ];
 
     self.axes = ['x', 'y', 'z'];
@@ -619,7 +621,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addObject(o) {
-        o.id  = radiaService.generateId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
         (o.members || []).forEach(oId => {
@@ -969,6 +970,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
+    //TODO(mvk): move to view logic
     function updateObjectEditor() {
         var o = self.selectedObject;
         if (! o) {
@@ -1008,19 +1010,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! watchedModels.includes(modelName)) {
             return;
         }
-        if (
-            modelName === 'simulation' ||
-            Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
-        ) {
-            appState.models.geometryReport.lastModified = Date.now();
-            radiaService.setWidthAxis();
-            appState.saveQuietly('simulation');
-            appState.models.kickMapReport.periodLength = appState.models.undulatorHybrid.periodLength;
-            appState.saveQuietly('kickMapReport');
-        }
         let o = self.selectedObject;
         if (o) {
-            if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
+            if (! radiaService.getObject(o.id)) {
                 // catch unrelated saved objects
                 if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
                     addObject(o);
@@ -1048,15 +1040,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         }
         radiaService.saveGeometry(true, false, () => {
-            //GET RID OF RELOADGEOM
-            radiaService.reloadGeometry(
-                data => {
-                    if (self.selectedObject) {
-                        loadShapes();
-                    }
-            });
+            if (self.selectedObject) {
+                loadShapes();
+            }
         });
-
     });
 
     $scope.$on('geomObject.editor.show', updateObjectEditor);
@@ -1146,9 +1133,9 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.simState = persistentSimulation.initSimulationState(self);
 
-    appState.watchModelFields($scope, ['simulation.beamAxis', 'simulation.heightAxis'], () => {
-        radiaService.setWidthAxis();
-    });
+    //appState.watchModelFields($scope, ['simulation.beamAxis', 'simulation.heightAxis'], () => {
+    //    radiaService.setWidthAxis();
+    //});
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('modelChanged', (e, modelName) => {
             let m = appState.models[modelName];
@@ -2061,12 +2048,10 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
         controller: function($scope) {
 
             $scope.dataCleared = true;
-            appState.whenModelsLoaded($scope, function() {
-               $scope.model = appState.models.kickMapReport;
-               // wait until we have some data to update
-               $scope.$on('radiaViewer.loaded', function () {
-                   $scope.dataCleared = false;
-               });
+
+            $scope.model = appState.models.kickMapReport;
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
             });
 
         },
@@ -3440,6 +3425,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('radiaObject.changed', function(e) {
+                srdbg('RS SAVE GEOM VIZ RO CH');
                 radiaService.saveGeometry(true, false);
             });
 
@@ -3814,13 +3800,12 @@ for(const m of ['Dipole', 'Undulator']) {
                 }
             });
 
-            $scope.$on('modelChanged', (e, d) => {
-                if (d === 'geometryReport') {
-                    //GET RID OF RELOADGEOM
-                    radiaService.reloadGeometry();
-                    return;
-                }
-                if (d !== 'geomObject' || ! activeModelId()) {
+            $scope.$on(`${$scope.modelName}.changed`, () => {
+                radiaService.saveGeometry(true, false);
+            });
+
+            $scope.$on('geomObject.changed', () => {
+                if (! activeModelId()) {
                     return;
                 }
                 if (appState.models.geomObject.id === activeModelId()) {
@@ -3870,6 +3855,18 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         return activeSection.getActiveSection() === 'simulations';
     }
 
+    function updateHeightAxis(isEnabled) {
+        for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            const axis = e[SIREPO.ENUM_INDEX_VALUE];
+            const isShown = axis !== model.beamAxis;
+            panelState.showEnum('simulation', 'heightAxis', axis, isShown);
+            if (model.heightAxis === axis && ! isShown) {
+                model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
+            }
+        }
+        panelState.enableField($scope.modelName, 'heightAxis', isEnabled);
+    }
+
     function updateSimEditor() {
         if (! model) {
             return;
@@ -3882,6 +3879,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             'magnetType',
             isNew()
         );
+        panelState.showField($scope.modelName, 'enableKickMaps', enableAxes);
 
         for(const m of ['dipole', 'undulator']) {
             const t = `${m}Type`;
@@ -3900,26 +3898,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             'beamAxis',
             enableAxes
         );
-        panelState.enableField(
-            $scope.modelName,
-            'heightAxis',
-            enableAxes
-        );
-
-        for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
-            const axis = e[SIREPO.ENUM_INDEX_VALUE];
-            const isShown = axis !== model.beamAxis;
-            panelState.showEnum(
-                'simulation',
-                'heightAxis',
-                axis,
-                isShown
-            );
-            if (model.heightAxis === axis && ! isShown) {
-                model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
-            }
-        }
-        radiaService.setWidthAxis();
+        updateHeightAxis(enableAxes);
     }
 
     $scope.watchFields = [
@@ -3927,10 +3906,6 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         ['simulation.heightAxis'], radiaService.setWidthAxis,
     ];
 
-    $scope.whenSelected = function() {
-        model = appState.models[$scope.modelName];
-        updateSimEditor();
-    };
 
     $scope.$on(`${$scope.modelName}.editor.show`, () => {
         model = appState.models[$scope.modelName];

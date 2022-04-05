@@ -107,24 +107,6 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "parameterizedMagnets": {
-            "dipole": {
-                "objectNames": {
-                    "coil": "Coil",
-                    "magnet": "Magnet",
-                    "pole": "Pole"
-                }
-            },
-            "undulatorHybrid": {
-                "objectNames": {
-                    "halfPole": "Half Pole",
-                    "magnetBlock": "Magnet Block",
-                    "pole": "Pole",
-                    "magPole": "Magnet-Pole Pair",
-                    "endBlock": "End Block"
-                }
-            }
-        },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
         "rawExamples": ["Dipole", "Wiggler"],
@@ -1360,7 +1342,8 @@
                 "dipoleType",
                 "undulatorType",
                 "beamAxis",
-                "heightAxis"
+                "heightAxis",
+                "enableKickMaps"
             ]
         },
         "solverAnimation": {
