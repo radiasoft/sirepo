@@ -1569,7 +1569,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
                 });
             };
-            
+
             $scope.download = function() {
                 requestSender.newWindow('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
@@ -1616,7 +1616,7 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             $scope.model = appState.models[$scope.modelName];
 
             function isFieldPathValid(p) {
-                return ! $.isEmptyObject(p) && p.type
+                return ! $.isEmptyObject(p) && p.type;
             }
 
             function setPathIfMissing() {
@@ -1738,7 +1738,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     <div class="panel-heading">
                         <span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>
                         <div class="sr-panel-options pull-right">
-                        <a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> 
+                        <a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -3746,7 +3746,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
 
     $scope.modelData = appState.models[$scope.modelName];
-    
+
     return {
         getBaseObject: function() {
             return $scope.modelData;
