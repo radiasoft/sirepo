@@ -1625,7 +1625,7 @@ SIREPO.app.directive('fieldLineoutReport', function(appState) {
             $scope.model = appState.models[$scope.modelName];
 
             function isFieldPathValid(p) {
-                return ! $.isEmptyObject(p) && p.type
+                return ! $.isEmptyObject(p) && p.type;
             }
 
             function setPathIfMissing() {
@@ -3425,7 +3425,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('radiaObject.changed', function(e) {
-                srdbg('RS SAVE GEOM VIZ RO CH');
                 radiaService.saveGeometry(true, false);
             });
 
