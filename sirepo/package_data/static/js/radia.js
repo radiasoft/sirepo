@@ -1132,10 +1132,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
-
-    //appState.watchModelFields($scope, ['simulation.beamAxis', 'simulation.heightAxis'], () => {
-    //    radiaService.setWidthAxis();
-    //});
+    
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('modelChanged', (e, modelName) => {
             let m = appState.models[modelName];
