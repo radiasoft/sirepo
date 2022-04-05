@@ -28,7 +28,6 @@ def _code():
         d = sirepo.lib.Importer(t, ignore_files=['Should_be_ignored.T7']).parse_file(
             pkio.sorted_glob(s.join('first*'))[0]
         )
-        pkdp('\n\n\n ** D: {}', d)
         d2 = d.copy()
         d2.pkdel('version')
         d2.models.simulation.pkdel('lastModified')
