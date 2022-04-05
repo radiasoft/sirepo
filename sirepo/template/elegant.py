@@ -127,13 +127,13 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
                 )],
             )
 
-        d = parse_input_text(path, update_filenames=True)
+        d = parse_input_text(path, update_filenames=False)
         r = self._run_setup(d)
         l = r.lattice
         d = parse_input_text(
             self._lattice_path(path.dirpath(), d),
             input_data=d,
-            update_filenames=True,
+            update_filenames=False,
         )
         for i in d.models.elements:
             _verify_files(i, i.type)
