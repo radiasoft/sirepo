@@ -59,7 +59,9 @@ SIREPO.app.config(function() {
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
-    var self = {};
+    let self = {};
+
+    const POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
@@ -242,6 +244,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         else {
             appState.saveChanges('geometryReport', callback);
         }
+        self.syncReports();
     };
 
     self.setWidthAxis = function() {
@@ -275,7 +278,15 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             });
     };
 
-    // update models so that editors see the correct values
+
+    self.syncReports = () => {
+        POST_SIM_REPORTS.forEach(r => {
+            appState.models[r].lastModified = appState.models.geometryReport.lastModified;
+        });
+        appState.saveChanges(POST_SIM_REPORTS);
+    };
+
+   // update models so that editors see the correct values
     // for now assign the entire object
     self.updateModelAndSuperClasses = (modelName, model) => {
         const s = [modelName, ...appState.superClasses(modelName)];
@@ -352,7 +363,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
     //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
 
-    var self = this;
+    let self = this;
 
     const editorFields = [
         'geomObject.magnetization',
@@ -1065,7 +1076,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
 
     let SINGLE_PLOTS = ['magnetViewer',];
-    let POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
 
     let solving = false;
 
@@ -1076,13 +1086,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.svc = radiaService;
 
     self.solution = null;
-
-    function updateReports() {
-        POST_SIM_REPORTS.forEach((name) => {
-            appState.models[name].lastModified = Date.now();
-            appState.saveChanges(name);
-        });
-    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -1099,7 +1102,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         panelState.requestData('reset', () => {
             frameCache.setFrameCount(0);
             }, true);
-        updateReports();
+        radiaService.syncReports();
     };
 
     self.simHandleStatus = function(data) {
@@ -1116,7 +1119,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     frameCache.setFrameCount(1, name);
                 });
                 if (solving) {
-                    updateReports();
+                    radiaService.syncReports();
                 }
                 solving = false;
                 radiaService.saveGeometry(false, true);
@@ -1132,24 +1135,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
-    
-    appState.whenModelsLoaded($scope, () => {
-        $scope.$on('modelChanged', (e, modelName) => {
-            let m = appState.models[modelName];
-            if (modelName === 'fieldPaths') {
-                const rpt = 'fieldLineoutReport';
-                for (const r of appState.models.fieldPaths.paths) {
-                    const currentPath = appState.models[rpt].fieldPath;
-                    if ((currentPath && ! $.isEmptyObject(currentPath)) && r.name !== currentPath.name) {
-                        continue;
-                    }
-                    appState.models[rpt].fieldPath = r;
-                    appState.saveQuietly(rpt);
-                    break;
-                }
-            }
-        });
-    });
 
 });
 
