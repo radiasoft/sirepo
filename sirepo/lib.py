@@ -7,7 +7,6 @@ Use this to call sirepo from other packages or Python notebooks.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from codecs import ignore_errors
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
@@ -103,7 +102,12 @@ class GenerateBase:
 
 
 class Importer:
-
+    """
+    Args:
+        sim_type (str): type of simulation (eg. 'elegant' or 'madx')
+        ignore_files (list): list of files to be ignored by the LibAdapter; during
+        verification and to be skipped during the symlink process
+    """
     def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
 
