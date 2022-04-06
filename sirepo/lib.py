@@ -103,10 +103,11 @@ class GenerateBase:
 
 class Importer:
     """
+    Imports a code's native files into Sirepo representation
+
     Args:
         sim_type (str): type of simulation (eg. 'elegant' or 'madx')
-        ignore_files (list): list of files to be ignored by the LibAdapter; during
-        verification and to be skipped during the symlink process
+        ignore_files (list): files ignored during verification and symlink routines [None]
     """
     def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
