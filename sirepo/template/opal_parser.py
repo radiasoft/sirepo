@@ -33,7 +33,7 @@ class OpalParser(lattice.LatticeParser):
         ])
         super().__init__(sirepo.sim_data.get_class('opal'))
 
-    def parse_file(self, lattice_text, preserve_output_filenames):
+    def parse_file(self, lattice_text, update_filenames):
         from sirepo.template import opal
         res = super().parse_file(lattice_text)
         self.__fix_pow_variables()
@@ -44,7 +44,7 @@ class OpalParser(lattice.LatticeParser):
         self.__remove_default_commands()
         self.__combine_track_and_run()
         self.util = lattice.LatticeUtil(self.data, self.schema)
-        input_files = self.__update_filenames(preserve_output_filenames)
+        input_files = self.__update_filenames(update_filenames)
         self.__set_element_positions(cv)
         self.__sort_element_positions(cv)
         self._set_default_beamline('track', 'line')
@@ -288,7 +288,7 @@ class OpalParser(lattice.LatticeParser):
                 return name
             num += 1
 
-    def __update_filenames(self, preserve_output_filenames):
+    def __update_filenames(self, update_filenames):
         res = []
         visited = set()
         for container in ('elements', 'commands'):
@@ -299,10 +299,11 @@ class OpalParser(lattice.LatticeParser):
                     if f not in el_schema:
                         continue
                     if el_schema[f][1] == 'OutputFile' and el[f]:
-                        if not preserve_output_filenames:
+                        if update_filenames:
                             el[f] = '1'
                     elif el_schema[f][1] == 'InputFile' and el[f]:
-                        el[f] = self.sim_data.lib_file_name_without_type(os.path.basename(el[f]))
+                        if update_filenames:
+                            el[f] = self.sim_data.lib_file_name_without_type(os.path.basename(el[f]))
                         filename = self.sim_data.lib_file_name_with_model_field(
                             model_name, f, el[f])
                         if filename not in visited:
@@ -318,8 +319,8 @@ class OpalParser(lattice.LatticeParser):
         return res
 
 
-def parse_file(lattice_text, filename=None, preserve_output_filenames=False):
-    res, files = OpalParser().parse_file(lattice_text, preserve_output_filenames)
+def parse_file(lattice_text, filename=None, update_filenames=True):
+    res, files = OpalParser().parse_file(lattice_text, update_filenames)
     set_simulation_name(res, filename)
     return res, files
 
