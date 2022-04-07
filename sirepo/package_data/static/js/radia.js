@@ -3711,7 +3711,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     $scope.watchFields = [
         [
             'geomObject.type',
-            "extrudedPoly.extrusionAxisSegments",
+            "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
@@ -3723,6 +3723,27 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
         updateObjectEditor();
     };
+
+    let triangulationLevelDelegate = function() {
+        const m = 'extrudedPoly';
+        var f = 'triangulationLevel';
+        let d = panelState.getFieldDelegate(m, f);
+        d.range = function() {
+            return {
+                min: appState.fieldProperties(m, f).min,
+                max: appState.fieldProperties(m, f).max,
+                step: 0.01
+            };
+        };
+        d.readout = function() {
+            return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+        };
+        d.update = function() {};
+        d.watchFields = [];
+        return d;
+    };
+
+    $scope.fieldDelegate = triangulationLevelDelegate();
 
     function modelField(f) {
         const m = appState.parseModelField(f);

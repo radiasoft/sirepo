@@ -1360,6 +1360,11 @@ def _update_geom_objects(objects):
 
 
 def _update_geom_obj(o, **kwargs):
+    def _poly_area(pts):
+        x = [c[0] for c in pts]
+        y = [c[1] for c in pts]
+        return 0.5 * numpy.abs(numpy.dot(x, numpy.roll(y, 1)) - numpy.dot(y, numpy.roll(x, 1)))
+
     d = PKDict(
         center=[0.0, 0.0, 0.0],
         magnetization=[0.0, 0.0, 0.0],
@@ -1385,6 +1390,9 @@ def _update_geom_obj(o, **kwargs):
             o,
             _get_stemmed_info(o)
         )
+    if o.points:
+        o.area = _poly_area(o.points)
+
     return o
 
 

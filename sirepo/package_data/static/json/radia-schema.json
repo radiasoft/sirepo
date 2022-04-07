@@ -674,6 +674,7 @@
         },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
+            "area": ["_", "Float", 0,0],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
@@ -1270,6 +1271,7 @@
                     "color",
                     "stemmed.extrusionAxis",
                     "extrudedPoly.extrusionAxisSegments",
+                    "extrudedPoly.triangulationLevel",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
                     "stemmed.stemWidth",
