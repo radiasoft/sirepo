@@ -3722,7 +3722,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         updateObjectEditor();
     };
 
-    let triangulationLevelDelegate = function() {
+    function buildTriangulationLevelDelegate() {
         const m = 'extrudedPoly';
         const f = 'triangulationLevel';
         let d = panelState.getFieldDelegate(m, f);
@@ -3736,12 +3736,9 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         d.readout = () => {
             return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
         };
-        d.update = function() {};
-        d.watchFields = [`${m}.${f}`];
-        return d;
-    };
-
-    $scope.fieldDelegate = triangulationLevelDelegate();
+        d.update = () => {};
+        $scope.fieldDelegate = d;
+    }
 
     function modelField(f) {
         const m = appState.parseModelField(f);
@@ -3760,6 +3757,8 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             );
         });
     }
+
+    buildTriangulationLevelDelegate();
 });
 
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
