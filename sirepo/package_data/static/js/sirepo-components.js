@@ -3529,7 +3529,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 update();
                 // on load, the slider will coerce model values to fit the basic input model of range 0-100,
                 // step 1.  This resets to the saved value
-                let val = delegate.storedVal;
+                const val = delegate.storedVal;
                 if ((val || val === 0) && $scope.model[$scope.field] !== val) {
                     $scope.model[$scope.field] = val;
                     const form = $element.find('input').eq(0).controller('form');
