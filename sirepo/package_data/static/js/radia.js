@@ -3219,16 +3219,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 return j;
             }
 
-            // some weird disconnect between the model and the slider when cancelling...???
             function setAlpha() {
                 if (! renderer) {
                     return;
                 }
-                const alpha = $scope.model.alpha;
-                for (var id in actorInfo) {
-                    var info = actorInfo[id];
-                    var s = info.scalars;
-                    if (! s) {
+                const alpha = appState.models[$scope.modelName].alpha;
+                for (const id in actorInfo) {
+                    let info = actorInfo[id];
+                    if (! info.scalars) {
                         info.actor.getProperty().setOpacity(alpha);
                         continue;
                     }
@@ -3726,20 +3724,20 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     let triangulationLevelDelegate = function() {
         const m = 'extrudedPoly';
-        var f = 'triangulationLevel';
+        const f = 'triangulationLevel';
         let d = panelState.getFieldDelegate(m, f);
-        d.range = function() {
+        d.range = () => {
             return {
                 min: appState.fieldProperties(m, f).min,
                 max: appState.fieldProperties(m, f).max,
                 step: 0.01
             };
         };
-        d.readout = function() {
+        d.readout = () => {
             return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
         };
         d.update = function() {};
-        d.watchFields = [];
+        d.watchFields = [`${m}.${f}`];
         return d;
     };
 

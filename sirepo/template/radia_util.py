@@ -227,7 +227,6 @@ def dump_bin(g_id):
 def extrude(**kwargs):
     d = PKDict(kwargs)
     b = AXIS_VECTORS[d.extrusion_axis]
-    p = f'TriAreaMax->{0.5 * d.area * (1.01 - d.t_level)}' if d.t_level > 0 else None
     g_id = radia.ObjMltExtTri(
         numpy.sum(b * d.center),
         numpy.sum(b * d.size),
@@ -235,10 +234,8 @@ def extrude(**kwargs):
         numpy.full((len(d.points), 2), [1, 1]).tolist(),
         d.extrusion_axis,
         d.magnetization,
-        p
+        f'TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}' if d.t_level > 0 else ''
     )
-    #str_param = 'ki->Numb,TriAngMin->' + str(triangle_min_size) + ',TriAreaMax->' + str(
-    #    triangle_max_size)
     _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
     return g_id
