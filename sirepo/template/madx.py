@@ -55,7 +55,7 @@ _FIELD_UNITS = PKDict(
 
 _PI = 4 * math.atan(1)
 
-_MADX_CONSTANTS = PKDict(
+MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
     raddeg=180.0 / _PI,
@@ -207,7 +207,7 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     return code_variable.CodeVar(
         variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        code_variable.PurePythonEval(MADX_CONSTANTS),
         case_insensitive=True,
     )
 
@@ -289,7 +289,18 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
     return res
 
 
+def _iterate_and_format_rpns(data, schema):
+
+    def _rpn_update(model, field):
+        if code_variable.CodeVar.is_var_value(model[field]):
+            model[field] = _format_rpn_value(model[field])
+
+    lattice.LatticeUtil(data, schema).iterate_models(lattice.UpdateIterator(_rpn_update))
+    return data
+
+
 def generate_parameters_file(data):
+    data = _iterate_and_format_rpns(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
     if data.models.simulation.computeTwissFromParticles == '1':
         _add_marker_and_observe(data)
@@ -804,8 +815,31 @@ def _format_field_value(state, model, field, el_type):
 
 
 def _format_rpn_value(value):
-    return code_variable.PurePythonEval.postfix_to_infix(value
-    )
+    import astunparse
+    import ast
+
+    class Visitor(ast.NodeTransformer):
+        def visit_Call(self, node):
+            if node.func.id == 'pow':
+                return ast.BinOp(
+                    left=node.args[0],
+                    op=ast.Pow(),
+                    right=node.args[1],
+                    keywords=[]
+                )
+            return node
+
+    if code_variable.CodeVar.infix_to_postfix(value) == value:
+        value = code_variable.PurePythonEval.postfix_to_infix(value)
+    if type(value) == str and 'pow' in value:
+        tree = ast.parse(value)
+        for n in ast.walk(tree):
+            Visitor().visit(n)
+            ast.fix_missing_locations(n)
+        return astunparse.unparse(tree).strip().replace('**', '^')
+    if type(value) == str and '-' in value and '^' in value:
+        value = '(' + value + ')'
+    return value
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)

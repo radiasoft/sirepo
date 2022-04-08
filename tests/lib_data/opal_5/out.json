@@ -674,7 +674,7 @@
                 "dy": 0.0,
                 "dz": 0.0,
                 "fast": "1",
-                "fmapfn": "SOLENO4.T7",
+                "fmapfn": "Should_be_ignored.T7",
                 "ks": 0.17765710979201543,
                 "l": 0.0,
                 "name": "MS",

@@ -28,6 +28,31 @@ class MadxConverter():
         self.downcase_variables = downcase_variables
         self.full_field_map = self._build_field_map(field_map)
 
+    def fill_in_missing_constants(self, data, constants):
+        import sirepo.template.madx
+        import ast
+        class Visitor(ast.NodeVisitor):
+            def visit_Name(self, node):
+                return node.id
+        n = [v.name for v in data.models.rpnVariables]
+        for v in data.models.rpnVariables:
+            values = set()
+            if type(v.value) == str:
+                tree = ast.parse(v.value)
+                for node in ast.walk(tree):
+                    values.add(Visitor().visit(node))
+            for c in sirepo.template.madx.MADX_CONSTANTS.keys() - constants.keys():
+                if type(v.value) == str and c in values and c not in n:
+                    data.models.rpnVariables.insert(
+                        0,
+                        PKDict(
+                            name=c,
+                            value=sirepo.template.madx.MADX_CONSTANTS[c]
+                        )
+                    )
+                    n.append(c)
+        return data
+
     def from_madx(self, data):
         from sirepo.template import madx
         self.__init_direction(data, madx.SIM_TYPE, self.sim_type)
@@ -143,8 +168,11 @@ class MadxConverter():
                 data.models.rpnVariables)
 
     def __normalize_madx_beam(self, data):
-        # ensure particle, mass, charge, pc, ex and ey are set
+        from sirepo.template import madx
         self.beam = LatticeUtil.find_first_command(data, 'beam')
+        cv = madx.code_var(data.models.rpnVariables)
+        for f in ParticleEnergy.ENERGY_PRIORITY.madx:
+            self.beam[f] = cv.eval_var_with_assert(self.beam[f])
         self.particle_energy = ParticleEnergy.compute_energy(
             self.from_class.sim_type(),
             self.beam.particle,

@@ -1,0 +1,12 @@
+&run_setup
+  expand_for = "distr/distribution.sdds",
+  lattice = "lattice.lte",
+  use_beamline = "BL1",
+&end
+
+&run_control
+&end
+
+&sdds_beam
+  input = "distr/distribution.sdds",
+&end

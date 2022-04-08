@@ -153,18 +153,13 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir
         )
     if 'fieldLineoutReport' in sim_in.report:
-        beam_axis = sim_in.models.simulation.beamAxis
-        v_axis = sim_in.models.simulation.heightAxis
-        h_axis = next(iter(set(radia_util.AXES) - {beam_axis, v_axis}))
         template_common.write_sequential_result(
             _field_lineout_plot(
                 sim_in.models.simulation.simulationId,
                 sim_in.models.simulation.name,
                 sim_in.models.fieldLineoutReport.fieldType,
                 sim_in.models.fieldLineoutReport.fieldPath,
-                beam_axis,
-                v_axis,
-                h_axis
+                sim_in.models.fieldLineoutReport.plotAxis
             ),
             run_dir=run_dir,
         )
@@ -287,13 +282,15 @@ def _build_dipole_objects(geom_objs, model, **kwargs):
     return _update_geom_from_dipole(geom_objs, model, **kwargs)
 
 
-def _build_field_axis(length, beam_axis):
-    beam_dir = radia_util.AXIS_VECTORS[beam_axis]
+def _build_field_axis(length, axis):
+    beam_dir = radia_util.AXIS_VECTORS[axis]
     f = PKDict(
         begin=sirepo.util.to_comma_delimited_string((-length / 2) * beam_dir),
         end=sirepo.util.to_comma_delimited_string((length / 2) * beam_dir),
-        name=f'{beam_axis} axis',
-        numPoints=round(length / 2) + 1
+        name=f'{axis.upper()}-Axis',
+        numPoints=round(length / 2) + 1,
+        start=-length / 2,
+        stop=length / 2
     )
     _SIM_DATA.update_model_defaults(f, 'linePath')
     return f
@@ -484,6 +481,7 @@ def _delim_string(val=None, default_val=None):
 
 
 _FIELD_PT_BUILDERS = {
+    'axis': _build_field_line_pts,
     'circle': _build_field_circle_pts,
     'fieldMap': _build_field_map_pts,
     'file': _build_field_file_pts,
@@ -492,30 +490,29 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _field_lineout_plot(sim_id, name, f_type, f_path, beam_axis, v_axis, h_axis):
+def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
     v = _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path]).data[0].vectors
     pts = numpy.array(v.vertices).reshape(-1, 3)
     plots = []
-    labels = {h_axis: 'Horizontal', v_axis: 'Vertical'}
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
 
-    for c in (h_axis, v_axis):
+    for i, c in enumerate(radia_util.AXES):
         plots.append(
             PKDict(
-                points=(m * f[:, radia_util.AXES.index(c)]).tolist(),
-                label=f'{labels[c]} ({c}) [{radia_util.FIELD_UNITS[f_type]}]',
+                points=(m * f[:, i]).tolist(),
+                label=f'{f_type}_{c} [{radia_util.FIELD_UNITS[f_type]}]',
                 style='line'
             )
         )
     return template_common.parameter_plot(
-        pts[:, radia_util.AXES.index(beam_axis)].tolist(),
+        pts[:, radia_util.AXES.index(plot_axis)].tolist(),
         plots,
         PKDict(),
         PKDict(
             title=f'{f_type} on {f_path.name}',
             y_label=f_type,
-            x_label=f'{beam_axis} [mm]',
+            x_label=f'{plot_axis} [mm]',
             summaryData=PKDict(),
         ),
     )
@@ -562,7 +559,7 @@ def _generate_field_data(sim_id, g_id, name, field_type, field_paths):
 
 
 def _generate_field_integrals(sim_id, g_id, f_paths):
-    l_paths = [fp for fp in f_paths if fp.type == 'line']
+    l_paths = [fp for fp in f_paths if fp.type in ('line', 'axis')]
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
         return PKDict(warning='No paths')

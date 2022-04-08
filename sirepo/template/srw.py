@@ -2046,10 +2046,9 @@ def _set_parameters(v, data, plot_reports, run_dir):
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or '', v)
     if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
-        if report in dm and dm[report].get('jobRunMode', '') == 'sbatch':
+        if sirepo.mpi.cfg.in_slurm:
             v.sbatchBackup = '1'
-        # Number of "iterations" per save is best set to num processes
-        v.multiElectronNumberOfIterations = sirepo.mpi.cfg.cores
+            v.multiElectronNumberOfIterations = 25
         if report == 'multiElectronAnimation':
             if dm.multiElectronAnimation.calcCoherence == '1':
                 v.multiElectronCharacteristic = 41

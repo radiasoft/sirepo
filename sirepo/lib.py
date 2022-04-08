@@ -22,10 +22,11 @@ import sirepo.util
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def __init__(self):
+    def __init__(self, ignore_files):
         m = inspect.getmodule(self)
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
+        self._ignore_files = ignore_files
 
     def _convert(self, data):
         def _model(model, name):
@@ -66,8 +67,8 @@ class LibAdapterBase:
 
     def _verify_files(self, path, filenames):
         for f in filenames:
-            assert sirepo.util.secure_filename(f) == f, \
-                f'file={f} must be a simple name'
+            if f in self._ignore_files:
+                continue
             p = path.dirpath().join(f)
             assert p.check(file=True), \
                 f'file={f} missing'
@@ -80,7 +81,10 @@ class LibAdapterBase:
         ):
             f = self._sim_data.lib_file_name_without_type(f)
             try:
-                dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
+                d = dest_dir.join(f)
+                pykern.pkio.mkdir_parent_only(d)
+                if f not in self._ignore_files:
+                    d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
             except py.error.EEXIST:
                 pass
 
@@ -98,11 +102,17 @@ class GenerateBase:
 
 
 class Importer:
+    """
+    Imports a code's native files into Sirepo representation
 
-    def __init__(self, sim_type):
+    Args:
+        sim_type (str): type of simulation (eg. 'elegant' or 'madx')
+        ignore_files (list): files ignored during verification and symlink routines [None]
+    """
+    def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
 
-        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter()
+        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(ignore_files or [])
 
     def parse_file(self, path):
         p = pykern.pkio.py_path(path)
