@@ -470,7 +470,7 @@
                 "size": "1.0, 1.0, 105.0",
                 "type": "racetrack"
             }],
-            "magnet": ["Magnet", "model.geomObject", {
+            "magnet": ["Magnet", "model.cee", {
                 "armHeight": 50.0,
                 "armPosition": "1",
                 "center": "0.0, 71.25, 0.0",
@@ -486,7 +486,7 @@
                 "stemWidth": 62.5,
                 "stemPosition": "1"
             }],
-            "pole": ["Pole", "model.geomObject", {
+            "pole": ["Pole", "model.cuboid", {
                 "bevels": [
                     {
                         "amountHoriz": 8,
@@ -611,7 +611,7 @@
                 "size": "10.05, 10.05, 1.0",
                 "type": "racetrack"
             }],
-            "magnet": ["Magnet", "model.geomObject", {
+            "magnet": ["Magnet", "model.ell", {
                 "armHeight": 1.5,
                 "armPosition": "0",
                 "center": "0.0, 4.0, 3.75",
@@ -628,7 +628,7 @@
                 "stemPosition": "1",
                 "transforms": []
             }],
-            "pole": ["Pole", "model.geomObject", {
+            "pole": ["Pole", "model.cuboid", {
                 "bevels": [
                     {
                         "amountHoriz": 0.5,
