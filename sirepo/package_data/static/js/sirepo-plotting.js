@@ -3903,7 +3903,7 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
                     canvas.width = parseInt(canvas3d.getAttribute('width'));
                     canvas.height = parseInt(canvas3d.getAttribute('height'));
                     if (doTransverse) {
-                        vtkRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                        vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                     }
                     else {
                         vtkRenderer.getRenderWindow().render();

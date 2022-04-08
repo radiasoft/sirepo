@@ -3308,7 +3308,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
@@ -4771,7 +4771,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
