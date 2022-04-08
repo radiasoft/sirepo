@@ -2209,7 +2209,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
