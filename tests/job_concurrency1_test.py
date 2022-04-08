@@ -13,6 +13,13 @@ import pytest
 
 import sirepo.util
 
+def setup_module(module):
+    import os
+    os.environ.update(
+        SIREPO_JOB_DRIVER_LOCAL_SLOTS_PARALLEL='1',
+        SIREPO_JOB_DRIVER_LOCAL_SLOTS_SEQUENTIAL='1'
+    )
+
 
 def test_myapp_cancel(fc):
     """https://github.com/radiasoft/sirepo/issues/2346"""
@@ -100,22 +107,26 @@ def test_myapp_cancel(fc):
     pkunit.pkeq('canceled', c.state)
 
 
-#def test_myapp_io(fc):
 def test_srw_io(fc):
     import time
     import threading
     from pykern import pkunit
     from pykern.pkdebug import pkdlog
     from pykern.pkcollections import PKDict
+    from sirepo import srunit
 
-    #d = fc.sr_sim_data()
+    #fc = srunit.flask_client(
+    #    cfg={
+    #        'SIREPO_FEATURE_CONFIG_SIM_TYPES': 'srw',
+    #        'SIREPO_JOB_DRIVER_LOCAL_SLOTS_PARALLEL': '4',
+    #    }
+    #)
+    #d = fc.sr_sim_data(sim_name='NSLS-II TES beamline', sim_type='srw')
     d = fc.sr_sim_data('NSLS-II TES beamline')
-    d.models.simulation.name = 'srunit_long_run'
-    #report = 'heightWeightReport'
-    report = 'beamlineAnimation'
-    num_runs = 3
+    reports = ['beamlineAnimation', 'coherentModesAnimation']
+    num_runs = len(reports)
     runs = []
-    for i in range(num_runs + 1):
+    for _ in range(num_runs + 1):
         runs.append(PKDict(res={}, done=False))
 
     def _monitor_run(i):
@@ -123,24 +134,22 @@ def test_srw_io(fc):
         for _ in range(100):
             time.sleep(.1)
             if r.done:
+                fc.sr_post('runCancel', r.res.nextRequest)
                 break
             r.res = fc.sr_post('runStatus', r.res.nextRequest)
-        pkdlog('** IO RUN {} COMPLETE **', i)
 
     def _start_run(i):
-        pkdlog('** IO RUN {} STARTING **', i)
         r = runs[i]
         r.res = fc.sr_post(
             'runSimulation',
             PKDict(
                 forceRun=False,
                 models=d.models,
-                report=report,
+                report=reports[i],
                 simulationId=d.models.simulation.simulationId,
                 simulationType=d.simulationType,
             ),
         )
-        pkdlog('** IO RUN {} 1ST RES {} **', i, r.res)
         for _ in range(50):
             pkunit.pkok(r.res.state != 'error', 'unexpected error state: {}')
             if r.res.state == 'pending' or r.res.state == 'running':
@@ -154,22 +163,19 @@ def test_srw_io(fc):
         time.sleep(.1)
 
     def _tn():
-        pkdlog('** IO DOWNLOAD **')
         try:
             runs[num_runs].res = fc.sr_get(
                 'downloadDataFile',
                 PKDict(
                     simulation_type=d.simulationType,
                     simulation_id=d.models.simulation.simulationId,
-                    model=report,
+                    model=reports[0],
                     frame='0',
                     suffix='dat',
-                    #suffix='csv',
                 ),
             )
         except Exception as e:
             runs[num_runs].res = str(e)
-            pass
         for r in runs:
             r.done = True
         time.sleep(1)
