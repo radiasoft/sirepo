@@ -3215,6 +3215,13 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 orientationMarker.updateMarkerOrientation();
                 fsRenderer.getRenderWindow().render();
             };
+
+            $scope.$on('$destroy', function() {
+                if (orientationMarker) {
+                    orientationMarker.setEnabled(false);
+                }
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
