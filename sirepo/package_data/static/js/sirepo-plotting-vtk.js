@@ -2195,6 +2195,9 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);
+                if ($scope.hasMarker()) {
+                    marker.setEnabled(false);
+                }
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
                 plotToPNG.removeCanvas($scope.reportId);
