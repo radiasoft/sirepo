@@ -283,7 +283,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
         },
         template: `
             <div data-ng-show="isFormDirty()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! isFormValid()">Save Changes</button> 
+              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! isFormValid()">Save Changes</button>
               <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
             </div>
         `,
@@ -358,7 +358,7 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
         template: `
             <div data-ng-if="showAlert()" class="alert alert-warning" role="alert">
               <h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>
-              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ' + authState.upgradePlanLink() + '.</p>
+              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ${authState.upgradePlanLink()}.</p>
             </div>
         `,
         controller: function($scope, appState) {
@@ -936,7 +936,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
               <li data-ng-hide="selectionRequired" class="divider"></li>
               <li><a href data-ng-click="showFileUpload()"><span class="glyphicon glyphicon-plus"></span> New</a></li>
             </ul>
-          </div> 
+          </div>
           <div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">
             <div class="pull-left" data-ng-transclude=""></div>
             <div class="pull-left"><a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
@@ -1366,7 +1366,7 @@ SIREPO.app.directive('helpLink', function(appState) {
         },
         template: `
             <a data-ng-if="::url" data-ng-href="{{ ::url }}" target="_blank">
-              <span data-ng-class="::glyphClass"></span> 
+              <span data-ng-class="::glyphClass"></span>
               ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName}
                {{ ::title }}
             </a>
@@ -2039,7 +2039,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
         template: `
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
-              <a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a> 
+              <a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
               <a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
@@ -2068,10 +2068,10 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         template: `
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
-              <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+              <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
               <div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">
-                <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> 
+                <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                 <ul class="dropdown-menu dropdown-menu-right">
                   <li class="dropdown-header">Download Report</li>
                   <li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>
@@ -2083,7 +2083,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   <li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>
                 </ul>
               </div>
-              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> 
+              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2325,7 +2325,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
               <li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>
             </ul>
             <div data-ng-if="showTitle()" class="navbar-text">
-                <a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a> 
+                <a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>
                 <a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>
             </div>
         `,
@@ -4473,7 +4473,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
             <span data-loading-spinner data-sentinel="simList">
               <div style="white-space: nowrap">
                 <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
-                 
+
                 <button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
