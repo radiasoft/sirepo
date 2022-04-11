@@ -26,6 +26,52 @@
             ["y", "y"],
             ["pxmc", "p_x/mc"],
             ["pymc", "p_y/mc"]
+        ],
+        "TaperModel": [
+            ["0", "No Taper"],
+            ["1", "Linear Taper"],
+            ["2", "Quadratic Taper"]
+        ],
+        "Iscan": [
+            ["0",  "GAMMA0"],
+            ["1", "DELGAM"],
+            ["2", "CURPEAK"],
+            ["3", "XLAMDS"],
+            ["4", "AW0"],
+            ["5", "ISEED"],
+            ["6", "PXBEAM"],
+            ["7", "PYBEAM"],
+            ["8", "XBEAM"],
+            ["9", "YBEAM"],
+            ["10", "RXBEAM"],
+            ["11", "RYBEAM"],
+            ["12", "XLAMD"],
+            ["13", "DELAW"],
+            ["14", "ALPHAX"],
+            ["15", "ALPHAY"],
+            ["16", "EMITX"],
+            ["17", "EMITY"],
+            ["18", "PRAD0"],
+            ["19", "ZRAYL"],
+            ["20", "ZWAIST"],
+            ["21", "AWD"],
+            ["22", "BEAMFILE"],
+            ["23", "BEAMOPT"],
+            ["24", "BEAMGAM"]
+        ],
+        "Iertyp": [
+            ["0", "Uniform"],
+            ["1", "Gaussian"],
+            ["2", "Correlated errors to minimize field integrals"],
+            ["3", "Disable field errors"]
+        ],
+        "Iwityp": [
+           ["0", "Planar"],
+           ["1", "Helical"]
+        ],
+        "Lbc": [
+            ["0", "Direchlet"],
+            ["1", "Neumann"]
         ]
     },
     "frameIdFields": {
@@ -183,64 +229,64 @@
         },
         "focusing": {
             "dl": [
-                "DL",
+                "Length of the D-quads",
                 "Float",
                 0.0,
-                "Length of the D-quadrupoles in measures of the undulator period."
+                "DL: Length of the D-quadrupoles in measures of the undulator period."
             ],
             "drl": [
-                "DRL",
+                "Drift length between F and D quads",
                 "Float",
                 0.0,
-                "Drift length between F- and D-quadrupoles in measures of undulator period."
+                "DRL: Drift length between F- and D-quadrupoles in measures of undulator period."
             ],
             "f1st": [
-                "F1ST",
+                "Position within a FODO cell",
                 "Float",
                 0.0,
-                "Position within a FODO cell, where GENESIS 1.3 starts the FODO cell lattice. To start with a full F-quadrupole set F1ST to zero while a value of FL/2 begins the cell in the middle of the focusing quadrupole."
+                "F1ST: Position within a FODO cell, where GENESIS 1.3 starts the FODO cell lattice. To start with a full F-quadrupole set F1ST to zero while a value of FL/2 begins the cell in the middle of the focusing quadrupole."
             ],
             "fl": [
-                "FL",
+                "Length of the F-quads",
                 "Float",
                 98.0,
-                "Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length."
+                "FL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length."
             ],
             "qfdx": [
-                "QFDX",
+                "Quad misplacement in x-direction",
                 "Float",
                 0.0,
-                "Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-,] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file."
+                "QFDX: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-,] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file."
             ],
             "qfdy": [
-                "QFDY",
+                "Quad misplacement in y-direction",
                 "Float",
                 0.0,
-                "Maximum transverse misplacement of the quadrupoles in y-direction, respectively. See QFDX for more information."
+                "QFDY: Maximum transverse misplacement of the quadrupoles in y-direction, respectively. See QFDX for more information."
             ],
             "quadd": [
-                "QUADD",
+                "Field strength of D-quads",
                 "Float",
                 0.0,
-                "The fields strength of (D-)quadrupoles, defocusing in the x-plane. GENESIS 1.3 automatically applies the correct signs to QUADF and QUADD indicating the alternating focusing in the FODO-lattice."
+                "QUADD: The fields strength of (D-)quadrupoles, defocusing in the x-plane. GENESIS 1.3 automatically applies the correct signs to QUADF and QUADD indicating the alternating focusing in the FODO-lattice."
             ],
             "quadf": [
-                "QUADF",
+                "Field strength of F-quads",
                 "Float",
                 1.23,
-                "The field strength of  (F-)quadrupoles, focusing in the x-plane."
+                "QUADF: The field strength of  (F-)quadrupoles, focusing in the x-plane."
             ],
             "sl": [
-                "SL",
+                "Length of solenoid field",
                 "Float",
                 0.0,
-                "Length of solenoid field in measures of undulator period. The solenoid is aligned to the beginning of each undulator section."
+                "SL: Length of solenoid field in measures of undulator period. The solenoid is aligned to the beginning of each undulator section."
             ],
             "solen": [
-                "SOLEN",
+                "Solenoid field strength",
                 "Float",
                 0.0,
-                "On-axis field strength of a superimposed solenoid field."
+                "SOLEN: On-axis field strength of a superimposed solenoid field."
             ]
         },
         "io": {
@@ -746,58 +792,58 @@
         },
         "mesh": {
             "dgrid": [
-                "DGRID",
+                "Grid size",
                 "Float",
                 0.0,
-                "Any value larger than zero explicitly sets the grid size, overruling the calculation by the RMAX0-parameter."
+                "DGRID: Any value larger than zero explicitly sets the grid size, overruling the calculation by the RMAX0-parameter."
             ],
             "iscrkup": [
-                "ISCRKUP",
-                "Integer",
+                "Update all Runge-Kutta integration steps",
+                "Boolean",
                 0,
-                "If set to a non-zero value then the space charge field is updated at each of the 4 Runge-Kutta integration steps instead of the default behavior, where the space charge field is claculated only once before the Runge-Kutta integration.It increases the stability and precision of the space charge field but it comes with a cost in slower execution speed."
+                "ISCRKUP: If set to a non-zero value then the space charge field is updated at each of the 4 Runge-Kutta integration steps instead of the default behavior, where the space charge field is claculated only once before the Runge-Kutta integration. It increases the stability and precision of the space charge field but it comes with a cost in slower execution speed."
             ],
             "lbc": [
-                "LBC",
-                "Integer",
+                "Boundary Condition",
+                "Lbc",
                 0,
-                "Flag to set the boundary condition for the field solver. The options are Direchlet boundary condition (LBC = 0) and Neumann boundary condition (otherwise). Anyhow the grid should be chosen large enough so that the choice of LBC should not change the results."
+                "LBC: Flag to set the boundary condition for the field solver. The options are Direchlet boundary condition (LBC = 0) and Neumann boundary condition (otherwise). Anyhow the grid should be chosen large enough so that the choice of LBC should not change the results."
             ],
             "ncar": [
-                "NCAR",
+                "N grid points for radiation field",
                 "Integer",
                 151,
-                "The number of grid points for the radiation field along a single axis. The total number for the mesh is NCAR2. NCAR must be an odd number to cover the undulator axis with one grid point. Do not exceed NCMAX defined in the source file 'genesis.def'."
+                "NCAR: The number of grid points for the radiation field along a single axis. The total number for the mesh is NCAR2. NCAR must be an odd number to cover the undulator axis with one grid point. Do not exceed NCMAX defined in the source file 'genesis.def'."
             ],
             "nptr": [
-                "NPTR",
+                "Number of radial grid points",
                 "Integer",
                 40,
-                "Number of radial grid points, on which the space charge field is evaluated. The radial axis is automatically chosen by GENESIS 1.3 to be twice as long as the maximum offset of macro particles relative to the center of the electron beam. This excludes effects of the boundary condition even for the case of narrow beams."
+                "NPTR: Number of radial grid points, on which the space charge field is evaluated. The radial axis is automatically chosen by GENESIS 1.3 to be twice as long as the maximum offset of macro particles relative to the center of the electron beam. This excludes effects of the boundary condition even for the case of narrow beams."
             ],
             "nscr": [
-                "NSCR",
+                "Number of azimuthal modes",
                 "Integer",
                 1,
-                "Number of azimuthal modes for space charge calculation."
+                "NSCR: Number of azimuthal modes for space charge calculation."
             ],
             "nscz": [
-                "NSCZ",
+                "Number of longitudinal Fourier components",
                 "Integer",
                 1,
-                "Number of longitudinal Fourier components for space charge calculation. NSCZ must be greater than 0 to include space charge but less than (2NBINS+2) for valid results."
+                "NSCZ: Number of longitudinal Fourier components for space charge calculation. NSCZ must be greater than 0 to include space charge but less than (2NBINS+2) for valid results."
             ],
             "rmax0": [
-                "RMAX0",
+                "Radiation field scaling factor",
                 "Float",
                 9.0,
-                "GENESIS 1.3 estimates the size of the grid on which the radiation field is discretized  by scaling the averages size of the initial radiation field and beam size with RMAX0. The explicit size is [-DGRID,DGRID] in both dimensions with DGRID = RMAX0(r,beam+r,field).The electron beam size is the rms sum of RXBEAM and RYBEAM while the radiation field  size is calculated with ZRAYL and ZWAIST."
+                "RMAX0: GENESIS 1.3 estimates the size of the grid on which the radiation field is discretized by scaling the averages size of the initial radiation field and beam size with RMAX0. The explicit size is [-DGRID,DGRID] in both dimensions with DGRID = RMAX0(r,beam+r,field).The electron beam size is the rms sum of RXBEAM and RYBEAM while the radiation field  size is calculated with ZRAYL and ZWAIST."
             ],
             "rmax0sc": [
-                "RMAX0SC",
+                "Radial grid size",
                 "Float",
                 0.0,
-                "Explicitly defines the radial grid size for space charge calculations when set to a positive value. Otherwise, Genesis calculates the grid size from the current size of the electron beam."
+                "RMAX0SC: Explicitly defines the radial grid size for space charge calculations when set to a positive value. Otherwise, Genesis calculates the grid size from the current size of the electron beam."
             ]
         },
         "radiation": {
@@ -832,10 +878,10 @@
                 "Radiation power for seeding with a harmonics, defined by NHARM.The waist position and waist size is identical to the fundamental (ZWAIST) thus using a scaled value of NHARM*ZRAYLfor the Rayleigh length."
             ],
             "xlamds": [
-                "XLAMDS",
+                "Resonant radiation wavelength [m]",
                 "Float",
                 1.2852e-05,
-                "The resonant radiation wavelength. Due to the bandwidth of time-dependent simulation SASE simulations do not require a very precise value for XLAMDS."
+                "XLAMDS: The resonant radiation wavelength. Due to the bandwidth of time-dependent simulation SASE simulations do not require a very precise value for XLAMDS."
             ],
             "zrayl": [
                 "ZRAYL",
@@ -844,30 +890,30 @@
                 "The Rayleigh length of the seeding radiation field. ZRAYL is defined as w02/XLAMDS where w0 is the radius of the optical beam waist. The Rayleigh length is a measure for the diffraction w(z)2 = w02(1 + (z - ZWAIST)2/ZRAYL2) and is needed to calculate the size and divergence/convergence of the seeding field at the undulator entrance. Because the field size can determine the grid size it is strongly recommended to supply reasonable numbers for ZRAYL and ZWAIST even for simulation starting from noise."
             ],
             "zwaist": [
-                "ZWAIST",
+                "Waist position [m]",
                 "Float",
                 0.0,
-                "Position of the waist of the seeding radiation field with respect to the undulator entrance. ZWAIST is needed in combination with ZRAYL to calculate the initial radiation field. Note that a waist position within the undulator (ZWAIST  >  0) is only used to determine the initial convergence. The FEL interaction might significantly change the beam size and diffraction of the radiation field (gain guiding)."
+                "ZWAIST: Position of the waist of the seeding radiation field with respect to the undulator entrance. ZWAIST is needed in combination with ZRAYL to calculate the initial radiation field. Note that a waist position within the undulator (ZWAIST  >  0) is only used to determine the initial convergence. The FEL interaction might significantly change the beam size and diffraction of the radiation field (gain guiding)."
             ]
         },
         "scan": {
             "iscan": [
-                "ISCAN",
-                "Integer",
+                "Parameter for scan",
+                "Iscan",
                 0,
-                "Selects the parameter for a scan over a certain range of its value:GAMMA0DELGAMCURPEAKXLAMDSAW0ISEEDPXBEAMPYBEAMXBEAMYBEAMRXBEAMRYBEAMXLAMDDELAWALPHAXALPHAYEMITXEMITYPRAD0ZRAYLZWAISTAWDBEAMFILEBEAMOPTBEAMGAMThe last two enables a user-defined scan, where a steady-state run is performed for each entryof the supplied BEAMFILE. BEAMOPT differs from BEAMFILE that it automatically adjust XLAMDS according to the resonance condition and the beam energy, defined in the BEAMFILE.The BEAMGAM option is similar to BEAMFILE, but overwrites the value of energy with GAMMA0 from the main input file."
+                "ISCAN: Selects the parameter for a scan over a certain range of its value. The last two enables a user-defined scan, where a steady-state run is performed for each entryof the supplied BEAMFILE. BEAMOPT differs from BEAMFILE that it automatically adjust XLAMDS according to the resonance condition and the beam energy, defined in the BEAMFILE.The BEAMGAM option is similar to BEAMFILE, but overwrites the value of energy with GAMMA0 from the main input file."
             ],
             "nscan": [
-                "NSCAN",
+                "Steps per scan",
                 "Integer",
                 3,
-                "Number of steps per scan."
+                "NSCAN: Number of steps per scan."
             ],
             "svar": [
-                "SVAR",
+                "Scan range",
                 "Float",
                 0.01,
-                "Defines the scan range of the selected scan parameter. The parameter is varied between (1-SVAR) and (1+SVAR) of its initial value. One exception is the scan over ISEED where the random number generator is not reinitialized."
+                "SVAR: Defines the scan range of the selected scan parameter. The parameter is varied between (1-SVAR) and (1+SVAR) of its initial value. One exception is the scan over ISEED where the random number generator is not reinitialized."
             ]
         },
         "simulationControl": {
@@ -961,106 +1007,106 @@
         },
         "undulator": {
             "aw0": [
-                "AW0",
+                "Dimensionless rms undulator parameter",
                 "Float",
                 0.735,
-                "The normalized, dimensionless rms undulator parameter, defined by AW0 = (e/mc)(Bu/ku), where e is the electron charge, m is electron mass, c is speed of light, ku=2/u is the undulator wave number, u is the undulator period. Bu is the rms undulator field with Bu = Bp/2 for a planar undulator and Bu = Bpfor a helical undulator, where Bp is the on-axis peak field."
+                "AW0: The normalized, dimensionless rms undulator parameter, defined by AW0 = (e/mc)(Bu/ku), where e is the electron charge, m is electron mass, c is speed of light, ku=2/u is the undulator wave number, u is the undulator period. Bu is the rms undulator field with Bu = Bp/2 for a planar undulator and Bu = Bpfor a helical undulator, where Bp is the on-axis peak field."
             ],
             "awd": [
-                "AWD",
+                "Virtual undulator parameter",
                 "Float",
                 0.735,
-                "A virtual undulator parameter for the gap between undulator modules. The only purpose of this parameter is to delay the longitudinal motion of the electrons in the same manner as AW0 does within the undulator modules. It is used to keep the electron and radiation phases synchronize up to the point when the interaction at the next undulator module starts again. AWD has typically the same value as AW0, but might vary for optimum matching between the modules. "
+                "AWD: A virtual undulator parameter for the gap between undulator modules. The only purpose of this parameter is to delay the longitudinal motion of the electrons in the same manner as AW0 does within the undulator modules. It is used to keep the electron and radiation phases synchronize up to the point when the interaction at the next undulator module starts again. AWD has typically the same value as AW0, but might vary for optimum matching between the modules. "
             ],
             "awx": [
-                "AWX",
+                "Maximum offset in x",
                 "Float",
                 0.0,
-                "Maximum offset in x for undulator module misalignment. The error for each individual module followsa uniform distribution"
+                "AWX: Maximum offset in x for undulator module misalignment. The error for each individual module followsa uniform distribution"
             ],
             "awy": [
-                "AWY",
+                "Maximum offset in y",
                 "Float",
                 0.0,
-                "Maximum offset in y for undulator module misalignment. The error for each individual module followsa uniform distribution"
+                "AWY: Maximum offset in y for undulator module misalignment. The error for each individual module followsa uniform distribution"
             ],
             "delaw": [
-                "DELAW",
+                "Error distribution",
                 "Float",
                 0.0,
-                "RMS value of the undulator field error distribution. A value of zero disables field errors."
+                "DELAW: RMS value of the undulator field error distribution. A value of zero disables field errors."
             ],
             "fbess0": [
-                "FBESS0",
+                "Coupling factor",
                 "Float",
                 0.0,
-                "The coupling factor of the electron beam to the radiation field due to the longitudinal wiggle motion of the electrons.  It is 1.0 for a helical undulator and J0(x) - J1(x) for a planarundulator where J0(x), J1(x) are Bessel functions and x = AW02/2(1+AW02). If FBESS0 is set to 0.0 GENESIS 1.3 calculates the value."
+                "FBESS0: The coupling factor of the electron beam to the radiation field due to the longitudinal wiggle motion of the electrons.  It is 1.0 for a helical undulator and J0(x) - J1(x) for a planarundulator where J0(x), J1(x) are Bessel functions and x = AW02/2(1+AW02). If FBESS0 is set to 0.0 GENESIS 1.3 calculates the value."
             ],
             "iertyp": [
-                "IERTYP",
-                "Integer",
+                "Type of undulator field errors",
+                "Iertyp",
                 0,
-                "Type of undulator field errors. Either a uniform (+/-1) or Gaussian (+/- 2) distribution can be chosen. If IERTYP is negative the errors are correlated to minimize the first and second field integral. IERTYP =0 disables field errors. Field errors requires a integration step size of half an undulator period (DELZ = 0.5). Note that field errors are applied even if the magnetic lattice is defined by an external file."
+                "IERTYP: Type of undulator field errors. Either a uniform (+/-1) or Gaussian (+/- 2) distribution can be chosen. If IERTYP is negative the errors are correlated to minimize the first and second field integral. IERTYP =0 disables field errors. Field errors requires a integration step size of half an undulator period (DELZ = 0.5). Note that field errors are applied even if the magnetic lattice is defined by an external file."
             ],
             "iseed": [
-                "ISEED",
+                "Inital random number generation seed",
                 "Integer",
                 -1,
-                "The initial seeding of the random number generator for field errors."
+                "ISEED: The initial seeding of the random number generator for field errors."
             ],
             "iwityp": [
-                "IWITYP",
-                "Integer",
+                "Undulator type",
+                "Iwityp",
                 0,
-                "Flag indicating the undulator type. A value of zero indicates a planar undulator, any other value a helical one."
+                "IWITYP: Flag indicating the undulator type. Planar undulator or helical."
             ],
             "nsec": [
-                "NSEC",
+                "Number of undulator sections",
                 "Integer",
                 1,
-                "The number of sections of the undulator. Note that a section length in not automatically identical with the undulator module length. GENESIS 1.3 aligns modules to the FODO-lattice. If a module ends within a FODO cell the next module starts with the beginning of the next cell. Sometimes this results in a longitudinal gap between adjacent undulator modules."
+                "NSEC: The number of sections of the undulator. Note that a section length in not automatically identical with the undulator module length. GENESIS 1.3 aligns modules to the FODO-lattice. If a module ends within a FODO cell the next module starts with the beginning of the next cell. Sometimes this results in a longitudinal gap between adjacent undulator modules."
             ],
             "nwig": [
-                "NWIG",
+                "Periods per undulator module",
                 "Integer",
                 98,
-                "The number of periods within a single undulator module. The product of NWIG and XLAMD defines the length of the undulator module."
+                "NWIG: The number of periods within a single undulator module. The product of NWIG and XLAMD defines the length of the undulator module."
             ],
             "wcoefz1": [
-                "WCOEFZ(1)",
+                "Start of undulator tapering [m]",
                 "Float",
                 0.0,
-                "Start of undulator tapering. Note that tapering is applied, even the magnetic lattice is defined by an external file."
+                "WCOEFZ(1): Start of undulator tapering. Note that tapering is applied, even the magnetic lattice is defined by an external file."
             ],
             "wcoefz2": [
-                "WCOEFZ(2)",
+                "Relative change over taper",
                 "Float",
                 0.0,
-                "The relative change of the undulator field over the entire taper length (AW(exit) = (1 - WCOEFZ(2)) AW(entrance)). In the case of a multi section undulator GENESIS 1.3 tapers the magnetic field over the gaps as well, resulting in a jump of the magnetic field AW(z) between two modules."
+                "WCOEFZ(2): The relative change of the undulator field over the entire taper length (AW(exit) = (1 - WCOEFZ(2)) AW(entrance)). In the case of a multi section undulator GENESIS 1.3 tapers the magnetic field over the gaps as well, resulting in a jump of the magnetic field AW(z) between two modules."
             ],
             "wcoefz3": [
-                "WCOEFZ(3)",
-                "Float",
-                0.0,
-                "The taper model:= 1 for linear taper,= 2 for quadratic taper,or no taper otherwise."
+                "Taper model",
+                "TaperModel",
+                "0",
+                "WCOEFZ(3): The taper model:= 1 for linear taper,= 2 for quadratic taper, or no taper otherwise."
             ],
             "xkx": [
-                "XKX",
+                "Undulator focus param",
                 "Float",
                 0.0,
-                "Normalized natural focusing of the undulator in x. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. "
+                "XKX: Normalized natural focusing of the undulator in x. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. "
             ],
             "xky": [
-                "XKY",
+                "Undulator focus param",
                 "Float",
                 1.0,
-                "Normalized natural focusing of the undulator in x. See XKX for more information."
+                "XKY: Normalized natural focusing of the undulator in x. See XKX for more information."
             ],
             "xlamd": [
-                "XLAMD",
+                "Undulator period length",
                 "Float",
                 0.0205,
-                "The undulator period length."
+                "XLAMD: The undulator period length."
             ]
         }
     },
@@ -1174,7 +1220,7 @@
             ]
         },
         "mesh": {
-            "title": "mesh",
+            "title": "Mesh",
             "advanced": [],
             "basic": [
                 "dgrid",
