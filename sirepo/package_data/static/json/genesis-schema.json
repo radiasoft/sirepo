@@ -72,6 +72,15 @@
         "Lbc": [
             ["0", "Direchlet"],
             ["1", "Neumann"]
+        ],
+        "IgamGaus": [
+            ["1", "Gaussian"],
+            ["2", "Uniform"]
+        ],
+        "ItGaus": [
+            ["1", "Gaussian"],
+            ["2", "Uniform"],
+            ["3", "Parabolic"]
         ]
     },
     "frameIdFields": {
@@ -97,130 +106,130 @@
     "model": {
         "electronBeam": {
             "alphax": [
-                "ALPHAX",
+                "Rotation of the transverse phase space distribution in x",
                 "Float",
                 0.0,
-                "Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX."
+                "ALPHAX: Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX."
             ],
             "alphay": [
-                "ALPHAY",
+                "Rotation of the transverse phase space distribution in y",
                 "Float",
                 0.0,
-                "Rotation of the transverse phase space distribution in y. See ALPHAX for more information."
+                "ALPHAY: Rotation of the transverse phase space distribution in y. See ALPHAX for more information."
             ],
             "bunch": [
-                "BUNCH",
+                "Initial value of the bunching factor",
                 "Float",
                 0.0,
-                "Initial value of the bunching factor, when quite loading is used."
+                "BUNCH: Initial value of the bunching factor, when quite loading is used."
             ],
             "bunchphase": [
-                "BUNCHPHASE",
+                "Phase of initial bunching [rad]",
                 "Float",
                 0.0,
-                "Phase of initial bunching, when quite loading is used."
+                "BUNCHPHASE: Phase of initial bunching, when quite loading is used."
             ],
             "conditx": [
-                "CONDITX",
+                "Correlational strength in x-plane [1/m]",
                 "Float",
                 0.0,
-                "CONDITX is the correlation strength between the amplitude of the eletron's betatron oscillation and its energy.If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can beincreased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information."
+                "CONDITX: is the correlation strength between the amplitude of the eletron's betatron oscillation and its energy.If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can beincreased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information."
             ],
             "condity": [
-                "CONDITY",
+                "Correlational strength in x-plane [1/m]",
                 "Float",
                 0.0,
-                "Same as CONDITX but for the correlation in the y-plane."
+                "CONDITY: Same as CONDITX but for the correlation in the y-plane."
             ],
             "curpeak": [
-                "CURPEAK",
+                "Peak current of the electron beam [A]",
                 "Float",
                 250.0,
-                "Peak current of the electron beam. Time-independent simulations enforces a constant current."
+                "CURPEAK: Peak current of the electron beam. Time-independent simulations enforces a constant current."
             ],
             "cuttail": [
-                "CUTTAIL",
+                "Cut in the transverse phase space",
                 "Float",
                 -1.0,
-                "Cut in the transverse phase space in measures of the rms size to collimate transverse beam tails/halos. The cut is applied after the loading and beam current is set accordingly to the reduced number of macro particles. It is disabled if the value is negative or the electron beam is imported from an external file."
+                "CUTTAIL: Cut in the transverse phase space in measures of the rms size to collimate transverse beam tails/halos. The cut is applied after the loading and beam current is set accordingly to the reduced number of macro particles. It is disabled if the value is negative or the electron beam is imported from an external file."
             ],
             "delgam": [
-                "DELGAM",
+                "The RMS value of the energy distribution",
                 "Float",
                 0.005,
-                "The RMS value of the energy distribution in terms of electron rest mass energy."
+                "DELGAM: The RMS value of the energy distribution in terms of electron rest mass energy."
             ],
             "emitx": [
-                "EMITX",
+                "rms emmitance in x [m]",
                 "Float",
                 2e-06,
-                "The normalized rms emittance in x ."
+                "EMITX: The normalized rms emittance in x ."
             ],
             "emity": [
-                "EMITY",
+                "rms emmitance in y [m]",
                 "Float",
                 2e-06,
-                "The normalized rms emittance in y."
+                "EMITY: The normalized rms emittance in y."
             ],
             "emod": [
-                "EMOD",
+                "Initial energy modulation",
                 "Float",
                 0.0,
-                "Initial energy modulation, when quite loading is used. The value is the modulation amplitude in terms of gamma."
+                "EMOD: Initial energy modulation, when quite loading is used. The value is the modulation amplitude in terms of gamma."
             ],
             "emodphase": [
-                "EMODPHASE",
+                "Phase of initial energy modulation [rad]",
                 "Float",
                 0.0,
-                "Phase of initial energy modulation, when quite loading is used."
+                "EMODPHASE: Phase of initial energy modulation, when quite loading is used."
             ],
             "gamma0": [
-                "GAMMA0",
+                "Mean energy",
                 "Float",
                 35.2,
-                "The mean energy of the electron beam in terms of the electron rest mass energy."
+                "GAMMA0: The mean energy of the electron beam in terms of the electron rest mass energy."
             ],
             "npart": [
-                "NPART",
+                "Number of macro particles per slice",
                 "Integer",
                 8192,
-                "The number of macro particles per slice. NPART must be a multiple of 4*NBINS and smaller than  defined in the source file 'genesis.def'."
+                "NPART: The number of macro particles per slice. NPART must be a multiple of 4*NBINS and smaller than  defined in the source file 'genesis.def'."
             ],
             "pxbeam": [
-                "PXBEAM",
+                "Transverse momentum x of the electron beam [m]",
                 "Float",
                 0.0,
-                "Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as PXBEAM = x where x = cvx is the average transverse velocity and  the Lorenz factor of the electron energy."
+                "PXBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as PXBEAM = x where x = cvx is the average transverse velocity and  the Lorenz factor of the electron energy."
             ],
             "pybeam": [
-                "PYBEAM",
+                "Transverse momentum y of the electron beam [m]",
                 "Float",
                 0.0,
-                "Average normalized transverse momentum in y of the electron beam at the undulator entrance. See PXBEAM for more information."
+                "PYBEAM: Average normalized transverse momentum in y of the electron beam at the undulator entrance. See PXBEAM for more information."
             ],
             "rxbeam": [
-                "RXBEAM",
+                "rms value in x of the transverse [m]",
                 "Float",
                 0.0001121,
-                "The rms value in x of the transverse, spatial distribution."
+                "RXBEAM: The rms value in x of the transverse, spatial distribution."
             ],
             "rybeam": [
-                "RYBEAM",
+                "rms value in y of the transverse [m]",
                 "Float",
                 0.0001121,
-                "The rms value in y of the transverse, spatial distribution."
+                "RYBEAM: The rms value in y of the transverse, spatial distribution."
             ],
             "xbeam": [
-                "XBEAM",
+                "Transverse position in x of the electron beam [m]",
                 "Float",
                 0.0,
-                "Transverse position in x of the electron beam at the undulator entrance with respect to the undulator axis."
+                "XBEAM: Transverse position in x of the electron beam at the undulator entrance with respect to the undulator axis."
             ],
             "ybeam": [
-                "YBEAM",
+                "Transverse position in y of the electron beam [m]",
                 "Float",
                 0.0,
-                "Transverse position in y of the electron beam at the undulator entrance with respect to the undulator axis."
+                "YBEAM: Transverse position in y of the electron beam at the undulator entrance with respect to the undulator axis."
             ]
         },
         "fieldDistributionAnimation": {
@@ -670,40 +679,40 @@
                 "If an imported particle distribution from a PARTFILE is up-converted to a higher harmonics the dault behavior is that the number of slices is preserved. This requires that ZSEPis adjusted together with XLAMDS. However if frequency resolution is a problem then a particle distribution can be converted and used multiple times to keep ZSEP constant.The disadvantage is that the CPU execution time is increased as well."
             ],
             "ndcut": [
-                "NDCUT",
+                "NDCUT where time-window = (tmax-tmin)/NDCUT",
                 "Integer",
                 0,
-                "When loading a slice, only particles of the external distribution are used, which falls within a small time-window centered around the current position of the slice. If NDCUT has a value larger than zero the width is calculated by (tmax-tmin)/NDCUT, where tmax and tminare determined, while scanning through the particle distribution. If NDCUT is zero, the time-window is adjusted, so that in average NPART/NBINS particles fall in each slice."
+                "NDCUT: When loading a slice, only particles of the external distribution are used, which falls within a small time-window centered around the current position of the slice. If NDCUT has a value larger than zero the width is calculated by (tmax-tmin)/NDCUT, where tmax and tmin are determined, while scanning through the particle distribution. If NDCUT is zero, the time-window is adjusted, so that in average NPART/NBINS particles fall in each slice."
             ],
             "offsetradf": [
-                "OFFSETRADF",
+                "Skip slices for relative position",
                 "Integer",
                 0,
-                "If the automatic alignment of the radiation field is disabled by setting ALIGNRADF to a non-zero value, the default alignment is that the first slice of the radiaiton field overlaps with the first slice of the electron beam. However the relative position can be controlled by OFFSETRADF. The value of OFFSETRADF defines the number of slice to skip before filling it for the first electorn slice. E.g. a value of 4 will uses the 5th slice for the simulation of the first slice. slices one to 4 will be used to fill up the slippage field. If Genesis 1.3. require to fill a slice which is not defined by the FIELDFILE then it uses the internal method of a fundamental Gauss-Hermite mode."
+                "OFFSETRADF: If the automatic alignment of the radiation field is disabled by setting ALIGNRADF to a non-zero value, the default alignment is that the first slice of the radiaiton field overlaps with the first slice of the electron beam. However the relative position can be controlled by OFFSETRADF. The value of OFFSETRADF defines the number of slice to skip before filling it for the first electorn slice. E.g. a value of 4 will uses the 5th slice for the simulation of the first slice. slices one to 4 will be used to fill up the slippage field. If Genesis 1.3. require to fill a slice which is not defined by the FIELDFILE then it uses the internal method of a fundamental Gauss-Hermite mode."
             ],
             "outputfile": [
-                "OUTPUTFILE",
+                "Name of main output file",
                 "String",
                 "genesis.out",
-                "The name of the main output file. The prompt for the output filename at the beginning of a GENESIS 1.3 run will be suppressed."
+                "OUTPUTFILE: The name of the main output file. The prompt for the output filename at the beginning of a GENESIS 1.3 run will be suppressed."
             ],
             "partfile": [
-                "PARTFILE",
+                "Particle distribution file",
                 "String",
                 "",
-                "Defines the file containing the particle distribution. The distribution is directly imported into the arrays holding the particle variables. "
+                "PARTFILE: Defines the file containing the particle distribution. The distribution is directly imported into the arrays holding the particle variables. "
             ],
             "radfile": [
-                "RADFILE",
+                "Lookup table for seeding radiation pulse",
                 "String",
                 "",
-                "Specifying a file containing a lookup table for the seeding radiation pulse  at different position along the bunch. "
+                "RADFILE: Specifying a file containing a lookup table for the seeding radiation pulse at different position along the bunch. "
             ],
             "trama": [
-                "TRAMA",
-                "Integer",
+                "Enable transport matrix",
+                "Boolean",
                 0,
-                "Non zero value enables that a transport matrix is applied to the electron distribution when importing it with PARTFILE. The individual matrix is defined by ITRAM##"
+                "TRAMA: Non zero value enables that a transport matrix is applied to the electron distribution when importing it with PARTFILE. The individual matrix is defined by ITRAM##"
             ]
         },
         "parameterAnimation": {
@@ -718,76 +727,76 @@
         },
         "particleLoading": {
             "iall": [
-                "IALL",
-                "Integer",
+                "All slices start with the same element",
+                "Boolean",
                 0,
-                "A non-zero value of IALL enforces that all slices are starting with the same element of the Hammersley sequences. It is recommend for time-dependent simulation excluding shot noise. IALL is set automatically for scans."
+                "IALL: A non-zero value of IALL enforces that all slices are starting with the same element of the Hammersley sequences. It is recommend for time-dependent simulation excluding shot noise. IALL is set automatically for scans."
             ],
             "igamgaus": [
-                "IGAMGAUS",
-                "Integer",
+                "Distribution profile",
+                "IgamGaus",
                 1,
                 "Defines distribution profile in energy. A non-zero value generates a Gaussian distribution and a uniform otherwise."
             ],
             "ildgam": [
-                "ILDGAM",
+                "Hammersley base for loading the energy distribution",
                 "Integer",
                 5,
-                "Hammersley base for loading the energy distribution. See ILDPSI for more information.Note that the loading of the energy distribution is Gaussian and uses two bases (ILDGAM and ILDGAM + 1)."
+                "ILDGAM: Hammersley base for loading the energy distribution. See ILDPSI for more information.Note that the loading of the energy distribution is Gaussian and uses two bases (ILDGAM and ILDGAM + 1)."
             ],
             "ildpsi": [
-                "ILDPSI",
+                "Indices of the Hammersley",
                 "Integer",
                 7,
-                "Indices of the Hammersley sequence bases for loading the particle phase. GENESIS 1.3 uses the first 26 prime numbers as bases. To avoid correlation between the variables each base should be different. "
+                "ILDPSI: Indices of the Hammersley sequence bases for loading the particle phase. GENESIS 1.3 uses the first 26 prime numbers as bases. To avoid correlation between the variables each base should be different. "
             ],
             "ildpx": [
-                "ILDPX",
+                "Hammersley base for loading the distribution in px",
                 "Integer",
                 3,
-                "Hammersley base for loading the distribution in px. See ILDPSI for more information."
+                "ILDPX: Hammersley base for loading the distribution in px. See ILDPSI for more information."
             ],
             "ildpy": [
-                "ILDPY",
+                "Hammersley base for loading the distribution in py",
                 "Integer",
                 4,
-                "Hammersley base for loading the distribution in py. See ILDPSI for more information."
+                "ILDPY: Hammersley base for loading the distribution in py. See ILDPSI for more information."
             ],
             "ildx": [
-                "ILDX",
+                "Hammersley base for loading the distribution in x",
                 "Integer",
                 1,
-                "Hammersley base for loading the distribution in x. See ILDPSI for more information."
+                "ILDX: Hammersley base for loading the distribution in x. See ILDPSI for more information."
             ],
             "ildy": [
-                "ILDY",
+                "Hammersley base for loading the distribution in y",
                 "Integer",
                 2,
-                "Hammersley base for loading the distribution in y. See ILDPSI for more information."
+                "IDLY: Hammersley base for loading the distribution in y. See ILDPSI for more information."
             ],
             "inverfc": [
-                "INVERFC",
-                "Integer",
+                "Use inverted error function",
+                "Boolean",
                 1,
-                "When set to a non-zero value, the inverted error function is used for generating a Gaussian distribution instead of the joint-propability method. It results in smoother distribution in energy and transverse dimensions."
+                "INVERFC: When set to a non-zero value, the inverted error function is used for generating a Gaussian distribution instead of the joint-propability method. It results in smoother distribution in energy and transverse dimensions."
             ],
             "ipseed": [
-                "IPSEED",
+                "Random seed for particle phase fluctuation",
                 "Integer",
                 -1,
-                "Initial seed for the random number generator used for particle phase fluctuation (shot noise). GENESIS 1.3 requires a re-initialization of the random number generator to guarantee the same loading whether magnetic field errors are used or not."
+                "IPSEED: Initial seed for the random number generator used for particle phase fluctuation (shot noise). GENESIS 1.3 requires a re-initialization of the random number generator to guarantee the same loading whether magnetic field errors are used or not."
             ],
             "itgaus": [
-                "ITGAUS",
-                "Integer",
+                "Distribution profile in the transverse variables",
+                "ItGaus",
                 1,
-                "Defines distribution profile in the transverse variables. The available distributions are:- Gaussian (ITGAUS=1)- Uniform (ITGAUS=2)- Parabolic (otherwise)"
+                "ITGAUS: Defines distribution profile in the transverse variables. The available distributions are:- Gaussian (ITGAUS=1)- Uniform (ITGAUS=2)- Parabolic (otherwise)"
             ],
             "nbins": [
-                "NBINS",
+                "Number of bins in the particle phase",
                 "Integer",
                 4,
-                "Number of bins in the particle phase. The value has to be at least 4 or larger than (2+2n), depending on whether the bunching at the nth harmonics is needed for space charge calculations or output."
+                "NBINS: Number of bins in the particle phase. The value has to be at least 4 or larger than (2+2n), depending on whether the bunching at the nth harmonics is needed for space charge calculations or output."
             ]
         },
         "mesh": {
@@ -851,25 +860,25 @@
                 "IALLHARM",
                 "Integer",
                 0,
-                "As a default setting only the fundamental and the harmonic, defined by NHARMare calculated. Setting the value to a non-zero value will also include all harmonics between. This option will be set automaticaly when the harmonics are calculated self-consistently."
+                "IALLHARM: As a default setting only the fundamental and the harmonic, defined by NHARMare calculated. Setting the value to a non-zero value will also include all harmonics between. This option will be set automaticaly when the harmonics are calculated self-consistently."
             ],
             "iharmsc": [
                 "IHARMSC",
                 "Integer",
                 0,
-                "Typically the harmonics are driven by the non-linear dynamics on the fundamental and the feed back of the harmonics on theelectron beam can be neglected for the sake of faster calculation. However setting IHARMSC to a non-zero value includes the couplingof the harmonic radiation back to the electron beam for a self-consistent model of harmonics. Enabling this feature will automatically includeall harmonics by setting IALLHARM to one."
+                "IHARMSC: Typically the harmonics are driven by the non-linear dynamics on the fundamental and the feed back of the harmonics on theelectron beam can be neglected for the sake of faster calculation. However setting IHARMSC to a non-zero value includes the couplingof the harmonic radiation back to the electron beam for a self-consistent model of harmonics. Enabling this feature will automatically includeall harmonics by setting IALLHARM to one."
             ],
             "nharm": [
-                "NHARM",
-                "Interger",
+                "Calculation of harmonics up to n",
+                "Integer",
                 1,
-                "Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS hasto be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameterdoes not enable automatically the output. For that the corresponding bit in LOUThas to be set as well."
+                "NHARM: Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS hasto be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameterdoes not enable automatically the output. For that the corresponding bit in LOUThas to be set as well."
             ],
             "prad0": [
-                "PRAD0",
+                "Input power of the radiation field [W]",
                 "Float",
                 10.0,
-                "The input power of the radiation field. For SASE simulation PRAD0 should be set to zero value or at least well below the shot noise level."
+                "PRAD0: The input power of the radiation field. For SASE simulation PRAD0 should be set to zero value or at least well below the shot noise level."
             ],
             "pradh0": [
                 "PRADH0",
@@ -884,10 +893,10 @@
                 "XLAMDS: The resonant radiation wavelength. Due to the bandwidth of time-dependent simulation SASE simulations do not require a very precise value for XLAMDS."
             ],
             "zrayl": [
-                "ZRAYL",
+                "Rayleigh length of seeding radiation [m]",
                 "Float",
                 0.5,
-                "The Rayleigh length of the seeding radiation field. ZRAYL is defined as w02/XLAMDS where w0 is the radius of the optical beam waist. The Rayleigh length is a measure for the diffraction w(z)2 = w02(1 + (z - ZWAIST)2/ZRAYL2) and is needed to calculate the size and divergence/convergence of the seeding field at the undulator entrance. Because the field size can determine the grid size it is strongly recommended to supply reasonable numbers for ZRAYL and ZWAIST even for simulation starting from noise."
+                "ZRAYL: The Rayleigh length of the seeding radiation field. ZRAYL is defined as w02/XLAMDS where w0 is the radius of the optical beam waist. The Rayleigh length is a measure for the diffraction w(z)2 = w02(1 + (z - ZWAIST)2/ZRAYL2) and is needed to calculate the size and divergence/convergence of the seeding field at the undulator entrance. Because the field size can determine the grid size it is strongly recommended to supply reasonable numbers for ZRAYL and ZWAIST even for simulation starting from noise."
             ],
             "zwaist": [
                 "Waist position [m]",
@@ -918,34 +927,34 @@
         },
         "simulationControl": {
             "delz": [
-                "DELZ",
+                "Integration step size",
                 "Float",
                 1.0,
-                "Integration step size in measure of the undulator period length."
+                "DELZ: Integration step size in measure of the undulator period length."
             ],
             "eloss": [
-                "ELOSS",
+                "Externally applied energy loss of the electron beam [eV/m]",
                 "Float",
                 0.0,
-                "Externally applied energy loss of the electron beam."
+                "ELOSS: Externally applied energy loss of the electron beam."
             ],
             "iorb": [
-                "IORB",
-                "Integer",
+                "Use orbit correction",
+                "Boolean",
                 0,
-                "Flag for orbit correction. For any non-zero value the offset due to the wiggle motion is taken into account for the interaction between electron beam and radiation field. The correction is not included in the output values for the beam centroid position."
+                "IORB: Flag for orbit correction. For any non-zero value the offset due to the wiggle motion is taken into account for the interaction between electron beam and radiation field. The correction is not included in the output values for the beam centroid position."
             ],
             "isravg": [
-                "ISRAVG",
-                "Integer",
+                "Include energy loss due to spontaneous synchrotron radiation",
+                "Boolean",
                 0,
-                "If set to a non-zero value the energy loss due to spontaneous synchrotron radiation  is included in the calculation."
+                "ISRAVG: If set to a non-zero value the energy loss due to spontaneous synchrotron radiation is included in the calculation."
             ],
             "isrsig": [
-                "ISRSIG",
-                "Integer",
+                "Use quantum fluctuation",
+                "Boolean",
                 0,
-                "If set to a non-zero value  the increase of the energy spread due to the quantum fluctuation of the spontaneous synchrotron radiation  is included in the calculation."
+                "If set to a non-zero value the increase of the energy spread due to the quantum fluctuation of the spontaneous synchrotron radiation is included in the calculation."
             ],
             "version": [
                 "VERSION",
@@ -954,19 +963,19 @@
                 "Used for backward compatibility of the input decks. Some parameters might change their behavior for older versions of GENESIS 1.3. The current version is 1.0."
             ],
             "zstop": [
-                "ZSTOP",
+                "Total integration length [m]",
                 "Float",
                 0.0,
-                "Defines the total integration length. If the undulator length is shorter than ZSTOP or ZSTOP is zero or negative, the parameter is ignored and the integration is performed over the entire undulator."
+                "ZSTOP: Defines the total integration length. If the undulator length is shorter than ZSTOP or ZSTOP is zero or negative, the parameter is ignored and the integration is performed over the entire undulator."
             ]
         },
         "simulationStatus": {},
         "timeDependence": {
             "curlen": [
-                "CURLEN",
+                "Bunch length of the current profile [m]",
                 "Float",
                 0.001,
-                "Bunch length of the current profile. If CURLEN is positive a Gaussian distribution is generated with an rms length given by CURLEN. A negative or zero value yield a constant profile."
+                "CURLEN: Bunch length of the current profile. If CURLEN is positive a Gaussian distribution is generated with an rms length given by CURLEN. A negative or zero value yield a constant profile."
             ],
             "isntyp": [
                 "ISNTYP",
@@ -975,34 +984,34 @@
                 "For VERSION below 1.0 only the Pennman algorighm is used for the shot noise, which is only correct for the fundamental wavelength, but for a higher version the default is the Fawley algorithm which applies also the correct shotnoise to allhigher harmonics. If the user wants to use the Pennman algorith at a higher version number (which is not recommended), the value of ISNTYP has to be set to a non-zero value."
             ],
             "itdp": [
-                "ITDP",
-                "Integer",
+                "Enables time-dependent simulation",
+                "Boolean",
                 0,
-                "A non-zero value enables time-dependent simulation. Time-dependence is not allowed if the scan-feature is enabled. "
+                "ITDP: A non-zero value enables time-dependent simulation. Time-dependence is not allowed if the scan-feature is enabled. "
             ],
             "nslice": [
-                "NSLICE",
+                "Number of simulated slices",
                 "Float",
                 408.0,
-                "Total number of simulated slices. It defines the time window of the simulation with NSLICE * ZSEP * XLAMDS/c. Note that the output does not start with the first slice unless the parameter IOTAIL is set. If NSLICE set to zero it automatically adjust NSLICE and NTAIL to the time-window given by the external input files (BEAMFILE or DISTFILE). It assumes 6 standard deviation for a Gaussian distribution or the absolute value of CURLEN for a step profile."
+                "NSLICE: Total number of simulated slices. It defines the time window of the simulation with NSLICE * ZSEP * XLAMDS/c. Note that the output does not start with the first slice unless the parameter IOTAIL is set. If NSLICE set to zero it automatically adjust NSLICE and NTAIL to the time-window given by the external input files (BEAMFILE or DISTFILE). It assumes 6 standard deviation for a Gaussian distribution or the absolute value of CURLEN for a step profile."
             ],
             "ntail": [
-                "NTAIL",
+                "Position of the first simulated slice",
                 "Integer",
                 -253,
-                "Position of the first simulated slice in measures of ZSEP*XLAMDS. GENESIS 1.3 starts with the tail side of the time window, progressing towards the head.  Thus a negative or positive value shifts the slices towards the tail or head region of the beam, respectively. For a constant profile (CURLEN  <  0) NTAIL has no impact."
+                "NTAIL: Position of the first simulated slice in measures of ZSEP*XLAMDS. GENESIS 1.3 starts with the tail side of the time window, progressing towards the head.  Thus a negative or positive value shifts the slices towards the tail or head region of the beam, respectively. For a constant profile (CURLEN  <  0) NTAIL has no impact."
             ],
             "shotnoise": [
-                "SHOTNOISE",
+                "Random offset to each macro particle phase",
                 "Float",
                 1.0,
                 "GENESIS 1.3 applies a random offset to each macro particle phase to generate the correct statistic for the bunching factor. Each offset is scaled prior by SHOTNOISE, thus SHOTNOISE can be set to zero to disable shot noise. "
             ],
             "zsep": [
-                "ZSEP",
+                "Separation of beam slices",
                 "Float",
                 1.0,
-                "Separation of beam slices in measures of the radiation wavelength. ZSEP must be a multiple of DELZ."
+                "ZSEP: Separation of beam slices in measures of the radiation wavelength. ZSEP must be a multiple of DELZ."
             ]
         },
         "undulator": {
