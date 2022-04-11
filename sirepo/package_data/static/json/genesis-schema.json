@@ -8,6 +8,7 @@
     },
     "enum": {
         "OutputParameter": [
+            ["none", "None"],
             ["bunching", "bunching"],
             ["energy", "energy"],
             ["error", "error"],
@@ -30,8 +31,8 @@
     },
     "frameIdFields": {
         "fieldDistributionAnimation": [],
-        "parameterAnimation": ["y"],
-        "particleAnimation": ["x", "y"]
+        "parameterAnimation": ["y1", "y2", "y3"],
+        "particleAnimation": ["x", "y", "histogramBins"]
     },
     "localRoutes": {
         "source": {
@@ -178,8 +179,10 @@
             ]
         },
         "fieldDistributionAnimation": {
-            "notes": ["Notes", "Text", ""],
-            "step": ["Step", "Integer", 0]
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "notes": ["Notes", "Text", ""]
         },
         "focusing": {
             "dl": [
@@ -662,13 +665,18 @@
         },
         "parameterAnimation": {
             "notes": ["Notes", "Text", ""],
-            "y": ["Y Value", "OutputParameter", "power"]
+            "y1": ["Y Value", "OutputParameter", "xrms"],
+            "y2": ["Y Value", "OutputParameter", "yrms"],
+            "y3": ["Y Value", "OutputParameter", "none"]
         },
         "particleAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""],
-            "x": ["X Value", "ParticleColumn", "psi"],
-            "y": ["Y Value", "ParticleColumn", "gamma"]
+            "x": ["Horizontal Value to Plot", "ParticleColumn", "psi"],
+            "y": ["Vertical Value to Plot", "ParticleColumn", "gamma"]
         },
         "particleLoading": {
             "iall": [
@@ -1097,7 +1105,12 @@
         },
         "fieldDistributionAnimation": {
             "title": "Field Distribution",
-            "advanced": []
+            "advanced": [
+                "framesPerSecond",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
         },
         "focusing": {
             "title": "Focusing",
@@ -1191,15 +1204,27 @@
         "parameterAnimation": {
             "title": "Parameter Report",
             "advanced": [
-                "y"
+                "y1",
+                "y2",
+                "y3"
             ]
         },
         "particleAnimation": {
             "title": "Particle Distribution",
             "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "framesPerSecond",
                 "histogramBins",
-                "x",
-                "y"
+                "aspectRatio",
+                "colorMap",
+                "notes"
             ]
         },
         "particleLoading": {
