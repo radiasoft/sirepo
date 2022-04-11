@@ -1248,6 +1248,13 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
             };
 
             $scope.resize = refresh;
+
+            $scope.$on('$destroy', function() {
+                if (orientationMarker) {
+                    orientationMarker.setEnabled(false);
+                }
+            });
+
         },
         link: function link(scope, element) {
             plotting.vtkPlot(scope, element);
