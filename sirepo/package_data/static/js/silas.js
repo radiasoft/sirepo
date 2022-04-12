@@ -513,6 +513,12 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, uti
             };
 
             $scope.resize = refresh;
+
+            $scope.$on('$destroy', function() {
+                if (orientationMarker) {
+                    orientationMarker.setEnabled(false);
+                }
+            });
         },
         link: function link(scope, element) {
             plotting.vtkPlot(scope, element);

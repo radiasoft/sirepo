@@ -4868,6 +4868,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return selector ? e.select(selector) : e;
             }
 
+            $scope.$on('$destroy', function() {
+                if (orientationMarker) {
+                    orientationMarker.setEnabled(false);
+                }
+            });
 
         },
 

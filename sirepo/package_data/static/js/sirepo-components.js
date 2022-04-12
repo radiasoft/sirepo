@@ -358,7 +358,7 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
         template: `
             <div data-ng-if="showAlert()" class="alert alert-warning" role="alert">
               <h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>
-              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ' + authState.upgradePlanLink() + '.</p>
+              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ${authState.upgradePlanLink()}.</p>
             </div>
         `,
         controller: function($scope, appState) {
@@ -574,7 +574,7 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
-SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate) {
+SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -594,8 +594,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, $interpolate
                         // evaluate angular text first if {{ }} is present
                         if (/\{\{.*?\}\}/.test(res)) {
                             $scope.appState = appState;
-                            $scope.SIREPO = SIREPO;
-                            res = $interpolate(res)($scope);
+                            res = utilities.interpolateString(res, $scope);
                         }
                         if (mathRendering.textContainsMath(res)) {
                             return mathRendering.mathAsHTML(res);
@@ -1801,7 +1800,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
     };
 });
 
-SIREPO.app.directive('textWithMath', function(mathRendering, $sce) {
+SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities, $sce) {
     return {
         restrict: 'A',
         scope: {
@@ -1811,8 +1810,11 @@ SIREPO.app.directive('textWithMath', function(mathRendering, $sce) {
             <span data-ng-bind-html="::getHTML()"></span>
         `,
         controller: function($scope) {
+            $scope.appState = appState;
             $scope.getHTML = function() {
-                return $sce.trustAsHtml(mathRendering.mathAsHTML($scope.textWithMath));
+                return $sce.trustAsHtml(mathRendering.mathAsHTML(
+                    utilities.interpolateString($scope.textWithMath, $scope)
+                ));
             };
         },
     };
@@ -1966,7 +1968,7 @@ SIREPO.app.directive('userFolderList', function(appState, fileManager) {
     };
 });
 
-SIREPO.app.directive('numberList', function() {
+SIREPO.app.directive('numberList', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1986,8 +1988,10 @@ SIREPO.app.directive('numberList', function() {
             let lastModel = null;
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
+            $scope.appState = appState;
             //TODO(pjm): share implementation with enumList
-            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/)
+                .map(s => utilities.interpolateString(s, $scope));
             $scope.didChange = function() {
                 $scope.field = $scope.values.join(', ');
             };
@@ -3499,8 +3503,8 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
 
-            var slider;
-            var delegate = null;
+            let slider;
+            let delegate = null;
 
             function update() {
                 updateReadout();
@@ -3508,7 +3512,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             }
 
             function updateSlider() {
-                var r = delegate.range();
+                const r = delegate.range();
                 slider.attr('min', r.min);
                 slider.attr('step', r.step);
                 slider.attr('max', r.max);
@@ -3525,20 +3529,31 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                     $scope.fieldDelegate = delegate;
                 }
                 appState.watchModelFields($scope, (delegate.watchFields || []), update);
-                slider = $('#' + $scope.modelName + '-' + $scope.field + '-range');
+                slider = $(`#${$scope.modelName}-${$scope.field}-range`);
                 update();
                 // on load, the slider will coerce model values to fit the basic input model of range 0-100,
                 // step 1.  This resets to the saved value
-                var val = delegate.storedVal;
-                if ((val || val === 0) && $scope.model[$scope.field] != val) {
+                const val = delegate.storedVal;
+                if ((val || val === 0) && $scope.model[$scope.field] !== val) {
                     $scope.model[$scope.field] = val;
-                    var form = $element.find('input').eq(0).controller('form');
+                    const form = $element.find('input').eq(0).controller('form');
                     if (! form) {
                         return;
                     }
                     // changing the value dirties the form; make it pristine or we'll get a spurious save button
                     form.$setPristine();
                 }
+
+                $scope.$on('cancelChanges', (e, d) => {
+                    if (d !== $scope.modelName) {
+                        return;
+                    }
+                    delegate.update();
+                });
+            });
+
+            $scope.$on(`${$scope.modelName}.changed`, () => {
+                delegate.storedVal = $scope.model[$scope.field];
             });
 
             $scope.$on('sliderParent.ready', function (e, m) {
@@ -4516,7 +4531,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.service('utilities', function($window, $interval) {
+SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     var self = this;
 
@@ -4561,6 +4576,11 @@ SIREPO.app.service('utilities', function($window, $interval) {
             }
         }
         return NaN;
+    };
+
+    this.interpolateString = (str, context) => {
+        context.SIREPO = SIREPO;
+        return $interpolate(str)(context);
     };
 
     this.wordSplits = function(str) {
