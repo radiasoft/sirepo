@@ -452,7 +452,7 @@
                 "size": "1.0, 1.0, 105.0",
                 "type": "racetrack"
             }],
-            "magnet": ["Magnet", "model.geomObject", {
+            "magnet": ["Magnet", "model.cee", {
                 "armHeight": 50.0,
                 "armPosition": "1",
                 "center": "0.0, 71.25, 0.0",
@@ -468,7 +468,7 @@
                 "stemWidth": 62.5,
                 "stemPosition": "1"
             }],
-            "pole": ["Pole", "model.geomObject", {
+            "pole": ["Pole", "model.cuboid", {
                 "bevels": [
                     {
                         "amountHoriz": 8,
@@ -593,7 +593,7 @@
                 "size": "10.05, 10.05, 1.0",
                 "type": "racetrack"
             }],
-            "magnet": ["Magnet", "model.geomObject", {
+            "magnet": ["Magnet", "model.ell", {
                 "armHeight": 1.5,
                 "armPosition": "0",
                 "center": "0.0, 4.0, 3.75",
@@ -610,7 +610,7 @@
                 "stemPosition": "1",
                 "transforms": []
             }],
-            "pole": ["Pole", "model.geomObject", {
+            "pole": ["Pole", "model.cuboid", {
                 "bevels": [
                     {
                         "amountHoriz": 0.5,
@@ -656,11 +656,12 @@
         },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
+            "area": ["_", "Float", 0,0],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
             "points": ["Points", "Points", []],
-            "triangulationLevel": ["Triangulation Level", "Range", 0.5, "", 0.0, 1.0],
+            "triangulationLevel": ["Triangulation Detail", "Range", 0.5, "Governs the max size of triangles used to subdivide the shape, from coarse to fine. Smaller triangles gain accuracy at the expense of longer solve times.", 0.0, 1.0],
             "widthAxis": ["_", "BeamAxis", "x"]
         },
         "freehand": {},
@@ -1252,6 +1253,7 @@
                     "color",
                     "stemmed.extrusionAxis",
                     "extrudedPoly.extrusionAxisSegments",
+                    "extrudedPoly.triangulationLevel",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
                     "stemmed.stemWidth",
