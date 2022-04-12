@@ -11,17 +11,12 @@ pykern.pksetup.setup(
     author_email='pip@sirepo.com',
     description='accelerator code gui',
     install_requires=[
-        # some "concrete" dependencies in requirements.txt
-        'Authlib>=0.13',
         'Flask>=1.1',
         'SQLAlchemy',
         'aenum',
         'asyncssh',
         'cryptography>=2.8',
-        'dnspython',
         'futures',
-        # for virtualenv
-        'importlib-metadata<2,>=0.12',
         'numconv',
         'numpy',
         'pyIsEmail',
@@ -32,7 +27,13 @@ pykern.pksetup.setup(
         'user-agents',
         'uwsgi',
         'werkzeug',
-        'yt',
+
+        # Optional dependencies
+        # required for email login and smtp
+        'Authlib>=0.13',
+        'dnspython',
+        # required for sbatch agent
+        'asyncssh',
     ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     name='sirepo',
