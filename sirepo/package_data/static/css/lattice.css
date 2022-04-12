@@ -115,3 +115,10 @@ div.sr-lattice-icon-disabled span {
   position: relative;
   overflow: hidden;
 }
+
+.sr-sticky-heading {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding: 1em;
+}
