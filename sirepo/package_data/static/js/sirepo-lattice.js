@@ -2413,6 +2413,8 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
         },
         template: `
             <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs">{{ collapseButtonText }}</button>
+            <button data-ng-click="findElement(searchVar)" class="btn btn-info btn-xs">Search Elements</button>
+            <input data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="{{searchVar}}">
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
                 <col style="width: 20ex">
@@ -2433,7 +2435,16 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                   <td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': ! category.isCollapsed, \'glyphicon-chevron-down\': category.isCollapsed}"></span> <b>{{ category.name }}</b></td>
                 </tr>
                 <tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">
-                  <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>
+                  <td style="padding-left: 1em">
+                    <div class="badge sr-badge-icon">
+                      <span data-ng-drag="true" data-ng-drag-data="element">
+                        <mark data-ng-if="element.isMarked">
+                            {{ element.name }}
+                        </mark>
+                        <span data-ng-if="!element.isMarked"> {{ element.name }} </span>
+                      </span>
+                    </div>
+                  </td>
                   <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>
                   <td style="text-align: right">{{ elementLength(element) }}</td>
                   <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
@@ -2514,6 +2525,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                     var clonedElement = appState.clone(element);
                     computeBend(clonedElement);
                     clonedElement.description = elementDescription(clonedElement);
+                    clonedElement.isMarked = false;
                     category.elements.push(clonedElement);
                 });
             }
@@ -2546,6 +2558,23 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             $scope.elementLength = function(element) {
                 return latticeService.numFormat(element.l, 'm');
             };
+
+            $scope.findElement = (el) => {
+                srdbg("Looking for: ", el);
+                srdbg("tree: ", $scope.tree);
+                $scope.tree.forEach((t, i) => {
+                    t.elements.forEach((e, j) => {
+                        if (e.name == el){
+                            srdbg('found', el, 'at index: ', i);
+                            $scope.tree[i].isCollapsed = false;
+                            $scope.tree[i].elements[j].isMarked = true;
+                        } else {
+                            $scope.tree[i].elements[j].isMarked = false;
+                            // $scope.tree[i].isCollapsed = true;
+                        }
+                    })
+                })
+            }
 
             $scope.toggleCategory = function(category) {
                 category.isCollapsed = ! category.isCollapsed;
