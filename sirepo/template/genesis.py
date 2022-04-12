@@ -61,7 +61,7 @@ _RUN_ERROR_RE = re.compile(r'(?:^\*\*\* )(.*error.*$)', flags=re.MULTILINE)
 
 # POSIT: Same order as results in _OUTPUT_FILENAME
 _SLICE_COLS = (
-    'z[m]',
+    'z [m]',
     'aw',
     'qfld',
 )
@@ -102,7 +102,7 @@ def sim_frame_fieldDistributionAnimation(frame_args):
     d = np.abs(r[int(frame_args.frameIndex), 0, :, :])
     s = d.shape[0]
     return PKDict(
-        title='Field Distribution',
+        title=_z_title_at_frame(frame_args),
         x_label='',
         x_range=[0, s, s],
         y_label='',
@@ -113,20 +113,26 @@ def sim_frame_fieldDistributionAnimation(frame_args):
 
 def sim_frame_parameterAnimation(frame_args):
     l, s = _get_lattice_and_slice_data(frame_args.run_dir)
-    x = 'z[m]'
-    y = frame_args.y
+    x = _SLICE_COLS[0]
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        y = frame_args[f]
+        if not y or y == 'none':
+            continue
+        plots.append(
+            PKDict(
+                field=y,
+                points=l[:, _LATTICE_COLS.index(y)].tolist(),
+                label=y,
+            )
+        )
     return template_common.parameter_plot(
         s[:, _SLICE_COLS.index(x)].tolist(),
-        [PKDict(
-            field=y,
-            points=l[:, _LATTICE_COLS.index(y)].tolist(),
-            label=y,
-        )],
+        plots,
         PKDict(),
         PKDict(
-            title=f'Slice',
+            title='',
             x_label=x,
-            y_label=y,
         )
     )
 
@@ -151,12 +157,12 @@ def sim_frame_particleAnimation(frame_args):
     y = _get_col(frame_args.y)
     return template_common.heatmap(
         [
-            b[-1, x[0], :].tolist(),
-            b[-1, y[0], :].tolist(),
+            b[int(frame_args.frameIndex), x[0], :].tolist(),
+            b[int(frame_args.frameIndex), y[0], :].tolist(),
         ],
         frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
         PKDict(
-            title=f'Particles',
+            title=_z_title_at_frame(frame_args),
             x_label=x[1],
             y_label=y[1],
         ),
@@ -242,3 +248,9 @@ def _parse_genesis_error(run_dir):
             _RUN_ERROR_RE.finditer(pkio.read_text(run_dir.join(template_common.RUN_LOG)))
         ],
     )
+
+
+def _z_title_at_frame(frame_args):
+    _, s = _get_lattice_and_slice_data(frame_args.run_dir)
+    z = s[:, 0][frame_args.frameIndex]
+    return f'z: {z:.6f} [m] step: {frame_args.frameIndex + 1}'

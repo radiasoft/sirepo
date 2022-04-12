@@ -9,7 +9,7 @@ SIREPO.app.config(function() {
           '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>',
         '</div>',
     ].join('');
-    SIREPO.SINGLE_FRAME_ANIMATION = ['parameterAnimation', 'particleAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['parameterAnimation'];
 });
 
 SIREPO.app.factory('genesisService', function(appState) {
