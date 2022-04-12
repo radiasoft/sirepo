@@ -68,3 +68,30 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         `,
     };
 });
+
+SIREPO.viewLogic('electronBeamView', function(appState, panelState, $scope) {
+
+    function updateOtherTab() {
+        panelState.showTab('electronBeam', 5, ! appState.models.io.beamfile);
+    }
+
+    $scope.whenSelected = updateOtherTab;
+    $scope.watchFields = [
+        ['io.distfile'], updateOtherTab,
+    ];
+});
+
+SIREPO.viewLogic('meshView', function(appState, panelState, $scope) {
+
+    function updateSpaceCharge() {
+        panelState.showFields('mesh', [
+            ['nscr', 'nptr', 'rmax0sc', 'iscrkup'],
+            appState.models.mesh.nscz,
+        ]);
+    }
+
+    $scope.whenSelected = updateSpaceCharge;
+    $scope.watchFields = [
+        ['mesh.nscz'], updateSpaceCharge,
+    ];
+});

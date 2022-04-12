@@ -97,6 +97,10 @@ def post_execution_processing(run_dir=None, **kwargs):
     return _parse_genesis_error(run_dir)
 
 
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
 def sim_frame_fieldDistributionAnimation(frame_args):
     r = _get_field_distribution(frame_args.sim_in)
     d = np.abs(r[int(frame_args.frameIndex), 0, :, :])
@@ -185,6 +189,11 @@ def _generate_parameters_file(data):
             s = SCHEMA.model[m][f]
             if s[1] == 'String':
                 v = f"'{v}'"
+            elif s[1] == 'InputFile':
+                if v:
+                    v = f"'{_SIM_DATA.lib_file_name_with_model_field('io', 'beamfile', v)}'"
+                else:
+                    continue
             r += f'{s[0]} = {v}\n'
     return template_common.render_jinja(
         SIM_TYPE,

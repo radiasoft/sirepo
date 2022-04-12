@@ -157,7 +157,7 @@
         "scan": {
             "iscan": 0,
             "nscan": 3,
-            "svar": 9.999999776482582e-03
+            "svar": 0.01
         },
         "simFolder": {},
         "simulation": {
@@ -172,7 +172,7 @@
             "iorb": 0,
             "isravg": 0,
             "isrsig": 0,
-            "version": 1.000000014901161e-01,
+            "version": 0.1,
             "zstop": -1.0
         },
         "timeDependence": {
@@ -185,8 +185,8 @@
             "zsep": 1.0
         },
         "undulator": {
-            "aw0": 0.7350000143051147,
-            "awd": 0.7350000143051147,
+            "aw0": 0.735,
+            "awd": 0.735,
             "awx": 0.0,
             "awy": 0.0,
             "delaw": 0.0,

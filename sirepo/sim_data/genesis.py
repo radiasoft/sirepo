@@ -17,4 +17,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return []
+        res = []
+        io = data.models.io
+        for f in ('beamfile', 'radfile'):
+            if io[f]:
+                res.append(cls.lib_file_name_with_model_field('io', f, io[f]))
+        return res

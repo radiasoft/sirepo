@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "helpUserManualURL": "http://genesis.web.psi.ch/index.html"
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
@@ -252,7 +255,7 @@
             ],
             "beamfile": [
                 "BEAMFILE",
-                "String",
+                "InputFile",
                 "",
                 "Specifying a file containing a lookup table for the electron beam parameters at different position along the bunch. "
             ],
@@ -649,7 +652,7 @@
             ],
             "radfile": [
                 "RADFILE",
-                "String",
+                "InputFile",
                 "",
                 "Specifying a file containing a lookup table for the seeding radiation pulse  at different position along the bunch. "
             ],
@@ -815,7 +818,7 @@
             ],
             "nharm": [
                 "NHARM",
-                "Interger",
+                "Integer",
                 1,
                 "Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS hasto be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameterdoes not enable automatically the output. For that the corresponding bit in LOUThas to be set as well."
             ],
@@ -1072,27 +1075,51 @@
             "title": "Electron Beam",
             "advanced": [],
             "basic": [
-                "alphax",
-                "alphay",
-                "bunch",
-                "bunchphase",
-                "conditx",
-                "condity",
-                "curpeak",
-                "cuttail",
-                "delgam",
-                "emitx",
-                "emity",
-                "emod",
-                "emodphase",
-                "gamma0",
-                "npart",
-                "pxbeam",
-                "pybeam",
-                "rxbeam",
-                "rybeam",
-                "xbeam",
-                "ybeam"
+                ["Main", [
+                    "npart",
+                    "io.beamfile",
+                    "gamma0",
+                    "delgam",
+                    "curpeak",
+                    "simulationControl.eloss"
+                ]],
+                ["Dimensions", [
+                    [
+                        ["Horizontal", [
+                            "rxbeam",
+                            "alphax",
+                            "emitx"
+                        ]],
+                        ["Vertial", [
+                            "rybeam",
+                            "alphay",
+                            "emity"
+                        ]]
+                    ]
+                ]],
+                ["Position", [
+                    [
+                        ["Horizontal", [
+                            "xbeam",
+                            "pxbeam"
+                        ]],
+                        ["Vertical", [
+                            "ybeam",
+                            "pybeam"
+                        ]]
+                    ]
+                ]],
+                ["Corrections", [
+                    "bunch",
+                    "bunchphase",
+                    "emod",
+                    "emodphase"
+                ]],
+                ["Other", [
+                    "cuttail",
+                    "conditx",
+                    "condity"
+                ]]
             ]
         },
         "fieldDistributionAnimation": {
@@ -1103,89 +1130,125 @@
             "title": "Focusing",
             "advanced": [],
             "basic": [
-                "dl",
-                "drl",
-                "f1st",
-                "fl",
-                "qfdx",
-                "qfdy",
-                "quadd",
-                "quadf",
-                "sl",
-                "solen"
+                ["Quadrupoles", [
+                    [
+                        ["Focus", [
+                            "quadf",
+                            "fl"
+                        ]],
+                        ["Defocus", [
+                            "quadd",
+                            "dl"
+                        ]]
+                    ],
+                    "drl",
+                    "f1st"
+                ]],
+                ["Displacement", [
+                    [
+                        ["Horizontal", [
+                            "qfdx"
+                        ]],
+                        ["Vertial", [
+                            "qfdy"
+                        ]]
+                    ]
+                ]],
+                ["Solenoid", [
+                    "solen",
+                    "sl"
+                ]]
             ]
         },
         "io": {
             "title": "I/O",
             "advanced": [],
             "basic": [
-                "alignradf",
-                "convharm",
-                "ffspec",
-                "ibfield",
-                "idmpfld",
-                "idril",
-                "idump",
-                "imagl",
-                "iotail",
-                "isradi",
-                "itram11",
-                "itram12",
-                "itram13",
-                "itram14",
-                "itram15",
-                "itram16",
-                "itram21",
-                "itram22",
-                "itram23",
-                "itram24",
-                "itram25",
-                "itram26",
-                "itram31",
-                "itram32",
-                "itram33",
-                "itram34",
-                "itram35",
-                "itram36",
-                "itram41",
-                "itram42",
-                "itram43",
-                "itram44",
-                "itram45",
-                "itram46",
-                "itram51",
-                "itram52",
-                "itram53",
-                "itram54",
-                "itram55",
-                "itram56",
-                "itram61",
-                "itram62",
-                "itram63",
-                "itram64",
-                "itram65",
-                "itram66",
-                "magin",
-                "magout",
-                "multconv",
-                "ndcut",
-                "offsetradf",
-                "trama"
+                ["Main", [
+                    "iotail",
+                    "ndcut",
+                    "ffspec"
+                ]],
+                ["Output Frequency", [
+                    "iphsty",
+                    "ishsty",
+                    "ippart",
+                    "ispart",
+                    "ipradi",
+                    "isradi",
+                    "idump",
+                    "idmpfld",
+                    "idmppar"
+                ]],
+                ["Field", [
+                    "alignradf",
+                    "offsetradf"
+                ]],
+                ["Particles", [
+                    "convharm",
+                    "multconv",
+                    "ibfield",
+                    "imagl",
+                    "idril"
+                ]],
+                ["Transport Matrix", [
+                    "trama",
+                    "itram11",
+                    "itram12",
+                    "itram13",
+                    "itram14",
+                    "itram15",
+                    "itram16",
+                    "itram21",
+                    "itram22",
+                    "itram23",
+                    "itram24",
+                    "itram25",
+                    "itram26",
+                    "itram31",
+                    "itram32",
+                    "itram33",
+                    "itram34",
+                    "itram35",
+                    "itram36",
+                    "itram41",
+                    "itram42",
+                    "itram43",
+                    "itram44",
+                    "itram45",
+                    "itram46",
+                    "itram51",
+                    "itram52",
+                    "itram53",
+                    "itram54",
+                    "itram55",
+                    "itram56",
+                    "itram61",
+                    "itram62",
+                    "itram63",
+                    "itram64",
+                    "itram65",
+                    "itram66"
+                ]]
             ]
         },
         "mesh": {
-            "title": "mesh",
+            "title": "Mesh",
             "advanced": [],
             "basic": [
-                "dgrid",
-                "iscrkup",
-                "lbc",
-                "ncar",
-                "nptr",
-                "nscr",
-                "nscz",
-                "rmax0",
-                "rmax0sc"
+                ["Main", [
+                    "ncar",
+                    "lbc",
+                    "rmax0",
+                    "dgrid"
+                ]],
+                ["Space Charge", [
+                    "nscz",
+                    "nscr",
+                    "nptr",
+                    "rmax0sc",
+                    "iscrkup"
+                ]]
             ]
         },
         "parameterAnimation": {
@@ -1206,32 +1269,47 @@
             "title": "Particle Loading",
             "advanced": [],
             "basic": [
-                "iall",
-                "igamgaus",
-                "ildgam",
-                "ildpsi",
-                "ildpx",
-                "ildpy",
-                "ildx",
-                "ildy",
-                "inverfc",
-                "ipseed",
-                "itgaus",
-                "nbins"
+                ["Main", [
+                    "nbins",
+                    "itgaus",
+                    "igamgaus",
+                    "inverfc",
+                    "iall",
+                    "ipseed"
+                ]],
+                ["Hammersley Sequence", [
+                    "ildpsi",
+                    "ildgam",
+                    [
+                        ["Horizontal", [
+                            "ildx",
+                            "ildpx"
+                        ]],
+                        ["Vertical", [
+                            "ildy",
+                            "ildpy"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "radiation": {
             "title": "Radiation",
             "advanced": [],
             "basic": [
-                "iallharm",
-                "iharmsc",
-                "nharm",
-                "prad0",
-                "pradh0",
-                "xlamds",
-                "zrayl",
-                "zwaist"
+                ["Main", [
+                    "xlamds",
+                    "io.radfile",
+                    "prad0",
+                    "zrayl",
+                    "zwaist"
+                ]],
+                ["Harmonics", [
+                    "nharm",
+                    "iallharm",
+                    "iharmsc",
+                    "pradh0"
+                ]]
             ]
         },
         "scan": {
@@ -1248,12 +1326,11 @@
             "advanced": [],
             "basic": [
                 "delz",
-                "eloss",
+                "zstop",
                 "iorb",
                 "isravg",
                 "isrsig",
-                "version",
-                "zstop"
+                "version"
             ]
         },
         "simulationStatus": {
@@ -1266,34 +1343,54 @@
             "advanced": [],
             "basic": [
                 "curlen",
-                "isntyp",
+                "zsep",
                 "nslice",
                 "ntail",
                 "shotnoise",
-                "zsep"
+                "isntyp"
             ]
         },
         "undulator": {
             "title": "Undulator",
             "advanced": [],
             "basic": [
-                "aw0",
-                "awd",
-                "awx",
-                "awy",
-                "delaw",
-                "fbess0",
-                "iertyp",
-                "iseed",
-                "iwityp",
-                "nsec",
-                "nwig",
-                "wcoefz1",
-                "wcoefz2",
-                "wcoefz3",
-                "xkx",
-                "xky",
-                "xlamd"
+                ["Main", [
+                    "aw0",
+                    "awd",
+                    "iwityp",
+                    "fbess0",
+                    [
+                        ["Horizontal", [
+                            "xkx"
+                        ]],
+                        ["Vertical", [
+                            "xky"
+                        ]]
+                    ]
+                ]],
+                ["Dimensions", [
+                    "xlamd",
+                    "nwig",
+                    "nsec"
+                ]],
+                ["Tapering", [
+                    "wcoefz1",
+                    "wcoefz2",
+                    "wcoefz3"
+                ]],
+                ["Errors and Misalignment", [
+                    "iertyp",
+                    "delaw",
+                    "iseed",
+                    [
+                        ["Horizontal", [
+                            "awx"
+                        ]],
+                        ["Vertical", [
+                            "awy"
+                        ]]
+                    ]
+                ]]
             ]
         }
     }
