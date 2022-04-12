@@ -2408,8 +2408,11 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
 SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $rootScope) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            data: '=',
+        },
         template: `
+            <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs">{{ collapseButtonText }}</button>
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
                 <col style="width: 20ex">
@@ -2439,10 +2442,12 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             </table>
         `,
         controller: function($scope) {
+            srdbg($scope);
             $scope.latticeService = latticeService;
             $scope.tree = [];
             var collapsedElements = {};
             var descriptionCache = {};
+            $scope.collapseButtonText = 'Expand All Elements';
 
             function computeBend(element) {
                 var angle = element.angle;
@@ -2502,7 +2507,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                         category = {
                             name: element.type,
                             elements: [],
-                            isCollapsed: collapsedElements[element.type],
+                            isCollapsed: true,
                         };
                         $scope.tree.push(category);
                     }
@@ -2522,6 +2527,20 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 return latticeService.editElement(type, el);
             };
 
+            $scope.expandCollapseElems = () => {
+                if ($scope.collapseButtonText == 'Expand All Elements') {
+                    $scope.collapseButtonText = 'Collapse All Elements';
+                    $scope.tree.forEach((e) => {
+                        e.isCollapsed = false;
+                    })
+                } else {
+                    $scope.collapseButtonText = 'Expand All Elements';
+                    $scope.tree.forEach((e) => {
+                        e.isCollapsed = true;
+                    })
+                }
+            };
+
             $scope.copyElement = el => latticeService.copyElement(el);
 
             $scope.elementLength = function(element) {
@@ -2531,6 +2550,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             $scope.toggleCategory = function(category) {
                 category.isCollapsed = ! category.isCollapsed;
                 collapsedElements[category.name] = category.isCollapsed;
+                srdbg('collapsedElements: ', collapsedElements);
             };
 
             $scope.$on('modelChanged', function(e, name) {
