@@ -2305,6 +2305,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                     return;
                 }
                 m = REDIRECT_RE.exec(data);
+                srdbg('m is ' + m)
                 if (m) {
                     if (m[1].indexOf('#/error') <= -1) {
                         srlog('javascriptRedirectDocument', m[1]);
@@ -3733,6 +3734,27 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             });
     }
 
+    function wakeAgent() {
+        srdbg('in wakeAgent');
+        // TODO(rorour)
+        //  remove callbacks
+        const successCallback = (res) => {
+            srdbg('in wakeAgent successCallbackres : ')
+            srdbg(res)
+        };
+        const errorCallback = (request) => {
+            return (data) => {
+                srlog(`wakeAgent error=${data.error} from request=${request}`);
+            };
+        };
+        requestSender.sendRequest(
+            'wakeAgent',
+            successCallback,
+            {},
+            errorCallback
+            );
+    }
+
     self.canDelete = function(item) {
         if (item.isFolder) {
             return item.children.length === 0;
@@ -3941,6 +3963,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         appState.saveQuietly('simFolder');
     });
     loadList();
+    wakeAgent();
 
     // invoked in loadList() callback
     function checkURLForFolder() {

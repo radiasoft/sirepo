@@ -308,14 +308,19 @@ class _ComputeJob(PKDict):
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
         try:
+            pkdp('11111111111111111111')
             o = cls.get_instance_or_class(req)
+            pkdp('222222222222222222')
+            pkdp('o is {}', o)
             return await getattr(
                 o,
                 '_receive_' + req.content.api,
             )(req)
         except sirepo.util.ASYNC_CANCELED_ERROR:
+            pkdp('33333333333333333333')
             return PKDict(state=job.CANCELED)
         except Exception as e:
+            pkdp('4444444444444444444')
             pkdlog('{} error={} stack={}', req, e, pkdexc())
             return sirepo.http_reply.gen_tornado_exception(e)
 
@@ -757,6 +762,9 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_statelessCompute(self, req):
         return await self._send_simulation_compute(req)
+
+    async def _receive_api_wakeAgent(cls, req):
+        return PKDict(msg='in _receive_api_wakeAgent')
 
     def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.

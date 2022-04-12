@@ -37,7 +37,7 @@ def adjust_supervisor_srtime(days):
         _request_uri=_supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
     )
 
-
+# TODO(rorour) change to require adm?
 @api_perm.require_user
 def api_admJobs():
     sirepo.auth.check_user_has_role(
@@ -211,6 +211,15 @@ def api_statefulCompute():
 @api_perm.require_user
 def api_statelessCompute():
     return _request_compute()
+
+
+@api_perm.require_user
+def api_wakeAgent():
+    # TODO(rorour) api perm?
+    pkdp('in api_wakeAgent')
+    return _request(
+        _request_content=PKDict(),
+    )
 
 
 def init_apis(*args, **kwargs):
