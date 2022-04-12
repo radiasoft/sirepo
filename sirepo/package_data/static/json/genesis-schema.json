@@ -133,7 +133,7 @@
                 "Correlational strength in x-plane [1/m]",
                 "Float",
                 0.0,
-                "CONDITX: is the correlation strength between the amplitude of the eletron's betatron oscillation and its energy.If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can beincreased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information."
+                "CONDITX: is the correlation strength between the amplitude of the eletron's betatron oscillation and its energy. If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can beincreased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information."
             ],
             "condity": [
                 "Correlational strength in x-plane [1/m]",
@@ -160,16 +160,16 @@
                 "DELGAM: The RMS value of the energy distribution in terms of electron rest mass energy."
             ],
             "emitx": [
-                "rms emmitance in x [m]",
+                "RMS emmitance in x [m]",
                 "Float",
                 2e-06,
-                "EMITX: The normalized rms emittance in x ."
+                "EMITX: The normalized RMS emittance in x."
             ],
             "emity": [
-                "rms emmitance in y [m]",
+                "RMS emmitance in y [m]",
                 "Float",
                 2e-06,
-                "EMITY: The normalized rms emittance in y."
+                "EMITY: The normalized RMS emittance in y."
             ],
             "emod": [
                 "Initial energy modulation",
@@ -193,13 +193,13 @@
                 "Number of macro particles per slice",
                 "Integer",
                 8192,
-                "NPART: The number of macro particles per slice. NPART must be a multiple of 4*NBINS and smaller than  defined in the source file 'genesis.def'."
+                "NPART: The number of macro particles per slice. NPART must be a multiple of 4xNBINS and smaller than  defined in the source file 'genesis.def'."
             ],
             "pxbeam": [
                 "Transverse momentum x of the electron beam [m]",
                 "Float",
                 0.0,
-                "PXBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as PXBEAM = x where x = cvx is the average transverse velocity and  the Lorenz factor of the electron energy."
+                "PXBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as PXBEAM = x where x = cvx is the average transverse velocity and the Lorenz factor of the electron energy."
             ],
             "pybeam": [
                 "Transverse momentum y of the electron beam [m]",
@@ -208,16 +208,16 @@
                 "PYBEAM: Average normalized transverse momentum in y of the electron beam at the undulator entrance. See PXBEAM for more information."
             ],
             "rxbeam": [
-                "rms value in x of the transverse [m]",
+                "RMS value in x of the transverse [m]",
                 "Float",
                 0.0001121,
-                "RXBEAM: The rms value in x of the transverse, spatial distribution."
+                "RXBEAM: The RMS value in x of the transverse, spatial distribution."
             ],
             "rybeam": [
-                "rms value in y of the transverse [m]",
+                "RMS value in y of the transverse [m]",
                 "Float",
                 0.0001121,
-                "RYBEAM: The rms value in y of the transverse, spatial distribution."
+                "RYBEAM: The RMS value in y of the transverse, spatial distribution."
             ],
             "xbeam": [
                 "Transverse position in x of the electron beam [m]",
@@ -247,7 +247,7 @@
                 "Drift length between F and D quads",
                 "Float",
                 0.0,
-                "DRL: Drift length between F- and D-quadrupoles in measures of undulator period."
+                "DRL: Drift length between F and D quadrupoles in measures of undulator period."
             ],
             "f1st": [
                 "Position within a FODO cell",
@@ -265,7 +265,7 @@
                 "Quad misplacement in x-direction [m]",
                 "Float",
                 0.0,
-                "QFDX: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-,] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file."
+                "QFDX: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-QFDX, QFDX] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file."
             ],
             "qfdy": [
                 "Quad misplacement in y-direction [m]",
@@ -277,13 +277,13 @@
                 "Field strength of D-quads [T/m]",
                 "Float",
                 0.0,
-                "QUADD: The fields strength of (D-)quadrupoles, defocusing in the x-plane. GENESIS 1.3 automatically applies the correct signs to QUADF and QUADD indicating the alternating focusing in the FODO-lattice."
+                "QUADD: The fields strength of D quadrupoles, defocusing in the x-plane. GENESIS 1.3 automatically applies the correct signs to QUADF and QUADD indicating the alternating focusing in the FODO-lattice."
             ],
             "quadf": [
                 "Field strength of F-quads [T/m]",
                 "Float",
                 1.23,
-                "QUADF: The field strength of  (F-)quadrupoles, focusing in the x-plane."
+                "QUADF: The field strength of F quadrupoles, focusing in the x-plane."
             ],
             "sl": [
                 "Length of solenoid field",
@@ -303,7 +303,7 @@
                 "Align radiation field to the electron beam",
                 "Boolean",
                 0,
-                "ALIGNRADF: When the FIELDFILE feature is used than Genesis 1.3 aligns the radiation field to the electron beam so thatthe radiaiton field is one ful slippage behind the electron beam. In this case there is no unphysical calculation because the field which slips through the back into the first electron slice is fully defined. However this alignment depends on the undulator length. To disable the automatic alignment ALIGNRADF has to be set to a non-zero value. If this is the case the last slice of the radiaiton field is aligned with the last electron slice. Field slices, which slips into the first electorn slice and which is not defined by the FIELDFILE is generated by the internal method of using the fundamental Gauss-Hermite mode"
+                "ALIGNRADF: When the FIELDFILE feature is used than Genesis 1.3 aligns the radiation field to the electron beam so that the radiaiton field is one full slippage behind the electron beam. In this case there is no unphysical calculation because the field which slips through the back into the first electron slice is fully defined. However this alignment depends on the undulator length. To disable the automatic alignment ALIGNRADF has to be set to a non-zero value. If this is the case the last slice of the radiaiton field is aligned with the last electron slice. Field slices, which slips into the first electorn slice and which is not defined by the FIELDFILE is generated by the internal method of using the fundamental Gauss-Hermite mode"
             ],
             "beamfile": [
                 "Beam file",
@@ -327,7 +327,7 @@
                 "FFSPEC",
                 "Integer",
                 0,
-                "To calculate a spectrum a post-processing step requires amplitude and phase, which are writen to the output file, defined byLOUT of column 3 and 4. The values depend on the choice of FFSPEC. If the value is equal the near field on-axis intensity and phase is written, while for a negative value it is the same but in the far field zone. For a positive value the near field intensity is replaced by the total radiation power, assuming transverse coherence."
+                "To calculate a spectrum a post-processing step requires amplitude and phase, which are writen to the output file, defined by LOUT of column 3 and 4. The values depend on the choice of FFSPEC. If the value is equal the near field on-axis intensity and phase is written, while for a negative value it is the same but in the far field zone. For a positive value the near field intensity is replaced by the total radiation power, assuming transverse coherence."
             ],
             "fieldfile": [
                 "Field distribution file",
@@ -387,7 +387,7 @@
                 "Output time window eqauls sim time window",
                 "Boolean",
                 0,
-                "IOTAIL: If set to a non-zero value the output time window is the same as the simulated time window. Otherwise the output for the first slices covered by the slippage length is subpressed.  Needed for bunches which are completely covered by the time-window."
+                "IOTAIL: If set to a non-zero value the output time window is the same as the simulated time window. Otherwise the output for the first slices covered by the slippage length is subpressed. Needed for bunches which are completely covered by the time-window."
             ],
             "iphsty": [
                 "Generate output at each nth integration step",
@@ -676,7 +676,7 @@
                 "MULTCONV",
                 "Integer",
                 0,
-                "If an imported particle distribution from a PARTFILE is up-converted to a higher harmonics the dault behavior is that the number of slices is preserved. This requires that ZSEPis adjusted together with XLAMDS. However if frequency resolution is a problem then a particle distribution can be converted and used multiple times to keep ZSEP constant.The disadvantage is that the CPU execution time is increased as well."
+                "If an imported particle distribution from a PARTFILE is up-converted to a higher harmonics the dault behavior is that the number of slices is preserved. This requires that ZSEP is adjusted together with XLAMDS. However if frequency resolution is a problem then a particle distribution can be converted and used multiple times to keep ZSEP constant.The disadvantage is that the CPU execution time is increased as well."
             ],
             "ndcut": [
                 "NDCUT where time-window = (tmax-tmin)/NDCUT",
@@ -866,13 +866,13 @@
                 "IHARMSC",
                 "Integer",
                 0,
-                "IHARMSC: Typically the harmonics are driven by the non-linear dynamics on the fundamental and the feed back of the harmonics on theelectron beam can be neglected for the sake of faster calculation. However setting IHARMSC to a non-zero value includes the couplingof the harmonic radiation back to the electron beam for a self-consistent model of harmonics. Enabling this feature will automatically includeall harmonics by setting IALLHARM to one."
+                "IHARMSC: Typically the harmonics are driven by the non-linear dynamics on the fundamental and the feed back of the harmonics on theelectron beam can be neglected for the sake of faster calculation. However setting IHARMSC to a non-zero value includes the coupling of the harmonic radiation back to the electron beam for a self-consistent model of harmonics. Enabling this feature will automatically includeall harmonics by setting IALLHARM to one."
             ],
             "nharm": [
                 "Calculation of harmonics up to n",
                 "Integer",
                 1,
-                "NHARM: Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS hasto be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameterdoes not enable automatically the output. For that the corresponding bit in LOUThas to be set as well."
+                "NHARM: Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS has to be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameterdoes not enable automatically the output. For that the corresponding bit in LOUT has to be set as well."
             ],
             "prad0": [
                 "Input power of the radiation field [W]",
@@ -884,7 +884,7 @@
                 "PRADH0",
                 "Float",
                 0.0,
-                "Radiation power for seeding with a harmonics, defined by NHARM.The waist position and waist size is identical to the fundamental (ZWAIST) thus using a scaled value of NHARM*ZRAYLfor the Rayleigh length."
+                "Radiation power for seeding with a harmonics, defined by NHARM.The waist position and waist size is identical to the fundamental (ZWAIST) thus using a scaled value of NHARM*ZRAYL for the Rayleigh length."
             ],
             "xlamds": [
                 "Resonant radiation wavelength [m]",
@@ -896,7 +896,7 @@
                 "Rayleigh length of seeding radiation [m]",
                 "Float",
                 0.5,
-                "ZRAYL: The Rayleigh length of the seeding radiation field. ZRAYL is defined as w02/XLAMDS where w0 is the radius of the optical beam waist. The Rayleigh length is a measure for the diffraction w(z)2 = w02(1 + (z - ZWAIST)2/ZRAYL2) and is needed to calculate the size and divergence/convergence of the seeding field at the undulator entrance. Because the field size can determine the grid size it is strongly recommended to supply reasonable numbers for ZRAYL and ZWAIST even for simulation starting from noise."
+                "ZRAYL: The Rayleigh length of the seeding radiation field. ZRAYL is defined as pi*w0^2/XLAMDS where w0 is the radius of the optical beam waist. The Rayleigh length is a measure for the diffraction w(z)^2 = w0^2(1 + (z - ZWAIST)^2/ZRAYL^2) and is needed to calculate the size and divergence/convergence of the seeding field at the undulator entrance. Because the field size can determine the grid size it is strongly recommended to supply reasonable numbers for ZRAYL and ZWAIST even for simulation starting from noise."
             ],
             "zwaist": [
                 "Waist position [m]",
@@ -1016,10 +1016,10 @@
         },
         "undulator": {
             "aw0": [
-                "Dimensionless rms undulator parameter",
+                "Dimensionless RMS undulator parameter",
                 "Float",
                 0.735,
-                "AW0: The normalized, dimensionless rms undulator parameter, defined by AW0 = (e/mc)(Bu/ku), where e is the electron charge, m is electron mass, c is speed of light, ku=2/u is the undulator wave number, u is the undulator period. Bu is the rms undulator field with Bu = Bp/2 for a planar undulator and Bu = Bpfor a helical undulator, where Bp is the on-axis peak field."
+                "AW0: The normalized, dimensionless rms undulator parameter, defined by AW0 = (e/mc)(Bu/ku), where e is the electron charge, m is electron mass, c is speed of light, ku=2pi/lambdau is the undulator wave number, lambdau is the undulator period. Bu is the rms undulator field with Bu = Bp/2 for a planar undulator and Bu = Bp/2 for a helical undulator, where Bp is the on-axis peak field."
             ],
             "awd": [
                 "Virtual undulator parameter",
@@ -1049,7 +1049,7 @@
                 "Coupling factor",
                 "Float",
                 0.0,
-                "FBESS0: The coupling factor of the electron beam to the radiation field due to the longitudinal wiggle motion of the electrons.  It is 1.0 for a helical undulator and J0(x) - J1(x) for a planarundulator where J0(x), J1(x) are Bessel functions and x = AW02/2(1+AW02). If FBESS0 is set to 0.0 GENESIS 1.3 calculates the value."
+                "FBESS0: The coupling factor of the electron beam to the radiation field due to the longitudinal wiggle motion of the electrons.  It is 1.0 for a helical undulator and J0(x) - J1(x) for a planarundulator where J0(x), J1(x) are Bessel functions and x = AW0^2/2(1+AW0^2). If FBESS0 is set to 0.0 GENESIS 1.3 calculates the value."
             ],
             "iertyp": [
                 "Type of undulator field errors",
