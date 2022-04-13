@@ -1591,6 +1591,30 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
     };
 });
 
+
+SIREPO.app.directive('electronTrajectoryReport', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@'
+        },
+        template: `
+            <div class="col-md-6">
+                <div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="electronTrajectoryReport"></div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.dataCleared = true;
+            $scope.model = appState.models[$scope.modelName];
+
+
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('fieldLineoutReport', function(appState) {
     return {
         restrict: 'A',

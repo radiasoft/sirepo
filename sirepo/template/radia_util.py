@@ -316,6 +316,20 @@ def get_geom_tree(g_id, recurse_depth=0):
     return g_arr
 
 
+# the trajectory is of the form
+#   [[z0, x0, dx/dz0, y0, dy/dz0], ...]
+# where x/y is the width/height direction and z is the beam direction
+def get_electron_trajectory(g_id, **kwargs):
+    d = PKDict(kwargs)
+    return radia.FldPtcTrj(
+        g_id,
+        d.energy,
+        [d.pos[0], d.angles[0], d.pos[1], d.angles[1]],
+        [d.pos[2], d.z],
+        d.num_points
+    )
+
+
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
 def get_field(g_id, f_type, path):
     if len(path) == 0:

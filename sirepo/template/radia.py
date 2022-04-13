@@ -69,10 +69,10 @@ _GEOM_FILE = 'geometryReport.h5'
 _KICK_FILE = 'kickMap.h5'
 _KICK_SDDS_FILE = 'kickMap.sdds'
 _KICK_TEXT_FILE = 'kickMap.txt'
-_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
-_POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport']
-_SIM_REPORTS = ['geometryReport', 'reset', 'solverAnimation']
-_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
+_METHODS = ('get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field')
+_POST_SIM_REPORTS = ('electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport')
+_SIM_REPORTS = ('geometryReport', 'reset', 'solverAnimation')
+_REPORTS = ('electronTrajectoryReport', 'fieldIntegralReport', 'fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation')
 _REPORT_RES_MAP = PKDict(
     reset='geometryReport',
     solverAnimation='geometryReport',
@@ -118,18 +118,25 @@ def create_archive(sim):
 
 
 def extract_report_data(run_dir, sim_in):
-    assert sim_in.report in _REPORTS, 'report={}: unknown report'.format(sim_in.report)
+    report = sim_in.report
+    assert report in _REPORTS, 'report={}: unknown report'.format(report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
-    if 'reset' in sim_in.report:
+    sim_model = sim_in.models.simulation
+    sim_id = sim_model.simulationId
+    sim_name = sim_model.name
+
+    model = sim_in.models[report]
+    dirs = _geom_directions(sim_model.beamAxis, sim_model.heightAxis)
+    if 'reset' in report:
         template_common.write_sequential_result({}, run_dir=run_dir)
-    if 'geometryReport' in sim_in.report:
+    if 'geometryReport' in report:
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type ==\
             SCHEMA.constants.viewTypeFields else None
         d = _get_geom_data(
-                sim_in.models.simulation.simulationId,
+                sim_id,
                 _get_g_id(),
-                sim_in.models.simulation.name,
+                sim_name,
                 v_type,
                 f_type,
                 field_paths=sim_in.models.fieldPaths.paths
@@ -138,29 +145,46 @@ def extract_report_data(run_dir, sim_in):
             d,
             run_dir=run_dir,
         )
-    if 'kickMapReport' in sim_in.report:
+    if 'kickMapReport' in report:
         template_common.write_sequential_result(
-            _kick_map_plot(sim_in.models.kickMapReport),
+            _kick_map_plot(model),
             run_dir=run_dir,
         )
-    if 'fieldIntegralReport' in sim_in.report:
+    if 'fieldIntegralReport' in report:
         template_common.write_sequential_result(
             _generate_field_integrals(
-                sim_in.models.simulation.simulationId,
+                sim_id,
                 _get_g_id(),
                 sim_in.models.fieldPaths.paths or []
             ),
             run_dir=run_dir
         )
+    if 'electronTrajectoryReport' in report:
+        m = _get_coord_matrix(dirs, sim_model.coordinateSystem)
+        a = model.initialAngles + ',0'
+        template_common.write_sequential_result(
+            _electron_trajectory_plot(
+                sim_id,
+                energy=model.energy,
+                pos=radia_util.multiply_vector_by_matrix(
+                    sirepo.util.split_comma_delimited_string(model.initialPosition, float),
+                    m
+                ),
+                angles=radia_util.multiply_vector_by_matrix(
+                    sirepo.util.split_comma_delimited_string(a, float),
+                    m
+                ),
+                z=model.finalBeamPosition,
+                num_points=model.numPoints,
+                beam_axis=sim_model.beamAxis,
+                width_axis=sim_model.widthAxis,
+                height_axis=sim_model.heightAxis,
+            ),
+            run_dir=run_dir,
+        )
     if 'fieldLineoutReport' in sim_in.report:
         template_common.write_sequential_result(
-            _field_lineout_plot(
-                sim_in.models.simulation.simulationId,
-                sim_in.models.simulation.name,
-                sim_in.models.fieldLineoutReport.fieldType,
-                sim_in.models.fieldLineoutReport.fieldPath,
-                sim_in.models.fieldLineoutReport.plotAxis
-            ),
+            _field_lineout_plot(sim_id, sim_name, model.fieldType, model.fieldPath, model.plotAxis),
             run_dir=run_dir,
         )
 
@@ -490,9 +514,37 @@ _FIELD_PT_BUILDERS = {
 }
 
 
+def _electron_trajectory_plot(sim_id, **kwargs):
+    d = PKDict(kwargs)
+    t = numpy.array(_generate_electron_trajectory(sim_id, _get_g_id(), **kwargs)).T
+    pts = (0.001 * t[0]).tolist()
+    plots = []
+    a = [d.width_axis, d.height_axis]
+    for i in range(2):
+        plots.append(
+            PKDict(
+                points=(0.001 * t[2 * i + 1]).tolist(),
+                label=f'{a[i]}',
+                style='line'
+            )
+        )
+
+    return template_common.parameter_plot(
+        pts,
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label='Position [m]',
+            x_label=f'{d.beam_axis} [m]',
+            summaryData=PKDict(),
+        ),
+    )
+
+
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
     v = _generate_field_data(sim_id, _get_g_id(), name, f_type, [f_path]).data[0].vectors
-    pts = numpy.array(v.vertices).reshape(-1, 3)
+    pts = 0.001 * numpy.array(v.vertices).reshape(-1, 3)
     plots = []
     f = numpy.array(v.directions).reshape(-1, 3)
     m = numpy.array(v.magnitudes)
@@ -512,7 +564,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
         PKDict(
             title=f'{f_type} on {f_path.name}',
             y_label=f_type,
-            x_label=f'{plot_axis} [mm]',
+            x_label=f'{plot_axis} [m]',
             summaryData=PKDict(),
         ),
     )
@@ -544,6 +596,13 @@ def _fit_poles_in_h_bend(**kwargs):
                s * d.length_dir / 2 + \
                s * d.width_dir / 2
     return s, c
+
+
+def _generate_electron_trajectory(sim_id, g_id, **kwargs):
+    try:
+        return radia_util.get_electron_trajectory(g_id, **kwargs)
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
 
 
 def _generate_field_data(sim_id, g_id, name, field_type, field_paths):

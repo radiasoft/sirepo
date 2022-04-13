@@ -650,6 +650,14 @@
             "gap": ["Gap", "Float", 1.5, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleH"]
         },
+        "electronTrajectoryReport": {
+            "energy": ["Electron Energy [GeV]", "Float", 1.0, "", 0.0],
+            "initialPosition": ["Starting Position [mm]", "FloatStringArray", "0.0, 0.0, -1.0", "", "x, y, z"],
+            "initialAngles": ["Starting Angles [rad]", "FloatStringArray", "0.0, 0.0", "", "d{{ appState.models.simulation.widthAxis }}/d{{ appState.models.simulation.beamAxis }}, d{{ appState.models.simulation.heightAxis }}/d{{ appState.models.simulation.beamAxis }}"],
+            "inProgressText": ["_", "String", "Calculating"],
+            "finalBeamPosition": ["Final {{ appState.models.simulation.beamAxis }} Position [mm]", "Float", 1.0],
+            "numPoints": ["Num Points", "Integer", 10, "", 2]
+        },
         "ell": {
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "ell"]
@@ -1092,6 +1100,17 @@
                     "gap"
                 ]]
             ]
+        },
+        "electronTrajectoryReport": {
+            "title": "Electron Trajectory",
+            "advanced": [
+                "energy",
+                "initialPosition",
+                "initialAngles",
+                "finalBeamPosition",
+                "numPoints"
+            ],
+            "basic": []
         },
         "fieldIntegralReport": {
             "title": "Field Integrals (T · mm)",
