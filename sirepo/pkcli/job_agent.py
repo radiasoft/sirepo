@@ -341,7 +341,7 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
-        if msg.runDir:
+        if msg.get('runDir'):
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()
