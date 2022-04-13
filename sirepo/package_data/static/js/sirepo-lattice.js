@@ -2388,7 +2388,7 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                   <div class="panel panel-info" style="margin-bottom: 10px">
                     <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
                     <div class="panel-body">
-                      <div style="z-index:1001;" class="pull-right sr-sticky-heading">
+                      <div style="z-index:1001; margin-top: 4px" class="pull-right sr-sticky-heading">
                         <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
                         <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
                       </div>
@@ -2411,10 +2411,8 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
         scope: {},
         template: `
             <div class="sr-sticky-heading">
-                <button data-ng-click="findElement(searchVar)" class="btn btn-info btn-xs sr-searchbar-elem">Search</button>
-                <input class="sr-searchbar-elem" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="{{searchVar}}">
-                <br/>
-                <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs sr-searchbar-elem">{{ collapseButtonText }}</button>
+                <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs">{{ collapseButtonText }}</button>
+                <input style="display: inline; width: 15em" class="form-control input-sm" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="Search Elements" />
             </div>
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
