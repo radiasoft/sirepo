@@ -120,5 +120,10 @@ div.sr-lattice-icon-disabled span {
   position: sticky;
   top: 0;
   background-color: white;
-  padding: 1em;
+  padding: 0.5em;
+  z-index: 1000;
+}
+
+.sr-searchbar-elem {
+  margin: 0.2em;
 }

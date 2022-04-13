@@ -2388,7 +2388,7 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                   <div class="panel panel-info" style="margin-bottom: 10px">
                     <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
                     <div class="panel-body">
-                      <div class="pull-right sr-sticky-heading">
+                      <div style="z-index:1001;" class="pull-right sr-sticky-heading">
                         <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
                         <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
                       </div>
@@ -2405,16 +2405,20 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
     };
 });
 
-SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $rootScope) {
+SIREPO.app.directive('latticeElementTable', function(appState, latticeService, panelState, $rootScope) {
     return {
         restrict: 'A',
         scope: {},
         template: `
-            <span class="sr-sticky-heading">
-                <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs">{{ collapseButtonText }}</button>
-                <button data-ng-click="findElement(searchVar)" class="btn btn-info btn-xs">Search for Element</button>
-                <input data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="{{searchVar}}">
-            </span>
+
+
+            <div class="sr-sticky-heading">
+                <button data-ng-click="findElement(searchVar)" class="btn btn-info btn-xs sr-searchbar-elem">Search</button>
+                <input class="sr-searchbar-elem" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="{{searchVar}}">
+                <br/>
+                <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs sr-searchbar-elem">{{ collapseButtonText }}</button>
+            </div>
+
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
                 <col style="width: 20ex">
@@ -2459,18 +2463,16 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             var descriptionCache = {};
 
             function getCollapseButtonText() {
-                srdbg($scope.tree);
-                if ($scope.tree && $scope.tree.length) {
-                    srdbg('calling collapse buttong text');
-                    srdbg($scope.tree);
-                    $scope.tree.forEach((e) => {
-                        srdbg(e.isCollapsed);
+                let foundCollapsed = false;
+                if (appState.models.tree && appState.models.tree.length) {
+                    appState.models.tree.forEach((e) => {
                         if (e.isCollapsed) {
-                            return 'Expand all Elements';
+                            foundCollapsed = true;
+                            return;
                         }
-                    })
+                    });
                 }
-                return 'Collapse All Elements';
+                return foundCollapsed ? 'Expand All': 'Collapse All';
             }
 
             $scope.collapseButtonText = getCollapseButtonText();
@@ -2528,7 +2530,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 $scope.tree = [];
                 descriptionCache = {};
                 var category = null;
-                if (!appState.models.tree){
+                if (!appState.models.tree || !appState.models.tree.length){
                     appState.applicationState().elements.forEach(function(element) {
                         if (! category || category.name != element.type) {
                             category = {
@@ -2561,13 +2563,13 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             };
 
             $scope.expandCollapseElems = () => {
-                if ($scope.collapseButtonText == 'Expand All Elements') {
-                    $scope.collapseButtonText = 'Collapse All Elements';
+                if ($scope.collapseButtonText == 'Expand All') {
+                    $scope.collapseButtonText = 'Collapse All';
                     $scope.tree.forEach((e) => {
                         e.isCollapsed = false;
                     });
                 } else {
-                    $scope.collapseButtonText = 'Expand All Elements';
+                    $scope.collapseButtonText = 'Expand All';
                     $scope.tree.forEach((e) => {
                         e.isCollapsed = true;
                     });
@@ -2602,10 +2604,9 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 appState.models.tree = $scope.tree;
                 appState.saveChanges('tree');
                 if (found){
-                    setTimeout(() => {
-                        const e = $('#searchTarget');
-                        e[0].scrollIntoView({block: 'center'});
-                    }, 10);
+                    panelState.waitForUI(() => {
+                        $('#searchTarget')[0].scrollIntoView({block: 'center'});
+                    });
                 }
             };
 
