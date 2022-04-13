@@ -2416,7 +2416,6 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 <br/>
                 <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs sr-searchbar-elem">{{ collapseButtonText }}</button>
             </div>
-
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
                 <col style="width: 20ex">
