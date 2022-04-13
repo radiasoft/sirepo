@@ -217,6 +217,8 @@ class _ComputeJob(PKDict):
             j = req.content.computeJid
         except AttributeError:
             return cls
+        pkdp('got jid, trying to set self')
+        # TODO(raven) what is this line doing? trying to create object with attributes from request that dont exist
         self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
         # SECURITY: must only return instances for authorized user
         assert req.content.uid == self.db.uid, \
@@ -309,14 +311,27 @@ class _ComputeJob(PKDict):
             # TODO(rorour) hard code 'wakeAgent' and uid in job_api
             req.content.uid='KjbYhP8i'
             req.content.computeJid = 'KjbYhP8i-DFQ68me0-sourceIntensityReport'
+        else:
+            pkdp('request had uid & computejid')
+        pkdp('req.content is {}', req.content)
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
         try:
             o = cls.get_instance_or_class(req)
-            return await getattr(
-                o,
-                '_receive_' + req.content.api,
-            )(req)
+            pkdp('o is {}', o)
+            try:
+                a = getattr(
+                    o,
+                    '_receive_' + req.content.api,
+                )
+            except Exception as e:
+                pkdp(e)
+            pkdp('got attr')
+            return await a(req)
+            # return await getattr(
+            #     o,
+            #     '_receive_' + req.content.api,
+            # )(req)
         except sirepo.util.ASYNC_CANCELED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
@@ -764,6 +779,7 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_wakeAgent(self, req):
         # TODO(rorour) change op type to awake?
+        pkdp('made it here')
         r = await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
