@@ -2410,8 +2410,6 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
         restrict: 'A',
         scope: {},
         template: `
-
-
             <div class="sr-sticky-heading">
                 <button data-ng-click="findElement(searchVar)" class="btn btn-info btn-xs sr-searchbar-elem">Search</button>
                 <input class="sr-searchbar-elem" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="{{searchVar}}">
