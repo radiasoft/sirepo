@@ -17,6 +17,16 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                'electronBeam',
+                'focusing',
+                'io',
+                'mesh',
+                'particleLoading',
+                'radiation',
+                'scan',
+                'simulationControl',
+                'timeDependence',
+                'undulator',
                 'fieldDistributionAnimation',
                 'parameterAnimation',
                 'particleAnimation',
@@ -27,7 +37,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _lib_file_basenames(cls, data):
         res = []
         io = data.models.io
-        for f in ('beamfile', 'radfile'):
+        for f in ('beamfile', 'maginfile', 'radfile', 'partfile', 'fieldfile', 'distfile'):
             if io[f]:
                 res.append(cls.lib_file_name_with_model_field('io', f, io[f]))
         return res

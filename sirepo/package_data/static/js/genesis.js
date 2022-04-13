@@ -25,11 +25,14 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, genesisService, persistentSimulation, $scope) {
     const self = this;
+    self.frameCache = frameCache;
     self.simScope = $scope;
     self.simComputeModel = 'animation';
     self.simHandleStatus = function (data) {
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
+            frameCache.setFrameCount(data.particleFrameCount, 'particleAnimation');
+            frameCache.setFrameCount(data.fieldFrameCount, 'fieldDistributionAnimation');
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);

@@ -37,44 +37,46 @@
             ["2", "Quadratic Taper"]
         ],
         "Iscan": [
-            ["0",  "GAMMA0"],
-            ["1", "DELGAM"],
-            ["2", "CURPEAK"],
-            ["3", "XLAMDS"],
-            ["4", "AW0"],
-            ["5", "ISEED"],
-            ["6", "PXBEAM"],
-            ["7", "PYBEAM"],
-            ["8", "XBEAM"],
-            ["9", "YBEAM"],
-            ["10", "RXBEAM"],
-            ["11", "RYBEAM"],
-            ["12", "XLAMD"],
-            ["13", "DELAW"],
-            ["14", "ALPHAX"],
-            ["15", "ALPHAY"],
-            ["16", "EMITX"],
-            ["17", "EMITY"],
-            ["18", "PRAD0"],
-            ["19", "ZRAYL"],
-            ["20", "ZWAIST"],
-            ["21", "AWD"],
-            ["22", "BEAMFILE"],
-            ["23", "BEAMOPT"],
-            ["24", "BEAMGAM"]
+            ["0", "None"],
+            ["1", "GAMMA0"],
+            ["2", "DELGAM"],
+            ["3", "CURPEAK"],
+            ["4", "XLAMDS"],
+            ["5", "AW0"],
+            ["6", "ISEED"],
+            ["7", "PXBEAM"],
+            ["8", "PYBEAM"],
+            ["9", "XBEAM"],
+            ["10", "YBEAM"],
+            ["11", "RXBEAM"],
+            ["12", "RYBEAM"],
+            ["13", "XLAMD"],
+            ["14", "DELAW"],
+            ["15", "ALPHAX"],
+            ["16", "ALPHAY"],
+            ["17", "EMITX"],
+            ["18", "EMITY"],
+            ["19", "PRAD0"],
+            ["20", "ZRAYL"],
+            ["21", "ZWAIST"],
+            ["22", "AWD"],
+            ["23", "BEAMFILE"],
+            ["24", "BEAMOPT"],
+            ["25", "BEAMGAM"]
         ],
         "Iertyp": [
-            ["0", "Uniform"],
-            ["1", "Gaussian"],
-            ["2", "Correlated errors to minimize field integrals"],
-            ["3", "Disable field errors"]
+            ["0", "Disable field errors"],
+            ["1", "Uniform"],
+            ["-1", "Uniform Correlated"],
+            ["2", "Gaussian"],
+            ["-2", "Gaussian Correlated"]
         ],
         "Iwityp": [
            ["0", "Planar"],
            ["1", "Helical"]
         ],
         "Lbc": [
-            ["0", "Direchlet"],
+            ["0", "Dirichlet"],
             ["1", "Neumann"]
         ],
         "IgamGaus": [
@@ -110,82 +112,82 @@
     "model": {
         "electronBeam": {
             "alphax": [
-                "Rotation of the transverse phase space distribution in x",
+                "Alpha",
                 "Float",
                 0.0,
-                "ALPHAX: Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX."
+                "ALPHAX, ALPHAY: Rotation of the transverse phase space distribution in x according to the standard definition ALPHAX = - < xx' >  GAMMA0 / EMITX."
             ],
             "alphay": [
-                "Rotation of the transverse phase space distribution in y",
+                "Alpha",
                 "Float",
                 0.0,
                 "ALPHAY: Rotation of the transverse phase space distribution in y. See ALPHAX for more information."
             ],
             "bunch": [
-                "Initial value of the bunching factor",
+                "Bunching factor",
                 "Float",
                 0.0,
-                "BUNCH: Initial value of the bunching factor, when quite loading is used."
+                "BUNCH: Initial value of the bunching factor, when quiet loading is used."
             ],
             "bunchphase": [
-                "Phase of initial bunching [rad]",
+                "Bunching phase [rad]",
                 "Float",
                 0.0,
-                "BUNCHPHASE: Phase of initial bunching, when quite loading is used."
+                "BUNCHPHASE: Phase of initial bunching, when quiet loading is used."
             ],
             "conditx": [
-                "Correlational strength in x-plane [1/m]",
+                "Correlation strength [1/m]",
                 "Float",
                 0.0,
-                "CONDITX: is the correlation strength between the amplitude of the eletron's betatron oscillation and its energy. If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can beincreased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information."
+                "CONDITX, CONDITY: is the correlation strength between the amplitude of the electron's betatron oscillation and its energy. If the condition is applied correctly any emittance effects are removed from the FEL amplification and the focal strength can be increased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler(A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information."
             ],
             "condity": [
-                "Correlational strength in x-plane [1/m]",
+                "Correlation strength [1/m]",
                 "Float",
                 0.0,
                 "CONDITY: Same as CONDITX but for the correlation in the y-plane."
             ],
             "curpeak": [
-                "Peak current of the electron beam [A]",
+                "Peak current [A]",
                 "Float",
                 250.0,
                 "CURPEAK: Peak current of the electron beam. Time-independent simulations enforces a constant current."
             ],
             "cuttail": [
-                "Cut in the transverse phase space",
+                "Cut tail",
                 "Float",
                 -1.0,
-                "CUTTAIL: Cut in the transverse phase space in measures of the rms size to collimate transverse beam tails/halos. The cut is applied after the loading and beam current is set accordingly to the reduced number of macro particles. It is disabled if the value is negative or the electron beam is imported from an external file."
+                "CUTTAIL: Cut in the transverse phase space in measures of the RMS size to collimate transverse beam tails/halos. The cut is applied after the loading and beam current is set accordingly to the reduced number of macro particles. It is disabled if the value is negative or the electron beam is imported from an external file."
             ],
             "delgam": [
-                "The RMS value of the energy distribution",
+                "RMS energy distribution",
                 "Float",
                 0.005,
                 "DELGAM: The RMS value of the energy distribution in terms of electron rest mass energy."
             ],
             "emitx": [
-                "RMS emmitance in x [m]",
+                "RMS emittance [m]",
                 "Float",
                 2e-06,
-                "EMITX: The normalized RMS emittance in x."
+                "EMITX, EMITY: The normalized RMS emittance."
             ],
             "emity": [
-                "RMS emmitance in y [m]",
+                "RMS emittance [m]",
                 "Float",
                 2e-06,
                 "EMITY: The normalized RMS emittance in y."
             ],
             "emod": [
-                "Initial energy modulation",
+                "Energy modulation",
                 "Float",
                 0.0,
-                "EMOD: Initial energy modulation, when quite loading is used. The value is the modulation amplitude in terms of gamma."
+                "EMOD: Initial energy modulation, when quiet loading is used. The value is the modulation amplitude in terms of gamma."
             ],
             "emodphase": [
-                "Phase of initial energy modulation [rad]",
+                "Energy modulation phase [rad]",
                 "Float",
                 0.0,
-                "EMODPHASE: Phase of initial energy modulation, when quite loading is used."
+                "EMODPHASE: Phase of initial energy modulation, when quiet loading is used."
             ],
             "gamma0": [
                 "Mean energy",
@@ -194,43 +196,45 @@
                 "GAMMA0: The mean energy of the electron beam in terms of the electron rest mass energy."
             ],
             "npart": [
-                "Number of macro particles per slice",
+                "Macro particles per slice",
                 "Integer",
                 8192,
-                "NPART: The number of macro particles per slice. NPART must be a multiple of 4xNBINS and smaller than  defined in the source file 'genesis.def'."
+                "NPART: The number of macro particles per slice. NPART must be a multiple of 4*NBINS and smaller than  defined in the source file 'genesis.def'.",
+                4,
+                1000000
             ],
             "pxbeam": [
-                "Transverse momentum x of the electron beam [m]",
+                "Average momentum",
                 "Float",
                 0.0,
-                "PXBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as PXBEAM = x where x = cvx is the average transverse velocity and the Lorenz factor of the electron energy."
+                "PXBEAM, PYBEAM: Average normalized transverse momentum x of the electron beam at the undulator entrance. The momenta are defined as $\\text{PXBEAM} = \\beta_x\\gamma$ where $\\beta_x = cv_x$ is the average transverse velocity and $\\gamma$ the Lorenz factor of the electron energy."
             ],
             "pybeam": [
-                "Transverse momentum y of the electron beam [m]",
+                "Average momentum",
                 "Float",
                 0.0,
                 "PYBEAM: Average normalized transverse momentum in y of the electron beam at the undulator entrance. See PXBEAM for more information."
             ],
             "rxbeam": [
-                "RMS value in x of the transverse [m]",
+                "RMS size [m]",
                 "Float",
                 0.0001121,
-                "RXBEAM: The RMS value in x of the transverse, spatial distribution."
+                "RXBEAM, RYBEAM: The RMS value of the transverse, spatial distribution."
             ],
             "rybeam": [
-                "RMS value in y of the transverse [m]",
+                "RMS size [m]",
                 "Float",
                 0.0001121,
                 "RYBEAM: The RMS value in y of the transverse, spatial distribution."
             ],
             "xbeam": [
-                "Transverse position in x of the electron beam [m]",
+                "Position [m]",
                 "Float",
                 0.0,
-                "XBEAM: Transverse position in x of the electron beam at the undulator entrance with respect to the undulator axis."
+                "XBEAM, YBEAM: Transverse position in $x$ of the electron beam at the undulator entrance with respect to the undulator axis."
             ],
             "ybeam": [
-                "Transverse position in y of the electron beam [m]",
+                "Position [m]",
                 "Float",
                 0.0,
                 "YBEAM: Transverse position in y of the electron beam at the undulator entrance with respect to the undulator axis."
@@ -244,7 +248,7 @@
         },
         "focusing": {
             "dl": [
-                "Length of the D-quads",
+                "Quadrupole length",
                 "Float",
                 0.0,
                 "DL: Length of the D-quadrupoles in measures of the undulator period."
@@ -256,40 +260,40 @@
                 "DRL: Drift length between F and D quadrupoles in measures of undulator period."
             ],
             "f1st": [
-                "Position within a FODO cell",
+                "FODO cell start",
                 "Float",
                 0.0,
                 "F1ST: Position within a FODO cell, where GENESIS 1.3 starts the FODO cell lattice. To start with a full F-quadrupole set F1ST to zero while a value of FL/2 begins the cell in the middle of the focusing quadrupole."
             ],
             "fl": [
-                "Length of the F-quads",
+                "Quadrupole length",
                 "Float",
                 98.0,
-                "FL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length."
+                "FL, DL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length."
             ],
             "qfdx": [
-                "Quad misplacement in x-direction [m]",
+                "Quadrupole misalignment [m]",
                 "Float",
                 0.0,
-                "QFDX: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-QFDX, QFDX] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file."
+                "QFDX, QFDY: Maximum transverse misplacement of the quadrupoles in x-direction. A random offset between [-QFDX, QFDX] in x  is applied to every quadrupole. Quadrupole position errors are generated even if the magnetic field is defined by an external file."
             ],
             "qfdy": [
-                "Quad misplacement in y-direction [m]",
+                "Quadrupole misalignment [m]",
                 "Float",
                 0.0,
                 "QFDY: Maximum transverse misplacement of the quadrupoles in y-direction, respectively. See QFDX for more information."
             ],
             "quadd": [
-                "Field strength of D-quads [T/m]",
+                "Quadrupole field strength [T/m]",
                 "Float",
                 0.0,
                 "QUADD: The fields strength of D quadrupoles, defocusing in the x-plane. GENESIS 1.3 automatically applies the correct signs to QUADF and QUADD indicating the alternating focusing in the FODO-lattice."
             ],
             "quadf": [
-                "Field strength of F-quads [T/m]",
+                "Quadrupole field strength [T/m]",
                 "Float",
                 1.23,
-                "QUADF: The field strength of F quadrupoles, focusing in the x-plane."
+                "QUADF, QUADD: The field strength of F quadrupoles, focusing in the x-plane."
             ],
             "sl": [
                 "Length of solenoid field",
@@ -308,11 +312,11 @@
             "alignradf": [
                 "Align radiation field to the electron beam",
                 "Boolean",
-                0,
-                "ALIGNRADF: When the FIELDFILE feature is used than Genesis 1.3 aligns the radiation field to the electron beam so that the radiaiton field is one full slippage behind the electron beam. In this case there is no unphysical calculation because the field which slips through the back into the first electron slice is fully defined. However this alignment depends on the undulator length. To disable the automatic alignment ALIGNRADF has to be set to a non-zero value. If this is the case the last slice of the radiaiton field is aligned with the last electron slice. Field slices, which slips into the first electorn slice and which is not defined by the FIELDFILE is generated by the internal method of using the fundamental Gauss-Hermite mode"
+                "0",
+                "ALIGNRADF: When the FIELDFILE feature is used than Genesis 1.3 aligns the radiation field to the electron beam so that the radiaiton field is one full slippage behind the electron beam. In this case there is no unphysical calculation because the field which slips through the back into the first electron slice is fully defined. However this alignment depends on the undulator length. To disable the automatic alignment ALIGNRADF has to be set to a non-zero value. If this is the case the last slice of the radiaiton field is aligned with the last electron slice. Field slices, which slips into the first electron slice and which is not defined by the FIELDFILE is generated by the internal method of using the fundamental Gauss-Hermite mode"
             ],
             "beamfile": [
-                "Beam file",
+                "Beam file (optional)",
                 "InputFile",
                 "",
                 "BEAMFILE: Specifying a file containing a lookup table for the electron beam parameters at different position along the bunch. "
@@ -321,11 +325,11 @@
                 "Harmonic number",
                 "Integer",
                 1,
-                "CONVHARM: When the particle distribution is imported from a PARTFILE Genesis 1.3 allows the up-conversion to a higher harmonics. The harmonic number is specified with CONVHARM and has a defulat value of 1, corresponding to no up-conversion.The user has to make sure that in the input deck XLAMDS is adjusted, according to the new wavelength."
+                "CONVHARM: When the particle distribution is imported from a PARTFILE Genesis 1.3 allows the up-conversion to a higher harmonics. The harmonic number is specified with CONVHARM and has a default value of 1, corresponding to no up-conversion.The user has to make sure that in the input deck XLAMDS is adjusted, according to the new wavelength."
             ],
             "distfile": [
-                "Distribution file",
-                "String",
+                "Distribution file (optional)",
+                "InputFile",
                 "",
                 "DISTFILE: If DISTFILE is defined, the 6d distribution is imported into GENESIS 1.3 and used to load the phase space. The quiet start algorithm is bypassed."
             ],
@@ -333,11 +337,11 @@
                 "FFSPEC",
                 "Integer",
                 0,
-                "To calculate a spectrum a post-processing step requires amplitude and phase, which are writen to the output file, defined by LOUT of column 3 and 4. The values depend on the choice of FFSPEC. If the value is equal the near field on-axis intensity and phase is written, while for a negative value it is the same but in the far field zone. For a positive value the near field intensity is replaced by the total radiation power, assuming transverse coherence."
+                "To calculate a spectrum a post-processing step requires amplitude and phase, which are written to the output file, defined by LOUT of column 3 and 4. The values depend on the choice of FFSPEC. If the value is equal the near field on-axis intensity and phase is written, while for a negative value it is the same but in the far field zone. For a positive value the near field intensity is replaced by the total radiation power, assuming transverse coherence."
             ],
             "fieldfile": [
-                "Field distribution file",
-                "String",
+                "Field distribution file (optional)",
+                "InputFile",
                 "",
                 "FIELDFILE: Defines the file containing the field distribution. The distribution is directly imported into the arrays, holding the field and the time-records. "
             ],
@@ -351,18 +355,18 @@
                 "IBFIELD [T]",
                 "Float",
                 0.0,
-                "IBFIELD: When the PARTFILE features is used the imported particle distribution can be tracked through a generic 4 magnet chicanebefore running the Genesis simulation. The chicane consists out of 4 bending magnets of the field strength IBFIELD and length IMAGL separated by 5 drifts of length IDRIL. If the field strength of the magnet is set to zero the feature of a chicane is disabled (default behavior)"
+                "IBFIELD: When the PARTFILE features is used the imported particle distribution can be tracked through a generic 4 magnet chicane before running the Genesis simulation. The chicane consists out of 4 bending magnets of the field strength IBFIELD and length IMAGL separated by 5 drifts of length IDRIL. If the field strength of the magnet is set to zero the feature of a chicane is disabled (default behavior)"
             ],
             "idmpfld": [
                 "Dump field distribution",
                 "Boolean",
-                0,
+                "0",
                 "IDMPFLD: Similar to IDUMP but only for the field distribution. "
             ],
             "idmppar": [
                 "Dump particle distribution",
                 "Boolean",
-                0,
+                "0",
                 "IDMPPAR: Similar to IDUMP but only for the particle distribution. "
             ],
             "idril": [
@@ -374,13 +378,13 @@
             "idump": [
                 "Dump particle and field distributions",
                 "Boolean",
-                0,
-                "IDUMP: If set to a non-zero value the complete particle and field distribution is dumped at the undulator exit into two outputfiles. The filenames are the filename of the main output file plus the extension '.dpa' and '.dfl', respectively."
+                "0",
+                "IDUMP: If set to a non-zero value the complete particle and field distribution is dumped at the undulator exit into two output files. The filenames are the filename of the main output file plus the extension '.dpa' and '.dfl', respectively."
             ],
             "ilog": [
                 "Write to log",
                 "Boolean",
-                0,
+                "0",
                 "ILOG: If set to a non-zero value all further run-information and error messages are redirect to a log file. The name is the main output file name plus the extension '.log'."
             ],
             "imagl": [
@@ -390,43 +394,43 @@
                 "IMAGL: The length of each bending magnet of the chicane. If the magnet length is set to zero but IDRIL is not the resulting beam line correspond to a simple drift of the length 5 times IDRIL."
             ],
             "iotail": [
-                "Output time window eqauls sim time window",
+                "Output time window equals sim time window",
                 "Boolean",
-                0,
-                "IOTAIL: If set to a non-zero value the output time window is the same as the simulated time window. Otherwise the output for the first slices covered by the slippage length is subpressed. Needed for bunches which are completely covered by the time-window."
+                "0",
+                "IOTAIL: If set to a non-zero value the output time window is the same as the simulated time window. Otherwise the output for the first slices covered by the slippage length is suppressed. Needed for bunches which are completely covered by the time-window."
             ],
             "iphsty": [
-                "Generate output at each nth integration step",
+                "Save parameters at each nth integration step",
                 "Integer",
                 1,
                 "IPHSTY: Generate output in the main output file at each IPHSTYth integration step. To disable output set IPHSTY to zero."
             ],
             "ippart": [
-                "Write particle dist at each nth integration step",
+                "Save particles at each nth integration step",
                 "Integer",
-                1,
-                "IPPART: Write the particle distribution to file at each IPPARTth integration step. To disable output set IPPART to zero. The filename is the same of the main outputfile + the extension '.par'."
+                0,
+                "IPPART: Write the particle distribution to file at each IPPARTth integration step. To disable output set IPPART to zero. The filename is the same of the main output file + the extension '.par'."
             ],
             "ipradi": [
-                "Write field dist at each nth integration step",
+                "Save field at each nth integration step",
                 "Integer",
-                1,
-                "IPRADI: Write the field distribution to file at each IPRADIth integration step. To disable output set IPRADI to zero. The filename is the same of the main outputfile + the extension '.fld'."
+                0,
+                "IPRADI: Write the field distribution to file at each IPRADIth integration step. To disable output set IPRADI to zero. The filename is the same of the main output file + the extension '.fld'."
             ],
             "ishsty": [
-                "Generate output in the main output file for each nth slice.",
+                "Save parameters for each nth slice.",
                 "Integer",
                 1,
                 "ISHSTY: Generate output in the main output file for each ISHSTYth slice. "
             ],
             "ispart": [
-                "Write the particle distribution to file for every nth slice",
+                "Save particles for every nth slice",
                 "Integer",
                 0,
                 "ISPART: Write the particle distribution to file for every ISPART slice. "
             ],
             "isradi": [
-                "Write the field distribution to file for every ISRADI slice.",
+                "Save field for every nth slice.",
                 "Integer",
                 0,
                 "ISRADI: Write the field distribution to file for every ISRADI slice."
@@ -434,243 +438,196 @@
             "itram11": [
                 "ITRAM11",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                1.0,
+                "Define the matrix element for the transport matrix, which is applied when importing a particle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
             ],
             "itram12": [
                 "ITRAM12",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram13": [
                 "ITRAM13",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram14": [
                 "ITRAM14",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram15": [
                 "ITRAM15",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram16": [
                 "ITRAM16",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram21": [
                 "ITRAM21",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram22": [
                 "ITRAM22",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                1.0
             ],
             "itram23": [
                 "ITRAM23",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram24": [
                 "ITRAM24",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram25": [
                 "ITRAM25",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram26": [
                 "ITRAM26",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram31": [
                 "ITRAM31",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram32": [
                 "ITRAM32",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram33": [
                 "ITRAM33",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                1.0
             ],
             "itram34": [
                 "ITRAM34",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram35": [
                 "ITRAM35",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram36": [
                 "ITRAM36",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram41": [
                 "ITRAM41",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram42": [
                 "ITRAM42",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram43": [
                 "ITRAM43",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram44": [
                 "ITRAM44",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                1.0
             ],
             "itram45": [
                 "ITRAM45",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram46": [
                 "ITRAM46",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram51": [
                 "ITRAM51",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram52": [
                 "ITRAM52",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram53": [
                 "ITRAM53",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram54": [
                 "ITRAM54",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram55": [
                 "ITRAM55",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                1.0
             ],
             "itram56": [
                 "ITRAM56",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram61": [
                 "ITRAM61",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram62": [
                 "ITRAM62",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram63": [
                 "ITRAM63",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram64": [
                 "ITRAM64",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram65": [
                 "ITRAM65",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                0.0
             ],
             "itram66": [
                 "ITRAM66",
                 "Float",
-                0.0,
-                "Define the matrix element for the transport matrix, which is applied when importing a paticle distribution with the PARTFILE option. The matrix is defined in a standard way, acting on the vector (position in X, angle in X, position in Y, angle in Y, position in s, relative energy spread). The default value is the identity matrix."
+                1.0
             ],
             "lout": [
                 "Defines, which parameter is included in the main output file.",
                 "Integer19StringArray",
                 "1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0",
                 "Defines, which parameter is included in the main output file.",
-                "Radiation Power, Logarithmic derivative of the power growth, Power density at the undulator axis, Radiation phase at the undulator axis, Transverse radiation size, Rms diffraction angle of the radiation, Beam energy, Bunching factor, Beam size in x, Beam size in y, Error in energy conservation, Beam position in x, Beam position in y, Energy spread, On-axis field intensity in the far field zone, Output of 2nd harmonic, Output of 3rd harmonic, Output of 4th harmonic, Output of 5th harmonic"
-            ],
-            "magin": [
-                "Use maginfile",
-                "Boolean",
-                0,
-                "MAGIN: If set to a non-zero value the user is prompted to type in the file name containing a explicit description of the magnetic field."
+                "Radiation Power, Logarithmic derivative of the power growth, Power density at the undulator axis, Radiation phase at the undulator axis, Transverse radiation size, RMS diffraction angle of the radiation, Beam energy, Bunching factor, Beam size in x, Beam size in y, Error in energy conservation, Beam position in x, Beam position in y, Energy spread, On-axis field intensity in the far field zone, Output of 2nd harmonic, Output of 3rd harmonic, Output of 4th harmonic, Output of 5th harmonic"
             ],
             "maginfile": [
-                "Magnetic field file",
-                "String",
+                "Magnetic field file (optional)",
+                "InputFile",
                 "",
                 "MAGINFILE Defines a file, which contains the magnetic field description, bypassing the interactive request of MAGIN."
-            ],
-            "magout": [
-                "Use magout file",
-                "Boolean",
-                0,
-                "MAGIN: Similar to MAGIN to write out the magnetic field lattice used for the simulation."
             ],
             "magoutfile": [
                 "Magnetic field output file",
@@ -685,7 +642,7 @@
                 "If an imported particle distribution from a PARTFILE is up-converted to a higher harmonics the dault behavior is that the number of slices is preserved. This requires that ZSEP is adjusted together with XLAMDS. However if frequency resolution is a problem then a particle distribution can be converted and used multiple times to keep ZSEP constant.The disadvantage is that the CPU execution time is increased as well."
             ],
             "ndcut": [
-                "NDCUT where time-window = (tmax-tmin)/NDCUT",
+                "NDCUT",
                 "Integer",
                 0,
                 "NDCUT: When loading a slice, only particles of the external distribution are used, which falls within a small time-window centered around the current position of the slice. If NDCUT has a value larger than zero the width is calculated by (tmax-tmin)/NDCUT, where tmax and tmin are determined, while scanning through the particle distribution. If NDCUT is zero, the time-window is adjusted, so that in average NPART/NBINS particles fall in each slice."
@@ -694,22 +651,22 @@
                 "Skip slices for relative position",
                 "Integer",
                 0,
-                "OFFSETRADF: If the automatic alignment of the radiation field is disabled by setting ALIGNRADF to a non-zero value, the default alignment is that the first slice of the radiaiton field overlaps with the first slice of the electron beam. However the relative position can be controlled by OFFSETRADF. The value of OFFSETRADF defines the number of slice to skip before filling it for the first electorn slice. E.g. a value of 4 will uses the 5th slice for the simulation of the first slice. slices one to 4 will be used to fill up the slippage field. If Genesis 1.3. require to fill a slice which is not defined by the FIELDFILE then it uses the internal method of a fundamental Gauss-Hermite mode."
+                "OFFSETRADF: If the automatic alignment of the radiation field is disabled by setting ALIGNRADF to a non-zero value, the default alignment is that the first slice of the radiaiton field overlaps with the first slice of the electron beam. However the relative position can be controlled by OFFSETRADF. The value of OFFSETRADF defines the number of slice to skip before filling it for the first electron slice. E.g. a value of 4 will uses the 5th slice for the simulation of the first slice. slices one to 4 will be used to fill up the slippage field. If Genesis 1.3. require to fill a slice which is not defined by the FIELDFILE then it uses the internal method of a fundamental Gauss-Hermite mode."
             ],
             "outputfile": [
                 "Name of main output file",
                 "String",
-                "genesis.out",
+                "",
                 "OUTPUTFILE: The name of the main output file. The prompt for the output filename at the beginning of a GENESIS 1.3 run will be suppressed."
             ],
             "partfile": [
-                "Particle distribution file",
-                "String",
+                "Particle distribution file (optional)",
+                "InputFile",
                 "",
                 "PARTFILE: Defines the file containing the particle distribution. The distribution is directly imported into the arrays holding the particle variables. "
             ],
             "radfile": [
-                "Lookup table for seeding radiation pulse",
+                "Radiation file (optional)",
                 "InputFile",
                 "",
                 "RADFILE: Specifying a file containing a lookup table for the seeding radiation pulse at different position along the bunch. "
@@ -717,7 +674,7 @@
             "trama": [
                 "Enable transport matrix",
                 "Boolean",
-                0,
+                "0",
                 "TRAMA: Non zero value enables that a transport matrix is applied to the electron distribution when importing it with PARTFILE. The individual matrix is defined by ITRAM##"
             ]
         },
@@ -738,76 +695,77 @@
         },
         "particleLoading": {
             "iall": [
-                "All slices start with the same element",
+                "Slices start with the same sequence element",
                 "Boolean",
-                0,
+                "0",
                 "IALL: A non-zero value of IALL enforces that all slices are starting with the same element of the Hammersley sequences. It is recommend for time-dependent simulation excluding shot noise. IALL is set automatically for scans."
             ],
             "igamgaus": [
-                "Distribution profile",
+                "Energy distribution",
                 "IgamGaus",
-                1,
+                "1",
                 "Defines distribution profile in energy. A non-zero value generates a Gaussian distribution and a uniform otherwise."
             ],
             "ildgam": [
-                "Hammersley base for loading the energy distribution",
+                "Base for energy",
                 "Integer",
                 5,
                 "ILDGAM: Hammersley base for loading the energy distribution. See ILDPSI for more information.Note that the loading of the energy distribution is Gaussian and uses two bases (ILDGAM and ILDGAM + 1)."
             ],
             "ildpsi": [
-                "Indices of the Hammersley",
+                "Hammersley indices base",
                 "Integer",
                 7,
                 "ILDPSI: Indices of the Hammersley sequence bases for loading the particle phase. GENESIS 1.3 uses the first 26 prime numbers as bases. To avoid correlation between the variables each base should be different. "
             ],
             "ildpx": [
-                "Hammersley base for loading the distribution in px",
+                "Base for momentum",
                 "Integer",
                 3,
-                "ILDPX: Hammersley base for loading the distribution in px. See ILDPSI for more information."
+                "ILDPX, ILDPY: Hammersley base for loading the distribution in px. See ILDPSI for more information."
             ],
             "ildpy": [
-                "Hammersley base for loading the distribution in py",
+                "Base for momentum",
                 "Integer",
                 4,
                 "ILDPY: Hammersley base for loading the distribution in py. See ILDPSI for more information."
             ],
             "ildx": [
-                "Hammersley base for loading the distribution in x",
+                "Base for position",
                 "Integer",
                 1,
-                "ILDX: Hammersley base for loading the distribution in x. See ILDPSI for more information."
+                "ILDX, ILDY: Hammersley base for loading the distribution in x. See ILDPSI for more information."
             ],
             "ildy": [
-                "Hammersley base for loading the distribution in y",
+                "Base for position",
                 "Integer",
                 2,
                 "IDLY: Hammersley base for loading the distribution in y. See ILDPSI for more information."
             ],
             "inverfc": [
-                "Use inverted error function",
+                "Inverted error function",
                 "Boolean",
-                1,
-                "INVERFC: When set to a non-zero value, the inverted error function is used for generating a Gaussian distribution instead of the joint-propability method. It results in smoother distribution in energy and transverse dimensions."
+                "1",
+                "INVERFC: When set to a non-zero value, the inverted error function is used for generating a Gaussian distribution instead of the joint-probability method. It results in smoother distribution in energy and transverse dimensions."
             ],
             "ipseed": [
-                "Random seed for particle phase fluctuation",
+                "Random noise seed",
                 "Integer",
                 -1,
                 "IPSEED: Initial seed for the random number generator used for particle phase fluctuation (shot noise). GENESIS 1.3 requires a re-initialization of the random number generator to guarantee the same loading whether magnetic field errors are used or not."
             ],
             "itgaus": [
-                "Distribution profile in the transverse variables",
+                "Transverse distribution",
                 "ItGaus",
-                1,
+                "1",
                 "ITGAUS: Defines distribution profile in the transverse variables. The available distributions are:- Gaussian (ITGAUS=1)- Uniform (ITGAUS=2)- Parabolic (otherwise)"
             ],
             "nbins": [
                 "Number of bins in the particle phase",
                 "Integer",
                 4,
-                "NBINS: Number of bins in the particle phase. The value has to be at least 4 or larger than (2+2n), depending on whether the bunching at the nth harmonics is needed for space charge calculations or output."
+                "NBINS: Number of bins in the particle phase. The value has to be at least 4 or larger than (2+2n), depending on whether the bunching at the nth harmonics is needed for space charge calculations or output.",
+                4
             ]
         },
         "mesh": {
@@ -820,17 +778,17 @@
             "iscrkup": [
                 "Update all Runge-Kutta integration steps",
                 "Boolean",
-                0,
-                "ISCRKUP: If set to a non-zero value then the space charge field is updated at each of the 4 Runge-Kutta integration steps instead of the default behavior, where the space charge field is claculated only once before the Runge-Kutta integration. It increases the stability and precision of the space charge field but it comes with a cost in slower execution speed."
+                "0",
+                "ISCRKUP: If set to a non-zero value then the space charge field is updated at each of the 4 Runge-Kutta integration steps instead of the default behavior, where the space charge field is calculated only once before the Runge-Kutta integration. It increases the stability and precision of the space charge field but it comes with a cost in slower execution speed."
             ],
             "lbc": [
                 "Boundary Condition",
                 "Lbc",
-                0,
-                "LBC: Flag to set the boundary condition for the field solver. The options are Direchlet boundary condition (LBC = 0) and Neumann boundary condition (otherwise). Anyhow the grid should be chosen large enough so that the choice of LBC should not change the results."
+                "0",
+                "LBC: Flag to set the boundary condition for the field solver. The options are Dirichlet boundary condition (LBC = 0) and Neumann boundary condition (otherwise). The grid should be chosen large enough so that the choice of LBC should not change the results."
             ],
             "ncar": [
-                "N grid points for radiation field",
+                "Radiation grid points",
                 "Integer",
                 151,
                 "NCAR: The number of grid points for the radiation field along a single axis. The total number for the mesh is NCAR2. NCAR must be an odd number to cover the undulator axis with one grid point. Do not exceed NCMAX defined in the source file 'genesis.def'."
@@ -848,7 +806,7 @@
                 "NSCR: Number of azimuthal modes for space charge calculation."
             ],
             "nscz": [
-                "Number of longitudinal Fourier components",
+                "Number of Fourier components",
                 "Integer",
                 1,
                 "NSCZ: Number of longitudinal Fourier components for space charge calculation. NSCZ must be greater than 0 to include space charge but less than (2NBINS+2) for valid results."
@@ -857,10 +815,10 @@
                 "Radiation field scaling factor",
                 "Float",
                 9.0,
-                "RMAX0: GENESIS 1.3 estimates the size of the grid on which the radiation field is discretized by scaling the averages size of the initial radiation field and beam size with RMAX0. The explicit size is [-DGRID,DGRID] in both dimensions with DGRID = RMAX0(r,beam+r,field).The electron beam size is the rms sum of RXBEAM and RYBEAM while the radiation field  size is calculated with ZRAYL and ZWAIST."
+                "RMAX0: GENESIS 1.3 estimates the size of the grid on which the radiation field is discretized by scaling the averages size of the initial radiation field and beam size with RMAX0. The explicit size is [-DGRID,DGRID] in both dimensions with $\\text{DGRID} = \\text{RMAX0}(\\sigma_{r,beam}+\\sigma_{r,field})$.The electron beam size is the RMS sum of RXBEAM and RYBEAM while the radiation field  size is calculated with ZRAYL and ZWAIST."
             ],
             "rmax0sc": [
-                "Radial grid size",
+                "Radial grid size [m]",
                 "Float",
                 0.0,
                 "RMAX0SC: Explicitly defines the radial grid size for space charge calculations when set to a positive value. Otherwise, Genesis calculates the grid size from the current size of the electron beam."
@@ -868,43 +826,43 @@
         },
         "radiation": {
             "iallharm": [
-                "IALLHARM",
-                "Integer",
-                0,
-                "IALLHARM: As a default setting only the fundamental and the harmonic, defined by NHARMare calculated. Setting the value to a non-zero value will also include all harmonics between. This option will be set automaticaly when the harmonics are calculated self-consistently."
+                "Include all harmonics",
+                "Boolean",
+                "0",
+                "IALLHARM: As a default setting only the fundamental and the harmonic, defined by NHARM are calculated. Setting the value to a non-zero value will also include all harmonics between. This option will be set automatically when the harmonics are calculated self-consistently."
             ],
             "iharmsc": [
-                "IHARMSC",
-                "Integer",
-                0,
-                "IHARMSC: Typically the harmonics are driven by the non-linear dynamics on the fundamental and the feed back of the harmonics on theelectron beam can be neglected for the sake of faster calculation. However setting IHARMSC to a non-zero value includes the coupling of the harmonic radiation back to the electron beam for a self-consistent model of harmonics. Enabling this feature will automatically includeall harmonics by setting IALLHARM to one."
+                "Couple with electron beam",
+                "Boolean",
+                "0",
+                "IHARMSC: Typically the harmonics are driven by the non-linear dynamics on the fundamental and the feed back of the harmonics on the electron beam can be neglected for the sake of faster calculation. However setting IHARMSC to a non-zero value includes the coupling of the harmonic radiation back to the electron beam for a self-consistent model of harmonics. Enabling this feature will automatically include all harmonics by setting IALLHARM to one."
             ],
             "nharm": [
-                "Calculation of harmonics up to n",
+                "Harmonic count",
                 "Integer",
                 1,
-                "NHARM: Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS has to be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameterdoes not enable automatically the output. For that the corresponding bit in LOUT has to be set as well."
+                "NHARM: Enables the calculation of harmonics up to the one, specified by NHARM. Note that the number of NBINS has to be at least twice as large as NHARM to allow for the correct representation of the harmonics. Note also that this parameter does not enable automatically the output. For that the corresponding bit in LOUT has to be set as well."
             ],
             "prad0": [
-                "Input power of the radiation field [W]",
+                "Input power [W]",
                 "Float",
                 10.0,
                 "PRAD0: The input power of the radiation field. For SASE simulation PRAD0 should be set to zero value or at least well below the shot noise level."
             ],
             "pradh0": [
-                "PRADH0",
+                "Radiation power",
                 "Float",
                 0.0,
                 "Radiation power for seeding with a harmonics, defined by NHARM.The waist position and waist size is identical to the fundamental (ZWAIST) thus using a scaled value of NHARM*ZRAYL for the Rayleigh length."
             ],
             "xlamds": [
-                "Resonant radiation wavelength [m]",
+                "Wavelength [m]",
                 "Float",
                 1.2852e-05,
                 "XLAMDS: The resonant radiation wavelength. Due to the bandwidth of time-dependent simulation SASE simulations do not require a very precise value for XLAMDS."
             ],
             "zrayl": [
-                "Rayleigh length of seeding radiation [m]",
+                "Rayleigh length [m]",
                 "Float",
                 0.5,
                 "ZRAYL: The Rayleigh length of the seeding radiation field. ZRAYL is defined as pi*w0^2/XLAMDS where w0 is the radius of the optical beam waist. The Rayleigh length is a measure for the diffraction w(z)^2 = w0^2(1 + (z - ZWAIST)^2/ZRAYL^2) and is needed to calculate the size and divergence/convergence of the seeding field at the undulator entrance. Because the field size can determine the grid size it is strongly recommended to supply reasonable numbers for ZRAYL and ZWAIST even for simulation starting from noise."
@@ -920,8 +878,8 @@
             "iscan": [
                 "Parameter for scan",
                 "Iscan",
-                0,
-                "ISCAN: Selects the parameter for a scan over a certain range of its value. The last two enables a user-defined scan, where a steady-state run is performed for each entryof the supplied BEAMFILE. BEAMOPT differs from BEAMFILE that it automatically adjust XLAMDS according to the resonance condition and the beam energy, defined in the BEAMFILE.The BEAMGAM option is similar to BEAMFILE, but overwrites the value of energy with GAMMA0 from the main input file."
+                "0",
+                "ISCAN: Selects the parameter for a scan over a certain range of its value. The last two enables a user-defined scan, where a steady-state run is performed for each entry of the supplied BEAMFILE. BEAMOPT differs from BEAMFILE that it automatically adjust XLAMDS according to the resonance condition and the beam energy, defined in the BEAMFILE.The BEAMGAM option is similar to BEAMFILE, but overwrites the value of energy with GAMMA0 from the main input file."
             ],
             "nscan": [
                 "Steps per scan",
@@ -944,7 +902,7 @@
                 "DELZ: Integration step size in measure of the undulator period length."
             ],
             "eloss": [
-                "Externally applied energy loss of the electron beam [eV/m]",
+                "Energy loss [eV/m]",
                 "Float",
                 0.0,
                 "ELOSS: Externally applied energy loss of the electron beam."
@@ -952,23 +910,23 @@
             "iorb": [
                 "Use orbit correction",
                 "Boolean",
-                0,
+                "0",
                 "IORB: Flag for orbit correction. For any non-zero value the offset due to the wiggle motion is taken into account for the interaction between electron beam and radiation field. The correction is not included in the output values for the beam centroid position."
             ],
             "isravg": [
-                "Include energy loss due to spontaneous synchrotron radiation",
+                "Include synchrotron radiation",
                 "Boolean",
-                0,
+                "0",
                 "ISRAVG: If set to a non-zero value the energy loss due to spontaneous synchrotron radiation is included in the calculation."
             ],
             "isrsig": [
                 "Use quantum fluctuation",
                 "Boolean",
-                0,
-                "If set to a non-zero value the increase of the energy spread due to the quantum fluctuation of the spontaneous synchrotron radiation is included in the calculation."
+                "0",
+                "ISRSIG: If set to a non-zero value the increase of the energy spread due to the quantum fluctuation of the spontaneous synchrotron radiation is included in the calculation."
             ],
             "version": [
-                "VERSION",
+                "GENESIS 1.3 version",
                 "Float",
                 0.1,
                 "Used for backward compatibility of the input decks. Some parameters might change their behavior for older versions of GENESIS 1.3. The current version is 1.0."
@@ -986,18 +944,18 @@
                 "Bunch length of the current profile [m]",
                 "Float",
                 0.001,
-                "CURLEN: Bunch length of the current profile. If CURLEN is positive a Gaussian distribution is generated with an rms length given by CURLEN. A negative or zero value yield a constant profile."
+                "CURLEN: Bunch length of the current profile. If CURLEN is positive a Gaussian distribution is generated with an RMS length given by CURLEN. A negative or zero value yield a constant profile."
             ],
             "isntyp": [
                 "ISNTYP",
                 "Integer",
                 0,
-                "For VERSION below 1.0 only the Pennman algorighm is used for the shot noise, which is only correct for the fundamental wavelength, but for a higher version the default is the Fawley algorithm which applies also the correct shotnoise to allhigher harmonics. If the user wants to use the Pennman algorith at a higher version number (which is not recommended), the value of ISNTYP has to be set to a non-zero value."
+                "For VERSION below 1.0 only the Pennman algorithm is used for the shot noise, which is only correct for the fundamental wavelength, but for a higher version the default is the Fawley algorithm which applies also the correct shotnoise to all higher harmonics. If the user wants to use the Pennman algorithm at a higher version number (which is not recommended), the value of ISNTYP has to be set to a non-zero value."
             ],
             "itdp": [
                 "Enables time-dependent simulation",
                 "Boolean",
-                0,
+                "0",
                 "ITDP: A non-zero value enables time-dependent simulation. Time-dependence is not allowed if the scan-feature is enabled. "
             ],
             "nslice": [
@@ -1027,10 +985,10 @@
         },
         "undulator": {
             "aw0": [
-                "Dimensionless RMS undulator parameter",
+                "RMS undulator parameter",
                 "Float",
                 0.735,
-                "AW0: The normalized, dimensionless rms undulator parameter, defined by AW0 = (e/mc)(Bu/ku), where e is the electron charge, m is electron mass, c is speed of light, ku=2pi/lambdau is the undulator wave number, lambdau is the undulator period. Bu is the rms undulator field with Bu = Bp/2 for a planar undulator and Bu = Bp/2 for a helical undulator, where Bp is the on-axis peak field."
+                "AW0: The normalized, dimensionless RMS undulator parameter, defined by $\\text{AW0} = (e/mc)(B_u/k_u)$, where e is the electron charge, $m$ is electron mass, $c$ is speed of light, $k_u=2\\pi/\\lambda_u$ is the undulator wave number, $\\lambda_u$ is the undulator period. $B_u$ is the RMS undulator field with $B_u = B_\\rho/2$ for a planar undulator and $B_u = B_\\rho$ for a helical undulator, where $B_\\rho$ is the on-axis peak field."
             ],
             "awd": [
                 "Virtual undulator parameter",
@@ -1039,16 +997,16 @@
                 "AWD: A virtual undulator parameter for the gap between undulator modules. The only purpose of this parameter is to delay the longitudinal motion of the electrons in the same manner as AW0 does within the undulator modules. It is used to keep the electron and radiation phases synchronize up to the point when the interaction at the next undulator module starts again. AWD has typically the same value as AW0, but might vary for optimum matching between the modules. "
             ],
             "awx": [
-                "Maximum offset in x",
+                "Misalignment [m]",
                 "Float",
                 0.0,
-                "AWX: Maximum offset in x for undulator module misalignment. The error for each individual module followsa uniform distribution"
+                "AWX, AWY: Maximum offset in x for undulator module misalignment. The error for each individual module follows a uniform distribution"
             ],
             "awy": [
-                "Maximum offset in y",
+                "Misalignment [m]",
                 "Float",
                 0.0,
-                "AWY: Maximum offset in y for undulator module misalignment. The error for each individual module followsa uniform distribution"
+                "AWY: Maximum offset in y for undulator module misalignment. The error for each individual module follows a uniform distribution"
             ],
             "delaw": [
                 "Error distribution",
@@ -1060,16 +1018,16 @@
                 "Coupling factor",
                 "Float",
                 0.0,
-                "FBESS0: The coupling factor of the electron beam to the radiation field due to the longitudinal wiggle motion of the electrons.  It is 1.0 for a helical undulator and J0(x) - J1(x) for a planarundulator where J0(x), J1(x) are Bessel functions and x = AW0^2/2(1+AW0^2). If FBESS0 is set to 0.0 GENESIS 1.3 calculates the value."
+                "FBESS0: The coupling factor of the electron beam to the radiation field due to the longitudinal wiggle motion of the electrons.  It is 1.0 for a helical undulator and $J_0(x) - J_1(x)$ for a planar undulator where $J_0(x), J_1(x)$ are Bessel functions and $x = \\text{AW0}^2/2(1+\\text{AW0}^2)$. If FBESS0 is set to 0.0 GENESIS 1.3 calculates the value."
             ],
             "iertyp": [
                 "Type of undulator field errors",
                 "Iertyp",
-                0,
+                "0",
                 "IERTYP: Type of undulator field errors. Either a uniform (+/-1) or Gaussian (+/- 2) distribution can be chosen. If IERTYP is negative the errors are correlated to minimize the first and second field integral. IERTYP =0 disables field errors. Field errors requires a integration step size of half an undulator period (DELZ = 0.5). Note that field errors are applied even if the magnetic lattice is defined by an external file."
             ],
             "iseed": [
-                "Inital random number generation seed",
+                "Field error random number seed",
                 "Integer",
                 -1,
                 "ISEED: The initial seeding of the random number generator for field errors."
@@ -1077,7 +1035,7 @@
             "iwityp": [
                 "Undulator type",
                 "Iwityp",
-                0,
+                "0",
                 "IWITYP: Flag indicating the undulator type. Planar undulator or helical."
             ],
             "nsec": [
@@ -1111,13 +1069,13 @@
                 "WCOEFZ(3): The taper model:= 1 for linear taper,= 2 for quadratic taper, or no taper otherwise."
             ],
             "xkx": [
-                "Undulator focus param",
+                "Undulator focus parameter",
                 "Float",
                 0.0,
-                "XKX: Normalized natural focusing of the undulator in x. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. "
+                "XKX, XKY: Normalized natural focusing of the undulator in $x$. Common values are XKX = 0.0, XKY = 1.0 for a planar undulator or XKX, XKY = 0.5 for a helical undulator, but might vary if focusing by curved pole faces is simulated. The values should fulfill the constraint XKX + XKY = 1.0. "
             ],
             "xky": [
-                "Undulator focus param",
+                "Undulator focus parameter",
                 "Float",
                 1.0,
                 "XKY: Normalized natural focusing of the undulator in x. See XKX for more information."
@@ -1131,7 +1089,7 @@
         }
     },
     "strings": {
-        "completionState": ": {frameCount} steps"
+        "completionState": ""
     },
     "view": {
         "electronBeam": {
@@ -1153,12 +1111,13 @@
                             "alphax",
                             "emitx"
                         ]],
-                        ["Vertial", [
+                        ["Vertical", [
                             "rybeam",
                             "alphay",
                             "emity"
                         ]]
-                    ]
+                    ],
+                    "cuttail"
                 ]],
                 ["Position", [
                     [
@@ -1172,16 +1131,19 @@
                         ]]
                     ]
                 ]],
-                ["Corrections", [
+                ["Correlations", [
                     "bunch",
                     "bunchphase",
                     "emod",
-                    "emodphase"
-                ]],
-                ["Other", [
-                    "cuttail",
-                    "conditx",
-                    "condity"
+                    "emodphase",
+                    [
+                        ["Horizontal", [
+                            "conditx"
+                        ]],
+                        ["Vertical", [
+                            "condity"
+                        ]]
+                    ]
                 ]]
             ]
         },
@@ -1199,6 +1161,7 @@
             "advanced": [],
             "basic": [
                 ["Quadrupoles", [
+                    "io.maginfile",
                     [
                         ["Focus", [
                             "quadf",
@@ -1212,12 +1175,12 @@
                     "drl",
                     "f1st"
                 ]],
-                ["Displacement", [
+                ["Misalignment", [
                     [
                         ["Horizontal", [
                             "qfdx"
                         ]],
-                        ["Vertial", [
+                        ["Vertical", [
                             "qfdy"
                         ]]
                     ]
@@ -1237,66 +1200,18 @@
                     "ndcut",
                     "ffspec"
                 ]],
-                ["Output Frequency", [
-                    "iphsty",
-                    "ishsty",
-                    "ippart",
-                    "ispart",
-                    "ipradi",
-                    "isradi",
-                    "idump",
-                    "idmpfld",
-                    "idmppar"
-                ]],
                 ["Field", [
+                    "fieldfile",
                     "alignradf",
                     "offsetradf"
                 ]],
                 ["Particles", [
+                    "partfile",
                     "convharm",
                     "multconv",
                     "ibfield",
                     "imagl",
                     "idril"
-                ]],
-                ["Transport Matrix", [
-                    "trama",
-                    "itram11",
-                    "itram12",
-                    "itram13",
-                    "itram14",
-                    "itram15",
-                    "itram16",
-                    "itram21",
-                    "itram22",
-                    "itram23",
-                    "itram24",
-                    "itram25",
-                    "itram26",
-                    "itram31",
-                    "itram32",
-                    "itram33",
-                    "itram34",
-                    "itram35",
-                    "itram36",
-                    "itram41",
-                    "itram42",
-                    "itram43",
-                    "itram44",
-                    "itram45",
-                    "itram46",
-                    "itram51",
-                    "itram52",
-                    "itram53",
-                    "itram54",
-                    "itram55",
-                    "itram56",
-                    "itram61",
-                    "itram62",
-                    "itram63",
-                    "itram64",
-                    "itram65",
-                    "itram66"
                 ]]
             ]
         },
@@ -1351,14 +1266,15 @@
             "basic": [
                 ["Main", [
                     "nbins",
+                    "io.distfile",
                     "itgaus",
                     "igamgaus",
                     "inverfc",
-                    "iall",
                     "ipseed"
                 ]],
                 ["Hammersley Sequence", [
                     "ildpsi",
+                    "iall",
                     "ildgam",
                     [
                         ["Horizontal", [
@@ -1405,12 +1321,17 @@
             "title": "Simulation Control",
             "advanced": [],
             "basic": [
-                "delz",
-                "zstop",
-                "iorb",
-                "isravg",
-                "isrsig",
-                "version"
+                ["Main", [
+                    "delz",
+                    "zstop",
+                    "iorb",
+                    "isravg",
+                    "isrsig"
+                ]],
+                ["Output Frequency", [
+                    "io.ippart",
+                    "io.ipradi"
+                ]]
             ]
         },
         "simulationStatus": {

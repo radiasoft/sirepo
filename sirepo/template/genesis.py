@@ -16,6 +16,9 @@ import sirepo.sim_data
 import sirepo.simulation_db
 
 
+# http://genesis.web.psi.ch/Manual/parameter.html
+# In the docs the param is ITGAMGAUS. The code expect IGAMGAUS
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
@@ -52,7 +55,6 @@ _LATTICE_DATA_FILENAME = 'lattice.npy'
 
 _LATTICE_RE = re.compile(r'^.+power[\s\w]+\n(.*)', flags=re.DOTALL)
 
-# POSIT: Same name as outputfile in schema
 _OUTPUT_FILENAME = 'genesis.out'
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + '.fld'
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + '.par'
@@ -81,14 +83,23 @@ def background_percent_complete(report, run_dir, is_running):
             percentComplete=100,
             state=sirepo.job.ERROR,
         )
+    c = _get_frame_counts(run_dir)
     return PKDict(
         percentComplete=100,
-        frameCount=_get_field_distribution(
-            sirepo.simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME),
-            ),
-        ).shape[0],
+        frameCount=1,
+        particleFrameCount=c.particle,
+        fieldFrameCount=c.field,
     )
+
+
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if model == 'particleAnimation':
+        return _PARTICLE_OUTPUT_FILENAME
+    if model == 'fieldDistributionAnimation':
+        return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
+    if model == 'parameterAnimation':
+        return _OUTPUT_FILENAME
+    raise AssertionError('unknown model={}'.format(model))
 
 
 def post_execution_processing(run_dir=None, **kwargs):
@@ -106,7 +117,7 @@ def sim_frame_fieldDistributionAnimation(frame_args):
     d = np.abs(r[int(frame_args.frameIndex), 0, :, :])
     s = d.shape[0]
     return PKDict(
-        title=_z_title_at_frame(frame_args),
+        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
         x_label='',
         x_range=[0, s, s],
         y_label='',
@@ -166,7 +177,7 @@ def sim_frame_particleAnimation(frame_args):
         ],
         frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
         PKDict(
-            title=_z_title_at_frame(frame_args),
+            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
             x_label=x[1],
             y_label=y[1],
         ),
@@ -181,26 +192,35 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
-    """
-    http://genesis.web.psi.ch/Manual/parameter.html
-    - In the docs the param is ITGAMGAUS. The code expect IGAMGAUS
-
-    Some defaults in genesis-schema.json are not set to the default value defined in the docs.
-    - IPPART: Default in schema is 1 because we need the file to do plotting. Docs default is 0.
-    - IPPRADI: Default in schema is 1 because we need the file to do plotting. Docs default is 0.
-    """
+    # TODO(pjm): only support time independent simulations for now
+    data.models.timeDependence.itdp = 0
+    io = data.models.io
+    io.outputfile = _OUTPUT_FILENAME
+    io.iphsty = 1
+    io.ishsty = 1
     r= ''
+    fmap = PKDict(
+        wcoefz1='WCOEFZ(1)',
+        wcoefz2='WCOEFZ(2)',
+        wcoefz3='WCOEFZ(3)',
+    )
     for m in _INPUT_VARIABLE_MODELS:
         for f, v in data.models[m].items():
+            if f not in SCHEMA.model[m]:
+                continue
             s = SCHEMA.model[m][f]
+            if v == s[2] or str(v) == s[2]:
+                continue
             if s[1] == 'String':
                 v = f"'{v}'"
             elif s[1] == 'InputFile':
                 if v:
-                    v = f"'{_SIM_DATA.lib_file_name_with_model_field('io', 'beamfile', v)}'"
+                    v = f"'{_SIM_DATA.lib_file_name_with_model_field('io', f, v)}'"
                 else:
                     continue
-            r += f'{s[0]} = {v}\n'
+            r += f'{fmap.get(f, f.upper())} = {v}\n'
+    if data.models.io.maginfile:
+        r += 'MAGIN = 1\n'
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(input_filename=_INPUT_FILENAME, variables=r),
@@ -214,8 +234,6 @@ def _genesis_success_exit(run_dir):
 
 
 def _get_field_distribution(data):
-    assert data.models.timeDependence.itdp == 0, \
-        'Only time independent simulations are currently supported'
     n = 1 # TODO(e-carlin): Will be different for time dependent
     p = data.models.mesh.ncar
     d = np.fromfile(_FIELD_DISTRIBUTION_OUTPUT_FILENAME, dtype=np.float64)
@@ -250,6 +268,22 @@ def _get_lattice_and_slice_data(run_dir):
     )
 
 
+def _get_frame_counts(run_dir):
+    res = PKDict(
+        particle=0,
+        field=0,
+    )
+    with pkio.open_text(run_dir.join(_OUTPUT_FILENAME)) as f:
+        for line in f:
+            m = re.match('^\s*(\d+) (\w+): records in z', line)
+            if m:
+                res[m.group(2)] = int(m.group(1))
+                if m.group(1) == 'field':
+                    break
+    return res
+
+
+
 def _parse_genesis_error(run_dir):
     return '\n'.join(
         [
@@ -259,7 +293,8 @@ def _parse_genesis_error(run_dir):
     )
 
 
-def _z_title_at_frame(frame_args):
+def _z_title_at_frame(frame_args, nth):
     _, s = _get_lattice_and_slice_data(frame_args.run_dir)
-    z = s[:, 0][frame_args.frameIndex]
-    return f'z: {z:.6f} [m] step: {frame_args.frameIndex + 1}'
+    step = frame_args.frameIndex * nth
+    z = s[:, 0][step]
+    return f'z: {z:.6f} [m] step: {step + 1}'
