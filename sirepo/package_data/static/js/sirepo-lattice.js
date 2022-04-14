@@ -2435,7 +2435,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 </tr>
                 <tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">
                   <td style="padding-left: 1em">
-                    <div data-ng-attr-class="badge sr-badge-icon {{ element.isMarked ? 'sr-search-target' : ''}}"
+                    <div data-ng-attr-class="badge sr-badge-icon {{ element.isMarked ? 'sr-search-target' : ''}}">
                       <span data-ng-drag="true" data-ng-drag-data="element">
                         <span> {{ element.name }} </span>
                       </span>
