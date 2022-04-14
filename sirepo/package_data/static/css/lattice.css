@@ -123,3 +123,9 @@ div.sr-lattice-icon-disabled span {
   padding: 0.5em;
   z-index: 1000;
 }
+
+.sr-search-target {
+  background-color: yellow;
+  color: black;
+  border: solid 1px lightgray;
+}

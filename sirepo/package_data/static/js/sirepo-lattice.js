@@ -2388,10 +2388,6 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                   <div class="panel panel-info" style="margin-bottom: 10px">
                     <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
                     <div class="panel-body">
-                      <div style="z-index:1001; margin-top: 4px" class="pull-right sr-sticky-heading">
-                        <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
-                        <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
-                      </div>
                       <div data-lattice-element-table=""></div>
                     </div>
                   </div>
@@ -2411,8 +2407,12 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
         scope: {},
         template: `
             <div class="sr-sticky-heading">
-                <button data-ng-click="expandCollapseElems()" class="btn btn-info btn-xs">{{ collapseButtonText }}</button>
+                <button style="min-width: 7em" data-ng-click="toggleCollapseElems()" class="btn btn-info btn-xs">{{ areAllExpanded ? 'Collapse' : 'Expand'}} All</button>
                 <input style="display: inline; width: 15em" class="form-control input-sm" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="Search Elements" />
+                <div class="pull-right" style="padding-top: 4px">
+                  <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
+                  <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                </div>
             </div>
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
@@ -2435,12 +2435,9 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 </tr>
                 <tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">
                   <td style="padding-left: 1em">
-                    <div class="badge sr-badge-icon">
+                    <div data-ng-attr-class="badge sr-badge-icon {{ element.isMarked ? 'sr-search-target' : ''}}"
                       <span data-ng-drag="true" data-ng-drag-data="element">
-                        <mark id="searchTarget" data-ng-if="element.isMarked">
-                            {{ element.name }}
-                        </mark>
-                        <span data-ng-if="!element.isMarked"> {{ element.name }} </span>
+                        <span> {{ element.name }} </span>
                       </span>
                     </div>
                   </td>
@@ -2457,18 +2454,18 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
             var collapsedElements = {};
             var descriptionCache = {};
 
-            function getCollapseButtonText() {
+            function areAllExpanded() {
                 if (appState.models.treeMap) {
                     for (const k in appState.models.treeMap){
                         if (appState.models.treeMap[k]){
-                            return 'Expand All';
+                            return false;
                         }
                     }
                 }
-                return 'Collapse All';
+                return true;
             }
 
-            $scope.collapseButtonText = getCollapseButtonText();
+            $scope.areAllExpanded = areAllExpanded();
 
             function computeBend(element) {
                 var angle = element.angle;
@@ -2530,7 +2527,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
             function scrollToElem(found) {
                 if (found){
                     panelState.waitForUI(() => {
-                        $('#searchTarget')[0].scrollIntoView({block: 'center'});
+                        $('.sr-search-target')[0].scrollIntoView({block: 'center'});
                     });
                 }
             }
@@ -2574,22 +2571,6 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 return latticeService.editElement(type, el);
             };
 
-            $scope.expandCollapseElems = () => {
-                if ($scope.collapseButtonText == 'Expand All') {
-                    $scope.collapseButtonText = 'Collapse All';
-                    $scope.tree.forEach((e) => {
-                        e.isCollapsed = false;
-                    });
-                } else {
-                    $scope.collapseButtonText = 'Expand All';
-                    $scope.tree.forEach((e) => {
-                        e.isCollapsed = true;
-                    });
-                }
-                appState.models.treeMap = getCollapsedMap();
-                appState.saveChanges('treeMap');
-            };
-
             $scope.copyElement = el => latticeService.copyElement(el);
 
             $scope.elementLength = function(element) {
@@ -2618,8 +2599,9 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                         $scope.tree[i].isCollapsed = true;
                     }
                 });
+                $scope.areAllExpanded = false;
                 appState.models.treeMap = getCollapsedMap();
-                appState.saveChanges('treeMap');
+                appState.saveQuietly('treeMap');
                 scrollToElem(found);
             };
 
@@ -2627,7 +2609,16 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 category.isCollapsed = ! category.isCollapsed;
                 collapsedElements[category.name] = category.isCollapsed;
                 appState.models.treeMap = getCollapsedMap();
-                appState.saveChanges('treeMap');
+                appState.saveQuietly('treeMap');
+            };
+
+            $scope.toggleCollapseElems = () => {
+                $scope.areAllExpanded = ! $scope.areAllExpanded;
+                $scope.tree.forEach(e => {
+                    e.isCollapsed = ! $scope.areAllExpanded;
+                });
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveQuietly('treeMap');
             };
 
             $scope.$on('modelChanged', function(e, name) {
