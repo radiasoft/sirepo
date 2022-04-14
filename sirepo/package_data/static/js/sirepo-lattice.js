@@ -2458,16 +2458,14 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
             var descriptionCache = {};
 
             function getCollapseButtonText() {
-                let foundCollapsed = false;
-                if (appState.models.tree && appState.models.tree.length) {
-                    appState.models.tree.forEach((e) => {
-                        if (e.isCollapsed) {
-                            foundCollapsed = true;
-                            return;
+                if (appState.models.treeMap) {
+                    for (const k in appState.models.treeMap){
+                        if (appState.models.treeMap[k]){
+                            return 'Expand All';
                         }
-                    });
+                    }
                 }
-                return foundCollapsed ? 'Expand All': 'Collapse All';
+                return 'Collapse All';
             }
 
             $scope.collapseButtonText = getCollapseButtonText();
@@ -2521,31 +2519,50 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 return res;
             }
 
+            function getCollapsedMap(){
+                const m = {};
+                $scope.tree.forEach((e) => {
+                    m[e.name] = e.isCollapsed;
+                });
+                return m;
+            }
+
+            function scrollToElem(found) {
+                if (found){
+                    panelState.waitForUI(() => {
+                        $('#searchTarget')[0].scrollIntoView({block: 'center'});
+                    });
+                }
+            }
+
+            function getIsCollapsed(elType) {
+                if (appState.models.treeMap){
+                    return appState.models.treeMap[elType];
+                }
+                return false;
+            }
+
             function loadTree() {
                 $scope.tree = [];
                 descriptionCache = {};
                 var category = null;
-                if (!appState.models.tree || !appState.models.tree.length){
-                    appState.applicationState().elements.forEach(function(element) {
-                        if (! category || category.name != element.type) {
-                            category = {
-                                name: element.type,
-                                elements: [],
-                                isCollapsed: false
-                            };
-                            $scope.tree.push(category);
-                        }
-                        var clonedElement = appState.clone(element);
-                        computeBend(clonedElement);
-                        clonedElement.description = elementDescription(clonedElement);
-                        clonedElement.isMarked = false;
-                        category.elements.push(clonedElement);
-                    });
-                    appState.models.tree = $scope.tree;
-                    appState.saveQuietly('tree');
-                } else {
-                    $scope.tree = appState.models.tree;
-                }
+                appState.applicationState().elements.forEach(function(element) {
+                    if (! category || category.name != element.type) {
+                        category = {
+                            name: element.type,
+                            elements: [],
+                            isCollapsed: getIsCollapsed(element.type),
+                        };
+                        $scope.tree.push(category);
+                    }
+                    var clonedElement = appState.clone(element);
+                    computeBend(clonedElement);
+                    clonedElement.description = elementDescription(clonedElement);
+                    clonedElement.isMarked = false;
+                    category.elements.push(clonedElement);
+                });
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveQuietly('treeMap');
             }
 
             $scope.deleteElement = function(element) {
@@ -2569,8 +2586,8 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                         e.isCollapsed = true;
                     });
                 }
-                appState.models.tree = $scope.tree;
-                appState.saveChanges('tree');
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveChanges('treeMap');
             };
 
             $scope.copyElement = el => latticeService.copyElement(el);
@@ -2584,31 +2601,33 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                     return;
                 }
                 let found = false;
+                let foundIndex = null;
                 $scope.tree.forEach((t, i) => {
                     t.elements.forEach((e, j) => {
-                        if (e.name.toLowerCase() == el.toLowerCase()){
-                            $scope.tree[i].isCollapsed = false;
+                        if (e.name.toLowerCase().startsWith(el.toLowerCase()) && el.length > 1){
+                            foundIndex = i;
                             $scope.tree[i].elements[j].isMarked = true;
                             found = true;
-                            return;
                         } else {
                             $scope.tree[i].elements[j].isMarked = false;
                         }
                     });
+                    if (i == foundIndex){
+                        $scope.tree[i].isCollapsed = false;
+                    } else {
+                        $scope.tree[i].isCollapsed = true;
+                    }
                 });
-                appState.models.tree = $scope.tree;
-                appState.saveChanges('tree');
-                if (found){
-                    panelState.waitForUI(() => {
-                        $('#searchTarget')[0].scrollIntoView({block: 'center'});
-                    });
-                }
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveChanges('treeMap');
+                scrollToElem(found);
             };
 
             $scope.toggleCategory = function(category) {
                 category.isCollapsed = ! category.isCollapsed;
                 collapsedElements[category.name] = category.isCollapsed;
-                appState.saveChanges('tree');
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveChanges('treeMap');
             };
 
             $scope.$on('modelChanged', function(e, name) {
