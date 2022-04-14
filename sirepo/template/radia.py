@@ -534,7 +534,7 @@ def _electron_trajectory_plot(sim_id, **kwargs):
         plots,
         PKDict(),
         PKDict(
-            title='',
+            title=f'{d.energy} GeV',
             y_label='Position [m]',
             x_label=f'{d.beam_axis} [m]',
             summaryData=PKDict(),
@@ -553,7 +553,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
         plots.append(
             PKDict(
                 points=(m * f[:, i]).tolist(),
-                label=f'{f_type}_{c} [{radia_util.FIELD_UNITS[f_type]}]',
+                label=f'{f_type}_{c}',
                 style='line'
             )
         )
@@ -563,7 +563,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis):
         PKDict(),
         PKDict(
             title=f'{f_type} on {f_path.name}',
-            y_label=f_type,
+            y_label=f'{f_type} [{radia_util.FIELD_UNITS[f_type]}]',
             x_label=f'{plot_axis} [m]',
             summaryData=PKDict(),
         ),
