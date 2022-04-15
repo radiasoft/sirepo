@@ -6,6 +6,7 @@ u"""OPAL execution template.
 """
 from __future__ import absolute_import, division, print_function
 import ast
+import enum
 import astunparse
 from pykern import pkcompat
 from pykern import pkio
@@ -222,6 +223,42 @@ class OpalMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP)
 
     def to_madx(self, data):
+
+        def _get_len_by_id(data, id):
+            for e in data.models.elements:
+                if e._id == id:
+                    pkdp('\n\n\n Target e: {}', e)
+                    return e.l
+
+        def _get_element_type(data, id):
+            for e in data.models.elements:
+                if e._id == id:
+                    # pkdp('\n\n\n Target e: {}', e)
+                    return e.type
+
+        if data.models.simulation.elementPosition == 'absolute':
+            for j, b in enumerate(data.models.beamlines):
+                for i, e in enumerate(b['items']):
+                    if i + 1 == len(b['items']):
+                        break
+                    if _get_element_type(data, e) == 'DRIFT':
+                        continue
+                    p = b.positions[i].elemedge
+                    n = b.positions[i + 1].elemedge
+                    l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                    d = float(n) - float(p) - l[0]
+                    if d > 0:
+                        new_elem_id = LatticeUtil.max_id(data) + 1
+                        new_drift = PKDict(
+                            _id=new_elem_id,
+                            l=d,
+                            name='D'+str(new_elem_id),
+                            type='DRIFT',
+                        )
+                        data.models.elements.append(new_drift)
+                        data.models.beamlines[j]['items'].insert(i + 1, new_drift._id)
+                        data.models.beamlines[j]['positions'].insert(i + 1, PKDict(elemedge=str(float(p) + l[0])))
+
         madx = super().to_madx(data)
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
@@ -247,7 +284,7 @@ class OpalMadxConverter(MadxConverter):
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
-
+        pkdp('\n\n\n ---------------------- \n\n\n Element_in: {}, element_out: {}', element_in, element_out)
         if self.from_class.sim_type()  == SIM_TYPE:
             pass
         else:
