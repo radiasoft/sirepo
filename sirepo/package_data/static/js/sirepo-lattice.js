@@ -2609,7 +2609,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 category.isCollapsed = ! category.isCollapsed;
                 collapsedElements[category.name] = category.isCollapsed;
                 appState.models.treeMap = getCollapsedMap();
-                appState.saveQuietly('treeMap');
+                appState.saveChanges('treeMap');
             };
 
             $scope.toggleCollapseElems = () => {
@@ -2618,7 +2618,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                     e.isCollapsed = ! $scope.areAllExpanded;
                 });
                 appState.models.treeMap = getCollapsedMap();
-                appState.saveQuietly('treeMap');
+                appState.saveChanges('treeMap');
             };
 
             $scope.$on('modelChanged', function(e, name) {
