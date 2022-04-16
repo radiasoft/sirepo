@@ -242,7 +242,7 @@
         },
         "fieldDistributionAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""]
         },
@@ -690,8 +690,8 @@
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""],
-            "x": ["Horizontal Value to Plot", "ParticleColumn", "psi"],
-            "y": ["Vertical Value to Plot", "ParticleColumn", "gamma"]
+            "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
+            "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
         "particleLoading": {
             "iall": [
@@ -1089,7 +1089,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "importText": "Import a Genesis 1.3 input (.in) file"
     },
     "view": {
         "electronBeam": {

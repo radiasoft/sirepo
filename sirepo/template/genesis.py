@@ -4,7 +4,7 @@ u"""Genesis execution template.
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
@@ -100,6 +100,16 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model == 'parameterAnimation':
         return _OUTPUT_FILENAME
     raise AssertionError('unknown model={}'.format(model))
+
+
+def import_file(req, **kwargs):
+    text = pkcompat.from_bytes(req.file_stream.read())
+    if not bool(re.search(r'\.in$', req.filename, re.IGNORECASE)):
+        raise AssertionError('invalid file extension, expecting .in')
+    res = sirepo.simulation_db.default_data(SIM_TYPE)
+    p = pkio.py_path(req.filename)
+    res.models.simulation.name = p.purebasename
+    return _parse_namelist(res, text)
 
 
 def post_execution_processing(run_dir=None, **kwargs):
@@ -291,6 +301,51 @@ def _parse_genesis_error(run_dir):
             _RUN_ERROR_RE.finditer(pkio.read_text(run_dir.join(template_common.RUN_LOG)))
         ],
     )
+
+def _parse_namelist(data, text):
+    dm = data.models
+    nls = template_common.NamelistParser().parse_text(text)
+    if 'newrun' not in nls:
+        raise AssertionError('Missing "newrun" namelist')
+    nl = nls['newrun']
+
+    if 'wcoefz' in nl:
+        nl['wcoefz1'] = nl['wcoefz'][0]
+        nl['wcoefz2'] = nl['wcoefz'][1]
+        nl['wcoefz3'] = nl['wcoefz'][2]
+
+    for m in SCHEMA.model:
+        for f in SCHEMA.model[m]:
+            if f not in nl:
+                continue
+            v = nl[f]
+            if isinstance(v, list):
+                v = v[-1]
+            t = SCHEMA.model[m][f][1]
+            d = dm[m]
+            if t == 'Float':
+                d[f] = float(v)
+            elif t == 'Integer':
+                d[f] = int(v)
+            elif t == 'Boolean':
+                d[f] = '1' if int(v) else '0'
+            elif t == 'ItGaus':
+                d[f] = '1' if int(v) == 1 else '2' if int(v) == 2 else '3'
+            elif t == 'Lbc':
+                d[f] = '0' if int(v) == 0 else '1'
+            elif t == 'Iertyp':
+                v = int(v)
+                if v < -2 or v > 2:
+                    v = 0
+                d[f] = str(v)
+            elif t == 'Iwityp':
+                d[f] = '0' if int(v) == 0 else '1'
+            elif t == 'TaperModel':
+                d[f] = '1' if int(v) == 1 else '2' if int(v) == 2 else '0'
+    #TODO(pjm): remove this if scanning or time dependence is implemented in the UI
+    dm.scan.iscan = '0'
+    dm.timeDependence.itdp = '0'
+    return data
 
 
 def _z_title_at_frame(frame_args, nth):

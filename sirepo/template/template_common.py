@@ -10,6 +10,7 @@ from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
+import f90nml
 import math
 import numpy
 import os
@@ -119,6 +120,14 @@ class ModelUnits():
                     self.unit_def[name][field],
                     is_native)
         return model
+
+
+class NamelistParser():
+    def parse_text(self, text):
+        text = str(text.encode('ascii', 'ignore'), 'UTF-8')
+        parser = f90nml.Parser()
+        parser.global_start_index = 1
+        return parser.reads(text)
 
 
 class NoH5PathError(KeyError):

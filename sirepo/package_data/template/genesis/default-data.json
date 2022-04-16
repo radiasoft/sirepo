@@ -1,11 +1,5 @@
 {
     "models": {
-        "fieldDistributionAnimation": {
-            "aspectRatio": "1",
-            "colorMap": "viridis",
-            "framesPerSecond": "2",
-            "notes": ""
-        },
         "io": {
             "iotail": 1,
             "ippart": 1,
@@ -14,22 +8,6 @@
         "mesh": {
             "nscr": 0,
             "nscz": 0
-        },
-        "parameterAnimation": {
-            "notes": "",
-            "y": "power",
-            "y1": "xrms",
-            "y2": "yrms",
-            "y3": "none"
-        },
-        "particleAnimation": {
-            "aspectRatio": "1",
-            "colorMap": "viridis",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "notes": "",
-            "x": "x",
-            "y": "pxmc"
         },
         "simFolder": {},
         "simulation": {

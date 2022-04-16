@@ -47,6 +47,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
+            <div data-import-dialog="" data-title="Import Genesis 1.3 File" data-description="Select an Genesis 1.3 (.in) or Sirepo Export (.zip)" data-file-formats=".in,.zip"></div>
         `,
     };
 });
@@ -67,6 +68,11 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                   <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
                 </div>
               </app-header-right-sim-loaded>
+              <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
+              </app-header-right-sim-list>
             </div>
         `,
     };
