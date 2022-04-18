@@ -254,7 +254,8 @@ class OpalMadxConverter(MadxConverter):
                 name=m,
                 type='DRIFT',
             )
-            data.models.elements.append(new_drift)
+            if not d:
+                data.models.elements.append(new_drift)
             data.models.beamlines[beam_idx]['items'].insert(items_idx + 1, new_drift._id)
             data.models.beamlines[beam_idx]['positions'].insert(
                 items_idx + 1,
