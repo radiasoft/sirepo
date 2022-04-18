@@ -2150,12 +2150,13 @@
         "undulator": {
             "title": "Idealized Undulator",
             "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
-            "basic": [],
-            "advanced": [
+            "basic": [
                 "period",
                 "length",
+                "effectiveDeflectingParameter"
+            ],
+            "advanced": [
                 "longitudinalPosition",
-                "effectiveDeflectingParameter",
                 [
                     ["Horizontal", [
                         "horizontalAmplitude",

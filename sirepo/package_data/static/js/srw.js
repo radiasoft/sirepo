@@ -1536,13 +1536,12 @@ SIREPO.viewLogic('trajectoryReportView', function(appState, panelState, srwServi
 });
 
 SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $scope) {
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
-
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
+    if ($scope.fieldDef == 'basic') {
+        return;
+    }
     $scope.watchFields = [
         [
             'undulator.horizontalDeflectingParameter',
@@ -2325,7 +2324,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
         restrict: 'A',
         template: `
             <div class="col-xs-5" style="white-space: nowrap">
-              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select> 
+              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
               <a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>
             </div>
             <div class="col-sm-12">
