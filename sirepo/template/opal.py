@@ -236,29 +236,37 @@ class OpalMadxConverter(MadxConverter):
                     # pkdp('\n\n\n Target e: {}', e)
                     return e.type
 
-        if data.models.simulation.elementPosition == 'absolute':
-            for j, b in enumerate(data.models.beamlines):
-                for i, e in enumerate(b['items']):
-                    if i + 1 == len(b['items']):
+        def _insert_drift(distance, beam_idx, items_idx, pos, length):
+            new_elem_id = LatticeUtil.max_id(data) + 1
+            new_drift = PKDict(
+                _id=new_elem_id,
+                l=distance,
+                name='D'+str(new_elem_id),
+                type='DRIFT',
+            )
+            data.models.elements.append(new_drift)
+            data.models.beamlines[beam_idx]['items'].insert(items_idx + 1, new_drift._id)
+            data.models.beamlines[beam_idx]['positions'].insert(
+                items_idx + 1,
+                PKDict(elemedge=str(float(pos) + length[0]))
+            )
+
+        def _get_distance_and_insert_drift(beamline, beam_idx):
+            for i, e in enumerate(beamline['items']):
+                    if i + 1 == len(beamline['items']):
                         break
                     if _get_element_type(data, e) == 'DRIFT':
                         continue
-                    p = b.positions[i].elemedge
-                    n = b.positions[i + 1].elemedge
+                    p = beamline.positions[i].elemedge
+                    n = beamline.positions[i + 1].elemedge
                     l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
                     d = float(n) - float(p) - l[0]
                     if d > 0:
-                        new_elem_id = LatticeUtil.max_id(data) + 1
-                        new_drift = PKDict(
-                            _id=new_elem_id,
-                            l=d,
-                            name='D'+str(new_elem_id),
-                            type='DRIFT',
-                        )
-                        data.models.elements.append(new_drift)
-                        data.models.beamlines[j]['items'].insert(i + 1, new_drift._id)
-                        data.models.beamlines[j]['positions'].insert(i + 1, PKDict(elemedge=str(float(p) + l[0])))
+                        _insert_drift(d, beam_idx, i, p, l)
 
+        if data.models.simulation.elementPosition == 'absolute':
+            for j, b in enumerate(data.models.beamlines):
+                _get_distance_and_insert_drift(b, j)
         madx = super().to_madx(data)
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
