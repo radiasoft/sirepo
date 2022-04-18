@@ -19,6 +19,7 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
+from sirepo.template.madx_parser import MadXParser
 import h5py
 import math
 import numpy as np
@@ -227,21 +228,30 @@ class OpalMadxConverter(MadxConverter):
         def _get_len_by_id(data, id):
             for e in data.models.elements:
                 if e._id == id:
-                    pkdp('\n\n\n Target e: {}', e)
                     return e.l
 
         def _get_element_type(data, id):
             for e in data.models.elements:
                 if e._id == id:
-                    # pkdp('\n\n\n Target e: {}', e)
                     return e.type
 
+        def _get_drift(data, distance):
+            for e in data.models.elements:
+                if e.l == distance:
+                    return e
+            return False
+
         def _insert_drift(distance, beam_idx, items_idx, pos, length):
-            new_elem_id = LatticeUtil.max_id(data) + 1
+            d = _get_drift(data, distance)
+            n = LatticeUtil.max_id(data) + 1
+            m = 'D'+str(n)
+            if d:
+                n = d._id
+                m = d.name
             new_drift = PKDict(
-                _id=new_elem_id,
+                _id=n,
                 l=distance,
-                name='D'+str(new_elem_id),
+                name=m,
                 type='DRIFT',
             )
             data.models.elements.append(new_drift)
@@ -292,7 +302,6 @@ class OpalMadxConverter(MadxConverter):
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
-        pkdp('\n\n\n ---------------------- \n\n\n Element_in: {}, element_out: {}', element_in, element_out)
         if self.from_class.sim_type()  == SIM_TYPE:
             pass
         else:
