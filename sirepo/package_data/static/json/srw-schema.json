@@ -2151,6 +2151,11 @@
             "title": "Idealized Undulator",
             "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
             "basic": [
+                "period",
+                "length",
+                "effectiveDeflectingParameter"
+            ],
+            "advanced": [
                 "longitudinalPosition",
                 [
                     ["Horizontal", [
@@ -2166,11 +2171,6 @@
                         "verticalSymmetry"
                     ]]
                 ]
-            ],
-            "advanced": [
-                "period",
-                "length",
-                "effectiveDeflectingParameter"
             ]
         },
         "watch": {
