@@ -71,6 +71,17 @@ def test_import_opal_export_madx(import_req):
         actual=actual,
     )
 
+def test_import_opal_export_madx02(import_req):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import opal
+    from sirepo.template.opal import OpalMadxConverter
+    data = opal.import_file(import_req(pkunit.data_dir().join('test4.in')))
+    actual = OpalMadxConverter().to_madx_text(data)
+    file_eq(
+        'test4.madx',
+        actual=actual,
+    )
+
 def test_import_opal_export_madx_pow(import_req):
     from pykern.pkunit import pkeq, file_eq
     from sirepo.template import opal

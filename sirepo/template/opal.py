@@ -235,14 +235,14 @@ class OpalMadxConverter(MadxConverter):
                 if e._id == id:
                     return e.type
 
-        def _get_drift(data, distance):
+        def _get_drift(distance):
             for e in data.models.elements:
-                if e.l == distance:
+                if e.l == distance and e.type == 'DRIFT':
                     return e
             return False
 
         def _insert_drift(distance, beam_idx, items_idx, pos, length):
-            d = _get_drift(data, distance)
+            d = _get_drift(distance)
             n = LatticeUtil.max_id(data) + 1
             m = 'D'+str(n)
             if d:
@@ -271,7 +271,7 @@ class OpalMadxConverter(MadxConverter):
                     p = beamline.positions[i].elemedge
                     n = beamline.positions[i + 1].elemedge
                     l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
-                    d = float(n) - float(p) - l[0]
+                    d = round(float(n) - float(p) - l[0], 10)
                     if d > 0:
                         _insert_drift(d, beam_idx, i, p, l)
 
