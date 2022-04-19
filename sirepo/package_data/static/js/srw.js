@@ -2512,7 +2512,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var self = this;
             self.simScope = $scope;
             self.simAnalysisModel = $scope.model;
-            $scope.runStepName = 'particle';
+            $scope.runStepName = 'macro-electrons';
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -2557,7 +2557,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     if (! isCoherentModes()) {
                         $scope.particleNumber = data.particleNumber;
                         $scope.runStepName = appState.models[$scope.model].wavefrontSource == 'cmd'
-                            ? 'mode' : 'particle';
+                            ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
                     if ($scope.simState.isStopped() && ! $scope.simState.isStateCanceled()) {
