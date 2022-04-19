@@ -6,7 +6,6 @@ u"""OPAL execution template.
 """
 from __future__ import absolute_import, division, print_function
 import ast
-import enum
 import astunparse
 from pykern import pkcompat
 from pykern import pkio
@@ -19,7 +18,6 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-from sirepo.template.madx_parser import MadXParser
 import h5py
 import math
 import numpy as np
