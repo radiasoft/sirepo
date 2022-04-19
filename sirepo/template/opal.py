@@ -227,11 +227,13 @@ class OpalMadxConverter(MadxConverter):
             for e in data.models.elements:
                 if e._id == id:
                     return e.l
+            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
 
         def _get_element_type(data, id):
             for e in data.models.elements:
                 if e._id == id:
                     return e.type
+            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
 
         def _get_drift(distance):
             for e in data.models.elements:
@@ -242,7 +244,7 @@ class OpalMadxConverter(MadxConverter):
         def _insert_drift(distance, beam_idx, items_idx, pos, length):
             d = _get_drift(distance)
             n = LatticeUtil.max_id(data) + 1
-            m = 'D'+str(n)
+            m = 'D' + str(n)
             if d:
                 n = d._id
                 m = d.name
