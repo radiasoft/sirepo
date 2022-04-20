@@ -658,6 +658,8 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
+        # giving this info to util so it knows to show message
+        # to help debug for: https://github.com/radiasoft/sirepo/issues/3727
         sirepo.util.is_server = True
     return _app
 
