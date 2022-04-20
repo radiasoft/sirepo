@@ -658,6 +658,7 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
+        sirepo.util.is_server = True
     return _app
 
 

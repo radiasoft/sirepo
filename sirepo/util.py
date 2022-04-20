@@ -29,6 +29,9 @@ import zipfile
 
 cfg = None
 
+#: Treat as read only. Only set by server.py
+is_server = False
+
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
@@ -270,7 +273,8 @@ def in_flask_request():
     if not f.request:
         if _log_not_request < 10:
             _log_not_request += 1
-            pkdlog('flask.request is False')
+            if is_server:
+                pkdlog('flask.request is False')
         return False
     return True
 
