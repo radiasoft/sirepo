@@ -60,38 +60,18 @@ def test_elegant_from_madx():
         actual=elegant.python_source_for_model(actual, None),
     )
 
+
 def test_import_opal_export_madx(import_req):
-    from pykern.pkunit import pkeq, file_eq
-    from sirepo.template import opal
-    from sirepo.template.opal import OpalMadxConverter
-    data = opal.import_file(import_req(pkunit.data_dir().join('test2.in')))
-    actual = OpalMadxConverter().to_madx_text(data)
-    file_eq(
-        'test2.madx',
-        actual=actual,
-    )
+    _opal_to_madx(import_req, 'test2')
+
 
 def test_import_opal_export_madx02(import_req):
-    from pykern.pkunit import pkeq, file_eq
-    from sirepo.template import opal
-    from sirepo.template.opal import OpalMadxConverter
-    data = opal.import_file(import_req(pkunit.data_dir().join('test4.in')))
-    actual = OpalMadxConverter().to_madx_text(data)
-    file_eq(
-        'test4.madx',
-        actual=actual,
-    )
+    _opal_to_madx(import_req, 'test4')
+
 
 def test_import_opal_export_madx_pow(import_req):
-    from pykern.pkunit import pkeq, file_eq
-    from sirepo.template import opal
-    from sirepo.template.opal import OpalMadxConverter
-    data = opal.import_file(import_req(pkunit.data_dir().join('test3.in')))
-    actual = OpalMadxConverter().to_madx_text(data)
-    file_eq(
-        'test3.madx',
-        actual=actual,
-    )
+    _opal_to_madx(import_req, 'test3')
+
 
 def _example_data(simulation_name):
     from sirepo import simulation_db
@@ -100,3 +80,15 @@ def _example_data(simulation_name):
         if data.models.simulation.name == simulation_name:
             return simulation_db.fixup_old_data(data)[0]
     raise AssertionError(f'failed to find example={simulation_name}')
+
+
+def _opal_to_madx(import_req, basename):
+    from pykern.pkunit import pkeq, file_eq
+    from sirepo.template import opal
+    from sirepo.template.opal import OpalMadxConverter
+    file_eq(
+        f'{basename}.madx',
+        actual=OpalMadxConverter().to_madx_text(
+            opal.import_file(import_req(pkunit.data_dir().join(f'{basename}.in')))
+        ),
+    )
