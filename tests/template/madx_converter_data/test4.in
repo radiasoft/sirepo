@@ -1,0 +1,38 @@
+
+Title, string="fodo 4";
+
+REAL sr_alpha_x = 0;
+REAL sr_alpha_y = 0;
+REAL sr_gamma = 1958.908474421938;
+REAL sr_beta = sqrt(1 - (1 / pow(sr_gamma, 2)));
+REAL sr_beta_x = 1.0;
+REAL sr_beta_y = 1.0;
+REAL sr_brho = 3.33897659310099;
+REAL sr_dp_s_coupling = 0;
+REAL sr_emit_x = 4.6e-08;
+REAL sr_emit_y = 4.6e-08;
+REAL sr_gamma_x = (1 + pow(sr_alpha_x, 2)) / sr_beta_x;
+REAL sr_gamma_y = (1 + pow(sr_alpha_y, 2)) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 5000.0;
+
+
+"OPT1": option,psdumpfreq=1000.0,version=20000.0;
+
+"Q3": QUADRUPOLE,l=0.3;
+"Q4": QUADRUPOLE,l=2.0;
+
+"Q3#0": "Q3",elemedge=0;
+"Q3#1": "Q3",elemedge=2.3;
+"Q4#0": "Q4",elemedge=3.6;
+"Q4#1": "Q4",elemedge=6.6;
+"Q3#2": "Q3",elemedge=9;
+"Q3#3": "Q3",elemedge=10.3;
+BL1: LINE=("Q3#0","Q3#1","Q4#0","Q4#1","Q3#2","Q3#3");
+
+
+"FI1": fieldsolver,fstype="NONE",mt=32.0,mx=16.0,my=16.0;
+"BE1": beam,bfreq=50.6328,npart=sr_n_particles_per_bunch,particle="ELECTRON",pc=1.0010000000000001;
+"DI1": distribution,corrx=-sr_alpha_x/sqrt(1 + pow(sr_alpha_x, 2)),corry=-sr_alpha_y/sqrt(1 + pow(sr_alpha_y, 2)),corrz=sr_dp_s_coupling,inputmounits="NONE",mx=0.1,nbin=5.0,sigmapx=sqrt(sr_emit_x * sr_gamma_x) * sr_beta * sr_gamma,sigmapy=sqrt(sr_emit_y * sr_gamma_y) * sr_beta * sr_gamma,sigmapz=0.001 * sr_beta * sr_gamma,sigmax=sqrt(sr_emit_x * sr_beta_x),sigmay=sqrt(sr_emit_y * sr_beta_y),sigmaz=0.00065,tfall=7.45e-12,tpulsefwhm=1.04e-11,trise=7.45e-12,type="GAUSS";
+"TR1": track,beam=BE1,line=BL1,maxsteps=10000.0,zstop=2.6;
+ run, beam=BE1,distribution=DI1,fieldsolver=FI1,method="PARALLEL-T";
+endtrack;
