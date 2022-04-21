@@ -748,9 +748,8 @@ class _SbatchRun(_SbatchCmd):
 cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
-if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
-fi
+# Inject libmpi ourselves. See: git.radiasoft.org/sirepo/issues/4356
+export LD_LIBRARY_PATH=/opt/cray/pe/mpt/7.7.19/gni/mpich-gnu-abi/8.2/lib:$LD_LIBRARY_PATH
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
 exec srun {m} {s} /bin/bash bash.stdin
