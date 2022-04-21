@@ -658,8 +658,7 @@ def init(uwsgi=None, use_reloader=False, is_server=False):
     uri_router.init(_app, simulation_db)
     if is_server:
         sirepo.db_upgrade.do_all()
-        # giving this info to util so it knows to show message
-        # to help debug for: https://github.com/radiasoft/sirepo/issues/3727
+        # Currently used for a special case in sirepo.util.in_flask_request. Do not use widely, because we should avoid server vs pkcli dependencies.
         sirepo.util.is_server = True
     return _app
 
