@@ -10,3 +10,11 @@ c.JupyterHub.ip = '127.0.0.1'
 c.JupyterHub.port = {{ jupyterhub_port }}
 c.Spawner.debug = {{ jupyterhub_debug }}
 c.Spawner.default_url = '/lab'
+with open('/home/vagrant/src/radiasoft/sirepo/run/jupyterhub/templates/page.html', 'w') as f:
+    f.write('''
+        {% extends "templates/page.html" %}
+        {% block message %} {{ super() }}
+        <p>Patience is a virtue.</p>
+        {% endblock %}
+    ''')
+c.JupyterHub.template_paths = ['page.html']
