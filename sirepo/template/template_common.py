@@ -391,10 +391,10 @@ def generate_parameters_file(data, is_run_mpi=False):
     return render_jinja(None, v, name='common-header.py'), v
 
 
-def get_exec_parameters_cmd(mpi=False):
+def get_exec_parameters_cmd(is_mpi=False):
     from sirepo import mpi as mpi_m
 
-    return mpi_m.get_cmd() if mpi else (sys.executable, PARAMETERS_PYTHON_FILE)
+    return mpi_m.get_cmd() if is_mpi else (sys.executable, PARAMETERS_PYTHON_FILE)
 
 
 def h5_to_dict(hf, path=None):
