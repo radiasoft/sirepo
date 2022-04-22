@@ -228,6 +228,9 @@ def api_wakeAgent():
             computeJobHash='unused',
             computeModel='unused',
             isParallel=True,
+            simulationId='DFQ68me0',
+            simulationType='unused',
+            jobRunMode='parallel'
         ),
     )
 
