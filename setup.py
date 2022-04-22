@@ -11,7 +11,7 @@ pykern.pksetup.setup(
     author_email='pip@sirepo.com',
     description='accelerator code gui',
     install_requires=[
-        'Flask>=1.1',
+        'Flask==2.0.3',
         'SQLAlchemy',
         'aenum',
         'asyncssh',
@@ -26,7 +26,7 @@ pykern.pksetup.setup(
         'tornado',
         'user-agents',
         'uwsgi',
-        'werkzeug',
+        'werkzeug==2.0.3',
 
         # Optional dependencies
         # required for email login and smtp
