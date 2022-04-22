@@ -29,6 +29,9 @@ import zipfile
 
 cfg = None
 
+#: This should be treated as read only and used sparingly. See discussion in sirepo.server.init
+is_server = False
+
 #: All types of errors async code may throw when canceled
 ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
@@ -270,7 +273,9 @@ def in_flask_request():
     if not f.request:
         if _log_not_request < 10:
             _log_not_request += 1
-            pkdlog('flask.request is False')
+            if is_server:
+                # This will help debug https://github.com/radiasoft/sirepo/issues/3727
+                pkdlog('flask.request is False')
         return False
     return True
 
