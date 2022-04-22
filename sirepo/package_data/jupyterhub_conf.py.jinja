@@ -17,4 +17,7 @@ c.Spawner.default_url = '/lab'
         <p>Patience is a virtue, for the weak</p>
         {% endblock %}
     ''') #}
-c.JupyterHub.template_paths = ['/home/vagrant/src/radiasoft/sirepo/etc/jupyterhub/templates/']
+c.JupyterHub.template_paths = [
+    {# '/home/vagrant/src/radiasoft/sirepo/etc/jupyterhub/custom_templates/page.html', #}
+    '/home/vagrant/src/radiasoft/sirepo/etc/jupyterhub/templates/',
+    ]
