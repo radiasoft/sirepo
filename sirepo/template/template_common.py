@@ -10,15 +10,10 @@ from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
-import f90nml
 import math
 import numpy
 import os
-import pykern.pkrunpy
 import re
-import sirepo.http_reply
-import sirepo.http_request
-import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -124,6 +119,7 @@ class ModelUnits():
 
 class NamelistParser():
     def parse_text(self, text):
+        import f90nml
         text = str(text.encode('ascii', 'ignore'), 'UTF-8')
         parser = f90nml.Parser()
         parser.global_start_index = 1
@@ -330,6 +326,7 @@ def enum_text(schema, name, value):
 
 
 def exec_parameters(path=None):
+    import pykern.pkrunpy
     return pykern.pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
 
 
@@ -579,19 +576,21 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
 
 
 def sim_frame(frame_id, op):
+    from sirepo import http_reply
+    from sirepo import http_request
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
-    sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
+    http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:
         pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
         raise sirepo.util.convert_exception(e, display_text='Report not generated')
-    r = sirepo.http_reply.gen_json(x)
+    r = http_reply.gen_json(x)
     if 'error' not in x and s.want_browser_frame_cache(s.frameReport):
         r.headers['Cache-Control'] = 'private, max-age=31536000'
     else:
-        sirepo.http_reply.headers_for_no_cache(r)
+        http_reply.headers_for_no_cache(r)
     return r
 
 
