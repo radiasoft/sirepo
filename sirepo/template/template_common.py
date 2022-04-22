@@ -10,15 +10,9 @@ from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
-import f90nml
 import math
-import numpy
 import os
-import pykern.pkrunpy
 import re
-import sirepo.http_reply
-import sirepo.http_request
-import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -124,6 +118,8 @@ class ModelUnits():
 
 class NamelistParser():
     def parse_text(self, text):
+        import f90nml
+
         text = str(text.encode('ascii', 'ignore'), 'UTF-8')
         parser = f90nml.Parser()
         parser.global_start_index = 1
@@ -302,6 +298,7 @@ def write_dict_to_h5(d, file_path, h5_path=None):
     h5_to_dict() performs the reverse process
     """
     import h5py
+
     if h5_path is None:
         h5_path = ''
     try:
@@ -330,13 +327,15 @@ def enum_text(schema, name, value):
 
 
 def exec_parameters(path=None):
-    return pykern.pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
+    from pykern import pkrunpy
+
+    return pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
 
 
 def exec_parameters_with_mpi():
-    import sirepo.mpi
+    from sirepo import mpi
 
-    return sirepo.mpi.run_script(pkio.read_text(PARAMETERS_PYTHON_FILE))
+    return mpi.run_script(pkio.read_text(PARAMETERS_PYTHON_FILE))
 
 
 def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
@@ -354,8 +353,6 @@ def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
         If white_list is empty: False if the file's extension matches any in
         black_list, otherwise True
     """
-    import os
-
     if os.path.isdir(file_path):
         return True
     if white_list:
@@ -387,6 +384,7 @@ def flatten_data(d, res, prefix=''):
 
 def generate_parameters_file(data, is_run_mpi=False):
     from sirepo import mpi
+
     v = flatten_data(data['models'], PKDict())
     v.notes = _get_notes(v)
     v.mpi = mpi.abort_on_signal_code() if is_run_mpi else ''
@@ -394,9 +392,9 @@ def generate_parameters_file(data, is_run_mpi=False):
 
 
 def get_exec_parameters_cmd(mpi=False):
-    import sirepo.mpi
-    return sirepo.mpi.get_cmd() if mpi \
-        else (sys.executable, PARAMETERS_PYTHON_FILE)
+    from sirepo import mpi as mpi_m
+
+    return mpi_m.get_cmd() if mpi else (sys.executable, PARAMETERS_PYTHON_FILE)
 
 
 def h5_to_dict(hf, path=None):
@@ -439,6 +437,8 @@ def h5_to_dict(hf, path=None):
 
 def heatmap(values, model, plot_fields=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
+    import numpy
+
     r = None
     if 'plotRangeType' in model:
         if model['plotRangeType'] == 'fixed':
@@ -579,19 +579,21 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
 
 
 def sim_frame(frame_id, op):
+    from sirepo import http_reply, http_request
+
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
-    sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
+    http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:
         pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
         raise sirepo.util.convert_exception(e, display_text='Report not generated')
-    r = sirepo.http_reply.gen_json(x)
+    r = http_reply.gen_json(x)
     if 'error' not in x and s.want_browser_frame_cache(s.frameReport):
         r.headers['Cache-Control'] = 'private, max-age=31536000'
     else:
-        sirepo.http_reply.headers_for_no_cache(r)
+        http_reply.headers_for_no_cache(r)
     return r
 
 
