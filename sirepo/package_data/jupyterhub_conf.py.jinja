@@ -10,6 +10,4 @@ c.JupyterHub.ip = '127.0.0.1'
 c.JupyterHub.port = {{ jupyterhub_port }}
 c.Spawner.debug = {{ jupyterhub_debug }}
 c.Spawner.default_url = '/lab'
-c.JupyterHub.template_paths = [
-    '/home/vagrant/src/radiasoft/sirepo/etc/jupyterhub/templates/',
-    ]
+c.JupyterHub.template_paths = [sirepo.jupyterhub.template_dirs()]
