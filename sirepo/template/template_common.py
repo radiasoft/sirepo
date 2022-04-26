@@ -392,7 +392,7 @@ def generate_parameters_file(data, is_run_mpi=False):
 
 
 def get_exec_parameters_cmd(is_mpi=False):
-    import mpi
+    from sirepo import mpi
 
     return mpi.get_cmd() if is_mpi else (sys.executable, PARAMETERS_PYTHON_FILE)
 
