@@ -282,6 +282,13 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
+    async def _op_wakeup(self, msg):
+        await self.send(
+            self.format_op(msg, job.OP_OK),
+        )
+        # TODO(rorour) why doesn't agent starting stuff show on server?
+        return None
+
     async def _cmd(self, msg, **kwargs):
         try:
             if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
@@ -341,7 +348,7 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
-        if msg.get('runDir'):
+        if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()

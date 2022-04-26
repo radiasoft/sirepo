@@ -216,22 +216,36 @@ def api_statelessCompute():
 @api_perm.require_user
 def api_wakeAgent():
     # TODO(rorour) api perm?
-    pkdp('in api_wakeAgent')
-    # r = _request_content(
-    #     PKDict(),
+    # TODO(rorour) should get simulation type?
+    sims = sorted(
+            simulation_db.iterate_simulation_datafiles(
+                'srw',
+                simulation_db.process_simulation_list,
+                False,
+            ),
+            key=lambda row: row['name'],
+        )
+
+    # TODO(rorour): use this instead. returns byte string instead of list?
+    # sims = sirepo.uri_router.call_api(
+    #     'listSimulations',
+    #     data=PKDict(simulationType='srw'),
     # )
-    pkdp('r is {}')
+    # pkdp('sims is {}', sims)
+
+    simulationId = sims[0].simulation.simulationId
+    # TODO(rorour) find out why error when commented out
     return _request(
-        _request_content=PKDict(
-            computeJid='KjbYhP8i',
-            uid='KjbYhP8i-DFQ68me0-sourceIntensityReport',
-            computeJobHash='unused',
-            computeModel='unused',
-            isParallel=True,
-            simulationId='DFQ68me0',
-            simulationType='unused',
-            jobRunMode='parallel'
-        ),
+        # _request_content=PKDict(
+        #     computeJid='aaa',
+        #     uid='bbb',
+        #     computeJobHash='ccc',
+        #     computeModel='ddd',
+        #     isParallel=True,
+        #     simulationId=simulationId,
+        #     simulationType='eee',
+        #     jobRunMode='sequential'
+        # ),
     )
 
 
@@ -259,7 +273,7 @@ def _request(**kwargs):
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or _supervisor_uri(sirepo.job.SERVER_URI)
     c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
-    pkdp('c is {}', c)
+    # pkdp('c is {}', c)
     c.pkupdate(
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,
