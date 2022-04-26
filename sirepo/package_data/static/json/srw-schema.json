@@ -14,7 +14,6 @@
         }
     },
     "constants": {
-        "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
         "rsOptDefaultOffsetInfo": {
             "position": ["Position [m]", "FloatStringArray", "0.0, 0.0, 0.0", "", "Horizontal, Vertical, Longitudinal"],
             "radius": ["Radius [m]", "FloatStringArray", "0.0", "", "Radius"],
