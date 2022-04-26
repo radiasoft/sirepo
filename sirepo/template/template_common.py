@@ -392,9 +392,9 @@ def generate_parameters_file(data, is_run_mpi=False):
 
 
 def get_exec_parameters_cmd(is_mpi=False):
-    from sirepo import mpi as mpi_m
+    import mpi
 
-    return mpi_m.get_cmd() if is_mpi else (sys.executable, PARAMETERS_PYTHON_FILE)
+    return mpi.get_cmd() if is_mpi else (sys.executable, PARAMETERS_PYTHON_FILE)
 
 
 def h5_to_dict(hf, path=None):
