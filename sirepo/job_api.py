@@ -234,8 +234,14 @@ def api_wakeAgent():
     # pkdp('sims is {}', sims)
 
     simulationId = sims[0].simulation.simulationId
+    sim = sims[0]
+    sim['simulationType'] = 'srw'
+    sim['report'] = 'intensityReport'
+    sim['computeJobHash'] = 'bbbbbb'
     # TODO(rorour) find out why error when commented out
     return _request(
+        wake=True,
+        sim=sim,
         # _request_content=PKDict(
         #     computeJid='aaa',
         #     uid='bbb',
@@ -272,8 +278,13 @@ def _request(**kwargs):
             )
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or _supervisor_uri(sirepo.job.SERVER_URI)
-    c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
-    # pkdp('c is {}', c)
+    if k.pkdel('wake'):
+        c = _request_content(
+            k.pkupdate(req_data=k.pkdel('sim'), simulationType='srw')
+        )
+    else:
+        c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
+    #TODO(rorour) c should be autofilled with simulation id
     c.pkupdate(
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,
@@ -313,7 +324,6 @@ def _request_content(kwargs):
             id=True,
             model=True,
             check_sim_exists=True,
-            type="srw"
         ).req_data
     s = sirepo.sim_data.get_class(d)
 ##TODO(robnagler) this should be req_data
