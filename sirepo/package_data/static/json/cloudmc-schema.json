@@ -1,0 +1,60 @@
+{
+    "enum": {
+        "GeometryInputMethod": [
+            ["none", "Select Input Method"],
+            ["dagmc", "DAGMC Geometry File"],
+            ["paramak", "Paramak Reactor"]
+        ],
+        "ParamakReactor": [
+            ["BallReactor", "Ball Reactor"],
+            ["FlfSystemCodeReactor", "FLF Reactor"],
+            ["SubmersionTokamak", "Submersion Tokamak"]
+        ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["cloudmc.js"]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/cloudmc-source.html"
+            }
+        }
+    },
+    "model": {
+        "geometryInput": {
+            "method": ["Geometry Input Method", "GeometryInputMethod", "none"],
+            "dagmcFile": ["DAGMC File", "InputFile", ""]
+        },
+        "paramak": {
+            "reactor": ["Paramak Reactor", "ParamakReactor", "BallReactor"],
+            "elongation": ["Elongation", "Float", 2.00]
+        }
+    },
+    "view": {
+        "paramakGeometry": {
+            "title": "Create Paramak Geometry",
+            "model": "simulation",
+            "advanced": []
+        },
+        "geometryInput": {
+            "title": "Geometry Input",
+            "basic": [
+                "method",
+                "dagmcFile"
+            ],
+            "advanced": []
+        },
+        "paramak": {
+            "title": "Paramak Settings",
+            "basic": [
+                "reactor",
+                "elongation"
+            ],
+            "advanced": []
+        }
+    }
+}

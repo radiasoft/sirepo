@@ -1,0 +1,24 @@
+# -*- python -*-
+import paramak
+
+{% if paramak_reactor == 'SubmersionTokamak' %}
+paramak.SubmersionTokamak(
+    elongation={{ paramak_elongation }},
+    triangularity=0.50,
+    pf_coil_case_thicknesses=[10, 10, 10, 10],
+    pf_coil_radial_thicknesses=[20, 50, 50, 20],
+    pf_coil_vertical_thicknesses=[20, 50, 50, 20],
+    pf_coil_radial_position=[500, 550, 550, 500],
+    pf_coil_vertical_position=[270, 100, -100, -270],
+    rear_blanket_to_tf_gap=50,
+    outboard_tf_coil_radial_thickness=30,
+    outboard_tf_coil_poloidal_thickness=30,
+    rotation_angle=90,
+).export_dagmc_h5m(
+    filename='{{ dagmcFile }}',
+    min_mesh_size=5,
+    max_mesh_size=20,
+)
+{% else %}
+raise AssertionError('Paramak geometry not yet supported: {{ paramak_reactor }}')
+{% endif %}

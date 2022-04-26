@@ -35,6 +35,7 @@ _NON_PROD_FOSS_CODES = frozenset((
     'genesis',
     'irad',
     'myapp',
+    'cloudmc',
     'rcscon',
     'rs4pi',
     'silas',

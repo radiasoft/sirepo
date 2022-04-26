@@ -1,0 +1,17 @@
+<div class="container-fluid">
+  <div data-panel-layout="">
+    <div class="row">
+      <div class="sr-panel-item">
+        <div  data-ng-if="! source.isGeometrySelected()" data-basic-editor-panel="" data-view-name="geometryInput"></div>
+      </div>
+      <div class="sr-panel-item">
+        <div data-ng-if="source.isParamak()" data-simple-panel="paramakGeometry">
+          <div data-sim-status-panel="source.simState"></div>
+        </div>
+      </div>
+      <div class="sr-panel-item">
+        <div data-basic-editor-panel="" data-ng-if="source.isParamak()" data-view-name="paramak"></div>
+      </div>
+    </div>
+  </div>
+</div>
