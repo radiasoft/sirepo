@@ -14,7 +14,6 @@ const SIREPO = {};
 </script>
 <script>
     const slackUri = SIREPO.authState.slackUri;
-    console.log('Link: ', slackUri);
     document.getElementById('sirepo-slack-link').href = slackUri;
 </script>
 {{ super() }}
