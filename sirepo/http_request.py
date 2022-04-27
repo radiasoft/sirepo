@@ -88,7 +88,6 @@ def parse_post(**kwargs):
     r = kwargs.pkdel('req_data')
     if r is None:
         r = parse_json()
-        # r['simulationId'] = 'JZZIbMSr'
     if kwargs.pkdel('fixup_old_data'):
         r = simulation_db.fixup_old_data(r)[0]
     res.pkupdate(req_data=r)
@@ -116,15 +115,14 @@ def parse_post(**kwargs):
         ('template', ('template',), lambda a: sirepo.template.import_module(res.type)),
     ):
         n, z, f = x
-        # n=id, z=('simulationId',), f=lambda
-        v = kwargs.pkdel(n)  # True
-        if v is None:  # False
+        v = kwargs.pkdel(n)
+        if v is None:
             continue
-        if isinstance(v, bool):  # True
-            if not v: # False
+        if isinstance(v, bool):
+            if not v:
                 continue
-            for k in z: # For 'simulationId'
-                if k in r: # If 'simlationId' in request (false)
+            for k in z:
+                if k in r:
                     v = r[k]
                     break
         else:

@@ -286,7 +286,7 @@ class _Dispatcher(PKDict):
         await self.send(
             self.format_op(msg, job.OP_OK),
         )
-        # TODO(rorour) why doesn't agent starting stuff show on server?
+        # TODO(rorour) agent starting should show on server
         return None
 
     async def _cmd(self, msg, **kwargs):

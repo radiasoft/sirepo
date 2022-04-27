@@ -217,7 +217,6 @@ class _ComputeJob(PKDict):
             j = req.content.computeJid
         except AttributeError:
             return cls
-        # pkdp('got jid, trying to set self')
         self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
         # SECURITY: must only return instances for authorized user
         assert req.content.uid == self.db.uid, \
@@ -313,12 +312,10 @@ class _ComputeJob(PKDict):
             req.content.computeJid = 'KjbYhP8i-DFQ68me0-sourceIntensityReport'
         else:
             pkdp('request had uid & computejid')
-        # pkdp('req.content is {}', req.content)
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
         try:
             o = cls.get_instance_or_class(req)
-            # pkdp('o is {}', o)
             try:
                 a = getattr(
                     o,
@@ -326,7 +323,6 @@ class _ComputeJob(PKDict):
                 )
             except Exception as e:
                 pkdp(e)
-            # pkdp('got attr')
             return await a(req)
             # return await getattr(
             #     o,

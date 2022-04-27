@@ -238,7 +238,6 @@ def api_wakeAgent():
     sim['simulationType'] = 'srw'
     sim['report'] = 'intensityReport'
     sim['computeJobHash'] = 'bbbbbb'
-    # TODO(rorour) find out why error when commented out
     return _request(
         wake=True,
         sim=sim,
@@ -284,7 +283,6 @@ def _request(**kwargs):
         )
     else:
         c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
-    #TODO(rorour) c should be autofilled with simulation id
     c.pkupdate(
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,

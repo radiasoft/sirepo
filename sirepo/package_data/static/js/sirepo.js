@@ -2305,7 +2305,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                     return;
                 }
                 m = REDIRECT_RE.exec(data);
-                srdbg('m is ' + m)
                 if (m) {
                     if (m[1].indexOf('#/error') <= -1) {
                         srlog('javascriptRedirectDocument', m[1]);
