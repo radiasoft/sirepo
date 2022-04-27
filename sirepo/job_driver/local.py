@@ -26,8 +26,6 @@ class LocalDriver(job_driver.DriverBase):
     __cpu_slot_q = PKDict()
 
     def __init__(self, op):
-        if op.msg.get('userDir') is None:
-            op.msg.userDir = '/home/vagrant/src/radiasoft/sirepo/run/user/KjbYhP8i'
         super().__init__(op)
         self.update(
             _agent_exec_dir=pkio.py_path(op.msg.userDir).join(

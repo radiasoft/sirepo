@@ -4,7 +4,7 @@ u"""Entry points for job execution
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkinspect, pkjson, pkcompat
+from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
@@ -37,7 +37,6 @@ def adjust_supervisor_srtime(days):
         _request_uri=_supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
     )
 
-# TODO(rorour) change to require adm?
 @api_perm.require_user
 def api_admJobs():
     sirepo.auth.check_user_has_role(

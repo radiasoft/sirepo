@@ -3734,23 +3734,10 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     }
 
     function wakeAgent() {
-        srdbg('in wakeAgent');
-        // TODO(rorour)
-        //  remove callbacks
-        const successCallback = (res) => {
-            srdbg('in wakeAgent successCallbackres : ')
-            srdbg(res)
-        };
-        const errorCallback = (request) => {
-            return (data) => {
-                srlog(`wakeAgent error=${data.error} from request=${request}`);
-            };
-        };
         requestSender.sendRequest(
             'wakeAgent',
-            successCallback,
-            {simulationType: SIREPO.APP_SCHEMA.simulationType},
-            errorCallback
+            () => {},
+            {simulationType: SIREPO.APP_SCHEMA.simulationType}
             );
     }
 

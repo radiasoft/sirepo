@@ -309,18 +309,10 @@ class _ComputeJob(PKDict):
             pkdlog('{}', req)
         try:
             o = cls.get_instance_or_class(req)
-            try:
-                a = getattr(
-                    o,
-                    '_receive_' + req.content.api,
-                )
-            except Exception as e:
-                pkdp(e)
-            return await a(req)
-            # return await getattr(
-            #     o,
-            #     '_receive_' + req.content.api,
-            # )(req)
+            return await getattr(
+                o,
+                '_receive_' + req.content.api,
+            )(req)
         except sirepo.util.ASYNC_CANCELED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:

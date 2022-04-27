@@ -283,11 +283,9 @@ class _Dispatcher(PKDict):
         )
 
     async def _op_wakeup(self, msg):
-        pkdp('xxxxxxxx')
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
         )
-        # TODO(rorour) agent starting should show on server
         return None
 
     async def _cmd(self, msg, **kwargs):
