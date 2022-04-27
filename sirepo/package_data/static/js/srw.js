@@ -1536,13 +1536,12 @@ SIREPO.viewLogic('trajectoryReportView', function(appState, panelState, srwServi
 });
 
 SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $scope) {
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
-
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
+    if ($scope.fieldDef == 'basic') {
+        return;
+    }
     $scope.watchFields = [
         [
             'undulator.horizontalDeflectingParameter',
@@ -2325,7 +2324,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
         restrict: 'A',
         template: `
             <div class="col-xs-5" style="white-space: nowrap">
-              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select> 
+              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
               <a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>
             </div>
             <div class="col-sm-12">
@@ -2513,7 +2512,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var self = this;
             self.simScope = $scope;
             self.simAnalysisModel = $scope.model;
-            $scope.runStepName = 'particle';
+            $scope.runStepName = 'macro-electrons';
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -2558,7 +2557,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     if (! isCoherentModes()) {
                         $scope.particleNumber = data.particleNumber;
                         $scope.runStepName = appState.models[$scope.model].wavefrontSource == 'cmd'
-                            ? 'mode' : 'particle';
+                            ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
                     if ($scope.simState.isStopped() && ! $scope.simState.isStateCanceled()) {

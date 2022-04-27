@@ -247,7 +247,7 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data, is_parallel, run_dir=run_dir),
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(mpi=True)
+        return template_common.get_exec_parameters_cmd(is_mpi=True)
     return None
 
 
