@@ -1,0 +1,21 @@
+{
+    "models": {
+        "io": {
+            "iotail": 1,
+            "ippart": 1,
+            "ipradi": 1
+        },
+        "mesh": {
+            "nscr": 0,
+            "nscz": 0
+        },
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "Default Simulation",
+            "notes": ""
+        }
+    },
+    "simulationType": "genesis"
+}

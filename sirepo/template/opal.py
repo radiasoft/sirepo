@@ -222,6 +222,62 @@ class OpalMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP)
 
     def to_madx(self, data):
+
+        def _get_len_by_id(data, id):
+            for e in data.models.elements:
+                if e._id == id:
+                    return e.l
+            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
+
+        def _get_element_type(data, id):
+            for e in data.models.elements:
+                if e._id == id:
+                    return e.type
+            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
+
+        def _get_drift(distance):
+            for e in data.models.elements:
+                if e.l == distance and e.type == 'DRIFT':
+                    return e
+            return False
+
+        def _insert_drift(distance, beam_idx, items_idx, pos, length):
+            d = _get_drift(distance)
+            n = LatticeUtil.max_id(data) + 1
+            m = 'D' + str(n)
+            if d:
+                n = d._id
+                m = d.name
+            new_drift = PKDict(
+                _id=n,
+                l=distance,
+                name=m,
+                type='DRIFT',
+            )
+            if not d:
+                data.models.elements.append(new_drift)
+            data.models.beamlines[beam_idx]['items'].insert(items_idx + 1, new_drift._id)
+            data.models.beamlines[beam_idx]['positions'].insert(
+                items_idx + 1,
+                PKDict(elemedge=str(float(pos) + length[0]))
+            )
+
+        def _get_distance_and_insert_drift(beamline, beam_idx):
+            for i, e in enumerate(beamline['items']):
+                    if i + 1 == len(beamline['items']):
+                        break
+                    if _get_element_type(data, e) == 'DRIFT':
+                        continue
+                    p = beamline.positions[i].elemedge
+                    n = beamline.positions[i + 1].elemedge
+                    l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                    d = round(float(n) - float(p) - l[0], 10)
+                    if d > 0:
+                        _insert_drift(d, beam_idx, i, p, l)
+
+        if data.models.simulation.elementPosition == 'absolute':
+            for j, b in enumerate(data.models.beamlines):
+                _get_distance_and_insert_drift(b, j)
         madx = super().to_madx(data)
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
@@ -247,7 +303,6 @@ class OpalMadxConverter(MadxConverter):
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
-
         if self.from_class.sim_type()  == SIM_TYPE:
             pass
         else:

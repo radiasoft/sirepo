@@ -82,6 +82,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 o.model = 'cuboid'
             if o.get('type') == 'box':
                 o.type = 'cuboid'
+            if o.get('points') is not None and not o.get('triangulationLevel'):
+                o.triangulationLevel = 0.5
             if not o.get('bevels'):
                 o.bevels = []
             if not o.get('segments'):

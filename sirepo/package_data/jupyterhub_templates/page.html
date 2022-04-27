@@ -1,0 +1,20 @@
+{% extends "templates/page.html" %}
+{% block nav_bar_right_items %}
+<li>
+  <a id="sirepo-slack-link" href="https://slack.sirepo.com">
+    <span>
+      <img style="filter: invert(0.5);" width="70" src="/static/svg/slack.svg" title="Join us on Slack"/>
+    </span>
+  </a>
+</li>
+<script>
+const SIREPO = {};
+</script>
+{# POSIT: '/auth-state' is defined in schema common ie. "authState": "/auth-state" #}
+<script src="/auth-state">
+</script>
+<script>
+    document.getElementById('sirepo-slack-link').href = SIREPO.authState.slackUri;
+</script>
+{{ super() }}
+{% endblock %}

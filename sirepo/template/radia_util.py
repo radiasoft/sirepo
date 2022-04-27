@@ -233,7 +233,8 @@ def extrude(**kwargs):
         d.points,
         numpy.full((len(d.points), 2), [1, 1]).tolist(),
         d.extrusion_axis,
-        d.magnetization
+        d.magnetization,
+        f'TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}' if d.t_level > 0 else ''
     )
     _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))

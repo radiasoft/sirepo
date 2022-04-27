@@ -5,11 +5,13 @@ u"""Jupyterhub login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkconfig
-from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
 import contextlib
 import jupyterhub.auth
+from pykern import pkconfig
+from pykern.pkcollections import PKDict
+import pykern.pkresource
+from pykern.pkdebug import pkdp
+import pykern.pkresource
 import sirepo.auth
 import sirepo.cookie
 import sirepo.server
@@ -19,6 +21,8 @@ import werkzeug.exceptions
 
 _JUPYTERHUBLOGIN_ROUTE = '/jupyterhublogin'
 
+def template_dirs():
+    return pykern.pkresource.filename('jupyterhub_templates')
 
 class Authenticator(jupyterhub.auth.Authenticator):
     # Do not prompt with jupyterhub login page. self.authenticate()

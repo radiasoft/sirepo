@@ -247,7 +247,7 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data, is_parallel, run_dir=run_dir),
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(mpi=True)
+        return template_common.get_exec_parameters_cmd(is_mpi=True)
     return None
 
 
@@ -1360,6 +1360,11 @@ def _update_geom_objects(objects):
 
 
 def _update_geom_obj(o, **kwargs):
+    # uses the "shoelace formula" to calculate the area of a polygon
+    def _poly_area(pts):
+        t = numpy.array(pts).T
+        return 0.5 * numpy.abs(numpy.dot(t[0], numpy.roll(t[1], 1)) - numpy.dot(t[1], numpy.roll(t[0], 1)))
+
     d = PKDict(
         center=[0.0, 0.0, 0.0],
         magnetization=[0.0, 0.0, 0.0],
@@ -1385,6 +1390,8 @@ def _update_geom_obj(o, **kwargs):
             o,
             _get_stemmed_info(o)
         )
+    if 'points' in o:
+        o.area = _poly_area(o.points)
     return o
 
 
