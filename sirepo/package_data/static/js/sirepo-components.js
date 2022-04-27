@@ -1384,10 +1384,11 @@ SIREPO.app.directive('videoButton', function(appState, $window) {
             viewName: '@videoButton',
         },
         template: `
-            <div><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
+            <div data-ng-if="showLink"><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
         `,
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.tooltip = viewInfo.title + ' Help Video';
             $scope.openVideo = function() {
                 $window.open(
@@ -2408,7 +2409,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                             class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>
                     <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
                     <li data-help-link="helpUserForumURL" data-title="User Forum" data-icon="globe"></li>
-                    <li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
+                    <li data-ng-if="showLink" data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
                   </ul>
                 </li>
               </ul>
@@ -2431,7 +2432,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         controller: function($scope, stringsService) {
             $scope.authState = authState;
             $scope.slackUri = $scope.authState.slackUri;
-
+            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
