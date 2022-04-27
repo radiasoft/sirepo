@@ -305,13 +305,6 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def receive(cls, req):
-        # TODO(rorour) ready to remove this if else?
-        if req.content.get('computeJid') is None:
-            # TODO(rorour) hard code 'wakeAgent' and uid in job_api
-            req.content.uid='KjbYhP8i'
-            req.content.computeJid = 'KjbYhP8i-DFQ68me0-sourceIntensityReport'
-        else:
-            pkdp('request had uid & computejid')
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
         try:
@@ -774,12 +767,17 @@ class _ComputeJob(PKDict):
         return await self._send_simulation_compute(req)
 
     async def _receive_api_wakeAgent(self, req):
-        r = await self._send_with_single_reply(
-            job.OP_WAKEUP,
-            req,
-        )
-        return r
-        return PKDict(msg='in _receive_api_wakeAgent')
+        c = self._create_op(job.OP_WAKEUP, req)
+        try:
+            await c.prepare_send()
+        except Awaited:
+            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
+            # In the event that it does, the agent is still started,
+            # so no need to try again after Awaited.
+            pass
+        finally:
+            c.destroy(cancel=False)
+        return PKDict()
 
     def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.

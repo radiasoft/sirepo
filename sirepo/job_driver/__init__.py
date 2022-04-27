@@ -163,10 +163,7 @@ class DriverBase(PKDict):
             bool: True if the op was actually sent
         """
         await self._agent_ready(op)
-        # await self._slots_ready(op)
-        # TODO(rorour) wake agent not waking
-        if op.opName is not 'wakeup':
-            await self._slots_ready(op)
+        await self._slots_ready(op)
 
     @classmethod
     def receive(cls, msg):

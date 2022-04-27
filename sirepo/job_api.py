@@ -4,7 +4,7 @@ u"""Entry points for job execution
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkinspect, pkjson
+from pykern import pkinspect, pkjson, pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
@@ -215,42 +215,18 @@ def api_statelessCompute():
 
 @api_perm.require_user
 def api_wakeAgent():
-    # TODO(rorour) api perm?
-    # TODO(rorour) should get simulation type?
-    sims = sorted(
-            simulation_db.iterate_simulation_datafiles(
-                'srw',
-                simulation_db.process_simulation_list,
-                False,
-            ),
-            key=lambda row: row['name'],
-        )
-
-    # TODO(rorour): use this instead. returns byte string instead of list?
-    # sims = sirepo.uri_router.call_api(
-    #     'listSimulations',
-    #     data=PKDict(simulationType='srw'),
-    # )
-    # pkdp('sims is {}', sims)
-
-    simulationId = sims[0].simulation.simulationId
-    sim = sims[0]
-    sim['simulationType'] = 'srw'
-    sim['report'] = 'intensityReport'
-    sim['computeJobHash'] = 'bbbbbb'
+    t = sirepo.http_request.parse_post().req_data.simulationType
+    s = pkjson.load_any(pkcompat.from_bytes(sirepo.uri_router.call_api(
+        'listSimulations',
+        data=PKDict(simulationType=t),
+    ).data))
+    if not s:
+        return
     return _request(
-        wake=True,
-        sim=sim,
-        # _request_content=PKDict(
-        #     computeJid='aaa',
-        #     uid='bbb',
-        #     computeJobHash='ccc',
-        #     computeModel='ddd',
-        #     isParallel=True,
-        #     simulationId=simulationId,
-        #     simulationType='eee',
-        #     jobRunMode='sequential'
-        # ),
+        req_data=pkjson.load_any(pkcompat.from_bytes(sirepo.uri_router.call_api(
+            'simulationData',
+            kwargs=PKDict(simulation_type=t, simulation_id=s[0].simulationId),
+        ).data)),
     )
 
 
@@ -277,12 +253,7 @@ def _request(**kwargs):
             )
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or _supervisor_uri(sirepo.job.SERVER_URI)
-    if k.pkdel('wake'):
-        c = _request_content(
-            k.pkupdate(req_data=k.pkdel('sim'), simulationType='srw')
-        )
-    else:
-        c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
+    c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
     c.pkupdate(
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,

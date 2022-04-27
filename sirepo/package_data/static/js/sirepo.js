@@ -3749,7 +3749,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         requestSender.sendRequest(
             'wakeAgent',
             successCallback,
-            {},
+            {simulationType: SIREPO.APP_SCHEMA.simulationType},
             errorCallback
             );
     }
