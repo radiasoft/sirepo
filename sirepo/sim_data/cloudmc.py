@@ -11,6 +11,14 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
+    def dagmc_filename(cls, data):
+        return cls.lib_file_name_with_model_field(
+            'geometryInput',
+            'dagmcFile',
+            data.models.geometryInput.dagmcFile,
+        )
+
+    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         cls._init_models(dm)
@@ -24,5 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model;
 
     @classmethod
-    def _lib_file_basenames(cls, *args, **kwargs):
-        return []
+    def _lib_file_basenames(cls, data):
+        return [
+            cls.dagmc_filename(data),
+        ]

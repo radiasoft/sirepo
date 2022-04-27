@@ -12,17 +12,28 @@ from sirepo.template import template_common
 import sirepo.sim_data
 
 
+VOLUME_INFO_FILE = 'volumes.json'
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _DAGMC_FILE = 'dagmc.h5m'
 
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
-        return PKDict(percentComplete=0, frameCount=0)
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
+    if not run_dir.join(VOLUME_INFO_FILE).exists():
+        raise AssertionError('Volume extraction failed')
     return PKDict(
         percentComplete=100,
         frameCount=1,
+        volumes=simulation_db.read_json(VOLUME_INFO_FILE),
     )
+
+
+def get_data_file(run_dir, model, frame, **kwargs):
+    return PKDict(filename=run_dir.join(f'{frame}.zip'))
 
 
 def python_source_for_model(data, model):
@@ -39,7 +50,6 @@ def write_parameters(data, run_dir, is_parallel):
 def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
-    v.dagmcFile = f'../{_DAGMC_FILE}'
-    if report == 'paramakAnimation':
-        return res + template_common.render_jinja(SIM_TYPE, v, 'paramak-geometry.py')
+    if report == 'dagmcAnimation':
+        return ''
     raise AssertionError('Report not yet supported: {}'.format(report))

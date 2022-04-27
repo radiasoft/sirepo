@@ -15,7 +15,11 @@ import io
 import json
 import os
 import re
+import sirepo.sim_data.cloudmc
+import sirepo.simulation_db
+import sirepo.template.cloudmc
 import subprocess
+import uuid
 import zipfile
 
 
@@ -57,7 +61,6 @@ _VTI_TEMPLATE = PKDict(
         ref=PKDict(
             encode='LittleEndian',
             basepath=_DATA_DIR,
-            # filename
             id=None,
         ),
         size=None,
@@ -70,21 +73,19 @@ _VTI_TEMPLATE = PKDict(
 
 def extract_dagmc(dagmc_filename):
     mat = _extract_volumes(dagmc_filename)
-    for vols in mat.values():
-        for vol in vols:
-            _vtk_to_bin(vol)
+    for vol in mat.values():
+        _vtk_to_bin(vol)
     return mat
 
 
 def run_background(cfg_dir):
-    #TODO(pjm): work-around using conda to run paramak for now
-    conda_run_file = 'run-with-conda.sh'
-    pkio.write_text(conda_run_file, f'''
-eval "$(conda shell.bash hook)"
-conda activate env_cad
-python {template_common.PARAMETERS_PYTHON_FILE}
-''')
-    pksubprocess.check_call_with_signals(['sh', conda_run_file], msg=pkdlog)
+    data = sirepo.simulation_db.read_json(
+        template_common.INPUT_BASE_NAME,
+    )
+    sirepo.simulation_db.write_json(
+        sirepo.template.cloudmc.VOLUME_INFO_FILE,
+        extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
+    )
 
 
 def _array_from_list(arr, arr_type):
@@ -112,14 +113,14 @@ def _extract_volumes(filename):
             if not name:
                 continue
             vol_ids = []
-            for i in _parse_entity_set(e.EntitySet):
+            for i in e.volumes:
                 vol_ids.append(entities[i].GLOBAL_ID)
-            res[name] = vol_ids
+            res[name] = vol_ids[0]
             for i in vol_ids:
                 if i in visited:
-                    continue
+                    raise AssertionError(f'volume used in multiple groups: {i} {e}')
                 visited[i] = True
-                os.system(f'mbconvert -v {i} {filename} {i}.vtk')
+            os.system(f'mbconvert -v {",".join(vol_ids)} {filename} {vol_ids[0]}.vtk')
     return res
 
 
@@ -151,7 +152,7 @@ def _parse_volumes(filename):
     res = PKDict()
     e = None
     # using subprocess not pksubprocess because we don't want to read in all
-    # the output at once which can be many megabytes
+    # the output at once which can be hundreds of megabytes
     p = subprocess.Popen(['mbsize', '-ll', filename], stdout=subprocess.PIPE)
     for line in io.TextIOWrapper(p.stdout, encoding='ascii'):
         if e and re.search('^\s*$', line):
@@ -161,7 +162,7 @@ def _parse_volumes(filename):
             continue
         if _parse_attr('MBENTITYSET', line):
             assert e is None
-            e = PKDict()
+            e = PKDict(volumes=[])
             assert _parse_attr('MBENTITYSET', line, e)
             continue
         if not e:
@@ -169,6 +170,7 @@ def _parse_volumes(filename):
         if _parse_attr('GLOBAL_ID', line, e):
             continue
         if _parse_attr('EntitySet', line, e):
+            e.volumes += _parse_entity_set(e.EntitySet)
             continue
         if _parse_attr('CATEGORY', line, e):
             if e.CATEGORY not in ('Volume', 'Group'):
@@ -243,7 +245,7 @@ def _vtk_to_bin(vol_id):
     for n in ('lines', 'polys', 'points'):
         if n not in vti:
             continue
-        fn = f'{n}-{vol_id}.bin'
+        fn = str(uuid.uuid1()).replace('-', '')
         with open (f'{_DATA_DIR}/{fn}', 'wb') as f:
             v[n].tofile(f)
         vti[n].ref.id = fn

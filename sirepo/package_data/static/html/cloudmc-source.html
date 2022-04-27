@@ -1,17 +1,12 @@
 <div class="container-fluid">
-  <div data-panel-layout="">
-    <div class="row">
-      <div class="sr-panel-item">
-        <div  data-ng-if="! source.isGeometrySelected()" data-basic-editor-panel="" data-view-name="geometryInput"></div>
+  <div class="row">
+    <div class="col-md-6 col-xl-4" data-ng-if="! source.isGeometryProcessed()">
+      <div data-basic-editor-panel="" data-view-name="geometryInput">
+        <div data-ng-if="source.isGeometrySelected()" style="margin-top: 1em" data-sim-status-panel="source.simState"></div>
       </div>
-      <div class="sr-panel-item">
-        <div data-ng-if="source.isParamak()" data-simple-panel="paramakGeometry">
-          <div data-sim-status-panel="source.simState"></div>
-        </div>
-      </div>
-      <div class="sr-panel-item">
-        <div data-basic-editor-panel="" data-ng-if="source.isParamak()" data-view-name="paramak"></div>
-      </div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="source.isGeometryProcessed()">
+      <div data-report-panel="geometry3d" data-model-name="geometry3DReport"></div>
     </div>
   </div>
 </div>
