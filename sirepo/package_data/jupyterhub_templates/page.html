@@ -10,11 +10,11 @@
 <script>
 const SIREPO = {};
 </script>
+{# POSIT: '/auth-state' is defined in schema common ie. "authState": "/auth-state" #}
 <script src="/auth-state">
 </script>
 <script>
-    const slackUri = SIREPO.authState.slackUri;
-    document.getElementById('sirepo-slack-link').href = slackUri;
+    document.getElementById('sirepo-slack-link').href = SIREPO.authState.slackUri;
 </script>
 {{ super() }}
 {% endblock %}
