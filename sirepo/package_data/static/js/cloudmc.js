@@ -160,13 +160,13 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
     };
 });
 
-SIREPO.app.directive('volumeGeometry', function(appState) {
+SIREPO.app.directive('volumeMaterial', function(appState) {
     return {
         restrict: 'A',
         scope: {},
         template: `
             <div style="padding: 10px">
-              volume/geometry editor goes here
+              volume/material editor goes here
             </div>
         `,
     };
@@ -234,10 +234,10 @@ SIREPO.app.directive('volumeTabs', function() {
               <li data-ng-repeat="tab in tabs track by $index" role="presentation" data-ng-class="{ active: activeTab == tab}"><a href data-ng-click="setTab($index)"><strong>{{ tab }}</strong></a></li>
             </ul>
             <div data-ng-show="activeTab == tabs[0]" data-volume-selector=""></div>
-            <div data-ng-show="activeTab == tabs[1]" data-volume-geometry=""></div>
+            <div data-ng-show="activeTab == tabs[1]" data-volume-material=""></div>
         `,
         controller: function($scope) {
-            $scope.tabs = ['Viewer', 'Geometry'];
+            $scope.tabs = ['Viewer', 'Material'];
             $scope.activeTab = $scope.tabs[0];
             $scope.setTab = index => $scope.activeTab = $scope.tabs[index];
         },
