@@ -74,7 +74,7 @@ _VTI_TEMPLATE = PKDict(
 def extract_dagmc(dagmc_filename):
     mat = _extract_volumes(dagmc_filename)
     for vol in mat.values():
-        _vtk_to_bin(vol)
+        _vtk_to_bin(vol.volId)
     return mat
 
 
@@ -115,7 +115,9 @@ def _extract_volumes(filename):
             vol_ids = []
             for i in e.volumes:
                 vol_ids.append(entities[i].GLOBAL_ID)
-            res[name] = vol_ids[0]
+            res[name] = PKDict(
+                volId=vol_ids[0],
+            )
             for i in vol_ids:
                 if i in visited:
                     raise AssertionError(f'volume used in multiple groups: {i} {e}')

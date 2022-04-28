@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "geometry"
+        }
+    },
     "enum": {
     },
     "dynamicFiles": {
@@ -12,10 +17,11 @@
         }
     },
     "localRoutes": {
-        "source": {
+        "geometry": {
+            "route": "/geometry/:simulationId",
             "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/cloudmc-source.html"
+                "controller": "GeometryController as geometry",
+                "templateUrl": "/static/html/cloudmc-geometry.html"
             }
         }
     },
@@ -25,7 +31,8 @@
             "dagmcFile": ["DAGMC File", "InputFile", ""]
         },
         "geometry3DReport": {},
-        "openmcAnimation": {}
+        "openmcAnimation": {},
+        "volumes": {}
     },
     "view": {
         "geometryInput": {
@@ -37,6 +44,10 @@
         },
         "geometry3DReport": {
             "title": "DAGMC Geometry",
+            "advanced": []
+        },
+        "volumes": {
+            "title": "Volumes",
             "advanced": []
         }
     }

@@ -9,18 +9,18 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.controller('SourceController', function (appState, persistentSimulation, $scope) {
+SIREPO.app.controller('GeometryController', function (appState, persistentSimulation, $scope) {
     const self = this;
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
     self.isGeometryProcessed = () => {
-        return appState.applicationState().volumes;
+        return Object.keys(appState.applicationState().volumes).length;
     };
     self.simScope = $scope;
     self.simComputeModel = 'dagmcAnimation';
     self.simHandleStatus = data => {
-        if (data.volumes && ! appState.models.volumes) {
+        if (data.volumes && ! self.isGeometryProcessed()) {
             appState.models.volumes = data.volumes;
             appState.saveChanges('volumes');
         }
@@ -52,7 +52,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('geometry')}"><a href data-ng-click="nav.openSection('geometry')"><span class="glyphicon glyphicon-globe"></span> Geometry</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -72,16 +72,11 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             reportId: '<',
         },
         template: `
-            <div style="float: right; margin-top: -10px; margin-bottom: 5px;">
-            <div style="display: inline-block" data-ng-repeat="dim in ::dimensions track by $index">
-            <button data-ng-attr-class="btn btn-{{ selectedDimension == dim ? \'primary\' : \'default\' }}" data-ng-click="setCamera(dim)">{{ dim | uppercase }}{{ viewDirection[dim] > 0 ? \'+\' : \'-\' }}</button>
-            </div>
-            </div>
             <div style="padding-bottom:1px; clear: both; border: 1px solid black">
-              <div class="sr-geometry3d-content" style="width: 100%; height: 50vw;"></div>
+              <div class="sr-geometry3d-content" style="width: 100%; height: 80vh;"></div>
             </div>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             $scope.isClientOnly = true;
             let fullScreenRenderer = null;
             const actorByVolume = {};
@@ -108,7 +103,7 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
                 mapper.setInputConnection(reader.getOutputPort());
                 const actor = vtk.Rendering.Core.vtkActor.newInstance();
                 actor.setMapper(mapper);
-                //TODO(pjm): user defined colors and opacity
+                //TODO(pjm): user defined colors and opacity per actor
                 actor.getProperty().setColor(randomColor());
                 actor.getProperty().setOpacity(0.3);
                 getRenderer().addActor(actor);
@@ -121,15 +116,12 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             }
 
             function loadVolumes(volIds) {
+                //TODO(pjm): update progress bar with each promise resolve?
                 return Promise.all(volIds.map(i => addVolume(i)));
             }
 
             function randomColor() {
-                return [
-                    Math.random(),
-                    Math.random(),
-                    Math.random(),
-                ];
+                return Array(3).fill(0).map(() => Math.random());
             }
 
             $scope.destroy = () => {
@@ -138,23 +130,116 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             };
 
             $scope.init = () => {
+                //TODO(pjm): need a "loading and/or progress bar" before results are available
                 fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
                     background: [1, 0.97647, 0.929412],
                     container: $('.sr-geometry3d-content')[0],
                 });
-                const vols = Object.values(appState.models.volumes);
-                loadVolumes(vols).then(() => {
+                const vols = [];
+                for (const n in appState.models.volumes) {
+                    vols.push(appState.models.volumes[n].volId);
+                }
+                loadVolumes(Object.values(vols)).then(() => {
                     getRenderer().resetCamera();
                     fullScreenRenderer.getRenderWindow().render();
                 });
             };
 
             $scope.resize = () => {
-
+                //TODO(pjm): reposition camera?
             };
+
+            $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {
+                actorByVolume[volId].getProperty().setOpacity(isVisible ? 0.3 : 0);
+                fullScreenRenderer.getRenderWindow().render();
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('volumeGeometry', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div style="padding: 10px">
+              volume/geometry editor goes here
+            </div>
+        `,
+    };
+});
+
+SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div style="padding: 0.5ex 1ex;">
+              <div style="display: inline-block; cursor: pointer" data-ng-click="toggleAll()">
+                <span class="glyphicon" data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
+              </div>
+            </div>
+            <div data-ng-repeat="row in rows track by $index" style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
+              <div>
+                <div style="display: inline-block; cursor: pointer; white-space: nowrap" data-ng-click="toggleSelected(row)">
+                  <span class="glyphicon" data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
+                   {{ row.name }}
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.allVisible = true;
+
+            function init() {
+                $scope.rows = [];
+                for (const n in appState.models.volumes) {
+                    const row = appState.models.volumes[n];
+                    row.name = n;
+                    row.isVisible = true;
+                    $scope.rows.push(row);
+                }
+                //TODO(pjm): sort rows by name
+            }
+
+            $scope.toggleAll = () => {
+                $scope.allVisible = ! $scope.allVisible;
+                Object.values(appState.models.volumes).forEach(v => {
+                    if (v.isVisible != $scope.allVisible) {
+                        $scope.toggleSelected(v);
+                    }
+                });
+            };
+
+            $scope.toggleSelected = (row) => {
+                row.isVisible = ! row.isVisible;
+                appState.saveChanges('volumes');
+                $rootScope.$broadcast('sr-volume-visibility-toggled', row.volId, row.isVisible);
+            };
+
+            init();
+        },
+    };
+});
+
+SIREPO.app.directive('volumeTabs', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <ul class="nav nav-tabs">
+              <li data-ng-repeat="tab in tabs track by $index" role="presentation" data-ng-class="{ active: activeTab == tab}"><a href data-ng-click="setTab($index)"><strong>{{ tab }}</strong></a></li>
+            </ul>
+            <div data-ng-show="activeTab == tabs[0]" data-volume-selector=""></div>
+            <div data-ng-show="activeTab == tabs[1]" data-volume-geometry=""></div>
+        `,
+        controller: function($scope) {
+            $scope.tabs = ['Viewer', 'Geometry'];
+            $scope.activeTab = $scope.tabs[0];
+            $scope.setTab = index => $scope.activeTab = $scope.tabs[index];
         },
     };
 });

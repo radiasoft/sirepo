@@ -33,7 +33,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    return PKDict(filename=run_dir.join(f'{frame}.zip'))
+    if model == 'dagmcAnimation':
+        return PKDict(filename=run_dir.join(f'{frame}.zip'))
+    raise AssertionError(f'No data file for model: {model}')
 
 
 def python_source_for_model(data, model):
