@@ -127,6 +127,7 @@ def _init():
         srw=dict(
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
             mask_in_toolbar=b('Show the mask element in toolbar'),
+            show_video_links=(False, bool, 'Display instruction video links'),
             show_open_shadow=(pkconfig.channel_in_internal_test(), bool, 'Show "Open as a New Shadow Simulation" menu item'),
             show_rsopt_ml=(pkconfig.channel_in_internal_test(), bool, 'Show "Export ML Script" menu item'),
         ),
