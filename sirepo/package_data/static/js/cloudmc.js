@@ -64,7 +64,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, vtkToPNG) {
+SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, vtkToPNG, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -73,13 +73,18 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
         },
         template: `
             <div style="padding-bottom:1px; clear: both; border: 1px solid black">
-              <div class="sr-geometry3d-content" style="width: 100%; height: 80vh;"></div>
+              <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+              <!--<div class="sr-geometry3d-content" style="width: 100%; height: 80vh;"></div>-->
             </div>
         `,
         controller: function($scope) {
             $scope.isClientOnly = true;
             let fullScreenRenderer = null;
+            let renderer = null;
+            let renderWindow = null;
+            let vtkAPI = null;
             const actorByVolume = {};
+            const coordMapper = vtkPlotting.coordMapper();
 
             function volumeURL(volId) {
                 return requestSender.formatUrl(
@@ -99,15 +104,17 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
                     fullpath: true,
                     loadData: true,
                 });
-                const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                mapper.setInputConnection(reader.getOutputPort());
-                const actor = vtk.Rendering.Core.vtkActor.newInstance();
-                actor.setMapper(mapper);
+                const b = coordMapper.buildActorBundle(reader);
+                //const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                //mapper.setInputConnection(reader.getOutputPort());
+                //const actor = vtk.Rendering.Core.vtkActor.newInstance();
+                //actor.setMapper(mapper);
                 //TODO(pjm): user defined colors and opacity per actor
-                actor.getProperty().setColor(randomColor());
-                actor.getProperty().setOpacity(0.3);
-                getRenderer().addActor(actor);
-                actorByVolume[volId] = actor;
+                b.actor.getProperty().setColor(randomColor());
+                b.actor.getProperty().setOpacity(0.3);
+                //getRenderer().addActor(actor);
+                renderer.addActor(b.actor);
+                actorByVolume[volId] = b.actor;
                 return res;
             }
 
@@ -131,28 +138,84 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
 
             $scope.init = () => {
                 //TODO(pjm): need a "loading and/or progress bar" before results are available
-                fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-                    background: [1, 0.97647, 0.929412],
-                    container: $('.sr-geometry3d-content')[0],
-                });
-                const vols = [];
-                for (const n in appState.models.volumes) {
-                    vols.push(appState.models.volumes[n].volId);
-                }
-                loadVolumes(Object.values(vols)).then(() => {
-                    getRenderer().resetCamera();
-                    fullScreenRenderer.getRenderWindow().render();
-                });
+                //fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                //    background: [1, 0.97647, 0.929412],
+                //    container: $('.sr-geometry3d-content')[0],
+                //});
+                //const vols = [];
+                //for (const n in appState.models.volumes) {
+                //    vols.push(appState.models.volumes[n].volId);
+                //}
+                //loadVolumes(Object.values(vols)).then(() => {
+                    //getRenderer().resetCamera();
+                    //fullScreenRenderer.getRenderWindow().render();
+                    //renderer.resetCamera();
+                    //renderWindow.render();
+                //});
             };
 
             $scope.resize = () => {
                 //TODO(pjm): reposition camera?
             };
 
+            $scope.$on('vtk-init', (e, d) => {
+                $rootScope.$broadcast('vtk.showLoader');
+                fullScreenRenderer = d.objects.fsRenderer;
+                fullScreenRenderer.setBackground([1, 0.97647, 0.929412]);
+                renderWindow = d.objects.window;
+                renderer = d.objects.renderer;
+                vtkAPI = d.api;
+
+                const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
+                vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
+                const df = ca.getDefaultStyle();
+                df.fontFamily = 'Arial';
+                df.faceRotation = 45;
+                ca.setDefaultStyle(df);
+
+                const m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: ca,
+                    interactor: renderWindow.getInteractor()
+                });
+                m.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+                m.setViewportSize(0.07);
+                m.computeViewport();
+                m.setMinPixelSize(50);
+                m.setMaxPixelSize(100);
+                vtkAPI.setMarker(m);
+
+                const vols = [];
+                for (const n in appState.models.volumes) {
+                    vols.push(appState.models.volumes[n].volId);
+                }
+                loadVolumes(Object.values(vols)).then(() => {
+                    $rootScope.$broadcast('vtk.hideLoader');
+                    renderWindow.render();
+                    renderer.resetCamera();
+                    renderWindow.render();
+                });
+                // move pickers to vtkdisplay?
+                //cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
+                //cPicker.setPickFromList(false);
+                //ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
+                //ptPicker.setPickFromList(true);
+                //ptPicker.initializePickList();
+                //renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                //init();
+            });
+
             $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {
                 actorByVolume[volId].getProperty().setOpacity(isVisible ? 0.3 : 0);
                 fullScreenRenderer.getRenderWindow().render();
             });
+
+            $scope.$on('sr-volume-alpha.changed', (event, volId, alpha) => {
+                actorByVolume[volId].getProperty().setOpacity(alpha);
+                fullScreenRenderer.getRenderWindow().render();
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -188,6 +251,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                   <span class="glyphicon" data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
                    {{ row.name }}
                 </div>
+                <input id="volume-{{ row.name }}-alpha-range" type="range" min="0" max="1.0" step="0.1" data-ng-model="row.alpha" data-ng-change="setAlpha(row)">
               </div>
             </div>
         `,
@@ -200,10 +264,15 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                     const row = appState.models.volumes[n];
                     row.name = n;
                     row.isVisible = true;
+                    row.alpha = 0.3;
                     $scope.rows.push(row);
                 }
                 //TODO(pjm): sort rows by name
             }
+
+            $scope.setAlpha = row => {
+                $rootScope.$broadcast('sr-volume-alpha.changed', row.volId, row.alpha);
+            };
 
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;

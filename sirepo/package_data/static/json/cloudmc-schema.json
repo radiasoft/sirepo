@@ -13,7 +13,11 @@
             ]
         },
         "sirepoLibs": {
-            "js": ["cloudmc.js"]
+            "js": [
+                "cloudmc.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
+            ]
         }
     },
     "localRoutes": {
