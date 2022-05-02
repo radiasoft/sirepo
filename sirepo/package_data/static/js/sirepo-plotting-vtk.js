@@ -6,10 +6,169 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.ZERO_ARR = [0, 0, 0];
 SIREPO.ZERO_STR = '0, 0, 0';
 
+class ActorBundle {
+    constructor(source, transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
+        this.transform = transform;
+        this.mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+        this.setSource(source);
+        this.actor = vtk.Rendering.Core.vtkActor.newInstance({
+            mapper: this.mapper
+        });
+        let ap = this.actor.getProperty();
+        for (const p in actorProperties) {
+            if (ap[p] !== undefined) {
+                ap[p](actorProperties[p]);
+            }
+        }
+    }
+
+    setMapper(mapper) {
+        this.mapper = mapper;
+        this.actor.setMapper(mapper);
+    }
+
+    setSource(source) {
+        if (source) {
+            this.source = source;
+            this.mapper.setInputConnection(source.getOutputPort());
+        }
+    }
+}
+
+class BoxBundle extends ActorBundle {
+    constructor(labSize = [1, 1, 1], labCenter = [0, 0, 0], transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
+        const sz = new SIREPO.GEOMETRY.Matrix(labSize);
+        const ctr = new SIREPO.GEOMETRY.Matrix(labCenter);
+        const vSize = transform.apply(sz).val;
+        super(
+            vtk.Filters.Sources.vtkCubeSource.newInstance({
+                xLength: vSize[0],
+                yLength: vSize[1],
+                zLength: vSize[2],
+                center: transform.apply(ctr).val,
+            }),
+            transform,
+            actorProperties
+        );
+    }
+
+    setCenter(arr) {
+        this.source.setCenter(arr);
+    }
+
+    setLength(arr) {
+        this.source.setXLength(arr[0]);
+        this.source.setYLength(arr[1]);
+        this.source.setZLength(arr[2]);
+    }
+
+}
+
+class LineBundle extends ActorBundle {
+    constructor(labP1, labP2, transform, actorProperties) {
+        const p1 = new SIREPO.GEOMETRY.Matrix(labP1);
+        const p2 = new SIREPO.GEOMETRY.Matrix(labP2);
+        super(
+            vtk.Filters.Sources.vtkLineSource.newInstance({
+                point1: transform.apply(labP1).val,
+                point2: transform.apply(labP2).val,
+                resolution: 2
+            }),
+            transform,
+            actorProperties
+        );
+    }
+}
+
+class PlaneBundle extends ActorBundle {
+    constructor(labOrigin, labP1, labP2, transform, actorProperties) {
+        super(vtk.Filters.Sources.vtkPlaneSource.newInstance(), transform, actorProperties);
+    }
+}
+
+class SphereBundle extends ActorBundle {
+    constructor(labCenter, radius, transform, actorProperties) {
+        const ctr = new SIREPO.GEOMETRY.Matrix(labCenter);
+        super(
+            vtk.Filters.Sources.vtkSphereSource.newInstance({
+                center: labCenter ? transform.apply(ctr).val : [0, 0, 0],
+                radius: radius || 1,
+                thetaResolution: 16,
+                phiResolution: 16
+            }),
+            transform,
+            actorProperties
+        );
+    }
+}
+
+class CoordMapper {
+    constructor(transform = new SIREPO.GEOMETRY.Transform()) {
+        this.transform = transform;
+    }
+
+    buildActorBundle(source, actorProperties) {
+        return new ActorBundle(source, this.transform, actorProperties);
+    }
+
+    buildBox(labSize, labCenter, actorProperties) {
+        return new BoxBundle(labSize, labCenter, this.transform, actorProperties);
+    }
+
+    buildFromSource(source, actorProperties) {
+        //TODO(mvk): add transform
+        return new ActorBundle(source, this.transform, actorProperties);
+    }
+
+    buildLine(labP1, labP2, actorProperties) {
+        return new LineBundle(labP1, labP2, this.transform, actorProperties);
+    }
+
+    buildPlane(labOrigin, labP1, labP2, actorProperties) {
+        var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
+        let b = new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
+        if (labOrigin && labP1 && labP2) {
+            this.setPlane(b, labOrigin, labP1, labP2);
+        }
+        return b;
+    }
+
+    buildSphere(labCenter, radius, actorProperties) {
+        return new SphereBundle(labCenter, radius, this.transform, actorProperties);
+    }
+
+
+    setPlane(planeBundle, labOrigin = [0, 0, 0], labP1 = [0, 0, 1], labP2 = [1, 0, 0]) {
+        const o = new SIREPO.GEOMETRY.Matrix(labOrigin);
+        const p1 = new SIREPO.GEOMETRY.Matrix(labP1);
+        const p2 = new SIREPO.GEOMETRY.Matrix(labP2);
+        planeBundle.source.setOrigin(...this.transform.apply(o).val);
+        planeBundle.source.setPoint1(...this.transform.apply(p1).val);
+        planeBundle.source.setPoint2(...this.transform.apply(p2).val);
+    }
+
+    userMatrix() {
+        // Array.flat() doesn't exist in MS browsers
+        // var m = transform.matrix.flat();
+        const matrix = this.transform.matrix;
+        let m = [];
+        for (let i = 0; i < matrix.length; i++) {
+            for (let j = 0; j < matrix[i].length; j++) {
+                m.push(matrix[i][j]);
+            }
+        }
+        m.splice(3, 0, 0);
+        m.splice(7, 0, 0);
+        m.push(0);
+        m.push(0, 0, 0, 1);
+        return m;
+    }
+}
+
 SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
 
-    var self = {};
-    var stlReaders = {};
+    let self = {};
+    let stlReaders = {};
 
     self.COORDINATE_PLANES = {
         'xy': [0, 0, 1],
@@ -22,20 +181,15 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.adjustContainerSize = function(container, rect, ctrAspectRatio, thresholdPct) {
-        var fsAspectRatio = window.screen.availWidth / window.screen.availHeight;
+        const fsAspectRatio = window.screen.availWidth / window.screen.availHeight;
 
         container.height(container.width() / (utilities.isFullscreen() ? fsAspectRatio : ctrAspectRatio));
 
-        var w = container.width();
-        var h = container.height();
-        var wThresh = Math.max(thresholdPct * w, 1);
-        var hThresh = Math.max(thresholdPct * h, 1);
-        var wdiff = Math.abs(w - rect.width);
-        var hdiff = Math.abs(h - rect.height);
-        if (hdiff > hThresh || wdiff > wThresh) {
-            return true;
-        }
-        return false;
+        const w = container.width();
+        const h = container.height();
+        return Math.abs(h - rect.height) > Math.max(thresholdPct * h, 1) ||
+            Math.abs(w - rect.width) > Math.max(thresholdPct * w, 1);
+
     };
 
     self.coordMapper = function(transform) {
@@ -206,6 +360,40 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 return m;
             }
         };
+    };
+
+    self.buildSTL = (coordMapper, file, callback) => {
+        let r = self.getSTLReader(file);
+        if (r) {
+            setSTL(r);
+            return;
+        }
+
+        self.loadSTLFile(file).then(function (r) {
+            r.loadData()
+                .then(function (res) {
+                    self.addSTLReader(file, r);
+                    setSTL(r);
+                }, function (reason) {
+                    throw new Error(file + ': Error loading data from .stl file: ' + reason);
+                }
+            ).catch(function (e) {
+                errorService.alertText(e);
+            });
+        });
+
+        function setSTL(r) {
+            const b = new ActorBundle(r, coordMapper.transform);
+            let m = [];
+            coordMapper.transform.matrix.val.forEach(x =>  {
+                m = m.concat(x);
+                m.push(0);
+            });
+            m = m.concat([0, 0, 0, 1]);
+            b.actor.setUserMatrix(m);
+            callback(b);
+        }
+
     };
 
     self.clearSTLReaders = function() {
@@ -1934,9 +2122,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
     return {
         restrict: 'A',
-        //transclude: {
-        //    visabilityControlSlot: '?visabilityControl',
-        //},
         scope: {
             axisCfg: '<',
             axisObj: '<',
@@ -1960,7 +2145,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.selection = null;
 
             // common
-            var api = {
+            const api = {
                 getMode: getInteractionMode,
                 setBg: setBgColor,
                 setCam: setCam,
@@ -1981,19 +2166,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 },
             };
 
-            var cam = null;
-            var canvas3d = null;
-            var didPan = false;
-            var fsRenderer = null;
-            var hasBodyEvt = false;
-            var hdlrs = {};
-            var isDragging = false;
-            var isPointerUp = true;
-            var marker = null;
-            var renderer = null;
-            var renderWindow = null;
-            var snapshotCanvas = null;
-            var snapshotCtx = null;
+            let cam = null;
+            let canvas3d = null;
+            let didPan = false;
+            let fsRenderer = null;
+            let hasBodyEvt = false;
+            let hdlrs = {};
+            let isDragging = false;
+            let isPointerUp = true;
+            let marker = null;
+            let renderer = null;
+            let renderWindow = null;
+            let snapshotCanvas = null;
+            let snapshotCtx = null;
 
             const resize = utilities.debounce(refresh, 250);
 
@@ -2002,7 +2187,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             // supplement or override these event handlers
-            var eventHandlers = {
+            let eventHandlers = {
                 onpointerdown: function (evt) {
                     isDragging = false;
                     isPointerUp = false;
@@ -2035,8 +2220,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.showSide(api.resetSide);
             }
 
-            function setBgColor(hexColor) {
-                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
+            function setBgColor(color) {
+                renderer.setBackground(
+                    Array.isArray(color) ? color : vtk.Common.Core.vtkMath.hex2float(color)
+                );
                 renderWindow.render();
             }
 
@@ -2044,14 +2231,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 if (! fsRenderer) {
                     return;
                 }
-                var cam = renderer.get().activeCamera;
-                //cam.setPosition(...(pos || [1, 0, 0]));
-                var p = pos || [1, 0, 0];
-                cam.setPosition(p[0], p[1], p[2]);
+                const cam = renderer.get().activeCamera;
+                cam.setPosition(...(pos || [1, 0, 0]));
                 cam.setFocalPoint(0, 0, 0);
-                //cam.setViewUp(...(vu || [0, 0, 1]));
-                var v = vu || [0, 0, 1];
-                cam.setViewUp(v[0], v[1], v[2]);
+                cam.setViewUp(...(vu || [0, 0, 1]));
                 renderer.resetCamera();
                 // make room for left axis label on wide plots
                 cam.yaw(0.6);
@@ -2079,23 +2262,23 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.init = function() {
-                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
-                var body = angular.element($($document).find('body'))[0];
+                const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                const body = angular.element($($document).find('body'))[0];
                 hdlrs = $scope.eventHandlers || {};
 
                 // vtk adds keypress event listeners to the BODY of the entire document, not the render
                 // container.
                 hasBodyEvt = Object.keys(hdlrs).some(function (e) {
-                    return ['keypress', 'keydown', 'keyup'].indexOf(e) >= 0;
+                    return ['keypress', 'keydown', 'keyup'].includes(e);
                 });
                 if (hasBodyEvt) {
-                    var bodyAddEvtLsnr = body.addEventListener;
-                    var bodyRmEvtLsnr = body.removeEventListener;
-                    body.addEventListener = function(type, listener, opts) {
+                    const bodyAddEvtLsnr = body.addEventListener;
+                    const bodyRmEvtLsnr = body.removeEventListener;
+                    body.addEventListener = (type, listener, opts) => {
                         bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener, opts);
                     };
                     // seem to need to do this so listeners get removed correctly
-                    body.removeEventListener = function(type, listener, opts) {
+                    body.removeEventListener = (type, listener, opts) => {
                         bodyRmEvtLsnr(type, listener, opts);
                     };
                 }
@@ -2107,12 +2290,12 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 });
                 renderer = fsRenderer.getRenderer();
                 renderWindow = fsRenderer.getRenderWindow();
-                var interactor = renderWindow.getInteractor();
-                var mainView = renderWindow.getViews()[0];
+                const interactor = renderWindow.getInteractor();
+                const mainView = renderWindow.getViews()[0];
 
                 cam = renderer.get().activeCamera;
 
-                var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
+                let worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
                     renderer: renderer
                 });
                 worldCoord.setCoordinateSystemToWorld();
@@ -2155,7 +2338,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.canvasGeometry = function() {
-                var vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
+                const vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
                 return {
                     pos: $(vtkCanvasHolder).position(),
                     size: {
@@ -2181,9 +2364,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     $scope.axisDirs.dir *= -1;
                 }
                 $scope.side = side;
-                var cp = geometry.basisVectors[side].map(function (c) {
-                    return c * $scope.axisDirs.dir;
-                });
+                const cp = geometry.basisVectors[side]
+                    .map(c =>  c * $scope.axisDirs.dir);
                 setCam(cp, $scope.axisDirs[side].camViewUp);
                 refresh();
             }
@@ -2207,8 +2389,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 if (! snapshotCtx) {
                     return;
                 }
-                var w = parseInt(canvas3d.getAttribute('width'));
-                var h = parseInt(canvas3d.getAttribute('height'));
+                const w = parseInt(canvas3d.getAttribute('width'));
+                const h = parseInt(canvas3d.getAttribute('height'));
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
@@ -2217,45 +2399,38 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             function refresh(doCacheCanvas) {
-
                 if ($scope.axisObj) {
                     $scope.$broadcast('axes.refresh');
                 }
-
                 if (doCacheCanvas) {
                     cacheCanvas();
                 }
             }
 
-            appState.whenModelsLoaded($scope, function () {
-                $scope.$on('vtk.selected', function (e, d) {
-                    $scope.$applyAsync(function () {
-                        $scope.selection = d;
-                    });
+            $scope.$on('vtk.selected', function (e, d) {
+                $scope.$applyAsync(() => {
+                    $scope.selection = d;
                 });
-                $scope.$on('vtk.showLoader', function (e, d) {
-                    setBgColor('#dddddd');
-                    $($element).find('.vtk-load-indicator img').css('display', 'block');
-                });
-                $scope.$on('vtk.hideLoader', function (e, d) {
-                    setBgColor('#ffffff');
-                    $($element).find('.vtk-load-indicator img').css('display', 'none');
-                });
-                $scope.init();
             });
+            $scope.$on('vtk.showLoader', function (e, d) {
+                setBgColor('#dddddd');
+                $($element).find('.vtk-load-indicator img').css('display', 'block');
+            });
+            $scope.$on('vtk.hideLoader', function (e, d) {
+                setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
+                $($element).find('.vtk-load-indicator img').css('display', 'none');
+            });
+            $scope.init();
+
 
             $($window).resize(resize);
         },
-
-        //link: function link(scope, element) {
-        //    vtkPlotting.vtkPlot(scope, element);
-        //},
     };
 });
 
 // general-purpose vtk methods
 SIREPO.app.service('vtkService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
-    var svc = {};
+    let svc = {};
     return svc;
 });
 
@@ -2269,9 +2444,9 @@ SIREPO.app.factory('vtkUtils', function() {
 
     // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
     // can't map, because we will still have a UINT8 array
-    self.rgbToFloat = function (rgb) {
-        var sc = [];
-        for (var i = 0; i < rgb.length; ++i) {
+    self.rgbToFloat = rgb => {
+        let sc = [];
+        for (let i = 0; i < rgb.length; ++i) {
             sc.push(rgb[i] / 255.0);
         }
         return sc;
@@ -2279,9 +2454,9 @@ SIREPO.app.factory('vtkUtils', function() {
 
     // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
     // can't map, because we will still have a UINT8 array
-    self.floatToRGB = function (f) {
-        var rgb = new window.Uint8Array(f.length);
-        for (var i = 0; i < rgb.length; ++i) {
+    self.floatToRGB =  f => {
+        const rgb = new window.Uint8Array(f.length);
+        for (let i = 0; i < rgb.length; ++i) {
             rgb[i] = Math.floor(255 * f[i]);
         }
         return rgb;
@@ -2289,3 +2464,12 @@ SIREPO.app.factory('vtkUtils', function() {
 
     return self;
 });
+
+SIREPO.VTK = {
+    ActorBundle: ActorBundle,
+    BoxBundle: BoxBundle,
+    CoordMapper: CoordMapper,
+    LineBundle: LineBundle,
+    PlaneBundle: PlaneBundle,
+    SphereBundle: SphereBundle,
+};

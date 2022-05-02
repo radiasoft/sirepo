@@ -72,10 +72,10 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             reportId: '<',
         },
         template: `
-            <div style="padding-bottom:1px; clear: both; border: 1px solid black">
-              <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <!--<div style="padding-bottom:1px; clear: both; border: 1px solid black">-->
+              <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="false" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
               <!--<div class="sr-geometry3d-content" style="width: 100%; height: 80vh;"></div>-->
-            </div>
+            <!--</div>-->
         `,
         controller: function($scope) {
             $scope.isClientOnly = true;
@@ -84,7 +84,8 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             let renderWindow = null;
             let vtkAPI = null;
             const actorByVolume = {};
-            const coordMapper = vtkPlotting.coordMapper();
+            const bgColor = 1;
+            const coordMapper = new SIREPO.VTK.CoordMapper();
 
             function volumeURL(volId) {
                 return requestSender.formatUrl(
@@ -104,15 +105,11 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
                     fullpath: true,
                     loadData: true,
                 });
-                const b = coordMapper.buildActorBundle(reader);
-                //const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                //mapper.setInputConnection(reader.getOutputPort());
-                //const actor = vtk.Rendering.Core.vtkActor.newInstance();
-                //actor.setMapper(mapper);
+                const b = coordMapper.buildActorBundle(reader, {
+                    setColor: randomColor(),
+                    setOpacity: 0.3,
+                });
                 //TODO(pjm): user defined colors and opacity per actor
-                b.actor.getProperty().setColor(randomColor());
-                b.actor.getProperty().setOpacity(0.3);
-                //getRenderer().addActor(actor);
                 renderer.addActor(b.actor);
                 actorByVolume[volId] = b.actor;
                 return res;
@@ -161,7 +158,6 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
                 fullScreenRenderer = d.objects.fsRenderer;
-                fullScreenRenderer.setBackground([1, 0.97647, 0.929412]);
                 renderWindow = d.objects.window;
                 renderer = d.objects.renderer;
                 vtkAPI = d.api;
@@ -208,12 +204,12 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
 
             $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {
                 actorByVolume[volId].getProperty().setOpacity(isVisible ? 0.3 : 0);
-                fullScreenRenderer.getRenderWindow().render();
+                renderWindow.render();
             });
 
             $scope.$on('sr-volume-alpha.changed', (event, volId, alpha) => {
                 actorByVolume[volId].getProperty().setOpacity(alpha);
-                fullScreenRenderer.getRenderWindow().render();
+                renderWindow.render();
             });
 
         },
@@ -251,7 +247,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                   <span class="glyphicon" data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
                    {{ row.name }}
                 </div>
-                <input id="volume-{{ row.name }}-alpha-range" type="range" min="0" max="1.0" step="0.1" data-ng-model="row.alpha" data-ng-change="setAlpha(row)">
+                <input id="volume-{{ row.name }}-alpha-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.alpha" data-ng-change="setAlpha(row)">
               </div>
             </div>
         `,

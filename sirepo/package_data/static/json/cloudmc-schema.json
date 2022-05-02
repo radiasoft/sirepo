@@ -13,6 +13,9 @@
             ]
         },
         "sirepoLibs": {
+            "css": [
+                "vtk.css"
+            ],
             "js": [
                 "cloudmc.js",
                 "sirepo-geometry.js",
@@ -34,7 +37,9 @@
         "geometryInput": {
             "dagmcFile": ["DAGMC File", "InputFile", ""]
         },
-        "geometry3DReport": {},
+        "geometry3DReport": {
+            "bgColor": ["Color", "Color", [1, 0.97647, 0.929412]]
+        },
         "openmcAnimation": {},
         "volumes": {}
     },

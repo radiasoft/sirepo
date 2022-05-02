@@ -3,8 +3,267 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+class GeometricObject {
+    constructor(equalityTolerance= 1e-4) {
+        this.equalityTolerance = equalityTolerance;
+    }
+
+    errorMessage(obj, msg) {
+        return `${obj}: ${msg}`;
+    }
+
+    // numbers are to be considered equal if they differ by less than this
+    equalWithin(val1, val2) {
+        return Math.abs(val2 - val1) < this.equalityTolerance;
+    }
+
+    gtOutside(val1, val2) {
+        return val1 - val2 > this.equalityTolerance;
+    }
+
+    gtOrEqualWithin(val1, val2) {
+        return val1 > val2 || this.equalWithin(val1, val2);
+    }
+
+    ltOutside(val1, val2) {
+        return val2 - val1 > this.equalityTolerance;
+    }
+
+    ltOrEqualWithin(val1, val2) {
+        return val1 < val2 || this.equalWithin(val1, val2);
+    }
+}
+
+class Matrix extends GeometricObject {
+    constructor(val) {
+        super();
+        this.val = val;
+        this.dimension = this.getDimension();
+        if (this.dimension > 2) {
+            throw new Error(this.errorMessage(`Arrays with dimension ${this.dimension} not supported`));
+        }
+
+        if (this.dimension === 1) {
+            this.numRows = 1;
+            this.numCols = val.length;
+        }
+        if (this.dimension === 2) {
+            const n = val[0].length;
+            if (! val.every(x => x.length === n)) {
+                throw new Error(this.errorMessage('Rows must contain the same number of elements'));
+            }
+            this.numRows = val.length;
+            this.numCols = n;
+        }
+    }
+
+    getDimension() {
+        if (! Array.isArray(this.val)) {
+            return 0;
+        }
+        return 1 + new Matrix(this.val[0]).dimension;
+    }
+
+    equals(otherMatrix) {
+        if (this.dimension !== otherMatrix.dimension) {
+            return false;
+        }
+        if (['numRows', 'numCols'].some(x => this[x] !== otherMatrix[x])) {
+            return false;
+        }
+        if (this.dimension === 1) {
+            return this.val.every((x, i) => this.equalWithin(x, otherMatrix.val[i]));
+        }
+        for(let i in this.val) {
+            for(let j in otherMatrix.val) {
+                if (! this.equalWithin(this.val[i][j], otherMatrix.val[i][j])) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    errorMessage(msg) {
+        return super.errorMessage(this.val, msg);
+    }
+
+    multiply(otherMatrix) {
+        if (otherMatrix.dimension > this.dimension) {
+            throw new Error(this.errorMessage(`Argument must have lesser or equal dimension (${otherMatrix.dimension} > ${this.dimension})`));
+        }
+        // vector * vector (dot product)
+        if (this.dimension === 1) {
+            if (this.numCols !== otherMatrix.numCols) {
+                throw new Error(this.errorMessage(`Vectors must have same length (${this.numCols} != ${otherMatrix.numCols})`));
+            }
+            return this.val.reduce((sum, x, i) => sum + x * otherMatrix.val[i], 0);
+        }
+
+        if (this.numRows !== otherMatrix.numCols) {
+            throw new Error(this.errorMessage(`numRows must equal argument's numCols (${this.numRows} != ${otherMatrix.numCols})`));
+        }
+
+        // matrix * vector
+        if (otherMatrix.dimension === 1) {
+            let v = [];
+            for (let x of this.val) {
+                v.push((new Matrix(x)).multiply(otherMatrix));
+            }
+            return new Matrix(v);
+        }
+
+        // matrix * matrix
+        let m = [];
+        for(let i in this.val) {
+            let c = [];
+            for(let j in otherMatrix.val) {
+                c.push(otherMatrix.val[j][i]);
+            }
+            m.push(this.multiply(new Matrix(c)).val);
+        }
+        return (new Matrix(m)).transpose();
+    }
+
+    transpose() {
+        let m = [];
+        const ll = this.val[0].length;
+        if (! ll) {
+            this.val.forEach(entry => {
+                m.push([entry]);
+            });
+            return new Matrix(m);
+        }
+        for(let j = 0; j < this.numCols; ++j) {
+            let r = [];
+            for(let i = 0; i < this.numRows; ++i) {
+                r.push(this.val[i][j]);
+            }
+            m.push(r);
+        }
+        return new Matrix(m);
+    }
+}
+
+class SquareMatrix extends Matrix {
+    constructor(val =[[1, 0, 0], [0, 1, 0], [0, 0, 1]]) {
+        super(val);
+        if (this.numRows !== this.numCols) {
+            throw new Error(this.errorMessage(`Not square: ${this.numRows} != ${this.numCols}`));
+        }
+        this.size = this.numRows;
+    }
+
+    det() {
+        if (this.size === 2) {
+            return this.val[0][0] * this.val[1][1] - this.val[1][0] * this.val[0][1];
+        }
+        let d = 0;
+        for(let i in this.val) {
+            let t = 1;
+            let s = 1;
+            for(let j in this.val) {
+                const k = (i + j) % this.size;
+                const l = (i + this.size - j) % this.size;
+                t *= this.val[j][k];
+                s *= this.val[j][l];
+            }
+            d += (t - s);
+        }
+        return d;
+    }
+
+    inverse() {
+        let d = this.det();
+        if (! d) {
+            return null;
+        }
+        const mx = this.transpose();
+        let inv = [];
+        for (let i = 0; i < mx.length; ++i) {
+            let invRow = [];
+            let mult = 1;
+            for(let j = 0; j < mx.length; ++j) {
+                mult = Math.pow(-1,i + j);
+                invRow.push((mult / d) * mx.minor(i, j).det());
+            }
+            inv.push(invRow);
+        }
+        return new SquareMatrix(inv);
+    }
+
+    minor(rowNum, colNum) {
+        let m = [];
+        for(let i = 0; i < this.size; ++i) {
+            let r = [];
+            for(let j = 0; j < this.size; ++j) {
+                if (i !== rowNum && j !== colNum) {
+                    r.push(this.val[i][j]);
+                }
+            }
+            if (r.length > 0) {
+                m.push(r);
+            }
+        }
+        return new SquareMatrix(m);
+    }
+}
+
+class IdentityMatrix extends SquareMatrix {
+    constructor() {
+        super();
+    }
+}
+
+class Transform extends GeometricObject {
+    constructor(matrix = new IdentityMatrix()) {
+        super();
+        this.matrix = matrix;
+        const size = this.matrix.numRows;
+        if (size !== 3) {
+            throw new Error(this.errorMessage(`Matrix has bad size (${size})`));
+        }
+        if (! (matrix instanceof SquareMatrix)) {
+            throw new Error(this.errorMessage(`Matrix is not square (rows ${matrix.numRows} != cols ${matrix.numCols})`));
+        }
+        if (matrix.det() === 0) {
+            throw new Error(this.errorMessage('Matrix is not invertible'));
+        }
+    }
+
+    apply(otherMatrix) {
+        return this.matrix.multiply(otherMatrix);
+    }
+
+    compose(otherXForm) {
+        if (otherXForm.matrix.size !== this.matrix.size) {
+            throw new Error(this.errorMessage('Matrices must be same size (' + this.matrix.size + ' != ' + otherXForm.matrix.size));
+        }
+        return new Transform(new SquareMatrix(this.apply(otherXForm.matrix).val));
+    }
+
+    errorMessage(msg) {
+        return super.errorMessage(this.matrix.val, msg);
+    }
+
+    toString() {
+        let str = '[';
+        for(let i in this.matrix.val) {
+            let rstr = '[';
+            for(let j in this.matrix.val[i]) {
+                rstr += this.matrix.val[i][j];
+                rstr += (j < this.matrix.val[i].length - 1 ? ', ' : ']');
+            }
+            str += rstr;
+            str += (i < this.matrix.val.length -1  ? ', ' : ']');
+        }
+        return str;
+    }
+
+}
+
 // Math.hypot polyfill for Internet Explorer and karma tests
-if (!Math.hypot) {
+if (! Math.hypot) {
     Math.hypot = function() {
         var y = 0, i = arguments.length;
         while (i--) {
@@ -1029,3 +1288,11 @@ SIREPO.app.service('geometry', function(utilities) {
 
 
 });
+
+SIREPO.GEOMETRY = {
+    GeometricObject: GeometricObject,
+    IdentityMatrix: IdentityMatrix,
+    Matrix: Matrix,
+    SquareMatrix: SquareMatrix,
+    Transform: Transform,
+};
