@@ -265,11 +265,10 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                 }
                 //TODO(pjm): sort rows by name
             }
-
+            
             $scope.setAlpha = row => {
                 $rootScope.$broadcast('sr-volume-alpha.changed', row.volId, row.alpha);
             };
-
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;
                 Object.values(appState.models.volumes).forEach(v => {
