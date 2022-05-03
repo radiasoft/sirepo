@@ -13,7 +13,7 @@ class VTKUtils {
     }
 
     static colorToHex(hexStringOrArray) {
-        return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatToHex2(hexStringOrArray) : (hexStringOrArray);
+       return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : (hexStringOrArray);
     }
 
 }
@@ -26,21 +26,27 @@ class ActorBundle {
         this.actor = vtk.Rendering.Core.vtkActor.newInstance({
             mapper: this.mapper
         });
-        let ap = this.actor.getProperty();
+        this.actorProperties = this.actor.getProperty();
         for (const p in actorProperties) {
-            if (ap[p] !== undefined) {
-                ap[p](actorProperties[p]);
-            }
+            this.setActorProperty(p, actorProperties[p]);
         }
     }
 
-    setActorProperty(name, value) {
-        const ap = this.actor.getProperty();
+    getActorProperty(name) {
+        return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
+    }
 
+    setActorProperty(name, value) {
+        // special handling for colors
+        if (name === 'color') {
+            this.setColor(value);
+            return;
+        }
+        this.actorProperties[`set${SIREPO.UTILS.capitalize(name)}`](value);
     }
 
     setColor(color) {
-        this.actor.getProperty().setColor(VTKUtils.colorToFloat());
+        this.actorProperties.setColor(VTKUtils.colorToFloat(color));
     }
 
     setMapper(mapper) {

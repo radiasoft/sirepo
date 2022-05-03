@@ -4,6 +4,9 @@
             "localRoute": "geometry"
         }
     },
+    "constants": {
+        "volumeProperties": ["color", "opacity"]
+    },
     "enum": {
     },
     "dynamicFiles": {
@@ -38,7 +41,7 @@
             "dagmcFile": ["DAGMC File", "InputFile", ""]
         },
         "geometry3DReport": {
-            "alpha": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
             "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]]
         },
         "openmcAnimation": {},
@@ -55,11 +58,11 @@
         "geometry3DReport": {
             "title": "DAGMC Geometry",
             "basic": [
-                "alpha",
+                "opacity",
                 "bgColor"
             ],
             "advanced": [
-                "alpha",
+                "opacity",
                 "bgColor"
             ]
         },

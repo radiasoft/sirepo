@@ -15,13 +15,6 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
-
-class SirepoUtils {
-    static capitalize(s) {
-        return s.charAt(0).toUpperCase() + s.slice(1);
-    }
-}
-
 SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
     return {
         restrict: 'A',
