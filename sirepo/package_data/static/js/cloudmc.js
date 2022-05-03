@@ -7,6 +7,11 @@ SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
+    SIREPO.appFieldEditors = `
+        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+          <input type="color" data-ng-model="model[field]">
+        </div>
+    `;
 });
 
 SIREPO.app.controller('GeometryController', function (appState, persistentSimulation, $scope) {
@@ -64,7 +69,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, vtkToPNG, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requestSender, vtkToPNG, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -72,10 +77,7 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             reportId: '<',
         },
         template: `
-            <!--<div style="padding-bottom:1px; clear: both; border: 1px solid black">-->
-              <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="false" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
-              <!--<div class="sr-geometry3d-content" style="width: 100%; height: 80vh;"></div>-->
-            <!--</div>-->
+            <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope) {
             $scope.isClientOnly = true;
@@ -84,8 +86,76 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             let renderWindow = null;
             let vtkAPI = null;
             const actorByVolume = {};
-            const bgColor = 1;
             const coordMapper = new SIREPO.VTK.CoordMapper();
+
+             function buildAlphaDelegate() {
+                const m = $scope.modelName;
+                const f = 'alpha';
+                const d = panelState.getFieldDelegate(m, f);
+                d.range = function() {
+                    return {
+                        min: appState.fieldProperties(m, f).min,
+                        max: appState.fieldProperties(m, f).max,
+                        step: 0.01
+                    };
+                };
+                d.readout = function() {
+                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+                };
+                d.update = setAlpha;
+                d.watchFields = [];
+                $scope.fieldDelegate = d;
+            }
+
+            function addVolume(volId) {
+                const reader = vtk.IO.Core.vtkHttpDataSetReader.newInstance();
+                const res = reader.setUrl(volumeURL(volId), {
+                    compression: 'zip',
+                    fullpath: true,
+                    loadData: true,
+                });
+                srdbg(getVolumeById(volId));
+                const b = coordMapper.buildActorBundle(reader, {
+                    setColor: SIREPO.VTK.VTKUtils.colorToFloat(getVolumeById(volId).color) || randomColor(),
+                    setOpacity: getVolumeById(volId).alpha || 0.3,
+                });
+                //TODO(pjm): user defined colors and opacity per actor
+                renderer.addActor(b.actor);
+                actorByVolume[volId] = b.actor;
+                return res;
+            }
+
+            function getVolumeById(volId) {
+                for (const n in appState.models.volumes) {
+                    const v = appState.models.volumes[n];
+                    if (v.volId === volId) {
+                        return v;
+                    }
+                }
+                return null;
+            }
+
+            function loadVolumes(volIds) {
+                //TODO(pjm): update progress bar with each promise resolve?
+                return Promise.all(volIds.map(i => addVolume(i)));
+            }
+
+            function randomColor() {
+                return Array(3).fill(0).map(() => Math.random());
+            }
+
+
+            function setAlpha() {
+                if (! renderer) {
+                    return;
+                }
+                for (const volId in actorByVolume) {
+                    const actor = actorByVolume[volId];
+                    //const a = actor.getProperty().getOpacity();
+                    vtkAPI.setActorAlpha(actor, appState.models[$scope.modelName].alpha, false);
+                }
+                renderWindow.render();
+            }
 
             function volumeURL(volId) {
                 return requestSender.formatUrl(
@@ -98,57 +168,13 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
                     });
             }
 
-            function addVolume(volId) {
-                const reader = vtk.IO.Core.vtkHttpDataSetReader.newInstance();
-                const res = reader.setUrl(volumeURL(volId), {
-                    compression: 'zip',
-                    fullpath: true,
-                    loadData: true,
-                });
-                const b = coordMapper.buildActorBundle(reader, {
-                    setColor: randomColor(),
-                    setOpacity: 0.3,
-                });
-                //TODO(pjm): user defined colors and opacity per actor
-                renderer.addActor(b.actor);
-                actorByVolume[volId] = b.actor;
-                return res;
-            }
-
-            function getRenderer() {
-                return fullScreenRenderer.getRenderer();
-            }
-
-            function loadVolumes(volIds) {
-                //TODO(pjm): update progress bar with each promise resolve?
-                return Promise.all(volIds.map(i => addVolume(i)));
-            }
-
-            function randomColor() {
-                return Array(3).fill(0).map(() => Math.random());
-            }
-
             $scope.destroy = () => {
                 //TODO(pjm): add vtk cleanup here
                 fullScreenRenderer.getInteractor().unbindEvents();
             };
 
             $scope.init = () => {
-                //TODO(pjm): need a "loading and/or progress bar" before results are available
-                //fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-                //    background: [1, 0.97647, 0.929412],
-                //    container: $('.sr-geometry3d-content')[0],
-                //});
-                //const vols = [];
-                //for (const n in appState.models.volumes) {
-                //    vols.push(appState.models.volumes[n].volId);
-                //}
-                //loadVolumes(Object.values(vols)).then(() => {
-                    //getRenderer().resetCamera();
-                    //fullScreenRenderer.getRenderWindow().render();
-                    //renderer.resetCamera();
-                    //renderWindow.render();
-                //});
+                buildAlphaDelegate();
             };
 
             $scope.resize = () => {
@@ -192,7 +218,7 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
                     renderer.resetCamera();
                     renderWindow.render();
                 });
-                // move pickers to vtkdisplay?
+                //TODO(mvk): define pickers
                 //cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 //cPicker.setPickFromList(false);
                 //ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
@@ -208,8 +234,14 @@ SIREPO.app.directive('geometry3d', function(appState, plotting, requestSender, v
             });
 
             $scope.$on('sr-volume-alpha.changed', (event, volId, alpha) => {
+                const v = appState.models.volumes[volId];
+                srdbg('V', v);
                 actorByVolume[volId].getProperty().setOpacity(alpha);
                 renderWindow.render();
+            });
+
+            $scope.$on('sr-volume-color.changed', (event, volId, color) => {
+                vtkAPI.setActorColor(actorByVolume[volId], color);
             });
 
         },
@@ -248,6 +280,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                    {{ row.name }}
                 </div>
                 <input id="volume-{{ row.name }}-alpha-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.alpha" data-ng-change="setAlpha(row)">
+                <input id="volume-{{ row.name }}-color" type="color" data-ng-model="row.color" data-ng-change="setColor(row)">
               </div>
             </div>
         `,
@@ -258,17 +291,31 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                 $scope.rows = [];
                 for (const n in appState.models.volumes) {
                     const row = appState.models.volumes[n];
-                    row.name = n;
-                    row.isVisible = true;
-                    row.alpha = 0.3;
+                    //row.name = n;
+                    //row.isVisible = true;
+                    //row.alpha = 0.3;
+                    //row.color = randomColor();
                     $scope.rows.push(row);
                 }
                 //TODO(pjm): sort rows by name
             }
-            
+
+            function randomColor() {
+                return Array(3).fill(0).map(() => Math.random());
+            }
+
+            function setProperty(row, prop) {
+                $rootScope.$broadcast(`sr-volume-${prop}.changed`, row.volId, row[prop]);
+            }
+
             $scope.setAlpha = row => {
-                $rootScope.$broadcast('sr-volume-alpha.changed', row.volId, row.alpha);
+                setProperty(row, 'alpha');
             };
+
+            $scope.setColor = row => {
+                setProperty(row, 'color');
+            };
+
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;
                 Object.values(appState.models.volumes).forEach(v => {

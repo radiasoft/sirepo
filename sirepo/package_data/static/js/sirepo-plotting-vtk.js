@@ -6,6 +6,18 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.ZERO_ARR = [0, 0, 0];
 SIREPO.ZERO_STR = '0, 0, 0';
 
+class VTKUtils {
+
+    static colorToFloat(hexStringOrArray) {
+        return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
+    }
+
+    static colorToHex(hexStringOrArray) {
+        return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatToHex2(hexStringOrArray) : (hexStringOrArray);
+    }
+
+}
+
 class ActorBundle {
     constructor(source, transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
         this.transform = transform;
@@ -20,6 +32,15 @@ class ActorBundle {
                 ap[p](actorProperties[p]);
             }
         }
+    }
+
+    setActorProperty(name, value) {
+        const ap = this.actor.getProperty();
+
+    }
+
+    setColor(color) {
+        this.actor.getProperty().setColor(VTKUtils.colorToFloat());
     }
 
     setMapper(mapper) {
@@ -2140,13 +2161,15 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate';
+            $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
             $scope.modeText[vtkUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.selection = null;
 
             // common
             const api = {
                 getMode: getInteractionMode,
+                setActorAlpha: setActorAlpha,
+                setActorColor: setActorColor,
                 setBg: setBgColor,
                 setCam: setCam,
                 setMarker: setMarker,
@@ -2220,10 +2243,20 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.showSide(api.resetSide);
             }
 
+            function setActorAlpha(actor, alpha, renderNow=true) {
+                actor.getProperty().setOpacity(alpha);
+                if (renderNow) {
+                    renderWindow.render();
+                }
+            }
+
+            function setActorColor(actor, color) {
+                actor.getProperty().setColor(VTKUtils.colorToFloat(color));
+                renderWindow.render();
+            }
+
             function setBgColor(color) {
-                renderer.setBackground(
-                    Array.isArray(color) ? color : vtk.Common.Core.vtkMath.hex2float(color)
-                );
+                renderer.setBackground(VTKUtils.colorToFloat(color));
                 renderWindow.render();
             }
 
@@ -2472,4 +2505,5 @@ SIREPO.VTK = {
     LineBundle: LineBundle,
     PlaneBundle: PlaneBundle,
     SphereBundle: SphereBundle,
+    VTKUtils: VTKUtils,
 };
