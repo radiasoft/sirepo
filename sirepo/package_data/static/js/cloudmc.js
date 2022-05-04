@@ -90,6 +90,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             let vtkAPI = null;
             const bundleByVolume = {};
             const coordMapper = new SIREPO.VTK.CoordMapper();
+            const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];
 
             function buildOpacityDelegate() {
                 const m = $scope.modelName;
@@ -178,16 +179,17 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 if (! renderer) {
                     return;
                 }
+                vtkAPI.setBg(appState.models.geometry3DReport.bgColor);
                 for (const volId in bundleByVolume) {
                     const b = bundleByVolume[volId];
                     const v = getVolumeById(volId);
                     b.setActorProperty(
                         'opacity',
-                        v.isVisible ? v.opacity * $scope.model.opacity : 0
+                        v.isVisible ? v.opacity * appState.models.geometry3DReport.opacity : 0
                     );
                     b.setActorProperty(
                         'edgeVisibility',
-                        $scope.model.showEdges === '1'
+                        appState.models.geometry3DReport.showEdges === '1'
                     );
                 }
                 renderWindow.render();
@@ -278,6 +280,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 });
             }
 
+            appState.watchModelFields($scope, watchFields, setGlobalProperties);
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
