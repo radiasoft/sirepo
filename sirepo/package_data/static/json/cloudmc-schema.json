@@ -41,8 +41,9 @@
             "dagmcFile": ["DAGMC File", "InputFile", ""]
         },
         "geometry3DReport": {
+            "color": ["Background Color", "Color", [1, 0.97647, 0.929412]],
             "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]]
+            "edgeVisibility": ["Show Edges", "Boolean", "0"]
         },
         "openmcAnimation": {},
         "volumes": {}
@@ -59,11 +60,13 @@
             "title": "DAGMC Geometry",
             "basic": [
                 "opacity",
-                "bgColor"
+                "color",
+                "edgeVisibility"
             ],
             "advanced": [
                 "opacity",
-                "bgColor"
+                "color",
+                "edgeVisibility"
             ]
         },
         "volumes": {

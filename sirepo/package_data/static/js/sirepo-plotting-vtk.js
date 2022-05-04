@@ -8,6 +8,9 @@ SIREPO.ZERO_STR = '0, 0, 0';
 
 class VTKUtils {
 
+    static INTERACTION_MODE_MOVE = 'move';
+    static INTERACTION_MODE_SELECT = 'select';
+
     static colorToFloat(hexStringOrArray) {
         return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
     }
@@ -15,7 +18,6 @@ class VTKUtils {
     static colorToHex(hexStringOrArray) {
        return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : (hexStringOrArray);
     }
-
 }
 
 class ActorBundle {
@@ -2157,6 +2159,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            resetSide: '@',
             showBorder: '@',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
@@ -2167,30 +2170,30 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
-            $scope.modeText[vtkUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.modeText[VTKUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
+            $scope.modeText[VTKUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.selection = null;
 
             // common
             const api = {
                 getMode: getInteractionMode,
-                setActorAlpha: setActorAlpha,
-                setActorColor: setActorColor,
                 setBg: setBgColor,
                 setCam: setCam,
                 setMarker: setMarker,
-                resetSide: 'x',
+                resetSide: $scope.resetSide || 'x',
                 showSide: showSide,
                 axisDirs: {
-                    dir: 1,
                     x: {
-                        camViewUp: [0, 0, 1]
+                        camViewUp: [0, 0, 1],
+                        dir: 1,
                     },
                     y: {
-                        camViewUp: [0, 0, 1]
+                        camViewUp: [0, 0, 1],
+                        dir: 1,
                     },
                     z: {
-                        camViewUp: [0, 1, 0]
+                        camViewUp: [0, 1, 0],
+                        dir: 1,
                     }
                 },
             };
@@ -2246,19 +2249,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function ondblclick(evt) {
                 $scope.side = '';
-                $scope.showSide(api.resetSide);
-            }
-
-            function setActorAlpha(actor, alpha, renderNow=true) {
-                actor.getProperty().setOpacity(alpha);
-                if (renderNow) {
-                    renderWindow.render();
+                for (const s in api.axisDirs) {
+                    api.axisDirs[s].dir = 1;
                 }
-            }
-
-            function setActorColor(actor, color) {
-                actor.getProperty().setColor(VTKUtils.colorToFloat(color));
-                renderWindow.render();
+                $scope.showSide(api.resetSide);
             }
 
             function setBgColor(color) {
@@ -2387,7 +2381,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 };
             };
 
-            $scope.interactionMode = vtkUtils.INTERACTION_MODE_MOVE;
+            $scope.interactionMode = VTKUtils.INTERACTION_MODE_MOVE;
 
             $scope.setInteractionMode = function(mode) {
                 $scope.interactionMode = mode;
@@ -2395,16 +2389,16 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.axisDirs = api.axisDirs;
-            $scope.side = 'x';
+            $scope.side = $scope.resetSide;
             $scope.showSide = showSide;
 
-            function showSide(side) {
-                if (side == $scope.side) {
-                    $scope.axisDirs.dir *= -1;
+            function showSide(side, dir = 0) {
+                if (side === $scope.side) {
+                    $scope.axisDirs[side].dir *= -1;
                 }
                 $scope.side = side;
                 const cp = geometry.basisVectors[side]
-                    .map(c =>  c * $scope.axisDirs.dir);
+                    .map(c =>  c * $scope.axisDirs[side].dir);
                 setCam(cp, $scope.axisDirs[side].camViewUp);
                 refresh();
             }

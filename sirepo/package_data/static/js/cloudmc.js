@@ -9,7 +9,7 @@ SIREPO.app.config(() => {
     `;
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <input type="color" data-ng-model="model[field]">
+          <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
     `;
 });
@@ -77,10 +77,13 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope) {
             $scope.isClientOnly = true;
+            $scope.model = appState.models[$scope.modelName];
+
+            let picker = null;
             let fullScreenRenderer = null;
             let renderer = null;
             let renderWindow = null;
@@ -88,7 +91,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             const bundleByVolume = {};
             const coordMapper = new SIREPO.VTK.CoordMapper();
 
-             function buildOpacityDelegate() {
+            function buildOpacityDelegate() {
                 const m = $scope.modelName;
                 const f = 'opacity';
                 const d = panelState.getFieldDelegate(m, f);
@@ -102,7 +105,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 d.readout = function() {
                     return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
                 };
-                d.update = setGlobalOpacity;
+                d.update = setGlobalProperties;
                 d.watchFields = [];
                 $scope.fieldDelegate = d;
             }
@@ -118,6 +121,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 const b = coordMapper.buildActorBundle(reader, {
                     color: v.color,
                     opacity: v.opacity,
+                    edgeVisibility: $scope.model.showEdges === '1',
                 });
                 bundleByVolume[volId] = b;
                 renderer.addActor(b.actor);
@@ -134,20 +138,56 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 return null;
             }
 
+            function getVolumeByActor(a) {
+                for (const volId in bundleByVolume) {
+                    if (bundleByVolume[volId].actor === a) {
+                        return getVolumeById(volId);
+                    }
+                }
+                return null;
+            }
+
+            function handlePick(callData) {
+                if (renderer !== callData.pokedRenderer) {
+                    return;
+                }
+
+                // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
+                if (vtkAPI.getMode() === VTKUtils.INTERACTION_MODE_MOVE ||
+                    (vtkAPI.getMode() === VTKUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
+                ) {
+                    return;
+                }
+
+                const pos = callData.position;
+                picker.pick([pos.x, pos.y, 0.0], renderer);
+
+                const pas = picker.getActors();
+
+                // it seems the 1st actor in the array is the closest to the viewer
+                const actor = pas[0];
+                const v = getVolumeByActor(actor);
+            }
+
             function loadVolumes(volIds) {
                 //TODO(pjm): update progress bar with each promise resolve?
                 return Promise.all(volIds.map(i => addVolume(i)));
             }
 
-            function setGlobalOpacity() {
+            function setGlobalProperties() {
                 if (! renderer) {
                     return;
                 }
                 for (const volId in bundleByVolume) {
+                    const b = bundleByVolume[volId];
                     const v = getVolumeById(volId);
-                    bundleByVolume[volId].setActorProperty(
+                    b.setActorProperty(
                         'opacity',
-                        v.isVisible ? v.opacity * appState.models[$scope.modelName].opacity : 0
+                        v.isVisible ? v.opacity * $scope.model.opacity : 0
+                    );
+                    b.setActorProperty(
+                        'edgeVisibility',
+                        $scope.model.showEdges === '1'
                     );
                 }
                 renderWindow.render();
@@ -174,6 +214,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
 
             $scope.init = () => {
                 buildOpacityDelegate();
+                setGlobalProperties();
             };
 
             $scope.resize = () => {
@@ -217,15 +258,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                     renderer.resetCamera();
                     renderWindow.render();
                 });
-                setGlobalOpacity();
-                //TODO(mvk): define pickers
-                //cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
-                //cPicker.setPickFromList(false);
-                //ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
-                //ptPicker.setPickFromList(true);
-                //ptPicker.initializePickList();
-                //renderWindow.getInteractor().onLeftButtonPress(handlePick);
-                //init();
+                picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
+                picker.setPickFromList(false);
+                renderWindow.getInteractor().onLeftButtonPress(handlePick);
             });
 
             $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {
