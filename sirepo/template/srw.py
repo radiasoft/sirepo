@@ -2034,6 +2034,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
+    pkdp('\n\n\n data.models: \n\n\n\n  {}', data.models)
     v.beamlineOptics, v.beamlineOpticsParameters, beamline_info = _generate_beamline_optics(report, data)
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     # 1: auto-undulator 2: auto-wiggler

@@ -847,8 +847,8 @@
             "horizontalPosition": ["Horizontal Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "verticalPosition": ["Vertical Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
-            "multiElectronAnimation_numberOfMacroElectronsAvg": ["Number of macro-electrons (coherent wavefronts)", "Integer", 5],
-            "multiElectronNumberOfIterations": ["Saving periodicity (in terms of macro-electrons / coherent wavefronts)", "Integer", 5],
+            "wmna": ["Number of macro-electrons (coherent wavefronts)", "Integer", 5],
+            "wmns": ["Saving periodicity (in terms of macro-electrons / coherent wavefronts)", "Integer", 5],
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
@@ -1789,8 +1789,8 @@
                     "integrationMethod",
                     "photonEnergyBandWidth",
                     "calcCoherence",
-                    "multiElectronNumberOfIterations",
-                    "multiElectronAnimation_numberOfMacroElectronsAvg",
+                    "wmns",
+                    "wmna",
                     [
                         ["Horizontal", [
                             "horizontalPosition"
