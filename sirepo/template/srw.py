@@ -2034,7 +2034,6 @@ def _set_parameters(v, data, plot_reports, run_dir):
     report = data.report
     is_for_rsopt = _is_for_rsopt(report)
     dm = data.models
-    pkdp('\n\n\n data.models: \n\n\n\n  {}', data.models)
     v.beamlineOptics, v.beamlineOpticsParameters, beamline_info = _generate_beamline_optics(report, data)
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     # 1: auto-undulator 2: auto-wiggler
@@ -2049,7 +2048,6 @@ def _set_parameters(v, data, plot_reports, run_dir):
     if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
         if sirepo.mpi.cfg.in_slurm:
             v.sbatchBackup = '1'
-            v.multiElectronNumberOfIterations = 25
         if report == 'multiElectronAnimation':
             if dm.multiElectronAnimation.calcCoherence == '1':
                 v.multiElectronCharacteristic = 41

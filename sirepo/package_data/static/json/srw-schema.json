@@ -691,8 +691,8 @@
             "fluxType": ["Entity to Calculate", "Flux", "1"],
             "polarization": ["Polarization Component to Extract", "Polarization", "6"],
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
-            "smna": ["Number of macro-electrons to average", "Integer", 5],
-            "smns": ["Saving periodicity (in terms of macro-electrons)", "Integer", 5],
+            "numberOfMacroElectronsAvg": ["Number of macro-electrons to average on each node", "Integer", 5],
+            "savingPeriodicity": ["Saving periodicity (in terms of macro-electrons)", "Integer", 5],
             "notes": ["Notes", "Text", ""]
         },
         "fluxReport": {
@@ -847,8 +847,8 @@
             "horizontalPosition": ["Horizontal Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "verticalPosition": ["Vertical Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
-            "wmna": ["Number of macro-electrons (coherent wavefronts)", "Integer", 5],
-            "wmns": ["Saving periodicity (in terms of macro-electrons / coherent wavefronts)", "Integer", 5],
+            "numberOfMacroElectronsAvg": ["Number of macro-electrons to average per node", "Integer", 5],
+            "savingPeriodicity": ["Saving periodicity (in terms of macro-electrons / coherent wavefronts)", "Integer", 5],
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
@@ -1498,8 +1498,8 @@
                     "initialEnergy",
                     "finalEnergy",
                     "photonEnergyPointCount",
-                    "smna",
-                    "smns",
+                    "numberOfMacroElectronsAvg",
+                    "savingPeriodicity",
                     [
                         ["Horizontal", [
                             "horizontalApertureSize",
@@ -1789,8 +1789,8 @@
                     "integrationMethod",
                     "photonEnergyBandWidth",
                     "calcCoherence",
-                    "wmns",
-                    "wmna",
+                    "numberOfMacroElectronsAvg",
+                    "savingPeriodicity",
                     [
                         ["Horizontal", [
                             "horizontalPosition"
