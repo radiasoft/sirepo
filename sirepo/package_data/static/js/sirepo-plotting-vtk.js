@@ -348,14 +348,12 @@ class ViewPortObject {
     // points on the screen that have the largest and smallest values in each dimension
     extrema() {
         const ex = {};
-        const dims = SIREPO.GEOMETRY.GeometryUtils.BASIS.slice(0, 2);
-        const rev = [false, true];
-        dims.forEach(dim => {
+        for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS.slice(0, 2)) {
             ex[dim] = [];
-            for (const j of rev ) {
-                ex[dim].push(geometry.extrema(this.viewPortCorners(), dim, rev[j]));
+            for (const x of [false, true]) {
+                ex[dim].push(SIREPO.GEOMETRY.GeometryUtils.extrema(this.viewPortCorners(), dim, x));
             }
-        });
+        }
         return ex;
     }
 }

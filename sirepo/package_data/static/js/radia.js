@@ -2579,7 +2579,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var alphaDelegate = radiaService.alphaDelegate();
             alphaDelegate.update = setAlpha;
             var beamAxis = [[-1, 0, 0], [1, 0, 0]];
-            var cm = vtkPlotting.coordMapper();
+            var cm = new SIREPO.VTK.CoordMapper();
             var colorbar = null;
             var colorbarPtr = null;
             var colorScale = null;
@@ -2774,9 +2774,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
 
                 renderer.addActor(bndBox.actor);
-                var vpb = vtkPlotting.vpBox(bndBox.source, renderer);
+                const vpb = new SIREPO.VTK.ViewPortBox(bndBox.source, renderer);
                 renderWindow.render();
-                vpb.defaultCfg.edgeCfg.z.sense = -1;
                 vpb.initializeWorld(
                     {
                         edgeCfg: {
