@@ -1,3 +1,4 @@
+import sirepo.api
 # -*- coding: utf-8 -*-
 u"""time functions (artificial time)
 
@@ -47,22 +48,23 @@ def adjust_time(days):
         pass
 
 
-@api_perm.allow_visitor
-def api_adjustTime(days=None):
-    """Shift the system time by days and get the adjusted time
-
-    Args:
-        days (str): must be integer. If None or 0, no adjustment.
-    """
-    from sirepo import http_reply
-
-    assert pkconfig.channel_in_internal_test(), \
-        'API forbidden'
-    adjust_time(days)
-    return http_reply.gen_json_ok({
-        'adjustedNow': utc_now().isoformat(),
-        'systemNow': datetime.datetime.utcnow().isoformat(),
-    })
+class _API(sirepo.api.APIBase):
+    @api_perm.allow_visitor
+    def api_adjustTime(self, days=None):
+        """Shift the system time by days and get the adjusted time
+    
+        Args:
+            days (str): must be integer. If None or 0, no adjustment.
+        """
+        from sirepo import http_reply
+    
+        assert pkconfig.channel_in_internal_test(), \
+            'API forbidden'
+        adjust_time(days)
+        return http_reply.gen_json_ok({
+            'adjustedNow': utc_now().isoformat(),
+            'systemNow': datetime.datetime.utcnow().isoformat(),
+        })
 
 
 def init():

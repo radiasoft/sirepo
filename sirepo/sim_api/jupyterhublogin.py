@@ -1,3 +1,4 @@
+import sirepo.api
 # -*- coding: utf-8 -*-
 u"""API's for jupyterhublogin sim
 

@@ -1,3 +1,4 @@
+import sirepo.api
 # -*- coding: utf-8 -*-
 u"""Authentication
 
@@ -78,44 +79,45 @@ uri_router = None
 
 cfg = None
 
-@api_perm.require_cookie_sentinel
-def api_authCompleteRegistration():
-    # Needs to be explicit, because we would need a special permission
-    # for just this API.
-    if not _is_logged_in():
-        raise util.SRException(LOGIN_ROUTE_NAME, None)
-    complete_registration(
-        _parse_display_name(http_request.parse_json().get('displayName')),
-    )
-    return http_reply.gen_json_ok()
-
-
-@api_perm.allow_visitor
-def api_authState():
-    return http_reply.render_static_jinja(
-        'auth-state',
-        'js',
-        PKDict(auth_state=_auth_state()),
-    )
-
-
-@api_perm.allow_visitor
-def api_authLogout(simulation_type=None):
-    """Set the current user as logged out.
-
-    Redirects to root simulation page.
-    """
-    req = None
-    if simulation_type:
-        try:
-            req = http_request.parse_params(type=simulation_type)
-        except AssertionError:
-            pass
-    if _is_logged_in():
-        events.emit('auth_logout', PKDict(uid=_get_user()))
-        cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
-        _set_log_user()
-    return http_reply.gen_redirect_for_app_root(req and req.type)
+class _API(sirepo.api.APIBase):
+    @api_perm.require_cookie_sentinel
+    def api_authCompleteRegistration(self):
+        # Needs to be explicit, because we would need a special permission
+        # for just this API.
+        if not _is_logged_in():
+            raise util.SRException(LOGIN_ROUTE_NAME, None)
+        complete_registration(
+            _parse_display_name(http_request.parse_json().get('displayName')),
+        )
+        return http_reply.gen_json_ok()
+    
+    
+    @api_perm.allow_visitor
+    def api_authState(self):
+        return http_reply.render_static_jinja(
+            'auth-state',
+            'js',
+            PKDict(auth_state=_auth_state()),
+        )
+    
+    
+    @api_perm.allow_visitor
+    def api_authLogout(self, simulation_type=None):
+        """Set the current user as logged out.
+    
+        Redirects to root simulation page.
+        """
+        req = None
+        if simulation_type:
+            try:
+                req = http_request.parse_params(type=simulation_type)
+            except AssertionError:
+                pass
+        if _is_logged_in():
+            events.emit('auth_logout', PKDict(uid=_get_user()))
+            cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+            _set_log_user()
+        return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
 def check_user_has_role(uid, role, raise_forbidden=True):

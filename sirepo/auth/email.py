@@ -1,3 +1,4 @@
+import sirepo.api
 # -*- coding: utf-8 -*-
 u"""Email login
 
@@ -48,66 +49,67 @@ _EXPIRES_MINUTES = 8 * 60
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
-@api_perm.allow_cookieless_set_user
-def api_authEmailAuthorized(simulation_type, token):
-    """Clicked by user in an email
-
-    Token must exist in db and not be expired.
-    """
-    if http_request.is_spider():
-        sirepo.util.raise_forbidden('robots not allowed')
-    req = http_request.parse_params(type=simulation_type)
-    with sirepo.util.THREAD_LOCK:
-        u = AuthEmailUser.search_by(token=token)
-        if u and u.expires >= srtime.utc_now():
-            n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
-            AuthEmailUser.delete_changed_email(u)
-            u.user_name = u.unverified_email
-            u.token = None
-            u.expires = None
+class _API(sirepo.api.APIBase):
+    @api_perm.allow_cookieless_set_user
+    def api_authEmailAuthorized(self, simulation_type, token):
+        """Clicked by user in an email
+    
+        Token must exist in db and not be expired.
+        """
+        if http_request.is_spider():
+            sirepo.util.raise_forbidden('robots not allowed')
+        req = http_request.parse_params(type=simulation_type)
+        with sirepo.util.THREAD_LOCK:
+            u = AuthEmailUser.search_by(token=token)
+            if u and u.expires >= srtime.utc_now():
+                n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
+                AuthEmailUser.delete_changed_email(u)
+                u.user_name = u.unverified_email
+                u.token = None
+                u.expires = None
+                u.save()
+                auth.login(this_module, sim_type=req.type, model=u, display_name=n)
+                raise AssertionError('auth.login returned unexpectedly')
+            if not u:
+                pkdlog('login with invalid token={}', token)
+            else:
+                pkdlog(
+                    'login with expired token={}, email={}',
+                    token,
+                    u.unverified_email,
+                )
+            # if user is already logged in via email, then continue to the app
+            if auth.user_if_logged_in(AUTH_METHOD):
+                pkdlog(
+                    'user already logged in. ignoring invalid token: {}, user: {}',
+                    token,
+                    auth.logged_in_user(),
+                )
+                raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+            auth.login_fail_redirect(req.type, this_module, 'email-token')
+    
+    
+    @api_perm.require_cookie_sentinel
+    def api_authEmailLogin(self):
+        """Start the login process for the user.
+    
+        User has sent an email, which needs to be verified.
+        """
+        req = http_request.parse_post()
+        email = _parse_email(req.req_data)
+        with sirepo.util.THREAD_LOCK:
+            u = AuthEmailUser.search_by(unverified_email=email)
+            if not u:
+                u = AuthEmailUser(unverified_email=email)
+            u.create_token()
             u.save()
-            auth.login(this_module, sim_type=req.type, model=u, display_name=n)
-            raise AssertionError('auth.login returned unexpectedly')
-        if not u:
-            pkdlog('login with invalid token={}', token)
-        else:
-            pkdlog(
-                'login with expired token={}, email={}',
-                token,
-                u.unverified_email,
-            )
-        # if user is already logged in via email, then continue to the app
-        if auth.user_if_logged_in(AUTH_METHOD):
-            pkdlog(
-                'user already logged in. ignoring invalid token: {}, user: {}',
-                token,
-                auth.logged_in_user(),
-            )
-            raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-        auth.login_fail_redirect(req.type, this_module, 'email-token')
-
-
-@api_perm.require_cookie_sentinel
-def api_authEmailLogin():
-    """Start the login process for the user.
-
-    User has sent an email, which needs to be verified.
-    """
-    req = http_request.parse_post()
-    email = _parse_email(req.req_data)
-    with sirepo.util.THREAD_LOCK:
-        u = AuthEmailUser.search_by(unverified_email=email)
-        if not u:
-            u = AuthEmailUser(unverified_email=email)
-        u.create_token()
-        u.save()
-    return _send_login_email(
-        u,
-        uri_router.uri_for_api(
-            'authEmailAuthorized',
-            dict(simulation_type=req.type, token=u.token),
-        ),
-    )
+        return _send_login_email(
+            u,
+            uri_router.uri_for_api(
+                'authEmailAuthorized',
+                dict(simulation_type=req.type, token=u.token),
+            ),
+        )
 
 
 def avatar_uri(model, size):

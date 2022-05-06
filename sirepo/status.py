@@ -1,3 +1,4 @@
+import sirepo.api
 # -*- coding: utf-8 -*-
 u"""Sirepo web server status for remote monitoring
 
@@ -31,18 +32,19 @@ _SIM_NAME = 'Undulator Radiation'
 
 _SIM_REPORT = 'initialIntensityReport'
 
-@api_perm.require_auth_basic
-def api_serverStatus():
-    """Allow for remote monitoring of the web server status.
-
-    The user must be an existing sirepo uid.  The status checks
-    that a simple simulation can complete successfully within a
-    short period of time.
-    """
-    _run_tests()
-    return http_reply.gen_json_ok({
-        'datetime': datetime.datetime.utcnow().isoformat(),
-    })
+class _API(sirepo.api.APIBase):
+    @api_perm.require_auth_basic
+    def api_serverStatus(self):
+        """Allow for remote monitoring of the web server status.
+    
+        The user must be an existing sirepo uid.  The status checks
+        that a simple simulation can complete successfully within a
+        short period of time.
+        """
+        _run_tests()
+        return http_reply.gen_json_ok({
+            'datetime': datetime.datetime.utcnow().isoformat(),
+        })
 
 
 def init_apis(*args, **kwargs):
