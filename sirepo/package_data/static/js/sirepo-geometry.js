@@ -3,9 +3,51 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+
+// Math.hypot polyfill for Internet Explorer and karma tests
+if (! Math.hypot) {
+    Math.hypot = function() {
+        var y = 0, i = arguments.length;
+        while (i--) {
+            y += arguments[i] * arguments[i];
+        }
+        return Math.sqrt(y);
+    };
+}
+
+class GeometryUtils {
+
+    static BASIS = ['x', 'y', 'z'];
+
+    static BASIS_VECTORS = {
+        x: [1, 0, 0],
+        y: [0, 1, 0],
+        z: [0, 0, 1]
+    };
+
+    static extrema(points, dim, doReverse) {
+        const arr = GeometryUtils.sortInDimension(points, dim, doReverse);
+        return arr.filter(p =>  p[dim] == arr[0][dim]);
+    };
+
+    // Sort (with optional reversal) the point array by the values in the given dimension;
+    // Array is cloned first so the original is unchanged
+    static sortInDimension(points, dim, doReverse) {
+        return points.slice(0).sort((p1, p2) => {
+            // throws an exception if the points have different dimensions
+            p1.dist(p2);
+            return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
+        });
+    };
+}
+
 class GeometricObject {
     constructor(equalityTolerance= 1e-4) {
         this.equalityTolerance = equalityTolerance;
+    }
+
+    static arrayString(arr) {
+        return '[' + arr.map(e => e.toString()) + ']';
     }
 
     errorMessage(obj, msg) {
@@ -32,6 +74,10 @@ class GeometricObject {
     ltOrEqualWithin(val1, val2) {
         return val1 < val2 || this.equalWithin(val1, val2);
     }
+
+    toString() {
+        return '<OBJ>';
+    }
 }
 
 class Matrix extends GeometricObject {
@@ -55,6 +101,10 @@ class Matrix extends GeometricObject {
             this.numRows = val.length;
             this.numCols = n;
         }
+    }
+
+    add(otherMatrix) {
+        return this.linearCombination(otherMatrix, 1);
     }
 
     getDimension() {
@@ -86,6 +136,20 @@ class Matrix extends GeometricObject {
 
     errorMessage(msg) {
         return super.errorMessage(this.val, msg);
+    }
+
+    linearCombination(otherMatrix, constant) {
+        if (otherMatrix.dimension !== this.dimension) {
+            throw new Error(this.errorMessage(`Argument must have same dimension (${otherMatrix.dimension} != ${this.dimension})`));
+        }
+        if (otherMatrix.numRows !== this.numRows || otherMatrix.numCols !== this.numCols) {
+            throw new Error(this.errorMessage(`Argument must have same number of rows and columns (rows ${otherMatrix.numRows} vs ${this.numRows}, cols ${otherMatrix.numCols} vs ${this.numCols})`));
+        }
+
+        if (this.dimension === 1) {
+            return new Matrix(this.val.map((x, i) => x * constant * otherMatrix.val[i]));
+        }
+        return new Matrix(this.val.map((x, i) => new Matrix(x).linearCombination(new Matrix(otherMatrix.val[i]), constant)));
     }
 
     multiply(otherMatrix) {
@@ -123,6 +187,10 @@ class Matrix extends GeometricObject {
             m.push(this.multiply(new Matrix(c)).val);
         }
         return (new Matrix(m)).transpose();
+    }
+
+    subtract(otherMatrix) {
+        return this.linearCombination(otherMatrix, -1);
     }
 
     transpose() {
@@ -218,15 +286,17 @@ class IdentityMatrix extends SquareMatrix {
 class Transform extends GeometricObject {
     constructor(matrix = new IdentityMatrix()) {
         super();
-        this.matrix = matrix;
-        const size = this.matrix.numRows;
+        const size = matrix.numRows;
         if (size !== 3) {
             throw new Error(this.errorMessage(`Matrix has bad size (${size})`));
         }
-        if (! (matrix instanceof SquareMatrix)) {
+        if (matrix.numRows !== matrix.numCols) {
             throw new Error(this.errorMessage(`Matrix is not square (rows ${matrix.numRows} != cols ${matrix.numCols})`));
         }
-        if (matrix.det() === 0) {
+
+        // "cast" to square matrix
+        this.matrix = new SquareMatrix(matrix.val);
+        if (this.matrix.det() === 0) {
             throw new Error(this.errorMessage('Matrix is not invertible'));
         }
     }
@@ -262,15 +332,287 @@ class Transform extends GeometricObject {
 
 }
 
-// Math.hypot polyfill for Internet Explorer and karma tests
-if (! Math.hypot) {
-    Math.hypot = function() {
-        var y = 0, i = arguments.length;
-        while (i--) {
-            y += arguments[i] * arguments[i];
+class Point extends GeometricObject {
+    constructor(x, y, z) {
+        super();
+        this.x = x || 0;
+        this.y = y || 0;
+        this.z = z || 0;
+        this.dimension = 2 + (this.z === undefined ? 0 : 1);
+    }
+
+    coords() {
+        return [this.x, this.y, this.z];
+    }
+
+    dist(otherPoint) {
+        if (this.dimension != otherPoint.dimension) {
+            throw new Error('Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension());
         }
-        return Math.sqrt(y);
-    };
+        return Math.hypot(otherPoint.x - this.x, otherPoint.y - this.y, otherPoint.z - this.z);
+    }
+
+    equals(otherPoint) {
+        if (this.dimension !== otherPoint.dimension) {
+            return false;
+        }
+        const z = this.zero();
+        const d = 0.5 * (this.dist(z) + otherPoint.dist(z)) || 1.0;
+        return this.dist(otherPoint) / d < this.equalityTolerance;
+    }
+
+    isInRect(r) {
+        return r.containsPoint(this);
+    }
+
+    toString() {
+        return `(${this.coords()})`;
+    }
+
+    zero() {
+        if (this.dimension === 2) {
+            return new Point(0, 0);
+        }
+        return new Point(0, 0, 0);
+    }
+
+}
+
+class Line extends GeometricObject {
+    constructor(point1, point2) {
+        super();
+        this.points = [point1, point2];
+    }
+
+    contains(point) {
+        const s = this.slope();
+        if (s === Infinity) {
+            return this.equalWithin(point.x, this.points[0].x);
+        }
+        return this.equalWithin(point.y, s * this.points[0].x + this.intercept());
+    }
+
+    equals(otherLine) {
+        if (this.slope() === Infinity && otherLine.slope() === Infinity) {
+            return this.equalWithin(this.points[0].x, otherLine.points[0].x);
+        }
+        return this.slope() === otherLine.slope() && this.intercept() === otherLine.intercept();
+    }
+
+    intercept() {
+        return this.points[0].y - this.points[0].x * this.slope();
+    }
+
+    intersection(otherLine) {
+        if (this.slope() === otherLine.slope()) {
+            if (this.equals(otherLine)) {
+                return this.points[0].x;
+            }
+            return null;
+        }
+        if (this.slope() === Infinity) {
+            return new Point(this.points[0].x, otherLine.slope() * this.points[0].x + otherLine.intercept());
+        }
+        if (otherLine.slope() === Infinity) {
+            return new Point(otherLine.points[0].x, this.slope() * otherLine.points[0].x + this.intercept());
+        }
+        return new Point(
+            (this.intercept() - otherLine.intercept()) / (otherLine.slope() - this.slope()),
+            (otherLine.slope() * this.intercept() - this.slope() * otherLine.intercept()) / (otherLine.slope() - this.slope())
+        );
+    }
+
+    slope() {
+        return this.points[1].x === this.points[0].x ? Infinity :
+            (this.points[1].y - this.points[0].y) / (this.points[1].x - this.points[0].x);
+    }
+
+    comparePoint(point) {
+        if (this.contains(point)) {
+            return 0;
+        }
+        if (this.slope() === Infinity) {
+            return point.x > this.points[0].x ? 1 : -1;
+        }
+        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
+    }
+
+    toString() {
+        return `
+            slope ${this.slope()} intercept ${this.intercept()} (
+            ${this.points.map(p => p.toString())}
+            )
+        `;
+    }
+
+    toVector() {
+        return [this.points[0].x - this.points[1].x, this.points[0].y - this.points[1].y];
+    }
+}
+
+class LineSegment extends Line {
+    constructor(point1, point2) {
+        super(point1, point2);
+    }
+
+    contains(point) {
+        const ext = this.extents();
+        return super.contains(point) &&
+            (this.gtOrEqualWithin(point.x, ext[0][0]) && this.ltOrEqualWithin(point.x, ext[0][1])) &&
+            (this.gtOrEqualWithin(point.y, ext[1][0]) && this.ltOrEqualWithin(point.y, ext[1][1]));
+    }
+
+    equals(otherLineSegment) {
+        return (this.points[0].equals(otherLineSegment.points[0]) && this.points[1].equals(otherLineSegment.points[1])) ||
+            (this.points[0].equals(otherLineSegment.points[1]) && this.points[1].equals(otherLineSegment.points[0]));
+    }
+
+    extents() {
+        const p = this.points;
+        return [
+            [Math.min(p[0].x, p[1].x), Math.max(p[0].x, p[1].x)],
+            [Math.min(p[0].y, p[1].y), Math.max(p[0].y, p[1].y)]
+        ];
+    }
+
+    intersection(otherLineSegment) {
+        const p = super.intersection(otherLineSegment);
+        return p ? (this.contains(p) && otherLineSegment.contains(p) ? p : null) : null;
+    }
+
+    length() {
+        return this.points[0].dist(this.points[1]);
+    }
+
+    pointFilter() {
+        return point => this.contain(point)
+    }
+
+    toString() {
+        return this.points.map(p => p.toString());
+    }
+
+    update(point1, point2) {
+        this.points = [point1, point2];
+    }
+}
+
+
+class Rect extends GeometricObject {
+    constructor(diagPoint1, diagPoint2) {
+        super();
+        this.diagPoint1 = diagPoint1;
+        this.diagPoint2 = diagPoint2;
+        this.points = [diagPoint1, diagPoint1];
+    }
+
+    area() {
+        return Math.abs(this.diagPoint2.x - this.diagPoint1.x) * Math.abs(this.diagPoint2.y - this.diagPoint1.y);
+    }
+
+    boundaryIntersectionsWithLine(line) {
+        return this.sides()
+            .map(s => s.intersection(line))
+            .filter(p => p && this.containsPoint(p));
+    }
+
+    boundaryIntersectionsWithPts(point1, point2) {
+        return this.boundaryIntersectionsWithSeg(new LineSegment(point1, point2));
+    }
+
+    boundaryIntersectionsWithSeg(lineSegment) {
+        return this.boundaryIntersectionsWithLine(lineSegment);
+    }
+
+    center() {
+        return new Point(
+            this.points[0].x + (this.points[1].x - this.points[0].x) / 2,
+            this.points[0].y + (this.points[1].y - this.points[0].y) / 2
+        );
+    }
+
+    containsLineSegment(lineSegment) {
+        return this.containsPoint(lineSegment.points[0]) && this.containsPoint(lineSegment.points[1]);
+    }
+
+    containsPoint(point) {
+        const c = this.corners();
+        return point.x >= c[0].x && point.x <= c[2].x && point.y >= c[0].y && point.y <= c[2].y;
+    }
+
+    containsRect(otherRect) {
+        const crn = otherRect.corners();
+        for(const i in crn) {
+            if (! this.containsPoint(crn[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // corners are sorted to go clockwise from (minx, miny) assuming standard axes directions
+    corners() {
+        const c = [];
+        for(const i in [0, 1]) {
+            const p = this.points[i];
+            for(const j in [0, 1]) {
+                const q = this.points[j];
+                c.push(new Point(p.x, q.y));
+            }
+        }
+        c.sort((p1, p2) => {
+            return p1.x > p2.x ? 1 :
+                (p2.x > p1.x ? -1 : p1.y >= p2.y);
+        });
+        const swap = c[2];
+        c[2] = c[3];
+        c[3] = swap;
+        return c;
+    }
+
+    height() {
+        return this.sides()[0].length();
+    }
+
+    intersects(otherRect) {
+        const rs = otherRect.sides();
+        const ts = this.sides();
+        for(const i in rs) {
+            const rside = rs[i];
+            for(const j in ts) {
+                const tside = ts[j];
+                if (rside.intersection(tside)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    pointFilter() {
+        return p => this.containsPoint(p);
+    }
+
+    segmentsInside(lines) {
+        return lines.filter(l => this.containsLineSegment(l));
+    }
+
+    sides() {
+        const s = [];
+        const c = this.corners();
+        for(const i of [0, 1, 2, 3]) {
+            s.push(new LineSegment(c[i], c[(i + 1) % 4]));
+        }
+        return s;
+    }
+
+    toString() {
+        return GeometricObject.arrayString(this.points);
+    }
+
+    width() {
+        return this.sides()[1].length();
+    }
 }
 
 //TODO(mvk): change from service to classes
@@ -286,10 +628,10 @@ SIREPO.app.service('geometry', function(utilities) {
     };
     this.tolerance = 1e-4;
 
-    this.bestEdgeAndSectionInBounds = function (edges, boundingRect, dim, reverse) {
-        var edge;
-        var section;
-        for(var i in edges) {
+    this.bestEdgeAndSectionInBounds = function(edges, boundingRect, dim, reverse) {
+        let edge;
+        let section;
+        for(const i in edges) {
             edge = edges[i];
             section = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
             if (section) {
@@ -1248,11 +1590,13 @@ SIREPO.app.service('geometry', function(utilities) {
 
         // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
         // boundary rectangle
-        var edgeEndsInBounds = edge.points().filter(boundingRect.pointFilter());
+        const edgeEndsInBounds = edge.points.filter(boundingRect.pointFilter());
+        srdbg(dim, edge, edgeEndsInBounds);
 
         // projectedEnds are the 4 points where the boundary rectangle intersects the
         // *line* defined by the selected edge
         var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
+        srdbg(dim, projectedEnds);
 
         // if the selected edge does not intersect the boundary, it
         // means both ends are off screen; so, reject it
@@ -1291,8 +1635,12 @@ SIREPO.app.service('geometry', function(utilities) {
 
 SIREPO.GEOMETRY = {
     GeometricObject: GeometricObject,
+    GeometryUtils: GeometryUtils,
     IdentityMatrix: IdentityMatrix,
+    LineSegment: LineSegment,
     Matrix: Matrix,
+    Point: Point,
+    Rect: Rect,
     SquareMatrix: SquareMatrix,
     Transform: Transform,
 };

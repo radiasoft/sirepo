@@ -163,10 +163,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], renderer);
 
-                const pas = picker.getActors();
-
-                // it seems the 1st actor in the array is the closest to the viewer
-                const actor = pas[0];
+                const actor = picker.getActors()[0];
                 const v = getVolumeByActor(actor);
             }
 
@@ -197,6 +194,33 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
 
             function setVolumeProperty(bundle, name, value) {
                 bundle.setActorProperty(name, value);
+                renderWindow.render();
+            }
+
+            function volumesLoaded() {
+                $rootScope.$broadcast('vtk.hideLoader');
+
+                const bounds = renderer.computeVisiblePropBounds();
+                srdbg('VO BNDS', bounds);
+                const boundsBox = coordMapper.buildBoundingBox(bounds, 0);
+                renderer.addActor(boundsBox.actor);
+                $scope.axisObj = new ViewPortBox(boundsBox.source, renderer);
+                $scope.axisObj.initializeWorld();
+
+                $scope.axisCfg = {};
+                SIREPO.GEOMETRY.GeometryUtils.BASIS.forEach((dim, i) => {
+                    $scope.axisCfg[dim] = {};
+                    $scope.axisCfg[dim].dimLabel = dim;
+                    $scope.axisCfg[dim].label = dim + ' [m]';
+                    $scope.axisCfg[dim].max = bounds[2 * i + 1];
+                    $scope.axisCfg[dim].min = bounds[2 * i];
+                    $scope.axisCfg[dim].numPoints = 2;
+                    $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
+                    $scope.axisCfg[dim].showCentral = false;
+                });
+                $scope.$apply();
+
+                renderer.resetCamera();
                 renderWindow.render();
             }
 
@@ -237,29 +261,19 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
 
-                const m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: ca,
-                    interactor: renderWindow.getInteractor()
-                });
-                m.setViewportCorner(
+                const m = SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                    ca,
+                    renderWindow.getInteractor(),
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
-                m.setViewportSize(0.07);
-                m.computeViewport();
-                m.setMinPixelSize(50);
-                m.setMaxPixelSize(100);
                 vtkAPI.setMarker(m);
 
                 const vols = [];
                 for (const n in appState.models.volumes) {
                     vols.push(appState.models.volumes[n].volId);
                 }
-                loadVolumes(Object.values(vols)).then(() => {
-                    $rootScope.$broadcast('vtk.hideLoader');
-                    renderWindow.render();
-                    renderer.resetCamera();
-                    renderWindow.render();
-                });
+                loadVolumes(Object.values(vols)).then(volumesLoaded);
+
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);
                 renderWindow.getInteractor().onLeftButtonPress(handlePick);
@@ -317,7 +331,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                    {{ row.name }}
                 </div>
                 <input id="volume-{{ row.name }}-opacity-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.opacity" data-ng-change="broadcastOpacityChanged(row)">
-                <input id="volume-{{ row.name }}-color" type="color" data-ng-model="row.color" data-ng-change="broadcastColorChanged(row)">
+                <input id="volume-{{ row.name }}-color" type="color" class="sr-color-button" data-ng-model="row.color" data-ng-change="broadcastColorChanged(row)">
               </div>
             </div>
         `,
