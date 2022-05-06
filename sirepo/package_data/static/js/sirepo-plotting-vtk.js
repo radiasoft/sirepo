@@ -255,7 +255,6 @@ class ViewPortObject {
         vtkCoord.setCoordinateSystemToWorld();
         vtkCoord.setValue(point.coords());
         const lCoord = vtkCoord.getComputedLocalDisplayValue();
-        srdbg('WCOORD', point.coords(), 'LCOORD', lCoord);
         return new SIREPO.GEOMETRY.Point(lCoord[0] / pixels, lCoord[1] / pixels);
     };
 
@@ -284,7 +283,6 @@ class ViewPortObject {
     externalViewPortEdgesForDimension(dim) {
         const edges = [];
         for (const edge of this.viewPortEdgesForDimension(dim)) {
-            srdbg(dim, 'vpEdge', edge);
             let numCorners = 0;
             let compCount = 0;
             for (const otherDim of SIREPO.GEOMETRY.GeometryUtils.BASIS.filter(x => x !== dim)) {
@@ -1145,7 +1143,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             return e;
         }
 
-        box.vpCenterLineForDimension = function (dim) {
+        box.centerLineForDimension = function (dim) {
             return vpCenterLines()[dim];
         };
 
@@ -1230,7 +1228,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     self.localCoordFromWorld = function (vtkCoord, point) {
         // this is required to do conversions for different displays/devices
         var pixels = window.devicePixelRatio;
-        //srdbg('pix', pixels);
         vtkCoord.setCoordinateSystemToWorld();
         vtkCoord.setValue(point.coords());
         var lCoord = vtkCoord.getComputedLocalDisplayValue();
@@ -2177,7 +2174,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
             function refresh() {
                 const size = [$($element).width(), $($element).height()];
-                const pos = $($element).offset();
                 const screenRect = new SIREPO.GEOMETRY.Rect(
                     new SIREPO.GEOMETRY.Point(
                         $scope.axesMargins.x.width,
@@ -2189,32 +2185,31 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     )
                 );
 
-                var dsz = [size[0] / lastSize[0], size[1] / lastSize[1]];
                 // If an axis is shorter than this, don't display it -- the ticks will
                 // be cramped and unreadable
-                var minAxisDisplayLen = 1;  //50;
+                const minAxisDisplayLen = 50;
 
                 for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS) {
 
                     const cfg = axisCfg[dim];
                     const isHorizontal = cfg.screenDim === 'x';
-                    var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
-                    var perpScreenDim = isHorizontal ? 'y' : 'x';
+                    const axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
+                    const perpScreenDim = isHorizontal ? 'y' : 'x';
 
-                    var showAxisEnds = false;
-                    var axisSelector = '.' + dim + '.axis';
-                    var axisLabelSelector = '.' + dim + '-axis-label';
+                    let showAxisEnds = false;
+                    const axisSelector = `.${dim}.axis`;
+                    const axisLabelSelector = `.${dim}-axis-label`;
 
                     // sort the external edges so we'll preferentially pick the left and bottom
-                    var externalEdges = $scope.boundObj.externalViewPortEdgesForDimension(dim)
+                    const externalEdges = $scope.boundObj.externalViewPortEdgesForDimension(dim)
                         .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
-                    var seg = geometry.bestEdgeAndSectionInBounds(
+                    const seg = geometry.bestEdgeAndSectionInBounds(
                         externalEdges, screenRect, dim, false
                     );
-                    srdbg(dim, seg);
-                    var cl = $scope.boundObj.centerLineForDimension(dim);
-                    var cli = screenRect.boundaryIntersectionsWithSeg(cl);
-                    if (cli && cli.length == 2) {
+                    const cli = screenRect.boundaryIntersectionsWithSeg(
+                        $scope.boundObj.centerLineForDimension(dim)
+                    );
+                    if (cli && cli.length === 2) {
                         $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
                         $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
                     }
@@ -2238,14 +2233,17 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         continue;
                     }
                     d3self.select(axisSelector).style('opacity', 1.0);
-                    //d3self.select(axisSelector).style('stroke', $scope.cfg.color);
 
-                    var fullSeg = seg.full;
-                    var clippedSeg = seg.clipped;
+                    const fullSeg = seg.full;
+                    const clippedSeg = seg.clipped;
                     var reverseOnScreen = vtkAxisService.shouldReverseOnScreen(
-                        $scope.boundObj.vpEdgesForDimension(dim)[seg.index], cfg.screenDim
+                        $scope.boundObj.viewPortEdgesForDimension(dim)[seg.index], cfg.screenDim
                     );
-                    var sortedPts = geometry.sortInDimension(clippedSeg.points(), cfg.screenDim, false);
+                    var sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        clippedSeg.points,
+                        cfg.screenDim,
+                        false
+                    );
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
                     var axisRight = sortedPts[1].x;
@@ -2265,7 +2263,11 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     }
                     var angle = (180 * radAngle / Math.PI);
 
-                    var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), cfg.screenDim, false);
+                    const allPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        fullSeg.points.concat(clippedSeg.points),
+                        cfg.screenDim,
+                        false
+                    );
 
                     var limits = reverseOnScreen ? [cfg.max, cfg.min] : [cfg.min, cfg.max];
                     var newDom = [cfg.min, cfg.max];
@@ -2273,7 +2275,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     for (var m = 0; m < allPts.length; m += 2) {
                         // a point may coincide with its successor
                         var d = allPts[m].dist(allPts[m + 1]);
-                        if (d != 0) {
+                        if (d !== 0) {
                             var j = Math.floor(m / 2);
                             var k = reverseOnScreen ? 1 - j : j;
                             var l1 = limits[j];
@@ -2290,7 +2292,11 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
 
                     // this places the axis tick labels on the appropriate side of the axis
-                    var outsideCorner = geometry.sortInDimension($scope.boundObj.vpCorners(), perpScreenDim, isHorizontal)[0];
+                    var outsideCorner = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        $scope.boundObj.viewPortCorners(),
+                        perpScreenDim,
+                        isHorizontal
+                    )[0];
                     var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
                     if (isHorizontal) {
                         axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
@@ -2421,7 +2427,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
     };
 
     svc.shouldReverseOnScreen = function(edge, screenDim) {
-        return edge.points()[1][screenDim] < edge.points()[0][screenDim];
+        return edge.points[1][screenDim] < edge.points[0][screenDim];
     };
 
     return svc;

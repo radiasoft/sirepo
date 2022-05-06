@@ -27,7 +27,7 @@ class GeometryUtils {
 
     static extrema(points, dim, doReverse) {
         const arr = GeometryUtils.sortInDimension(points, dim, doReverse);
-        return arr.filter(p =>  p[dim] == arr[0][dim]);
+        return arr.filter(p =>  p[dim] === arr[0][dim]);
     };
 
     // Sort (with optional reversal) the point array by the values in the given dimension;
@@ -389,7 +389,7 @@ class Line extends GeometricObject {
         if (s === Infinity) {
             return this.equalWithin(point.x, this.points[0].x);
         }
-        return this.equalWithin(point.y, s * this.points[0].x + this.intercept());
+        return this.equalWithin(point.y, s * point.x + this.intercept());
     }
 
     equals(otherLine) {
@@ -475,8 +475,8 @@ class LineSegment extends Line {
         ];
     }
 
-    intersection(otherLineSegment) {
-        const p = super.intersection(otherLineSegment);
+    intersectionWithSegment(otherLineSegment) {
+        const p = this.intersection(otherLineSegment);
         return p ? (this.contains(p) && otherLineSegment.contains(p) ? p : null) : null;
     }
 
@@ -485,7 +485,7 @@ class LineSegment extends Line {
     }
 
     pointFilter() {
-        return point => this.contain(point)
+        return p => this.contains(p);
     }
 
     toString() {
@@ -503,7 +503,7 @@ class Rect extends GeometricObject {
         super();
         this.diagPoint1 = diagPoint1;
         this.diagPoint2 = diagPoint2;
-        this.points = [diagPoint1, diagPoint1];
+        this.points = [diagPoint1, diagPoint2];
     }
 
     area() {
@@ -1591,32 +1591,29 @@ SIREPO.app.service('geometry', function(utilities) {
         // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
         // boundary rectangle
         const edgeEndsInBounds = edge.points.filter(boundingRect.pointFilter());
-        srdbg(dim, edge, edgeEndsInBounds);
 
         // projectedEnds are the 4 points where the boundary rectangle intersects the
         // *line* defined by the selected edge
-        var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
-        srdbg(dim, projectedEnds);
+        const projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
 
         // if the selected edge does not intersect the boundary, it
         // means both ends are off screen; so, reject it
-        if (projectedEnds.length == 0) {
+        if (projectedEnds.length === 0) {
             return null;
         }
 
         // now we have any edge endpoint that is in or on the boundary, plus
         // the points projected to the boundary
         // get all of those points that also lie on the selected edge
-
-        var ap = edgeEndsInBounds.concat(projectedEnds);
-        var allPoints = ap.filter(edge.pointFilter());
-        var uap = utilities.unique(allPoints, function (p1, p2) {
-            return p1.equals(p2);
-        });
+        const ap = edgeEndsInBounds.concat(projectedEnds);
+        const allPoints = edgeEndsInBounds.concat(projectedEnds).filter(edge.pointFilter());
+        const uap = utilities.unique(allPoints, (p1, p2) => p1.equals(p2));
         if (uap.length < 2) {  // need 2 points to define the line segment
             return null;
         }
-        var section = svc.lineSegmentFromArr(svc.sortInDimension(uap, dim, reverse));
+        const section = new SIREPO.GEOMETRY.LineSegment(
+            ...SIREPO.GEOMETRY.GeometryUtils.sortInDimension(uap, dim, reverse)
+        );
 
         if (edgeEndsInBounds.length === 0) {
             return section;

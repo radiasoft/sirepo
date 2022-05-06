@@ -199,10 +199,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
 
             function volumesLoaded() {
                 $rootScope.$broadcast('vtk.hideLoader');
-
+                renderer.resetCamera();
                 const bounds = renderer.computeVisiblePropBounds();
-                srdbg('VO BNDS', bounds);
-                const boundsBox = coordMapper.buildBoundingBox(bounds, 0);
+                const boundsBox = coordMapper.buildBoundingBox(bounds, 0.05);
                 renderer.addActor(boundsBox.actor);
                 $scope.axisObj = new ViewPortBox(boundsBox.source, renderer);
                 $scope.axisObj.initializeWorld();
@@ -220,7 +219,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 });
                 $scope.$apply();
 
-                renderer.resetCamera();
+                //renderer.resetCamera();
                 renderWindow.render();
             }
 
