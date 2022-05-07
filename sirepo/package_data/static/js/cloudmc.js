@@ -154,8 +154,8 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                if (vtkAPI.getMode() === VTKUtils.INTERACTION_MODE_MOVE ||
-                    (vtkAPI.getMode() === VTKUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
+                if (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.INTERACTION_MODE_MOVE ||
+                    (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
                     return;
                 }
@@ -203,7 +203,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 const bounds = renderer.computeVisiblePropBounds();
                 const boundsBox = coordMapper.buildBoundingBox(bounds, 0.05);
                 renderer.addActor(boundsBox.actor);
-                $scope.axisObj = new ViewPortBox(boundsBox.source, renderer);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, renderer);
                 $scope.axisObj.initializeWorld();
 
                 $scope.axisCfg = {};
@@ -360,7 +360,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                 $scope[`broadcast${SIREPO.UTILS.capitalize(p)}Changed`] = row => {
                     appState.saveChanges('volumes');
                     $rootScope.$broadcast(`sr-volume-${p}.changed`, row.volId, row[p]);
-                }
+                };
             }
 
             $scope.toggleAll = () => {

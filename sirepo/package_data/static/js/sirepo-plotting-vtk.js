@@ -241,7 +241,7 @@ class ViewPortObject {
             arr.forEach(p => {
                 xCoords.push(p.x);
                 yCoords.push(p.y);
-            })
+            });
         });
         return new SIREPO.GEOMETRY.Rect(
             new SIREPO.GEOMETRY.Point(Math.min.apply(null, xCoords), Math.min.apply(null, yCoords)),
@@ -256,7 +256,7 @@ class ViewPortObject {
         vtkCoord.setValue(point.coords());
         const lCoord = vtkCoord.getComputedLocalDisplayValue();
         return new SIREPO.GEOMETRY.Point(lCoord[0] / pixels, lCoord[1] / pixels);
-    };
+    }
 
     worldCorners() {
         const b = this.source.getOutputData().getBounds();
@@ -443,7 +443,7 @@ class ViewPortBox extends ViewPortObject {
         const c = this.worldCorners();
         const e = {};
         for (const dim in this.config.edgeCfg) {
-            const cp = this.config.edgeCfg[dim].edgeCornerPairs
+            const cp = this.config.edgeCfg[dim].edgeCornerPairs;
             const lines = [];
             for (const j in cp) {
                 const p = cp[j];

@@ -1,3 +1,5 @@
+'use strict';
+
 class SirepoUtils {
 
     static camelToKebabCase(v) {

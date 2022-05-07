@@ -28,7 +28,7 @@ class GeometryUtils {
     static extrema(points, dim, doReverse) {
         const arr = GeometryUtils.sortInDimension(points, dim, doReverse);
         return arr.filter(p =>  p[dim] === arr[0][dim]);
-    };
+    }
 
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
@@ -38,7 +38,7 @@ class GeometryUtils {
             p1.dist(p2);
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
-    };
+    }
 }
 
 class GeometricObject {
@@ -103,8 +103,8 @@ class Matrix extends GeometricObject {
         }
     }
 
-    add(otherMatrix) {
-        return this.linearCombination(otherMatrix, 1);
+    add(matrix) {
+        return this.linearCombination(matrix, 1);
     }
 
     getDimension() {
@@ -114,19 +114,19 @@ class Matrix extends GeometricObject {
         return 1 + new Matrix(this.val[0]).dimension;
     }
 
-    equals(otherMatrix) {
-        if (this.dimension !== otherMatrix.dimension) {
+    equals(matrix) {
+        if (this.dimension !== matrix.dimension) {
             return false;
         }
-        if (['numRows', 'numCols'].some(x => this[x] !== otherMatrix[x])) {
+        if (['numRows', 'numCols'].some(x => this[x] !== matrix[x])) {
             return false;
         }
         if (this.dimension === 1) {
-            return this.val.every((x, i) => this.equalWithin(x, otherMatrix.val[i]));
+            return this.val.every((x, i) => this.equalWithin(x, matrix.val[i]));
         }
         for(let i in this.val) {
-            for(let j in otherMatrix.val) {
-                if (! this.equalWithin(this.val[i][j], otherMatrix.val[i][j])) {
+            for(let j in matrix.val) {
+                if (! this.equalWithin(this.val[i][j], matrix.val[i][j])) {
                     return false;
                 }
             }
@@ -138,41 +138,41 @@ class Matrix extends GeometricObject {
         return super.errorMessage(this.val, msg);
     }
 
-    linearCombination(otherMatrix, constant) {
-        if (otherMatrix.dimension !== this.dimension) {
-            throw new Error(this.errorMessage(`Argument must have same dimension (${otherMatrix.dimension} != ${this.dimension})`));
+    linearCombination(matrix, constant) {
+        if (matrix.dimension !== this.dimension) {
+            throw new Error(this.errorMessage(`Argument must have same dimension (${matrix.dimension} != ${this.dimension})`));
         }
-        if (otherMatrix.numRows !== this.numRows || otherMatrix.numCols !== this.numCols) {
-            throw new Error(this.errorMessage(`Argument must have same number of rows and columns (rows ${otherMatrix.numRows} vs ${this.numRows}, cols ${otherMatrix.numCols} vs ${this.numCols})`));
+        if (matrix.numRows !== this.numRows || matrix.numCols !== this.numCols) {
+            throw new Error(this.errorMessage(`Argument must have same number of rows and columns (rows ${matrix.numRows} vs ${this.numRows}, cols ${matrix.numCols} vs ${this.numCols})`));
         }
 
         if (this.dimension === 1) {
-            return new Matrix(this.val.map((x, i) => x * constant * otherMatrix.val[i]));
+            return new Matrix(this.val.map((x, i) => x * constant * matrix.val[i]));
         }
-        return new Matrix(this.val.map((x, i) => new Matrix(x).linearCombination(new Matrix(otherMatrix.val[i]), constant)));
+        return new Matrix(this.val.map((x, i) => new Matrix(x).linearCombination(new Matrix(matrix.val[i]), constant)));
     }
 
-    multiply(otherMatrix) {
-        if (otherMatrix.dimension > this.dimension) {
-            throw new Error(this.errorMessage(`Argument must have lesser or equal dimension (${otherMatrix.dimension} > ${this.dimension})`));
+    multiply(matrix) {
+        if (matrix.dimension > this.dimension) {
+            throw new Error(this.errorMessage(`Argument must have lesser or equal dimension (${matrix.dimension} > ${this.dimension})`));
         }
         // vector * vector (dot product)
         if (this.dimension === 1) {
-            if (this.numCols !== otherMatrix.numCols) {
-                throw new Error(this.errorMessage(`Vectors must have same length (${this.numCols} != ${otherMatrix.numCols})`));
+            if (this.numCols !== matrix.numCols) {
+                throw new Error(this.errorMessage(`Vectors must have same length (${this.numCols} != ${matrix.numCols})`));
             }
-            return this.val.reduce((sum, x, i) => sum + x * otherMatrix.val[i], 0);
+            return this.val.reduce((sum, x, i) => sum + x * matrix.val[i], 0);
         }
 
-        if (this.numRows !== otherMatrix.numCols) {
-            throw new Error(this.errorMessage(`numRows must equal argument's numCols (${this.numRows} != ${otherMatrix.numCols})`));
+        if (this.numRows !== matrix.numCols) {
+            throw new Error(this.errorMessage(`numRows must equal argument's numCols (${this.numRows} != ${matrix.numCols})`));
         }
 
         // matrix * vector
-        if (otherMatrix.dimension === 1) {
+        if (matrix.dimension === 1) {
             let v = [];
             for (let x of this.val) {
-                v.push((new Matrix(x)).multiply(otherMatrix));
+                v.push((new Matrix(x)).multiply(matrix));
             }
             return new Matrix(v);
         }
@@ -181,16 +181,16 @@ class Matrix extends GeometricObject {
         let m = [];
         for(let i in this.val) {
             let c = [];
-            for(let j in otherMatrix.val) {
-                c.push(otherMatrix.val[j][i]);
+            for(let j in matrix.val) {
+                c.push(matrix.val[j][i]);
             }
             m.push(this.multiply(new Matrix(c)).val);
         }
         return (new Matrix(m)).transpose();
     }
 
-    subtract(otherMatrix) {
-        return this.linearCombination(otherMatrix, -1);
+    subtract(matrix) {
+        return this.linearCombination(matrix, -1);
     }
 
     transpose() {
@@ -301,15 +301,15 @@ class Transform extends GeometricObject {
         }
     }
 
-    apply(otherMatrix) {
-        return this.matrix.multiply(otherMatrix);
+    apply(matrix) {
+        return this.matrix.multiply(matrix);
     }
 
-    compose(otherXForm) {
-        if (otherXForm.matrix.size !== this.matrix.size) {
-            throw new Error(this.errorMessage('Matrices must be same size (' + this.matrix.size + ' != ' + otherXForm.matrix.size));
+    compose(transform) {
+        if (transform.matrix.size !== this.matrix.size) {
+            throw new Error(this.errorMessage('Matrices must be same size (' + this.matrix.size + ' != ' + transform.matrix.size));
         }
-        return new Transform(new SquareMatrix(this.apply(otherXForm.matrix).val));
+        return new Transform(new SquareMatrix(this.apply(transform.matrix).val));
     }
 
     errorMessage(msg) {
@@ -345,20 +345,20 @@ class Point extends GeometricObject {
         return [this.x, this.y, this.z];
     }
 
-    dist(otherPoint) {
-        if (this.dimension != otherPoint.dimension) {
-            throw new Error('Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension());
+    dist(point) {
+        if (this.dimension != point.dimension) {
+            throw new Error('Points in array have different dimensions: ' + this.dimension() + ' != ' + point.dimension());
         }
-        return Math.hypot(otherPoint.x - this.x, otherPoint.y - this.y, otherPoint.z - this.z);
+        return Math.hypot(point.x - this.x, point.y - this.y, point.z - this.z);
     }
 
-    equals(otherPoint) {
-        if (this.dimension !== otherPoint.dimension) {
+    equals(point) {
+        if (this.dimension !== point.dimension) {
             return false;
         }
         const z = this.zero();
-        const d = 0.5 * (this.dist(z) + otherPoint.dist(z)) || 1.0;
-        return this.dist(otherPoint) / d < this.equalityTolerance;
+        const d = 0.5 * (this.dist(z) + point.dist(z)) || 1.0;
+        return this.dist(point) / d < this.equalityTolerance;
     }
 
     isInRect(r) {
@@ -392,33 +392,33 @@ class Line extends GeometricObject {
         return this.equalWithin(point.y, s * point.x + this.intercept());
     }
 
-    equals(otherLine) {
-        if (this.slope() === Infinity && otherLine.slope() === Infinity) {
-            return this.equalWithin(this.points[0].x, otherLine.points[0].x);
+    equals(line) {
+        if (this.slope() === Infinity && line.slope() === Infinity) {
+            return this.equalWithin(this.points[0].x, line.points[0].x);
         }
-        return this.slope() === otherLine.slope() && this.intercept() === otherLine.intercept();
+        return this.slope() === line.slope() && this.intercept() === line.intercept();
     }
 
     intercept() {
         return this.points[0].y - this.points[0].x * this.slope();
     }
 
-    intersection(otherLine) {
-        if (this.slope() === otherLine.slope()) {
-            if (this.equals(otherLine)) {
+    intersection(line) {
+        if (this.slope() === line.slope()) {
+            if (this.equals(line)) {
                 return this.points[0].x;
             }
             return null;
         }
         if (this.slope() === Infinity) {
-            return new Point(this.points[0].x, otherLine.slope() * this.points[0].x + otherLine.intercept());
+            return new Point(this.points[0].x, line.slope() * this.points[0].x + line.intercept());
         }
-        if (otherLine.slope() === Infinity) {
-            return new Point(otherLine.points[0].x, this.slope() * otherLine.points[0].x + this.intercept());
+        if (line.slope() === Infinity) {
+            return new Point(line.points[0].x, this.slope() * line.points[0].x + this.intercept());
         }
         return new Point(
-            (this.intercept() - otherLine.intercept()) / (otherLine.slope() - this.slope()),
-            (otherLine.slope() * this.intercept() - this.slope() * otherLine.intercept()) / (otherLine.slope() - this.slope())
+            (this.intercept() - line.intercept()) / (line.slope() - this.slope()),
+            (line.slope() * this.intercept() - this.slope() * line.intercept()) / (line.slope() - this.slope())
         );
     }
 
@@ -462,9 +462,9 @@ class LineSegment extends Line {
             (this.gtOrEqualWithin(point.y, ext[1][0]) && this.ltOrEqualWithin(point.y, ext[1][1]));
     }
 
-    equals(otherLineSegment) {
-        return (this.points[0].equals(otherLineSegment.points[0]) && this.points[1].equals(otherLineSegment.points[1])) ||
-            (this.points[0].equals(otherLineSegment.points[1]) && this.points[1].equals(otherLineSegment.points[0]));
+    equals(lineSegment) {
+        return (this.points[0].equals(lineSegment.points[0]) && this.points[1].equals(lineSegment.points[1])) ||
+            (this.points[0].equals(lineSegment.points[1]) && this.points[1].equals(lineSegment.points[0]));
     }
 
     extents() {
@@ -475,9 +475,9 @@ class LineSegment extends Line {
         ];
     }
 
-    intersectionWithSegment(otherLineSegment) {
-        const p = this.intersection(otherLineSegment);
-        return p ? (this.contains(p) && otherLineSegment.contains(p) ? p : null) : null;
+    intersectionWithSegment(lineSegment) {
+        const p = this.intersection(lineSegment);
+        return p ? (this.contains(p) && lineSegment.contains(p) ? p : null) : null;
     }
 
     length() {
@@ -540,8 +540,8 @@ class Rect extends GeometricObject {
         return point.x >= c[0].x && point.x <= c[2].x && point.y >= c[0].y && point.y <= c[2].y;
     }
 
-    containsRect(otherRect) {
-        const crn = otherRect.corners();
+    containsRect(rect) {
+        const crn = rect.corners();
         for(const i in crn) {
             if (! this.containsPoint(crn[i])) {
                 return false;
@@ -574,8 +574,8 @@ class Rect extends GeometricObject {
         return this.sides()[0].length();
     }
 
-    intersects(otherRect) {
-        const rs = otherRect.sides();
+    intersects(rect) {
+        const rs = rect.sides();
         const ts = this.sides();
         for(const i in rs) {
             const rside = rs[i];
