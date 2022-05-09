@@ -96,19 +96,17 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 const m = $scope.modelName;
                 const f = 'opacity';
                 const d = panelState.getFieldDelegate(m, f);
-                d.range = function() {
+                d.range = () => {
                     return {
                         min: appState.fieldProperties(m, f).min,
                         max: appState.fieldProperties(m, f).max,
                         step: 0.01
                     };
                 };
-                d.readout = function() {
+                d.readout = () => {
                     return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
                 };
                 d.update = setGlobalProperties;
-                d.watchFields = [];
-                $scope.fieldDelegate = d;
             }
 
             function addVolume(volId) {
@@ -198,6 +196,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             }
 
             function volumesLoaded() {
+                setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
                 renderer.resetCamera();
                 const bounds = renderer.computeVisiblePropBounds();
@@ -218,8 +217,6 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                     $scope.axisCfg[dim].showCentral = false;
                 });
                 $scope.$apply();
-
-                //renderer.resetCamera();
                 renderWindow.render();
             }
 
@@ -238,8 +235,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             $scope.destroy = () => {};
 
             $scope.init = () => {
-                buildOpacityDelegate();
-                setGlobalProperties();
+                $scope.fieldDelegate = buildOpacityDelegate();
             };
 
             $scope.resize = () => {
