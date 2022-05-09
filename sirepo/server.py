@@ -1,11 +1,9 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""Flask server interface
 
 :copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
@@ -21,6 +19,7 @@ from sirepo import uri_router
 import contextlib
 import flask
 import re
+import sirepo.api
 import sirepo.db_upgrade
 import sirepo.resource
 import sirepo.sim_data

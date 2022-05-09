@@ -1,16 +1,15 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""time functions (artificial time)
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 import datetime
+import sirepo.api
 import sirepo.util
 import time
 

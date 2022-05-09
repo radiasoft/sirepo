@@ -5,7 +5,6 @@ u"""Authentication
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -22,6 +21,7 @@ from sirepo import util
 import contextlib
 import datetime
 import importlib
+import sirepo.api
 import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.template

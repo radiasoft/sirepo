@@ -157,7 +157,7 @@ def register_api_module(module=None):
     if hasattr(m, 'init_apis'):
         m.init_apis()
     # It's ok if there are no APIs
-    for n, o in inspect.getmembers(m):
+    for n, o in inspect.getmembers(m._API):
         if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
             assert not n in _api_funcs, \
                 'function is duplicate: func={} module={}'.format(n, m.__name__)

@@ -1,4 +1,3 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""Email login
 
@@ -23,6 +22,7 @@ import datetime
 import flask
 import hashlib
 import pyisemail
+import sirepo.api
 import sirepo.template
 import sirepo.uri
 import sirepo.util

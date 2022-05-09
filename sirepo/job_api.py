@@ -1,10 +1,8 @@
-import sirepo.api
 u"""Entry points for job execution
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
@@ -17,6 +15,7 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
