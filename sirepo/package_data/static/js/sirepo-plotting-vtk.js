@@ -12,7 +12,7 @@ class VTKUtils {
         return {
             INTERACTION_MODE_MOVE: 'move',
             INTERACTION_MODE_SELECT: 'select',
-        }
+        };
     }
 
     static colorToFloat(hexStringOrArray) {
