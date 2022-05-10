@@ -157,6 +157,8 @@ def register_api_module(module=None):
     if hasattr(m, 'init_apis'):
         m.init_apis()
     # It's ok if there are no APIs
+    if not hasattr(m, 'API'):
+        return
     c = m.API()
     for n, o in inspect.getmembers(c):
         if n.startswith(_FUNC_PREFIX) and inspect.ismethod(o):

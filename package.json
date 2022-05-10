@@ -5,7 +5,7 @@
   "devDependencies": {
     "jasmine-core": "latest",
     "jshint": "latest",
-    "karma": "latest",
+    "karma": "^6.3.19",
     "karma-chrome-launcher": "latest",
     "karma-jasmine": "latest"
   },
