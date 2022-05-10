@@ -53,7 +53,7 @@ _ROBOTS_TXT = None
 _app = None
 
 
-class _API(sirepo.api.APIBase):
+class API(sirepo.api.APIBase):
     @api_perm.require_user
     def api_copyNonSessionSimulation(self):
         req = http_request.parse_post(id=True, template=True)

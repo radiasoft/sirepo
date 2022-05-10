@@ -1,11 +1,9 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""NSLS-II BlueSky Login
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
@@ -16,6 +14,7 @@ from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
@@ -41,7 +40,7 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-class _API(sirepo.api.APIBase):
+class API(sirepo.api.APIBase):
     @api_perm.allow_cookieless_set_user
     def api_authBlueskyLogin(self):
         req = sirepo.http_request.parse_post(id=True)

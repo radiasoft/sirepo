@@ -1,17 +1,16 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""API's for jupyterhublogin sim
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 import flask
 import py.error
 import re
+import sirepo.api
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db

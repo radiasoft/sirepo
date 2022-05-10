@@ -1,4 +1,3 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""Authentication
 
@@ -79,7 +78,8 @@ uri_router = None
 
 cfg = None
 
-class _API(sirepo.api.APIBase):
+
+class API(sirepo.api.APIBase):
     @api_perm.require_cookie_sentinel
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission

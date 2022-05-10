@@ -49,7 +49,8 @@ _EXPIRES_MINUTES = 8 * 60
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
-class _API(sirepo.api.APIBase):
+
+class API(sirepo.api.APIBase):
     @api_perm.allow_cookieless_set_user
     def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email

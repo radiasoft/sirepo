@@ -27,7 +27,6 @@ def assert_api_def(func):
 
 
 def check_api_call(func):
-    """Check if current user has permission to call this func"""
     expect = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
     if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):

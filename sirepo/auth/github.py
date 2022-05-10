@@ -1,4 +1,3 @@
-import sirepo.api
 # -*- coding: utf-8 -*-
 u"""GitHub Login
 
@@ -23,6 +22,7 @@ from sirepo import util
 import authlib.integrations.requests_client
 import authlib.oauth2.rfc6749.errors
 import flask
+import sirepo.api
 import sirepo.events
 import sqlalchemy
 
@@ -43,7 +43,7 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-class _API(sirepo.api.APIBase):
+class API(sirepo.api.APIBase):
     @api_perm.allow_cookieless_set_user
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
