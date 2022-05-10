@@ -157,10 +157,19 @@ def register_api_module(module=None):
     if hasattr(m, 'init_apis'):
         m.init_apis()
     # It's ok if there are no APIs
-    for n, o in inspect.getmembers(m._API):
-        if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
+    # todo(raven)
+    #  if m._API exists
+    #  create an instance of m.API
+    #  store n off of that instance
+    c = m._API()
+    for n, o in inspect.getmembers(c):
+        print("Trying to use ", o)
+        print("started with prefix", n.startswith(_FUNC_PREFIX))
+        print("ismethod: ", inspect.ismethod(o))
+        if n.startswith(_FUNC_PREFIX) and inspect.ismethod(o):
             assert not n in _api_funcs, \
                 'function is duplicate: func={} module={}'.format(n, m.__name__)
+            print(f"Tracking {n} with {o}")
             _api_funcs[n] = o
 
 
