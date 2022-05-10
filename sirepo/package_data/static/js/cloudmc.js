@@ -152,8 +152,8 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                if (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.INTERACTION_MODE_MOVE ||
-                    (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
+                if (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE ||
+                    (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
                     return;
                 }
@@ -206,7 +206,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 $scope.axisObj.initializeWorld();
 
                 $scope.axisCfg = {};
-                SIREPO.GEOMETRY.GeometryUtils.BASIS.forEach((dim, i) => {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
                     $scope.axisCfg[dim] = {};
                     $scope.axisCfg[dim].dimLabel = dim;
                     $scope.axisCfg[dim].label = dim + ' [m]';
@@ -280,14 +280,14 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 );
             });
 
-            for (const p of SIREPO.APP_SCHEMA.constants.volumeProperties) {
-                $scope.$on(`sr-volume-${p}.changed`, (event, volId, val) => {
-                    if (p === 'opacity') {
-                        getVolumeById(volId).isVisible = val > 0;
-                    }
-                    setVolumeProperty(bundleByVolume[volId], p, val);
-                });
-            }
+
+            $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
+                if (prop === 'opacity') {
+                    getVolumeById(volId).isVisible = val > 0;
+                }
+                setVolumeProperty(bundleByVolume[volId], prop, val);
+            });
+
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
         },
@@ -325,8 +325,8 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                   <span class="glyphicon" data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
                    {{ row.name }}
                 </div>
-                <input id="volume-{{ row.name }}-opacity-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.opacity" data-ng-change="broadcastOpacityChanged(row)">
-                <input id="volume-{{ row.name }}-color" type="color" class="sr-color-button" data-ng-model="row.color" data-ng-change="broadcastColorChanged(row)">
+                <input id="volume-{{ row.name }}-opacity-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.opacity" data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')">
+                <input id="volume-{{ row.name }}-color" type="color" class="sr-color-button" data-ng-model="row.color" data-ng-change="broadcastVolumePropertyChanged(row, 'color')">
               </div>
             </div>
         `,
@@ -352,12 +352,11 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                 return Array(3).fill(0).map(() => Math.random());
             }
 
-            for (const p of SIREPO.APP_SCHEMA.constants.volumeProperties) {
-                $scope[`broadcast${SIREPO.UTILS.capitalize(p)}Changed`] = row => {
-                    appState.saveChanges('volumes');
-                    $rootScope.$broadcast(`sr-volume-${p}.changed`, row.volId, row[p]);
-                };
-            }
+            $scope.broadcastVolumePropertyChanged = (row, prop) => {
+                appState.saveChanges('volumes');
+                $rootScope.$broadcast('sr-volume-property.changed', row.volId, prop, row[prop]);
+            };
+
 
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;

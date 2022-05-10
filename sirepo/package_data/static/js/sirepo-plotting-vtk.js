@@ -8,8 +8,12 @@ SIREPO.ZERO_STR = '0, 0, 0';
 
 class VTKUtils {
 
-    static INTERACTION_MODE_MOVE = 'move';
-    static INTERACTION_MODE_SELECT = 'select';
+    static interactionMode() {
+        return {
+            INTERACTION_MODE_MOVE: 'move',
+            INTERACTION_MODE_SELECT: 'select',
+        }
+    }
 
     static colorToFloat(hexStringOrArray) {
         return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
@@ -285,7 +289,10 @@ class ViewPortObject {
         for (const edge of this.viewPortEdgesForDimension(dim)) {
             let numCorners = 0;
             let compCount = 0;
-            for (const otherDim of SIREPO.GEOMETRY.GeometryUtils.BASIS.filter(x => x !== dim)) {
+            for (const otherDim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                if (otherDim === dim) {
+                    continue;
+                }
                 for (const otherEdge of this.viewPortEdgesForDimension(otherDim)) {
                     const otherEdgeCorners = otherEdge.points;
                     for (let k = 0; k <= 1; ++k) {
@@ -348,7 +355,7 @@ class ViewPortObject {
     // points on the screen that have the largest and smallest values in each dimension
     extrema() {
         const ex = {};
-        for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS.slice(0, 2)) {
+        for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice(0, 2)) {
             ex[dim] = [];
             for (const x of [false, true]) {
                 ex[dim].push(SIREPO.GEOMETRY.GeometryUtils.extrema(this.viewPortCorners(), dim, x));
@@ -374,8 +381,8 @@ class ViewPortBox extends ViewPortObject {
                 [0, 0, l[2] / 2]
             ]
         ));
-        for(const dim in SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS) {
-            const txp = tx.apply(new SIREPO.GEOMETRY.Matrix(SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS[dim]));
+        for(const dim in SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()) {
+            const txp = tx.apply(new SIREPO.GEOMETRY.Matrix(SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim]));
             cls[dim] = new SIREPO.GEOMETRY.LineSegment(
                 this.localCoordFromWorld(new SIREPO.GEOMETRY.Point(...ctr.subtract(txp).val)),
                 this.localCoordFromWorld(new SIREPO.GEOMETRY.Point(...ctr.add(txp).val))
@@ -2187,7 +2194,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 // be cramped and unreadable
                 const minAxisDisplayLen = 50;
 
-                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS) {
+                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
 
                     const cfg = axisCfg[dim];
                     const isHorizontal = cfg.screenDim === 'x';
@@ -2450,13 +2457,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
 
-            $scope.vtkUtils = vtkUtils;
+            $scope.VTKUtils = VTKUtils;
             $scope.markerState = {
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[VTKUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
-            $scope.modeText[VTKUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
+            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.selection = null;
 
             // common
@@ -2666,7 +2673,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 };
             };
 
-            $scope.interactionMode = VTKUtils.INTERACTION_MODE_MOVE;
+            $scope.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
 
             $scope.setInteractionMode = function(mode) {
                 $scope.interactionMode = mode;

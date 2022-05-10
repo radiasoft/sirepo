@@ -17,13 +17,17 @@ if (! Math.hypot) {
 
 class GeometryUtils {
 
-    static BASIS = ['x', 'y', 'z'];
+    static BASIS() {
+        return ['x', 'y', 'z'];
+    }
 
-    static BASIS_VECTORS = {
-        x: [1, 0, 0],
-        y: [0, 1, 0],
-        z: [0, 0, 1]
-    };
+    static BASIS_VECTORS() {
+        return {
+            x: [1, 0, 0],
+            y: [0, 1, 0],
+            z: [0, 0, 1]
+        };
+    }
 
     static extrema(points, dim, doReverse) {
         const arr = GeometryUtils.sortInDimension(points, dim, doReverse);
