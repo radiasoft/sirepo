@@ -6,8 +6,15 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.ZERO_ARR = [0, 0, 0];
 SIREPO.ZERO_STR = '0, 0, 0';
 
+/**
+ * Collection of static methods and fields related to vtk
+ */
 class VTKUtils {
 
+    /**
+     * Modes when interacting with the vtk canvas
+     * @returns {Object} - interactionModes
+     */
     static interactionMode() {
         return {
             INTERACTION_MODE_MOVE: 'move',
@@ -15,14 +22,34 @@ class VTKUtils {
         };
     }
 
+    /**
+     * Converts a string or an array of floats to an array of floats using vtk's conversion util, for use in
+     * colors
+     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
+     * @returns {[number]} - array of floats ranging from 0 - 1.
+     */
     static colorToFloat(hexStringOrArray) {
         return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
     }
 
+    /**
+     * Converts a string or an array of floats to a string using vtk's conversion util, for use in
+     * colors
+     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
+     * @returns {[number]} - a color string (#rrggbb)
+     */
     static colorToHex(hexStringOrArray) {
        return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : (hexStringOrArray);
     }
 
+    /**
+     * Makes an orientation widget out of the given vtk actor and interactor, placed in the given corner of the
+     * viewport
+     * @param {vtk.Rendering.Core.vtkActor} actor - vtk actor
+     * @param {vtk.Rendering.Core.vtkRenderWindowInteractor} interactor - interactor from a render window
+     * @param {vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners} location - which corner to place the widget
+     * @returns {[number]} - the widget
+     */
     static buildOrientationMarker(actor, interactor, location) {
         const m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
             actor: actor,
@@ -38,24 +65,52 @@ class VTKUtils {
     }
 }
 
+/**
+ * A convenient object bundling a source, actor, and mapper, which almost always appear together anyway
+ */
 class ActorBundle {
+    /**
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
     constructor(source, transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
+        /** @member {Transform} - the transform */
         this.transform = transform;
+
+        /** @member {vtk.Rendering.Core.vtkMapper} - a mapper */
         this.mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+
+        /** @member {*} - vtk source */
         this.setSource(source);
+
+        /** @member {vtk.Rendering.Core.vtkActor} - the transform */
         this.actor = vtk.Rendering.Core.vtkActor.newInstance({
             mapper: this.mapper
         });
+
+        /** @member {vtk.Rendering.Core.Property} - properties of the actor */
         this.actorProperties = this.actor.getProperty();
+
         for (const p in actorProperties) {
             this.setActorProperty(p, actorProperties[p]);
         }
     }
 
+    /**
+     * Gets the value of the actor property with the given name
+     * @param {string} name - the name of the property
+     * @returns {*} - the value
+     */
     getActorProperty(name) {
         return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
     }
 
+    /**
+     * Sets the actor property with the given name to the given value
+     * @param {string} name - the name of the property
+     * @param {*} value - the value to set
+     */
     setActorProperty(name, value) {
         // special handling for colors
         if (name === 'color') {
@@ -65,15 +120,27 @@ class ActorBundle {
         this.actorProperties[`set${SIREPO.UTILS.capitalize(name)}`](value);
     }
 
+    /**
+     * Convenience method for setting the color. Uses colorToFloat to convert
+     * @param {string|[number]} color
+     */
     setColor(color) {
         this.actorProperties.setColor(VTKUtils.colorToFloat(color));
     }
 
+    /**
+     * Sets the mapper for this bundle as well as the actor
+     * @param {vtk.Rendering.Core.vtkMapper} mapper
+     */
     setMapper(mapper) {
         this.mapper = mapper;
         this.actor.setMapper(mapper);
     }
 
+    /**
+     * Sets the source for this bundle. Also sets the mapper's input connection to the source's output
+     * @param {*} source - vtk source
+     */
     setSource(source) {
         if (source) {
             this.source = source;
@@ -82,31 +149,50 @@ class ActorBundle {
     }
 }
 
+/**
+ * A bundle for a cube source
+ */
 class BoxBundle extends ActorBundle {
-    constructor(labSize = [1, 1, 1], labCenter = [0, 0, 0], transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
-        const sz = new SIREPO.GEOMETRY.Matrix(labSize);
-        const ctr = new SIREPO.GEOMETRY.Matrix(labCenter);
-        const vSize = transform.apply(sz).val;
+    /**
+     * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
+     * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
+     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labSize = [1, 1, 1],
+        labCenter = [0, 0, 0],
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
         super(
-            vtk.Filters.Sources.vtkCubeSource.newInstance({
-                xLength: vSize[0],
-                yLength: vSize[1],
-                zLength: vSize[2],
-                center: transform.apply(ctr).val,
-            }),
+            vtk.Filters.Sources.vtkCubeSource.newInstance(),
             transform,
             actorProperties
         );
+        this.setCenter(labCenter, transform);
+        this.setSize(labSize, transform);
     }
 
-    setCenter(arr) {
-        this.source.setCenter(arr);
+    /**
+     * Sets the center of the box
+     * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
+     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     */
+    setCenter(labCenter, transform) {
+        this.source.setCenter(transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
     }
 
-    setLength(arr) {
-        this.source.setXLength(arr[0]);
-        this.source.setYLength(arr[1]);
-        this.source.setZLength(arr[2]);
+    /**
+     * Sets the size of the box
+     * @param {[number]} labSize- array of the x, y, z lengths of the box
+     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     */
+    setSize(labSize, transform) {
+        const vSize = transform.apply(new SIREPO.GEOMETRY.Matrix(labSize)).val;
+        this.source.setXLength(vSize[0]);
+        this.source.setYLength(vSize[1]);
+        this.source.setZLength(vSize[2]);
     }
 
 }
@@ -149,6 +235,9 @@ class SphereBundle extends ActorBundle {
     }
 }
 
+/*
+ *
+ */
 class CoordMapper {
     constructor(transform = new SIREPO.GEOMETRY.Transform()) {
         this.transform = transform;
@@ -227,6 +316,9 @@ class CoordMapper {
     }
 }
 
+/**
+ * A 2-dimensional representation of a 3-dimensional vtk object
+ */
 class ViewPortObject {
     constructor(source, renderer) {
         this.source = source;
