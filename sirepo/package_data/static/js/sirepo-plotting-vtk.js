@@ -71,11 +71,11 @@ class VTKUtils {
 class ActorBundle {
     /**
      * @param {*} source - a vtk source, reader, etc.
-     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
      * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(source, transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
-        /** @member {Transform} - the transform */
+        /** @member {SIREPO.GEOMETRY.Transform} - the transform */
         this.transform = transform;
 
         /** @member {vtk.Rendering.Core.vtkMapper} - a mapper */
@@ -156,7 +156,7 @@ class BoxBundle extends ActorBundle {
     /**
      * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
-     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
      * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
@@ -170,26 +170,24 @@ class BoxBundle extends ActorBundle {
             transform,
             actorProperties
         );
-        this.setCenter(labCenter, transform);
-        this.setSize(labSize, transform);
+        this.setCenter(labCenter);
+        this.setSize(labSize);
     }
 
     /**
      * Sets the center of the box
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
-     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
      */
-    setCenter(labCenter, transform) {
-        this.source.setCenter(transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
+    setCenter(labCenter) {
+        this.source.setCenter(this.transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
     }
 
     /**
      * Sets the size of the box
      * @param {[number]} labSize- array of the x, y, z lengths of the box
-     * @param {Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
      */
     setSize(labSize, transform) {
-        const vSize = transform.apply(new SIREPO.GEOMETRY.Matrix(labSize)).val;
+        const vSize = this.transform.apply(new SIREPO.GEOMETRY.Matrix(labSize)).val;
         this.source.setXLength(vSize[0]);
         this.source.setYLength(vSize[1]);
         this.source.setZLength(vSize[2]);
@@ -197,14 +195,26 @@ class BoxBundle extends ActorBundle {
 
 }
 
+/**
+ * A bundle for a line source defined by two points
+ */
 class LineBundle extends ActorBundle {
-    constructor(labP1, labP2, transform, actorProperties) {
-        const p1 = new SIREPO.GEOMETRY.Matrix(labP1);
-        const p2 = new SIREPO.GEOMETRY.Matrix(labP2);
+    /**
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labP1 = [0, 0, 0],
+        labP2 = [0, 0, 1],
+        transform,
+        actorProperties
+    ) {
         super(
             vtk.Filters.Sources.vtkLineSource.newInstance({
-                point1: transform.apply(labP1).val,
-                point2: transform.apply(labP2).val,
+                point1: transform.apply(new SIREPO.GEOMETRY.Matrix(labP1)).val,
+                point2: transform.apply(new SIREPO.GEOMETRY.Matrix(labP2)).val,
                 resolution: 2
             }),
             transform,
@@ -213,52 +223,150 @@ class LineBundle extends ActorBundle {
     }
 }
 
+/**
+ * A bundle for a plane source defined by three points
+ */
 class PlaneBundle extends ActorBundle {
-    constructor(labOrigin, labP1, labP2, transform, actorProperties) {
+    /**
+     * @param {[number]} labOrigin - origin
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {number} xRes - resolution (number of divisions) in the direction of the origin to p1
+     * @param {number} yRes - resolution (number of divisions) in the direction of the origin to p2
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labOrigin = [0, 0, 0],
+        labP1 = [1, 0, 0],
+        labP2 = [0, 1, 0],
+        xRes = 1,
+        yRes = 1,
+        transform,
+        actorProperties
+    ) {
         super(vtk.Filters.Sources.vtkPlaneSource.newInstance(), transform, actorProperties);
+        this.setPoints(labOrigin, labP1, labP2);
+        this.setResolution(xRes, yRes);
+    }
+
+    /**
+     * Set the defining points of the plane
+     * @param {[number]} labOrigin - origin
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     */
+    setPoints(labOrigin, labP1, labP2) {
+        this.source.setOrigin(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labOrigin)).val);
+        this.source.setPoint1(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labP1)).val);
+        this.source.setPoint2(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labP2)).val);
+    }
+
+    /**
+     * Set the resolution in each direction
+     * @param {number} xRes - resolution (number of divisions) in the direction of the origin to p1
+     * @param {number} yRes - resolution (number of divisions) in the direction of the origin to p2
+     */
+    setResolution(xRes, yRes) {
+        this.source.setXResolution(xRes);
+        this.source.setYResolution(yRes);
     }
 }
 
+/**
+ * A bundle for a sphere source
+ */
 class SphereBundle extends ActorBundle {
-    constructor(labCenter, radius, transform, actorProperties) {
-        const ctr = new SIREPO.GEOMETRY.Matrix(labCenter);
+    /**
+     * @param {[number]} labCenter - center in the lab
+     * @param {number} radius
+     * @param {number} thetaRes - number of latitude divisions
+     * @param {number} phiRes - number of longitude divisions
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labCenter = [0, 0, 0],
+        radius = 1.0,
+        thetaRes = 16,
+        phiRes = 16,
+        transform,
+        actorProperties
+    ) {
         super(
-            vtk.Filters.Sources.vtkSphereSource.newInstance({
-                center: labCenter ? transform.apply(ctr).val : [0, 0, 0],
-                radius: radius || 1,
-                thetaResolution: 16,
-                phiResolution: 16
-            }),
+            vtk.Filters.Sources.vtkSphereSource.newInstance(),
             transform,
             actorProperties
         );
+        this.setCenter(labCenter);
+        this.setRadius(radius);
+        this.setRes(thetaRes, phiRes);
+    }
+
+    /**
+     * Sets the center of the sphere
+     * @param {[number]} labCenter - center in the lab
+     */
+    setCenter(labCenter) {
+        this.source.setCenter(this.transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
+    }
+
+    /**
+     * Sets the radius of the sphere
+     * @param {number} radius
+     */
+    setRadius(radius) {
+        this.source.setRadius(radius);
+    }
+
+    /**
+     * Sets the resolution in each angular direction
+     * @param {number} thetaRes - number of latitude divisions
+     * @param {number} phiRes - number of longitude divisions
+     */
+    setRes(thetaRes, phiRes) {
+        this.source.setThetaResolution(thetaRes);
+        this.source.setPhiResolution(phiRes);
     }
 }
 
-/*
- *
+/**
+ * Provides a mapping from "lab" coordinates to vtk's coordinates via a SIREPO.GEOMETRY.Transform.
+ * Also wraps the creation of various Bundles so the transform gets applied automatically
  */
 class CoordMapper {
+    /**
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     */
     constructor(transform = new SIREPO.GEOMETRY.Transform()) {
         this.transform = transform;
     }
 
-    buildActorBundle(source, actorProperties) {
-        return new ActorBundle(source, this.transform, actorProperties);
-    }
-
+    /**
+     * Builds a box
+     * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
+     * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {BoxBundle} - the box
+     */
     buildBox(labSize, labCenter, actorProperties) {
         return new BoxBundle(labSize, labCenter, this.transform, actorProperties);
     }
 
-    buildBoundingBox(bounds, padPct = 0.1) {
+    /**
+     * Builds a wireframe box with the specified bounds and optional padding
+     * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    buildBoundingBox(bounds, padPct = 0.0) {
         const l = [
             Math.abs(bounds[1] - bounds[0]),
             Math.abs(bounds[3] - bounds[2]),
             Math.abs(bounds[5] - bounds[4])
         ].map(c=> (1 + padPct) * c);
 
-        var b = this.buildBox(
+        const b = this.buildBox(
             l,
             [(bounds[1] + bounds[0]) / 2, (bounds[3] + bounds[2]) / 2, (bounds[5] + bounds[4]) / 2]
         );
@@ -266,41 +374,55 @@ class CoordMapper {
         return b;
     }
 
+    /**
+     * Creates a generic Bundle from an arbitrary source
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
     buildFromSource(source, actorProperties) {
-        //TODO(mvk): add transform
         return new ActorBundle(source, this.transform, actorProperties);
     }
 
+    /**
+     * Builds a line
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {LineBundle}
+     */
     buildLine(labP1, labP2, actorProperties) {
         return new LineBundle(labP1, labP2, this.transform, actorProperties);
     }
 
+    /**
+     * Builds a plane
+     * @param {[number]} labOrigin - origin
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {LineBundle}
+     */
     buildPlane(labOrigin, labP1, labP2, actorProperties) {
-        var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
-        let b = new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
-        if (labOrigin && labP1 && labP2) {
-            this.setPlane(b, labOrigin, labP1, labP2);
-        }
-        return b;
+        return new PlaneBundle(labOrigin, labP1, labP2, 1, 1, this.transform, actorProperties);
     }
 
+    /**
+     * Builds a sphere
+     * @param {[number]} labCenter - center in the lab
+     * @param {number} radius
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {SphereBundle}
+     */
     buildSphere(labCenter, radius, actorProperties) {
-        return new SphereBundle(labCenter, radius, this.transform, actorProperties);
+        return new SphereBundle(labCenter, radius, 16, 16, this.transform, actorProperties);
     }
 
-
-    setPlane(planeBundle, labOrigin = [0, 0, 0], labP1 = [0, 0, 1], labP2 = [1, 0, 0]) {
-        const o = new SIREPO.GEOMETRY.Matrix(labOrigin);
-        const p1 = new SIREPO.GEOMETRY.Matrix(labP1);
-        const p2 = new SIREPO.GEOMETRY.Matrix(labP2);
-        planeBundle.source.setOrigin(...this.transform.apply(o).val);
-        planeBundle.source.setPoint1(...this.transform.apply(p1).val);
-        planeBundle.source.setPoint2(...this.transform.apply(p2).val);
-    }
-
+    /**
+     * Creates a vtk user matrix out of the transform to apply to actors.
+     * @returns {[number]} - the matrix
+     */
     userMatrix() {
-        // Array.flat() doesn't exist in MS browsers
-        // var m = transform.matrix.flat();
         const matrix = this.transform.matrix;
         let m = [];
         for (let i = 0; i < matrix.length; i++) {

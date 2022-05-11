@@ -200,7 +200,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 $rootScope.$broadcast('vtk.hideLoader');
                 renderer.resetCamera();
                 const bounds = renderer.computeVisiblePropBounds();
-                const boundsBox = coordMapper.buildBoundingBox(bounds, 0.05);
+                const boundsBox = coordMapper.buildBoundingBox(bounds, 0.02);
                 renderer.addActor(boundsBox.actor);
                 $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, renderer);
                 $scope.axisObj.initializeWorld();
