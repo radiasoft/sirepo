@@ -148,13 +148,9 @@ def api_runCancel():
 def api_runMulti():
     def _api(api):
         # SECURITY: Make sure we have permission to call API
-        a = sirepo.uri_router.check_api_call(api).__name__
-        # SECURITY: Only allow these two API's for now. Certain API's
-        # (ex api_admJobs) have more security checks in the method (ex
-        # check_user_has_role) in the Flask server that could be
-        # circumvented since we don't call the Falsk server method.
-        assert a in ('api_runSimulation', 'api_runStatus')
-        return a
+        sirepo.uri_router.assert_api_name_and_auth(api, ('runSimulation', 'runStatus'))
+        # Necessary so dispatch to job supervisor works correctly
+        return 'api_' + api
 
     r = []
     for m in sirepo.http_request.parse_json():
