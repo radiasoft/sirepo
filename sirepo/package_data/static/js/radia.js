@@ -2776,14 +2776,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 renderer.addActor(bndBox.actor);
                 const vpb = new SIREPO.VTK.ViewPortBox(bndBox.source, renderer);
                 renderWindow.render();
-                vpb.initializeWorld(
-                    {
-                        edgeCfg: {
-                            x: {sense: 1},
-                            y: {sense: 1},
-                            z: {sense: -1},
-                        }
-                    });
                 $scope.axisObj = vpb;
 
                 var acfg = {};

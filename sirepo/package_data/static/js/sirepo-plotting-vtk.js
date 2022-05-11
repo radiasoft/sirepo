@@ -231,8 +231,6 @@ class PlaneBundle extends ActorBundle {
      * @param {[number]} labOrigin - origin
      * @param {[number]} labP1 - 1st point
      * @param {[number]} labP2 - 2nd point
-     * @param {number} xRes - resolution (number of divisions) in the direction of the origin to p1
-     * @param {number} yRes - resolution (number of divisions) in the direction of the origin to p2
      * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
      * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
      */
@@ -240,14 +238,12 @@ class PlaneBundle extends ActorBundle {
         labOrigin = [0, 0, 0],
         labP1 = [1, 0, 0],
         labP2 = [0, 1, 0],
-        xRes = 1,
-        yRes = 1,
         transform,
         actorProperties
     ) {
         super(vtk.Filters.Sources.vtkPlaneSource.newInstance(), transform, actorProperties);
         this.setPoints(labOrigin, labP1, labP2);
-        this.setResolution(xRes, yRes);
+        this.setResolution();
     }
 
     /**
@@ -267,7 +263,7 @@ class PlaneBundle extends ActorBundle {
      * @param {number} xRes - resolution (number of divisions) in the direction of the origin to p1
      * @param {number} yRes - resolution (number of divisions) in the direction of the origin to p2
      */
-    setResolution(xRes, yRes) {
+    setResolution(xRes = 1, yRes = 1) {
         this.source.setXResolution(xRes);
         this.source.setYResolution(yRes);
     }
@@ -280,16 +276,12 @@ class SphereBundle extends ActorBundle {
     /**
      * @param {[number]} labCenter - center in the lab
      * @param {number} radius
-     * @param {number} thetaRes - number of latitude divisions
-     * @param {number} phiRes - number of longitude divisions
      * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
      * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
         labCenter = [0, 0, 0],
         radius = 1.0,
-        thetaRes = 16,
-        phiRes = 16,
         transform,
         actorProperties
     ) {
@@ -300,7 +292,7 @@ class SphereBundle extends ActorBundle {
         );
         this.setCenter(labCenter);
         this.setRadius(radius);
-        this.setRes(thetaRes, phiRes);
+        this.setRes();
     }
 
     /**
@@ -324,7 +316,7 @@ class SphereBundle extends ActorBundle {
      * @param {number} thetaRes - number of latitude divisions
      * @param {number} phiRes - number of longitude divisions
      */
-    setRes(thetaRes, phiRes) {
+    setRes(thetaRes = 16, phiRes = 16) {
         this.source.setThetaResolution(thetaRes);
         this.source.setPhiResolution(phiRes);
     }
@@ -342,7 +334,17 @@ class CoordMapper {
         this.transform = transform;
     }
 
-    /**
+     /**
+     * Creates a Bundle from an arbitrary source
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    buildActorBundle(source, actorProperties) {
+        return new ActorBundle(source, this.transform, actorProperties);
+    }
+
+   /**
      * Builds a box
      * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
@@ -375,16 +377,6 @@ class CoordMapper {
     }
 
     /**
-     * Creates a generic Bundle from an arbitrary source
-     * @param {*} source - a vtk source, reader, etc.
-     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
-     */
-    buildFromSource(source, actorProperties) {
-        return new ActorBundle(source, this.transform, actorProperties);
-    }
-
-    /**
      * Builds a line
      * @param {[number]} labP1 - 1st point
      * @param {[number]} labP2 - 2nd point
@@ -404,7 +396,7 @@ class CoordMapper {
      * @returns {LineBundle}
      */
     buildPlane(labOrigin, labP1, labP2, actorProperties) {
-        return new PlaneBundle(labOrigin, labP1, labP2, 1, 1, this.transform, actorProperties);
+        return new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
     }
 
     /**
@@ -415,7 +407,7 @@ class CoordMapper {
      * @returns {SphereBundle}
      */
     buildSphere(labCenter, radius, actorProperties) {
-        return new SphereBundle(labCenter, radius, 16, 16, this.transform, actorProperties);
+        return new SphereBundle(labCenter, radius, this.transform, actorProperties);
     }
 
     /**
@@ -442,15 +434,28 @@ class CoordMapper {
  * A 2-dimensional representation of a 3-dimensional vtk object
  */
 class ViewPortObject {
+    /**
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {vtk.Rendering.Core.vtkRenderer} renderer - a vtk renderer
+     */
     constructor(source, renderer) {
+        /** @member {*} - vtk source */
         this.source = source;
+
+        /** @member {vtk.Rendering.Core.vtkCoordinate} - vtk coordinate system */
         this.worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
             renderer: renderer
         });
         this.worldCoord.setCoordinateSystemToWorld();
+
+        /** @member {boolean} - indicates the world is ready for computation */
         this.worldReady = false;
     }
 
+    /**
+     * Calculates the rectangle surrounding all of the objects in the world, projected into the viewport
+     * @returns {Rect}
+     */
     boundingRect() {
         const e = this.extrema();
         const xCoords = [];
@@ -467,47 +472,21 @@ class ViewPortObject {
         );
     }
 
-    localCoordFromVTKCoord(vtkCoord, point) {
-        // this is required to do conversions for different displays/devices
-        const pixels = window.devicePixelRatio;
-        vtkCoord.setCoordinateSystemToWorld();
-        vtkCoord.setValue(point.coords());
-        const lCoord = vtkCoord.getComputedLocalDisplayValue();
-        return new SIREPO.GEOMETRY.Point(lCoord[0] / pixels, lCoord[1] / pixels);
-    }
-
-    worldCorners() {
-        const b = this.source.getOutputData().getBounds();
-        const c = [];
-        for (let i of [0, 1]) {
-            for (let j of [2, 3]) {
-                for (let k of [4, 5]) {
-                    c.push(new SIREPO.GEOMETRY.Point(b[i], b[j], b[k]));
-                }
-            }
-        }
-        return c;
-    }
-
-    worldEdges() {
-        return {};
-    }
-
-    worldEdgesForDim(dim) {
-        return this.worldEdges()[dim];
-    }
-
-    // an external edge has all other corners on the same side of the line it defines
-    externalViewPortEdgesForDimension(dim) {
+    /**
+     * An external edge has all other corners on the same side of the line it defines
+     * @param {string} dim - dimension (x|y|z)
+     * @returns {*[]}
+     */
+    externalViewportEdgesForDimension(dim) {
         const edges = [];
-        for (const edge of this.viewPortEdgesForDimension(dim)) {
+        for (const edge of this.viewportEdges()[dim]) {
             let numCorners = 0;
             let compCount = 0;
             for (const otherDim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
                 if (otherDim === dim) {
                     continue;
                 }
-                for (const otherEdge of this.viewPortEdgesForDimension(otherDim)) {
+                for (const otherEdge of this.viewportEdges()[otherDim]) {
                     const otherEdgeCorners = otherEdge.points;
                     for (let k = 0; k <= 1; ++k) {
                         const n = edge.comparePoint(otherEdgeCorners[k]);
@@ -523,50 +502,10 @@ class ViewPortObject {
         return edges;
     }
 
-    initializeWorld(config = {}) {
-        this.config = config;
-        if (! this.worldReady) {
-            this.worldReady = true;
-        }
-    }
-
-    localCoordFromWorld(point) {
-        return this.localCoordFromVTKCoord(this.worldCoord, point);
-    }
-
-   localCoordArrayFromWorld(coords) {
-        return coords.map(x => this.localCoordFromWorld(x));
-   }
-
-    viewPortCorners() {
-        return this.localCoordArrayFromWorld(this.worldCorners());
-    }
-
-    viewportEdges() {
-        const ee = {};
-        const es = this.worldEdges();
-        for (const e in es) {
-            const edges = es[e];
-            const lEdges = [];
-            for (let i = 0; i < edges.length; ++i) {
-                const ls = edges[i];
-                const wpts = ls.points;
-                const lpts = [];
-                for (let j = 0; j < wpts.length; ++j) {
-                    lpts.push(this.localCoordFromWorld(wpts[j]));
-                }
-                lEdges.push(new SIREPO.GEOMETRY.LineSegment(lpts[0], lpts[1]));
-            }
-            ee[e] = lEdges;
-        }
-        return ee;
-    }
-
-    viewPortEdgesForDimension(dim) {
-        return this.viewportEdges()[dim];
-    }
-
-    // points on the screen that have the largest and smallest values in each dimension
+    /**
+     * points on the screen that have the largest and smallest values in each dimension
+     * @returns {{}} - mapping of dimension to the extrema, e.g. {x: [p1, p2, ...], ...}
+     */
     extrema() {
         const ex = {};
         for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice(0, 2)) {
@@ -577,40 +516,95 @@ class ViewPortObject {
         }
         return ex;
     }
+
+    /**
+     * Calculates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
+     * world
+     * @param {Point} worldPoint
+     * @returns {Point}
+     */
+    viewPortPoint(worldPoint) {
+        // this is required to do conversions for different displays/devices
+        const pixels = window.devicePixelRatio;
+        this.worldCoord.setCoordinateSystemToWorld();
+        this.worldCoord.setValue(worldPoint.coords());
+        const lCoord = this.worldCoord.getComputedLocalDisplayValue()
+            .map(x => x / pixels);
+        return new SIREPO.GEOMETRY.Point(lCoord[0], lCoord[1]);
+    }
+
+    /**
+     * Gets the corners of the boundary of the vtk object
+     * @returns {[Point]} - the corners in the following order:
+     *     [[xmin, ymin, zmin], [xmin, ymin, zmax], [xmin, ymax, zmin], [xmin, ymax, zmax],
+     *     [xmax, ymin, zmin], [xmax, ymin, zmax], [xmax, ymax, zmin], [xmax, ymax, zmax],
+     */
+    worldCorners() {
+        const b = this.source.getOutputData().getBounds();
+        const c = [];
+        for (let i of [0, 1]) {
+            for (let j of [2, 3]) {
+                for (let k of [4, 5]) {
+                    c.push(new SIREPO.GEOMETRY.Point(b[i], b[j], b[k]));
+                }
+            }
+        }
+        return c;
+    }
+
+    /**
+     * Gets the edges - that is, the lines connecting corners
+     * @returns {{}}
+     */
+    worldEdges() {
+        return {};
+    }
+
+    /**
+     *
+     * @param coords
+     * @returns {*}
+     */
+   viewPortPoints(coords) {
+        return coords.map(x => this.viewPortPoint(x));
+   }
+
+    /**
+     *
+     * @returns {*}
+     */
+    viewPortCorners() {
+        return this.viewPortPoints(this.worldCorners());
+    }
+
+    /**
+     *
+     * @returns {{}}
+     */
+    viewportEdges() {
+        const ee = {};
+        const es = this.worldEdges();
+        for (const e in es) {
+            const lEdges = [];
+            for (let edge of es[e]) {
+                const lpts = this.viewPortPoints(edge.points);
+                lEdges.push(new SIREPO.GEOMETRY.LineSegment(lpts[0], lpts[1]));
+            }
+            ee[e] = lEdges;
+        }
+        return ee;
+    }
+
 }
 
 class ViewPortBox extends ViewPortObject {
     constructor(source, renderer) {
         super(source, renderer);
+        this.arrangeEdges();
     }
 
-    centerLines() {
-        const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
-        const cls = {};
-        const l = this.worldLength();
-        const tx = new SIREPO.GEOMETRY.Transform(new SIREPO.GEOMETRY.Matrix(
-            [
-                [l[0] / 2, 0, 0],
-                [0, l[1] / 2, 0],
-                [0, 0, l[2] / 2]
-            ]
-        ));
-        for(const dim in SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()) {
-            const txp = tx.apply(new SIREPO.GEOMETRY.Matrix(SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim]));
-            cls[dim] = new SIREPO.GEOMETRY.LineSegment(
-                this.localCoordFromWorld(new SIREPO.GEOMETRY.Point(...ctr.subtract(txp).val)),
-                this.localCoordFromWorld(new SIREPO.GEOMETRY.Point(...ctr.add(txp).val))
-            );
-        }
-        return cls;
-    }
-
-    centerLineForDimension(dim) {
-        return this.centerLines()[dim];
-    }
-
-    initializeWorld(config = {}) {
-        config.edgeCfg = {
+    arrangeEdges() {
+        const edgeCfg = {
             x: {
                 edgeCornerPairs: [[0, 1], [4, 5], [2, 3], [6, 7]],
                 sense: 1
@@ -624,34 +618,67 @@ class ViewPortBox extends ViewPortObject {
                 sense: -1
             },
         };
-        for (const dim in config.edgeCfg) {
-            const c = config.edgeCfg[dim];
+        for (const dim in edgeCfg) {
+            const c = edgeCfg[dim];
             for (let i = 0; i < c.edgeCornerPairs.length; ++i) {
                 if (c.sense < 0) {
                     c.edgeCornerPairs[i].reverse();
                 }
             }
         }
-        super.initializeWorld(config);
+        this.edgeCfg = edgeCfg;
     }
 
+    /**
+     * 
+     * @returns {{}}
+     */
+    centerLines() {
+        const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
+        const cls = {};
+        const sz = this.worldSize();
+        const tx = new SIREPO.GEOMETRY.Transform(new SIREPO.GEOMETRY.Matrix(
+            [
+                [sz[0] / 2, 0, 0],
+                [0, sz[1] / 2, 0],
+                [0, 0, sz[2] / 2]
+            ]
+        ));
+        for(const dim in SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()) {
+            const txp = tx.apply(new SIREPO.GEOMETRY.Matrix(SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim]));
+            cls[dim] = new SIREPO.GEOMETRY.LineSegment(
+                this.viewPortPoint(new SIREPO.GEOMETRY.Point(...ctr.subtract(txp).val)),
+                this.viewPortPoint(new SIREPO.GEOMETRY.Point(...ctr.add(txp).val))
+            );
+        }
+        return cls;
+    }
+
+    /**
+     *
+     * @returns {Point}
+     */
     worldCenter() {
         return new SIREPO.GEOMETRY.Point(...this.source.getCenter());
     }
 
+    /**
+     *
+     * @returns {*[]}
+     */
     worldCorners() {
         const ctr = this.worldCenter();
         let corners = [];
 
         const sides = [-0.5, 0.5];
-        const len = this.worldLength();
+        const sz = this.worldSize();
         for(const i in sides) {
             for (const j in sides) {
                 for (const k in sides) {
                     const s = [sides[k], sides[j], sides[i]];
                     const c = [];
                     for(let l = 0; l < 3; ++l) {
-                        c.push(ctr.coords()[l] + s[l] * len[l]);
+                        c.push(ctr.coords()[l] + s[l] * sz[l]);
                     }
                     corners.push(new SIREPO.GEOMETRY.Point(...c));
                 }
@@ -660,11 +687,15 @@ class ViewPortBox extends ViewPortObject {
         return corners;
     }
 
+    /**
+     *
+     * @returns {{}}
+     */
     worldEdges() {
         const c = this.worldCorners();
         const e = {};
-        for (const dim in this.config.edgeCfg) {
-            const cp = this.config.edgeCfg[dim].edgeCornerPairs;
+        for (const dim in this.edgeCfg) {
+            const cp = this.edgeCfg[dim].edgeCornerPairs;
             const lines = [];
             for (const j in cp) {
                 const p = cp[j];
@@ -675,23 +706,17 @@ class ViewPortBox extends ViewPortObject {
         return e;
     }
 
-    worldLength() {
+    /**
+     *
+     * @returns {*[]}
+     */
+    worldSize() {
         return [
             this.source.getXLength(),
             this.source.getYLength(),
             this.source.getZLength()
         ];
     }
-
-    worldLengthByDim() {
-        const l = this.worldLength();
-        return {
-            x: l[0],
-            y: l[1],
-            z: l[2]
-        };
-    }
-
 }
 
 SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
@@ -2420,13 +2445,13 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     const axisLabelSelector = `.${dim}-axis-label`;
 
                     // sort the external edges so we'll preferentially pick the left and bottom
-                    const externalEdges = $scope.boundObj.externalViewPortEdgesForDimension(dim)
+                    const externalEdges = $scope.boundObj.externalViewportEdgesForDimension(dim)
                         .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
                     const seg = geometry.bestEdgeAndSectionInBounds(
                         externalEdges, screenRect, dim, false
                     );
                     const cli = screenRect.boundaryIntersectionsWithSeg(
-                        $scope.boundObj.centerLineForDimension(dim)
+                        $scope.boundObj.centerLines()[dim]
                     );
                     if (cli && cli.length === 2) {
                         $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
@@ -2456,7 +2481,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     const fullSeg = seg.full;
                     const clippedSeg = seg.clipped;
                     var reverseOnScreen = vtkAxisService.shouldReverseOnScreen(
-                        $scope.boundObj.viewPortEdgesForDimension(dim)[seg.index], cfg.screenDim
+                        $scope.boundObj.viewportEdges()[dim][seg.index], cfg.screenDim
                     );
                     var sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
                         clippedSeg.points,

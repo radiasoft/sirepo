@@ -203,7 +203,6 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 const boundsBox = coordMapper.buildBoundingBox(bounds, 0.02);
                 renderer.addActor(boundsBox.actor);
                 $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, renderer);
-                $scope.axisObj.initializeWorld();
 
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
