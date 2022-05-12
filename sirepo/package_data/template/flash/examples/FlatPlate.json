@@ -7,22 +7,28 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "problemFiles": {},
+        "problemFiles": {
+            "flashExampleName": "FlatPlate"
+        },
         "setupAnimation": {},
         "setupArguments": {
             "auto": "1"
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "notes": ""
+            "name": "FlatPlate",
+            "folder": "/Examples"
         },
         "varAnimation": {
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
-            "var": "dens"
+            "var": "pres"
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 0.1,
+            "plot_var_1": "pres",
+            "plot_var_2": "temp"
         }
     },
     "simulationType": "flash"

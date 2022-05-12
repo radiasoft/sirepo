@@ -10,13 +10,24 @@ from pykern.pkdebug import pkdc, pkdp, pkdlog
 import inspect
 import re
 
-
 def _fields(templates, values):
     # template: [field template, label template]
     # values: values to insert into the field/label templates
     return {
         t[0].format(v): t[1].format(v.upper()) for v in values for t in templates
     }
+
+
+def _sim_fields(schema, model_name, fields):
+    # any model field may be overtaken by the main simulation Config
+    n = 'Simulation_SimulationMain_flashApp'
+    res = []
+    for f in fields:
+        if n in schema.model and f in schema.model[n]:
+            res.append(f'{n}.{f}')
+        else:
+            res.append(f'{model_name}.{f}')
+    return res
 
 
 class SpecializedViews:
@@ -96,6 +107,7 @@ class SpecializedViews:
         grav_boundary_type='Boundary Condition',
         lrefine_max='Maximum Refinement Level',
         lrefine_min='Minimum Refinement Level',
+        nend='Maximum Number of Timesteps',
         order='Order',
         plotFileIntervalTime='Plot File Interval Time [s]',
         refine_var_count='Refine Variable Count',
@@ -190,7 +202,7 @@ class SpecializedViews:
             assert p[0] in schema.model, \
                 f'model name={p[0]} does not exist in known models={schema.model.keys()}'
             assert p[1] in schema.model[p[0]], \
-                f'field={p[1]} does not exist in model={schema.model[p[0]]} name={p[0]}'
+                f'field={p[1]} name={p[0]} does not exist in model={schema.model[p[0]]}'
 
     def _get_species_list(self, schema):
         res = []
@@ -308,10 +320,9 @@ class SpecializedViews:
                 ]],
             ],
             basic=[
-                'dtinit',
                 'tmax',
-                'dtmax',
-                'dtmin',
+                'dtinit',
+                'nend',
                 'allowDtSTSDominate',
             ],
         )
@@ -412,10 +423,14 @@ class SpecializedViews:
                     'Grid_GridMain_paramesh.refine_var_count',
                     [
                         ['Name', [
-                            'Grid_GridMain_paramesh.refine_var_1',
-                            'Grid_GridMain_paramesh.refine_var_2',
-                            'Grid_GridMain_paramesh.refine_var_3',
-                            'Grid_GridMain_paramesh.refine_var_4'
+                            #TODO(pjm): this should apply to all view fields
+                            #  fields may be defined on main flash app module
+                            *_sim_fields(schema, 'Grid_GridMain_paramesh', [
+                                'refine_var_1',
+                                'refine_var_2',
+                                'refine_var_3',
+                                'refine_var_4',
+                            ]),
                         ]],
                         ['Refine Cutoff', [
                             'Grid_GridMain_paramesh.refine_cutoff_1',

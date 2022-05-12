@@ -7,22 +7,28 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "problemFiles": {},
+        "problemFiles": {
+            "flashExampleName": "WindTunnel"
+        },
         "setupAnimation": {},
         "setupArguments": {
-            "auto": "1"
+            "auto": "1",
+            "maxblocks": 10000
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "notes": ""
+            "name": "WindTunnel",
+            "folder": "/Examples"
         },
         "varAnimation": {
-            "colorMap": "coolwarm",
+            "colorMap": "jet",
             "framesPerSecond": "2",
             "notes": "",
-            "var": "dens"
+            "var": "pres"
+        },
+        "IO_IOMain": {
+            "plot_var_1": "pres",
+            "plot_var_2": "temp"
         }
     },
     "simulationType": "flash"

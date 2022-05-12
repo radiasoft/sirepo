@@ -7,16 +7,18 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "problemFiles": {},
+        "problemFiles": {
+            "flashExampleName": "IsentropicVortex"
+        },
         "setupAnimation": {},
         "setupArguments": {
-            "auto": "1"
+            "auto": "1",
+            "withParticles": "1"
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "notes": ""
+            "name": "IsentropicVortex",
+            "folder": "/Examples"
         },
         "varAnimation": {
             "colorMap": "coolwarm",

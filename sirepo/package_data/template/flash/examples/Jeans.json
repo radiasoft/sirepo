@@ -7,22 +7,27 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "problemFiles": {},
+        "problemFiles": {
+            "flashExampleName": "Jeans"
+        },
         "setupAnimation": {},
         "setupArguments": {
             "auto": "1"
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "notes": ""
+            "name": "Jeans",
+            "folder": "/Examples"
         },
         "varAnimation": {
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
             "var": "dens"
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 0.2,
+            "plot_var_1": "dens"
         }
     },
     "simulationType": "flash"

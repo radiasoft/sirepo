@@ -7,22 +7,26 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "problemFiles": {},
+        "problemFiles": {
+            "flashExampleName": "RTFlame"
+        },
         "setupAnimation": {},
         "setupArguments": {
             "auto": "1"
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "notes": ""
+            "name": "RTFlame",
+            "folder": "/Examples"
         },
         "varAnimation": {
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
             "var": "dens"
+        },
+        "Grid_GridMain_paramesh": {
+            "lrefine_max": 4
         }
     },
     "simulationType": "flash"

@@ -10,82 +10,135 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo.template import flash_parser
 import re
-import sirepo.feature_config
 import sirepo.sim_data
-import sirepo.simulation_db
 import sirepo.util
 import subprocess
 import zipfile
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-
+    COMPILE_LOG = 'compile.log'
+    FLASH_PAR_FILE = 'flash.par'
+    SETUP_LOG = 'setup.log'
     SETUP_PARAMS_SCHEMA_FILE = 'setup_params.json'
-    _COMPILE_LOG = 'compile.log'
-    _SETUP_LOG = 'setup.log'
     _FLASH_EXE_PREFIX = 'flash_exe'
     _FLASH_FILE_NAME_SEP = '-'
+    _FLASH_SRC_TARBALL_BASENAME = 'flash.tar.gz'
 
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls._init_models(dm, ('animation',))
-        for m in ('setupArguments', 'varAnimation'):
-            cls.update_model_defaults(dm[m], m)
+        cls._init_models(dm, (
+            'animation',
+            'initZipReport',
+            'problemFiles',
+            'setupArguments',
+            'varAnimation',
+        ))
+
+    @classmethod
+    def flash_app_archive_basename(cls):
+        return f'{cls.__flash_app_name()}.zip'
 
     @classmethod
     def flash_exe_basename(cls, data):
-        return cls._flash_file_basename(
+        return cls._FLASH_FILE_NAME_SEP.join([
             cls._FLASH_EXE_PREFIX,
-            data,
+            sirepo.util.url_safe_hash(str((
+                data.models.setupArguments,
+                data.models.problemFiles.filesHash,
+            ))),
+        ])
+
+    @classmethod
+    def flash_app_lib_basename(cls, sim_id):
+        return f'{sim_id}.zip'
+
+    @classmethod
+    def flash_problem_files_archive_basename(cls, data):
+        return cls.lib_file_name_with_model_field(
+            'problemFiles',
+            'archive',
+            data.models.problemFiles.archive,
         )
 
     @classmethod
-    def flash_simulation_unit_file_path(cls, run_dir, data, basename):
-        return run_dir.join(cls.sim_type()).join(
-            'source',
-            'Simulation',
-            'SimulationMain',
-            cls.schema().constants.flashAppName,
-            basename,
-        )
+    def flash_problem_files_archive_hash(cls, path):
+        return sirepo.util.url_safe_hash(str(
+            [r() for _, r in cls.__extract_problem_files_archive(path)],
+        ))
+
+    @classmethod
+    def flash_setup_command(cls, setup_args):
+        def _integer(key, value):
+            return f'-{key}={value}'
+
+        def _shortcut(value):
+            return f'+{value}'
+
+        s = cls.schema()
+        c = []
+        for k, v in setup_args.items():
+            if k == 'units':
+                for e in v:
+                    c.append(f'--with-unit={e}')
+                continue
+            if k == 'withParticles':
+                if v == '1':
+                    c.append(f'{k}=TRUE')
+                continue
+            t = s.model.setupArguments[k][1]
+            if t == 'SetupArgumentDimension':
+                # always include the setup dimension
+                c.append(f'-{v}d')
+                continue
+            if v == s.model.setupArguments[k][2]:
+                continue
+            if t == 'Boolean':
+                v == '1' and c.append(f'-{k}')
+            elif t == 'Integer':
+                c.append(_integer(k, v))
+            elif t == 'NoDashInteger':
+                c.append(f'{k}={v}')
+            elif t == 'OptionalInteger':
+                # Do not move up to enclosing if.
+                # We need to handle OptionalInteger even if v is falsey (no-op)
+                if v:
+                    c.append(_integer(k, v))
+            elif t == 'SetupArgumentGridGeometry':
+                c.append(_shortcut(v))
+            elif t == 'SetupArgumentShortcut':
+                v == '1' and c.append(_shortcut(k))
+            elif t  == 'String' or t == 'OptionalString':
+               c.append(f'{k}={v}')
+            else:
+                raise AssertionError(f'type={t} not supported')
+        return [
+            './setup',
+            cls.__flash_app_name(),
+            f'-objdir={cls.__flash_app_name()}',
+        ] + c
+
+    @classmethod
+    def proprietary_code_lib_file_basenames(cls):
+        return [
+            cls._FLASH_SRC_TARBALL_BASENAME,
+        ]
 
     @classmethod
     def proprietary_code_tarball(cls):
         return cls._proprietary_code_tarball()
 
     @classmethod
-    def proprietary_code_lib_file_basenames(cls):
-        return [
-            # 'problemFiles-archive.CapLaser3D.zip',
-            # 'problemFiles-archive.CapLaserBELLA.zip',
-            cls._flash_src_tarball_basename(),
-        ]
-
-    @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         if data.report == 'setupAnimation':
-            cls._flash_create_sim_files(data, run_dir)
+            super().sim_files_to_run_dir(data, run_dir)
+            cls.__create_sim_files(data, run_dir)
             return
         try:
             super().sim_files_to_run_dir(data, run_dir)
         except sirepo.sim_data.SimDbFileNotFound:
-            from sirepo import mpi
-            if mpi.cfg.in_slurm:
-                # Must still compile on Sirepo servers when running at
-                # NERSC so all dependencies are present.
-                raise sirepo.util.UserAlert('Must first run Setup and Compile')
-            cls._flash_create_sim_files(data, run_dir)
-
-    @classmethod
-    def _add_default_views(cls, flashSchema):
-        flashSchema.view.Driver_DriverMain.basic = [
-            'tmax',
-            'dtinit',
-            # TODO(e-carlin):  IO may not be available
-            'IO_IOMain.plotFileIntervalTime',
-            'allowDtSTSDominate',
-        ]
+            raise sirepo.util.UserAlert('Must first run Setup and Compile')
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
@@ -95,77 +148,110 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r == 'setupAnimation' or r == 'animation':
-            return ['setupConfigDirectives', 'setupArguments']
+        if r == 'initZipReport':
+            # always compute initZipReport when asked
+            return [[sirepo.util.random_base62()]]
         return [r]
 
     @classmethod
-    def _flash_create_sim_files(cls, data, run_dir):
-        import sirepo.mpi
-        import sirepo.template.flash
+    def _lib_file_basenames(cls, data):
+        res = []
+        r = data.get('report')
+        if r == 'initZipReport':
+            if data.models.problemFiles.flashExampleName:
+                res.append(cls._FLASH_SRC_TARBALL_BASENAME)
+            else:
+                res.append(cls.flash_problem_files_archive_basename(data))
+        elif r == 'setupAnimation':
+            res.append(cls._FLASH_SRC_TARBALL_BASENAME)
+            res.append(cls.flash_app_lib_basename(
+                data.models.simulation.simulationId,
+            ))
+        elif r is None:
+            res.append(cls.flash_app_lib_basename(
+                data.models.problemFiles.archiveLibId,
+            ))
+        return res
 
-        subprocess.check_output(
-            [
-                'tar',
-                '--extract',
-                '--gunzip',
-                f'--file={cls._flash_src_tarball_basename()}',
-                f'--directory={run_dir}',
-            ],
-            stderr=subprocess.STDOUT,
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        r = data.get('report')
+        if r == 'initZipReport':
+            return []
+        if r == 'setupAnimation':
+            # return [PKDict(basename=cls.flash_app_archive_basename())]
+            return []
+        datafiles = data.models.flashSchema.enum.SetupDatafiles
+        return [
+            PKDict(basename=cls.flash_exe_basename(data), is_exe=True),
+            # PKDict(basename=cls.flash_app_archive_basename()),
+        ] + [
+            PKDict({
+                'basename': v,
+            })  for v in [f[0] for f in datafiles]
+        ]
+
+    @classmethod
+    def __create_schema(cls, data, make_dir, run_dir):
+        res = PKDict(
+            flashSchema=flash_parser.SetupParameterParser(
+                run_dir.join(cls.sim_type(), cls.__flash_app_name()),
+            ).generate_schema()
         )
-        s = run_dir.join(cls.sim_type())
-        d = []
-        if data.models.problemFiles.archive:
-            for i, r in cls._flash_extract_problem_files_archive(
-                    run_dir.join(cls._flash_problem_files_archive_basename(data)),
-            ):
-                b = pkio.py_path(i.filename).basename
-                #TODO(pjm): zip file also includes required datafiles
-                # if not re.match(r'(\w+\.F90)|(Makefile)', b):
-                #     continue
-                p = cls.flash_simulation_unit_file_path(run_dir, data, b)
-                pkio.mkdir_parent_only(p)
-                pkio.write_text(p, r())
-                d.append(p.basename)
-        cls._flash_check_datafiles(data, d)
-        sirepo.template.flash.generate_config_file(run_dir, data)
-        t = s.join(cls.schema().constants.flashAppName)
-        c = sirepo.template.flash.setup_command(data)
-        pkdc('setup_command={}', ' '.join(c))
-        cls._flash_run_command_and_parse_log_on_error(
-            c,
-            s,
-            cls._SETUP_LOG,
-            r'(.*PPDEFINE.*$)|(^\s+\*.*$(\n\w+.*)?)',
-        )
-        flash_schema = flash_parser.SetupParameterParser(
-            run_dir.join(cls.sim_type(), cls.schema().constants.flashAppName)
-        ).generate_schema()
-        cls._add_default_views(flash_schema)
+        if not data.models.get('Driver_DriverMain'):
+            # no initial models, set from flash.par if present
+            par_path = make_dir.join(cls.FLASH_PAR_FILE)
+            if par_path.exists():
+                data.models.flashSchema = res.flashSchema
+                res.parValues = flash_parser.ParameterParser().parse(
+                    data,
+                    pkio.read_text(par_path),
+                )
         pkio.write_text(
             run_dir.join(cls.SETUP_PARAMS_SCHEMA_FILE),
-            pkjson.dump_pretty(PKDict(
-                flashSchema=flash_schema,
-            ))
+            pkjson.dump_pretty(res),
         )
-        datafiles = flash_schema.enum.SetupDatafiles
-        cls._flash_run_command_and_parse_log_on_error(
-            ['make', f'-j{sirepo.mpi.cfg.cores}'],
-            t,
-            cls._COMPILE_LOG,
-            r'^(?:Error): (.*)',
+        return res
+
+    @classmethod
+    def __create_sim_files(cls, data, run_dir):
+        cls.__untar_flash_src(run_dir)
+        make_dir = cls.__run_setup(data, run_dir)
+        s = cls.__create_schema(data, make_dir, run_dir)
+        cls.__run_make(make_dir)
+        cls.__put_sim_files(data, s.flashSchema.enum.SetupDatafiles, make_dir, run_dir)
+
+    @classmethod
+    def __extract_problem_files_archive(cls, path):
+        with zipfile.ZipFile(path, 'r') as z:
+            for i in z.infolist():
+                yield i, lambda: z.read(i)
+
+    @classmethod
+    def __flash_app_name(cls):
+        return cls.schema().constants.flashAppName
+
+    @classmethod
+    def __flash_unit_file_path(cls, run_dir, data, basename):
+        return run_dir.join(cls.sim_type()).join(
+            'source',
+            'Simulation',
+            'SimulationMain',
+            cls.__flash_app_name(),
+            basename,
         )
+
+    @classmethod
+    def __put_sim_files(cls, data, datafiles, make_dir, run_dir):
         for c, b in PKDict({
             v: v for v in [f[0] for f in datafiles]
         }).pkupdate(
-            # POSIT: values match cls._sim_file_basenames
             flash4=cls.flash_exe_basename(data),
         ).items():
-            p = t.join(c)
+            p = make_dir.join(c)
             cls.delete_sim_file(
                 data.models.simulation.simulationId,
-                cls._flash_file_prefix(b),
+                b.split(cls._FLASH_FILE_NAME_SEP)[0],
             )
             cls.put_sim_file(data.models.simulation.simulationId, p, b)
             if p.check(link=1):
@@ -174,51 +260,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 p.move(run_dir.join(b))
 
     @classmethod
-    def _flash_extract_problem_files_archive(cls, path):
-        with zipfile.ZipFile(path, 'r') as z:
-            for i in z.infolist():
-                yield i, lambda: z.read(i)
-
-    @classmethod
-    def _flash_file_basename(cls, prefix, data):
-        return prefix + cls._FLASH_FILE_NAME_SEP + cls._flash_file_hash(data)
-
-    @classmethod
-    def _flash_file_hash(cls, data):
-        def _remove_value_key(obj):
-            r = PKDict(obj)
-            r.pkdel('value')
-            return r
-
-        f = []
-        if data.models.problemFiles.archive:
-            f = [r() for _, r in cls._flash_extract_problem_files_archive(
-                cls.lib_file_abspath(
-                    cls._flash_problem_files_archive_basename(data),
-                    data=data,
-                ),
-            )]
-        return sirepo.util.url_safe_hash(str((
-            data.models.simulation.name,
-            data.models.setupArguments,
-            f,
-            list(map(_remove_value_key, data.models.setupConfigDirectives)),
-        )))
-
-    @classmethod
-    def _flash_file_prefix(cls, basename):
-        return basename.split(cls._FLASH_FILE_NAME_SEP)[0]
-
-    @classmethod
-    def _flash_problem_files_archive_basename(cls, data):
-       return cls.lib_file_name_with_model_field(
-           'problemFiles',
-            'archive',
-            data.models.problemFiles.archive,
-       )
-
-    @classmethod
-    def _flash_run_command_and_parse_log_on_error(
+    def __run_command_and_parse_log_on_error(
             cls,
             command,
             work_dir,
@@ -254,47 +296,53 @@ class SimData(sirepo.sim_data.SimDataBase):
                 )
 
     @classmethod
-    def _flash_src_tarball_basename(cls):
-        return 'flash.tar.gz'
+    def __run_make(cls, make_dir):
+        import sirepo.mpi
+        cls.__run_command_and_parse_log_on_error(
+            ['make', f'-j{sirepo.mpi.cfg.cores}'],
+            make_dir,
+            cls.COMPILE_LOG,
+            r'^(?:Error): (.*)',
+        )
 
     @classmethod
-    def _flash_check_datafiles(cls, data, filenames):
-        e = []
-        for d in data.models.setupConfigDirectives:
-            if d._type != 'DATAFILES':
-                continue
-            if '*' in d.wildcard:
-                search = re.sub(r'\*', '.*', d.wildcard)
-                found = False
-                for fn in filenames:
-                    if re.search(rf'{search}', fn):
-                        found = True
-                        break
-                if not found:
-                    e.append(d.wildcard)
-            elif d.wildcard not in filenames:
-                e.append(d.wildcard)
-        if e:
-            zipname = data.models.problemFiles.archive
-            names = ', '.join(e)
-            raise sirepo.util.UserAlert(
-                f'Zip Archive {zipname} is missing required DATAFILES {names}'
-            )
+    def __run_setup(cls, data, run_dir):
+        d = []
+        for i, r in cls.__extract_problem_files_archive(
+            run_dir.join(cls.flash_app_lib_basename(
+                data.models.simulation.simulationId,
+            )),
+        ):
+            b = pkio.py_path(i.filename).basename
+            p = cls.__flash_unit_file_path(run_dir, data, b)
+            pkio.mkdir_parent_only(p)
+            t = r()
+            try:
+                pkio.write_text(p, t)
+            except UnicodeDecodeError:
+                with open(p, 'wb') as f:
+                    f.write(t)
+            d.append(p.basename)
+        c = cls.flash_setup_command(data.models.setupArguments)
+        pkdc('setup_command={}', ' '.join(c))
+        s = run_dir.join(cls.sim_type())
+        cls.__run_command_and_parse_log_on_error(
+            c,
+            s,
+            cls.SETUP_LOG,
+            r'(.*PPDEFINE.*$)|(^\s+\*.*$(\n\w+.*)?)',
+        )
+        return s.join(cls.__flash_app_name())
 
     @classmethod
-    def _lib_file_basenames(cls, data):
-        r = [cls._flash_src_tarball_basename()]
-        if data.models.problemFiles.archive:
-            r.append(cls._flash_problem_files_archive_basename(data))
-        return r
-
-    @classmethod
-    def _sim_file_basenames(cls, data):
-        datafiles = data.models.flashSchema.enum.SetupDatafiles
-        return [
-            PKDict(basename=cls.flash_exe_basename(data), is_exe=True),
-        ] + [
-            PKDict({
-                'basename': v,
-            })  for v in [f[0] for f in datafiles]
-        ]
+    def __untar_flash_src(cls, run_dir):
+        subprocess.check_output(
+            [
+                'tar',
+                '--extract',
+                '--gunzip',
+                f'--file={cls._FLASH_SRC_TARBALL_BASENAME}',
+                f'--directory={run_dir}',
+            ],
+            stderr=subprocess.STDOUT,
+        )

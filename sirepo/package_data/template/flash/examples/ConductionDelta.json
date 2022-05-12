@@ -7,22 +7,23 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "problemFiles": {},
+        "problemFiles": {
+            "flashExampleName": "ConductionDelta"
+        },
         "setupAnimation": {},
         "setupArguments": {
             "auto": "1"
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "notes": ""
+            "name": "ConductionDelta",
+            "folder": "/Examples"
         },
         "varAnimation": {
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
-            "var": "dens"
+            "var": "temp"
         }
     },
     "simulationType": "flash"

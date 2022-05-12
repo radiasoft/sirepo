@@ -12,16 +12,15 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import numpy as np
+import numpy
 import re
 import rsflash.plotting.extracts
 import sirepo.sim_data
+import sirepo.util
 
 yt = None
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-
-_FLASH_PAR_FILE = 'flash.par'
 
 _GRID_EVOLUTION_FILE = 'flash.dat'
 
@@ -87,9 +86,11 @@ def background_percent_complete(report, run_dir, is_running):
     if report == 'setupAnimation':
         f = run_dir.join(_SIM_DATA.SETUP_PARAMS_SCHEMA_FILE)
         if f.exists():
+            d = pkjson.load_any(pkio.read_text(f))
             res.pkupdate(
                 frameCount=1,
-                flashSchema=pkjson.load_any(pkio.read_text(f))
+                flashSchema=d.flashSchema,
+                parValues=d.get('parValues'),
             )
     else:
         _init_yt()
@@ -106,120 +107,63 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def generate_config_file(run_dir, data):
-
-    field_order = SCHEMA.constants.flashDirectives.fieldOrder
-    labels = SCHEMA.constants.flashDirectives.labels
-
-    def _config_element_text(e, indent=0):
-        l = ''
-        if 'comment' in e:
-            l += f'\n{"   " * indent}D {e.name} {e.comment}'
-        l += f'\n{"   " * indent}{e._type}'
-        for f in field_order[e._type]:
-            v = e[f]
-            if f == 'isConstant':
-                if v == '1':
-                    l += ' CONSTANT'
-                continue
-            if f == 'default' and e.type == 'STRING':
-                v = f'"{v}"'
-            if not len(v):
-                continue
-            if f == 'range':
-                v = f'[{v}]'
-            if f in labels:
-                v = f'{labels[f]} {v}'
-            l += f' {v}'
-        if 'statements' in e:
-            for stmt in e.statements:
-                l += _config_element_text(stmt, indent + 1)
-        return l
-
-    res = ''
-    for e in data.models.setupConfigDirectives:
-        res += _config_element_text(e)
-    pkio.write_text(
-        _SIM_DATA.flash_simulation_unit_file_path(run_dir, data, 'Config'),
-        res + '\n',
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    n = None
+    if model == 'setupAnimation':
+        if frame == SCHEMA.constants.setupLogFrameId:
+            n = _SIM_DATA.SETUP_LOG
+        elif frame == SCHEMA.constants.compileLogFrameId:
+            n = _SIM_DATA.COMPILE_LOG
+    if model == 'animation':
+        if frame == SCHEMA.constants.flashLogFrameId:
+            #TODO(pjm): need constant in sirepo.mpi?
+            n = 'mpi_run.out'
+    if n:
+        #TODO(pjm): client does not know which log files exists
+        if not run_dir.join(n).exists():
+            return PKDict(
+                filename=run_dir.join(n),
+                content='No file output available'
+            )
+        #return n
+        return template_common.text_data_file(n, run_dir)
+    raise AssertionError(
+        'unknown model for get_data_file: {} {}'.format(
+            model,
+            frame,
+        ),
     )
 
 
-def stateless_compute_setup_command(data):
-    return PKDict(setupCommand=' '.join(setup_command(data)))
-
-
 def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
-    # TODO(e-carlin): share with synergia (and possibly radia)
     if success_exit:
         return None
     e = None
     f = run_dir.join('mpi_run.out')
     if f.exists():
-        m = re.search(
-            r'^ Error message is (.*?)\n',
-            pkio.read_text(f),
-            re.MULTILINE | re.DOTALL,
-        )
-        if m:
-            e = m.group(1)
+        t = pkio.read_text(f)
+        for r in (
+            r'^\s*Error(?: message is|\:)\s*(.*?)\n',
+            r'(Too many blocks.*?)\n',
+        ):
+            m = re.search(
+                r,
+                t,
+                re.MULTILINE | re.DOTALL | re.IGNORECASE,
+            )
+            if m:
+                e = m.group(1)
+                break
     return e
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
-
-
-def setup_command(data):
-    def _integer(key, value):
-        return f'-{key}={value}'
-
-    def _shortcut(value):
-        return f'+{value}'
-
-    c = []
-    for k, v in data.models.setupArguments.items():
-        if k == 'units':
-            for e in v:
-                c.append(f'--with-unit={e}')
-            continue
-        t = SCHEMA.model.setupArguments[k][1]
-        if t == 'SetupArgumentDimension':
-            # always include the setup dimension
-            c.append(f'-{v}d')
-            continue
-        if v == SCHEMA.model.setupArguments[k][2]:
-            continue
-        if t == 'Boolean':
-            v == '1' and c.append(f'-{k}')
-        elif t == 'Integer':
-            c.append(_integer(k, v))
-        elif t == 'NoDashInteger':
-            c.append(f'{k}={v}')
-        elif t == 'OptionalInteger':
-            # Do not move up to enclosing if.
-            # We need to handle OptionalInteger even if v is falsey (no-op)
-            if v:
-                c.append(_integer(k, v))
-        elif t == 'SetupArgumentGridGeometry':
-            c.append(_shortcut(v))
-        elif t == 'SetupArgumentShortcut':
-            v == '1' and c.append(_shortcut(k))
-        elif t  == 'String' or t == 'OptionalString':
-           c.append(f'{k}={v}')
-        else:
-            raise AssertionError(f'type={t} not supported')
-    t = SCHEMA.constants.flashAppName
-    return [
-        './setup',
-        t,
-        f'-objdir={t}',
-    ] + c
+    return _generate_parameters_file(data, None)
 
 
 def sim_frame_gridEvolutionAnimation(frame_args):
     c = _grid_evolution_columns(frame_args.run_dir)
-    dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
+    dat = numpy.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
     stride = 20
     x = dat[::stride, 0]
     plots = []
@@ -244,13 +188,6 @@ def sim_frame_gridEvolutionAnimation(frame_args):
 
 
 def sim_frame_oneDimensionProfileAnimation(frame_args):
-    # def _interpolate_max(files):
-    #     m = -1
-    #     for f in files:
-    #         d = yt.load(f)
-    #         m = max(d.domain_width[0] + d.index.grid_left_edge[0][0], m)
-    #     return m
-
     def _files():
         if frame_args.selectedPlotFiles:
             return sorted([str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')])
@@ -281,7 +218,7 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
         title=frame_args.var,
         x_label=_PLOT_VARIABLE_LABELS.length,
         x_points = x.tolist(),
-        x_range=[np.min(x), np.max(x)],
+        x_range=[numpy.min(x), numpy.max(x)],
         y_label=_PLOT_VARIABLE_LABELS.get(frame_args.var, ''),
         y_range=template_common.compute_plot_color_and_range(plots),
     )
@@ -301,7 +238,7 @@ def sim_frame_varAnimation(frame_args):
     _init_yt()
     from yt.visualization import plot_window
     from yt.visualization.fixed_resolution import FixedResolutionBuffer
-    f = frame_args.var
+    f = frame_args.var.lower()
     ds = yt.load(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex]))
     axis = ['x', 'y', 'z'].index(frame_args.axis)
     (bounds, center, display_center) =  plot_window.get_window_parameters(axis, 'c', None, ds)
@@ -365,19 +302,36 @@ def sim_frame_varAnimation(frame_args):
     )
 
 
+def stateful_compute_update_lib_file(data):
+    p = _SIM_DATA.lib_file_write_path(
+        _SIM_DATA.flash_app_lib_basename(data.simulationId),
+    )
+    if data.get('archiveLibId'):
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.flash_app_lib_basename(data.archiveLibId),
+        ).copy(p)
+    else:
+        simulation_db.simulation_dir(
+            SIM_TYPE,
+            data.simulationId,
+        ).join(_SIM_DATA.flash_app_archive_basename()).rename(p)
+    return PKDict(
+        archiveLibId=data.simulationId,
+    )
+
+
+def stateless_compute_setup_command(data):
+    return PKDict(setupCommand=' '.join(_SIM_DATA.flash_setup_command(data.setupArguments)))
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir),
     )
+    if data.get('report') == 'initZipReport':
+        return
     return template_common.get_exec_parameters_cmd()
-
-
-def _find_setup_config_directive(data, name):
-    for d in data.models.setupConfigDirectives:
-        if d.name == name:
-            return d
-    return PKDict()
 
 
 def _format_boolean(value, config=False):
@@ -389,58 +343,56 @@ def _format_boolean(value, config=False):
 
 
 def _generate_parameters_file(data, run_dir):
+    from sirepo import mpi
     res = ''
-    # names = {}
+    if data.get('report') == 'initZipReport':
+        return template_common.render_jinja(
+            SIM_TYPE,
+            PKDict(
+                initialParFile=data.models.problemFiles.initialParFile,
+                flashExampleName=data.models.problemFiles.flashExampleName,
+                problemFileArchive=_SIM_DATA.flash_problem_files_archive_basename(data),
+                appArchiveName=_SIM_DATA.flash_app_archive_basename(),
+                simulationId=data.models.simulation.simulationId,
+            ),
+            'init-zip.py',
+        )
 
-    # if _has_species_selection(data.models.simulation.flashType):
-    #     for k in ('fill', 'wall'):
-    #         f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
-    #         data.models.Multispecies[f'eos_{k}TableFile'] = f
-    #         data.models[
-    #             'physicsmaterialPropertiesOpacityMultispecies'
-    #         ][f'op_{k}FileName'] = f
+    if data.get('report') != 'setupAnimation':
+        flash_schema = data.models.flashSchema
 
-    # for line in pkio.read_text(
-    #     run_dir.join(_SIM_DATA.flash_setup_units_basename(data)),
-    # ).split('\n'):
-    #     names[
-    #         #''.join([x for x in line.split('/') if not x.endswith('Main')])
-    #         #re.sub(r'/', '_', line)
-    #         flash_parser.SetupParameterParser.model_name_from_flash_unit_name(line)
-    #     ] = line
-
-    flash_schema = data.models.flashSchema
-
-    for m in sorted(data.models):
-        if m not in flash_schema.model:
-            continue
-        schema = flash_schema.model[m]
-        heading = '# {}\n'.format(flash_schema.view[m].title)
-        has_heading = False
-        for f in sorted(data.models[m]):
-            if f not in schema:
+        for m in sorted(data.models):
+            if m not in flash_schema.model:
                 continue
-            if f in ('basenm', 'checkpointFileIntervalTime', 'checkpointFileIntervalStep'):
-                # Simulation.basenm must remain the default
-                # plotting routines depend on the constant name
-                continue
-            v = data.models[m][f]
-            if v != schema[f][2]:
-                if not has_heading:
-                    has_heading = True
-                    res += heading
-                if schema[f][1] == 'Boolean':
-                    v = _format_boolean(v)
-                res += '{} = "{}"\n'.format(f, v)
-        if has_heading:
-            res += '\n'
+            schema = flash_schema.model[m]
+            heading = '# {}\n'.format(flash_schema.view[m].title)
+            has_heading = False
+            for f in sorted(data.models[m]):
+                if f not in schema:
+                    continue
+                if f in ('basenm', 'checkpointFileIntervalTime', 'checkpointFileIntervalStep'):
+                    # Simulation.basenm must remain the default
+                    # plotting routines depend on the constant name
+                    continue
+                v = data.models[m][f]
+                if v != schema[f][2]:
+                    if not has_heading:
+                        has_heading = True
+                        res += heading
+                    if schema[f][1] == 'Boolean':
+                        v = _format_boolean(v)
+                    res += '{} = "{}"\n'.format(f, v)
+            if has_heading:
+                res += '\n'
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            exe_name=run_dir.join(_SIM_DATA.flash_exe_basename(data)),
-            is_setup_animation=data.report == 'setupAnimation',
+            exe_name=run_dir.join(_SIM_DATA.flash_exe_basename(data)) \
+                if run_dir else '',
+            is_setup_animation=data.get('report') == 'setupAnimation',
             par=res,
-            par_filename=_FLASH_PAR_FILE,
+            par_filename=_SIM_DATA.FLASH_PAR_FILE,
+            mpi_cores=mpi.cfg.cores ,
         )
     )
 
@@ -451,10 +403,6 @@ def _grid_evolution_columns(run_dir):
             return [x for x in re.split('[ ]{2,}', f.readline().strip())]
     except FileNotFoundError:
         return []
-
-
-def _has_species_selection(flash_type):
-    return flash_type in ('CapLaserBELLA', 'CapLaser3D')
 
 
 def _h5_file_list(run_dir):
