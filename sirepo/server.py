@@ -367,7 +367,7 @@ class API(sirepo.api.APIBase):
     
     @api_perm.allow_visitor
     def api_homePage(self, path_info=None):
-        return api_staticFile('en/' + (path_info or 'landing.html'))
+        return self.call_api('staticFile', kwargs=PKDict(path_info='en/' + (path_info or 'landing.html')))
     
     
     @api_perm.require_user
@@ -704,7 +704,7 @@ def _render_root_page(page, values):
 
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
-    return api_simulationData(
+    return API.api_simulationData(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
     )
