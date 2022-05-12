@@ -2755,24 +2755,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 var pb = renderer.computeVisiblePropBounds();
                 radiaService.objBounds = pb;
-                //srdbg('bnds', b);
-                //srdbg('l', [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])]);
-                //srdbg('ctr', [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
-
-                var padPct = 0.1;
-                var l = [
-                    Math.abs(pb[1] - pb[0]),
-                    Math.abs(pb[3] - pb[2]),
-                    Math.abs(pb[5] - pb[4])
-                ].map(function (c) {
-                    return (1 + padPct) * c;
-                });
-
-                var bndBox = cm.buildBox(l, [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
-                bndBox.actor.getProperty().setRepresentationToWireframe();
-                // NOTE: vtkLineFilter exists but is not included in the default vtk build
-                //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
-
+                const bndBox = cm.buildBoundingBox(pb, 0.1);
                 renderer.addActor(bndBox.actor);
                 const vpb = new SIREPO.VTK.ViewPortBox(bndBox.source, renderer);
                 renderWindow.render();

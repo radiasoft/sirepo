@@ -157,7 +157,7 @@ class BoxBundle extends ActorBundle {
      * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
      * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
         labSize = [1, 1, 1],
@@ -447,13 +447,10 @@ class ViewPortObject {
             renderer: renderer
         });
         this.worldCoord.setCoordinateSystemToWorld();
-
-        /** @member {boolean} - indicates the world is ready for computation */
-        this.worldReady = false;
     }
 
     /**
-     * Calculates the rectangle surrounding all of the objects in the world, projected into the viewport
+     * Calculates the rectangle surrounding the vtk object, projected into the viewport
      * @returns {Rect}
      */
     boundingRect() {
@@ -475,7 +472,7 @@ class ViewPortObject {
     /**
      * An external edge has all other corners on the same side of the line it defines
      * @param {string} dim - dimension (x|y|z)
-     * @returns {*[]}
+     * @returns {[LineSegment]}
      */
     externalViewportEdgesForDimension(dim) {
         const edges = [];
@@ -518,7 +515,7 @@ class ViewPortObject {
     }
 
     /**
-     * Calculates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
+     * Translates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
      * world
      * @param {Point} worldPoint
      * @returns {Point}
@@ -534,51 +531,24 @@ class ViewPortObject {
     }
 
     /**
-     * Gets the corners of the boundary of the vtk object
-     * @returns {[Point]} - the corners in the following order:
-     *     [[xmin, ymin, zmin], [xmin, ymin, zmax], [xmin, ymax, zmin], [xmin, ymax, zmax],
-     *     [xmax, ymin, zmin], [xmax, ymin, zmax], [xmax, ymax, zmin], [xmax, ymax, zmax],
-     */
-    worldCorners() {
-        const b = this.source.getOutputData().getBounds();
-        const c = [];
-        for (let i of [0, 1]) {
-            for (let j of [2, 3]) {
-                for (let k of [4, 5]) {
-                    c.push(new SIREPO.GEOMETRY.Point(b[i], b[j], b[k]));
-                }
-            }
-        }
-        return c;
-    }
-
-    /**
-     * Gets the edges - that is, the lines connecting corners
-     * @returns {{}}
-     */
-    worldEdges() {
-        return {};
-    }
-
-    /**
-     *
-     * @param coords
-     * @returns {*}
+     * Translates the given Points from vtk world to viewport
+     * @param {[Point]} coords - 3d points
+     * @returns {[Point]} - 2d points
      */
    viewPortPoints(coords) {
         return coords.map(x => this.viewPortPoint(x));
    }
 
     /**
-     *
-     * @returns {*}
+     * Translates corners from vtk world to viewport
+     * @returns {[Point]}
      */
     viewPortCorners() {
         return this.viewPortPoints(this.worldCorners());
     }
 
     /**
-     *
+     * Translates edges from vtk world to viewport
      * @returns {{}}
      */
     viewportEdges() {
@@ -595,14 +565,47 @@ class ViewPortObject {
         return ee;
     }
 
+    /**
+     * Gets the center of the vtk object
+     * @returns {Point}
+     */
+    worldCenter() {
+        return new SIREPO.GEOMETRY.Point(...this.source.getCenter());
+    }
+
+    /**
+     * Gets the corners of the vtk object. Subclasses should override
+     * @returns {[Point]}
+     */
+    worldCorners() {
+        return [];
+    }
+
+    /**
+     * Gets the edges - that is, the lines connecting corners. Subclasses should override
+     * @returns {{}}
+     */
+    worldEdges() {
+        return {};
+    }
 }
 
+/**
+ * A ViewPortObject for a cube source
+ */
 class ViewPortBox extends ViewPortObject {
+    /**
+     * @param {vtk.Filters.Sources.vtkCubeSource} source - vtk cube source
+     * @param {vtk.Rendering.Core.vtkRenderer} renderer - vtk renderer
+     */
     constructor(source, renderer) {
         super(source, renderer);
         this.arrangeEdges();
     }
 
+    /**
+     * Puts the edges into suitable order
+     */
     arrangeEdges() {
         const edgeCfg = {
             x: {
@@ -630,8 +633,8 @@ class ViewPortBox extends ViewPortObject {
     }
 
     /**
-     * 
-     * @returns {{}}
+     * Gets the lines through the center of the object for each dimension
+     * @returns {{}} - a map of dimension to LineSegments
      */
     centerLines() {
         const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
@@ -655,16 +658,8 @@ class ViewPortBox extends ViewPortObject {
     }
 
     /**
-     *
-     * @returns {Point}
-     */
-    worldCenter() {
-        return new SIREPO.GEOMETRY.Point(...this.source.getCenter());
-    }
-
-    /**
-     *
-     * @returns {*[]}
+     * Gets the corners of the box
+     * @returns {[Point]}
      */
     worldCorners() {
         const ctr = this.worldCenter();
@@ -688,8 +683,8 @@ class ViewPortBox extends ViewPortObject {
     }
 
     /**
-     *
-     * @returns {{}}
+     * Gets the edges of the box in each dimension
+     * @returns {{}} - a map of dimension to an array of LineSegments
      */
     worldEdges() {
         const c = this.worldCorners();
@@ -707,8 +702,8 @@ class ViewPortBox extends ViewPortObject {
     }
 
     /**
-     *
-     * @returns {*[]}
+     * Gets the size of the box
+     * @returns {[number]}
      */
     worldSize() {
         return [
