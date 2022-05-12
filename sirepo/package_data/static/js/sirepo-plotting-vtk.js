@@ -203,13 +203,13 @@ class LineBundle extends ActorBundle {
      * @param {[number]} labP1 - 1st point
      * @param {[number]} labP2 - 2nd point
      * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @param {} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
         labP1 = [0, 0, 0],
         labP2 = [0, 0, 1],
-        transform,
-        actorProperties
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
     ) {
         super(
             vtk.Filters.Sources.vtkLineSource.newInstance({
@@ -238,8 +238,8 @@ class PlaneBundle extends ActorBundle {
         labOrigin = [0, 0, 0],
         labP1 = [1, 0, 0],
         labP2 = [0, 1, 0],
-        transform,
-        actorProperties
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
     ) {
         super(vtk.Filters.Sources.vtkPlaneSource.newInstance(), transform, actorProperties);
         this.setPoints(labOrigin, labP1, labP2);
@@ -282,8 +282,8 @@ class SphereBundle extends ActorBundle {
     constructor(
         labCenter = [0, 0, 0],
         radius = 1.0,
-        transform,
-        actorProperties
+        transform= new SIREPO.GEOMETRY.Transform(),
+        actorProperties= {}
     ) {
         super(
             vtk.Filters.Sources.vtkSphereSource.newInstance(),
