@@ -143,20 +143,15 @@ class API(sirepo.api.APIBase):
             pkdlog('ignoring exception={} stack={}', e, pkdexc())
         # Always true from the client's perspective
         return sirepo.http_reply.gen_json({'state': 'canceled'})
-    
-    
+
     @api_perm.require_user
     def api_runMulti(self):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
-            a = sirepo.uri_router.check_api_call(api).__name__
-            # SECURITY: Only allow these two API's for now. Certain API's
-            # (ex api_admJobs) have more security checks in the method (ex
-            # check_user_has_role) in the Flask server that could be
-            # circumvented since we don't call the Falsk server method.
-            assert a in ('api_runSimulation', 'api_runStatus')
-            return a
-    
+            sirepo.uri_router.assert_api_name_and_auth(api, ('runSimulation', 'runStatus'))
+            # Necessary so dispatch to job supervisor works correctly
+            return 'api_' + api
+
         r = []
         for m in sirepo.http_request.parse_json():
             c = _request_content(PKDict(req_data=m))
@@ -179,8 +174,8 @@ class API(sirepo.api.APIBase):
     @api_perm.require_user
     def api_runStatus(self):
         return _request()
-    
-    
+
+
     @api_perm.require_user
     def api_sbatchLogin(self):
         r = _request_content(
@@ -188,8 +183,8 @@ class API(sirepo.api.APIBase):
         )
         r.sbatchCredentials = r.pkdel('data')
         return _request(_request_content=r)
-    
-    
+
+
     @api_perm.require_user
     def api_simulationFrame(self, frame_id):
         return template_common.sim_frame(

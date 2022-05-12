@@ -704,7 +704,8 @@ def _render_root_page(page, values):
 
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
-    return API.api_simulationData(
+    #TODO(rorour) what to do here where there's no self
+    return api_simulationData(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
     )

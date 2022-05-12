@@ -51,7 +51,22 @@ _api_modules = []
 _api_funcs = PKDict()
 
 
-def call_api(route_or_name, kwargs=None, data=None):
+def assert_api_name_and_auth(name, allowed):
+    """Check if `name` is executable and in allowed
+
+    Args:
+        name (str): name of the api
+        allowed (tuple): names that are allowed to be called
+    Returns:
+        str: api name
+    """
+    _check_api_call(name)
+    assert allowed, 'must pass non-zero set'
+    if name not in allowed:
+        raise AssertionError(f'api={name} not in allowed={allowed}')
+
+
+def call_api(func_or_name, kwargs=None, data=None):
     """Call another API with permission checks.
 
     Note: also calls `save_to_cookie`.
@@ -95,18 +110,6 @@ def call_api(route_or_name, kwargs=None, data=None):
     sirepo.cookie.save_to_cookie(r)
     sirepo.events.emit('end_api_call', PKDict(resp=r))
     return r
-
-
-def check_api_call(route_or_name):
-    """Check if API is callable by current user (proper credentials)
-
-    Args:
-        route_or_name (function or str): API to check
-    """
-    f = route_or_name if isinstance(route_or_name, _Route) \
-        else _api_to_route[route_or_name]
-    sirepo.api_auth.check_api_call(f.func)
-    return f
 
 
 def init(app, simulation_db):
@@ -202,6 +205,19 @@ def uri_for_api(api_name, params=None, external=True):
 
 class _Route(PKDict):
     pass
+
+
+def _check_api_call(func_or_name):
+    """Check if API is callable by current user (proper credentials)
+
+    Args:
+        func_or_name (function or str): API to check
+    """
+    f = func_or_name if callable(func_or_name) \
+        else _api_to_route[func_or_name].func
+    sirepo.api_auth.check_api_call(f)
+    return f
+
 
 def _dispatch(path):
     """Called by Flask and routes the base_uri with parameters
