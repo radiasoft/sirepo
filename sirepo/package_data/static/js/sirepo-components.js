@@ -1788,7 +1788,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 }
                 const a = {
                     frameCount: f,
-                    typeOfSimulation: stringsService.formatKey('typeOfSimulation'),
+                    typeOfSimulation: stringsService.typeOfSimulation($scope.simState.model),
                     state: $scope.simState.stateAsText()
                 };
                 return  $sce.trustAsHtml(
@@ -3970,7 +3970,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               </div>
             </form>
             <div class="clearfix"></div>
-            <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || errorMessage()">
+            <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || simState.isStateError() || errorMessage()">
               <a data-ng-href="{{ logFileURL() }}" target="_blank">View {{ ::appName }} log</a>
             </div>
             <div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>
@@ -3997,7 +3997,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.initMessage = function() {
                 const s = SIREPO.APP_SCHEMA.strings;
-                return s.initMessage || `Running ${stringsService.ucfirst(s.typeOfSimulation)}`;
+                return s.initMessage || `Running ${stringsService.typeOfSimulation($scope.simState.model)}`;
             };
 
             $scope.logFileURL = function() {
@@ -4025,7 +4025,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.startButtonLabel = function() {
-                return stringsService.startButtonLabel();
+                return stringsService.startButtonLabel($scope.simState.model);
             };
 
             $scope.stateAsText = function() {
@@ -4038,7 +4038,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.stopButtonLabel = function() {
-                return stringsService.stopButtonLabel();
+                return stringsService.stopButtonLabel($scope.simState.model);
             };
         },
     };
