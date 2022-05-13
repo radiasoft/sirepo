@@ -32,7 +32,7 @@ _SIM_NAME = 'Undulator Radiation'
 _SIM_REPORT = 'initialIntensityReport'
 
 
-class API(sirepo.api.APIBase):
+class API(sirepo.api.APIRequest):
     @api_perm.require_auth_basic
     def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.

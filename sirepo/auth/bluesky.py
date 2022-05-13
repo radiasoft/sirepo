@@ -40,7 +40,7 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-class API(sirepo.api.APIBase):
+class API(sirepo.api.APIRequest):
     @api_perm.allow_cookieless_set_user
     def api_authBlueskyLogin(self):
         req = sirepo.http_request.parse_post(id=True)

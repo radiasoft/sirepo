@@ -32,7 +32,7 @@ _COOKIE_EXPIRY_TIMESTAMP = 'srazt'
 _ONE_DAY = datetime.timedelta(days=1)
 
 
-class API(sirepo.api.APIBase):
+class API(sirepo.api.APIRequest):
     @api_perm.require_cookie_sentinel
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""

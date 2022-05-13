@@ -43,7 +43,7 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-class API(sirepo.api.APIBase):
+class API(sirepo.api.APIRequest):
     @api_perm.allow_cookieless_set_user
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.

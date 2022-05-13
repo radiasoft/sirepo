@@ -53,7 +53,7 @@ _ROBOTS_TXT = None
 _app = None
 
 
-class API(sirepo.api.APIBase):
+class API(sirepo.api.APIRequest):
     @api_perm.require_user
     def api_copyNonSessionSimulation(self):
         req = http_request.parse_post(id=True, template=True)
@@ -87,7 +87,7 @@ class API(sirepo.api.APIBase):
     @api_perm.require_user
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
-        req = http_request.parse_post(id=True, folder=True, name=True)
+        req = http_request.parse_post(id=True, folder=True, name=True, template=True)
         d = simulation_db.read_simulation_json(req.type, sid=req.id)
         d.models.simulation.pkupdate(
             name=req.name,

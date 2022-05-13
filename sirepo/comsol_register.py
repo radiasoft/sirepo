@@ -17,7 +17,7 @@ from sirepo import smtp
 cfg = None
 
 
-class API(sirepo.api.APIBase):
+class API(sirepo.api.APIRequest):
     @api_perm.allow_visitor
     def api_comsol(self):
         return http_reply.gen_redirect(
