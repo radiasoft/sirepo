@@ -566,20 +566,12 @@ class _SbatchCmd(_Cmd):
     def job_cmd_source_bashrc(self):
         if not self.msg.get('shifterImage'):
             return super().job_cmd_source_bashrc()
-        return f'''
-ulimit -c 0
-unset PYTHONPATH
-unset PYTHONSTARTUP
-export PYENV_ROOT=/home/vagrant/.pyenv
-export HOME=/home/vagrant
-source /home/vagrant/.bashrc >& /dev/null
-eval export HOME=~$USER
-'''
+        return ''
 
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
         c, s, e = super().job_cmd_cmd_stdin_env()
         if self.msg.get('shifterImage'):
-            c = ('shifter', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
+            c = ('shifter', '--entrypoint', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
         return c, s, e
 
     def job_cmd_env(self):
@@ -736,7 +728,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node=32
 {_assert_project()}'''
-            s = '--cpu-bind=cores shifter'
+            s = '--cpu-bind=cores shifter --entrypoint'
         m = '--mpi=pmi2' if pkconfig.channel_in('dev') else ''
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
@@ -745,17 +737,9 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
-cat > bash.stdin <<'EOF'
-{self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
-# Inject libmpi ourselves. See: git.radiasoft.org/sirepo/issues/4356
-if [[ ! $LD_LIBRARY_PATH =~ /opt/cray/pe/mpt/7.7.19/gni/mpich-gnu-abi/8.2/lib ]]; then
-    export LD_LIBRARY_PATH=/opt/cray/pe/mpt/7.7.19/gni/mpich-gnu-abi/8.2/lib:$LD_LIBRARY_PATH
-fi
-
-exec python {template_common.PARAMETERS_PYTHON_FILE}
-EOF
-exec srun {m} {s} /bin/bash bash.stdin
+{self.job_cmd_source_bashrc()}
+exec srun {m} {s} python {template_common.PARAMETERS_PYTHON_FILE}
 '''
         )
         return f
