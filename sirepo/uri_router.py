@@ -66,7 +66,7 @@ def assert_api_name_and_auth(name, allowed):
         raise AssertionError(f'api={name} not in allowed={allowed}')
 
 
-def call_api(func_or_name, kwargs=None, data=None):
+def call_api(route_or_name, kwargs=None, data=None):
     """Call another API with permission checks.
 
     Note: also calls `save_to_cookie`.
@@ -88,7 +88,7 @@ def call_api(func_or_name, kwargs=None, data=None):
             s = sirepo.http_request.set_sim_type(kwargs.get('simulation_type'))
         else:
             kwargs = PKDict()
-        f = check_api_call(route_or_name)
+        f = _check_api_call(route_or_name)
         try:
             if data:
                 p = sirepo.http_request.set_post(data)
@@ -207,15 +207,15 @@ class _Route(PKDict):
     pass
 
 
-def _check_api_call(func_or_name):
+def _check_api_call(route_or_name):
     """Check if API is callable by current user (proper credentials)
 
     Args:
-        func_or_name (function or str): API to check
+        route_or_name (function or str): API to check
     """
-    f = func_or_name if callable(func_or_name) \
-        else _api_to_route[func_or_name].func
-    sirepo.api_auth.check_api_call(f)
+    f = route_or_name if isinstance(route_or_name, _Route) \
+        else _api_to_route[route_or_name]
+    sirepo.api_auth.check_api_call(f.func)
     return f
 
 

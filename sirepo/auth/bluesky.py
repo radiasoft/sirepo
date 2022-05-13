@@ -66,7 +66,7 @@ class API(sirepo.api.APIBase):
     @api_perm.allow_cookieless_set_user
     def api_blueskyAuth(self):
         """Deprecated use `api_authBlueskyLogin`"""
-        return api_authBlueskyLogin()
+        return self.api_authBlueskyLogin()
 
 
 def auth_hash(req, verify=False):

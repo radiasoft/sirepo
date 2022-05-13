@@ -71,7 +71,7 @@ class API(sirepo.api.APIBase):
         data.pkdel('report')
         data.models.simulation.isExample = False
         data.models.simulation.outOfSessionSimulationId = req.id
-        res = _save_new_and_reply(data)
+        res = _save_new_and_reply(req, data)
         sirepo.sim_data.get_class(req.type).lib_files_from_other_user(
             data,
             simulation_db.lib_dir_from_sim_dir(src),
@@ -95,7 +95,7 @@ class API(sirepo.api.APIBase):
             isExample=False,
             outOfSessionSimulationId='',
         )
-        return _save_new_and_reply(d)
+        return _save_new_and_reply(req, d)
     
     
     @api_perm.require_user
@@ -326,7 +326,7 @@ class API(sirepo.api.APIBase):
             def s(data):
                 data.models.simulation.folder = req.folder
                 data.models.simulation.isExample = False
-                return _save_new_and_reply(data)
+                return _save_new_and_reply(req, data)
     
             if pkio.has_file_extension(req.filename, 'json'):
                 data = sirepo.importer.read_json(req.file_stream.read(), req.type)
@@ -342,7 +342,7 @@ class API(sirepo.api.APIBase):
                         req,
                     )
                 with simulation_db.tmp_dir() as d:
-                    data = req.template.import_file(req, tmp_dir=d, reply_op=s)
+                    data = req.template.import_file(req, tmp_dir=d, reply_op=s, arq=self)
                 if 'error' in data:
                     return http_reply.gen_json(data)
             return s(data)
@@ -407,7 +407,7 @@ class API(sirepo.api.APIBase):
         )
         if hasattr(req.template, 'new_simulation'):
             req.template.new_simulation(d, req.req_data)
-        return _save_new_and_reply(d)
+        return _save_new_and_reply(req, d)
     
     
     @api_perm.require_user
@@ -462,10 +462,9 @@ class API(sirepo.api.APIBase):
         req = http_request.parse_post(id=True, template=True)
         d = req.req_data
         simulation_db.validate_serial(d)
-        d = simulation_db.save_simulation_json(d, fixup=True, modified=True)
-        return api_simulationData(
-            d.simulationType,
-            d.models.simulation.simulationId,
+        return _simulation_data_reply(
+            req,
+            simulation_db.save_simulation_json(d, fixup=True, modified=True),
         )
     
     
@@ -481,14 +480,11 @@ class API(sirepo.api.APIBase):
         req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
         try:
             d = simulation_db.read_simulation_json(req.type, sid=req.id)
-            if hasattr(req.template, 'prepare_for_client'):
-                d = req.template.prepare_for_client(d)
-            resp = http_reply.gen_json(d)
+            return _simulation_data_reply(req, d)
         except simulation_db.CopyRedirect as e:
             if e.sr_response['redirect'] and section:
                 e.sr_response['redirect']['section'] = section
-            resp = http_reply.gen_json(e.sr_response)
-        return http_reply.headers_for_no_cache(resp)
+            return http_reply.headers_for_no_cache(http_reply.gen_json(e.sr_response))
     
     
     @api_perm.require_user
@@ -702,19 +698,20 @@ def _render_root_page(page, values):
     return http_reply.render_static_jinja(page, 'html', values, cache_ok=True)
 
 
-def _save_new_and_reply(*args):
-    data = simulation_db.save_new_simulation(*args)
-    #TODO(rorour) what to do here where there's no self
-    return api_simulationData(
-        data['simulationType'],
-        data['models']['simulation']['simulationId'],
-    )
+def _save_new_and_reply(req, data):
+    return _simulation_data_reply(req, simulation_db.save_new_simulation(data))
 
 
 def _simulation_data_iterator(res, path, data):
     """Iterator function to return entire simulation data
     """
     res.append(data)
+
+
+def _simulation_data_reply(req, data):
+    if hasattr(req.template, 'prepare_for_client'):
+        d = req.template.prepare_for_client(data)
+    return http_reply.headers_for_no_cache(http_reply.gen_json(data))
 
 
 def _simulations_using_file(req, ignore_sim_id=None):

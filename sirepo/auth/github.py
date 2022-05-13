@@ -98,7 +98,7 @@ class API(sirepo.api.APIBase):
     @api_perm.allow_cookieless_set_user
     def api_oauthAuthorized(self, oauth_type):
         """Deprecated use `api_authGithubAuthorized`"""
-        return api_authGithubAuthorized()
+        return self.api_authGithubAuthorized()
 
 
 def avatar_uri(model, size):
