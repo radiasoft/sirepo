@@ -71,6 +71,8 @@ SIREPO.app.factory('flashService', function(appState, panelState, requestSender,
         return appState.applicationState().flashSchema;
     };
 
+    self.isFlashPar = filename => filename == 'flash.par';
+
     self.updateSchema = () => {
         const schema = appState.clone(ORIGINAL_SCHEMA);
         const flashSchema = appState.models.flashSchema;
@@ -571,7 +573,7 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
     }
 
     function updateLibFile() {
-        return requestSender.sendStatefulCompute(
+        return requestSender.sendStatelessCompute(
             appState,
             (data) => {
                 if (data.archiveLibId) {
@@ -653,18 +655,26 @@ SIREPO.app.directive('archiveFileList', function() {
                 <td style="padding-left: 1em">
                   <div data-ng-show="! canView(row.name)">{{ row.name }}</div>
                   <div data-ng-show="canView(row.name)">
-                    <a href>{{ row.name }}</a>
+                    <a href data-ng-click="viewFile(row.name)">{{ row.name }}</a>
                   </div>
                 </td>
                 <td>
                   <div class="text-center" data-ng-show="canView(row.name)">
-                    <a href>view</a>
+                    <a href data-ng-click="viewFile(row.name)">view</a>
                   </div>
                 </td>
-                <td><div class="text-center"><a href><span class="glyphicon glyphicon-cloud-download"></span></a></div></td>
-                <td><div class="text-center" data-ng-show="canDelete(row.name)">
-                  <a href><span class="glyphicon glyphicon-remove"></span></a>
-                </div></td>
+                <td>
+                  <div class="text-center">
+                    <a href data-ng-click="downloadFile(row.name)">
+                      <span class="glyphicon glyphicon-cloud-download"></span></a>
+                  </div>
+                </td>
+                <td>
+                  <div class="text-center" data-ng-show="canDelete(row.name)">
+                    <a href data-ng-click="deleteFileConfirm(row.name)">
+                      <span class="glyphicon glyphicon-remove"></span></a>
+                  </div>
+                </td>
               </tr>
             </table>
             <div class="row">
@@ -672,22 +682,104 @@ SIREPO.app.directive('archiveFileList', function() {
                 <label>Add/Replace File</label>
               </div>
               <div class="col-sm-9">
-                <input id="sr-archive-file-import" type="file" data-file-model="inputFile" />
+                <input id="sr-archive-file-import" type="file"
+                  data-file-model="inputFile" />
               </div>
             </div>
+
+            <div class="modal fade" id="sr-flash-text-view" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-dismiss="modal">
+                      <span>&times;</span>
+                    </button>
+                    <span class="lead modal-title text-info">{{ selectedFileName }}</span>
+                  </div>
+                  <div class="modal-body" style="padding: 0">
+                    <iframe id="sr-flash-text-iframe"
+                      style="border: 0; width: 100%; height: 80vh" src=""></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div data-confirmation-modal="" data-id="sr-flash-delete-file-dialog"
+              data-title="Delete File" data-ok-text="Delete"
+              data-ok-clicked="deleteFile()">Remove the "{{ selectedFileName }}" file?
+            </div>
+
         `,
-        controller: function(appState, panelState, $scope) {
+        controller: function(appState, flashService, panelState, requestSender, $scope) {
+            $scope.selectedFileName = '';
+
+            function setIFrameHTML(html) {
+                $('#sr-flash-text-iframe').contents().find('html').html(html);
+            }
+
+            function serverRequest(method, callback) {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    data => callback(data),
+                    {
+                        method: method,
+                        simulationId: appState.models.simulation.simulationId,
+                        filename: $scope.selectedFileName,
+                        models: flashService.isFlashPar($scope.selectedFileName)
+                            ? appState.applicationState()
+                            : {},
+                    });
+            }
+
             $scope.canView = name => {
                 return name == 'Config'
-                    || name == 'flash.par'
+                    || flashService.isFlashPar(name)
                     || name == 'Makefile'
                     || name == 'README'
                     || name.search(/\.(F90|txt)$/) >= 0;
             };
             $scope.canDelete = name => {
                 return name != 'Config'
-                    && name != 'flash.par'
+                    && ! flashService.isFlashPar(name)
                     && name != 'Makefile';
+            };
+            $scope.deleteFile = () => {
+                serverRequest('delete_archive_file', data => {
+                    if (data.error) {
+                        return;
+                    }
+                    const f = appState.models.problemFiles.archiveFiles;
+                    f.splice(
+                        f.findIndex(e => e.name == $scope.selectedFileName),
+                        1);
+                    appState.saveChanges('problemFiles');
+                });
+            };
+            $scope.deleteFileConfirm = name => {
+                $scope.selectedFileName = name;
+                $('#sr-flash-delete-file-dialog').modal('show');
+            };
+            $scope.downloadFile = name => {
+                $scope.selectedFileName = name;
+                serverRequest('get_archive_file', data => {
+                    if (! data.error) {
+                        fetch(
+                            `data:application/octet-stream;base64,${data.encoded}`
+                        ).then(res => {
+                            res.blob().then(b => {
+                                saveAs(b, name);
+                            });
+                        });
+                    }
+                });
+            };
+            $scope.viewFile = name => {
+                $scope.selectedFileName = name;
+                setIFrameHTML(
+                    '<div style="text-align: center; padding: 1em">Loading '
+                        + name + '</div>');
+                $('#sr-flash-text-view').modal('show');
+                serverRequest('format_text_file', data => setIFrameHTML(data.html));
             };
         },
     };

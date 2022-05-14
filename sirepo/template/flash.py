@@ -4,19 +4,23 @@ u"""FLASH execution template.
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
+from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import base64
 import numpy
+import pygments
+import pygments.formatters
+import pygments.lexers
 import re
 import rsflash.plotting.extracts
 import sirepo.sim_data
-import sirepo.util
+import zipfile
 
 yt = None
 
@@ -125,8 +129,11 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
                 filename=run_dir.join(n),
                 content='No file output available'
             )
-        #return n
         return template_common.text_data_file(n, run_dir)
+    if model == 'gridEvolutionAnimation':
+        return _GRID_EVOLUTION_FILE
+    if model == 'oneDimensionProfileAnimation' or model == 'varAnimation':
+        return str(_h5_file_list(run_dir)[frame])
     raise AssertionError(
         'unknown model for get_data_file: {} {}'.format(
             model,
@@ -190,7 +197,10 @@ def sim_frame_gridEvolutionAnimation(frame_args):
 def sim_frame_oneDimensionProfileAnimation(frame_args):
     def _files():
         if frame_args.selectedPlotFiles:
-            return sorted([str(frame_args.run_dir.join(f)) for f in frame_args.selectedPlotFiles.split(',')])
+            return sorted([
+                str(frame_args.run_dir.join(f)) \
+                for f in frame_args.selectedPlotFiles.split(',')
+            ])
         return [str(_h5_file_list(frame_args.run_dir)[-1])]
 
     #_init_yt()
@@ -241,7 +251,8 @@ def sim_frame_varAnimation(frame_args):
     f = frame_args.var.lower()
     ds = yt.load(str(_h5_file_list(frame_args.run_dir)[frame_args.frameIndex]))
     axis = ['x', 'y', 'z'].index(frame_args.axis)
-    (bounds, center, display_center) =  plot_window.get_window_parameters(axis, 'c', None, ds)
+    (bounds, center, display_center) =  plot_window.get_window_parameters(
+        axis, 'c', None, ds)
     slc = ds.slice(axis, center[axis], center=center)
     all = ds.all_data()
     dim = ds.domain_dimensions
@@ -302,7 +313,61 @@ def sim_frame_varAnimation(frame_args):
     )
 
 
-def stateful_compute_update_lib_file(data):
+def stateless_compute_delete_archive_file(data):
+    #TODO(pjm): python may have ZipFile.remove() method eventually
+    pksubprocess.check_call_with_signals([
+        'zip',
+        '-d',
+        str(_SIM_DATA.lib_file_abspath(
+            _SIM_DATA.flash_app_lib_basename(data.simulationId),
+        )),
+        data.filename,
+    ])
+    return PKDict()
+
+
+def stateless_compute_format_text_file(data):
+    if data.filename == _SIM_DATA.FLASH_PAR_FILE and data.models.get('flashSchema'):
+        text = _generate_par_file(PKDict(models=data.models))
+    else:
+        with zipfile.ZipFile(_SIM_DATA.lib_file_abspath(
+            _SIM_DATA.flash_app_lib_basename(data.simulationId),
+        )) as f:
+            text = f.read(data.filename)
+    t = 'text'
+    if re.search(r'\.par$', data.filename, re.IGNORECASE):
+        # works pretty well for par files
+        t = 'bash'
+    elif re.search(r'\.f90', data.filename, re.IGNORECASE):
+        t = 'fortran'
+    elif data.filename.lower() == 'makefile':
+        t = 'makefile'
+    return PKDict(
+        html=pygments.highlight(
+            text,
+            pygments.lexers.get_lexer_by_name(t),
+            pygments.formatters.HtmlFormatter(
+                noclasses=True,
+                linenos='inline' if t == 'fortran' else False,
+            ),
+        ),
+    )
+
+
+def stateless_compute_get_archive_file(data):
+    if data.filename == _SIM_DATA.FLASH_PAR_FILE and data.models.get('flashSchema'):
+        r = pkcompat.to_bytes(_generate_par_file(PKDict(models=data.models)))
+    else:
+        with zipfile.ZipFile(_SIM_DATA.lib_file_abspath(
+            _SIM_DATA.flash_app_lib_basename(data.simulationId),
+        )) as f:
+            r = f.read(data.filename)
+    return PKDict(
+        encoded=pkcompat.from_bytes(base64.b64encode(r)),
+    )
+
+
+def stateless_compute_update_lib_file(data):
     p = _SIM_DATA.lib_file_write_path(
         _SIM_DATA.flash_app_lib_basename(data.simulationId),
     )
@@ -321,7 +386,9 @@ def stateful_compute_update_lib_file(data):
 
 
 def stateless_compute_setup_command(data):
-    return PKDict(setupCommand=' '.join(_SIM_DATA.flash_setup_command(data.setupArguments)))
+    return PKDict(setupCommand=' '.join(
+        _SIM_DATA.flash_setup_command(data.setupArguments),
+    ))
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -342,9 +409,41 @@ def _format_boolean(value, config=False):
     return r
 
 
+def _generate_par_file(data):
+    res = ''
+    flash_schema = data.models.flashSchema
+    for m in sorted(data.models):
+        if m not in flash_schema.model:
+            continue
+        schema = flash_schema.model[m]
+        heading = '# {}\n'.format(flash_schema.view[m].title)
+        has_heading = False
+        for f in sorted(data.models[m]):
+            if f not in schema:
+                continue
+            if f in (
+                'basenm',
+                'checkpointFileIntervalTime',
+                'checkpointFileIntervalStep',
+            ):
+                # Simulation.basenm must remain the default
+                # plotting routines depend on the constant name
+                continue
+            v = data.models[m][f]
+            if v != schema[f][2]:
+                if not has_heading:
+                    has_heading = True
+                    res += heading
+                if schema[f][1] == 'Boolean':
+                    v = _format_boolean(v)
+                res += '{} = "{}"\n'.format(f, v)
+        if has_heading:
+            res += '\n'
+    return res
+
+
 def _generate_parameters_file(data, run_dir):
     from sirepo import mpi
-    res = ''
     if data.get('report') == 'initZipReport':
         return template_common.render_jinja(
             SIM_TYPE,
@@ -358,32 +457,9 @@ def _generate_parameters_file(data, run_dir):
             'init-zip.py',
         )
 
+    res = ''
     if data.get('report') != 'setupAnimation':
-        flash_schema = data.models.flashSchema
-
-        for m in sorted(data.models):
-            if m not in flash_schema.model:
-                continue
-            schema = flash_schema.model[m]
-            heading = '# {}\n'.format(flash_schema.view[m].title)
-            has_heading = False
-            for f in sorted(data.models[m]):
-                if f not in schema:
-                    continue
-                if f in ('basenm', 'checkpointFileIntervalTime', 'checkpointFileIntervalStep'):
-                    # Simulation.basenm must remain the default
-                    # plotting routines depend on the constant name
-                    continue
-                v = data.models[m][f]
-                if v != schema[f][2]:
-                    if not has_heading:
-                        has_heading = True
-                        res += heading
-                    if schema[f][1] == 'Boolean':
-                        v = _format_boolean(v)
-                    res += '{} = "{}"\n'.format(f, v)
-            if has_heading:
-                res += '\n'
+        res = _generate_par_file(data)
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
