@@ -14,7 +14,7 @@ from sirepo import cookie
 from sirepo import http_request
 from sirepo import srtime
 import datetime
-import sirepo.api
+import sirepo.request
 import sirepo.util
 
 
@@ -32,7 +32,7 @@ _COOKIE_EXPIRY_TIMESTAMP = 'srazt'
 _ONE_DAY = datetime.timedelta(days=1)
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.require_cookie_sentinel
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""

@@ -15,7 +15,7 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
-import sirepo.api
+import sirepo.request
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
@@ -38,7 +38,7 @@ def adjust_supervisor_srtime(days):
     )
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_admJobs(self):
         sirepo.auth.check_user_has_role(

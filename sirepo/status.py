@@ -16,7 +16,7 @@ from sirepo import uri_router
 import datetime
 import random
 import re
-import sirepo.api
+import sirepo.request
 import time
 
 
@@ -32,7 +32,7 @@ _SIM_NAME = 'Undulator Radiation'
 _SIM_REPORT = 'initialIntensityReport'
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.require_auth_basic
     def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.

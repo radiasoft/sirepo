@@ -9,7 +9,7 @@ from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 import datetime
-import sirepo.api
+import sirepo.request
 import sirepo.util
 import time
 
@@ -47,7 +47,7 @@ def adjust_time(days):
         pass
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time

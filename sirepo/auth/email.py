@@ -22,7 +22,7 @@ import datetime
 import flask
 import hashlib
 import pyisemail
-import sirepo.api
+import sirepo.request
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -50,7 +50,7 @@ _EXPIRES_MINUTES = 8 * 60
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.allow_cookieless_set_user
     def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email

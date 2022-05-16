@@ -10,7 +10,7 @@ from pykern.pkdebug import pkdp, pkdlog
 import flask
 import py.error
 import re
-import sirepo.api
+import sirepo.request
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db

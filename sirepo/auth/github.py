@@ -22,7 +22,7 @@ from sirepo import util
 import authlib.integrations.requests_client
 import authlib.oauth2.rfc6749.errors
 import flask
-import sirepo.api
+import sirepo.request
 import sirepo.events
 import sqlalchemy
 
@@ -43,7 +43,7 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.allow_cookieless_set_user
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.

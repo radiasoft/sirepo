@@ -14,7 +14,7 @@ import inspect
 import os
 import pkgutil
 import re
-import sirepo.api
+import sirepo.request
 import sirepo.api_auth
 import sirepo.cookie
 import sirepo.events
@@ -67,7 +67,9 @@ def assert_api_name_and_auth(name, allowed):
 
 
 def call_api(route_or_name, kwargs=None, data=None):
-    """Call another API with permission checks.
+    """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
+
+    Call another API with permission checks.
 
     Note: also calls `save_to_cookie`.
 
@@ -143,7 +145,7 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )
-    sirepo.api.init(
+    sirepo.request.init(
         uri_router=pkinspect.this_module(),
     )
 
@@ -157,6 +159,9 @@ def register_api_module(module=None):
     Args:
         module (module): defaults to caller module
     """
+    def _is_api_func(cls, name, obj):
+        return name.startswith(_FUNC_PREFIX) and inspect.isfunction(obj) and name in cls.__dict__
+
     assert not _default_route, \
         '_init_uris already called. All APIs must registered at init'
     m = module or pkinspect.caller_module()
@@ -166,12 +171,12 @@ def register_api_module(module=None):
     _api_modules.append(m)
     if hasattr(m, 'init_apis'):
         m.init_apis()
-    # It's ok if there are no APIs
-    if not hasattr(m, 'API'):
+    if not hasattr(m, 'Request'):
+        # some modules (ex: sirepo.auth.basic) don't have any APIs
         return
-    c = m.API
+    c = m.Request
     for n, o in inspect.getmembers(c):
-        if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o) and n in c.__dict__:
+        if _is_api_func(cls=c, name=n, obj=o):
             assert not n in _api_funcs, \
                 'function is duplicate: func={} module={}'.format(n, m.__name__)
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
@@ -204,6 +209,13 @@ def uri_for_api(api_name, params=None, external=True):
 
 
 class _Route(PKDict):
+    """ Holds all route information for an API.
+
+    Keys:
+        func (function): The function object for the API
+        cls (class): The class in the API's module that contains the API function.
+        func_name (str): The function's name (ex: 'api_admJobs').
+    """
     pass
 
 

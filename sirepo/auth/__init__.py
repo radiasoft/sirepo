@@ -20,7 +20,7 @@ from sirepo import util
 import contextlib
 import datetime
 import importlib
-import sirepo.api
+import sirepo.request
 import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.template
@@ -79,7 +79,7 @@ uri_router = None
 cfg = None
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.require_cookie_sentinel
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission

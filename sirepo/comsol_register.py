@@ -1,4 +1,4 @@
-import sirepo.api
+import sirepo.request
 # -*- coding: utf-8 -*-
 u"""COMSOL registration routes.
 
@@ -17,7 +17,7 @@ from sirepo import smtp
 cfg = None
 
 
-class API(sirepo.api.APIRequest):
+class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_comsol(self):
         return http_reply.gen_redirect(
