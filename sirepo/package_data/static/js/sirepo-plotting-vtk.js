@@ -172,6 +172,24 @@ class VTKScene {
         return ! ! this.marker;
     }
 
+    removeActor(actor) {
+        if (! actor ) {
+            return;
+        }
+        this.renderer.removeActor(actor);
+    }
+
+    removeActors(actors) {
+        if (! actors) {
+            this.renderer.removeAllActors();
+            return;
+        }
+        for (const a of actors) {
+            this.removeActor(a);
+        }
+        actors.length = 0;
+    }
+
     /**
      * Convenience method for triggering a render in the render window
      */
@@ -2970,7 +2988,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                 };
             };
-            
+
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);

@@ -2599,7 +2599,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var initDone = false;
             var ptPicker = null;
             var renderer = null;
-            var renderWindow = null;
             var selectedColor = [];
             var selectedInfo = null;
             var selectedObj = null;
@@ -2661,7 +2660,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 actorInfo[id] = info;
 
-                vtkPlotting.addActor(renderer, actor);
+                $scope.vtkScene.addActor(actor);
                 if (pickable) {
                     ptPicker.addPickList(actor);
                     //cPicker.addPickList(actor);
@@ -2683,7 +2682,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 let name = sceneData.name;
                 let data = sceneData.data;
 
-                vtkPlotting.removeActors(renderer);
+                $scope.vtkScene.removeActors();
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
@@ -2758,13 +2757,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.vtkScene.addActor(boundsBox.actor);
                 $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, $scope.vtkScene.renderer);
 
-                //var pb = renderer.computeVisiblePropBounds();
                 radiaService.objBounds = bounds;
-                //const bndBox = cm.buildBoundingBox(pb, 0.1);
-                //renderer.addActor(bndBox.actor);
-                //const vpb = new SIREPO.VTK.ViewPortBox(bndBox.source, renderer);
-                //$scope.vtkScene.render();
-                //$scope.axisObj = vpb;
 
                 var acfg = {};
                 geometry.basis.forEach(function (dim, i) {
@@ -2800,9 +2793,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 updateLayout();
                 setAlpha();
-                //setBGColor();
-                $scope.vtkScene.setBgColor(appState.models.magnetDisplay.bgColor);
-                //vtkAPI.setCam();
+                setBgColor();
                 $scope.vtkScene.setCam();
                 enableWatchFields(true);
             }
@@ -3156,19 +3147,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                     )
                 );
-
-                //var m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                //    actor: ca,
-                //    interactor: renderWindow.getInteractor()
-                //});
-                //m.setViewportCorner(
-                //    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
-                //);
-                //m.setViewportSize(0.07);
-                //m.computeViewport();
-                //m.setMinPixelSize(50);
-                //m.setMaxPixelSize(100);
-                //vtkAPI.setMarker(m);
                 updateViewer();
                 updateLayout();
             }
@@ -3218,10 +3196,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.vtkScene.render();
             }
 
-            function setBGColor() {
-                $scope.vtkScene.setBGColor(appState.models.magnetDisplay.bgColor);
-                //renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(appState.models.magnetDisplay.bgColor));
-                //renderWindow.render();
+            function setBgColor() {
+                $scope.vtkScene.setBgColor(appState.models.magnetDisplay.bgColor);
             }
 
             //function setColor(info, type, color, alpha=255) {
@@ -3361,15 +3337,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 keypress: function (evt) {
                     // do nothing?  Stops vtk from changing render based on key presses
                 },
-                //ondblclick: function(evt) {
-                //    vtkAPI.setCam();
-                //}
             };
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
-                appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
+                appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBgColor);
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
             });
 
@@ -3378,8 +3351,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('vtk-init', function (e, d) {
                 $scope.vtkScene = d;
                 renderer = $scope.vtkScene.renderer;
-                //renderWindow = d.objects.window;
-                //vtkAPI = d.api;
 
                 // move pickers to vtkdisplay?
                 cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
