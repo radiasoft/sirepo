@@ -83,11 +83,11 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             $scope.isClientOnly = true;
             $scope.model = appState.models[$scope.modelName];
 
+            let axesBoxes = {};
             let picker = null;
-            let fullScreenRenderer = null;
-            let renderer = null;
-            let renderWindow = null;
             let vtkScene = null;
+            let selectedVolume = null;
+
             const bundleByVolume = {};
             // volumes are measured in centimeters
             const scale = 0.01;
@@ -97,6 +97,8 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 )
             );
             const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];
+
+            const _SCENE_BOX = '_scene';
 
             function buildOpacityDelegate() {
                 const m = $scope.modelName;
@@ -131,6 +133,32 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
                 return res;
+            }
+
+            function buildAxes(actor) {
+                let boundsBox = null;
+                let name = null;
+                if (actor) {
+                    const v = getVolumeByActor(actor);
+                    name = v.name;
+                    boundsBox = SIREPO.VTK.VTKUtils.buildBoundingBox(actor.getBounds());
+                }
+                else {
+                    name = _SCENE_BOX;
+                    boundsBox = vtkScene.sceneBoundingBox(0.02);
+                }
+                if (! axesBoxes[name]) {
+                    vtkScene.addActor(boundsBox.actor);
+                }
+                const bounds = boundsBox.actor.getBounds();
+                axesBoxes[name] = boundsBox.actor;
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, vtkScene.renderer);
+
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
+                    $scope.axisCfg[dim].max = bounds[2 * i + 1];
+                    $scope.axisCfg[dim].min = bounds[2 * i];
+                });
+                $scope.$apply();
             }
 
             function getVolumeById(volId) {
@@ -169,6 +197,21 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
 
                 const actor = picker.getActors()[0];
                 const v = getVolumeByActor(actor);
+                if (selectedVolume) {
+                    vtkScene.removeActor(axesBoxes[selectedVolume.name]);
+                    delete axesBoxes[selectedVolume.name];
+                }
+                if (v === selectedVolume) {
+                    selectedVolume = null;
+                    axesBoxes[_SCENE_BOX].getProperty().setOpacity(1);
+                    buildAxes();
+                }
+                else {
+                    axesBoxes[_SCENE_BOX].getProperty().setOpacity(0);
+                    selectedVolume = v;
+                    buildAxes(actor);
+                }
+
             }
 
             function loadVolumes(volIds) {
@@ -209,23 +252,16 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             function volumesLoaded() {
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
-                const boundsBox = vtkScene.sceneBoundingBox(0.02);
-                const bounds = boundsBox.actor.getBounds();
-                vtkScene.addActor(boundsBox.actor);
-                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, vtkScene.renderer);
-
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
                     $scope.axisCfg[dim] = {};
                     $scope.axisCfg[dim].dimLabel = dim;
                     $scope.axisCfg[dim].label = dim + ' [m]';
-                    $scope.axisCfg[dim].max = bounds[2 * i + 1];
-                    $scope.axisCfg[dim].min = bounds[2 * i];
                     $scope.axisCfg[dim].numPoints = 2;
                     $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     $scope.axisCfg[dim].showCentral = false;
                 });
-                $scope.$apply();
+                buildAxes();
                 vtkScene.render();
             }
 

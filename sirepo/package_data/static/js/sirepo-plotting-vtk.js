@@ -86,18 +86,6 @@ class VTKUtils {
     }
 
     /**
-     * Builds a wireframe box around all the objects in the given renderer, with optional padding
-     * @param {vtk.Rendering.Core.vtkRenderer} renderer
-     * @param {number} padPct - additional padding as a percentage of the size
-     * @returns {BoxBundle}
-     */
-    static sceneBoundingBox(renderer, padPct = 0.0) {
-        // must reset the camera before computing the bounds
-        renderer.resetCamera();
-        return VTKUtils.buildBoundingBox(renderer.computeVisiblePropBounds(), padPct);
-    }
-
-    /**
      * Creates a vtk user matrix from a SquareMatrix.
      * * @param {SquareMatrix} matrix - vtk actor
      * @returns {[[number]]}
@@ -133,6 +121,7 @@ class VTKScene {
         this.renderer = this.fsRenderer.getRenderer();
         this.renderWindow = this.fsRenderer.getRenderWindow();
         this.cam = this.renderer.get().activeCamera;
+        this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
 
         this.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
@@ -264,6 +253,16 @@ class VTKScene {
     }
 
     /**
+     * Sets a property for the camera along the given dimension
+     * @param {string} dim x|y|z
+     * @param {string} name
+     * @param {*} val
+     */
+    setCamProperty(dim, name, val) {
+        this.camProperties[dim][name] = val;
+    }
+
+    /**
      * Sets the camera so that the given side is facing the user. If that side is already set, flip to the
      * other side
      * @param {string} side - x|y|z
@@ -279,7 +278,7 @@ class VTKScene {
         this.viewSide = side;
         const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[side]
             .map(c =>  c * this.viewDirection);
-        this.setCam(pos, VTKScene.CAM_DEFAULTS()[side].viewUp);
+        this.setCam(pos, this.camProperties[side].viewUp);
     }
 
     /**
