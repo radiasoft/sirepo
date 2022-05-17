@@ -2048,7 +2048,6 @@ def _set_parameters(v, data, plot_reports, run_dir):
     if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
         if sirepo.mpi.cfg.in_slurm:
             v.sbatchBackup = '1'
-            v.multiElectronNumberOfIterations = 25
         if report == 'multiElectronAnimation':
             if dm.multiElectronAnimation.calcCoherence == '1':
                 v.multiElectronCharacteristic = 41

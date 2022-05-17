@@ -9,8 +9,9 @@
         },
         "problemFiles": {},
         "setupAnimation": {},
-        "setupArguments": {},
-        "setupConfigDirectives": [],
+        "setupArguments": {
+            "auto": "1"
+        },
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",

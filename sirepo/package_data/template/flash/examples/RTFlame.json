@@ -1,0 +1,26 @@
+{
+    "models": {
+        "gridEvolutionAnimation": {
+            "y1": "mass",
+            "y2": "Burning rate",
+            "y3": "Burned Mass"
+        },
+        "problemFiles": {
+            "flashExampleName": "RTFlame"
+        },
+        "setupArguments": {
+            "auto": "1"
+        },
+        "simulation": {
+            "name": "RTFlame",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "dens"
+        },
+        "Grid_GridMain_paramesh": {
+            "lrefine_max": 4
+        }
+    },
+    "simulationType": "flash"
+}
