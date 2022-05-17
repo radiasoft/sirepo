@@ -212,9 +212,21 @@ class _Route(PKDict):
     """ Holds all route information for an API.
 
     Keys:
-        func (function): The function object for the API
+        base_uri (str): first part of URI (ex: 'adjust-time')
         cls (class): The class in the API's module that contains the API function.
-        func_name (str): The function's name (ex: 'api_admJobs').
+        decl_uri (str): full URI that's in schema (ex: '/adjust-time/?<days>')
+        func (function): object that has api_perm attributes. should not be called as a function
+        func_name (str): method name in cls that implements the route (ex: 'api_admJobs').
+        name (str): API route name
+        params (list): parameters for URI
+    """
+    pass
+
+class _URIParams(PKDict):
+    """ Holds parameters for URI.
+
+    Keys:
+
     """
     pass
 
