@@ -2865,49 +2865,16 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.selection = null;
 
-            // common
-            const api = {
-                getMode: getInteractionMode,
-                setBg: setBgColor,
-                setCam: setCam,
-                setMarker: setMarker,
-                resetSide: $scope.resetSide || 'x',
-                showSide: showSide,
-                axisDirs: {
-                    x: {
-                        camViewUp: [0, 0, 1],
-                        dir: 1,
-                    },
-                    y: {
-                        camViewUp: [0, 0, 1],
-                        dir: 1,
-                    },
-                    z: {
-                        camViewUp: [0, 1, 0],
-                        dir: 1,
-                    }
-                },
-            };
-
-            let cam = null;
             let canvas3d = null;
             let didPan = false;
-            let fsRenderer = null;
             let hasBodyEvt = false;
             let hdlrs = {};
             let isDragging = false;
             let isPointerUp = true;
-            let marker = null;
-            let renderer = null;
-            let renderWindow = null;
             let snapshotCanvas = null;
             let snapshotCtx = null;
 
             const resize = utilities.debounce(refresh, 250);
-
-            function getInteractionMode() {
-                return $scope.interactionMode;
-            }
 
             // supplement or override these event handlers
             let eventHandlers = {
@@ -2938,50 +2905,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
             };
 
-            function ondblclick(evt) {
+            function ondblclick() {
                 $scope.vtkScene.resetView();
                 refresh();
                 $scope.$apply();
             }
-
-            function setBgColor(color) {
-                renderer.setBackground(VTKUtils.colorToFloat(color));
-                renderWindow.render();
-            }
-
-            function setCam(pos, vu) {
-                if (! fsRenderer) {
-                    return;
-                }
-                const cam = renderer.get().activeCamera;
-                cam.setPosition(...(pos || [1, 0, 0]));
-                cam.setFocalPoint(0, 0, 0);
-                cam.setViewUp(...(vu || [0, 0, 1]));
-                renderer.resetCamera();
-                // make room for left axis label on wide plots
-                cam.yaw(0.6);
-                if (marker) {
-                    marker.updateMarkerOrientation();
-                }
-                renderWindow.render();
-            }
-
-            function setMarker(m) {
-                marker = m;
-                setMarkerVisible();
-            }
-
-            function setMarkerVisible() {
-                if (! marker) {
-                    return;
-                }
-                marker.setEnabled($scope.markerState.enabled);
-                renderWindow.render();
-            }
-
-            $scope.hasMarker = function() {
-                return ! ! marker;
-            };
 
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
@@ -3006,6 +2934,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
 
                 $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
+
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
                     ondblclick(evt);
@@ -3041,27 +2970,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                 };
             };
-
-            $scope.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
-
-            $scope.setInteractionMode = function(mode) {
-                $scope.interactionMode = mode;
-                //renderWindow.getInteractor().setRecognizeGestures(mode === vtkUtils.INTERACTION_MODE_MOVE);
-            };
-
-            $scope.axisDirs = api.axisDirs;
-            $scope.side = $scope.resetSide;
-            $scope.showSide = showSide;
-
-            function showSide(side, dir = 0) {
-                $scope.vtkScene.showSide(side, dir);
-                refresh();
-            }
-
-            $scope.toggleMarker = function() {
-                setMarkerVisible();
-            };
-
+            
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);
