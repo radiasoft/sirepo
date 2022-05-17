@@ -554,7 +554,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     return self;
 });
 
-SIREPO.app.controller('BeamlineController', function (activeSection, appState, beamlineService, panelState, simulationQueue, srwService, $scope, $location) {
+SIREPO.app.controller('BeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
@@ -2456,14 +2456,17 @@ SIREPO.app.directive('sampleRandomShapes', function(appState) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService, requestSender) {
     return {
         restrict: 'A',
         scope: {
             model: '@simulationStatusPanel',
             title: '@',
-        },
-        template: `
+        },// TODO (gurhar1133): figure out correct ng-if condition for rendering the log link
+        template: `bbb
+        <div data-ng-if="!simState.isStatePending()" class="well well-lg">
+          <a href="{{ logFileURL() }}" target="_blank">SRW log file xxx</a>
+        </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
               <div class="progress" data-ng-if="simState.isProcessing()">
@@ -2541,6 +2544,22 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 else if ($scope.model == 'coherentModesAnimation') {
                     hidePanel('fluxAnimation');
                 }
+            }
+
+            $scope.logFileURL = () => {
+                var link = 'https://poop.com';
+                srdbg('simState: ', $scope.simState)
+                if (! appState.isLoaded()) {
+                    return '';
+                }
+                link = requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.simState.model,
+                    '<frame>': -1,
+                });
+                srdbg('link: ', link)
+                return link;
             }
 
             self.simHandleStatus = function(data) {

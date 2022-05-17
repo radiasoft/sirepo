@@ -23,7 +23,9 @@
   </div>
   <div data-ng-if="beamline.isActiveTab('multi')" class="row">
     <div data-column-for-aspect-ratio="multiElectronAnimation">
-      <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title="{{ beamline.srwService.getReportTitle('multiElectronAnimation') }}"> xxx <div data-simulation-status-panel="multiElectronAnimation"></div></div>
+      <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title="{{ beamline.srwService.getReportTitle('multiElectronAnimation') }}">
+      <div data-simulation-status-panel="multiElectronAnimation">
+      </div>
     </div>
     <div data-ng-if="beamline.srwService.showCalcCoherence" data-column-for-aspect-ratio="coherenceXAnimation">
       <div data-report-panel="3d" data-model-name="coherenceXAnimation"></div>
