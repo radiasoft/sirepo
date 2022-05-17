@@ -1,32 +1,19 @@
 {
     "models": {
-        "oneDimensionProfileAnimation": {},
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic"
-        },
         "problemFiles": {
             "flashExampleName": "Blast2"
         },
-        "setupAnimation": {},
         "setupArguments": {
             "auto": "1",
             "nxb": 16,
             "nyb": 16
         },
-        "simFolder": {},
         "simulation": {
             "name": "Blast2",
             "folder": "/Examples"
         },
         "varAnimation": {
             "amrGrid": "1",
-            "colorMap": "coolwarm",
-            "framesPerSecond": "2",
-            "notes": "",
-            "var": "dens",
             "vmax": 20
         },
         "Grid_GridMain_paramesh": {

@@ -11,6 +11,7 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
+from sirepo.template import flash_parser
 from sirepo.template import template_common
 import base64
 import numpy
@@ -313,6 +314,18 @@ def sim_frame_varAnimation(frame_args):
     )
 
 
+def sort_problem_files(files):
+    def _sort_suffix(row):
+        if row.name == 'Config':
+            return 1
+        if row.name == _SIM_DATA.FLASH_PAR_FILE:
+            return 2
+        if re.search(r'\.f90', row.name, re.IGNORECASE):
+            return 3
+        return 4
+    return sorted(files, key = lambda x: (_sort_suffix(x), x['name']))
+
+
 def stateless_compute_delete_archive_file(data):
     #TODO(pjm): python may have ZipFile.remove() method eventually
     pksubprocess.check_call_with_signals([
@@ -383,6 +396,42 @@ def stateless_compute_update_lib_file(data):
     return PKDict(
         archiveLibId=data.simulationId,
     )
+
+
+def stateless_compute_replace_file_in_zip(data):
+    found = False
+    for f in data.archiveFiles:
+        if f.name == data.filename:
+            found = True
+    if found:
+        stateless_compute_delete_archive_file(data)
+    lib_file = _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_type(
+            data.filename,
+            'problemFile',
+        ),
+    )
+    with zipfile.ZipFile(
+        str(_SIM_DATA.lib_file_abspath(
+            _SIM_DATA.flash_app_lib_basename(data.simulationId),
+        )),
+        'a',
+    ) as z:
+        z.write(lib_file, data.filename)
+    res = PKDict()
+    if data.filename == _SIM_DATA.FLASH_PAR_FILE and 'flashSchema' in data.models:
+        res.parValues = flash_parser.ParameterParser().parse(
+            data,
+            pkio.read_text(lib_file),
+        )
+    lib_file.remove()
+    if not found:
+        data.archiveFiles.append(PKDict(
+            name=data.filename,
+        ))
+        data.archiveFiles = sort_problem_files(data.archiveFiles)
+    res.archiveFiles = data.archiveFiles
+    return res
 
 
 def stateless_compute_setup_command(data):

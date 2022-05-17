@@ -103,9 +103,9 @@
             "sbatchProject": ["Project", "OptionalString", ""]
         },
         "gridEvolutionAnimation": {
-            "y1": ["Y1 Value", "ValueList", ""],
-            "y2": ["Y2 Value", "ValueList", ""],
-            "y3": ["Y3 Value", "ValueList", ""],
+            "y1": ["Y1 Value", "ValueList", "x-momentum"],
+            "y2": ["Y2 Value", "ValueList", "y-momentum"],
+            "y3": ["Y3 Value", "ValueList", "E_kinetic"],
             "notes": ["Notes", "Text", ""]
         },
         "initZipReport": {},

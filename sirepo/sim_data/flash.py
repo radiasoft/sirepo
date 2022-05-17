@@ -30,8 +30,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         cls._init_models(dm, (
             'animation',
+            'gridEvolutionAnimation',
             'initZipReport',
+            'oneDimensionProfileAnimation',
             'problemFiles',
+            'setupAnimation',
             'setupArguments',
             'varAnimation',
         ))

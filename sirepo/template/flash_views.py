@@ -662,35 +662,33 @@ class SpecializedViews:
         return v
 
     def _view_Simulation_SimulationMain_flashApp(self, schema):
-        if 'sim_condWall' in schema.model.Simulation_SimulationMain_flashApp:
-            #TODO(pjm): special views for cap laser, instead look for common species fields
-            return PKDict(
-                title='FLASH Simulation',
-                basic=[
-                    'sim_condWall',
-                    'sim_peakField',
-                    'sim_period',
-                    'sim_zminWall',
-                    [
-                        ['Fill', [
-                            'sim_eosFill',
-                            'sim_rhoFill',
-                            'sim_teleFill',
-                            'sim_tionFill',
-                            'sim_tradFill',
-                        ]],
-                        ['Wall', [
-                            'sim_eosWall',
-                            'sim_rhoWall',
-                            'sim_teleWall',
-                            'sim_tionWall',
-                            'sim_tradWall',
-                        ]],
-                    ],
-                ],
-            )
-        return PKDict(
+        res = PKDict(
             title='FLASH Simulation',
             basic=schema.view.Simulation_SimulationMain_flashApp.advanced,
-            advanced=[]
+            advanced=schema.view.Simulation_SimulationMain_flashApp.advanced,
         )
+        if 'sim_condWall' in schema.model.Simulation_SimulationMain_flashApp:
+            #TODO(pjm): special views for cap laser, instead look for common species fields
+            res.basic = [
+                'sim_condWall',
+                'sim_peakField',
+                'sim_period',
+                'sim_zminWall',
+                [
+                    ['Fill', [
+                        'sim_eosFill',
+                        'sim_rhoFill',
+                        'sim_teleFill',
+                        'sim_tionFill',
+                        'sim_tradFill',
+                    ]],
+                    ['Wall', [
+                        'sim_eosWall',
+                        'sim_rhoWall',
+                        'sim_teleWall',
+                        'sim_tionWall',
+                        'sim_tradWall',
+                    ]],
+                ]
+            ]
+        return res

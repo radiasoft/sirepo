@@ -1,29 +1,17 @@
 {
     "models": {
-        "oneDimensionProfileAnimation": {},
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic"
-        },
         "problemFiles": {
             "flashExampleName": "IsentropicVortex"
         },
-        "setupAnimation": {},
         "setupArguments": {
             "auto": "1",
             "withParticles": "1"
         },
-        "simFolder": {},
         "simulation": {
             "name": "IsentropicVortex",
             "folder": "/Examples"
         },
         "varAnimation": {
-            "colorMap": "coolwarm",
-            "framesPerSecond": "2",
-            "notes": "",
             "var": "dens"
         }
     },

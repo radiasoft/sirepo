@@ -1,30 +1,18 @@
 {
     "models": {
-        "oneDimensionProfileAnimation": {},
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic"
-        },
         "problemFiles": {
             "flashExampleName": "SedovChamber"
         },
-        "setupAnimation": {},
         "setupArguments": {
             "auto": "1",
             "nxb": 16,
             "nyb": 16
         },
-        "simFolder": {},
         "simulation": {
             "name": "SedovChamber",
             "folder": "/Examples"
         },
         "varAnimation": {
-            "colorMap": "coolwarm",
-            "framesPerSecond": "2",
-            "notes": "",
             "var": "temp"
         },
         "IO_IOMain": {

@@ -4,27 +4,34 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="NoDashInteger" data-ng-class="fieldClass">',
-        // TODO(e-carlin): this is just copied from sirepo-components
-          '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
-        '</div>',
-        '<div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">',
-          '<input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" />',
-        '</div>',
-        '<div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">',
-          '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" />',
-        '</div>',
-        '<div data-ng-switch-when="PlotFileArray" class="col-sm-7">',
-          '<div data-plot-file-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Constant" class="col-sm-3">',
-          '<div data-constant-field="" data-model-name="modelName" data-field="field"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ArchiveFileArray" class="col-sm-12">',
-          '<div data-archive-file-list="" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="NoDashInteger" data-ng-class="fieldClass">
+          <input data-string-to-number="integer" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" required />
+        </div>
+        <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
+          <input data-string-to-number="integer" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" />
+        </div>
+        <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
+          <input data-string-to-number="" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" />
+        </div>
+        <div data-ng-switch-when="PlotFileArray" class="col-sm-7">
+          <div data-plot-file-selection-list="" data-field="model[field]"
+            data-model-name="modelName"></div>
+        </div>
+        <div data-ng-switch-when="Constant" class="col-sm-3">
+          <div data-constant-field="" data-model-name="modelName"
+            data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="ArchiveFileArray" class="col-sm-12">
+          <div data-archive-file-list="" data-model="model" data-field="field"></div>
+        </div>
+    `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'problemFiles-archive': '.zip',
     };
@@ -71,7 +78,31 @@ SIREPO.app.factory('flashService', function(appState, panelState, requestSender,
         return appState.applicationState().flashSchema;
     };
 
+    self.isConfig = filename => filename == 'Config';
+
     self.isFlashPar = filename => filename == 'flash.par';
+
+    // could be foo.f90 or foo.f90.special-case
+    self.isFortran = filename => filename.search(/\.F90/i) >= 0;
+
+    self.resetFlashSchema = (callback) => {
+        appState.removeModel('flashSchema');
+        appState.saveChanges('simulation', callback);
+    };
+
+    self.setParValues = (modelName, parValues) => {
+        const m = appState.models[modelName];
+        let hasChanged = false;
+        for (const f in m) {
+            if (f in parValues) {
+                if (m[f] != parValues[f]) {
+                    m[f] = parValues[f];
+                    hasChanged = true;
+                }
+            }
+        }
+        return hasChanged;
+    };
 
     self.updateSchema = () => {
         const schema = appState.clone(ORIGINAL_SCHEMA);
@@ -125,17 +156,6 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
     self.simAnalysisModel = 'setupAnimation';
     self.simScope = $scope;
 
-    function setParValues(modelName, parValues) {
-        if (parValues) {
-            const m = appState.models[modelName];
-            for (const f in m) {
-                if (f in parValues) {
-                    m[f] = parValues[f];
-                }
-            }
-        }
-    }
-
     function updateSchema(flashSchema, parValues) {
         appState.models.flashSchema = flashSchema;
         flashService.updateSchema();
@@ -144,7 +164,9 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
             let saveName = false;
             if (! appState.models[name]) {
                 appState.models[name] = appState.setModelDefaults({}, name);
-                setParValues(name, parValues);
+                if (parValues) {
+                    flashService.setParValues(name, parValues);
+                }
                 saveName = true;
             }
             else {
@@ -156,7 +178,8 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
                             m[f] = parValues[f];
                         }
                         else {
-                            m[f] = flashSchema.model[name][f][SIREPO.INFO_INDEX_DEFAULT_VALUE];
+                            m[f] = flashSchema.model[name][f][
+                                SIREPO.INFO_INDEX_DEFAULT_VALUE];
                         }
                         saveName = true;
                     }
@@ -179,8 +202,7 @@ SIREPO.app.controller('SetupController', function(appState, flashService, persis
 
     self.startSimulation = () => {
         self.successMessage = '';
-        appState.removeModel('flashSchema');
-        self.simState.saveAndRunSimulation('simulation');
+        flashService.resetFlashSchema(self.simState.runSimulation);
     };
 
     self.simHandleStatus = data => {
@@ -240,7 +262,8 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
         }[appState.models.Grid_GridMain.geometry];
         if (appState.models.setupArguments.d === 3) {
             let a = 'z';
-            if (['cylindrical', 'spherical'].includes(appState.models.Grid_GridMain.geometry)) {
+            if (['cylindrical', 'spherical'].includes(
+                appState.models.Grid_GridMain.geometry)) {
                 a = 'phi';
             }
             SIREPO.APP_SCHEMA.enum.Axis.push([a, a]);
@@ -294,7 +317,8 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
                 frameCache.setFrameCount(data.frameCount, m);
             });
         }
-        updateValueList('gridEvolutionAnimation', ['y1', 'y2', 'y3'], data.gridEvolutionColumns);
+        updateValueList(
+            'gridEvolutionAnimation', ['y1', 'y2', 'y3'], data.gridEvolutionColumns);
         updateValueList('oneDimensionProfileAnimation', ['var'], data.plotVars);
         updateValueList('varAnimation', ['var'], data.plotVars);
         self.hasPlotVars = data.plotVars && data.plotVars.length > 0;
@@ -360,18 +384,39 @@ SIREPO.app.directive('appHeader', function() {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('setup')}"><a href data-ng-click="nav.openSection('setup')"><span class="glyphicon glyphicon-tasks"></span> Setup</a></li>
-                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-th"></span> Source</a></li>
-                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section" data-ng-class="{active: nav.isActive('physics')}"><a href data-ng-click="nav.openSection('physics')"><span class="glyphicon glyphicon-fire"></span> Physics</a></li>
-                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section" data-ng-class="{active: nav.isActive('params')}"><a href data-ng-click="nav.openSection('params')"><span class="glyphicon glyphicon-edit"></span> Parameters</a></li>
-                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section" data-ng-class="{active: nav.isActive('visualization')}"><a href data-ng-click="nav.openSection('visualization')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('setup')}">
+                    <a href data-ng-click="nav.openSection('setup')">
+                      <span class="glyphicon glyphicon-tasks"></span> Setup</a>
+                  </li>
+                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section"
+                    data-ng-class="{active: nav.isActive('source')}">
+                    <a href data-ng-click="nav.openSection('source')">
+                      <span class="glyphicon glyphicon-th"></span> Source</a>
+                  </li>
+                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section"
+                    data-ng-class="{active: nav.isActive('physics')}">
+                    <a href data-ng-click="nav.openSection('physics')">
+                      <span class="glyphicon glyphicon-fire"></span> Physics</a>
+                  </li>
+                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section"
+                    data-ng-class="{active: nav.isActive('params')}">
+                    <a href data-ng-click="nav.openSection('params')">
+                      <span class="glyphicon glyphicon-edit"></span> Parameters</a>
+                  </li>
+                  <li data-ng-if="flashService.hasFlashSchema()" class="sim-section"
+                    data-ng-class="{active: nav.isActive('visualization')}">
+                    <a href data-ng-click="nav.openSection('visualization')">
+                      <span class="glyphicon glyphicon-picture"></span> Visualization</a>
+                  </li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
-                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                  <li><a href data-ng-click="nav.showImportModal()">
+                    <span class="glyphicon glyphicon-cloud-upload"></span> Import</a>
+                  </li>
                 </ul>
               </app-header-right-sim-list>
             </div>
@@ -390,12 +435,15 @@ SIREPO.app.directive('plotFileSelectionList', function() {
             modelName: '=',
         },
         template: `
-            <div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">
+            <div style="margin: 5px 0; min-height: 34px; max-height: 20em;
+              overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">
               <table class="table table-condensed table-hover" style="margin:0">
                 <tbody>
-                  <tr data-ng-repeat="file in plotFiles track by $index" data-ng-click="toggleFile(file.filename)">
+                  <tr data-ng-repeat="file in plotFiles track by $index"
+                    data-ng-click="toggleFile(file.filename)">
                     <td>{{ file.time }}</td>
-                    <td><input type="checkbox" data-ng-checked="isSelected(file.filename)"></td>
+                    <td><input type="checkbox"
+                      data-ng-checked="isSelected(file.filename)"></td>
                   </tr>
                 </tbody>
               </table>
@@ -434,28 +482,6 @@ SIREPO.app.directive('plotFileSelectionList', function() {
     };
 });
 
-SIREPO.app.directive('parametersPanel', function() {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-            <div style="margin-bottom: 1ex" data-ng-repeat="name in modelNames track by name">
-            <button class="btn btn-default" data-ng-click="showModal(name)">{{ name }}</button>
-            </div>
-        `,
-        controller: function(appState, panelState, $scope) {
-            $scope.showModal = name => panelState.showModalEditor(name);
-
-            appState.whenModelsLoaded($scope, () => {
-                $scope.modelNames = [];
-                for (const name in appState.models.flashSchema.model) {
-                    $scope.modelNames.push(name);
-                }
-            });
-        },
-    };
-});
-
 SIREPO.app.directive('constantField', function() {
     return {
         restrict: 'A',
@@ -463,7 +489,9 @@ SIREPO.app.directive('constantField', function() {
             modelName: '=',
             field: '=',
         },
-        template: '<div class="form-control-static text-right">{{ ::schemaValue() }}</div>',
+        template: `
+            <div class="form-control-static text-right">{{ ::schemaValue() }}</div>
+        `,
         controller: function($scope) {
             $scope.schemaValue = () => {
                 return SIREPO.APP_SCHEMA.model[$scope.modelName][$scope.field][2];
@@ -481,12 +509,15 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
               <div data-basic-editor-panel="" data-view-name="setupArguments">
                 <div class="well" style="margin-top: 1ex">
                   <div data-ng-if="setupCommand">{{ setupCommand }}</div>
-                  <div data-ng-if="! setupCommand"><span class="glyphicon glyphicon-hourglass"></span> Computing setup command ...</div>
+                  <div data-ng-if="! setupCommand">
+                    <span class="glyphicon glyphicon-hourglass"></span>
+                    Computing setup command ...
+                  </div>
                 </div>
               </div>
             </div>
         `,
-        controller: function($scope, appState, requestSender) {
+        controller: function($scope, appState, flashService, requestSender) {
             function updateSetupCommand() {
                 $scope.setupCommand = '';
                 requestSender.sendStatelessCompute(
@@ -500,11 +531,15 @@ SIREPO.app.directive('setupArgumentsPanel', function() {
 
             $scope.$on('setupArguments.changed', () => {
                 updateSetupCommand();
-                if (appState.models.setupArguments.geometry == '-none-' || ! appState.models.Grid_GridMain) {
+                flashService.resetFlashSchema();
+                if (appState.models.setupArguments.geometry == '-none-'
+                    || ! appState.models.Grid_GridMain) {
                     return;
                 }
-                if (appState.models.Grid_GridMain.geometry != appState.models.setupArguments.geometry) {
-                    appState.models.Grid_GridMain.geometry = appState.models.setupArguments.geometry;
+                if (appState.models.Grid_GridMain.geometry
+                    != appState.models.setupArguments.geometry) {
+                    appState.models.Grid_GridMain.geometry =
+                        appState.models.setupArguments.geometry;
                     appState.saveChanges('Grid_GridMain');
                 }
             });
@@ -567,7 +602,8 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
             },
             false,
             err => {
-                flashService.zipFileStatusText = 'Error processing zip archive: ' + err.error;
+                flashService.zipFileStatusText = 'Error processing zip archive: '
+                    + err.error;
                 isProcessing = false;
             });
     }
@@ -606,7 +642,9 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
             updateLibFile();
         }
         panelState.showFields('problemFiles', [
-            'archive', ! (isProcessing || (flashService.hasArchiveFiles() && ! flashService.zipFileStatusText)),
+            'archive',
+            ! (isProcessing || (flashService.hasArchiveFiles()
+                                && ! flashService.zipFileStatusText)),
             'archiveFiles', flashService.hasArchiveFiles(),
         ]);
     }
@@ -627,7 +665,8 @@ SIREPO.app.directive('zipFileStatus', () => {
         scope: {},
         template: `
             <div class="text-center" data-ng-if="flashService.zipFileStatusText">
-            <span class="glyphicon glyphicon-hourglass"></span> {{ flashService.zipFileStatusText }} ...
+              <span class="glyphicon glyphicon-hourglass"></span>
+              {{ flashService.zipFileStatusText }} ...
             </div>
         `,
         controller: function($scope, flashService) {
@@ -677,12 +716,13 @@ SIREPO.app.directive('archiveFileList', function() {
                 </td>
               </tr>
             </table>
+
             <div class="row">
               <div class="col-sm-3 text-right">
                 <label>Add/Replace File</label>
               </div>
               <div class="col-sm-9">
-                <input id="sr-archive-file-import" type="file"
+                <input id="sr-archive-file-upload" type="file"
                   data-file-model="inputFile" />
               </div>
             </div>
@@ -709,9 +749,54 @@ SIREPO.app.directive('archiveFileList', function() {
               data-ok-clicked="deleteFile()">Remove the "{{ selectedFileName }}" file?
             </div>
 
+            <div data-confirmation-modal="" data-id="sr-flash-replace-file-dialog"
+              data-title="Replace File" data-ok-text="Replace"
+              data-ok-clicked="uploadFile()">Replace the "{{ selectedFileName }}" file?
+            </div>
+
+            <div data-confirmation-modal="" data-id="sr-flash-par-file-dialog"
+              data-title="Replace flash.par" data-ok-text="Update"
+              data-ok-clicked="uploadFile()">Update simulation settings from the
+                "{{ selectedFileName }}" file?
+            </div>
+
         `,
-        controller: function(appState, flashService, panelState, requestSender, $scope) {
+        controller: function(appState, fileUpload, flashService, panelState, requestSender, $element, $scope) {
             $scope.selectedFileName = '';
+
+            function replaceFile() {
+                serverRequest('replace_file_in_zip', data => {
+                    if (data.archiveFiles) {
+                        appState.models.problemFiles.archiveFiles =
+                            data.archiveFiles;
+                        appState.saveChanges('problemFiles');
+                    }
+                    if (flashService.isConfig($scope.selectedFileName)
+                        || flashService.isFortran($scope.selectedFileName)) {
+                        flashService.resetFlashSchema();
+                    }
+                    else if (flashService.isFlashPar($scope.selectedFileName)) {
+                        if (data.parValues) {
+                            const names = [];
+                            for (const name in appState.models.flashSchema.model) {
+                                if (flashService.setParValues(name, data.parValues)) {
+                                    names.push(name);
+                                }
+                            }
+                            if (names.length) {
+                                appState.saveChanges(names);
+                            }
+                        }
+                    }
+                    resetFile();
+                });
+            }
+
+            function resetFile() {
+                $scope.selectedFileName = '';
+                $scope.inputFile = null;
+                $($element).find("input[type='file']").val(null);
+            }
 
             function setIFrameHTML(html) {
                 $('#sr-flash-text-iframe').contents().find('html').html(html);
@@ -728,18 +813,20 @@ SIREPO.app.directive('archiveFileList', function() {
                         models: flashService.isFlashPar($scope.selectedFileName)
                             ? appState.applicationState()
                             : {},
+                        archiveFiles: appState.models.problemFiles.archiveFiles,
                     });
             }
 
             $scope.canView = name => {
-                return name == 'Config'
+                return flashService.isConfig(name)
                     || flashService.isFlashPar(name)
+                    || flashService.isFortran(name)
                     || name == 'Makefile'
                     || name == 'README'
-                    || name.search(/\.(F90|txt)$/) >= 0;
+                    || name.search(/\.txt$/) >= 0;
             };
             $scope.canDelete = name => {
-                return name != 'Config'
+                return ! flashService.isConfig(name)
                     && ! flashService.isFlashPar(name)
                     && name != 'Makefile';
             };
@@ -773,6 +860,26 @@ SIREPO.app.directive('archiveFileList', function() {
                     }
                 });
             };
+            $scope.uploadFile = () => {
+                fileUpload.uploadFileToUrl(
+                    $scope.inputFile,
+                    null,
+                    requestSender.formatUrl(
+                        'uploadFile',
+                        {
+                            '<simulation_id>': appState.models.simulation.simulationId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': 'problemFile',
+                        }),
+                    function(data) {
+                        if (data.error) {
+                            resetFile();
+                        }
+                        else {
+                            replaceFile();
+                        }
+                    });
+            };
             $scope.viewFile = name => {
                 $scope.selectedFileName = name;
                 setIFrameHTML(
@@ -781,6 +888,135 @@ SIREPO.app.directive('archiveFileList', function() {
                 $('#sr-flash-text-view').modal('show');
                 serverRequest('format_text_file', data => setIFrameHTML(data.html));
             };
+            $scope.$watch('inputFile', () => {
+                if ($scope.inputFile) {
+                    const n = $scope.inputFile.name;
+                    $scope.selectedFileName = n;
+
+                    if (flashService.isFlashPar(n)) {
+                        $('#sr-flash-par-file-dialog').modal('show');
+                        return;
+                    }
+                    if (appState.models.problemFiles.archiveFiles.some(
+                        r => r.name == n)) {
+                        $('#sr-flash-replace-file-dialog').modal('show');
+                        return;
+                    }
+                    $scope.uploadFile();
+                }
+            });
+
+            resetFile();
+        },
+    };
+});
+
+SIREPO.app.directive('moduleLink', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            row: '=moduleLink',
+        },
+        template: `
+            <div data-ng-if="! row.modelName">{{ row.name }}</div>
+            <div data-ng-if="row.modelName">
+              <a href data-ng-click="showModal(row)">{{ row.name }}
+                <span class="badge">{{ row.fieldCount }}</span>
+              </a>
+            </div>
+        `,
+        controller: function(appState, panelState, $scope) {
+            $scope.showModal = row => panelState.showModalEditor(row.modelName);
+        },
+    };
+});
+
+SIREPO.app.directive('parametersPanel', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+<!--
+            <form class="form-inline">
+              <div style="margin-bottom: 1ex" class="col-md-12 text-center">
+                <label style="padding-right: 1em">Search:</label>
+                <input type="text" class="form-control" data-ng-model="searchText" />
+              </div>
+            </div>
+-->
+            </form>
+            <div class="row">
+              <div class="col-sm-12 col-md-6 col-lg-4"
+                data-ng-repeat="col in columns track by $index">
+                <div data-ng-repeat="row in col track by row.name">
+                  <div data-ng-attr-style="margin-left: {{ 2 * row.level }}em"
+                    data-module-link="row"></div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function(appState, panelState, $scope) {
+            $scope.searchText = '';
+
+            function buildTreeColumn() {
+                const rows = [];
+                const tree = {};
+                for (const name in appState.models.flashSchema.model) {
+                    let title = appState.viewInfo(name).title;
+                    if (title.search('/') < 0) {
+                        title = name;
+                        title = title.replaceAll('_', '/');
+                    }
+                    const parts = [];
+                    for (const p of title.split('/')) {
+                        if (parts.length < 3) {
+                            parts.push(p);
+                            continue;
+                        }
+                        parts[2] += '/' + p;
+                    }
+                    for (let i = 0; i < parts.length; i++) {
+                        const p = parts[i];
+                        if (tree[p]) {
+                            continue;
+                        }
+                        tree[p] = {
+                            name: p,
+                            level: i,
+                            fieldCount: fieldCount(name),
+                        };
+                        if (p == parts[parts.length - 1]) {
+                            tree[p].modelName = name;
+                        }
+                        rows.push(tree[p]);
+                    }
+                }
+                $scope.columns = splitRows(rows);
+            }
+
+            function fieldCount(modelName) {
+                return Object.keys(appState.models.flashSchema.model[modelName]).length;
+            }
+
+            function splitRows(rows) {
+                const res = [rows, [], []];
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i].name == 'physics') {
+                        res[2] = rows.splice(i, rows.length - i);
+                        break;
+                    }
+                }
+                let mid = parseInt(rows.length / 2);
+                while (mid > 0 && rows[mid].level != 0) {
+                    mid--;
+                }
+                if (mid > 0) {
+                    res[1] = rows.splice(mid, rows.length - mid);
+                }
+                return res;
+            }
+
+            buildTreeColumn();
         },
     };
 });

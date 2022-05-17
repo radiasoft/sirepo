@@ -1,29 +1,18 @@
 {
     "models": {
-        "oneDimensionProfileAnimation": {},
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic"
-        },
         "problemFiles": {
             "flashExampleName": "WindTunnel"
         },
-        "setupAnimation": {},
         "setupArguments": {
             "auto": "1",
             "maxblocks": 10000
         },
-        "simFolder": {},
         "simulation": {
             "name": "WindTunnel",
             "folder": "/Examples"
         },
         "varAnimation": {
             "colorMap": "jet",
-            "framesPerSecond": "2",
-            "notes": "",
             "var": "pres"
         },
         "IO_IOMain": {

@@ -1,12 +1,5 @@
 {
     "models": {
-        "oneDimensionProfileAnimation": {},
-        "gridEvolutionAnimation": {
-            "notes": "",
-            "y1": "x-momentum",
-            "y2": "y-momentum",
-            "y3": "E_kinetic"
-        },
         "problemFiles": {
             "flashExampleName": "LaserSlab",
             "initialParFile": "coldstart_2d_3lasers.par"
@@ -14,7 +7,6 @@
         "physics_Hydro_HydroMain": {
             "cfl": 0.4
         },
-        "setupAnimation": {},
         "setupArguments": {
             "auto": "1",
             "hdf5typeio": "1",
@@ -27,15 +19,11 @@
             "species": "cham,targ",
             "usm3t": "1"
         },
-        "simFolder": {},
         "simulation": {
             "name": "LaserSlab",
             "folder": "/Examples"
         },
         "varAnimation": {
-            "colorMap": "coolwarm",
-            "framesPerSecond": "2",
-            "notes": "",
             "var": "tele"
         }
     },
