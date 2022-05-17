@@ -114,9 +114,12 @@ class VTKUtils {
 }
 
 
+/**
+ * This class encapsulates various basic vtk elements such as the renderer, and supplies methods for using them.
+ */
 class VTKScene {
     /**
-     *
+     * @param {{}} container - jquery element in which to place the scene
      * @param {string} resetSide - the dimension to display facing the user when the scene is reset
      */
     constructor(container, resetSide) {
@@ -141,6 +144,11 @@ class VTKScene {
         this.viewDirection = 1;
     }
 
+    /**
+     * Gets a map of dimension to camera properties
+     * @returns {{x: {viewUp: number[]}, y: {viewUp: number[]}, z: {viewUp: number[]}}}
+     * @constructor
+     */
     static CAM_DEFAULTS() {
         return {
             x: {
@@ -155,7 +163,6 @@ class VTKScene {
         }
     }
 
-
     /**
      * Convenience method for adding an actor to the renderer
      * @param {vtk.Rendering.Core.vtkActor} actor
@@ -164,14 +171,25 @@ class VTKScene {
         this.renderer.addActor(actor);
     }
 
+    /**
+     * Gets an icon based on the view direction ("into/out of the screen")
+     * @returns {string}
+     */
     directionIcon() {
         return this.viewDirection === 1 ? '⊙' : '⦻';
     }
 
+    /**
+     * @returns {boolean} - true if an orientation marker has been defined
+     */
     hasMarker() {
         return ! ! this.marker;
     }
 
+    /**
+     * Convenience method for removing the given actor from the renderer
+     * @param {vtk.Rendering.Core.vtkActor} actor
+     */
     removeActor(actor) {
         if (! actor ) {
             return;
@@ -179,6 +197,10 @@ class VTKScene {
         this.renderer.removeActor(actor);
     }
 
+    /**
+     * Convenience method for removing the given actors from the renderer, or all actors if input is null/empty
+     * @param {[vtk.Rendering.Core.vtkActor]|null} actors
+     */
     removeActors(actors) {
         if (! actors) {
             this.renderer.removeAllActors();
@@ -197,6 +219,9 @@ class VTKScene {
         this.renderWindow.render();
     }
 
+    /**
+     * Sets the camera so that the resetSide is facing the user
+     */
     resetView() {
         this.showSide(this.resetSide, 1);
     }
@@ -212,11 +237,20 @@ class VTKScene {
         return VTKUtils.buildBoundingBox(this.renderer.computeVisiblePropBounds(), padPct);
     }
 
+    /**
+     * Sets the background color of the renderer
+     * @param {string|[number]} color
+     */
     setBgColor(color) {
         this.renderer.setBackground(VTKUtils.colorToFloat(color));
         this.render();
     }
 
+    /**
+     * Sets the camera to the given position, pointing such that "up" is in the given direction
+     * @param {[number]} position
+     * @param {[numbeer]} viewUp
+     */
     setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
         this.cam.setPosition(...position);
         this.cam.setFocalPoint(0, 0, 0);
@@ -229,6 +263,12 @@ class VTKScene {
         this.render();
     }
 
+    /**
+     * Sets the camera so that the given side is facing the user. If that side is already set, flip to the
+     * other side
+     * @param {string} side - x|y|z
+     * @param {number} direction - -1|0|1
+     */
     showSide(side = this.resetSide, direction = 0) {
         if (side === this.viewSide) {
             this.viewDirection *= -1;
@@ -242,6 +282,9 @@ class VTKScene {
         this.setCam(pos, VTKScene.CAM_DEFAULTS()[side].viewUp);
     }
 
+    /**
+     * Refreshes the visibility of the orientation marker, if one exists
+     */
     refreshMarker() {
         if (! this.hasMarker()) {
             return;
@@ -250,12 +293,19 @@ class VTKScene {
         this.render();
     }
 
+    /**
+     * Sets an orientation marker
+     * @param {vtk.Interaction.Widgets.vtkOrientationMarkerWidget} m
+     */
     setMarker(m) {
         this.marker = m;
         this.isMarkerEnabled = true;
         this.refreshMarker();
     }
 
+    /**
+     * Cleans up vtk items
+     */
     teardown() {
         this.isMarkerEnabled = false;
         this.refreshMarker();
