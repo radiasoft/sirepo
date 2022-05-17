@@ -180,9 +180,7 @@ class VTKScene {
     }
 
     resetView() {
-        this.viewSide = this.resetSide;
-        this.viewDirection = 1;
-        this.showSide();
+        this.showSide(this.resetSide, 1);
     }
 
     /**
@@ -226,37 +224,25 @@ class VTKScene {
         this.setCam(pos, VTKScene.CAM_DEFAULTS()[side].viewUp);
     }
 
-    setMarkerEnabled(isEnabled) {
-        this.marker.setEnabled(isEnabled);
-        this.isMarkerEnabled = isEnabled;
+    refreshMarker() {
+        if (! this.hasMarker()) {
+            return;
+        }
+        this.marker.setEnabled(this.isMarkerEnabled);
         this.render();
     }
 
     setMarker(m) {
         this.marker = m;
-        this.setMarkerVisible();
-    }
-
-    setMarkerVisible() {
-        if (! this.marker) {
-            return;
-        }
-        this.setMarkerEnabled(this.isMarkerEnabled);
+        this.isMarkerEnabled = true;
+        this.refreshMarker();
     }
 
     teardown() {
-        if (this.marker) {
-            this.setMarkerEnabled(false);
-        }
+        this.isMarkerEnabled = false;
+        this.refreshMarker();
         this.fsRenderer.getInteractor().unbindEvents();
         this.fsRenderer.delete();
-    }
-
-    toggleMarker() {
-        if (! this.marker) {
-            return;
-        }
-        this.setMarkerEnabled(! this.isMarkerEnabled);
     }
 }
 
@@ -2935,7 +2921,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                     isDragging = true;
                     didPan = didPan || evt.shiftKey;
-                    $scope.side = null;
+                    $scope.vtkScene.viewSide = null;
                     utilities.debounce(refresh, 100)();
                 },
                 onpointerup: function (evt) {
@@ -2955,6 +2941,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             function ondblclick(evt) {
                 $scope.vtkScene.resetView();
                 refresh();
+                $scope.$apply();
             }
 
             function setBgColor(color) {
