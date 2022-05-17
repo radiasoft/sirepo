@@ -226,7 +226,9 @@ class _URIParams(PKDict):
     """ Holds parameters for URI.
 
     Keys:
-
+        is_optional (bool): is parameter optional
+        is_path_info (bool): is parameter path info
+        name (str): parameter name
     """
     pass
 
@@ -359,7 +361,7 @@ def _split_uri(uri):
                 'too many non-parameter components of uri={}'.format(uri)
             first = p
             continue
-        rp = PKDict()
+        rp = _URIParams()
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:
