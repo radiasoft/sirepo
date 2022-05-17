@@ -2989,7 +2989,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             reportId: '<',
         },
         template: `
-            ', //'<div></div>
+            <div></div>
         `,
         controller: function($scope, $element) {
 
@@ -4105,7 +4105,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 renderWindow.render();
 
                 // wait to initialize after the render so the world to viewport transforms are ready
-                vpOutline.initializeWorld();
+                //line.initializeWorld();
 
                 refresh(true);
 
@@ -4552,13 +4552,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     var axisLabelSelector = '.' + dim + '-axis-label';
 
                     // sort the external edges so we'll preferentially pick the left and bottom
-                    var externalEdges = vpOutline.externalViewPortEdgesForDimension(dim)
+                    var externalEdges = vpOutline.externalViewportEdgesForDimension(dim)
                         .sort(edgeSorter(perpScreenDim, ! isHorizontal));
                     var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
 
                     if (! seg) {
                         // all possible axis ends offscreen, so try a centerline
-                        var cl = vpOutline.centerLineForDimension(dim);
+                        var cl = vpOutline.centerLines[dim];
                         seg = geometry.bestEdgeAndSectionInBounds([cl], screenRect, dim, false);
                         if (! seg) {
                             // don't draw axes
@@ -4700,7 +4700,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             }
 
             function shouldReverseOnScreen(dim, index, screenDim) {
-                var currentEdge = vpOutline.viewPortEdgesForDimension(dim)[index];
+                var currentEdge = vpOutline.viewportEdges()[dim][index];
                 var currDiff = currentEdge.points[1][screenDim] - currentEdge.points[0][screenDim];
                 return currDiff < 0;
             }
