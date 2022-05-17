@@ -87,9 +87,15 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             let fullScreenRenderer = null;
             let renderer = null;
             let renderWindow = null;
-            let vtkAPI = null;
+            let vtkScene = null;
             const bundleByVolume = {};
-            const coordMapper = new SIREPO.VTK.CoordMapper();
+            // volumes are measured in centimeters
+            const scale = 0.01;
+            const coordMapper = new SIREPO.VTK.CoordMapper(
+                new SIREPO.GEOMETRY.Transform(
+                    new SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
+                )
+            );
             const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];
 
             function buildOpacityDelegate() {
@@ -123,7 +129,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                     edgeVisibility: $scope.model.showEdges === '1',
                 });
                 bundleByVolume[volId] = b;
-                renderer.addActor(b.actor);
+                vtkScene.addActor(b.actor);
                 return res;
             }
 
@@ -147,19 +153,19 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             }
 
             function handlePick(callData) {
-                if (renderer !== callData.pokedRenderer) {
+                if (vtkScene.renderer !== callData.pokedRenderer) {
                     return;
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                if (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE ||
-                    (vtkAPI.getMode() === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_SELECT && ! callData.controlKey)
+                if (vtkScene.interactionMode === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE ||
+                    (vtkScene.interactionMode === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
                     return;
                 }
 
                 const pos = callData.position;
-                picker.pick([pos.x, pos.y, 0.0], renderer);
+                picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
 
                 const actor = picker.getActors()[0];
                 const v = getVolumeByActor(actor);
@@ -171,10 +177,10 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             }
 
             function setGlobalProperties() {
-                if (! renderer) {
+                if (! vtkScene.renderer) {
                     return;
                 }
-                vtkAPI.setBg(appState.models.geometry3DReport.bgColor);
+                vtkScene.setBgColor(appState.models.geometry3DReport.bgColor);
                 for (const volId in bundleByVolume) {
                     const b = bundleByVolume[volId];
                     const v = getVolumeById(volId);
@@ -187,22 +193,26 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                         appState.models.geometry3DReport.showEdges === '1'
                     );
                 }
-                renderWindow.render();
+                vtkScene.render();
             }
 
             function setVolumeProperty(bundle, name, value) {
                 bundle.setActorProperty(name, value);
-                renderWindow.render();
+                vtkScene.render();
+            }
+
+            function volumesError(reason) {
+                srlog(new Error(`Volume load failed: ${reason}`));
+                $rootScope.$broadcast('vtk.hideLoader');
             }
 
             function volumesLoaded() {
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
-                renderer.resetCamera();
-                const bounds = renderer.computeVisiblePropBounds();
-                const boundsBox = coordMapper.buildBoundingBox(bounds, 0.02);
-                renderer.addActor(boundsBox.actor);
-                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, renderer);
+                const boundsBox = vtkScene.sceneBoundingBox(0.02);
+                const bounds = boundsBox.actor.getBounds();
+                vtkScene.addActor(boundsBox.actor);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, vtkScene.renderer);
 
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
@@ -216,7 +226,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                     $scope.axisCfg[dim].showCentral = false;
                 });
                 $scope.$apply();
-                renderWindow.render();
+                vtkScene.render();
             }
 
             function volumeURL(volId) {
@@ -243,10 +253,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
 
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
-                fullScreenRenderer = d.objects.fsRenderer;
-                renderWindow = d.objects.window;
-                renderer = d.objects.renderer;
-                vtkAPI = d.api;
+                vtkScene = d;
 
                 const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
@@ -255,22 +262,23 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
 
-                const m = SIREPO.VTK.VTKUtils.buildOrientationMarker(
-                    ca,
-                    renderWindow.getInteractor(),
-                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                vtkScene.setMarker(
+                    SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                        ca,
+                        vtkScene.renderWindow.getInteractor(),
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    )
                 );
-                vtkAPI.setMarker(m);
 
                 const vols = [];
                 for (const n in appState.models.volumes) {
                     vols.push(appState.models.volumes[n].volId);
                 }
-                loadVolumes(Object.values(vols)).then(volumesLoaded);
+                loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);
-                renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
             });
 
             $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {

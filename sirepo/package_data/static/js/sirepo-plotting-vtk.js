@@ -23,23 +23,24 @@ class VTKUtils {
     }
 
     /**
-     * Converts a string or an array of floats to an array of floats using vtk's conversion util, for use in
-     * colors
-     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
-     * @returns {[number]} - array of floats ranging from 0 - 1.
+     * Builds a wireframe box with the specified bounds and optional padding
+     * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
      */
-    static colorToFloat(hexStringOrArray) {
-        return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
-    }
+    static buildBoundingBox(bounds, padPct = 0.0) {
+        const l = [
+            Math.abs(bounds[1] - bounds[0]),
+            Math.abs(bounds[3] - bounds[2]),
+            Math.abs(bounds[5] - bounds[4])
+        ].map(c=> (1 + padPct) * c);
 
-    /**
-     * Converts a string or an array of floats to a string using vtk's conversion util, for use in
-     * colors
-     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
-     * @returns {[number]} - a color string (#rrggbb)
-     */
-    static colorToHex(hexStringOrArray) {
-       return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : (hexStringOrArray);
+        const b = new BoxBundle(
+            l,
+            [(bounds[1] + bounds[0]) / 2, (bounds[3] + bounds[2]) / 2, (bounds[5] + bounds[4]) / 2]
+        );
+        b.actorProperties.setRepresentationToWireframe();
+        return b;
     }
 
     /**
@@ -62,6 +63,200 @@ class VTKUtils {
         m.setMaxPixelSize(100);
 
         return m;
+    }
+
+    /**
+     * Converts a string or an array of floats to an array of floats using vtk's conversion util, for use in
+     * colors
+     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
+     * @returns {[number]} - array of floats ranging from 0 - 1.
+     */
+    static colorToFloat(hexStringOrArray) {
+        return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
+    }
+
+    /**
+     * Converts a string or an array of floats to a string using vtk's conversion util, for use in
+     * colors
+     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
+     * @returns {[number]} - a color string (#rrggbb)
+     */
+    static colorToHex(hexStringOrArray) {
+       return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : (hexStringOrArray);
+    }
+
+    /**
+     * Builds a wireframe box around all the objects in the given renderer, with optional padding
+     * @param {vtk.Rendering.Core.vtkRenderer} renderer
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    static sceneBoundingBox(renderer, padPct = 0.0) {
+        // must reset the camera before computing the bounds
+        renderer.resetCamera();
+        return VTKUtils.buildBoundingBox(renderer.computeVisiblePropBounds(), padPct);
+    }
+
+    /**
+     * Creates a vtk user matrix from a SquareMatrix.
+     * * @param {SquareMatrix} matrix - vtk actor
+     * @returns {[[number]]}
+     */
+    static userMatrix(matrix) {
+        let m = [];
+        for (const x of matrix.val) {
+            m = m.concat(x);
+            m.push(0);
+        }
+        m = m.concat([0, 0, 0, 1]);
+        return m;
+    }
+}
+
+
+class VTKScene {
+    /**
+     *
+     * @param {string} resetSide - the dimension to display facing the user when the scene is reset
+     */
+    constructor(container, resetSide) {
+        this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+            background: [1, 1, 1, 1],
+            container: container,
+            listenWindowResize: false,
+        });
+
+        this.container = this.fsRenderer.getContainer();
+        this.renderer = this.fsRenderer.getRenderer();
+        this.renderWindow = this.fsRenderer.getRenderWindow();
+        this.cam = this.renderer.get().activeCamera;
+        this.resetSide = resetSide;
+
+        this.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
+
+        this.marker = null;
+        this.isMarkerEnabled = false;
+
+        this.viewSide = this.resetSide;
+        this.viewDirection = 1;
+    }
+
+    static CAM_DEFAULTS() {
+        return {
+            x: {
+                viewUp: [0, 0, 1],
+            },
+            y: {
+                viewUp: [0, 0, 1],
+            },
+            z: {
+                viewUp: [0, 1, 0],
+            }
+        }
+    }
+
+
+    /**
+     * Convenience method for adding an actor to the renderer
+     * @param {vtk.Rendering.Core.vtkActor} actor
+     */
+    addActor(actor) {
+        this.renderer.addActor(actor);
+    }
+
+    directionIcon() {
+        return this.viewDirection === 1 ? '⊙' : '⦻';
+    }
+
+    hasMarker() {
+        return ! ! this.marker;
+    }
+
+    /**
+     * Convenience method for triggering a render in the render window
+     */
+    render() {
+        this.renderWindow.render();
+    }
+
+    resetView() {
+        this.viewSide = this.resetSide;
+        this.viewDirection = 1;
+        this.showSide();
+    }
+
+    /**
+     * Builds a wireframe box around all the objects in the scene, with optional padding
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    sceneBoundingBox(padPct = 0.0) {
+        // must reset the camera before computing the bounds
+        this.renderer.resetCamera();
+        return VTKUtils.buildBoundingBox(this.renderer.computeVisiblePropBounds(), padPct);
+    }
+
+    setBgColor(color) {
+        this.renderer.setBackground(VTKUtils.colorToFloat(color));
+        this.render();
+    }
+
+    setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
+        this.cam.setPosition(...position);
+        this.cam.setFocalPoint(0, 0, 0);
+        this.cam.setViewUp(...viewUp);
+        this.renderer.resetCamera();
+        this.cam.yaw(0.6);
+        if (this.marker) {
+            this.marker.updateMarkerOrientation();
+        }
+        this.render();
+    }
+
+    showSide(side = this.resetSide, direction = 0) {
+        if (side === this.viewSide) {
+            this.viewDirection *= -1;
+        }
+        if (direction) {
+            this.viewDirection = Math.sign(direction);
+        }
+        this.viewSide = side;
+        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[side]
+            .map(c =>  c * this.viewDirection);
+        this.setCam(pos, VTKScene.CAM_DEFAULTS()[side].viewUp);
+    }
+
+    setMarkerEnabled(isEnabled) {
+        this.marker.setEnabled(isEnabled);
+        this.isMarkerEnabled = isEnabled;
+        this.render();
+    }
+
+    setMarker(m) {
+        this.marker = m;
+        this.setMarkerVisible();
+    }
+
+    setMarkerVisible() {
+        if (! this.marker) {
+            return;
+        }
+        this.setMarkerEnabled(this.isMarkerEnabled);
+    }
+
+    teardown() {
+        if (this.marker) {
+            this.setMarkerEnabled(false);
+        }
+        this.fsRenderer.getInteractor().unbindEvents();
+        this.fsRenderer.delete();
+    }
+
+    toggleMarker() {
+        if (! this.marker) {
+            return;
+        }
+        this.setMarkerEnabled(! this.isMarkerEnabled);
     }
 }
 
@@ -95,6 +290,17 @@ class ActorBundle {
         for (const p in actorProperties) {
             this.setActorProperty(p, actorProperties[p]);
         }
+
+        this.actor.setUserMatrix(VTKUtils.userMatrix(this.transform.matrix));
+    }
+
+    /**
+     * Builds a wireframe box around this actor, with optional padding
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    actorBoundingBox(padPct = 0.0) {
+        return VTKUtils.buildBoundingBox(this.actor.getBounds(), padPct);
     }
 
     /**
@@ -179,18 +385,17 @@ class BoxBundle extends ActorBundle {
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
      */
     setCenter(labCenter) {
-        this.source.setCenter(this.transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
+        this.source.setCenter(labCenter);
     }
 
     /**
      * Sets the size of the box
      * @param {[number]} labSize- array of the x, y, z lengths of the box
      */
-    setSize(labSize, transform) {
-        const vSize = this.transform.apply(new SIREPO.GEOMETRY.Matrix(labSize)).val;
-        this.source.setXLength(vSize[0]);
-        this.source.setYLength(vSize[1]);
-        this.source.setZLength(vSize[2]);
+    setSize(labSize) {
+        this.source.setXLength(labSize[0]);
+        this.source.setYLength(labSize[1]);
+        this.source.setZLength(labSize[2]);
     }
 
 }
@@ -203,7 +408,7 @@ class LineBundle extends ActorBundle {
      * @param {[number]} labP1 - 1st point
      * @param {[number]} labP2 - 2nd point
      * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
         labP1 = [0, 0, 0],
@@ -213,8 +418,8 @@ class LineBundle extends ActorBundle {
     ) {
         super(
             vtk.Filters.Sources.vtkLineSource.newInstance({
-                point1: transform.apply(new SIREPO.GEOMETRY.Matrix(labP1)).val,
-                point2: transform.apply(new SIREPO.GEOMETRY.Matrix(labP2)).val,
+                point1: labP1,
+                point2: labP2,
                 resolution: 2
             }),
             transform,
@@ -334,46 +539,25 @@ class CoordMapper {
         this.transform = transform;
     }
 
-     /**
+    /**
      * Creates a Bundle from an arbitrary source
      * @param {*} source - a vtk source, reader, etc.
      * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     buildActorBundle(source, actorProperties) {
         return new ActorBundle(source, this.transform, actorProperties);
     }
 
-   /**
+    /**
      * Builds a box
      * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      * @returns {BoxBundle} - the box
      */
     buildBox(labSize, labCenter, actorProperties) {
         return new BoxBundle(labSize, labCenter, this.transform, actorProperties);
-    }
-
-    /**
-     * Builds a wireframe box with the specified bounds and optional padding
-     * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
-     * @param {number} padPct - additional padding as a percentage of the size
-     * @returns {BoxBundle}
-     */
-    buildBoundingBox(bounds, padPct = 0.0) {
-        const l = [
-            Math.abs(bounds[1] - bounds[0]),
-            Math.abs(bounds[3] - bounds[2]),
-            Math.abs(bounds[5] - bounds[4])
-        ].map(c=> (1 + padPct) * c);
-
-        const b = this.buildBox(
-            l,
-            [(bounds[1] + bounds[0]) / 2, (bounds[3] + bounds[2]) / 2, (bounds[5] + bounds[4]) / 2]
-        );
-        b.actor.getProperty().setRepresentationToWireframe();
-        return b;
     }
 
     /**
@@ -415,17 +599,12 @@ class CoordMapper {
      * @returns {[number]} - the matrix
      */
     userMatrix() {
-        const matrix = this.transform.matrix;
         let m = [];
-        for (let i = 0; i < matrix.length; i++) {
-            for (let j = 0; j < matrix[i].length; j++) {
-                m.push(matrix[i][j]);
-            }
+        for (const x of this.transform.matrix.val) {
+            m = m.concat(x);
+            m.push(0);
         }
-        m.splice(3, 0, 0);
-        m.splice(7, 0, 0);
-        m.push(0);
-        m.push(0, 0, 0, 1);
+        m = m.concat([0, 0, 0, 1]);
         return m;
     }
 }
@@ -2774,11 +2953,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             function ondblclick(evt) {
-                $scope.side = '';
-                for (const s in api.axisDirs) {
-                    api.axisDirs[s].dir = 1;
-                }
-                $scope.showSide(api.resetSide);
+                $scope.vtkScene.resetView();
+                refresh();
             }
 
             function setBgColor(color) {
@@ -2842,23 +3018,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     };
                 }
 
-                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-                    background: [1, 1, 1, 1],
-                    container: rw,
-                    listenWindowResize: false,
-                });
-                renderer = fsRenderer.getRenderer();
-                renderWindow = fsRenderer.getRenderWindow();
-                const interactor = renderWindow.getInteractor();
-                const mainView = renderWindow.getViews()[0];
-
-                cam = renderer.get().activeCamera;
-
-                let worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
-                    renderer: renderer
-                });
-                worldCoord.setCoordinateSystemToWorld();
-
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
                     ondblclick(evt);
@@ -2881,19 +3041,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 snapshotCanvas = document.createElement('canvas');
                 snapshotCtx = snapshotCanvas.getContext('2d');
                 plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
-
-                // allow ancestor scopes access to the renderer etc.
-                $scope.$emit('vtk-init', {
-                    api: api,
-                    objects: {
-                        camera: cam,
-                        container: fsRenderer.getContainer(),
-                        //listeners: lsnrs,
-                        renderer: renderer,
-                        window: renderWindow,
-                        fsRenderer: fsRenderer,
-                    }
-                });
+                $scope.$emit('vtk-init', $scope.vtkScene);
             };
 
             $scope.canvasGeometry = function() {
@@ -2919,13 +3067,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.showSide = showSide;
 
             function showSide(side, dir = 0) {
-                if (side === $scope.side) {
-                    $scope.axisDirs[side].dir *= -1;
-                }
-                $scope.side = side;
-                const cp = geometry.basisVectors[side]
-                    .map(c =>  c * $scope.axisDirs[side].dir);
-                setCam(cp, $scope.axisDirs[side].camViewUp);
+                $scope.vtkScene.showSide(side, dir);
                 refresh();
             }
 
@@ -2936,11 +3078,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);
-                if ($scope.hasMarker()) {
-                    marker.setEnabled(false);
-                }
-                fsRenderer.getInteractor().unbindEvents();
-                fsRenderer.delete();
+                $scope.vtkScene.teardown();
                 plotToPNG.removeCanvas($scope.reportId);
             });
 
@@ -2953,7 +3091,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
+                $scope.vtkScene.fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
@@ -2972,11 +3110,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 });
             });
             $scope.$on('vtk.showLoader', function (e, d) {
-                setBgColor('#dddddd');
+                $scope.vtkScene.setBgColor('#dddddd');
                 $($element).find('.vtk-load-indicator img').css('display', 'block');
             });
             $scope.$on('vtk.hideLoader', function (e, d) {
-                setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
+                $scope.vtkScene.setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
                 $($element).find('.vtk-load-indicator img').css('display', 'none');
             });
             $scope.init();

@@ -2542,7 +2542,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: `
             <div class="col-md-6">
                 <div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">
-                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
                     <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
                         <div class="colorbar"></div>
                     </div>
@@ -2753,21 +2753,26 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
 
-                var pb = renderer.computeVisiblePropBounds();
-                radiaService.objBounds = pb;
-                const bndBox = cm.buildBoundingBox(pb, 0.1);
-                renderer.addActor(bndBox.actor);
-                const vpb = new SIREPO.VTK.ViewPortBox(bndBox.source, renderer);
-                renderWindow.render();
-                $scope.axisObj = vpb;
+                const boundsBox = $scope.vtkScene.sceneBoundingBox(0.02);
+                const bounds = boundsBox.actor.getBounds();
+                $scope.vtkScene.addActor(boundsBox.actor);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, $scope.vtkScene.renderer);
+
+                //var pb = renderer.computeVisiblePropBounds();
+                radiaService.objBounds = bounds;
+                //const bndBox = cm.buildBoundingBox(pb, 0.1);
+                //renderer.addActor(bndBox.actor);
+                //const vpb = new SIREPO.VTK.ViewPortBox(bndBox.source, renderer);
+                //$scope.vtkScene.render();
+                //$scope.axisObj = vpb;
 
                 var acfg = {};
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
                     acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = pb[2 * i + 1];
-                    acfg[dim].min = pb[2 * i];
+                    acfg[dim].max = bounds[2 * i + 1];
+                    acfg[dim].min = bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     acfg[dim].showCentral = dim === appState.models.simulation.beamAxis;
@@ -2795,8 +2800,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 updateLayout();
                 setAlpha();
-                setBGColor();
-                vtkAPI.setCam();
+                //setBGColor();
+                $scope.vtkScene.setBgColor(appState.models.magnetDisplay.bgColor);
+                //vtkAPI.setCam();
+                $scope.vtkScene.setCam();
                 enableWatchFields(true);
             }
 
@@ -2970,7 +2977,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                var iMode = vtkAPI.getMode();
+                var iMode = $scope.vtkScene.interactionMode;
                 if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
                     (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
@@ -3142,18 +3149,26 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
 
-                var m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: ca,
-                    interactor: renderWindow.getInteractor()
-                });
-                m.setViewportCorner(
-                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                $scope.vtkScene.setMarker(
+                    SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                        ca,
+                        $scope.vtkScene.renderWindow.getInteractor(),
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    )
                 );
-                m.setViewportSize(0.07);
-                m.computeViewport();
-                m.setMinPixelSize(50);
-                m.setMaxPixelSize(100);
-                vtkAPI.setMarker(m);
+
+                //var m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                //    actor: ca,
+                //    interactor: renderWindow.getInteractor()
+                //});
+                //m.setViewportCorner(
+                //    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                //);
+                //m.setViewportSize(0.07);
+                //m.computeViewport();
+                //m.setMinPixelSize(50);
+                //m.setMaxPixelSize(100);
+                //vtkAPI.setMarker(m);
                 updateViewer();
                 updateLayout();
             }
@@ -3200,12 +3215,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         Math.floor(255 * alpha)
                     );
                 }
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
-            function setBGColor(a, b) {
-                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(appState.models.magnetDisplay.bgColor));
-                renderWindow.render();
+            function setBGColor() {
+                $scope.vtkScene.setBGColor(appState.models.magnetDisplay.bgColor);
+                //renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(appState.models.magnetDisplay.bgColor));
+                //renderWindow.render();
             }
 
             //function setColor(info, type, color, alpha=255) {
@@ -3249,7 +3265,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     colorbar.scale(colorScale);
                     colorbarPtr = d3.select('.colorbar').call(colorbar);
                 }
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
             function setEdgeColor(info, color) {
@@ -3281,7 +3297,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         mapper.setScaleModeToScaleByComponents();
                     }
                 });
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
             function setupSceneData(data) {
@@ -3360,17 +3376,18 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // or keep stuff on vtk viewer scope?
             // start using custom javascript events to break away from angular?
             $scope.$on('vtk-init', function (e, d) {
-                //srdbg('VTK INIT', e, d);
-                renderer = d.objects.renderer;
-                renderWindow = d.objects.window;
-                vtkAPI = d.api;
+                $scope.vtkScene = d;
+                renderer = $scope.vtkScene.renderer;
+                //renderWindow = d.objects.window;
+                //vtkAPI = d.api;
+
                 // move pickers to vtkdisplay?
                 cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 cPicker.setPickFromList(false);
                 ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
                 ptPicker.setPickFromList(true);
                 ptPicker.initializePickList();
-                renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
             });
 
