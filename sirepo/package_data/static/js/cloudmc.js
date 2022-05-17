@@ -93,7 +93,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             const scale = 0.01;
             const coordMapper = new SIREPO.VTK.CoordMapper(
                 new SIREPO.GEOMETRY.Transform(
-                    new SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
+                    new SIREPO.GEOMETRY.SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
                 )
             );
             const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];

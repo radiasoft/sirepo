@@ -160,7 +160,7 @@ class VTKScene {
             z: {
                 viewUp: [0, 1, 0],
             }
-        }
+        };
     }
 
     /**
