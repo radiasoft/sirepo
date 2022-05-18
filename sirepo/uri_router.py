@@ -94,8 +94,7 @@ def call_api(route_or_name, kwargs=None, data=None):
         try:
             if data:
                 p = sirepo.http_request.set_post(data)
-            i = f.cls()
-            r = flask.make_response(getattr(i, f.func_name)(**kwargs))
+            r = flask.make_response(getattr(f.cls(), f.func_name)(**kwargs))
         finally:
             if data:
                 sirepo.http_request.set_post(p)
