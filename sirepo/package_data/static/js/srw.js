@@ -572,26 +572,6 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         'watch',
     ];
 
-    // self.logFileURL = () => {
-    //             if (! appState.isLoaded()) {
-    //                 srdbg('link is empty string');
-    //                 return '';
-    //             }
-    //             srdbg('appState: ', appState);
-    //             return '';
-    //             // simState = persistentSimulation.initSimulationState($scope);
-    //             srdbg('model:', simState);
-    //             model = simState.model
-    //             const link =  requestSender.formatUrl('downloadDataFile', {
-    //                 '<simulation_id>': appState.models.simulation.simulationId,
-    //                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-    //                 '<model>': simState.model,
-    //                 '<frame>': -1,
-    //             });
-    //             srdbg('link', link);
-    //             return link
-    //         }
-
     function copyIntensityReportCharacteristics() {
         var intensityReport = appState.models.beamlineAnimation0;
         if (intensityReport.copyCharacteristic == '0') {
@@ -2571,20 +2551,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     srdbg('link is empty string');
                     return '';
                 }
-                // srdbg('appState: ', appState);
-                // return '';
-                // simState = persistentSimulation.initSimulationState($scope);
-                // srdbg('model:', simState);
-                const model = $scope.simState.model
-                srdbg('model:', model);
-                const link =  requestSender.formatUrl('downloadDataFile', {
+                return  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': model,
+                    '<model>': $scope.simState.model,
                     '<frame>': -1,
                 });
-                srdbg('link', link);
-                return link;
             }
 
             self.simHandleStatus = function(data) {
