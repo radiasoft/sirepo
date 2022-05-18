@@ -2853,8 +2853,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 }
             }
 
-            appState.whenModelsLoaded($scope, init);
-
             $scope.$on('axes.refresh', refresh);
 
             // may not need this refresh?
@@ -2871,6 +2869,8 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     refresh();
                 }
             });
+
+            init();
         },
     };
 });
