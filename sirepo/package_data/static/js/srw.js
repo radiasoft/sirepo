@@ -2548,7 +2548,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
 
             $scope.logFileURL = () => {
                 if (! appState.isLoaded()) {
-                    srdbg('link is empty string');
                     return '';
                 }
                 return  requestSender.formatUrl('downloadDataFile', {
@@ -2557,7 +2556,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<model>': $scope.simState.model,
                     '<frame>': -1,
                 });
-            }
+            };
 
             self.simHandleStatus = function(data) {
                 if ($scope.simState.isProcessing()) {
