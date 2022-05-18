@@ -1,0 +1,54 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "geometry"
+        }
+    },
+    "enum": {
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": ["cloudmc.js"]
+        }
+    },
+    "localRoutes": {
+        "geometry": {
+            "route": "/geometry/:simulationId",
+            "config": {
+                "controller": "GeometryController as geometry",
+                "templateUrl": "/static/html/cloudmc-geometry.html"
+            }
+        }
+    },
+    "model": {
+        "dagmcAnimation": {},
+        "geometryInput": {
+            "dagmcFile": ["DAGMC File", "InputFile", ""]
+        },
+        "geometry3DReport": {},
+        "openmcAnimation": {},
+        "volumes": {}
+    },
+    "view": {
+        "geometryInput": {
+            "title": "Geometry Input",
+            "basic": [
+                "dagmcFile"
+            ],
+            "advanced": []
+        },
+        "geometry3DReport": {
+            "title": "DAGMC Geometry",
+            "advanced": []
+        },
+        "volumes": {
+            "title": "Volumes",
+            "advanced": []
+        }
+    }
+}

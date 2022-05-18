@@ -537,7 +537,7 @@ def sim_frame(frame_args):
     return extract_report_data(frame_args.sim_in)
 
 
-def import_file(req, tmp_dir, **kwargs):
+def import_file(req, tmp_dir, arq, **kwargs):
     import sirepo.server
 
     i = None
@@ -610,7 +610,9 @@ def import_file(req, tmp_dir, **kwargs):
             except Exception:
                 pass
         raise
-    raise sirepo.util.Response(sirepo.server.api_simulationData(r.simulationType, i, pretty=False))
+    raise sirepo.util.Response(
+        arq.call_api('simulationData', kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i)),
+    )
 
 
 def new_simulation(data, new_simulation_data):
@@ -2048,7 +2050,6 @@ def _set_parameters(v, data, plot_reports, run_dir):
     if _SIM_DATA.srw_is_background_report(report) and 'beamlineAnimation' not in report:
         if sirepo.mpi.cfg.in_slurm:
             v.sbatchBackup = '1'
-            v.multiElectronNumberOfIterations = 25
         if report == 'multiElectronAnimation':
             if dm.multiElectronAnimation.calcCoherence == '1':
                 v.multiElectronCharacteristic = 41

@@ -1384,10 +1384,11 @@ SIREPO.app.directive('videoButton', function(appState, $window) {
             viewName: '@videoButton',
         },
         template: `
-            <div><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
+            <div data-ng-if="showLink"><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
         `,
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.tooltip = viewInfo.title + ' Help Video';
             $scope.openVideo = function() {
                 $window.open(
@@ -1787,7 +1788,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 }
                 const a = {
                     frameCount: f,
-                    typeOfSimulation: stringsService.formatKey('typeOfSimulation'),
+                    typeOfSimulation: stringsService.typeOfSimulation($scope.simState.model),
                     state: $scope.simState.stateAsText()
                 };
                 return  $sce.trustAsHtml(
@@ -2408,7 +2409,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                             class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>
                     <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
                     <li data-help-link="helpUserForumURL" data-title="User Forum" data-icon="globe"></li>
-                    <li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
+                    <li data-ng-if="showLink" data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
                   </ul>
                 </li>
               </ul>
@@ -2431,7 +2432,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         controller: function($scope, stringsService) {
             $scope.authState = authState;
             $scope.slackUri = $scope.authState.slackUri;
-
+            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -3969,7 +3970,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               </div>
             </form>
             <div class="clearfix"></div>
-            <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || errorMessage()">
+            <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || simState.isStateError() || errorMessage()">
               <a data-ng-href="{{ logFileURL() }}" target="_blank">View {{ ::appName }} log</a>
             </div>
             <div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>
@@ -3996,7 +3997,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.initMessage = function() {
                 const s = SIREPO.APP_SCHEMA.strings;
-                return s.initMessage || `Running ${stringsService.ucfirst(s.typeOfSimulation)}`;
+                return s.initMessage || `Running ${stringsService.typeOfSimulation($scope.simState.model)}`;
             };
 
             $scope.logFileURL = function() {
@@ -4024,7 +4025,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.startButtonLabel = function() {
-                return stringsService.startButtonLabel();
+                return stringsService.startButtonLabel($scope.simState.model);
             };
 
             $scope.stateAsText = function() {
@@ -4037,7 +4038,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.stopButtonLabel = function() {
-                return stringsService.stopButtonLabel();
+                return stringsService.stopButtonLabel($scope.simState.model);
             };
         },
     };

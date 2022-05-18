@@ -1,0 +1,24 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "SedovChamber"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "nxb": 16,
+            "nyb": 16
+        },
+        "simulation": {
+            "name": "SedovChamber",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "temp"
+        },
+        "IO_IOMain": {
+            "tmax": 0.4,
+            "plotFileIntervalTime": 0.01
+        }
+    },
+    "simulationType": "flash"
+}

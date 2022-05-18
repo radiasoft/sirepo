@@ -22,6 +22,7 @@ from sirepo import util
 import authlib.integrations.requests_client
 import authlib.oauth2.rfc6749.errors
 import flask
+import sirepo.request
 import sirepo.events
 import sqlalchemy
 
@@ -42,61 +43,62 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-@api_perm.allow_cookieless_set_user
-def api_authGithubAuthorized():
-    """Handle a callback from a successful OAUTH request.
-
-    Tracks oauth users in a database.
-    """
-    # clear temporary cookie values first
-    s = cookie.unchecked_remove(_COOKIE_NONCE)
-    t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
-    oc = _client()
-    try:
-        oc.fetch_token(
-            authorization_response=flask.request.url,
+class Request(sirepo.request.Base):
+    @api_perm.allow_cookieless_set_user
+    def api_authGithubAuthorized(self):
+        """Handle a callback from a successful OAUTH request.
+    
+        Tracks oauth users in a database.
+        """
+        # clear temporary cookie values first
+        s = cookie.unchecked_remove(_COOKIE_NONCE)
+        t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
+        oc = _client()
+        try:
+            oc.fetch_token(
+                authorization_response=flask.request.url,
+                state=s,
+            )
+        except authlib.oauth2.rfc6749.errors.MismatchingStateException:
+            auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
+            raise AssertionError('auth.login_fail_redirect returned unexpectedly')
+        d = oc.get('https://api.github.com/user').json()
+        sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
+        with util.THREAD_LOCK:
+            u = AuthGithubUser.search_by(oauth_id=d['id'])
+            if u:
+                # always update user_name
+                u.user_name = d['login']
+            else:
+                u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
+            u.save()
+            auth.login(this_module, model=u, sim_type=t, want_redirect=True)
+            raise AssertionError('auth.login returned unexpectedly')
+    
+    
+    @api_perm.require_cookie_sentinel
+    def api_authGithubLogin(self, simulation_type):
+        """Redirects to Github"""
+        req = http_request.parse_params(type=simulation_type)
+        s = util.random_base62()
+        cookie.set_value(_COOKIE_NONCE, s)
+        cookie.set_value(_COOKIE_SIM_TYPE, req.type)
+        if not cfg.callback_uri:
+            # must be executed in an app and request context so can't
+            # initialize earlier.
+            cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
+        u, _ = _client().create_authorization_url(
+            'https://github.com/login/oauth/authorize',
+            redirect_uri=cfg.callback_uri,
             state=s,
         )
-    except authlib.oauth2.rfc6749.errors.MismatchingStateException:
-        auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
-        raise AssertionError('auth.login_fail_redirect returned unexpectedly')
-    d = oc.get('https://api.github.com/user').json()
-    sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
-    with util.THREAD_LOCK:
-        u = AuthGithubUser.search_by(oauth_id=d['id'])
-        if u:
-            # always update user_name
-            u.user_name = d['login']
-        else:
-            u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
-        u.save()
-        auth.login(this_module, model=u, sim_type=t, want_redirect=True)
-        raise AssertionError('auth.login returned unexpectedly')
-
-
-@api_perm.require_cookie_sentinel
-def api_authGithubLogin(simulation_type):
-    """Redirects to Github"""
-    req = http_request.parse_params(type=simulation_type)
-    s = util.random_base62()
-    cookie.set_value(_COOKIE_NONCE, s)
-    cookie.set_value(_COOKIE_SIM_TYPE, req.type)
-    if not cfg.callback_uri:
-        # must be executed in an app and request context so can't
-        # initialize earlier.
-        cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
-    u, _ = _client().create_authorization_url(
-        'https://github.com/login/oauth/authorize',
-        redirect_uri=cfg.callback_uri,
-        state=s,
-    )
-    return http_reply.gen_redirect(u)
-
-
-@api_perm.allow_cookieless_set_user
-def api_oauthAuthorized(oauth_type):
-    """Deprecated use `api_authGithubAuthorized`"""
-    return api_authGithubAuthorized()
+        return http_reply.gen_redirect(u)
+    
+    
+    @api_perm.allow_cookieless_set_user
+    def api_oauthAuthorized(self, oauth_type):
+        """Deprecated use `api_authGithubAuthorized`"""
+        return self.api_authGithubAuthorized()
 
 
 def avatar_uri(model, size):

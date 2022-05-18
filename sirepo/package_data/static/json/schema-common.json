@@ -8,6 +8,10 @@
             "longName": "Controls",
             "shortName": "Controls"
         },
+        "cloudmc": {
+            "longName": "CloudMC",
+            "shortName": "CloudMC"
+        },
         "elegant": {
             "longName": "elegant",
             "shortName": "elegant"
