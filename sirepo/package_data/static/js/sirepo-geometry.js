@@ -22,7 +22,7 @@ class GeometryUtils {
 
     /**
      * Names of basis directions
-     * @returns {[string]} - the directions ['x', 'y', 'z']
+     * @returns {[string]}
      */
     static BASIS() {
         return ['x', 'y', 'z'];
@@ -30,7 +30,7 @@ class GeometryUtils {
 
     /**
      * Vectors keyed by basis direction
-     * @returns {Object} - an object mapping basis direction to a vector in that direction
+     * @returns {{}} - mapping of basis direction to a vector in that direction
      */
     static BASIS_VECTORS() {
         return {
@@ -45,7 +45,7 @@ class GeometryUtils {
      * @param {[Point]} points - the points to sort
      * @param {string} dim - the dimension in which to sort (x|y|z)
      * @param {boolean} doReverse [false] - if true, reverses the sort order
-     * @returns {[Point]} - the extrema
+     * @returns {[Point]}
      */
     static extrema(points, dim, doReverse = false) {
         const arr = GeometryUtils.sortInDimension(points, dim, doReverse);
@@ -58,7 +58,7 @@ class GeometryUtils {
      * @param {[Point]} points - the points to sort
      * @param {string} dim - the dimension in which to sort (x|y|z)
      * @param {boolean} doReverse [false] - if true, reverses the sort order
-     * @returns {[Point]} - the sorted array of points
+     * @returns {[Point]}
      */
     static sortInDimension(points, dim, doReverse = false) {
         return points.slice(0).sort((p1, p2) => {
@@ -85,7 +85,7 @@ class GeometricObject {
     /**
      * String representation of an array of GeometricObjects
      * @param {[GeometricObject]} arr - the GeometricObjects to render as strings
-     * @returns {string} - the string
+     * @returns {string}
      */
     static arrayString(arr) {
         return `[${arr.map(e => e.toString())}]`;
@@ -95,7 +95,7 @@ class GeometricObject {
      * A formatted error message with related object
      * @param {*} obj - the object or value of interest
      * @param {string} msg - the message
-     * @returns {string} - the formatted error
+     * @returns {string}
      */
     errorMessage(obj, msg) {
         return `${obj}: ${msg}`;
@@ -105,7 +105,7 @@ class GeometricObject {
      * Determines if two values are equal relative to the equalityTolerance of this object
      * @param {number} val1 - 1st value
      * @param {number} val2 - 2nd value
-     * @returns {boolean} - true if values are within <equalityTolerance> of each other
+     * @returns {boolean}
      */
     equalWithin(val1, val2) {
         return Math.abs(val2 - val1) < this.equalityTolerance;
@@ -115,7 +115,7 @@ class GeometricObject {
      * Determines if one value is greater than another relative to the equalityTolerance of this object
      * @param {number} val1 - 1st value
      * @param {number} val2 - 2nd value
-     * @returns {boolean} - true if val1 is greater than val2 by at least <equalityTolerance>
+     * @returns {boolean}
      */
     gtOutside(val1, val2) {
         return val1 - val2 > this.equalityTolerance;
@@ -125,7 +125,7 @@ class GeometricObject {
      * Determines if one value is greater than another, or equal to it relative to the equalityTolerance of this object
      * @param {number} val1 - 1st value
      * @param {number} val2 - 2nd value
-     * @returns {boolean} - true if val1 is greater than val2 or within <equalityTolerance> of it
+     * @returns {boolean}
      */
     gtOrEqualWithin(val1, val2) {
         return val1 > val2 || this.equalWithin(val1, val2);
@@ -135,7 +135,7 @@ class GeometricObject {
      * Determines if one value is less than another relative to the equalityTolerance of this object
      * @param {number} val1 - 1st value
      * @param {number} val2 - 2nd value
-     * @returns {boolean} - true if val1 is less than val2 by at least <equalityTolerance>
+     * @returns {boolean}
      */
     ltOutside(val1, val2) {
         return val2 - val1 > this.equalityTolerance;
@@ -145,7 +145,7 @@ class GeometricObject {
      * Determines if one value is less than another, or equal to it relative to the equalityTolerance of this object
      * @param {number} val1 - 1st value
      * @param {number} val2 - 2nd value
-     * @returns {boolean} - true if val1 is less than val2 or within <equalityTolerance> of it
+     * @returns {boolean}
      */
     ltOrEqualWithin(val1, val2) {
         return val1 < val2 || this.equalWithin(val1, val2);
@@ -153,7 +153,7 @@ class GeometricObject {
 
     /**
      * String representation of this GeometricObject. Subclasses should override
-     * @returns {string} - the string
+     * @returns {string}
      */
     toString() {
         return '<OBJ>';
@@ -205,7 +205,7 @@ class Matrix extends GeometricObject {
     /**
      * Adds this matrix to another
      * @param {Matrix} matrix - the addend
-     * @returns {Matrix} - the sum of the matrices
+     * @returns {Matrix}
      */
     add(matrix) {
         return this.linearCombination(matrix, 1);
@@ -217,8 +217,8 @@ class Matrix extends GeometricObject {
      * - if the two have unequal dimension, they are unequal
      * - if the two have different numbers of rows or columns, they are unequal
      * - finally, if all the values in each position are equal within <equalityTolerance>, they are equal
-     * @param {Matrix} matrix - another
-     * @returns {boolean} - true if this Matrix is equal to the argument
+     * @param {Matrix} matrix - another matrix
+     * @returns {boolean}
      */
     equals(matrix) {
         if (this.dimension !== matrix.dimension) {
@@ -243,7 +243,7 @@ class Matrix extends GeometricObject {
     /**
      * Formatted error
      * @param {string} msg - a message
-     * @returns {string} - the formatted error message
+     * @returns {string}
      */
     errorMessage(msg) {
         return super.errorMessage(this.val, msg);
@@ -251,7 +251,7 @@ class Matrix extends GeometricObject {
 
     /**
      * The number of dimensions of this Matrix
-     * @returns {number} - the number of dimensions
+     * @returns {number}
      */
     getDimension() {
         if (! Array.isArray(this.val)) {
@@ -266,7 +266,7 @@ class Matrix extends GeometricObject {
      * The two Matrices must have the same dimension and an equal number of rows and columns
      * @param {Matrix} matrix - another Matrix
      * @param {number} constant - a constant
-     * @returns {Matrix} - the combined Matrix
+     * @returns {Matrix}
      * @throws - if the two matrices cannot be combined
      */
     linearCombination(matrix, constant) {
@@ -296,7 +296,7 @@ class Matrix extends GeometricObject {
      * - otherwise the number of rows in this Matrix must equal the number of columns of the argument
      * - outer product (vector1 * vector2 -> matrix) is not supported
      * @param {Matrix} matrix - another Matrix
-     * @returns {Matrix|number} - the product
+     * @returns {Matrix|number}
      * @throws - if the two matrices cannot be multiplied
      */
     multiply(matrix) {
@@ -339,7 +339,7 @@ class Matrix extends GeometricObject {
     /**
      * Subtracts a Matrix from this one
      * @param {Matrix} matrix - the subtrahend
-     * @returns {Matrix} - the difference
+     * @returns {Matrix}
      */
     subtract(matrix) {
         return this.linearCombination(matrix, -1);
@@ -347,7 +347,7 @@ class Matrix extends GeometricObject {
 
     /**
      * Transposes this Matrix from (m x n) to (n x m)
-     * @returns {Matrix} - the transpose
+     * @returns {Matrix}
      */
     transpose() {
         let m = [];
@@ -389,7 +389,7 @@ class SquareMatrix extends Matrix {
 
     /**
      * Computes the determinant of this Matrix
-     * @returns {number} - the determinant
+     * @returns {number}
      */
     det() {
         if (this.size === 2) {
@@ -412,7 +412,7 @@ class SquareMatrix extends Matrix {
 
     /**
      * Computes the inverse of this Matrix
-     * @returns {SquareMatrix} - the inverse
+     * @returns {SquareMatrix}
      * @throws - if this Matrix cannot be inverted (that is, has a determinant of 0)
      */
     inverse() {
@@ -438,7 +438,7 @@ class SquareMatrix extends Matrix {
      * Computes the minor of this Matrix, that is, the sub-matrix obtained by removing the given row and column
      * @param {number} rowNum - the row to remove
      * @param {number} colNum - the columns to remove
-     * @returns {SquareMatrix} - the sub-matrix
+     * @returns {SquareMatrix}
      */
     minor(rowNum, colNum) {
         let m = [];
@@ -495,7 +495,7 @@ class Transform extends GeometricObject {
     /**
      * Transforms the given Matrix via multiplication
      * @param {Matrix} matrix - the Matrix to transform
-     * @returns {Matrix} - the transformed matrix
+     * @returns {Matrix}
    */
     apply(matrix) {
         return this.matrix.multiply(matrix);
@@ -504,7 +504,7 @@ class Transform extends GeometricObject {
     /**
      * Composes this Transform and another via matrix multiplication
      * @param {Transform} transform - the Transform to compose with this one
-     * @returns {Transform} - the composition
+     * @returns {Transform}
      * @throws - if the wrapped Matrices have different sizes
    */
     compose(transform) {
@@ -517,7 +517,7 @@ class Transform extends GeometricObject {
     /**
      * Formatted error
      * @param {string} msg - a message
-     * @returns {string} - the formatted error message
+     * @returns {string}
      */
     errorMessage(msg) {
         return super.errorMessage(this.matrix.val, msg);
@@ -525,7 +525,7 @@ class Transform extends GeometricObject {
 
     /**
      * String representation of this Transform
-     * @returns {string} - the string
+     * @returns {string}
      */
     toString() {
         let str = '[';
@@ -565,12 +565,12 @@ class Point extends GeometricObject {
         this.z = z || 0;
 
         /** @member {number} - the dimension: 3 if a z value is provided, 2 otherwise */
-        this.dimension = 2 + (this.z === undefined ? 0 : 1);
+        this.dimension = 2 + (z === undefined ? 0 : 1);
     }
 
     /**
      * Array of the coordinates
-     * @returns {[number]} - the coordinates
+     * @returns {[number]}
      */
     coords() {
         return [this.x, this.y, this.z];
@@ -579,12 +579,12 @@ class Point extends GeometricObject {
     /**
      * Distance to another Point
      * @param {Point} point - another Point
-     * @returns {number} - the distance
+     * @returns {number}
      * @throws - if the two points have different dimensions
      */
     dist(point) {
         if (this.dimension != point.dimension) {
-            throw new Error('Points in array have different dimensions: ' + this.dimension() + ' != ' + point.dimension());
+            throw new Error('Points in array have different dimensions: ' + this.dimension + ' != ' + point.dimension);
         }
         return Math.hypot(point.x - this.x, point.y - this.y, point.z - this.z);
     }
@@ -596,7 +596,7 @@ class Point extends GeometricObject {
      *   (distance to origin) is within <equalityTolerance>, they are equal. This
      *   calculation is done to compare points with values below the tolerance
      * @param {Point} point - another Point
-     * @returns {boolean} - true if the two points are equal
+     * @returns {boolean}
      */
     equals(point) {
         if (this.dimension !== point.dimension) {
@@ -610,7 +610,7 @@ class Point extends GeometricObject {
     /**
      * Determines whether this Point is inside the given Rectangle
      * @param {Rect} rect - a Rect
-     * @returns {boolean} - true if the Rect contains this Point
+     * @returns {boolean}
      */
     isInRect(rect) {
         return rect.containsPoint(this);
@@ -618,7 +618,7 @@ class Point extends GeometricObject {
 
     /**
      * String value of this Point
-     * @returns {string} - the string
+     * @returns {string}
      */
     toString() {
         return `(${this.coords()})`;
@@ -626,7 +626,7 @@ class Point extends GeometricObject {
 
     /**
      * Convenience method to create a Point with all 0s, of the same dimension as this Point
-     * @returns {Point} - the zero Point
+     * @returns {Point}
      */
     zero() {
         if (this.dimension === 2) {
@@ -657,7 +657,7 @@ class Line extends GeometricObject {
      * Determines whether the given Point is on this Line, that is it satisfies:
      *  y = slope * x + intercept
      * @param {Point} point - a Point
-     * @returns {boolean} - true if the Point is on this Line
+     * @returns {boolean}
      */
     contains(point) {
         const s = this.slope();
@@ -672,7 +672,7 @@ class Line extends GeometricObject {
      *  - if the slopes of each are Infinite, and they have the same x coordinate, they are equal
      *  - otherwise, if they have the same slope and intercept, they are equal
      * @param {Line} line - a Line
-     * @returns {boolean} - true if the Lines are equal
+     * @returns {boolean}
      */
     equals(line) {
         if (this.slope() === Infinity && line.slope() === Infinity) {
@@ -683,7 +683,7 @@ class Line extends GeometricObject {
 
     /**
      * The intercept of this Line. That is, "b" in the equation y = m * x + b
-     * @returns {Point} - the intercept
+     * @returns {Point}
      */
     intercept() {
         return this.points[0].y - this.points[0].x * this.slope();
@@ -715,7 +715,7 @@ class Line extends GeometricObject {
     /**
      * The slope of this Line. That is, "m" in the equation y = m * x + b. If the Points defining the Line
      * have the same x coordinate, the slope is Infinite
-     * @returns {number|Infinity} - the slope
+     * @returns {number|Infinity}
      */
     slope() {
         return this.points[1].x === this.points[0].x ? Infinity :
@@ -727,7 +727,7 @@ class Line extends GeometricObject {
      * - if the Point is on this Line, return 0
      * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
      * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
-     * @returns {number} - -1|0|1 the comparison
+     * @returns {number} - -1|0|1
      */
     comparePoint(point) {
         if (this.contains(point)) {
@@ -741,7 +741,7 @@ class Line extends GeometricObject {
 
     /**
      * String value of this Line
-     * @returns {string} - the string
+     * @returns {string}
      */
     toString() {
         return `
@@ -754,7 +754,7 @@ class Line extends GeometricObject {
     /**
      * Array comprising the difference between the x and y coordinates of the defining Points. Note that this
      * implies that e.g. [[0, 0], [1, 1]] and [[1, 1], [2, 2]] have the same toVector() value
-     * @returns {[number]} - the array
+     * @returns {[number]}
      */
     toVector() {
         return [this.points[0].x - this.points[1].x, this.points[0].y - this.points[1].y];
@@ -776,7 +776,7 @@ class LineSegment extends Line {
     /**
      * Determines whether the given Point is in this LineSegment
      * @param {Point} point - a Point
-     * @returns {boolean} - true if the Point is on this LineSegment
+     * @returns {boolean}
      */
     contains(point) {
         const ext = this.extents();
@@ -789,7 +789,7 @@ class LineSegment extends Line {
      * Determines whether this LineSegment is equal to another. Unlike Lines, equality is based only on
      * the equality of the Points
      * @param {LineSegment} lineSegment - a LineSegment
-     * @returns {boolean} - true if the LineSegments are equal
+     * @returns {boolean}
      */
     equals(lineSegment) {
         return (this.points[0].equals(lineSegment.points[0]) && this.points[1].equals(lineSegment.points[1])) ||
@@ -798,7 +798,7 @@ class LineSegment extends Line {
 
     /**
      * The extents of this LineSegment, that is [[minimum x, maximum x], [minimum y, maximum y]]
-     * @returns {[[number]]} - the extents
+     * @returns {[[number]]}
      */
     extents() {
         const p = this.points;
@@ -812,7 +812,7 @@ class LineSegment extends Line {
      * The intersection of this LineSegment and another, or null if they do not intersect. Note that
      * they must intersect in the sense of Lines, and that intersection must line on the segments
      * @param {LineSegment} lineSegment - a LineSegment
-     * @returns {Point|null} - the intersection
+     * @returns {Point|null}
      */
     intersectionWithSegment(lineSegment) {
         const p = this.intersection(lineSegment);
@@ -821,7 +821,7 @@ class LineSegment extends Line {
 
     /**
      * The length of this LineSegment
-     * @returns {number} - the length
+     * @returns {number}
      */
     length() {
         return this.points[0].dist(this.points[1]);
@@ -829,7 +829,7 @@ class LineSegment extends Line {
 
     /**
      * A filter to exclude Points not contained by this LineSegment
-     * @returns {function} - the filter
+     * @returns {function}
      */
     pointFilter() {
         return p => this.contains(p);
@@ -837,7 +837,7 @@ class LineSegment extends Line {
 
     /**
      * String value of this Line
-     * @returns {string} - the string
+     * @returns {string}
      */
     toString() {
         return this.points.map(p => p.toString());
@@ -868,7 +868,7 @@ class Rect extends GeometricObject {
 
     /**
      * The area of this Rect
-     * @returns {number} - the area
+     * @returns {number}
      */
     area() {
         return Math.abs(this.diagPoint2.x - this.diagPoint1.x) * Math.abs(this.diagPoint2.y - this.diagPoint1.y);
@@ -877,7 +877,7 @@ class Rect extends GeometricObject {
     /**
      * Intersections of the given Line with the sides of this Rect
      * @param {Line} line - a Line
-     * @returns {[Point]} - the intersections
+     * @returns {[Point]}
      */
     boundaryIntersectionsWithLine(line) {
         return this.sides()
@@ -889,7 +889,7 @@ class Rect extends GeometricObject {
      * Intersections of the LineSegment defined by given Points with the sides of this Rect
      * @param {Point} point1 - 1st Point
      * @param {Point} point2 - 2nd Point
-     * @returns {[Point]} - the intersections
+     * @returns {[Point]}
      */
     boundaryIntersectionsWithPts(point1, point2) {
         return this.boundaryIntersectionsWithSeg(new LineSegment(point1, point2));
@@ -899,7 +899,7 @@ class Rect extends GeometricObject {
      * Intersections of the given LineSegment with the sides of this Rect
      * @param {Point} point1 - 1st Point
      * @param {Point} point2 - 2nd Point
-     * @returns {[Point]} - the intersections
+     * @returns {[Point]}
      */
     boundaryIntersectionsWithSeg(lineSegment) {
         return this.boundaryIntersectionsWithLine(lineSegment);
@@ -907,7 +907,7 @@ class Rect extends GeometricObject {
 
     /**
      * The center of this Rect
-     * @returns {Point} - the center
+     * @returns {Point}
      */
     center() {
         return new Point(
@@ -919,7 +919,7 @@ class Rect extends GeometricObject {
     /**
      * Determines whether the given LineSegment lies entirely within this Rect
      * @param {LineSegment} lineSegment- a LineSegment
-     * @returns {boolean} - true if the given LineSegment lies entirely within this Rect
+     * @returns {boolean}
      */
     containsLineSegment(lineSegment) {
         return this.containsPoint(lineSegment.points[0]) && this.containsPoint(lineSegment.points[1]);
@@ -928,7 +928,7 @@ class Rect extends GeometricObject {
     /**
      * Determines whether the given Point is within this Rect
      * @param {Point} point- a Point
-     * @returns {boolean} - true if the given Point is within this Rect
+     * @returns {boolean}
      */
     containsPoint(point) {
         const c = this.corners();
@@ -938,7 +938,7 @@ class Rect extends GeometricObject {
     /**
      * Determines whether the given Rect lies entirely within this Rect
      * @param {Rect} rect - a Rect
-     * @returns {boolean} - true if the given Rect lies entirely within this Rect
+     * @returns {boolean}
      */
     containsRect(rect) {
         const crn = rect.corners();
@@ -952,7 +952,7 @@ class Rect extends GeometricObject {
 
     /**
      * The corners of this Rect, sorted to go clockwise from (minx, miny) assuming standard axes directions
-     * @returns {[Point]} - the corners
+     * @returns {[Point]}
      */
     corners() {
         const c = [];
@@ -975,7 +975,7 @@ class Rect extends GeometricObject {
 
     /**
      * The height of this Rect
-     * @returns {number} - the height
+     * @returns {number}
      */
     height() {
         return this.sides()[0].length();
@@ -984,7 +984,7 @@ class Rect extends GeometricObject {
     /**
      * Determines whether any part of the given Rect lies within this Rect
      * @param {Rect} rect - a Rect
-     * @returns {boolean} - true if any part of the given Rect lies within this Rect
+     * @returns {boolean}
      */
     intersects(rect) {
         const rs = rect.sides();
@@ -1003,7 +1003,7 @@ class Rect extends GeometricObject {
 
     /**
      * A filter to exclude Points not contained by this Rect
-     * @returns {function} - the filter
+     * @returns {function}
      */
     pointFilter() {
         return p => this.containsPoint(p);
@@ -1012,7 +1012,7 @@ class Rect extends GeometricObject {
     /**
      * Filters the given LineSegments according to whether they lie inside this Rect
      * @param {[LineSegment]} lineSegments - an array of LineSegments to check
-     * @returns {[LineSegment]} - the filtered LineSegments
+     * @returns {[LineSegment]}
      */
     segmentsInside(lineSegments) {
         return lineSegments.filter(l => this.containsLineSegment(l));
@@ -1020,7 +1020,7 @@ class Rect extends GeometricObject {
 
     /**
      * The sides of this Rect as LineSegments between the corners
-     * @returns {[LineSegment]} - the area
+     * @returns {[LineSegment]}
      */
     sides() {
         const s = [];
@@ -1033,7 +1033,7 @@ class Rect extends GeometricObject {
 
     /**
      * String value of this Rect
-     * @returns {string} - the string
+     * @returns {string}
      */
     toString() {
         return GeometricObject.arrayString(this.points);
@@ -1041,7 +1041,7 @@ class Rect extends GeometricObject {
 
     /**
      * The width of this Rect
-     * @returns {number} - the width
+     * @returns {number}
      */
     width() {
         return this.sides()[1].length();
