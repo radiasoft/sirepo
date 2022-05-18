@@ -170,6 +170,9 @@ def register_api_module(module=None):
     if hasattr(m, 'init_apis'):
         m.init_apis()
     if not hasattr(m, 'Request'):
+        if pkinspect.module_functions('api_', module=m):
+            raise AssertionError(f'module={m.__name__} has old interface')
+        pkdlog('module={} does not have Request class; no apis', m)
         # some modules (ex: sirepo.auth.basic) don't have any APIs
         return
     c = m.Request
