@@ -49,7 +49,7 @@ class VTKUtils {
      * @param {vtk.Rendering.Core.vtkActor} actor - vtk actor
      * @param {vtk.Rendering.Core.vtkRenderWindowInteractor} interactor - interactor from a render window
      * @param {vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners} location - which corner to place the widget
-     * @returns {[number]} - the widget
+     * @returns {vtk.Interaction.Widgets.vtkOrientationMarkerWidget}
      */
     static buildOrientationMarker(actor, interactor, location) {
         const m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
@@ -79,10 +79,10 @@ class VTKUtils {
      * Converts a string or an array of floats to a string using vtk's conversion util, for use in
      * colors
      * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
-     * @returns {[number]} - a color string (#rrggbb)
+     * @returns {string} - a color string (#rrggbb)
      */
     static colorToHex(hexStringOrArray) {
-       return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : (hexStringOrArray);
+       return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : hexStringOrArray;
     }
 
     /**
@@ -359,7 +359,7 @@ class ActorBundle {
     /**
      * Gets the value of the actor property with the given name
      * @param {string} name - the name of the property
-     * @returns {*} - the value
+     * @returns {*}
      */
     getActorProperty(name) {
         return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
@@ -607,7 +607,7 @@ class CoordMapper {
      * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
      * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
-     * @returns {BoxBundle} - the box
+     * @returns {BoxBundle}
      */
     buildBox(labSize, labCenter, actorProperties) {
         return new BoxBundle(labSize, labCenter, this.transform, actorProperties);
@@ -645,20 +645,6 @@ class CoordMapper {
      */
     buildSphere(labCenter, radius, actorProperties) {
         return new SphereBundle(labCenter, radius, this.transform, actorProperties);
-    }
-
-    /**
-     * Creates a vtk user matrix out of the transform to apply to actors.
-     * @returns {[number]} - the matrix
-     */
-    userMatrix() {
-        let m = [];
-        for (const x of this.transform.matrix.val) {
-            m = m.concat(x);
-            m.push(0);
-        }
-        m = m.concat([0, 0, 0, 1]);
-        return m;
     }
 }
 
@@ -781,7 +767,7 @@ class ViewPortObject {
 
     /**
      * Translates edges from vtk world to viewport
-     * @returns {{}}
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: [LineSegment1, LineSegment2], ...}
      */
     viewportEdges() {
         const ee = {};
@@ -866,7 +852,7 @@ class ViewPortBox extends ViewPortObject {
 
     /**
      * Gets the lines through the center of the object for each dimension
-     * @returns {{}} - a map of dimension to LineSegments
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: LineSegment1, ...}
      */
     centerLines() {
         const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
@@ -916,7 +902,7 @@ class ViewPortBox extends ViewPortObject {
 
     /**
      * Gets the edges of the box in each dimension
-     * @returns {{}} - a map of dimension to an array of LineSegments
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: [LineSegment1, LineSegment2], ...}
      */
     worldEdges() {
         const c = this.worldCorners();
