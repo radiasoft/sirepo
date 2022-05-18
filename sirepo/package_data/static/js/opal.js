@@ -748,6 +748,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 b.mapper.setInputData(pd);
                 vtkScene.addActor(b.actor);
                 createAxes(data.bounds);
+                vtkScene.resetView();
                 pngCanvas.copyCanvas();
 
                 if ($scope.axisObj) {
