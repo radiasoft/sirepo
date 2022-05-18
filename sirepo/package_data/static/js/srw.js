@@ -554,7 +554,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     return self;
 });
 
-SIREPO.app.controller('BeamlineController', function (activeSection, appState, beamlineService, panelState, persistentSimulation, requestSender, simulationQueue, srwService, $scope, $location) {
+SIREPO.app.controller('BeamlineController', function (activeSection, appState, beamlineService, panelState, simulationQueue, srwService, $scope, $location) {
     var self = this;
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
