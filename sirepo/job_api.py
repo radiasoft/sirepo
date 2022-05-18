@@ -3,7 +3,6 @@ u"""Entry points for job execution
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
@@ -16,6 +15,7 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
+import sirepo.request
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
@@ -38,179 +38,175 @@ def adjust_supervisor_srtime(days):
     )
 
 
-@api_perm.require_user
-def api_admJobs():
-    sirepo.auth.check_user_has_role(
-        sirepo.auth.logged_in_user(),
-        sirepo.auth_role.ROLE_ADM,
-    )
-    return _request(
-        _request_content=PKDict(**sirepo.http_request.parse_post()),
-    )
-
-
-@api_perm.require_user
-def api_analysisJob():
-    return _request()
-
-
-@api_perm.require_user
-def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-#TODO(robnagler) validate suffix and frame
-    req = sirepo.http_request.parse_params(
-        id=simulation_id,
-        model=model,
-        type=simulation_type,
-        check_sim_exists=True,
-    )
-    s = suffix and sirepo.srschema.parse_name(suffix)
-    t = None
-    with simulation_db.tmp_dir() as d:
-        # TODO(e-carlin): computeJobHash
-        t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
-        t.mksymlinkto(d, absolute=True)
-        try:
-            r = _request(
-                computeJobHash='unused',
-                dataFileKey=t.basename,
-                frame=int(frame),
-                isParallel=False,
-                req_data=req.req_data,
-                suffix=s,
-            )
-            assert not r.state == 'error', f'error state in request=={r}'
-            f = d.listdir()
-            if len(f) > 0:
-                assert len(f) == 1, \
-                    'too many files={}'.format(f)
-                return sirepo.http_reply.gen_file_as_attachment(f[0])
-        except requests.exceptions.HTTPError:
-#TODO(robnagler) HTTPError is too coarse a check
-            pass
-        finally:
-            if t:
-                pykern.pkio.unchecked_remove(t)
-        raise sirepo.util.raise_not_found(
-            'frame={} not found {id} {type}'.format(frame, **req)
+class Request(sirepo.request.Base):
+    @api_perm.require_user
+    def api_admJobs(self):
+        sirepo.auth.check_user_has_role(
+            sirepo.auth.logged_in_user(),
+            sirepo.auth_role.ROLE_ADM,
         )
-
-
-@api_perm.allow_visitor
-def api_jobSupervisorPing():
-    import requests.exceptions
-
-    e = None
-    try:
-        k = sirepo.job.unique_key()
-        r = _request(
-            _request_content=PKDict(ping=k),
-            _request_uri=_supervisor_uri(sirepo.job.SERVER_PING_URI),
+        return _request(
+            _request_content=PKDict(**sirepo.http_request.parse_post()),
         )
-        if r.get('state') != 'ok':
-            return r
-        try:
-            x = r.pknested_get('ping')
-            if x == k:
-                return r
-            e = 'expected={} but got ping={}'.format(k, x)
-        except KeyError:
-            e = 'incorrectly formatted reply'
-            pkdlog(r)
-    except requests.exceptions.ConnectionError:
-        e = 'unable to connect to supervisor'
-    except Exception as e:
-        pkdlog(e)
-        e = 'unexpected exception'
-    return PKDict(state='error', error=e)
-
-
-@api_perm.require_user
-def api_ownJobs():
-    return _request(
-        _request_content=PKDict(
-            uid=sirepo.auth.logged_in_user(),
-            **sirepo.http_request.parse_post()
-        ),
-    )
-
-
-@api_perm.require_user
-def api_runCancel():
-    try:
+    
+    
+    @api_perm.require_user
+    def api_analysisJob(self):
         return _request()
-    except Exception as e:
-        pkdlog('ignoring exception={} stack={}', e, pkdexc())
-    # Always true from the client's perspective
-    return sirepo.http_reply.gen_json({'state': 'canceled'})
-
-
-@api_perm.require_user
-def api_runMulti():
-    def _api(api):
-        # SECURITY: Make sure we have permission to call API
-        a = sirepo.uri_router.check_api_call(api).__name__
-        # SECURITY: Only allow these two API's for now. Certain API's
-        # (ex api_admJobs) have more security checks in the method (ex
-        # check_user_has_role) in the Flask server that could be
-        # circumvented since we don't call the Falsk server method.
-        assert a in ('api_runSimulation', 'api_runStatus')
-        return a
-
-    r = []
-    for m in sirepo.http_request.parse_json():
-        c = _request_content(PKDict(req_data=m))
-        c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
-        r.append(c)
-    return _request(
-        _request_content=PKDict(data=r),
-        _request_uri=_supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
-    )
-
-
-@api_perm.require_user
-def api_runSimulation():
-    r = _request_content(PKDict(fixup_old_data=True))
-    if r.isParallel:
-        r.isPremiumUser = sirepo.auth.is_premium_user()
-    return _request(_request_content=r)
-
-
-@api_perm.require_user
-def api_runStatus():
-    return _request()
-
-
-@api_perm.require_user
-def api_sbatchLogin():
-    r = _request_content(
-        PKDict(computeJobHash='unused', jobRunMode=sirepo.job.SBATCH),
-    )
-    r.sbatchCredentials = r.pkdel('data')
-    return _request(_request_content=r)
-
-
-@api_perm.require_user
-def api_simulationFrame(frame_id):
-    return template_common.sim_frame(
-        frame_id,
-        lambda a: _request(
-            analysisModel=a.frameReport,
-            # simulation frames are always sequential requests even though
-            # the report name has 'animation' in it.
-            isParallel=False,
-            req_data=PKDict(**a),
+    
+    
+    @api_perm.require_user
+    def api_downloadDataFile(self, simulation_type, simulation_id, model, frame, suffix=None):
+    #TODO(robnagler) validate suffix and frame
+        req = sirepo.http_request.parse_params(
+            id=simulation_id,
+            model=model,
+            type=simulation_type,
+            check_sim_exists=True,
         )
-    )
+        s = suffix and sirepo.srschema.parse_name(suffix)
+        t = None
+        with simulation_db.tmp_dir() as d:
+            # TODO(e-carlin): computeJobHash
+            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+            t.mksymlinkto(d, absolute=True)
+            try:
+                r = _request(
+                    computeJobHash='unused',
+                    dataFileKey=t.basename,
+                    frame=int(frame),
+                    isParallel=False,
+                    req_data=req.req_data,
+                    suffix=s,
+                )
+                assert not r.state == 'error', f'error state in request=={r}'
+                f = d.listdir()
+                if len(f) > 0:
+                    assert len(f) == 1, \
+                        'too many files={}'.format(f)
+                    return sirepo.http_reply.gen_file_as_attachment(f[0])
+            except requests.exceptions.HTTPError:
+    #TODO(robnagler) HTTPError is too coarse a check
+                pass
+            finally:
+                if t:
+                    pykern.pkio.unchecked_remove(t)
+            raise sirepo.util.raise_not_found(
+                'frame={} not found {id} {type}'.format(frame, **req)
+            )
+    
+    
+    @api_perm.allow_visitor
+    def api_jobSupervisorPing(self):
+        import requests.exceptions
+    
+        e = None
+        try:
+            k = sirepo.job.unique_key()
+            r = _request(
+                _request_content=PKDict(ping=k),
+                _request_uri=_supervisor_uri(sirepo.job.SERVER_PING_URI),
+            )
+            if r.get('state') != 'ok':
+                return r
+            try:
+                x = r.pknested_get('ping')
+                if x == k:
+                    return r
+                e = 'expected={} but got ping={}'.format(k, x)
+            except KeyError:
+                e = 'incorrectly formatted reply'
+                pkdlog(r)
+        except requests.exceptions.ConnectionError:
+            e = 'unable to connect to supervisor'
+        except Exception as e:
+            pkdlog(e)
+            e = 'unexpected exception'
+        return PKDict(state='error', error=e)
+    
+    
+    @api_perm.require_user
+    def api_ownJobs(self):
+        return _request(
+            _request_content=PKDict(
+                uid=sirepo.auth.logged_in_user(),
+                **sirepo.http_request.parse_post()
+            ),
+        )
+    
+    
+    @api_perm.require_user
+    def api_runCancel(self):
+        try:
+            return _request()
+        except Exception as e:
+            pkdlog('ignoring exception={} stack={}', e, pkdexc())
+        # Always true from the client's perspective
+        return sirepo.http_reply.gen_json({'state': 'canceled'})
+
+    @api_perm.require_user
+    def api_runMulti(self):
+        def _api(api):
+            # SECURITY: Make sure we have permission to call API
+            sirepo.uri_router.assert_api_name_and_auth(api, ('runSimulation', 'runStatus'))
+            # Necessary so dispatch to job supervisor works correctly
+            return 'api_' + api
+
+        r = []
+        for m in sirepo.http_request.parse_json():
+            c = _request_content(PKDict(req_data=m))
+            c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
+            r.append(c)
+        return _request(
+            _request_content=PKDict(data=r),
+            _request_uri=_supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
+        )
+    
+    
+    @api_perm.require_user
+    def api_runSimulation(self):
+        r = _request_content(PKDict(fixup_old_data=True))
+        if r.isParallel:
+            r.isPremiumUser = sirepo.auth.is_premium_user()
+        return _request(_request_content=r)
+    
+    
+    @api_perm.require_user
+    def api_runStatus(self):
+        return _request()
 
 
-@api_perm.require_user
-def api_statefulCompute():
-    return _request_compute()
+    @api_perm.require_user
+    def api_sbatchLogin(self):
+        r = _request_content(
+            PKDict(computeJobHash='unused', jobRunMode=sirepo.job.SBATCH),
+        )
+        r.sbatchCredentials = r.pkdel('data')
+        return _request(_request_content=r)
 
 
-@api_perm.require_user
-def api_statelessCompute():
-    return _request_compute()
+    @api_perm.require_user
+    def api_simulationFrame(self, frame_id):
+        return template_common.sim_frame(
+            frame_id,
+            lambda a: _request(
+                analysisModel=a.frameReport,
+                # simulation frames are always sequential requests even though
+                # the report name has 'animation' in it.
+                isParallel=False,
+                req_data=PKDict(**a),
+            )
+        )
+    
+    
+    @api_perm.require_user
+    def api_statefulCompute(self):
+        return _request_compute()
+    
+    
+    @api_perm.require_user
+    def api_statelessCompute(self):
+        return _request_compute()
 
 
 def init_apis(*args, **kwargs):

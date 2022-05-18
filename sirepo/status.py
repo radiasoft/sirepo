@@ -4,7 +4,6 @@ u"""Sirepo web server status for remote monitoring
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
@@ -17,6 +16,7 @@ from sirepo import uri_router
 import datetime
 import random
 import re
+import sirepo.request
 import time
 
 
@@ -31,18 +31,20 @@ _SIM_NAME = 'Undulator Radiation'
 
 _SIM_REPORT = 'initialIntensityReport'
 
-@api_perm.require_auth_basic
-def api_serverStatus():
-    """Allow for remote monitoring of the web server status.
 
-    The user must be an existing sirepo uid.  The status checks
-    that a simple simulation can complete successfully within a
-    short period of time.
-    """
-    _run_tests()
-    return http_reply.gen_json_ok({
-        'datetime': datetime.datetime.utcnow().isoformat(),
-    })
+class Request(sirepo.request.Base):
+    @api_perm.require_auth_basic
+    def api_serverStatus(self):
+        """Allow for remote monitoring of the web server status.
+    
+        The user must be an existing sirepo uid.  The status checks
+        that a simple simulation can complete successfully within a
+        short period of time.
+        """
+        _run_tests()
+        return http_reply.gen_json_ok({
+            'datetime': datetime.datetime.utcnow().isoformat(),
+        })
 
 
 def init_apis(*args, **kwargs):
