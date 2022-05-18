@@ -61,7 +61,6 @@ def assert_api_name_and_auth(name, allowed):
         str: api name
     """
     _check_api_call(name)
-    assert allowed, 'must pass non-zero set'
     if name not in allowed:
         raise AssertionError(f'api={name} not in allowed={allowed}')
 
