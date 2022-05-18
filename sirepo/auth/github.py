@@ -22,8 +22,8 @@ from sirepo import util
 import authlib.integrations.requests_client
 import authlib.oauth2.rfc6749.errors
 import flask
-import sirepo.request
 import sirepo.events
+import sirepo.request
 import sqlalchemy
 
 

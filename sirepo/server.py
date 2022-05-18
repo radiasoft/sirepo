@@ -19,8 +19,8 @@ from sirepo import uri_router
 import contextlib
 import flask
 import re
-import sirepo.request
 import sirepo.db_upgrade
+import sirepo.request
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.template

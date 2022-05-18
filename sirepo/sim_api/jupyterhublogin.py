@@ -10,13 +10,13 @@ from pykern.pkdebug import pkdp, pkdlog
 import flask
 import py.error
 import re
-import sirepo.request
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.util

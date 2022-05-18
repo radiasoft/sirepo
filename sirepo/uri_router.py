@@ -14,12 +14,12 @@ import inspect
 import os
 import pkgutil
 import re
-import sirepo.request
 import sirepo.api_auth
 import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.sim_api
 import sirepo.uri
 import sirepo.util

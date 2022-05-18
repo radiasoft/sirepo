@@ -20,9 +20,9 @@ from sirepo import util
 import contextlib
 import datetime
 import importlib
-import sirepo.request
 import sirepo.auth_role
 import sirepo.feature_config
+import sirepo.request
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
