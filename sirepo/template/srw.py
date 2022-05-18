@@ -456,6 +456,8 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
+    if frame < 0:
+        return template_common.text_data_file('run.log', run_dir)
     return get_filename_for_model(model)
 
 

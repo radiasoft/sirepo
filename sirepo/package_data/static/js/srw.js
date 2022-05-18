@@ -554,7 +554,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     return self;
 });
 
-SIREPO.app.controller('BeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
+SIREPO.app.controller('BeamlineController', function (activeSection, appState, beamlineService, panelState, persistentSimulation, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
@@ -571,6 +571,26 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];
+
+    // self.logFileURL = () => {
+    //             if (! appState.isLoaded()) {
+    //                 srdbg('link is empty string');
+    //                 return '';
+    //             }
+    //             srdbg('appState: ', appState);
+    //             return '';
+    //             // simState = persistentSimulation.initSimulationState($scope);
+    //             srdbg('model:', simState);
+    //             model = simState.model
+    //             const link =  requestSender.formatUrl('downloadDataFile', {
+    //                 '<simulation_id>': appState.models.simulation.simulationId,
+    //                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+    //                 '<model>': simState.model,
+    //                 '<frame>': -1,
+    //             });
+    //             srdbg('link', link);
+    //             return link
+    //         }
 
     function copyIntensityReportCharacteristics() {
         var intensityReport = appState.models.beamlineAnimation0;
@@ -2462,11 +2482,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         scope: {
             model: '@simulationStatusPanel',
             title: '@',
-        },// TODO (gurhar1133): figure out correct ng-if condition for rendering the log link
-        template: `bbb
-        <div data-ng-if="!simState.isStatePending()" class="well well-lg">
-          <a href="{{ logFileURL() }}" target="_blank">SRW log file xxx</a>
-        </div>
+        },
+        template: `
+           <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
+              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW log file</a>
+           </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
               <div class="progress" data-ng-if="simState.isProcessing()">
@@ -2547,18 +2567,23 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             }
 
             $scope.logFileURL = () => {
-                var link = 'https://poop.com';
-                srdbg('simState: ', $scope.simState)
                 if (! appState.isLoaded()) {
+                    srdbg('link is empty string');
                     return '';
                 }
-                link = requestSender.formatUrl('downloadDataFile', {
+                // srdbg('appState: ', appState);
+                // return '';
+                // simState = persistentSimulation.initSimulationState($scope);
+                // srdbg('model:', simState);
+                const model = $scope.simState.model
+                srdbg('model:', model);
+                const link =  requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': $scope.simState.model,
+                    '<model>': model,
                     '<frame>': -1,
                 });
-                srdbg('link: ', link)
+                srdbg('link', link);
                 return link;
             }
 
