@@ -2456,7 +2456,7 @@ SIREPO.app.directive('sampleRandomShapes', function(appState) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -2464,6 +2464,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             title: '@',
         },
         template: `
+           <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
+              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW log file</a>
+           </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
               <div class="progress" data-ng-if="simState.isProcessing()">
@@ -2542,6 +2545,19 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     hidePanel('fluxAnimation');
                 }
             }
+
+            $scope.logFileURL = () => {
+                if (! appState.isLoaded()) {
+                    return '';
+                }
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.simState.model,
+                    '<frame>': -1,
+                    '<suffix>': 'run.log',
+                });
+            };
 
             self.simHandleStatus = function(data) {
                 if ($scope.simState.isProcessing()) {
