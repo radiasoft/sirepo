@@ -584,8 +584,7 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
 
     function initZipfile() {
         panelState.clear('initZipReport');
-        flashService.zipFileStatusText = 'Extracting Simulation Files';
-        isProcessing = true;
+        setProcessing(true);
         showArchiveFields();
         panelState.requestData(
             'initZipReport',
@@ -596,32 +595,41 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
                     showArchiveFields();
                 }
                 else {
-                    flashService.zipFileStatusText = '';
-                    isProcessing = false;
+                    setProcessing(false);
                 }
             },
             false,
             err => {
-                flashService.zipFileStatusText = 'Error processing zip archive: '
-                    + err.error;
-                isProcessing = false;
+                setProcessing(false, err.error);
             });
     }
 
+    function setProcessing(value, error) {
+        isProcessing = value;
+        if (error) {
+            flashService.zipFileStatusText = 'Error: ' + error;
+        }
+        else {
+            flashService.zipFileStatusText = value
+                ? 'Extracting Simulation Files'
+                : '';
+        }
+    }
+
     function updateLibFile() {
+        setProcessing(true);
         return requestSender.sendStatelessCompute(
             appState,
             (data) => {
                 if (data.archiveLibId) {
                     appState.models.problemFiles.archiveLibId = data.archiveLibId;
+                    flashService.resetFlashSchema();
                     appState.saveChanges('problemFiles');
-                    flashService.zipFileStatusText = '';
-                    isProcessing = false;
+                    setProcessing(false);
                     showArchiveFields();
                 }
                 else {
-                    flashService.zipFileStatusText = data.error;
-                    isProcessing = false;
+                    setProcessing(false, data.error);
                 }
             },
             {
@@ -665,12 +673,15 @@ SIREPO.app.directive('zipFileStatus', () => {
         scope: {},
         template: `
             <div class="text-center" data-ng-if="flashService.zipFileStatusText">
-              <span class="glyphicon glyphicon-hourglass"></span>
-              {{ flashService.zipFileStatusText }} ...
+              <span data-ng-if="! hasError()" class="glyphicon glyphicon-hourglass">
+              </span>
+              {{ flashService.zipFileStatusText }}
+              <span data-ng-if="! hasError()">...</span>
             </div>
         `,
         controller: function($scope, flashService) {
             $scope.flashService = flashService;
+            $scope.hasError = () => flashService.zipFileStatusText.search(/^Error/i) >= 0;
         },
     };
 });
@@ -918,14 +929,23 @@ SIREPO.app.directive('moduleLink', function() {
             row: '=moduleLink',
         },
         template: `
-            <div data-ng-if="! row.modelName">{{ row.name }}</div>
-            <div data-ng-if="row.modelName">
+            <div data-ng-attr-style="font-size: {{ fontSize(row) }}%" data-ng-if="! row.modelName">{{ row.name }}</div>
+            <div data-ng-attr-style="font-size: {{ fontSize(row) }}%" data-ng-if="row.modelName">
               <a href data-ng-click="showModal(row)">{{ row.name }}
                 <span class="badge">{{ row.fieldCount }}</span>
               </a>
             </div>
         `,
         controller: function(appState, panelState, $scope) {
+            $scope.fontSize = (row) => {
+                if (row.level == 0) {
+                    return '130';
+                }
+                if (row.level == 1) {
+                    return '115';
+                }
+                return '100';
+            };
             $scope.showModal = row => panelState.showModalEditor(row.modelName);
         },
     };
@@ -936,29 +956,27 @@ SIREPO.app.directive('parametersPanel', function() {
         restrict: 'A',
         scope: {},
         template: `
-<!--
             <form class="form-inline">
               <div style="margin-bottom: 1ex" class="col-md-12 text-center">
                 <label style="padding-right: 1em">Search:</label>
                 <input type="text" class="form-control" data-ng-model="searchText" />
               </div>
-            </div>
--->
             </form>
-            <div class="row">
-              <div class="col-sm-12 col-md-6 col-lg-4"
-                data-ng-repeat="col in columns track by $index">
-                <div data-ng-repeat="row in col track by row.name">
-                  <div data-ng-attr-style="margin-left: {{ 2 * row.level }}em"
-                    data-module-link="row"></div>
-                </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-4"
+              data-ng-repeat="col in columns track by $index">
+              <div data-ng-repeat="row in col track by row.name">
+                <div data-ng-attr-style="margin-left: {{ 2 * row.level }}em"
+                  data-module-link="row"></div>
               </div>
             </div>
         `,
         controller: function(appState, panelState, $scope) {
+            let filter = '';
             $scope.searchText = '';
 
-            function buildTreeColumn() {
+            function buildTreeColumn(search) {
+                filter = search.toLowerCase();
                 const rows = [];
                 const tree = {};
                 for (const name in appState.models.flashSchema.model) {
@@ -991,11 +1009,47 @@ SIREPO.app.directive('parametersPanel', function() {
                         rows.push(tree[p]);
                     }
                 }
-                $scope.columns = splitRows(rows);
+                $scope.columns = splitRows(filterRows(rows, filter));
             }
 
             function fieldCount(modelName) {
-                return Object.keys(appState.models.flashSchema.model[modelName]).length;
+                const s = Object.keys(appState.models.flashSchema.model[modelName]);
+                if (! filter) {
+                    return s.length;
+                }
+                let count = 0;
+                for (const f of s) {
+                    if (matchesFilter(f)) {
+                        count ++;
+                    }
+                }
+                return count;
+            }
+
+            function filterRows(rows, filter) {
+                if (! filter) {
+                    return rows;
+                }
+                const added = {};
+                const levels = [null, null, null];
+                const res = [];
+                for (const r of rows) {
+                    levels[r.level] = r;
+                    if (matchesFilter(r.name) || r.fieldCount) {
+                        for (let i = 0; i < r.level + 1; i++) {
+                            if (added[levels[i].name]) {
+                                continue;
+                            }
+                            added[levels[i].name] = true;
+                            res.push(levels[i]);
+                        }
+                    }
+                }
+                return res;
+            }
+
+            function matchesFilter(value) {
+                return value.toLowerCase().indexOf(filter) >= 0;
             }
 
             function splitRows(rows) {
@@ -1016,7 +1070,20 @@ SIREPO.app.directive('parametersPanel', function() {
                 return res;
             }
 
-            buildTreeColumn();
+            buildTreeColumn('');
+
+            $scope.$watch('searchText', () => {
+                if ($scope.searchText && $scope.searchText.length >= 3) {
+                    if (filter != $scope.searchText) {
+                        buildTreeColumn($scope.searchText);
+                    }
+                }
+                else {
+                    if (filter != '') {
+                        buildTreeColumn('');
+                    }
+                }
+            });
         },
     };
 });
