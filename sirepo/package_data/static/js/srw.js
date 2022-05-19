@@ -2555,6 +2555,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': $scope.simState.model,
                     '<frame>': -1,
+                    '<suffix>': 'run.log',
                 });
             };
 
