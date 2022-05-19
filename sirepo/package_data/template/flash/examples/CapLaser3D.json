@@ -1,0 +1,49 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "CapLaser3D"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "d": "3",
+            "ed_maxBeams": 1,
+            "ed_maxPulseSections": 4,
+            "ed_maxPulses": 1,
+            "geometry": "-none-",
+            "hdf5typeio": "1",
+            "laser": "1",
+            "maxblocks": "",
+            "mgd": "1",
+            "mgd_meshgroups": 6,
+            "mtmmmt": "1",
+            "nofbs": "0",
+            "noio": "0",
+            "nxb": 16,
+            "nyb": 16,
+            "nzb": 8,
+            "opt": "0",
+            "species": "fil1,fil2,wall",
+            "ug": "0",
+            "usm3t": "1",
+            "withParticles": "0"
+        },
+        "simulation": {
+            "name": "CapLaser3D",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "amrGrid": "1",
+            "vmax": 20
+        },
+        "Driver_DriverMain": {
+            "tmax": 450.0e-09
+        },
+        "Grid_GridMain_paramesh": {
+            "lrefine_max": 6
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 5.0e-10
+        }
+    },
+    "simulationType": "flash"
+}

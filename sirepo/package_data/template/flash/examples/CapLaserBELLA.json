@@ -1,0 +1,49 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "CapLaserBELLA"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "d": "2",
+            "ed_maxBeams": 1,
+            "ed_maxPulseSections": 4,
+            "ed_maxPulses": 1,
+            "geometry": "-none-",
+            "hdf5typeio": "1",
+            "laser": "1",
+            "maxblocks": "",
+            "mgd": "1",
+            "mgd_meshgroups": 6,
+            "mtmmmt": "1",
+            "nofbs": "0",
+            "noio": "0",
+            "nxb": 8,
+            "nyb": 8,
+            "nzb": 8,
+            "opt": "0",
+            "species": "fill,wall",
+            "ug": "0",
+            "usm3t": "1",
+            "withParticles": "0"
+        },
+        "simulation": {
+            "name": "CapLaserBELLA",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "amrGrid": "1",
+            "vmax": 20
+        },
+        "Driver_DriverMain": {
+            "tmax": 720.0e-09
+        },
+        "Grid_GridMain_paramesh": {
+            "lrefine_max": 6
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 1.0e-9
+        }
+    },
+    "simulationType": "flash"
+}
