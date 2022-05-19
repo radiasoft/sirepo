@@ -4,6 +4,9 @@
             "localRoute": "geometry"
         }
     },
+    "constants": {
+        "volumeProperties": ["color", "opacity"]
+    },
     "enum": {
     },
     "dynamicFiles": {
@@ -13,7 +16,14 @@
             ]
         },
         "sirepoLibs": {
-            "js": ["cloudmc.js"]
+            "css": [
+                "vtk.css"
+            ],
+            "js": [
+                "cloudmc.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
+            ]
         }
     },
     "localRoutes": {
@@ -30,7 +40,11 @@
         "geometryInput": {
             "dagmcFile": ["DAGMC File", "InputFile", ""]
         },
-        "geometry3DReport": {},
+        "geometry3DReport": {
+            "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]],
+            "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "showEdges": ["Show Edges", "Boolean", "0"]
+        },
         "openmcAnimation": {},
         "volumes": {}
     },
@@ -44,7 +58,16 @@
         },
         "geometry3DReport": {
             "title": "DAGMC Geometry",
-            "advanced": []
+            "basic": [
+                "opacity",
+                "bgColor",
+                "showEdges"
+            ],
+            "advanced": [
+                "opacity",
+                "bgColor",
+                "showEdges"
+            ]
         },
         "volumes": {
             "title": "Volumes",
