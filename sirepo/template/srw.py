@@ -457,7 +457,7 @@ def get_application_data(data, **kwargs):
     raise RuntimeError('unknown application data method: {}'.format(data.method))
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options):
     if options.suffix == _SRW_LOG_FILE:
         return template_common.text_data_file(_SRW_LOG_FILE, run_dir)
     return get_filename_for_model(model)
