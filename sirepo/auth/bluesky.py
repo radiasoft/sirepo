@@ -14,10 +14,10 @@ from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
-import sirepo.request
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import time
 
 

@@ -19,8 +19,8 @@ from sirepo import uri_router
 import contextlib
 import flask
 import re
-import sirepo.request
 import sirepo.db_upgrade
+import sirepo.request
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.template
@@ -342,7 +342,7 @@ class Request(sirepo.request.Base):
                         req,
                     )
                 with simulation_db.tmp_dir() as d:
-                    data = req.template.import_file(req, tmp_dir=d, reply_op=s, arq=self)
+                    data = req.template.import_file(req, tmp_dir=d, reply_op=s, sreq=self)
                 if 'error' in data:
                     return http_reply.gen_json(data)
             return s(data)

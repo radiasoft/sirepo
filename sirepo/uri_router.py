@@ -14,12 +14,12 @@ import inspect
 import os
 import pkgutil
 import re
-import sirepo.request
 import sirepo.api_auth
 import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
@@ -61,7 +61,6 @@ def assert_api_name_and_auth(name, allowed):
         str: api name
     """
     _check_api_call(name)
-    assert allowed, 'must pass non-zero set'
     if name not in allowed:
         raise AssertionError(f'api={name} not in allowed={allowed}')
 
@@ -94,8 +93,7 @@ def call_api(route_or_name, kwargs=None, data=None):
         try:
             if data:
                 p = sirepo.http_request.set_post(data)
-            i = f.cls()
-            r = flask.make_response(getattr(i, f.func_name)(**kwargs))
+            r = flask.make_response(getattr(f.cls(), f.func_name)(**kwargs))
         finally:
             if data:
                 sirepo.http_request.set_post(p)
@@ -172,6 +170,9 @@ def register_api_module(module=None):
     if hasattr(m, 'init_apis'):
         m.init_apis()
     if not hasattr(m, 'Request'):
+        if pkinspect.module_functions('api_', module=m):
+            raise AssertionError(f'module={m.__name__} has old interface')
+        pkdlog('module={} does not have Request class; no apis', m)
         # some modules (ex: sirepo.auth.basic) don't have any APIs
         return
     c = m.Request
