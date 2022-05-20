@@ -546,7 +546,7 @@ def generate_variables(data):
     return code_var(data.models.rpnVariables).generate_variables(_gen, postfix=True)
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
 
     def _sdds(filename):
         path = run_dir.join(filename)

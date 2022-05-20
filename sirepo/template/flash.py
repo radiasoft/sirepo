@@ -112,7 +112,7 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     n = None
     if model == 'setupAnimation':
         if frame == SCHEMA.constants.setupLogFrameId:
