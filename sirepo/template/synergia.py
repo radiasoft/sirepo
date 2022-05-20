@@ -147,7 +147,7 @@ def import_file(req, tmp_dir=None, **kwargs):
     return data
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model in OUTPUT_FILE:
         return OUTPUT_FILE[model]
     elif model == 'bunchAnimation':

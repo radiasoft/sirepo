@@ -92,7 +92,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model == 'particleAnimation':
         return _PARTICLE_OUTPUT_FILENAME
     if model == 'fieldDistributionAnimation':

@@ -25,8 +25,8 @@ INPUT_NAME = 'hundli.yml'
 OUTPUT_NAME = 'hundli.csv'
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    if options and options.get('suffix') == 'sr_long_analysis':
+def get_data_file(run_dir, model, frame, options):
+    if options.get('suffix') == 'sr_long_analysis':
         time.sleep(100)
     return OUTPUT_NAME
 
