@@ -1279,20 +1279,23 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
+        var waitedTimeElapsed = false;
         var delay = isPlaying && ! isHidden
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
         var requestFunction = function() {
-            if (SIREPO.SLOW_ANIMATION) {
-                // some apps like SRW may take a long time to process a frame
-                panelState.setLoading(modelName, true);
-            }
+            setTimeout(() => {
+                if (!waitedTimeElapsed) {
+                    panelState.setLoading(modelName, true);
+                }
+            }, 1000);
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    waitedTimeElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
@@ -1664,6 +1667,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.getStatusText = function(name) {
+
         if (self.isRunning(name)) {
             var count = (queueItems[name] && queueItems[name].runStatusCount) || 0;
             var progressText = (appState.models[name] || {}).inProgressText  ||
@@ -1672,8 +1676,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
         return appState.isAnimationModelName(name)
-            ? 'Requesting Data'
-            : 'Waiting';
+        ? 'Requesting Florpus'
+        : 'Waiting';
     };
 
     self.isActiveField = function(model, field) {
