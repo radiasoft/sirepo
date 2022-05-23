@@ -54,7 +54,7 @@
     },
     "frameIdFields": {
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
-        "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var"],
+        "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var", "interpolate"],
         "varAnimation": ["amrGrid", "axis", "var", "vmax", "vmin"]
     },
     "localRoutes": {
@@ -146,7 +146,8 @@
         "oneDimensionProfileAnimation": {
             "axis": ["Axis", "Axis", "x"],
             "selectedPlotFiles": ["Plot Files", "PlotFileArray", []],
-            "var": ["Variable", "ValueList", ""]
+            "var": ["Variable", "ValueList", ""],
+            "interpolate": ["Interpolate Results", "Boolean", "1"]
         },
         "varAnimation": {
             "amrGrid": ["AMR Grid", "Boolean", "0"],
@@ -172,6 +173,7 @@
             "advanced": [
                 "axis",
                 "var",
+                "interpolate",
                 "selectedPlotFiles"
             ]
         },
