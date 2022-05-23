@@ -322,7 +322,7 @@ def generate_parameters_file(data):
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if frame == SCHEMA.constants.logFileFrameId:
         return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:

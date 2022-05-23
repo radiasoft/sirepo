@@ -1844,6 +1844,15 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
                     // ignore event if drag is occurring
                     return;
                 }
+                if (plotScope.noOverlay) {
+                    // if the data has multiple x datasets,
+                    // the overlay will not work correctly
+                    $scope.select()
+                        .on('mousedown', null)
+                        .on('click', null)
+                        .on('dblclick', null);
+                    return;
+                }
                 // start listening on clicks instead of mouseover
                 keypressService.addListener(listenerId, onKeyDown, $scope.reportId);
 
@@ -3525,6 +3534,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         color: '#ff7f0e',
                     },
                 ];
+                if (plots[0].x_points) {
+                    $scope.noOverlay = true;
+                }
                 if (plots.length == 1 && ! json.y_label) {
                     json.y_label = plots[0].label;
                 }
