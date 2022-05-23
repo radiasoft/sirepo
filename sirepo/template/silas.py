@@ -62,7 +62,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     return _parse_silas_log(run_dir)
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model in ('laserPulseAnimation', 'laserPulse2Animation'):
         return _INITIAL_LASER_FILE
     if model in ('laserPulse3Animation', 'laserPulse4Animation'):

@@ -1998,7 +1998,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
             };
             $scope.parseValues = function() {
                 // the model can change - reset the values in that case
-                if (! lastModel || lastModel !== $scope.model) {
+                if (lastModel !== $scope.model) {
                     lastModel = $scope.model;
                     $scope.values = null;
                 }

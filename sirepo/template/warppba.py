@@ -148,7 +148,7 @@ def generate_parameters_file(data, is_parallel=False):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
-def get_data_file(run_dir, model, frame, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     files = _h5_file_list(run_dir)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.

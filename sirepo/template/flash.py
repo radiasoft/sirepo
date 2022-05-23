@@ -112,7 +112,7 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     n = None
     if model == 'setupAnimation':
         if frame == SCHEMA.constants.setupLogFrameId:
@@ -204,32 +204,37 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
             ])
         return [str(_h5_file_list(frame_args.run_dir)[-1])]
 
-    #_init_yt()
+    _init_yt()
     plots = []
     x_points = []
-    f = _files()
     xs, ys, times = rsflash.plotting.extracts.get_lineouts(
-        f,
+        _files(),
         frame_args.var,
         frame_args.axis,
         _LINEOUTS_SAMPLING_SIZE,
-        # interpolate_max=_interpolate_max(f),
+        interpolate=frame_args.get('interpolate', '1') == '1',
     )
     x = xs[0]
+    r = [numpy.min(x), numpy.max(x)]
     for i, _ in enumerate(ys):
-        assert x.all() == xs[i].all(), 'Plots must use the same x values'
-        y = ys[i]
         plots.append(PKDict(
             name=i,
             label=_time_and_units(times[i]),
-            points=y.tolist(),
+            points=ys[i].tolist(),
+            x_points=xs[i].tolist(),
         ))
+        m = numpy.min(xs[i])
+        if m < r[0]:
+            r[0] = m
+        m = numpy.max(xs[i])
+        if m > r[1]:
+            r[1] = m
     return PKDict(
         plots=plots,
         title=frame_args.var,
         x_label=_PLOT_VARIABLE_LABELS.length,
         x_points = x.tolist(),
-        x_range=[numpy.min(x), numpy.max(x)],
+        x_range=r,
         y_label=_PLOT_VARIABLE_LABELS.get(frame_args.var, ''),
         y_range=template_common.compute_plot_color_and_range(plots),
     )

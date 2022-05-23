@@ -245,7 +245,8 @@
                     "sirepo-components.js",
                     "sirepo-plotting.js",
                     "sirepo-plotting-vtk.js",
-                    "sirepo-geometry.js"
+                    "sirepo-geometry.js",
+                    "sirepo-utils.js"
                 ]
             },
             "libURLs": [

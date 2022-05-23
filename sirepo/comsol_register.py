@@ -1,4 +1,3 @@
-import sirepo.request
 # -*- coding: utf-8 -*-
 u"""COMSOL registration routes.
 
@@ -13,6 +12,7 @@ from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import smtp
+import sirepo.request
 
 cfg = None
 

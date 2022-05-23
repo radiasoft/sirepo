@@ -15,12 +15,12 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
-import sirepo.request
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
 import sirepo.mpi
+import sirepo.request
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
