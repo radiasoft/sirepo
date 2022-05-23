@@ -1676,7 +1676,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
         return appState.isAnimationModelName(name)
-        ? 'Requesting Florpus'
+        ? 'Requesting Data'
         : 'Waiting';
     };
 
