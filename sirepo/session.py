@@ -7,13 +7,22 @@ import datetime
 import flask
 import sirepo.auth
 import sirepo.auth_db
+import sirepo.events
 import sirepo.request
+import sirepo.srcontext
 import sirepo.srtime
 import sirepo.uri_router  #TODO(rorour) remove
 import sirepo.util
 import sqlalchemy
 
+_SRCONTEXT_KEY = __name__
+
 _Session = None
+
+
+def _event_end_api_call(kwargs):
+    kwargs.resp.headers['X-Sirepo-UserAgentId'] = sirepo.srcontext.get(_SRCONTEXT_KEY)
+
 
 @contextlib.contextmanager
 def session():
@@ -32,10 +41,10 @@ def session():
         #TODO(rorour) make is_logged_in public
         l = sirepo.auth._is_logged_in()
         t = sirepo.srtime.utc_now()
+        #TODO(rorour) get 8 from const
+        i = sirepo.util.random_base62(8)
         _Session(
-            #TODO(rorour) get 8 from const
-            # user_agent_id=sirepo.util.random_base62(8),
-            user_agent_id='aaa',
+            user_agent_id=i,
             login_state=l,
             uid=sirepo.auth.logged_in_user() if l else None,
             start_time=t,
@@ -51,7 +60,15 @@ def session():
             sirepo.uri_router.call_api('wakeAgent', data=PKDict(simulationType='srw'))
         s.request_time = sirepo.srtime.utc_now()
         s.save()
+    sirepo.srcontext.set(_SRCONTEXT_KEY, i)
     yield
+
+
+def _init():
+    sirepo.events.register(PKDict(
+        end_api_call=_event_end_api_call
+    ))
+    sirepo.auth_db.init_model(_init_model)
 
 
 def _init_model(base):
@@ -67,4 +84,4 @@ def _init_model(base):
         # end_time = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
 
 
-sirepo.auth_db.init_model(_init_model)
+_init()
