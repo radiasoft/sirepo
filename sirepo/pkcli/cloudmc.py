@@ -82,10 +82,13 @@ def run_background(cfg_dir):
     data = sirepo.simulation_db.read_json(
         template_common.INPUT_BASE_NAME,
     )
-    sirepo.simulation_db.write_json(
-        sirepo.template.cloudmc.VOLUME_INFO_FILE,
-        extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
-    )
+    if 'report' in data and data.report == 'dagmcAnimation':
+        sirepo.simulation_db.write_json(
+            sirepo.template.cloudmc.VOLUME_INFO_FILE,
+            extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
+        )
+        return
+    template_common.exec_parameters()
 
 
 def _array_from_list(arr, arr_type):

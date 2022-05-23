@@ -8,6 +8,14 @@
         "volumeProperties": ["color", "opacity"]
     },
     "enum": {
+        "sourceSpace": [
+            ["box", "Box"],
+            ["fission", "Fissionable Box"],
+            ["point", "Point"],
+            ["cartesian", "Cartesian"],
+            ["cylindrical", "Cylindrical"],
+            ["spherical", "Spherical"]
+        ]
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -33,6 +41,13 @@
                 "controller": "GeometryController as geometry",
                 "templateUrl": "/static/html/cloudmc-geometry.html"
             }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/cloudmc-visualization.html"
+            }
         }
     },
     "model": {
@@ -45,7 +60,25 @@
             "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show Edges", "Boolean", "0"]
         },
+        "openmcSettings": {
+            "batches": ["Number of batches to simulation", "Integer", 1],
+            "inactive": ["Number of inactive batches", "Integer", 0],
+            "particles": ["Number of particles per generation", "Integer", 5000]
+        },
+        "openmcSource": {
+            "spaceType": ["Type", "sourceSpace", "box"],
+            "boxLowerLeft": ["Lower Left", "Float3", "-1, -1, -1", "", "X, Y, Z"],
+            "boxUpperRight": ["Upper Right", "Float3", "1, 1, 1", "", "X, Y, Z"]
+        },
+        "Tally": {
+            "name": ["Name", "String"],
+            "scores": ["Scores", "TallyScores", ""]
+        },
+        "TallyFilter": {
+            "type": ["Filter Type", "FilterType", "CellFilter"]
+        },
         "openmcAnimation": {},
+        "simulationStatus": {},
         "volumes": {}
     },
     "view": {
@@ -68,6 +101,27 @@
                 "bgColor",
                 "showEdges"
             ]
+        },
+        "openmcSettings": {
+            "title": "Settings",
+            "basic": [
+                ["Main", [
+                    "batches",
+                    "inactive",
+                    "particles"
+                ]],
+                ["Source", [
+                    "openmcSource.spaceType",
+                    "openmcSource.boxLowerLeft",
+                    "openmcSource.boxUpperRight"
+                ]]
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": [],
+            "basic": []
         },
         "volumes": {
             "title": "Volumes",
