@@ -2270,6 +2270,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         t = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
+            headers: {'X-Sirepo-UserAgentId': 'aaa'}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
