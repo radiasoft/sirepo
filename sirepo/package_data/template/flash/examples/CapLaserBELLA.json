@@ -34,15 +34,6 @@
         "varAnimation": {
             "amrGrid": "1",
             "vmax": 20
-        },
-        "Driver_DriverMain": {
-            "tmax": 720.0e-09
-        },
-        "Grid_GridMain_paramesh": {
-            "lrefine_max": 6
-        },
-        "IO_IOMain": {
-            "plotFileIntervalTime": 1.0e-9
         }
     },
     "simulationType": "flash"

@@ -54,7 +54,7 @@
     },
     "frameIdFields": {
         "gridEvolutionAnimation": ["y1", "y2", "y3"],
-        "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var"],
+        "oneDimensionProfileAnimation": ["axis", "selectedPlotFiles", "var", "interpolate"],
         "varAnimation": ["amrGrid", "axis", "var", "vmax", "vmin"]
     },
     "localRoutes": {
@@ -138,7 +138,8 @@
             "species": ["Species", "OptionalString", "", "An alternative to specifying the SPECIES in the Config file."],
             "ug": ["Uniform Grid - Fixed Block Size", "SetupArgumentShortcut", "0", "Use the uniform grid in a fixed block size mode (+ug)."],
             "usm3t": ["Unsplit MHD with MultiTemp EOS", "SetupArgumentShortcut", "0", "Use unsplit MHD with MultiTemp EOS (+usm3t)."],
-            "withParticles": ["With Particles", "Boolean", "0", "Includes withParticles"]
+            "withParticles": ["With Particles", "Boolean", "0", "Includes withParticles"],
+            "supportAnisoCond": ["Support Anisotropic Diffusion", "SetupArgumentShortcut", "0", "Enable code to support anisotropic diffusion in the Diffuse unit, in the Conductivity unit, and the GridSolvers implementation with HYPRE. (+supportAnisoCond)"]
         },
         "setupAnimation": {},
         "simulation": {},
@@ -146,7 +147,8 @@
         "oneDimensionProfileAnimation": {
             "axis": ["Axis", "Axis", "x"],
             "selectedPlotFiles": ["Plot Files", "PlotFileArray", []],
-            "var": ["Variable", "ValueList", ""]
+            "var": ["Variable", "ValueList", ""],
+            "interpolate": ["Interpolate Results", "Boolean", "1"]
         },
         "varAnimation": {
             "amrGrid": ["AMR Grid", "Boolean", "0"],
@@ -172,6 +174,7 @@
             "advanced": [
                 "axis",
                 "var",
+                "interpolate",
                 "selectedPlotFiles"
             ]
         },
@@ -227,8 +230,8 @@
                     "laser",
                     "ed_maxBeams",
                     "ed_maxPulseSections",
-                    "ed_maxPulses"
-
+                    "ed_maxPulses",
+                    "supportAnisoCond"
                 ]],
                 ["Magneto Gas Dynamics", [
                     "mgd",
