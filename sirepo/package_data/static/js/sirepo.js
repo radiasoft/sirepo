@@ -2375,6 +2375,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                     return;
                 }
                 $interval.cancel(interval);
+                srdbg(`headers=`, response.headers('Content-Type'))
                 successCallback(data, response.status);
             },
             thisErrorCallback

@@ -142,6 +142,7 @@ def init():
             # be added after creation. So, the tables are ordered in the way
             # constraints should be carried out. For example, a user is deleted
             # from auth_email_user_t before user_registration_t.
+            #TODO(rorour) add session_t
             'auth_github_user_t',
             'auth_email_user_t',
             'jupyterhub_user_t',

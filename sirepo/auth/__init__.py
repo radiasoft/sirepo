@@ -319,7 +319,8 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(unit_test=None):
-    with auth_db.session(), cookie.process_header(unit_test):
+    import sirepo.session  #TODO(rorour) fix local import, needed because auth_db not fully initialized at module import
+    with auth_db.session(), cookie.process_header(unit_test), sirepo.session.session():
         # Logging happens after the return to Flask so the log user must persist
         # beyond the life of process_request
         _set_log_user()
