@@ -15,11 +15,14 @@ class Base:
         Args:
             name (object): api name (without `api_` prefix)
             kwargs (dict): to be passed to API [None]
-            data (dict): will be returned `http_request.parse_json` [None]
+            data (dict): will be returned `self.parse_json` [None]
         Returns:
             flask.Response: result
         """
         return uri_router.call_api(name, kwargs=kwargs, data=data)
+
+    def parse_json(self):
+        return http_request.parse_json()
 
 
 def init(**imports):

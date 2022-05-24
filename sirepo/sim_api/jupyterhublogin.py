@@ -38,7 +38,7 @@ class Request(sirepo.request.Base):
     def api_migrateJupyterhub(self):
         if not cfg.rs_jupyter_migrate:
             sirepo.util.raise_forbidden('migrate not enabled')
-        d = sirepo.http_request.parse_json()
+        d = self.parse_json()
         if not d.doMigration:
             create_user()
             return sirepo.http_reply.gen_redirect('jupyterHub')

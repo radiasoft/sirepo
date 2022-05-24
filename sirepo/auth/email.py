@@ -63,7 +63,7 @@ class Request(sirepo.request.Base):
         with sirepo.util.THREAD_LOCK:
             u = AuthEmailUser.search_by(token=token)
             if u and u.expires >= srtime.utc_now():
-                n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
+                n = self._verify_confirm(req.type, token, auth.need_complete_registration(u))
                 AuthEmailUser.delete_changed_email(u)
                 u.user_name = u.unverified_email
                 u.token = None
@@ -97,20 +97,72 @@ class Request(sirepo.request.Base):
         User has sent an email, which needs to be verified.
         """
         req = http_request.parse_post()
-        email = _parse_email(req.req_data)
+        email = self._parse_email(req.req_data)
         with sirepo.util.THREAD_LOCK:
             u = AuthEmailUser.search_by(unverified_email=email)
             if not u:
                 u = AuthEmailUser(unverified_email=email)
             u.create_token()
             u.save()
-        return _send_login_email(
+        return self._send_login_email(
             u,
             uri_router.uri_for_api(
                 'authEmailAuthorized',
                 dict(simulation_type=req.type, token=u.token),
             ),
         )
+
+    def _parse_email(self, data):
+        res = data.email.strip().lower()
+        assert pyisemail.is_email(res), \
+            'invalid post data: email={}'.format(data.email)
+        return res
+
+    def _send_login_email(self, user, uri):
+        login_text = u'sign in to' if user.user_name else \
+            u'confirm your email and finish creating'
+        r = smtp.send(
+            recipient=user.unverified_email,
+            subject='Sign in to Sirepo',
+            body=u'''
+    Click the link below to {} your Sirepo account.
+    
+    This link will expire in {} hours and can only be used once.
+    
+    {}
+    '''.format(login_text, _EXPIRES_MINUTES / 60, uri)
+        )
+        if not r:
+            pkdlog('{}', uri)
+            return http_reply.gen_json_ok({'uri': uri})
+        return http_reply.gen_json_ok()
+
+    def _verify_confirm(self, sim_type, token, need_complete_registration):
+        m = flask.request.method
+        if m == 'GET':
+            raise sirepo.util.Redirect(
+                sirepo.uri.local_route(
+                    sim_type,
+                    'loginWithEmailConfirm',
+                    PKDict(
+                        token=token,
+                        needCompleteRegistration=need_complete_registration,
+                    ),
+                ),
+            )
+        assert m == 'POST', 'unexpect http method={}'.format(m)
+        d = self.parse_json()
+        if d.get('token') != token:
+            raise sirepo.util.Error(
+                PKDict(
+                    error='unable to confirm login',
+                    sim_type=sim_type,
+                ),
+                'Expected token={} in data but got data.token={}',
+                token,
+                d,
+            )
+        return d.get('displayName')
 
 
 def avatar_uri(model, size):
@@ -162,58 +214,7 @@ def _init_model(base):
     UserModel = AuthEmailUser
 
 
-def _parse_email(data):
-    res = data.email.strip().lower()
-    assert pyisemail.is_email(res), \
-        'invalid post data: email={}'.format(data.email)
-    return res
 
-def _send_login_email(user, uri):
-    login_text = u'sign in to' if user.user_name else \
-        u'confirm your email and finish creating'
-    r = smtp.send(
-        recipient=user.unverified_email,
-        subject='Sign in to Sirepo',
-        body=u'''
-Click the link below to {} your Sirepo account.
-
-This link will expire in {} hours and can only be used once.
-
-{}
-'''.format(login_text, _EXPIRES_MINUTES / 60, uri)
-    )
-    if not r:
-        pkdlog('{}', uri)
-        return http_reply.gen_json_ok({'uri': uri})
-    return http_reply.gen_json_ok()
-
-
-def _verify_confirm(sim_type, token, need_complete_registration):
-    m = flask.request.method
-    if m == 'GET':
-        raise sirepo.util.Redirect(
-            sirepo.uri.local_route(
-                sim_type,
-                'loginWithEmailConfirm',
-                PKDict(
-                    token=token,
-                    needCompleteRegistration=need_complete_registration,
-                ),
-            ),
-        )
-    assert m == 'POST', 'unexpect http method={}'.format(m)
-    d = http_request.parse_json()
-    if d.get('token') != token:
-        raise sirepo.util.Error(
-            PKDict(
-                error='unable to confirm login',
-                sim_type=sim_type,
-            ),
-            'Expected token={} in data but got data.token={}',
-            token,
-            d,
-        )
-    return d.get('displayName')
 
 
 auth_db.init_model(_init_model)

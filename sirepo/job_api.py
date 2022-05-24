@@ -153,7 +153,7 @@ class Request(sirepo.request.Base):
             return 'api_' + api
 
         r = []
-        for m in sirepo.http_request.parse_json():
+        for m in self.parse_json():
             c = _request_content(PKDict(req_data=m))
             c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
             r.append(c)

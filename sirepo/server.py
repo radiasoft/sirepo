@@ -142,7 +142,7 @@ class Request(sirepo.request.Base):
             pkdlog(
                 '{}: javascript error: {}',
                 ip,
-                simulation_db.generate_json(http_request.parse_json(), pretty=True),
+                simulation_db.generate_json(self.parse_json(), pretty=True),
             )
         except Exception as e:
             pkdlog(

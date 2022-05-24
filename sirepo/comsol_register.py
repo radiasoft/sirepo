@@ -29,7 +29,7 @@ class Request(sirepo.request.Base):
     def api_comsolRegister(self):
         import sirepo.util
     
-        req = http_request.parse_json()
+        req = self.parse_json()
         smtp.send(
             recipient=cfg.mail_recipient_email,
         subject='Sirepo / COMSOL Registration',

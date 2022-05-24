@@ -87,7 +87,7 @@ class Request(sirepo.request.Base):
         if not _is_logged_in():
             raise util.SRException(LOGIN_ROUTE_NAME, None)
         complete_registration(
-            _parse_display_name(http_request.parse_json().get('displayName')),
+            _parse_display_name(self.parse_json().get('displayName')),
         )
         return http_reply.gen_json_ok()
     
