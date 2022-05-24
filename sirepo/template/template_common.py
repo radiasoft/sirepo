@@ -578,12 +578,12 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     )
 
 
-def sim_frame(frame_id, op):
+def sim_frame(frame_id, op, sreq):
     from sirepo import http_reply, http_request
 
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
-    http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
+    sreq.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:

@@ -31,8 +31,8 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 
 class Request(sirepo.request.Base):
-    def adjust_supervisor_srtime(self, days):
-        #TODO(rorour) callable by outside module?
+    @api_perm.internal_test
+    def api_adjustSupervisorSrtime(self, days):
         return self._request(
             api_name='not used',
             _request_content=PKDict(days=days),
@@ -187,7 +187,8 @@ class Request(sirepo.request.Base):
                 # the report name has 'animation' in it.
                 isParallel=False,
                 req_data=PKDict(**a),
-            )
+            ),
+            self,
         )
     
     @api_perm.require_user

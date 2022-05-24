@@ -36,6 +36,9 @@ def check_api_call(func):
             auth.require_user()
     elif expect == a.ALLOW_VISITOR:
         pass
+    elif expect == a.INTERNAL_TEST:
+        if not pkconfig.channel_in_internal_test():
+            sirepo.util.raise_forbidden('Only available in internal test')
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:

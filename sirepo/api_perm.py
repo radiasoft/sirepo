@@ -27,6 +27,8 @@ class APIPerm(aenum.Flag):
     REQUIRE_COOKIE_SENTINEL = aenum.auto()
     #: a user will be created if necessary and auth may be necessary
     REQUIRE_USER = aenum.auto()
+    #: only usable on internal test systems
+    INTERNAL_TEST = aenum.auto()
 
 
 def _init():

@@ -282,7 +282,7 @@ class Request(sirepo.request.Base):
         """
         import sirepo.importer
         # special http_request parsing here
-        data = sirepo.importer.do_form(flask.request.form)
+        data = sirepo.importer.do_form(flask.request.form, self)
         m = simulation_db.get_schema(data.simulationType).appModes.default
         return http_reply.gen_redirect_for_local_route(
             data.simulationType,
@@ -329,11 +329,11 @@ class Request(sirepo.request.Base):
                 return _save_new_and_reply(req, data)
     
             if pkio.has_file_extension(req.filename, 'json'):
-                data = sirepo.importer.read_json(req.file_stream.read(), req.type)
+                data = sirepo.importer.read_json(req.file_stream.read(), self,  req.type)
             #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, 'zip') and req.type != 'rs4pi':
-                data = sirepo.importer.read_zip(req.file_stream.read(), sim_type=req.type)
+                data = sirepo.importer.read_zip(req.file_stream.read(), self, sim_type=req.type)
             else:
                 if not hasattr(req.template, 'import_file'):
                     raise sirepo.util.Error(

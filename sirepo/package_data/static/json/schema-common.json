@@ -107,6 +107,7 @@
         "warp": "/warppba"
     },
     "route": {
+        "adjustSupervisorTime": "/adjust-supervisor-time/?<days>",
         "adjustTime": "/adjust-time/?<days>",
         "admJobs": "/adm-jobs",
         "analysisJob": "/analysis-job",
