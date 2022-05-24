@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
@@ -329,7 +328,7 @@ class Request(sirepo.request.Base):
                 return _save_new_and_reply(req, data)
     
             if pkio.has_file_extension(req.filename, 'json'):
-                data = sirepo.importer.read_json(req.file_stream.read(), self,  req.type)
+                data = sirepo.importer.read_json(req.file_stream.read(), self, req.type)
             #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, 'zip') and req.type != 'rs4pi':

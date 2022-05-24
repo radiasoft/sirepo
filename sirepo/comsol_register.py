@@ -33,10 +33,10 @@ class Request(sirepo.request.Base):
             recipient=cfg.mail_recipient_email,
         subject='Sirepo / COMSOL Registration',
         body=u'''
-        Request for access to Sirepo / COMSOL.
-        
-        Name: {}
-        Email: {}
+Request for access to Sirepo / COMSOL.
+
+Name: {}
+Email: {}
         '''.format(req.name, req.email),
             )
         return http_reply.gen_json_ok()
