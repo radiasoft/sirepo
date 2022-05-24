@@ -37,7 +37,7 @@ Request for access to Sirepo / COMSOL.
 
 Name: {}
 Email: {}
-        '''.format(req.name, req.email),
+'''.format(req.name, req.email),
             )
         return http_reply.gen_json_ok()
 
