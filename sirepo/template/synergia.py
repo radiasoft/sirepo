@@ -174,7 +174,7 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
     if not is_parallel:
         return _parse_synergia_log(run_dir)
     e = None
-    f = run_dir.join('mpi_run.out')
+    f = run_dir.join(template_common.MPI_LOG)
     if f.exists():
         m = re.search(
             r'^Traceback .*?^\w*Error: (.*?)\n',

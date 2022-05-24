@@ -38,6 +38,8 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
+MPI_LOG = 'mpi_run.out'
+
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -517,7 +519,7 @@ def parse_enums(enum_schema):
 
 def parse_mpi_log(run_dir):
     e = None
-    f = run_dir.join('mpi_run.out')
+    f = run_dir.join(MPI_LOG)
     if f.exists():
         m = re.search(
             r'^Traceback .*?^\w*Error: (.*?)\n',
