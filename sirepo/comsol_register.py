@@ -23,8 +23,7 @@ class Request(sirepo.request.Base):
         return http_reply.gen_redirect(
             'https://www.radiasoft.net/services/comsol-certified-consulting/',
         )
-    
-    
+
     @api_perm.allow_visitor
     def api_comsolRegister(self):
         import sirepo.util
@@ -34,13 +33,13 @@ class Request(sirepo.request.Base):
             recipient=cfg.mail_recipient_email,
         subject='Sirepo / COMSOL Registration',
         body=u'''
-Request for access to Sirepo / COMSOL.
-
-Name: {}
-Email: {}
-'''.format(req.name, req.email),
-    )
-    return http_reply.gen_json_ok()
+        Request for access to Sirepo / COMSOL.
+        
+        Name: {}
+        Email: {}
+        '''.format(req.name, req.email),
+            )
+        return http_reply.gen_json_ok()
 
 
 def init_apis(*args, **kwargs):

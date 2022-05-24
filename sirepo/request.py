@@ -24,6 +24,11 @@ class Base:
     def parse_json(self):
         return http_request.parse_json()
 
+    def parse_params(self, **kwargs):
+        return http_request.parse_params(**kwargs)
+
+    def parse_post(self, **kwargs):
+        return http_request.parse_post(**kwargs)
 
 def init(**imports):
     import sirepo.util

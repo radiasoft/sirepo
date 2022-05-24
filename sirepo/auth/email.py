@@ -59,7 +59,7 @@ class Request(sirepo.request.Base):
         """
         if http_request.is_spider():
             sirepo.util.raise_forbidden('robots not allowed')
-        req = http_request.parse_params(type=simulation_type)
+        req = self.parse_params(type=simulation_type)
         with sirepo.util.THREAD_LOCK:
             u = AuthEmailUser.search_by(token=token)
             if u and u.expires >= srtime.utc_now():
@@ -96,7 +96,7 @@ class Request(sirepo.request.Base):
     
         User has sent an email, which needs to be verified.
         """
-        req = http_request.parse_post()
+        req = self.parse_post()
         email = self._parse_email(req.req_data)
         with sirepo.util.THREAD_LOCK:
             u = AuthEmailUser.search_by(unverified_email=email)

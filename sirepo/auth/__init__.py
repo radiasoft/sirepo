@@ -110,7 +110,7 @@ class Request(sirepo.request.Base):
         req = None
         if simulation_type:
             try:
-                req = http_request.parse_params(type=simulation_type)
+                req = self.parse_params(type=simulation_type)
             except AssertionError:
                 pass
         if _is_logged_in():
