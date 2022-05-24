@@ -1667,7 +1667,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.getStatusText = function(name) {
-
         if (self.isRunning(name)) {
             var count = (queueItems[name] && queueItems[name].runStatusCount) || 0;
             var progressText = (appState.models[name] || {}).inProgressText  ||
