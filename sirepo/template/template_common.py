@@ -13,6 +13,7 @@ from sirepo.template import code_variable
 import math
 import os
 import re
+import sirepo.const
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -37,8 +38,6 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 
 #: stderr and stdout
 RUN_LOG = 'run.log'
-
-MPI_LOG = 'mpi_run.out'
 
 _HISTOGRAM_BINS_MAX = 500
 
@@ -519,7 +518,7 @@ def parse_enums(enum_schema):
 
 def parse_mpi_log(run_dir):
     e = None
-    f = run_dir.join(MPI_LOG)
+    f = run_dir.join(sirepo.const.MPI_LOG)
     if f.exists():
         m = re.search(
             r'^Traceback .*?^\w*Error: (.*?)\n',

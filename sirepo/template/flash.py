@@ -20,6 +20,7 @@ import pygments.formatters
 import pygments.lexers
 import re
 import rsflash.plotting.extracts
+import sirepo.const
 import sirepo.sim_data
 import zipfile
 
@@ -122,7 +123,7 @@ def get_data_file(run_dir, model, frame, options):
     if model == 'animation':
         if frame == SCHEMA.constants.flashLogFrameId:
             #TODO(pjm): need constant in sirepo.mpi?
-            n = template_common.MPI_LOG
+            n = sirepo.const.MPI_LOG
     if n:
         #TODO(pjm): client does not know which log files exists
         if not run_dir.join(n).exists():
@@ -147,7 +148,7 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
     if success_exit:
         return None
     e = None
-    f = run_dir.join(template_common.MPI_LOG)
+    f = run_dir.join(sirepo.const.MPI_LOG)
     if f.exists():
         t = pkio.read_text(f)
         for r in (

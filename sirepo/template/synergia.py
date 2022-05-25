@@ -20,6 +20,7 @@ import h5py
 import math
 import py.path
 import re
+import sirepo.const
 import sirepo.sim_data
 import sirepo.util
 import werkzeug
@@ -174,7 +175,7 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
     if not is_parallel:
         return _parse_synergia_log(run_dir)
     e = None
-    f = run_dir.join(template_common.MPI_LOG)
+    f = run_dir.join(sirepo.const.MPI_LOG)
     if f.exists():
         m = re.search(
             r'^Traceback .*?^\w*Error: (.*?)\n',
