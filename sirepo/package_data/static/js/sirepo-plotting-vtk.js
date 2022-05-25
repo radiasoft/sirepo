@@ -2657,6 +2657,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 };
             };
 
+            $scope.setInteractionMode = mode => {
+                $scope.vtkScene.interactionMode = mode;
+                $scope.$emit('vtkScene.interactionMode', mode);
+            };
+
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);
