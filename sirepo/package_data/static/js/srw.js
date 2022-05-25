@@ -853,7 +853,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
+            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Open" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
         `,
         controller: function($scope) {
 
@@ -866,13 +866,14 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
                             data.models.simulation[f] = sim[f];
                         });
-                        openNewSim(data);
 
+                        openNewSim(data);
                         // requestSender.sendRequest(
                         //     'saveSimulationData',
                         //     openNewSim,
                         //     data);
                     },
+                    // openNewSim(data));
                     newSimData(data));
             }
 
@@ -885,7 +886,8 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
 
             function openNewSim(data) {
                 srdbg('data: ', data);
-                return '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
+                var newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
+                window.open(newSimURL, '_blank');
                 // requestSender.newLocalWindow(
                 //     'beamline', {
                 //         simulationId: data.models.simulation.simulationId,
