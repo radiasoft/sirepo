@@ -160,6 +160,16 @@ class VTKScene {
         this.renderer.addActor(actor);
     }
 
+    addSnapshotCanvas(snapshotCanvas) {
+        this.snapshotCanvas = snapshotCanvas;
+    }
+
+    refreshCanvas() {
+        if (this.snapshotCanvas) {
+            this.snapshotCanvas.copyCanvas(null, true);
+        }
+    }
+
     /**
      * Gets an icon based on the view direction ("into/out of the screen")
      * @returns {string}
@@ -310,6 +320,9 @@ class VTKScene {
         this.refreshMarker();
         this.fsRenderer.getInteractor().unbindEvents();
         this.fsRenderer.delete();
+        if (this.snapshotCanvas) {
+            this.snapshotCanvas.destroy();
+        }
     }
 }
 
@@ -2524,7 +2537,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $document, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkToPNG, vtkUtils, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -2551,14 +2564,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.selection = null;
 
-            let canvas3d = null;
             let didPan = false;
             let hasBodyEvt = false;
             let hdlrs = {};
             let isDragging = false;
             let isPointerUp = true;
-            let snapshotCanvas = null;
-            let snapshotCtx = null;
 
             const resize = utilities.debounce(refresh, 250);
 
@@ -2636,13 +2646,9 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         }
                     };
                 });
-
-                canvas3d = $($element).find('canvas')[0];
-
-                // this canvas is used to store snapshots of the 3d canvas
-                snapshotCanvas = document.createElement('canvas');
-                snapshotCtx = snapshotCanvas.getContext('2d');
-                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+                $scope.vtkScene.addSnapshotCanvas(
+                    vtkToPNG.pngCanvas($scope.reportId, $scope.vtkScene.fsRenderer, $element)
+                );
                 $scope.$emit('vtk-init', $scope.vtkScene);
             };
 
@@ -2661,28 +2667,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $element.off();
                 $($window).off('resize', resize);
                 $scope.vtkScene.teardown();
-                plotToPNG.removeCanvas($scope.reportId);
             });
-
-            function cacheCanvas() {
-                if (! snapshotCtx) {
-                    return;
-                }
-                const w = parseInt(canvas3d.getAttribute('width'));
-                const h = parseInt(canvas3d.getAttribute('height'));
-                snapshotCanvas.width = w;
-                snapshotCanvas.height = h;
-                // this call makes sure the buffer is fresh (it appears)
-                $scope.vtkScene.fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
-            }
 
             function refresh(doCacheCanvas) {
                 if ($scope.axisObj) {
                     $scope.$broadcast('axes.refresh');
                 }
                 if (doCacheCanvas) {
-                    cacheCanvas();
+                    $scope.vtkScene.refreshCanvas();
                 }
             }
 

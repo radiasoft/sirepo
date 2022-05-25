@@ -2131,21 +2131,21 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return '';
             };
             $scope.downloadImage = function(height) {
-                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
-                if(plotToPNG.hasCanvas($scope.reportId)) {
+                const fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
+                if(plotToPNG.hasCanvas($scope.reportId) || vtkElement()) {
                     plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
                     return;
                 }
-                var plot3dCanvas = $scope.panel.find('canvas')[0];
-                var svg = $($scope.panel).find('svg.sr-plot')[0];
-                if (! svg || $(svg).is(':hidden')) {
+                const plot3dCanvas = $scope.panel.find('canvas')[0];
+                const plot = $($scope.panel).find('svg.sr-plot')[0] || vtkElement();
+                if (! plot || $(plot).is(':hidden')) {
                     return;
                 }
-                plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
+                plotToPNG.downloadPNG(plot, height, plot3dCanvas, fileName);
             };
 
             $scope.hasData = function() {
-                if (! $($scope.panel).find('svg.sr-plot')[0]) {
+                if (! $($scope.panel).find('svg.sr-plot')[0] && ! vtkElement()) {
                     return;
                 }
                 if (appState.isLoaded()) {
@@ -2173,6 +2173,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             }
+
+            function vtkElement() {
+                return $($scope.panel).find('div[data-vtk-display]')[0];
+            }
+
             $scope.toggleFullScreen = function() {
                 if(panelState.isHidden($scope.modelKey)) {
                     return;

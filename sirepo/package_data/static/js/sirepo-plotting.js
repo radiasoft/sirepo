@@ -3909,12 +3909,12 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
         var canvas = document.createElement('canvas');
         var res = {
-            copyCanvas: function(event, doTransverse) {
+            copyCanvas: function(event, doTraverse) {
                 panelState.waitForUI(function() {
                     var canvas3d = $(panel).find('canvas')[0];
                     canvas.width = parseInt(canvas3d.getAttribute('width'));
                     canvas.height = parseInt(canvas3d.getAttribute('height'));
-                    if (doTransverse) {
+                    if (doTraverse) {
                         vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                     }
                     else {
