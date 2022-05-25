@@ -422,6 +422,7 @@ SIREPO.app.directive('confirmationModal', function() {
         controller: function($scope, $element, $rootScope) {
             $scope.formCtl = null;
             $scope.clicked = function() {
+                srdbg('okClicked: ', $scope.okClicked());
                 if ($scope.okClicked() !== false) {
                     $('#' + $scope.id).modal('hide');
                 }

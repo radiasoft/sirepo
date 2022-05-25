@@ -858,6 +858,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         controller: function($scope) {
 
             function createNewSim(data) {
+                srdbg('data in createNewSim()', data);
                 requestSender.sendRequest(
                     'newSimulation',
                     function(shadowData) {
@@ -865,10 +866,12 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
                             data.models.simulation[f] = sim[f];
                         });
-                        requestSender.sendRequest(
-                            'saveSimulationData',
-                            openNewSim,
-                            data);
+                        openNewSim(data);
+
+                        // requestSender.sendRequest(
+                        //     'saveSimulationData',
+                        //     openNewSim,
+                        //     data);
                     },
                     newSimData(data));
             }
@@ -876,19 +879,23 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             function newSimData(data) {
                 var res = appState.clone(data.models.simulation);
                 res.simulationType = data.simulationType;
+                srdbg('res:', res);
                 return res;
             }
 
             function openNewSim(data) {
-                requestSender.newLocalWindow(
-                    'beamline', {
-                        simulationId: data.models.simulation.simulationId,
-                    }, data.simulationType);
+                srdbg('data: ', data);
+                return '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
+                // requestSender.newLocalWindow(
+                //     'beamline', {
+                //         simulationId: data.models.simulation.simulationId,
+                //     }, data.simulationType);
             }
 
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
+                srdbg('appState.models', appState.models);
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
             };
         },
