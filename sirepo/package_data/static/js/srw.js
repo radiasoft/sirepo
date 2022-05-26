@@ -887,7 +887,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             }
 
             function genSimURL(data) {
-                $scope.newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
+                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
 
             $scope.openShadowSimulation = function() {
