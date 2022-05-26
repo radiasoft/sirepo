@@ -2563,7 +2563,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.axisObj = null;
             $scope.defaultColor = "#ff0000";
             $scope.mode = null;
-            $scope.modelKey = 'magnetDisplay'
+            $scope.modelKey = 'magnetDisplay';
 
             $scope.isViewTypeFields = function () {
                 return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;

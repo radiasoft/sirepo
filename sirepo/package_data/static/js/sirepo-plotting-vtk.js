@@ -216,6 +216,7 @@ class VTKScene {
      */
     render() {
         this.renderWindow.render();
+        this.refreshCanvas();
     }
 
     /**
@@ -2211,7 +2212,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             width: '<',
         },
         template: `
-            <svg data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
+            <svg class="sr-vtk-axes" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
             <g class="vtk-axes">
                 <g data-ng-repeat="dim in geometry.basis">
                     <g class="{{ dim }} axis"></g>
@@ -2266,6 +2267,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             });
 
             var axisCfg = axisCfgDefault;
+            let cacheCanvas = null;
 
             var d3self = select();
             var lastSize = [1, 1];
@@ -2474,6 +2476,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     axes[dim].svgAxis.tickSize(0);
                 }
                 rebuildAxes();
+                cacheCanvas = document.createElement('canvas');
             }
 
             function rebuildAxes() {

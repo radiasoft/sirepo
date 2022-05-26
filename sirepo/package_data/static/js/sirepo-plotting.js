@@ -3906,12 +3906,28 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 
 //TODO(pjm): share with warpvnd
 SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
+
+    /**
+     * Cleans out interpolated attributes
+     * @param element
+     */
+    function cleanElement(element) {
+        for (let i = 0; i < element.attributes.length; ++i) {
+            const a = element.attributes[i];
+            if (a.value.match(/{{.*}}/)) {
+                element.removeAttribute(a.name);
+            }
+        }
+    }
+
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
-        var canvas = document.createElement('canvas');
-        var res = {
+        const canvas = document.createElement('canvas');
+        const res = {
             copyCanvas: function(event, doTraverse) {
                 panelState.waitForUI(function() {
-                    var canvas3d = $(panel).find('canvas')[0];
+                    const canvas3d = $(panel).find('canvas')[0];
+                    const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0].cloneNode(true);
+                    cleanElement(axesCanvas);
                     canvas.width = parseInt(canvas3d.getAttribute('width'));
                     canvas.height = parseInt(canvas3d.getAttribute('height'));
                     if (doTraverse) {
@@ -3921,6 +3937,9 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
                         vtkRenderer.getRenderWindow().render();
                     }
                     canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
+                    if (axesCanvas) {
+                        canvas.getContext('2d').drawSvg(axesCanvas.outerHTML, 0, 0, canvas.width, canvas.height);
+                    }
                 });
             },
             destroy: function() {
