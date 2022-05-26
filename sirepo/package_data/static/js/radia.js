@@ -2778,7 +2778,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     acfg[dim].min = bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                    acfg[dim].showCentral = dim === appState.models.simulation.beamAxis;
+                    acfg[dim].showCentral = true;
                 });
                 $scope.axisCfg = acfg;
 

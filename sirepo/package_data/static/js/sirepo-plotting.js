@@ -3908,15 +3908,24 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
 
     /**
-     * Cleans out interpolated attributes
+     * Cleans out interpolated and other undesirable attributes and elements.
+     * This is not complete because angular can hide some things in weird ways
      * @param element
      */
     function cleanElement(element) {
-        for (let i = 0; i < element.attributes.length; ++i) {
+        // if this element has opacity 0 remove it entirely
+        if (parseFloat($(element).css('opacity')) === 0) {
+            element.remove();
+            return;
+        }
+        for (let i = element.attributes.length - 1; i >= 0; --i) {
             const a = element.attributes[i];
             if (a.value.match(/{{.*}}/)) {
                 element.removeAttribute(a.name);
             }
+        }
+        for (let i = element.children.length - 1; i >= 0 ; --i) {
+            cleanElement(element.children[i]);
         }
     }
 

@@ -294,13 +294,16 @@ class VTKScene {
 
     /**
      * Refreshes the visibility of the orientation marker, if one exists
+     * @param doRender - if true, perform a render
      */
-    refreshMarker() {
+    refreshMarker(doRender=true) {
         if (! this.hasMarker()) {
             return;
         }
         this.marker.setEnabled(this.isMarkerEnabled);
-        this.render();
+        if (doRender) {
+            this.render();
+        }
     }
 
     /**
@@ -318,7 +321,7 @@ class VTKScene {
      */
     teardown() {
         this.isMarkerEnabled = false;
-        this.refreshMarker();
+        this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();
         this.fsRenderer.delete();
         if (this.snapshotCanvas) {
@@ -866,10 +869,19 @@ class ViewPortBox extends ViewPortObject {
 
     /**
      * Gets the lines through the center of the object for each dimension
-     * @returns {{}} - mapping of dimension to the edges, e.g. {x: LineSegment1, ...}
+     * @returns {{}} - mapping of dimension to the lines, e.g. {x: LineSegment1, ...}
      */
     centerLines() {
-        const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
+        return this.coordLines(this.worldCenter().coords());
+    }
+
+    /**
+     * Gets coordinate axis lines through the given point
+     * @param {[number]} origin
+     * @returns {{}} - mapping of dimension to the lines, e.g. {x: LineSegment1, ...}
+     */
+    coordLines(origin=[0, 0, 0]) {
+        const ctr = new SIREPO.GEOMETRY.Matrix(origin);
         const cls = {};
         const sz = this.worldSize();
         const tx = new SIREPO.GEOMETRY.Transform(new SIREPO.GEOMETRY.Matrix(
@@ -887,6 +899,14 @@ class ViewPortBox extends ViewPortObject {
             );
         }
         return cls;
+    }
+
+    /**
+     * Gets the lines through the world origin for each dimension
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: LineSegment1, ...}
+     */
+    originLines() {
+        return this.coordLines();
     }
 
     /**
@@ -2221,7 +2241,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     <text class="{{ dim }} axis-end high"></text>
                 </g>
                 <g data-ng-repeat="dim in geometry.basis">
-                    <g class="{{ dim }}-axis-central" data-ng-show="axisCfg[dim].showCentral">
+                    <g class="{{ dim }}-axis-central" data-ng-if="axisCfg[dim].showCentral">
                         <line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
                     </g>
                 </g>
@@ -2312,7 +2332,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         externalEdges, screenRect, dim, false
                     );
                     const cli = screenRect.boundaryIntersectionsWithSeg(
-                        $scope.boundObj.centerLines()[dim]
+                        $scope.boundObj.originLines()[dim]
                     );
                     if (cli && cli.length === 2) {
                         $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
