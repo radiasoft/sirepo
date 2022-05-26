@@ -2542,6 +2542,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
 
+            $scope.GeometryUtils = SIREPO.GEOMETRY.GeometryUtils;
             $scope.VTKUtils = VTKUtils;
             $scope.markerState = {
                 enabled: true,
@@ -2620,6 +2621,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
 
                 $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
+
+                let para = true;
+                $scope.setViewStyle = () => {
+                    $scope.vtkScene.cam.setParallelProjection(para);
+                    para = ! para;
+                    $scope.vtkScene.render();
+                };
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
