@@ -853,10 +853,16 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Open" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
+            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="" data-ok-clicked="">
+              Create a new Shadow simulation using this simulation\'s beamline?
+              <div>
+                <button data-ng-if="!displayLink()" data-ng-click="openShadowSimulation()" class="btn btn-default sr-button-size">Link</button>
+                <a data-ng-if="displayLink()" href="{{ newSimURL }}" target="_blank"> Link </a>
+              </div>
+            </div>
         `,
         controller: function($scope) {
-
+            $scope.newSimURL = false
             function createNewSim(data) {
                 srdbg('data in createNewSim()', data);
                 requestSender.sendRequest(
@@ -867,10 +873,11 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                             data.models.simulation[f] = sim[f];
                         });
                         data.version = shadowData.version;
-                        requestSender.sendRequest(
-                            'saveSimulationData',
-                            openNewSim,
-                            data);
+                        openNewSim(data);
+                        // requestSender.sendRequest(
+                        //     'saveSimulationData',
+                        //     openNewSim,
+                        //     data);
                     },
                     newSimData(data));
             }
@@ -884,12 +891,12 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
 
             function openNewSim(data) {
                 srdbg('data: ', data);
-                var newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
+                $scope.newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
                 // window.open(newSimURL, '_blank');
-                requestSender.newLocalWindow(
-                    'beamline', {
-                        simulationId: data.models.simulation.simulationId,
-                    }, data.simulationType);
+                // requestSender.newLocalWindow(
+                //     'beamline', {
+                //         simulationId: data.models.simulation.simulationId,
+                //     }, data.simulationType);
             }
 
             $scope.openShadowSimulation = function() {
@@ -898,6 +905,12 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 srdbg('appState.models', appState.models);
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
             };
+            $scope.displayLink = function() {
+                if ($scope.newSimURL) {
+                    return true;
+                }
+                return false;
+            }
         },
     };
 });
