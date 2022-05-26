@@ -34,12 +34,12 @@ def session():
     i = flask.request.headers.get('X-Sirepo-UserAgentId')
     pkdp('X-Sirepo-UserAgentId={}', i)
     pkdp('path={}', flask.request.path)
+    #TODO(rorour) make self.request_method which uses flask request method
     if flask.request.method != 'POST' or 'static' in flask.request.path or 'schema' in flask.request.path:
         yield
         return
     if not i:
-        #TODO(rorour) make is_logged_in public
-        l = sirepo.auth._is_logged_in()
+        l = sirepo.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
         #TODO(rorour) get 8 from const
         i = sirepo.util.random_base62(8)

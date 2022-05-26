@@ -84,7 +84,7 @@ class Request(sirepo.request.Base):
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
-        if not _is_logged_in():
+        if not is_logged_in():
             raise util.SRException(LOGIN_ROUTE_NAME, None)
         complete_registration(
             _parse_display_name(http_request.parse_json().get('displayName')),
@@ -113,7 +113,7 @@ class Request(sirepo.request.Base):
                 req = http_request.parse_params(type=simulation_type)
             except AssertionError:
                 pass
-        if _is_logged_in():
+        if is_logged_in():
             events.emit('auth_logout', PKDict(uid=_get_user()))
             cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
             _set_log_user()
@@ -173,6 +173,18 @@ def init_apis(*args, **kwargs):
         f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
 
 
+def is_logged_in(state=None):
+    """Logged in is either needing to complete registration or done
+
+    Args:
+        state (str): logged in state [None: from cookie]
+    Returns:
+        bool: is in one of the logged in states
+    """
+    s = state or cookie.unchecked_get_value(_COOKIE_STATE)
+    return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
+
+
 def is_premium_user():
     return check_user_has_role(
         logged_in_user(),
@@ -190,7 +202,7 @@ def logged_in_user(check_path=True):
         str: uid of authenticated user
     """
     u = _get_user()
-    if not _is_logged_in():
+    if not is_logged_in():
         raise util.SRException(
             'login',
             None,
@@ -226,7 +238,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         # if previously cookied as a guest, move the non-example simulations into uid below
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
         if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
-            guest_uid = _get_user() if _is_logged_in() else None
+            guest_uid = _get_user() if is_logged_in() else None
     if uid:
         _login_user(module, uid)
     if module.AUTH_METHOD in cfg.deprecated_methods:
@@ -243,7 +255,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         # Not allowed to go to guest from other methods, because there's
         # no authentication for guest.
         # Or, this is just a new user, and we'll create one.
-        uid = _get_user() if _is_logged_in() else None
+        uid = _get_user() if is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
         if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
             # switch this method to this uid (even for methods)
@@ -345,7 +357,7 @@ def require_auth_basic():
 def require_sim_type(sim_type):
     if sim_type not in sirepo.feature_config.auth_controlled_sim_types():
         return
-    if not _is_logged_in():
+    if not is_logged_in():
         # If a user is not logged in, we allow any sim_type, because
         # the GUI has to be able to get access to certain APIs before
         # logging in.
@@ -482,7 +494,7 @@ def user_if_logged_in(method):
     Args:
         method (str): method must be logged in as
     """
-    if not _is_logged_in():
+    if not is_logged_in():
         return None
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
     if m != method:
@@ -594,7 +606,7 @@ def _auth_state():
         displayName=None,
         guestIsOnlyMethod=not non_guest_methods,
         isGuestUser=False,
-        isLoggedIn=_is_logged_in(s),
+        isLoggedIn=is_logged_in(s),
         isLoginExpired=False,
         jobRunModeMap=sirepo.simulation_db.JOB_RUN_MODE_MAP,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
@@ -683,18 +695,6 @@ def _init_logged_in_user():
 
     cfg.deprecated_methods = set()
     cfg.methods = set((METHOD_GUEST,))
-
-
-def _is_logged_in(state=None):
-    """Logged in is either needing to complete registration or done
-
-    Args:
-        state (str): logged in state [None: from cookie]
-    Returns:
-        bool: is in one of the logged in states
-    """
-    s = state or cookie.unchecked_get_value(_COOKIE_STATE)
-    return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
 
 def _login_user(module, uid):
