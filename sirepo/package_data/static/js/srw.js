@@ -875,7 +875,10 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                             data.models.simulation[f] = sim[f];
                         });
                         data.version = shadowData.version;
-                        genSimURL(data);
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            genSimURL,
+                            data);
                     },
                     newSimData(data));
             }
