@@ -14,7 +14,6 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import events
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import job
 from sirepo import util
 import contextlib

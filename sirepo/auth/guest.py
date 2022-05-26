@@ -11,7 +11,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
-from sirepo import http_request
 from sirepo import srtime
 import datetime
 import sirepo.request

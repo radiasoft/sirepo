@@ -6,7 +6,8 @@ u"""authentication and authorization routines
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from pykern import pkcollections, pkconfig
+from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import auth

@@ -16,7 +16,6 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import feature_config
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import uri_router
 from sirepo import util
 import authlib.integrations.requests_client
