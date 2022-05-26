@@ -875,7 +875,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                             data.models.simulation[f] = sim[f];
                         });
                         data.version = shadowData.version;
-                        openNewSim(data);
+                        genSimURL(data);
                     },
                     newSimData(data));
             }
@@ -886,7 +886,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 return res;
             }
 
-            function openNewSim(data) {
+            function genSimURL(data) {
                 $scope.newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
             }
 
