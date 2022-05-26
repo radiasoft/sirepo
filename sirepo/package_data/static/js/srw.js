@@ -866,14 +866,12 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
                             data.models.simulation[f] = sim[f];
                         });
-
-                        openNewSim(data);
-                        // requestSender.sendRequest(
-                        //     'saveSimulationData',
-                        //     openNewSim,
-                        //     data);
+                        data.version = shadowData.version;
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            openNewSim,
+                            data);
                     },
-                    // openNewSim(data));
                     newSimData(data));
             }
 
@@ -887,11 +885,11 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             function openNewSim(data) {
                 srdbg('data: ', data);
                 var newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
-                window.open(newSimURL, '_blank');
-                // requestSender.newLocalWindow(
-                //     'beamline', {
-                //         simulationId: data.models.simulation.simulationId,
-                //     }, data.simulationType);
+                // window.open(newSimURL, '_blank');
+                requestSender.newLocalWindow(
+                    'beamline', {
+                        simulationId: data.models.simulation.simulationId,
+                    }, data.simulationType);
             }
 
             $scope.openShadowSimulation = function() {
