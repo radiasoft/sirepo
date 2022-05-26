@@ -3096,6 +3096,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         );
                     }
 
+                    $scope.radiaObject = selectedObj;
                     vtkSelection = {
                         info: selectedObj ? selectedObj.name : '--',
                         model: selectedObj ? {
