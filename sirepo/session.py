@@ -17,6 +17,8 @@ import sqlalchemy
 
 _SRCONTEXT_KEY = __name__
 
+_USER_AGENT_ID_LEN = 8
+
 _Session = None
 
 
@@ -41,8 +43,7 @@ def session():
     if not i:
         l = sirepo.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
-        #TODO(rorour) get 8 from const
-        i = sirepo.util.random_base62(8)
+        i = sirepo.util.random_base62(_USER_AGENT_ID_LEN)
         _Session(
             user_agent_id=i,
             login_state=l,
