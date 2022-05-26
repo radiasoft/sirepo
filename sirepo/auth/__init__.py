@@ -14,7 +14,6 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import events
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import job
 from sirepo import util
 import contextlib
@@ -87,7 +86,7 @@ class Request(sirepo.request.Base):
         if not _is_logged_in():
             raise util.SRException(LOGIN_ROUTE_NAME, None)
         complete_registration(
-            _parse_display_name(http_request.parse_json().get('displayName')),
+            _parse_display_name(self.parse_json().get('displayName')),
         )
         return http_reply.gen_json_ok()
     
@@ -110,7 +109,7 @@ class Request(sirepo.request.Base):
         req = None
         if simulation_type:
             try:
-                req = http_request.parse_params(type=simulation_type)
+                req = self.parse_params(type=simulation_type)
             except AssertionError:
                 pass
         if _is_logged_in():

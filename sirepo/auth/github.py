@@ -16,7 +16,6 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import feature_config
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import uri_router
 from sirepo import util
 import authlib.integrations.requests_client
@@ -79,7 +78,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_cookie_sentinel
     def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
-        req = http_request.parse_params(type=simulation_type)
+        req = self.parse_params(type=simulation_type)
         s = util.random_base62()
         cookie.set_value(_COOKIE_NONCE, s)
         cookie.set_value(_COOKIE_SIM_TYPE, req.type)

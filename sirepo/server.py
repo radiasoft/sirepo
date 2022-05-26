@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
@@ -56,7 +55,7 @@ _app = None
 class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_copyNonSessionSimulation(self):
-        req = http_request.parse_post(id=True, template=True)
+        req = self.parse_post(id=True, template=True)
         src = pkio.py_path(
             simulation_db.find_global_simulation(
                 req.type,
@@ -87,7 +86,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
-        req = http_request.parse_post(id=True, folder=True, name=True, template=True)
+        req = self.parse_post(id=True, folder=True, name=True, template=True)
         d = simulation_db.read_simulation_json(req.type, sid=req.id)
         d.models.simulation.pkupdate(
             name=req.name,
@@ -100,7 +99,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_deleteFile(self):
-        req = http_request.parse_post(filename=True, file_type=True)
+        req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
         if len(e):
             return http_reply.gen_json({
@@ -116,7 +115,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_deleteSimulation(self):
-        req = http_request.parse_post(id=True)
+        req = self.parse_post(id=True)
         simulation_db.delete_simulation(req.type, req.id)
         return http_reply.gen_json_ok()
     
@@ -124,7 +123,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_downloadFile(self, simulation_type, simulation_id, filename):
         #TODO(pjm): simulation_id is an unused argument
-        req = http_request.parse_params(type=simulation_type, filename=filename)
+        req = self.parse_params(type=simulation_type, filename=filename)
         n = req.sim_data.lib_file_name_without_type(req.filename)
         p = req.sim_data.lib_file_abspath(req.filename)
         try:
@@ -142,7 +141,7 @@ class Request(sirepo.request.Base):
             pkdlog(
                 '{}: javascript error: {}',
                 ip,
-                simulation_db.generate_json(http_request.parse_json(), pretty=True),
+                simulation_db.generate_json(self.parse_json(), pretty=True),
             )
         except Exception as e:
             pkdlog(
@@ -156,7 +155,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_exportArchive(self, simulation_type, simulation_id, filename):
-        req = http_request.parse_params(
+        req = self.parse_params(
             template=True,
             filename=filename,
             id=simulation_id,
@@ -184,7 +183,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_listFiles(self, simulation_type, simulation_id, file_type):
         #TODO(pjm): simulation_id is an unused argument
-        req = http_request.parse_params(type=simulation_type, file_type=file_type)
+        req = self.parse_params(type=simulation_type, file_type=file_type)
         return http_reply.gen_json(
             req.sim_data.lib_file_names_for_type(req.file_type),
         )
@@ -192,7 +191,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.allow_visitor
     def api_findByName(self, simulation_type, application_mode, simulation_name):
-        req = http_request.parse_params(type=simulation_type)
+        req = self.parse_params(type=simulation_type)
         return http_reply.gen_redirect_for_local_route(
             req.type,
             'findByName',
@@ -205,7 +204,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_findByNameWithAuth(self, simulation_type, application_mode, simulation_name):
-        req = http_request.parse_params(type=simulation_type)
+        req = self.parse_params(type=simulation_type)
         #TODO(pjm): need to unquote when redirecting from saved cookie redirect?
         if hasattr(urllib, 'unquote'):
             # python2
@@ -260,7 +259,7 @@ class Request(sirepo.request.Base):
         Returns:
             response: may be a file or JSON
         """
-        req = http_request.parse_post(template=True, filename=filename or None)
+        req = self.parse_post(template=True, filename=filename or None)
         with simulation_db.tmp_dir() as d:
             assert 'method' in req.req_data
             res = req.template.get_application_data(req.req_data, tmp_dir=d)
@@ -282,7 +281,7 @@ class Request(sirepo.request.Base):
         """
         import sirepo.importer
         # special http_request parsing here
-        data = sirepo.importer.do_form(flask.request.form)
+        data = sirepo.importer.do_form(flask.request.form, self)
         m = simulation_db.get_schema(data.simulationType).appModes.default
         return http_reply.gen_redirect_for_local_route(
             data.simulationType,
@@ -313,7 +312,7 @@ class Request(sirepo.request.Base):
                     'no file in request={}',
                     flask.request.data,
                 )
-            req = http_request.parse_params(
+            req = self.parse_params(
                 filename=f.filename,
                 folder=flask.request.form.get('folder'),
                 id=flask.request.form.get('simulationId'),
@@ -329,11 +328,11 @@ class Request(sirepo.request.Base):
                 return _save_new_and_reply(req, data)
     
             if pkio.has_file_extension(req.filename, 'json'):
-                data = sirepo.importer.read_json(req.file_stream.read(), req.type)
+                data = sirepo.importer.read_json(req.file_stream.read(), self, req.type)
             #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, 'zip') and req.type != 'rs4pi':
-                data = sirepo.importer.read_zip(req.file_stream.read(), sim_type=req.type)
+                data = sirepo.importer.read_zip(req.file_stream.read(), self, sim_type=req.type)
             else:
                 if not hasattr(req.template, 'import_file'):
                     raise sirepo.util.Error(
@@ -396,7 +395,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_newSimulation(self):
-        req = http_request.parse_post(template=True, folder=True, name=True)
+        req = self.parse_post(template=True, folder=True, name=True)
         d = simulation_db.default_data(req.type)
         d.models.simulation.pkupdate(
             {k: v for k, v in req.req_data.items() if k in d.models.simulation}
@@ -412,7 +411,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_pythonSource(self, simulation_type, simulation_id, model=None, title=None):
-        req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
+        req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         m = model and req.sim_data.parse_model(model)
         d = simulation_db.read_simulation_json(req.type, sid=req.id)
         suffix = simulation_db.get_schema(simulation_type).constants.simulationSourceExtension
@@ -459,7 +458,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_saveSimulationData(self):
         # do not fixup_old_data yet
-        req = http_request.parse_post(id=True, template=True)
+        req = self.parse_post(id=True, template=True)
         d = req.req_data
         simulation_db.validate_serial(d)
         return _simulation_data_reply(
@@ -477,7 +476,7 @@ class Request(sirepo.request.Base):
         """
         #TODO(pjm): pretty is an unused argument
         #TODO(robnagler) need real type transforms for inputs
-        req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
+        req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
         try:
             d = simulation_db.read_simulation_json(req.type, sid=req.id)
             return _simulation_data_reply(req, d)
@@ -489,7 +488,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.require_user
     def api_listSimulations(self):
-        req = http_request.parse_post()
+        req = self.parse_post()
         return http_reply.gen_json(
             sorted(
                 simulation_db.iterate_simulation_datafiles(
@@ -507,7 +506,7 @@ class Request(sirepo.request.Base):
     def api_simulationSchema(self):
         return http_reply.gen_json(
             simulation_db.get_schema(
-                http_request.parse_params(
+                self.parse_params(
                     type=flask.request.form['simulationType'],
                 ).type,
             ),
@@ -564,7 +563,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_updateFolder(self):
         #TODO(robnagler) Folder should have a serial, or should it be on data
-        req = http_request.parse_post()
+        req = self.parse_post()
         o = srschema.parse_folder(req.req_data['oldName'])
         if o == '/':
             raise sirepo.util.Error(
@@ -595,7 +594,7 @@ class Request(sirepo.request.Base):
     @api_perm.require_user
     def api_uploadFile(self, simulation_type, simulation_id, file_type):
         f = flask.request.files['file']
-        req = http_request.parse_params(
+        req = self.parse_params(
             file_type=file_type,
             filename=f.filename,
             id=simulation_id,
