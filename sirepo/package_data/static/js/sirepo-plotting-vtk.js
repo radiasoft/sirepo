@@ -2728,6 +2728,64 @@ SIREPO.app.service('vtkService', function(appState, panelState, requestSender, f
     return svc;
 });
 
+//TODO(pjm): share with warpvnd
+SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
+
+    /**
+     * Cleans out interpolated and other undesirable attributes and elements.
+     * This is not complete because angular can hide some things in weird ways
+     * @param element
+     */
+    function cleanElement(element) {
+        // if this element has opacity 0 remove it entirely
+        if (parseFloat($(element).css('opacity')) === 0) {
+            element.remove();
+            return;
+        }
+        for (let i = element.attributes.length - 1; i >= 0; --i) {
+            const a = element.attributes[i];
+            if (a.value.match(/{{.*}}/)) {
+                element.removeAttribute(a.name);
+            }
+        }
+        for (let i = element.children.length - 1; i >= 0 ; --i) {
+            cleanElement(element.children[i]);
+        }
+    }
+
+    this.pngCanvas = function(reportId, vtkRenderer, panel) {
+        const canvas = document.createElement('canvas');
+        const res = {
+            copyCanvas: function(event, doTraverse) {
+                panelState.waitForUI(function() {
+                    const canvas3d = $(panel).find('canvas')[0];
+                    const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0].cloneNode(true);
+                    cleanElement(axesCanvas);
+                    canvas.width = parseInt(canvas3d.getAttribute('width'));
+                    canvas.height = parseInt(canvas3d.getAttribute('height'));
+                    if (doTraverse) {
+                        vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
+                    }
+                    else {
+                        vtkRenderer.getRenderWindow().render();
+                    }
+                    canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
+                    if (axesCanvas) {
+                        canvas.getContext('2d').drawSvg(axesCanvas.outerHTML, 0, 0, canvas.width, canvas.height);
+                    }
+                });
+            },
+            destroy: function() {
+                panel.off();
+                plotToPNG.removeCanvas(reportId);
+            },
+        };
+        plotToPNG.addCanvas(canvas, reportId);
+        return res;
+    };
+});
+
+
 SIREPO.app.factory('vtkUtils', function() {
 
     var self = {};
