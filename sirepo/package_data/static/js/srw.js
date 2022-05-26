@@ -853,18 +853,20 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="" data-ok-clicked="">
-              Create a new Shadow simulation using this simulation\'s beamline?
-              <div>
-                <button data-ng-if="!displayLink()" data-ng-click="openShadowSimulation()" class="btn btn-default sr-button-size">Link</button>
-                <a data-ng-if="displayLink()" href="{{ newSimURL }}" target="_blank"> Link </a>
+            <div data-confirmation-modal="" data-is-required="false" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="" data-ok-clicked="">
+              <div data-ng-if="displayLink()">
+                <a href="{{ newSimURL }}" target="_blank"> New Shadow Sim Link </a>
+                <br/>
+                <br/>
               </div>
+              <button data-ng-if="!displayLink()" data-ng-click="openShadowSimulation()" class="btn btn-default sr-button-size"> Create Shadow Sim With This Beamline </button>
+              <button data-dismiss="modal" class="btn btn-default sr-button-size"> Cancel </button>
             </div>
         `,
         controller: function($scope) {
-            $scope.newSimURL = false
+            $scope.newSimURL = false;
+
             function createNewSim(data) {
-                srdbg('data in createNewSim()', data);
                 requestSender.sendRequest(
                     'newSimulation',
                     function(shadowData) {
@@ -874,10 +876,6 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         });
                         data.version = shadowData.version;
                         openNewSim(data);
-                        // requestSender.sendRequest(
-                        //     'saveSimulationData',
-                        //     openNewSim,
-                        //     data);
                     },
                     newSimData(data));
             }
@@ -885,32 +883,25 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             function newSimData(data) {
                 var res = appState.clone(data.models.simulation);
                 res.simulationType = data.simulationType;
-                srdbg('res:', res);
                 return res;
             }
 
             function openNewSim(data) {
-                srdbg('data: ', data);
                 $scope.newSimURL = '/'+data.simulationType+'#/beamline/'+data.models.simulation.simulationId;
-                // window.open(newSimURL, '_blank');
-                // requestSender.newLocalWindow(
-                //     'beamline', {
-                //         simulationId: data.models.simulation.simulationId,
-                //     }, data.simulationType);
             }
 
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
-                srdbg('appState.models', appState.models);
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
             };
+
             $scope.displayLink = function() {
                 if ($scope.newSimURL) {
                     return true;
                 }
                 return false;
-            }
+            };
         },
     };
 });
