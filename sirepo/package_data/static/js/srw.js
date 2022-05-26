@@ -853,7 +853,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-is-required="false" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="" data-ok-clicked="">
+            <div data-confirmation-modal="" data-is-required="false" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="">
               <div data-ng-if="displayLink()">
                 <a href="{{ newSimURL }}" target="_blank"> New Shadow Sim Link </a>
                 <br/>
