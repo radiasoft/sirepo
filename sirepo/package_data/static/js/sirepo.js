@@ -1280,9 +1280,19 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         let isHidden = panelState.isHidden(modelName);
         let frameRequestTime = new Date().getTime();
         let waitTimeHasElapsed = false;
-        let delay = isPlaying && ! isHidden
-                    ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
-                    : 0;
+        const millisecondsUntilNextFrameRequest = () => {
+            if (isPlaying && ! isHidden) {
+                const secondsToMilliseconds = 1000;
+                const defaultFramesPerSecond = 2;
+                return secondsToMilliseconds / (
+                    parseInt(appState.models[modelName].framesPerSecond
+                        || defaultFramesPerSecond
+                    )
+                );
+            }
+            return 0;
+        };
+        let delay = millisecondsUntilNextFrameRequest();
         const requestFunction = function() {
             setTimeout(() => {
                 if (! waitTimeHasElapsed) {
