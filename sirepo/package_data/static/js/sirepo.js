@@ -2208,13 +2208,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         u = u.split("?");
         
         if(u.length > 1 && u[1].trim()) {
-            u[1] = u[1].split("&");
-            var q = {}
-            for(var k of u[1]) {
-                k = k.split("=");
-                q[k[0]] = k[1];
-            }
-            $location.path(u[0]).search(q);
+            $location.path(u[0]).search(u[1]);
         } else {
             $location.path(u[0]);
         }
