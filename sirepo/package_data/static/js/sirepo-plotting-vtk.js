@@ -2622,12 +2622,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
                 $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
 
-                let para = true;
-                $scope.setViewStyle = () => {
-                    $scope.vtkScene.cam.setParallelProjection(para);
-                    para = ! para;
-                    $scope.vtkScene.render();
-                };
+                $scope.ortho = false;
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
@@ -2663,6 +2658,12 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         height: Math.max(0, $(vtkCanvasHolder).height()),
                     }
                 };
+            };
+
+            $scope.toggleOrtho = () => {
+                $scope.ortho = ! $scope.ortho;
+                $scope.vtkScene.cam.setParallelProjection($scope.ortho);
+                $scope.vtkScene.render();
             };
 
             $scope.$on('$destroy', function() {
