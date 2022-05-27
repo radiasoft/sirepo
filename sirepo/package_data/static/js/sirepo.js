@@ -1281,17 +1281,17 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         let frameRequestTime = new Date().getTime();
         let waitTimeHasElapsed = false;
         const millisecondsUntilNextFrameRequest = () => {
-            if (isPlaying && ! isHidden) {
-                const secondsToMilliseconds = 1000;
-                const defaultFramesPerSecond = 2;
-                return secondsToMilliseconds / (
-                    parseInt(appState.models[modelName].framesPerSecond
-                        || defaultFramesPerSecond
-                    )
-                );
+            if (! isPlaying || isHidden) {
+                return 0;
             }
-            return 0;
-        };
+            const milliseconds = 1000;
+            var x = appState.models[modelName].framesPerSecond;
+            if (! x) {
+                return  .5 * milliseconds;
+            }
+            return  milliseconds / parseInt(x);
+        }
+
         let delay = millisecondsUntilNextFrameRequest();
         const requestFunction = function() {
             setTimeout(() => {
