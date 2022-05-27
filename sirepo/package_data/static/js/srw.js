@@ -856,7 +856,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-cancel-clicked="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
               <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
-                Shadow simulation created: <a href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
               </div>
             </div>
         `,
@@ -889,6 +889,10 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
             function genSimURL(data) {
                 $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
+
+            $scope.closeModal = function() {
+                $('#sr-shadow-dialog').modal('hide');
+            };
 
             $scope.resetURL = function() {
                 $scope.newSimURL = false;
