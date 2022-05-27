@@ -390,6 +390,7 @@ SIREPO.app.directive('confirmationModal', function() {
             okText: '@',
             okClicked: '&',
             cancelText: '@',
+            cancelClicked: '&',
             isRequired: '@',
         },
         template: `
@@ -397,7 +398,7 @@ SIREPO.app.directive('confirmationModal', function() {
               <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <button data-ng-if="! isRequired" type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <button data-ng-if="! isRequired" type="button" class="close" data-ng-click="cancelClicked()" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">{{ title }}</span>
                   </div>
                   <div class="modal-body">
@@ -410,7 +411,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       <div class="row">
                         <div class="col-sm-6 pull-right" style="margin-top: 1em">
                           <button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default sr-button-size">{{ okText }}</button>
-                           <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || \'Cancel\' }}</button>
+                           <button data-ng-if="! isRequired" data-dismiss="modal" data-ng-click="cancelClicked()" class="btn btn-default sr-button-size">{{ cancelText || \'Cancel\' }}</button>
                         </div>
                       </div>
                     </div>

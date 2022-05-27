@@ -853,14 +853,11 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-is-required="false" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="">
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-cancel-clicked="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
+              <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
-                <a href="{{ newSimURL }}" target="_blank"> New Shadow Sim Link </a>
-                <br/>
-                <br/>
+                Shadow simulation created: <a href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
               </div>
-              <button data-ng-if="!displayLink()" data-ng-click="openShadowSimulation()" class="btn btn-default sr-button-size"> Create Shadow Sim With This Beamline </button>
-              <button data-dismiss="modal" class="btn btn-default sr-button-size"> Cancel </button>
             </div>
         `,
         controller: function($scope) {
@@ -893,10 +890,15 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
 
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
+
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
+                return false;
             };
 
             $scope.displayLink = function() {
