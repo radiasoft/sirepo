@@ -1277,15 +1277,15 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         function onError() {
             panelState.reportNotGenerated(modelName);
         }
-        var isHidden = panelState.isHidden(modelName);
-        var frameRequestTime = new Date().getTime();
-        var waitedTimeElapsed = false;
-        var delay = isPlaying && ! isHidden
+        let isHidden = panelState.isHidden(modelName);
+        let frameRequestTime = new Date().getTime();
+        let waitTimeHasElapsed = false;
+        let delay = isPlaying && ! isHidden
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
             : 0;
-        var requestFunction = function() {
+        const requestFunction = function() {
             setTimeout(() => {
-                if (!waitedTimeElapsed) {
+                if (! waitTimeHasElapsed) {
                     panelState.setLoading(modelName, true);
                 }
             }, 1000);
@@ -1295,14 +1295,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
-                    waitedTimeElapsed = true;
+                    waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
                         return;
                     }
-                    var endTime = new Date().getTime();
-                    var elapsed = endTime - frameRequestTime;
+                    let endTime = new Date().getTime();
+                    let elapsed = endTime - frameRequestTime;
                     if (elapsed < delay) {
                         $interval(
                             function() {
