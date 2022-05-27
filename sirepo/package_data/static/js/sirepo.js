@@ -1281,8 +1281,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         let frameRequestTime = new Date().getTime();
         let waitTimeHasElapsed = false;
         let delay = isPlaying && ! isHidden
-            ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
-            : 0;
+                    ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
+                    : 0;
         const requestFunction = function() {
             setTimeout(() => {
                 if (! waitTimeHasElapsed) {
@@ -1675,8 +1675,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             return progressText + ' ' + new Array(count % 3 + 2).join('.');
         }
         return appState.isAnimationModelName(name)
-        ? 'Requesting Data'
-        : 'Waiting';
+            ? 'Requesting Data'
+            : 'Waiting';
     };
 
     self.isActiveField = function(model, field) {
