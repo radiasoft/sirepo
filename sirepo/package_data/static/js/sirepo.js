@@ -1287,10 +1287,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             const milliseconds = 1000;
             var x = appState.models[modelName].framesPerSecond;
             if (! x) {
-                return  .5 * milliseconds;
+                return  0.5 * milliseconds;
             }
             return  milliseconds / parseInt(x);
-        }
+        };
 
         let delay = millisecondsUntilNextFrameRequest();
         const requestFunction = function() {
