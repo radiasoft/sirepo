@@ -2550,6 +2550,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText = {};
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.ortho = false;
             $scope.selection = null;
 
             let canvas3d = null;
@@ -2621,8 +2622,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
 
                 $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
-
-                $scope.ortho = false;
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
