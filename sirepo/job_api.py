@@ -38,21 +38,16 @@ class Request(sirepo.request.Base):
             _request_content=PKDict(days=days),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
         )
-
-    @api_perm.require_user
+    @api_perm.require_adm
     def api_admJobs(self):
-        sirepo.auth.check_user_has_role(
-            sirepo.auth.logged_in_user(),
-            sirepo.auth_role.ROLE_ADM,
-        )
         return self._request(
             _request_content=PKDict(**self.parse_post()),
         )
-    
+
     @api_perm.require_user
     def api_analysisJob(self):
         return self._request()
-    
+
     @api_perm.require_user
     def api_downloadDataFile(self, simulation_type, simulation_id, model, frame, suffix=None):
     #TODO(robnagler) validate suffix and frame
@@ -96,7 +91,7 @@ class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_jobSupervisorPing(self):
         import requests.exceptions
-    
+
         e = None
         try:
             k = sirepo.job.unique_key()
@@ -163,8 +158,7 @@ class Request(sirepo.request.Base):
         if r.isParallel:
             r.isPremiumUser = sirepo.auth.is_premium_user()
         return self._request(_request_content=r)
-    
-    
+
     @api_perm.require_user
     def api_runStatus(self):
         return self._request()
@@ -190,12 +184,11 @@ class Request(sirepo.request.Base):
             ),
             self,
         )
-    
+
     @api_perm.require_user
     def api_statefulCompute(self):
         return self._request_compute()
-    
-    
+
     @api_perm.require_user
     def api_statelessCompute(self):
         return self._request_compute()

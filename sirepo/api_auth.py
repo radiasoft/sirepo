@@ -30,11 +30,20 @@ def assert_api_def(func):
 def check_api_call(func):
     expect = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
-    if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
+    if expect in (
+            a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER,
+            a.REQUIRE_COOKIE_SENTINEL,
+            a.REQUIRE_USER,
+            a.REQUIRE_ADM,
+    ):
         if not cookie.has_sentinel():
             raise sirepo.util.SRException('missingCookies', None)
         if expect == a.REQUIRE_USER:
             auth.require_user()
+        elif expect == a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER:
+            auth.require_email_user()
+        elif expect == a.REQUIRE_ADM:
+            auth.require_adm()
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect == a.INTERNAL_TEST:
@@ -48,3 +57,8 @@ def check_api_call(func):
         auth.require_auth_basic()
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
+
+
+def is_sim_type_required_for_api(func):
+    e = getattr(func, api_perm.ATTR)
+    return e not in api_perm.SIM_TYPELESS_PERMS
