@@ -142,6 +142,7 @@ def init(app, simulation_db):
     for n in _api_modules():
         register_api_module(importlib.import_module('sirepo.' + n))
     _register_sim_api_modules()
+    _register_sim_oauth_modules(feature_config.cfg().proprietary_oauth_sim_types)
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
 
     sirepo.http_request.init(
@@ -352,15 +353,33 @@ def _init_uris(app, simulation_db, sim_types):
 
 
 def _register_sim_api_modules():
+    _register_sim_modules_from_package('sim_api')
+
+
+def _register_sim_modules_from_package(package, valid_sim_types=None):
     for _, n, ispkg in pkgutil.iter_modules(
-            [os.path.dirname(sirepo.sim_api.__file__)],
+            [os.path.dirname(importlib.import_module(f'sirepo.{package}').__file__)],
     ):
         if ispkg:
             continue
-        if not sirepo.template.is_sim_type(n):
+        if not sirepo.template.is_sim_type(n) or \
+                (valid_sim_types is not None and n not in valid_sim_types):
             pkdc(f'not adding apis for unknown sim_type={n}')
             continue
-        register_api_module(importlib.import_module(f'sirepo.sim_api.{n}'))
+        register_api_module(importlib.import_module(f'sirepo.{package}.{n}'))
+
+def _register_sim_oauth_modules(oauth_sim_types):
+    _register_sim_modules_from_package('sim_oauth', oauth_sim_types)
+
+
+@contextlib.contextmanager
+def _set_api_attr(route_or_name):
+    a = sirepo.srcontext.get(_API_ATTR)
+    try:
+        sirepo.srcontext.set(_API_ATTR, route_or_name)
+        yield
+    finally:
+        sirepo.srcontext.set(_API_ATTR, a)
 
 
 @contextlib.contextmanager

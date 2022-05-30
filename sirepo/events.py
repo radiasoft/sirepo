@@ -25,7 +25,7 @@ The events:
 """
 # Limit imports
 from pykern.pkcollections import PKDict
-import aenum
+from pykern.pkdebug import pkdp
 
 #: Map of events to handlers. Note: this is the list of all possible events.
 _MAP = PKDict(

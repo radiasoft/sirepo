@@ -15,6 +15,7 @@ import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.oauth
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.uri
@@ -73,9 +74,8 @@ class API(sirepo.api.Base):
         if not d.doMigration:
             create_user()
             return self.reply_redirect('jupyterHub')
-        return self.call_api(
-            'authGithubLogin',
-            kwargs=PKDict(simulation_type='jupyterhublogin'),
+        raise sirepo.util.Redirect(
+            sirepo.oauth.create_authorize_redirect('jupyterhublogin', github_auth=True)
         )
 
     @sirepo.api_perm.require_user
@@ -187,14 +187,14 @@ def init_apis(*args, **kwargs):
     )
     pkio.mkdir_parent(cfg.user_db_root_d)
     sirepo.auth_db.init_model(_init_model)
-    sirepo.events.register(PKDict(
-        auth_logout=_event_auth_logout,
-        end_api_call=_event_end_api_call,
-    ))
     if cfg.rs_jupyter_migrate:
         sirepo.events.register(PKDict(
             github_authorized=_event_github_authorized,
         ))
+    sirepo.events.register(PKDict(
+        auth_logout=_event_auth_logout,
+        end_api_call=_event_end_api_call,
+    ))
 
 
 def _event_auth_logout(kwargs):

@@ -56,7 +56,10 @@ def auth_controlled_sim_types():
       frozenset:  enabled sim types that require role
     """
     return frozenset(
-        cfg().proprietary_sim_types.union(cfg().moderated_sim_types),
+        cfg().moderated_sim_types.union(
+            cfg().proprietary_sim_types,
+            cfg().proprietary_oauth_sim_types,
+        ),
     )
 
 
@@ -87,6 +90,17 @@ def for_sim_type(sim_type):
     ).pkupdate(c.schema_common)
 
 
+def proprietary_sim_types():
+    """All sim types that have proprietary information and require granted access to use
+
+    Granted access can be through oauth or manual management of the role
+
+    Returns:
+      frozenset:  enabled sim types that require role
+    """
+    return frozenset(
+        cfg().proprietary_sim_types.union(cfg().proprietary_oauth_sim_types),
+    )
 def _data_dir(value):
     import sirepo.srdb
     return sirepo.srdb.root().join(value)
@@ -119,7 +133,16 @@ def _init():
             tuple,
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
-        proprietary_sim_types=(set(), set, 'codes that require authorization'),
+        proprietary_sim_types=(
+            set(),
+            set,
+            'codes that contain proprietary information and authorization to use is granted manually',
+        ),
+        proprietary_oauth_sim_types=(
+            set(),
+            set,
+            'codes that contain proprietary information and authorization to use is granted through oauth',
+        ),
         raydata=dict(
             data_dir=(None, _data_dir, 'abspath of dir to store raydata analysis output'),
         ),
@@ -142,7 +165,11 @@ def _init():
             PROD_FOSS_CODES if pkconfig.channel_in('prod') else FOSS_CODES
         )
     )
-    s.update(_cfg.proprietary_sim_types, _cfg.moderated_sim_types)
+    s.update(
+        _cfg.moderated_sim_types,
+        _cfg.proprietary_sim_types,
+        _cfg.proprietary_oauth_sim_types,
+    )
     for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])

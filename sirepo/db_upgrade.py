@@ -171,7 +171,15 @@ def _20210301_migrate_role_jupyterhub():
        r in sirepo.auth_db.UserRole.all_roles():
         return
     for u in sirepo.auth_db.all_uids():
-        sirepo.auth_db.UserRole.add_roles(u, [r])
+        sirepo.auth_db.UserRole.add_roles(u, r)
+
+
+def _20220609_add_expiration_column_to_user_role_t():
+    sirepo.auth_db.UserDbBase.add_column_if_not_exists(
+        sirepo.auth_db.UserRole,
+        'expiration',
+        'datetime',
+    )
 
 
 @contextlib.contextmanager

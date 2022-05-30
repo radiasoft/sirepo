@@ -90,8 +90,8 @@ class API(sirepo.api.Base):
             _parse_display_name(self.parse_json().get('displayName')),
         )
         return self.reply_ok()
-    
-    
+
+
     @api_perm.allow_visitor
     def api_authState(self):
         return self.reply_static_jinja(
@@ -99,12 +99,12 @@ class API(sirepo.api.Base):
             'js',
             PKDict(auth_state=_auth_state()),
         )
-    
-    
+
+
     @api_perm.allow_visitor
     def api_authLogout(self, simulation_type=None):
         """Set the current user as logged out.
-    
+
         Redirects to root simulation page.
         """
         req = None
@@ -356,17 +356,27 @@ def require_sim_type(sim_type):
         require_email_user()
         raise sirepo.util.SRException('moderationRequest', None)
 
+    def _oauth_redirect(role):
+        import sirepo.oauth
+        raise util.Redirect(
+            sirepo.oauth.create_authorize_redirect(
+                sirepo.auth_role.sim_type(role),
+            )
+        )
+
     if sim_type not in sirepo.feature_config.auth_controlled_sim_types():
         return
     u = _assert_login()
     if u is None:
         return
     r = sirepo.auth_role.for_sim_type(sim_type)
-    if auth_db.UserRole.has_role(u, r):
+    if auth_db.UserRole.has_role(u, r) and not auth_db.UserRole.is_expired(u, r):
         return
-    if r not in sirepo.auth_role.for_moderated_sim_types():
-        sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={sim_type}')
-    _moderate(u, r)
+    elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
+        _oauth_redirect(r)
+    if r in sirepo.auth_role.for_moderated_sim_types():
+        _moderate(u, r)
+    sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={sim_type}')
 
 
 def require_email_user():

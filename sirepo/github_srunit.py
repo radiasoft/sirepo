@@ -12,7 +12,7 @@ class MockOAuthClient(object):
 
     def __init__(self, monkeypatch, user_name='joeblow'):
         from pykern import pkcollections
-        from sirepo.auth import github
+        import sirepo.oauth
 
         self.values = PKDict({
             'access_token': 'xyzzy',
@@ -22,7 +22,7 @@ class MockOAuthClient(object):
                 login=user_name,
             ),
         })
-        monkeypatch.setattr(github, '_client', self)
+        monkeypatch.setattr(sirepo.oauth, '_client', self)
 
     def __call__(self, *args, **kwargs):
         return self
@@ -35,9 +35,10 @@ class MockOAuthClient(object):
         from sirepo.auth import github
         import sirepo.http_reply
 
-        self.values.redirect_uri = kwargs['redirect_uri']
-        self.values.state = kwargs['state']
-        return f'https://github.com/login/oauth/oauthorize?response_type=code&client_id={github.cfg.key}&redirect_uri={github.cfg.callback_uri}&state={self.values.state}', self.values.state
+        r = github.cfg.callback_uri
+        self.values.redirect_uri = r
+        self.values.state = 'xxyyzz'
+        return f'https://github.com/login/oauth/oauthorize?response_type=code&client_id={github.cfg.key}&redirect_uri={r}&state={self.values.state}', self.values.state
 
     def fetch_token(self, *args, **kwargs):
         return 'a_mock_token'
