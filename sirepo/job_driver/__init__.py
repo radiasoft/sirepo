@@ -36,7 +36,11 @@ _DEFAULT_MODULE = 'local'
 
 cfg = None
 
-OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_IO, job.OP_RUN))
+OPS_THAT_NEED_CPU_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN,))
+
+OPS_THAT_NEED_OTHER_SLOTS = frozenset((job.OP_IO,))
+
+OPS_THAT_NEED_SLOTS = frozenset().union(*[OPS_THAT_NEED_CPU_SLOTS, OPS_THAT_NEED_OTHER_SLOTS,])
 
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 
@@ -352,7 +356,7 @@ class DriverBase(PKDict):
             return
         await op.op_slot.alloc('Waiting for another simulation to complete')
         await op.run_dir_slot.alloc('Waiting for access to simulation state')
-        if n in (job.OP_IO,):
+        if n in OPS_THAT_NEED_OTHER_SLOTS:
             return
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
