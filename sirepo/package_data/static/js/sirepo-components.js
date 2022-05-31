@@ -4049,21 +4049,9 @@ SIREPO.app.service('plotToPNG', function($http) {
     var canvases = {};
 
     function downloadPlot(svg, outputHeight, plot3dCanvas, fileName) {
-        //var scale = height / parseInt(svg.getAttribute('height'));
-        /*var canvas = document.createElement('canvas');
-        
-        var scale = height / parseInt(svg.getAttribute('height'));
-        canvas.width = parseInt(svg.getAttribute('width')) * scale;
-        canvas.height = parseInt(svg.getAttribute('height')) * scale;
-        context.fillStyle = '#FFFFFF';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = '#000000';*/
         var scale = outputHeight / parseInt(svg.getAttribute('height'));
         var height = parseInt(svg.getAttribute('height')) * scale;
         var width = parseInt(svg.getAttribute('width')) * scale;
-        //d3.select(svg).classed('sr-download-png', true);
-        //var svgString = svg.parentNode.innerHTML;
-        //context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
         html2canvas(svg.parentElement, {
             height,
             width,
@@ -4071,22 +4059,27 @@ SIREPO.app.service('plotToPNG', function($http) {
             backgroundColor: '#ffffff',
             removeContainer: false
         }).then(canvas => {
-            var context = canvas.getContext("2d");
+            var destCanvas = document.createElement('canvas');
+            destCanvas.height = width;
+            destCanvas.width = height;
+            var context = destCanvas.getContext("2d");
+            context.fillStyle = '#FFFFFF';
+            context.fillRect(0, 0, destCanvas.width, destCanvas.height);
+            context.fillStyle = '#000000';
+            context.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, width * scale, height * scale);
             if (plot3dCanvas) {
-                var sourceX = plot3dCanvas.offsetLeft;
-                var sourceY = plot3dCanvas.offsetTop;
-                var destX = sourceX * scale;
-                var destY = sourceY * scale;
-                var sourceWidth = plot3dCanvas.offsetWidth;
-                var sourceHeight = plot3dCanvas.offsetHeight;
-                var destWidth = sourceWidth * scale;
-                var destHeight = sourceHeight * scale;
+                var destX = plot3dCanvas.offsetLeft * scale;
+                var destY = plot3dCanvas.offsetTop * scale;
+                var destWidth = plot3dCanvas.offsetWidth * scale;
+                var destHeight = plot3dCanvas.offsetHeight * scale;
                 context.drawImage(
                     plot3dCanvas,
-                    0,0
+                    destX, destY,
+                    destWidth,
+                    destHeight
                 );
             }
-            canvas.toBlob(function(blob) {
+            destCanvas.toBlob(function(blob) {
                 saveAs(blob, fileName);
             });
         })
