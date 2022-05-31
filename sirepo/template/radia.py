@@ -165,7 +165,7 @@ def extract_report_data(run_dir, sim_in):
         )
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     assert model in _REPORTS, 'model={}: unknown report'.format(model)
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     sim = data.models.simulation
@@ -174,8 +174,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     beam_axis = _AXIS_ROTATIONS[sim.beamAxis]
     rpt = data.models[model]
     default_sfx = SCHEMA.constants.dataDownloads._default[0].suffix
-    sfx = (options.suffix or default_sfx) if options and 'suffix' in options else \
-        default_sfx
+    sfx = options.suffix or default_sfx
     f = f'{model}.{sfx}'
     if model == 'kickMapReport':
         km_dict = _read_or_generate_kick_map(_get_g_id(), data.models.kickMapReport)
@@ -247,7 +246,7 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data, is_parallel, run_dir=run_dir),
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(mpi=True)
+        return template_common.get_exec_parameters_cmd(is_mpi=True)
     return None
 
 
@@ -1360,6 +1359,11 @@ def _update_geom_objects(objects):
 
 
 def _update_geom_obj(o, **kwargs):
+    # uses the "shoelace formula" to calculate the area of a polygon
+    def _poly_area(pts):
+        t = numpy.array(pts).T
+        return 0.5 * numpy.abs(numpy.dot(t[0], numpy.roll(t[1], 1)) - numpy.dot(t[1], numpy.roll(t[0], 1)))
+
     d = PKDict(
         center=[0.0, 0.0, 0.0],
         magnetization=[0.0, 0.0, 0.0],
@@ -1385,6 +1389,8 @@ def _update_geom_obj(o, **kwargs):
             o,
             _get_stemmed_info(o)
         )
+    if 'points' in o:
+        o.area = _poly_area(o.points)
     return o
 
 

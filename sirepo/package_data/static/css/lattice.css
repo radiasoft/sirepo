@@ -115,3 +115,17 @@ div.sr-lattice-icon-disabled span {
   position: relative;
   overflow: hidden;
 }
+
+.sr-sticky-heading {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding: 0.5em;
+  z-index: 1000;
+}
+
+.sr-search-target {
+  background-color: yellow;
+  color: black;
+  border: solid 1px lightgray;
+}

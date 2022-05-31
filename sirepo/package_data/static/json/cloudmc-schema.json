@@ -1,0 +1,77 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "geometry"
+        }
+    },
+    "constants": {
+        "volumeProperties": ["color", "opacity"]
+    },
+    "enum": {
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "css": [
+                "vtk.css"
+            ],
+            "js": [
+                "cloudmc.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
+            ]
+        }
+    },
+    "localRoutes": {
+        "geometry": {
+            "route": "/geometry/:simulationId",
+            "config": {
+                "controller": "GeometryController as geometry",
+                "templateUrl": "/static/html/cloudmc-geometry.html"
+            }
+        }
+    },
+    "model": {
+        "dagmcAnimation": {},
+        "geometryInput": {
+            "dagmcFile": ["DAGMC File", "InputFile", ""]
+        },
+        "geometry3DReport": {
+            "bgColor": ["Background Color", "Color", [1, 0.97647, 0.929412]],
+            "opacity": ["Global Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "showEdges": ["Show Edges", "Boolean", "0"]
+        },
+        "openmcAnimation": {},
+        "volumes": {}
+    },
+    "view": {
+        "geometryInput": {
+            "title": "Geometry Input",
+            "basic": [
+                "dagmcFile"
+            ],
+            "advanced": []
+        },
+        "geometry3DReport": {
+            "title": "DAGMC Geometry",
+            "basic": [
+                "opacity",
+                "bgColor",
+                "showEdges"
+            ],
+            "advanced": [
+                "opacity",
+                "bgColor",
+                "showEdges"
+            ]
+        },
+        "volumes": {
+            "title": "Volumes",
+            "advanced": []
+        }
+    }
+}

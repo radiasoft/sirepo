@@ -124,6 +124,9 @@ angular.element(document).ready(function() {
             simulationType: SIREPO.APP_NAME,
         },
         success: function(result) {
+            if (result.state === 'srException') {
+                throw new Error(`srException in /simulation-schema result=${JSON.stringify(result)}`);
+            }
             SIREPO.APP_SCHEMA = result;
             $.when.apply($, loadDynamicModules()).then(
                 function() {
@@ -1010,11 +1013,20 @@ SIREPO.app.factory('simulationDataCache', function ($rootScope){
 });
 
 SIREPO.app.factory('stringsService', function() {
+    const strings = SIREPO.APP_SCHEMA.strings;
+
+    function typeOfSimulation(modelName) {
+        let s;
+        if (modelName && strings[modelName] && strings[modelName].typeOfSimulation) {
+            s = strings[modelName].typeOfSimulation;
+        }
+        return ucfirst(s || strings.typeOfSimulation);
+    }
+
     function ucfirst(str) {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    const strings = SIREPO.APP_SCHEMA.strings;
     return {
         formatKey: (name) => {
             return ucfirst(strings[name]);
@@ -1037,12 +1049,13 @@ SIREPO.app.factory('stringsService', function() {
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
-        startButtonLabel: () => {
-            return `Start New ${ucfirst(strings.typeOfSimulation)}`;
+        startButtonLabel: (modelName) => {
+            return `Start New ${typeOfSimulation(modelName)}`;
         },
-        stopButtonLabel: () => {
-            return `End ${ucfirst(strings.typeOfSimulation)}`;
+        stopButtonLabel: (modelName) => {
+            return `End ${typeOfSimulation(modelName)}`;
         },
+        typeOfSimulation: typeOfSimulation,
         ucfirst: ucfirst
     };
 });

@@ -29,6 +29,7 @@ def create_user(email, display_name):
     import pyisemail
     import sirepo.auth
     import sirepo.auth_db
+    import sirepo.auth_role
     import sirepo.server
     import sirepo.sim_api.jupyterhublogin
     import sirepo.template
@@ -73,4 +74,5 @@ def create_user(email, display_name):
         )
         with sirepo.auth.set_user_outside_of_http_request(u):
             n = sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
-            return PKDict(email=email, jupyterhub_user_name=n)
+        sirepo.auth_db.UserRole.add_roles(u, [sirepo.auth_role.for_sim_type('jupyterhublogin')])
+        return PKDict(email=email, jupyterhub_user_name=n)

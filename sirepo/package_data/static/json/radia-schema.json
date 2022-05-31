@@ -107,24 +107,6 @@
             "item": ":"
         },
         "objectScale": 0.001,
-        "parameterizedMagnets": {
-            "dipole": {
-                "objectNames": {
-                    "coil": "Coil",
-                    "magnet": "Magnet",
-                    "pole": "Pole"
-                }
-            },
-            "undulatorHybrid": {
-                "objectNames": {
-                    "halfPole": "Half Pole",
-                    "magnetBlock": "Magnet Block",
-                    "pole": "Pole",
-                    "magPole": "Magnet-Pole Pair",
-                    "endBlock": "End Block"
-                }
-            }
-        },
         "pathPtsFileType": "path-pts",
         "radiaDmpFileType": "radia-dmp",
         "rawExamples": ["Dipole", "Wiggler"],
@@ -470,7 +452,7 @@
                 "size": "1.0, 1.0, 105.0",
                 "type": "racetrack"
             }],
-            "magnet": ["Magnet", "model.geomObject", {
+            "magnet": ["Magnet", "model.cee", {
                 "armHeight": 50.0,
                 "armPosition": "1",
                 "center": "0.0, 71.25, 0.0",
@@ -486,7 +468,7 @@
                 "stemWidth": 62.5,
                 "stemPosition": "1"
             }],
-            "pole": ["Pole", "model.geomObject", {
+            "pole": ["Pole", "model.cuboid", {
                 "bevels": [
                     {
                         "amountHoriz": 8,
@@ -589,7 +571,7 @@
             "magnetCoilGroup": ["_", "model.geomGroup", {
                 "name": "magnet + coil"
             }],
-            "poleWidth": ["Width", "Float", 50.0, "", 0.0],
+            "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 50.0, "", 0.0],
             "gap": ["Gap", "Float", 10.0, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleC"]
         },
@@ -611,7 +593,7 @@
                 "size": "10.05, 10.05, 1.0",
                 "type": "racetrack"
             }],
-            "magnet": ["Magnet", "model.geomObject", {
+            "magnet": ["Magnet", "model.ell", {
                 "armHeight": 1.5,
                 "armPosition": "0",
                 "center": "0.0, 4.0, 3.75",
@@ -628,7 +610,7 @@
                 "stemPosition": "1",
                 "transforms": []
             }],
-            "pole": ["Pole", "model.geomObject", {
+            "pole": ["Pole", "model.cuboid", {
                 "bevels": [
                     {
                         "amountHoriz": 0.5,
@@ -663,8 +645,8 @@
                 "transforms": [],
                 "type": "cuboid"
             }],
-            "magnetSize": ["Size [mm]", "FloatStringArray", "10.0, 16.0, 7.5", "", "Length, Width, Height"],
-            "poleWidth": ["Width", "Float", 10.0, "", 0.0],
+            "magnetSize": ["Size [mm]", "FloatStringArray", "10.0, 16.0, 7.5", "", "Length ({{ appState.models.simulation.beamAxis }}), Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 10.0, "", 0.0],
             "gap": ["Gap", "Float", 1.5, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleH"]
         },
@@ -674,11 +656,12 @@
         },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
+            "area": ["_", "Float", 0,0],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
             "points": ["Points", "Points", []],
-            "triangulationLevel": ["Triangulation Level", "Range", 0.5, "", 0.0, 1.0],
+            "triangulationLevel": ["Triangulation Detail", "Range", 0.5, "Governs the max size of triangles used to subdivide the shape, from coarse to fine. Smaller triangles gain accuracy at the expense of longer solve times.", 0.0, 1.0],
             "widthAxis": ["_", "BeamAxis", "x"]
         },
         "freehand": {},
@@ -817,14 +800,14 @@
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
             "center": ["Center [mm]", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "currentDensity": ["Current Density (A/mm)", "Float", -2000.0],
+            "currentDensity": ["Current Density [A/mm]", "Float", -2000.0],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
-            "height": ["Height", "Float", 105.0, "", "Size along axis"],
+            "height": ["Height ({{ appState.models.simulation.heightAxis }}) [mm]", "Float", 105.0, "", "Size along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
-            "radii": ["Radii", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
-            "sides": ["Straight Sides [mm]", "FloatStringArray", "50.0, 62.5", "", "width, length"],
+            "radii": ["Radii [mm]", "FloatStringArray", "5.0, 40.0", "", "Inner, Outer"],
+            "sides": ["Straight Sides [mm]", "FloatStringArray", "50.0, 62.5", "", "Length ({{ appState.models.simulation.beamAxis }}), Width ({{ appState.models.simulation.widthAxis }})"],
             "size": ["_", "FloatStringArray", "1.0, 1.0, 105.0"],
             "type": ["_", "ObjectType", "racetrack"]
         },
@@ -948,8 +931,8 @@
                 "segments": "1, 1, 3",
                 "size": "65.0, 18.0, 45.0"
             }],
-            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width, Height"],
-            "magnetLength": ["Length [mm]", "Float", 18.0],
+            "magnetCrossSection": ["Cross Section [mm]", "FloatStringArray", "65.0, 45.0", "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "bevels": [],
                 "color": "#ff00ff",
@@ -962,8 +945,8 @@
                 "type": "cuboid",
                 "size": "45.0, 5.0, 25.0"
             }],
-            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width, Height"],
-            "poleLength": ["Length [mm]", "Float", 5.0],
+            "poleCrossSection": ["Cross Section [mm]", "FloatStringArray", "45.0, 25.0", "", "Width ({{ appState.models.simulation.widthAxis }}), Height ({{ appState.models.simulation.heightAxis }})"],
+            "poleLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 5.0],
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
             }],
@@ -1270,6 +1253,7 @@
                     "color",
                     "stemmed.extrusionAxis",
                     "extrudedPoly.extrusionAxisSegments",
+                    "extrudedPoly.triangulationLevel",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
                     "stemmed.stemWidth",
@@ -1360,7 +1344,8 @@
                 "dipoleType",
                 "undulatorType",
                 "beamAxis",
-                "heightAxis"
+                "heightAxis",
+                "enableKickMaps"
             ]
         },
         "solverAnimation": {

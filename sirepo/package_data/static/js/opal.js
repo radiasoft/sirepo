@@ -692,11 +692,12 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
         template: `
             <div class="row">
               <div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
-                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj"></div>
+                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-reset-side="y"></div>
               </div>
             </div>`,
         controller: function($scope, $element) {
-            let data, pngCanvas, renderer, renderWindow, vtkAPI;
+            let data, pngCanvas, renderer, vtkScene;
+            const coordMapper = new SIREPO.VTK.CoordMapper();
 
             function createAxes(bounds) {
                 const pb = renderer.computeVisiblePropBounds();
@@ -708,24 +709,11 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                         pb[5] = bounds[0][1];
                     }
                 }
-                const padPct = 0.01;
-                const bndBox = vtkPlotting.coordMapper().buildBox(
-                    [
-                        Math.abs(pb[1] - pb[0]),
-                        Math.abs(pb[3] - pb[2]),
-                        Math.abs(pb[5] - pb[4])
-                    ].map(function (c) {
-                        return (1 + padPct) * c;
-                    }),
-                    [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
-                bndBox.actor.getProperty().setRepresentationToWireframe();
-                renderer.addActor(bndBox.actor);
-
-                $scope.axisObj = vtkPlotting.vpBox(bndBox.source, renderer);
-                $scope.axisObj.initializeWorld({});
-
+                const b = SIREPO.VTK.VTKUtils.buildBoundingBox(pb, 0.01);
+                vtkScene.addActor(b.actor);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(b.source, vtkScene.renderer);
                 $scope.axisCfg = {};
-                geometry.basis.forEach((dim) => {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     const idx = geometry.basis.indexOf(dim);
                     $scope.axisCfg[dim] = {
                         label: dim + ' [m]',
@@ -743,7 +731,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
             }
 
             function buildScene() {
-                removeActors();
+                vtkScene.removeActors();
                 let pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(new window.Float32Array(data.points), 3);
                 pd.getPolys().setData(new window.Uint32Array(data.polys));
@@ -756,13 +744,11 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                     values: colors,
                     dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR,
                 }));
-                let mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                let actor = vtk.Rendering.Core.vtkActor.newInstance();
-                mapper.setInputData(pd);
-                actor.setMapper(mapper);
-                renderer.addActor(actor);
+                const b = coordMapper.buildActorBundle();
+                b.mapper.setInputData(pd);
+                vtkScene.addActor(b.actor);
                 createAxes(data.bounds);
-                vtkAPI.showSide('y');
+                vtkScene.resetView();
                 pngCanvas.copyCanvas();
 
                 if ($scope.axisObj) {
@@ -770,10 +756,6 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                         $scope.$broadcast('axes.refresh');
                     });
                 }
-            }
-
-            function removeActors() {
-                renderer.getActors().forEach(actor => renderer.removeActor(actor));
             }
 
             $scope.destroy = () => {
@@ -784,20 +766,17 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
             $scope.init = $scope.resize = () => {};
 
             $scope.$on('vtk-init', (e, d) => {
-                renderer = d.objects.renderer;
-                renderWindow = d.objects.window;
-                vtkAPI = d.api;
-                vtkAPI.axisDirs.y.camViewUp = [1, 0, 0];
-                vtkAPI.resetSide = 'y';
-                const orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
-                    interactor: renderWindow.getInteractor()
-                });
-                orientationMarker.setViewportCorner(
-                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                vtkScene = d;
+                vtkScene.setCamProperty('y', 'viewUp', [1, 0, 0]);
+                renderer = vtkScene.renderer;
+                vtkScene.setMarker(
+                    SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                        vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                        vtkScene.renderWindow.getInteractor(),
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    )
                 );
-                vtkAPI.setMarker(orientationMarker);
-                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, d.objects.fsRenderer, $element);
+                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, vtkScene.fsRenderer, $element);
                 if (data) {
                     buildScene();
                 }

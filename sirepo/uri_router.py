@@ -4,10 +4,10 @@ u"""Handles dispatching of uris to server.api_* functions
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import contextlib
 import flask
 import importlib
 import inspect
@@ -19,7 +19,9 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.sim_api
+import sirepo.srcontext
 import sirepo.uri
 import sirepo.util
 import werkzeug.exceptions
@@ -27,6 +29,8 @@ import werkzeug.exceptions
 
 #: route for sirepo.srunit
 srunit_uri = None
+
+_API_ATTR = 'sirepo_uri_router_api'
 
 #: prefix for api functions
 _FUNC_PREFIX = 'api_'
@@ -50,13 +54,29 @@ _api_modules = []
 _api_funcs = PKDict()
 
 
-def call_api(func_or_name, kwargs=None, data=None):
-    """Call another API with permission checks.
+def assert_api_name_and_auth(name, allowed):
+    """Check if `name` is executable and in allowed
+
+    Args:
+        name (str): name of the api
+        allowed (tuple): names that are allowed to be called
+    Returns:
+        str: api name
+    """
+    _check_api_call(name)
+    if name not in allowed:
+        raise AssertionError(f'api={name} not in allowed={allowed}')
+
+
+def call_api(route_or_name, kwargs=None, data=None):
+    """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
+
+    Call another API with permission checks.
 
     Note: also calls `save_to_cookie`.
 
     Args:
-        func_or_name (object): api function or name (without `api_` prefix)
+        route_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
         data (dict): will be returned `http_request.parse_json`
     Returns:
@@ -64,45 +84,36 @@ def call_api(func_or_name, kwargs=None, data=None):
     """
     p = None
     s = None
-    try:
-        # must be first so exceptions have access to sim_type
-        if kwargs:
-            # Any (GET) uri will have simulation_type in uri if it is application
-            # specific.
-            s = sirepo.http_request.set_sim_type(kwargs.get('simulation_type'))
-        f = check_api_call(func_or_name)
+    with _set_api_attr(route_or_name):
         try:
-            if data:
-                p = sirepo.http_request.set_post(data)
-            r = flask.make_response(f(**kwargs) if kwargs else f())
+            # must be first so exceptions have access to sim_type
+            if kwargs:
+                # Any (GET) uri will have simulation_type in uri if it is application
+                # specific.
+                s = sirepo.http_request.set_sim_type(kwargs.get('simulation_type'))
+            else:
+                kwargs = PKDict()
+            f = _check_api_call(route_or_name)
+            try:
+                if data:
+                    p = sirepo.http_request.set_post(data)
+                r = flask.make_response(getattr(f.cls(), f.func_name)(**kwargs))
+            finally:
+                if data:
+                    sirepo.http_request.set_post(p)
+        except Exception as e:
+            if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+                pkdc('api={} exception={} stack={}', route_or_name, e, pkdexc())
+            else:
+                pkdlog('api={} exception={} stack={}', route_or_name, e, pkdexc())
+            r = sirepo.http_reply.gen_exception(e)
         finally:
-            if data:
-                sirepo.http_request.set_post(p)
-    except Exception as e:
-        if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-            pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())
-        else:
-            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
-        r = sirepo.http_reply.gen_exception(e)
-    finally:
-        # http_request tries to keep a valid sim_type so
-        # this is ok to call (even if s is None)
-        sirepo.http_request.set_sim_type(s)
-    sirepo.cookie.save_to_cookie(r)
-    sirepo.events.emit('end_api_call', PKDict(resp=r))
-    return r
-
-
-def check_api_call(func_or_name):
-    """Check if API is callable by current user (proper credentials)
-
-    Args:
-        func_or_name (function or str): API to check
-    """
-    f = func_or_name if callable(func_or_name) \
-        else _api_to_route[func_or_name].func
-    sirepo.api_auth.check_api_call(f)
-    return f
+            # http_request tries to keep a valid sim_type so
+            # this is ok to call (even if s is None)
+            sirepo.http_request.set_sim_type(s)
+        sirepo.cookie.save_to_cookie(r)
+        sirepo.events.emit('end_api_call', PKDict(resp=r))
+        return r
 
 
 def init(app, simulation_db):
@@ -114,12 +125,21 @@ def init(app, simulation_db):
     Args:
         app (Flask): flask app
     """
+    def _api_modules():
+        m = (
+            *_REQUIRED_MODULES,
+            *sorted(feature_config.cfg().api_modules),
+        )
+        if feature_config.cfg().moderated_sim_types:
+            return m + ('auth_role_moderation',)
+        return m
+
     if _uri_to_route:
         return
 
     from sirepo import feature_config
 
-    for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
+    for n in _api_modules():
         register_api_module(importlib.import_module('sirepo.' + n))
     _register_sim_api_modules()
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
@@ -136,6 +156,20 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )
+    sirepo.request.init(
+        http_request=sirepo.http_request,
+        uri_router=pkinspect.this_module(),
+    )
+
+
+def is_sim_type_required_for_api():
+    a = sirepo.srcontext.get(_API_ATTR)
+    if not a:
+        return True
+    return sirepo.api_auth.is_sim_type_required_for_api(
+        a.func if isinstance(a, _Route) else _api_to_route[a].func
+    )
+
 
 def register_api_module(module=None):
     """Add caller_module to the list of modules which implements apis.
@@ -147,6 +181,9 @@ def register_api_module(module=None):
     Args:
         module (module): defaults to caller module
     """
+    def _is_api_func(cls, name, obj):
+        return name.startswith(_FUNC_PREFIX) and inspect.isfunction(obj) and name in cls.__dict__
+
     assert not _default_route, \
         '_init_uris already called. All APIs must registered at init'
     m = module or pkinspect.caller_module()
@@ -156,12 +193,18 @@ def register_api_module(module=None):
     _api_modules.append(m)
     if hasattr(m, 'init_apis'):
         m.init_apis()
-    # It's ok if there are no APIs
-    for n, o in inspect.getmembers(m):
-        if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
+    if not hasattr(m, 'Request'):
+        if pkinspect.module_functions('api_', module=m):
+            raise AssertionError(f'module={m.__name__} has old interface')
+        pkdlog('module={} does not have Request class; no apis', m)
+        # some modules (ex: sirepo.auth.basic) don't have any APIs
+        return
+    c = m.Request
+    for n, o in inspect.getmembers(c):
+        if _is_api_func(cls=c, name=n, obj=o):
             assert not n in _api_funcs, \
                 'function is duplicate: func={} module={}'.format(n, m.__name__)
-            _api_funcs[n] = o
+            _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
 def uri_for_api(api_name, params=None, external=True):
@@ -169,12 +212,13 @@ def uri_for_api(api_name, params=None, external=True):
 
     Args:
         api_name (str): full name of api
-        params (str): paramters to pass to uri
-        external (bool): external uri? [True]
-
+        params (PKDict): paramters to pass to uri
+        external (bool): if True, make the uri absolute [True]
     Returns:
         str: formmatted external URI
     """
+    if params is None:
+        params = PKDict()
     r = _api_to_route[api_name]
     res = (flask.url_for('_dispatch_empty', _external=external) + r.base_uri).rstrip('/')
     for p in r.params:
@@ -187,7 +231,44 @@ def uri_for_api(api_name, params=None, external=True):
                 continue
         assert p.is_optional, \
             'missing parameter={} for api={}'.format(p.name, api_name)
-    return res
+    return res or '/'
+
+
+class _Route(PKDict):
+    """ Holds all route information for an API.
+
+    Keys:
+        base_uri (str): first part of URI (ex: 'adjust-time')
+        cls (class): The class in the API's module that contains the API function.
+        decl_uri (str): full URI that's in schema (ex: '/adjust-time/?<days>')
+        func (function): object that has api_perm attributes. should not be called as a function
+        func_name (str): method name in cls that implements the route (ex: 'api_admJobs').
+        name (str): API route name
+        params (list): parameters for URI
+    """
+    pass
+
+class _URIParams(PKDict):
+    """ Holds parameters for URI.
+
+    Keys:
+        is_optional (bool): is parameter optional
+        is_path_info (bool): is parameter path info
+        name (str): parameter name
+    """
+    pass
+
+
+def _check_api_call(route_or_name):
+    """Check if API is callable by current user (proper credentials)
+
+    Args:
+        route_or_name (function or str): API to check
+    """
+    f = route_or_name if isinstance(route_or_name, _Route) \
+        else _api_to_route[route_or_name]
+    sirepo.api_auth.check_api_call(f.func)
+    return f
 
 
 def _dispatch(path):
@@ -204,7 +285,7 @@ def _dispatch(path):
     with sirepo.auth.process_request():
         try:
             if path is None:
-                return call_api(_default_route.func, PKDict(path_info=None))
+                return call_api(_default_route, PKDict(path_info=None))
             # werkzeug doesn't convert '+' to ' '
             parts = re.sub(r'\+', ' ', path).split('/')
             try:
@@ -226,7 +307,7 @@ def _dispatch(path):
                 kwargs[p.name] = parts.pop(0)
             if parts:
                 raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
-            return call_api(route.func, kwargs)
+            return call_api(route, kwargs)
         except Exception as e:
             pkdlog('exception={} path={} stack={}', e, path, pkdexc())
             raise
@@ -245,9 +326,9 @@ def _init_uris(app, simulation_db, sim_types):
     _uri_to_route = PKDict()
     _api_to_route = PKDict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
-        r = _split_uri(v)
+        r = _Route(_split_uri(v))
         try:
-            r.func = _api_funcs[_FUNC_PREFIX + k]
+            r.update(_api_funcs[_FUNC_PREFIX + k])
         except KeyError:
             pkdc('not adding api, because module not registered: uri={}', v)
             continue
@@ -281,6 +362,16 @@ def _register_sim_api_modules():
         register_api_module(importlib.import_module(f'sirepo.sim_api.{n}'))
 
 
+@contextlib.contextmanager
+def _set_api_attr(route_or_name):
+    a = sirepo.srcontext.get(_API_ATTR)
+    try:
+        sirepo.srcontext.set(_API_ATTR, route_or_name)
+        yield
+    finally:
+        sirepo.srcontext.set(_API_ATTR, a)
+
+
 def _split_uri(uri):
     """Parse the URL for parameters
 
@@ -306,7 +397,7 @@ def _split_uri(uri):
                 'too many non-parameter components of uri={}'.format(uri)
             first = p
             continue
-        rp = PKDict()
+        rp = _URIParams()
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:

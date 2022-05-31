@@ -48,6 +48,7 @@ def _add_object(o, radia_objs, id_map):
         )
     if _MODEL_EXTRUDED_POLY in sc:
         g_id = radia_util.extrude(
+            area=o.area,
             center=ctr,
             size=sz,
             extrusion_axis=o.extrusionAxis,
@@ -56,6 +57,7 @@ def _add_object(o, radia_objs, id_map):
             magnetization=m,
             rem_mag=o.remanentMag,
             segments=segs,
+            t_level=o.triangulationLevel,
             h_m_curve=o.h_m_curve
     )
     if t == _MODEL_RACETRACK:

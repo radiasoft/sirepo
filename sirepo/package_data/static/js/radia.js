@@ -59,7 +59,9 @@ SIREPO.app.config(function() {
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
-    var self = {};
+    let self = {};
+
+    const POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
 
     // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
@@ -234,6 +236,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
+        appState.models.geometryReport.lastModified = Date.now();
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
         if (isQuiet) {
             appState.saveQuietly('geometryReport');
@@ -241,6 +244,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         else {
             appState.saveChanges('geometryReport', callback);
         }
+        self.syncReports();
     };
 
     self.setWidthAxis = function() {
@@ -274,7 +278,15 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             });
     };
 
-    // update models so that editors see the correct values
+
+    self.syncReports = () => {
+        POST_SIM_REPORTS.forEach(r => {
+            appState.models[r].lastModified = appState.models.geometryReport.lastModified;
+        });
+        appState.saveChanges(POST_SIM_REPORTS);
+    };
+
+   // update models so that editors see the correct values
     // for now assign the entire object
     self.updateModelAndSuperClasses = (modelName, model) => {
         const s = [modelName, ...appState.superClasses(modelName)];
@@ -349,7 +361,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 });
 
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
-    var self = this;
+    //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
+
+    let self = this;
 
     const editorFields = [
         'geomObject.magnetization',
@@ -363,7 +377,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomGroup',
         'racetrack',
         'radiaObject',
-        'simulation',
     ];
 
     self.axes = ['x', 'y', 'z'];
@@ -475,6 +488,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.undulatorType;
     };
 
+    self.getView = () => {
+        return `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
+    };
+
     self.isDropEnabled = function() {
         return self.dropEnabled;
     };
@@ -573,6 +590,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return shape;
     };
 
+    self.viewTitle = () => {
+        return {
+            dipole: (
+                {
+                    dipoleBasic: 'Basic',
+                    dipoleC: 'C-Bend',
+                    dipoleH: 'H-Bend',
+                }[self.getDipoleType()] || ''
+            ) + ' Dipole',
+            undulator: (
+                {
+                    undulatorBasic: 'Basic',
+                    undulatorHybrid: 'Hybrid',
+                }[self.getUndulatorType()] || ''
+            ) + ' Undulator',
+        }[self.getMagnetType()];
+    };
+
     function addBeamAxis() {
         const axis = appState.models.simulation.beamAxis;
         for (const p in vtkPlotting.COORDINATE_PLANES) {
@@ -597,7 +632,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addObject(o) {
-        o.id  = radiaService.generateId();
         appState.models.geometryReport.objects.push(o);
         // for groups, set the group id of all members
         (o.members || []).forEach(oId => {
@@ -947,6 +981,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
+    //TODO(mvk): move to view logic
     function updateObjectEditor() {
         var o = self.selectedObject;
         if (! o) {
@@ -986,19 +1021,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! watchedModels.includes(modelName)) {
             return;
         }
-        if (
-            modelName === 'simulation' ||
-            Object.keys(SIREPO.APP_SCHEMA.constants.parameterizedMagnets).indexOf(modelName) >= 0
-        ) {
-            appState.models.geometryReport.lastModified = Date.now();
-            radiaService.setWidthAxis();
-            appState.saveQuietly('simulation');
-            appState.models.kickMapReport.periodLength = appState.models.undulatorHybrid.periodLength;
-            appState.saveQuietly('kickMapReport');
-        }
         let o = self.selectedObject;
         if (o) {
-            if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
+            if (! radiaService.getObject(o.id)) {
                 // catch unrelated saved objects
                 if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
                     addObject(o);
@@ -1026,15 +1051,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         }
         radiaService.saveGeometry(true, false, () => {
-            //GET RID OF RELOADGEOM
-            radiaService.reloadGeometry(
-                data => {
-                    if (self.selectedObject) {
-                        loadShapes();
-                    }
-            });
+            if (self.selectedObject) {
+                loadShapes();
+            }
         });
-
     });
 
     $scope.$on('geomObject.editor.show', updateObjectEditor);
@@ -1056,7 +1076,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
 
     let SINGLE_PLOTS = ['magnetViewer',];
-    let POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport',];
 
     let solving = false;
 
@@ -1067,13 +1086,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.svc = radiaService;
 
     self.solution = null;
-
-    function updateReports() {
-        POST_SIM_REPORTS.forEach((name) => {
-            appState.models[name].lastModified = Date.now();
-            appState.saveChanges(name);
-        });
-    }
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
@@ -1090,7 +1102,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         panelState.requestData('reset', () => {
             frameCache.setFrameCount(0);
             }, true);
-        updateReports();
+        radiaService.syncReports();
     };
 
     self.simHandleStatus = function(data) {
@@ -1107,7 +1119,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     frameCache.setFrameCount(1, name);
                 });
                 if (solving) {
-                    updateReports();
+                    radiaService.syncReports();
                 }
                 solving = false;
                 radiaService.saveGeometry(false, true);
@@ -1123,27 +1135,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
-
-    appState.watchModelFields($scope, ['simulation.beamAxis', 'simulation.heightAxis'], () => {
-        radiaService.setWidthAxis();
-    });
-    appState.whenModelsLoaded($scope, () => {
-        $scope.$on('modelChanged', (e, modelName) => {
-            let m = appState.models[modelName];
-            if (modelName === 'fieldPaths') {
-                const rpt = 'fieldLineoutReport';
-                for (const r of appState.models.fieldPaths.paths) {
-                    const currentPath = appState.models[rpt].fieldPath;
-                    if ((currentPath && ! $.isEmptyObject(currentPath)) && r.name !== currentPath.name) {
-                        continue;
-                    }
-                    appState.models[rpt].fieldPath = r;
-                    appState.saveQuietly(rpt);
-                    break;
-                }
-            }
-        });
-    });
 
 });
 
@@ -2039,12 +2030,10 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
         controller: function($scope) {
 
             $scope.dataCleared = true;
-            appState.whenModelsLoaded($scope, function() {
-               $scope.model = appState.models.kickMapReport;
-               // wait until we have some data to update
-               $scope.$on('radiaViewer.loaded', function () {
-                   $scope.dataCleared = false;
-               });
+
+            $scope.model = appState.models.kickMapReport;
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
             });
 
         },
@@ -2553,7 +2542,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: `
             <div class="col-md-6">
                 <div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">
-                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
                     <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
                         <div class="colorbar"></div>
                     </div>
@@ -2590,7 +2579,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var alphaDelegate = radiaService.alphaDelegate();
             alphaDelegate.update = setAlpha;
             var beamAxis = [[-1, 0, 0], [1, 0, 0]];
-            var cm = vtkPlotting.coordMapper();
+            var cm = new SIREPO.VTK.CoordMapper();
             var colorbar = null;
             var colorbarPtr = null;
             var colorScale = null;
@@ -2610,7 +2599,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var initDone = false;
             var ptPicker = null;
             var renderer = null;
-            var renderWindow = null;
             var selectedColor = [];
             var selectedInfo = null;
             var selectedObj = null;
@@ -2672,7 +2660,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 actorInfo[id] = info;
 
-                vtkPlotting.addActor(renderer, actor);
+                $scope.vtkScene.addActor(actor);
                 if (pickable) {
                     ptPicker.addPickList(actor);
                     //cPicker.addPickList(actor);
@@ -2694,7 +2682,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 let name = sceneData.name;
                 let data = sceneData.data;
 
-                vtkPlotting.removeActors(renderer);
+                $scope.vtkScene.removeActors();
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
@@ -2764,47 +2752,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
 
-                var pb = renderer.computeVisiblePropBounds();
-                radiaService.objBounds = pb;
-                //srdbg('bnds', b);
-                //srdbg('l', [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])]);
-                //srdbg('ctr', [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
+                const boundsBox = $scope.vtkScene.sceneBoundingBox(0.02);
+                const bounds = boundsBox.actor.getBounds();
+                $scope.vtkScene.addActor(boundsBox.actor);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, $scope.vtkScene.renderer);
 
-                var padPct = 0.1;
-                var l = [
-                    Math.abs(pb[1] - pb[0]),
-                    Math.abs(pb[3] - pb[2]),
-                    Math.abs(pb[5] - pb[4])
-                ].map(function (c) {
-                    return (1 + padPct) * c;
-                });
-
-                var bndBox = cm.buildBox(l, [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
-                bndBox.actor.getProperty().setRepresentationToWireframe();
-                // NOTE: vtkLineFilter exists but is not included in the default vtk build
-                //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
-
-                renderer.addActor(bndBox.actor);
-                var vpb = vtkPlotting.vpBox(bndBox.source, renderer);
-                renderWindow.render();
-                vpb.defaultCfg.edgeCfg.z.sense = -1;
-                vpb.initializeWorld(
-                    {
-                        edgeCfg: {
-                            x: {sense: 1},
-                            y: {sense: 1},
-                            z: {sense: -1},
-                        }
-                    });
-                $scope.axisObj = vpb;
+                radiaService.objBounds = bounds;
 
                 var acfg = {};
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
                     acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = pb[2 * i + 1];
-                    acfg[dim].min = pb[2 * i];
+                    acfg[dim].max = bounds[2 * i + 1];
+                    acfg[dim].min = bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     acfg[dim].showCentral = dim === appState.models.simulation.beamAxis;
@@ -2832,8 +2793,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 updateLayout();
                 setAlpha();
-                setBGColor();
-                vtkAPI.setCam();
+                setBgColor();
+                $scope.vtkScene.setCam();
                 enableWatchFields(true);
             }
 
@@ -3007,7 +2968,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                var iMode = vtkAPI.getMode();
+                var iMode = $scope.vtkScene.interactionMode;
                 if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
                     (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
@@ -3179,18 +3140,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
 
-                var m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: ca,
-                    interactor: renderWindow.getInteractor()
-                });
-                m.setViewportCorner(
-                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                $scope.vtkScene.setMarker(
+                    SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                        ca,
+                        $scope.vtkScene.renderWindow.getInteractor(),
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    )
                 );
-                m.setViewportSize(0.07);
-                m.computeViewport();
-                m.setMinPixelSize(50);
-                m.setMaxPixelSize(100);
-                vtkAPI.setMarker(m);
                 updateViewer();
                 updateLayout();
             }
@@ -3219,16 +3175,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 return j;
             }
 
-            // some weird disconnect between the model and the slider when cancelling...???
             function setAlpha() {
                 if (! renderer) {
                     return;
                 }
-                const alpha = $scope.model.alpha;
-                for (var id in actorInfo) {
-                    var info = actorInfo[id];
-                    var s = info.scalars;
-                    if (! s) {
+                const alpha = appState.models[$scope.modelName].alpha;
+                for (const id in actorInfo) {
+                    let info = actorInfo[id];
+                    if (! info.scalars) {
                         info.actor.getProperty().setOpacity(alpha);
                         continue;
                     }
@@ -3239,12 +3193,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         Math.floor(255 * alpha)
                     );
                 }
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
-            function setBGColor(a, b) {
-                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(appState.models.magnetDisplay.bgColor));
-                renderWindow.render();
+            function setBgColor() {
+                $scope.vtkScene.setBgColor(appState.models.magnetDisplay.bgColor);
             }
 
             //function setColor(info, type, color, alpha=255) {
@@ -3288,7 +3241,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     colorbar.scale(colorScale);
                     colorbarPtr = d3.select('.colorbar').call(colorbar);
                 }
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
             function setEdgeColor(info, color) {
@@ -3320,7 +3273,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         mapper.setScaleModeToScaleByComponents();
                     }
                 });
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
             function setupSceneData(data) {
@@ -3384,32 +3337,28 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 keypress: function (evt) {
                     // do nothing?  Stops vtk from changing render based on key presses
                 },
-                //ondblclick: function(evt) {
-                //    vtkAPI.setCam();
-                //}
             };
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
-                appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
+                appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBgColor);
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
             });
 
             // or keep stuff on vtk viewer scope?
             // start using custom javascript events to break away from angular?
             $scope.$on('vtk-init', function (e, d) {
-                //srdbg('VTK INIT', e, d);
-                renderer = d.objects.renderer;
-                renderWindow = d.objects.window;
-                vtkAPI = d.api;
+                $scope.vtkScene = d;
+                renderer = $scope.vtkScene.renderer;
+
                 // move pickers to vtkdisplay?
                 cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 cPicker.setPickFromList(false);
                 ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
                 ptPicker.setPickFromList(true);
                 ptPicker.initializePickList();
-                renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
             });
 
@@ -3711,7 +3660,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     $scope.watchFields = [
         [
             'geomObject.type',
-            "extrudedPoly.extrusionAxisSegments",
+            "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
         ], updateObjectEditor
@@ -3723,6 +3672,24 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
         updateObjectEditor();
     };
+
+    function buildTriangulationLevelDelegate() {
+        const m = 'extrudedPoly';
+        const f = 'triangulationLevel';
+        let d = panelState.getFieldDelegate(m, f);
+        d.range = () => {
+            return {
+                min: appState.fieldProperties(m, f).min,
+                max: appState.fieldProperties(m, f).max,
+                step: 0.01
+            };
+        };
+        d.readout = () => {
+            return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+        };
+        d.update = () => {};
+        $scope.fieldDelegate = d;
+    }
 
     function modelField(f) {
         const m = appState.parseModelField(f);
@@ -3741,6 +3708,8 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             );
         });
     }
+
+    buildTriangulationLevelDelegate();
 });
 
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
@@ -3792,13 +3761,12 @@ for(const m of ['Dipole', 'Undulator']) {
                 }
             });
 
-            $scope.$on('modelChanged', (e, d) => {
-                if (d === 'geometryReport') {
-                    //GET RID OF RELOADGEOM
-                    radiaService.reloadGeometry();
-                    return;
-                }
-                if (d !== 'geomObject' || ! activeModelId()) {
+            $scope.$on(`${$scope.modelName}.changed`, () => {
+                radiaService.saveGeometry(true, false);
+            });
+
+            $scope.$on('geomObject.changed', () => {
+                if (! activeModelId()) {
                     return;
                 }
                 if (appState.models.geomObject.id === activeModelId()) {
@@ -3848,6 +3816,18 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         return activeSection.getActiveSection() === 'simulations';
     }
 
+    function updateHeightAxis(isEnabled) {
+        for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
+            const axis = e[SIREPO.ENUM_INDEX_VALUE];
+            const isShown = axis !== model.beamAxis;
+            panelState.showEnum('simulation', 'heightAxis', axis, isShown);
+            if (model.heightAxis === axis && ! isShown) {
+                model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
+            }
+        }
+        panelState.enableField($scope.modelName, 'heightAxis', isEnabled);
+    }
+
     function updateSimEditor() {
         if (! model) {
             return;
@@ -3860,6 +3840,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             'magnetType',
             isNew()
         );
+        panelState.showField($scope.modelName, 'enableKickMaps', enableAxes);
 
         for(const m of ['dipole', 'undulator']) {
             const t = `${m}Type`;
@@ -3878,26 +3859,7 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
             'beamAxis',
             enableAxes
         );
-        panelState.enableField(
-            $scope.modelName,
-            'heightAxis',
-            enableAxes
-        );
-
-        for (const e of SIREPO.APP_SCHEMA.enum.BeamAxis) {
-            const axis = e[SIREPO.ENUM_INDEX_VALUE];
-            const isShown = axis !== model.beamAxis;
-            panelState.showEnum(
-                'simulation',
-                'heightAxis',
-                axis,
-                isShown
-            );
-            if (model.heightAxis === axis && ! isShown) {
-                model.heightAxis = SIREPO.APP_SCHEMA.constants.heightAxisMap[model.beamAxis];
-            }
-        }
-        radiaService.setWidthAxis();
+        updateHeightAxis(enableAxes);
     }
 
     $scope.watchFields = [
@@ -3905,10 +3867,6 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
         ['simulation.heightAxis'], radiaService.setWidthAxis,
     ];
 
-    $scope.whenSelected = function() {
-        model = appState.models[$scope.modelName];
-        updateSimEditor();
-    };
 
     $scope.$on(`${$scope.modelName}.editor.show`, () => {
         model = appState.models[$scope.modelName];

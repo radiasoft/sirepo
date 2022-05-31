@@ -4,12 +4,13 @@ u"""time functions (artificial time)
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 import datetime
+import sirepo.request
 import sirepo.util
 import time
 
@@ -23,17 +24,12 @@ _timedelta = None
 #: Whether or not this module has been initilaized
 _initialized = False
 
-def adjust_time(days):
+def adjust_time(days, sreq=None):
     """Shift the system time by days
 
     Args:
         days (str): must be integer. If None or 0, no adjustment.
     """
-    def _adjust_supervisor_srtime():
-        import sirepo.job_api
-
-        if sirepo.util.flask_app():
-            sirepo.job_api.adjust_supervisor_srtime(d)
 
     global _timedelta
     _timedelta = None
@@ -41,28 +37,29 @@ def adjust_time(days):
         d = int(days)
         if d != 0:
             _timedelta = datetime.timedelta(days=d)
-        _adjust_supervisor_srtime()
     except Exception:
-        _timedelta = None
         pass
+    if sreq:
+        if not _timedelta:
+            days = 0
+        sreq.call_api('adjustSupervisorSrtime', kwargs=PKDict(days=days))
 
 
-@api_perm.allow_visitor
-def api_adjustTime(days=None):
-    """Shift the system time by days and get the adjusted time
+class Request(sirepo.request.Base):
+    @api_perm.internal_test
+    def api_adjustTime(self, days=None):
+        """Shift the system time by days and get the adjusted time
+    
+        Args:
+            days (str): must be integer. If None or 0, no adjustment.
+        """
+        from sirepo import http_reply
 
-    Args:
-        days (str): must be integer. If None or 0, no adjustment.
-    """
-    from sirepo import http_reply
-
-    assert pkconfig.channel_in_internal_test(), \
-        'API forbidden'
-    adjust_time(days)
-    return http_reply.gen_json_ok({
-        'adjustedNow': utc_now().isoformat(),
-        'systemNow': datetime.datetime.utcnow().isoformat(),
-    })
+        adjust_time(days, sreq=self)
+        return http_reply.gen_json_ok({
+            'adjustedNow': utc_now().isoformat(),
+            'systemNow': datetime.datetime.utcnow().isoformat(),
+        })
 
 
 def init():

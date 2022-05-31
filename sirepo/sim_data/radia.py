@@ -44,6 +44,23 @@ class SimData(sirepo.sim_data.SimDataBase):
         return PKDict()
 
     @classmethod
+    def _fixup_box_to_cuboid(cls, model, field):
+        if model.get(field) == 'box':
+            model[field] = 'cuboid'
+
+    @classmethod
+    def _fixup_obj_types(cls, dm):
+        if dm.get('box'):
+            dm.cuboid = dm.box.copy()
+            del dm['box']
+        for m in dm:
+            for f in ('magnetObjType', 'poleObjType', 'type',):
+                 cls._fixup_box_to_cuboid(dm[m], f)
+        for o in dm.geometryReport.objects:
+            for f in ('model', 'type',):
+                cls._fixup_box_to_cuboid(o, f)
+
+    @classmethod
     def fixup_old_data(cls, data):
 
         dm = data.models
@@ -77,11 +94,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                     ))
         if dm.simulation.magnetType == 'undulator':
             cls._fixup_undulator(dm)
+        cls._fixup_obj_types(dm)
         for o in dm.geometryReport.objects:
-            if o.get('model') == 'box':
-                o.model = 'cuboid'
-            if o.get('type') == 'box':
-                o.type = 'cuboid'
+            if o.get('points') is not None and not o.get('triangulationLevel'):
+                o.triangulationLevel = 0.5
             if not o.get('bevels'):
                 o.bevels = []
             if not o.get('segments'):

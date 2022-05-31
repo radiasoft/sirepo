@@ -1,0 +1,18 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "ConductionDelta"
+        },
+        "setupArguments": {
+            "auto": "1"
+        },
+        "simulation": {
+            "name": "ConductionDelta",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "temp"
+        }
+    },
+    "simulationType": "flash"
+}
