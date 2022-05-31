@@ -1277,10 +1277,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         function onError() {
             panelState.reportNotGenerated(modelName);
         }
+        function now() {
+            return new Date().getTime();
+        }
         let isHidden = panelState.isHidden(modelName);
-        let frameRequestTime = new Date().getTime();
+        let frameRequestTime = now();
         let waitTimeHasElapsed = false;
-        const millisecondsUntilNextFrameRequest = () => {
+        const framePeriod = () => {
             if (! isPlaying || isHidden) {
                 return 0;
             }
@@ -1292,7 +1295,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return  milliseconds / parseInt(x);
         };
 
-        let delay = millisecondsUntilNextFrameRequest();
         const requestFunction = function() {
             setTimeout(() => {
                 if (! waitTimeHasElapsed) {
@@ -1311,20 +1313,18 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                         onError();
                         return;
                     }
-                    let endTime = new Date().getTime();
-                    let elapsed = endTime - frameRequestTime;
-                    if (elapsed < delay) {
-                        $interval(
-                            function() {
-                                callback(index, data);
-                            },
-                            delay - elapsed,
-                            1
-                        );
-                    }
-                    else {
+                    let e = framePeriod() - (now() - frameRequestTime);
+                    if (e <= 0) {
                         callback(index, data);
+                        return;
                     }
+                    $interval(
+                        function() {
+                            callback(index, data);
+                        },
+                        e,
+                        1
+                    );
                 },
                 null,
                 onError
