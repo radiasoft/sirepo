@@ -124,6 +124,9 @@ angular.element(document).ready(function() {
             simulationType: SIREPO.APP_NAME,
         },
         success: function(result) {
+            if (result.state === 'srException') {
+                throw new Error(`srException in /simulation-schema result=${JSON.stringify(result)}`);
+            }
             SIREPO.APP_SCHEMA = result;
             $.when.apply($, loadDynamicModules()).then(
                 function() {

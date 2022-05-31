@@ -13,6 +13,7 @@ from sirepo.template import code_variable
 import math
 import os
 import re
+import sirepo.const
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -517,7 +518,7 @@ def parse_enums(enum_schema):
 
 def parse_mpi_log(run_dir):
     e = None
-    f = run_dir.join('mpi_run.out')
+    f = run_dir.join(sirepo.const.MPI_LOG)
     if f.exists():
         m = re.search(
             r'^Traceback .*?^\w*Error: (.*?)\n',
@@ -578,12 +579,12 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     )
 
 
-def sim_frame(frame_id, op):
+def sim_frame(frame_id, op, sreq):
     from sirepo import http_reply, http_request
 
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
-    http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
+    sreq.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:

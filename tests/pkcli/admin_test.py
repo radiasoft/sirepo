@@ -5,6 +5,7 @@ u"""Test pkcli.admin
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import importlib
 import os
 import pytest
 
@@ -13,7 +14,7 @@ def setup_module(module):
     import os
     srunit.setup_srdb_root()
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_DEFAULT_PROPRIETARY_SIM_TYPES='jupyterhublogin',
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='jupyterhublogin',
     )
 
 
@@ -39,8 +40,12 @@ def test_delete_user():
     pkunit.data_dir().join('db').copy(sirepo.srdb.root())
     sirepo.pkcli.admin.delete_user('IYgnLlSy')
     with auth_db.session_and_lock():
-        _is_empty(jupyterhublogin.JupyterhubUser.search_all_by())
-        _is_empty(auth_db.UserRegistration.search_all_by())
+        for m, t in (
+                ('sim_api.jupyterhublogin', 'JupyterhubUser'),
+                ('auth_db', 'UserRegistration'),
+                ('auth_db', 'UserRoleInvite'),
+        ):
+            _is_empty(getattr(importlib.import_module('sirepo.' + m), t).search_all_by())
     _is_empty(pkio.sorted_glob(jupyterhublogin.cfg.user_db_root_d.join('*')))
     _is_empty(pkio.sorted_glob(simulation_db.user_path().join('*')))
 

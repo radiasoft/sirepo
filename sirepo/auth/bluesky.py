@@ -43,7 +43,7 @@ _AUTH_NONCE_SEPARATOR = '-'
 class Request(sirepo.request.Base):
     @api_perm.allow_cookieless_set_user
     def api_authBlueskyLogin(self):
-        req = sirepo.http_request.parse_post(id=True)
+        req = self.parse_post(id=True)
         auth_hash(req.req_data, verify=True)
         path = simulation_db.find_global_simulation(
             req.type,

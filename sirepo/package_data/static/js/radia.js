@@ -2535,25 +2535,35 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             modelName: '@',
+            viewName: '@',
             viz: '<',
         },
         template: `
             <div class="col-md-6">
-                <div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">
-                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
-                    <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
-                        <div class="colorbar"></div>
+                <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
+                  <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="magnetDisplay" data-is-report="true" data-model-key="modelKey" data-report-id="reportId"></div>
+                    <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+                      <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
+                      <div data-ng-transclude="">
+                        <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                        <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
+                            <div class="colorbar"></div>
+                        </div>
+                      </div>
                     </div>
+                  </div>
                 </div>
             </div>
         `,
         controller: function($scope, $element) {
-
+            $scope.reportId = utilities.reportId();
             $scope.axisObj = null;
             $scope.defaultColor = "#ff0000";
             $scope.mode = null;
+            $scope.modelKey = 'magnetDisplay';
 
             $scope.isViewTypeFields = function () {
                 return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
@@ -2769,7 +2779,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     acfg[dim].min = bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                    acfg[dim].showCentral = dim === appState.models.simulation.beamAxis;
+                    acfg[dim].showCentral = true;
                 });
                 $scope.axisCfg = acfg;
 
@@ -2796,6 +2806,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 setAlpha();
                 setBgColor();
                 $scope.vtkScene.setCam();
+                $scope.vtkScene.refreshCanvas();
                 enableWatchFields(true);
             }
 

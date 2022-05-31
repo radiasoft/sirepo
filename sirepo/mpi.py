@@ -8,6 +8,7 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
+import sirepo.const
 import re
 import sys
 
@@ -61,7 +62,7 @@ def restrict_op_to_first_rank(op):
         res = c.bcast(res, root=FIRST_RANK)
     return res
 
-def run_program(cmd, output='mpi_run.out', env=None):
+def run_program(cmd, output=sirepo.const.MPI_LOG, env=None):
     """Execute python script with mpi.
 
     Args:
