@@ -853,9 +853,15 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
+              <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
+              <div data-ng-if="displayLink()">
+                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+              </div>
+            </div>
         `,
         controller: function($scope) {
+            $scope.newSimURL = false;
 
             function createNewSim(data) {
                 requestSender.sendRequest(
@@ -865,9 +871,10 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
                             data.models.simulation[f] = sim[f];
                         });
+                        data.version = shadowData.version;
                         requestSender.sendRequest(
                             'saveSimulationData',
-                            openNewSim,
+                            genSimURL,
                             data);
                     },
                     newSimData(data));
@@ -879,17 +886,31 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 return res;
             }
 
-            function openNewSim(data) {
-                requestSender.newLocalWindow(
-                    'beamline', {
-                        simulationId: data.models.simulation.simulationId,
-                    }, data.simulationType);
+            function genSimURL(data) {
+                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
+
+            $scope.closeModal = function() {
+                $('#sr-shadow-dialog').modal('hide');
+                $scope.resetURL();
+            };
+
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
 
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
+                return false;
+            };
+
+            $scope.displayLink = function() {
+                if ($scope.newSimURL) {
+                    return true;
+                }
+                return false;
             };
         },
     };

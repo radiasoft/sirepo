@@ -390,6 +390,7 @@ SIREPO.app.directive('confirmationModal', function() {
             okText: '@',
             okClicked: '&',
             cancelText: '@',
+            modalClosed: '&',
             isRequired: '@',
         },
         template: `
@@ -448,6 +449,9 @@ SIREPO.app.directive('confirmationModal', function() {
 
             $($element).on('hidden.bs.modal', function() {
                 $rootScope.$broadcast('sr-clearDisableAfterClick');
+                if ($scope.modalClosed && angular.isFunction($scope.modalClosed())) {
+                    $scope.modalClosed()();
+                }
             });
         },
     };
