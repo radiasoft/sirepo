@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg class="sr-beamline-item-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="24" height="24" viewBox="0, 0, 24, 24">
+  <g id="Layer_1" transform="translate(-64, -92)">
+    <g id="Perspective">
+      <path d="M64,92 L88,92 L88,116 L64,116 z" stroke="#000000" fill="none" id="Front"/>
+      <path d="M70,98 L82,98 L82,110 L70,110 z" stroke="#000000" fill="none" id="Back"/>
+      <path d="M70,98 L64,92" stroke="#000000" fill="none" id="e1"/>
+      <path d="M82,98 L88,92" stroke="#000000" fill="none" id="e2"/>
+      <path d="M82,110 L88,116" stroke="#000000" fill="none" id="e3"/>
+      <path d="M70,110 L64,116" stroke="#000000" fill="none" id="e4"/>
+    </g>
+  </g>
+</svg>
