@@ -258,9 +258,9 @@ class ParameterParser():
             m, fn = self.field_map[f]
             ftype = self.schema.model[m][fn][1]
             if ftype in self.schema.enum:
-                v = re.sub(r'"', '', v)
+                v = re.sub(r'"', '', v).strip()
                 assert v.lower() in enum_map[ftype], \
-                    f'Unknown enum value for field: {ftype}: {v}'
+                    f'Unknown enum value for field: {ftype}: {v} values: {enum_map[ftype].keys()}'
                 res[fn] = enum_map[ftype][v.lower()]
             elif ftype == 'Boolean':
                 v = SetupParameterParser.remove_quotes(v)
@@ -368,6 +368,8 @@ class SetupParameterParser():
             assert template_common.NUMERIC_RE.search(value), \
                 f'invalid flash float: {value}'
             return float(value)
+        if field_type == 'Constant':
+            return value
         assert False, f'unknown field type: {field_type}, value: {value}'
 
     @classmethod
@@ -449,11 +451,28 @@ class SetupParameterParser():
         enums = PKDict()
         for (name, values) in PKDict(
             DiffuseBoundaryType=['dirichlet', 'neumann', 'outflow', 'zero-gradient'],
-            GridBoundaryType=['axisymmetric', 'diode', 'eqtsymmetric', 'outflow', 'periodic', 'reflect', 'user'],
+            GridBoundaryType=[
+                'reflect',
+                'axisymmetric',
+                'eqtsymmetric',
+                'outflow',
+                'diode',
+                'extrapolate',
+                'neumann_ins',
+                'dirichlet',
+                'hydrostatic-f2+nvout',
+                'hydrostatic-f2+nvdiode',
+                'hydrostatic-f2+nvrefl',
+                'hydrostatic+nvout',
+                'hydrostatic+nvdiode',
+                'hydrostatic+nvrefl',
+                'periodic',
+                'user',
+            ],
             GravityBoundaryType=['dirichlet', 'isolated', 'periodic'],
             GravityDirection=['x', 'y', 'z'],
             LaserCrossSectionOptional=['none', 'gaussian1D', 'gaussian2D', 'uniform'],
-            RadTransMGDBoundaryType=['dirichlet', 'neumann', 'reflecting', 'vacuum'],
+            RadTransMGDBoundaryType=['dirichlet', 'neumann', 'outflow', 'outstream', 'reflecting', 'vacuum'],
             RiemannSolver=['Roe', 'HLL', 'HLLC', 'Marquina', 'MarquinaModified', 'Hybrid', 'HLLD'],
             SetupDatafiles=self.datafiles,
             SetupDatafilesOptional=['none', *sorted(self.datafiles)],
@@ -501,7 +520,7 @@ class SetupParameterParser():
         # [REAL] [1.0]
         assert model is not None
         m = re.search(r'^(.*?)\s\[(.*?)\]\s(CONSTANT)?\s*\[(.*?)\](.*)', text)
-        assert m, f'unparsable field: {line}'
+        assert m, f'unparsable field: {text}'
         name = m.group(1)
         assert name not in model, f'duplicate field: {name}'
         ftype = m.group(2)
@@ -540,7 +559,8 @@ class SetupParameterParser():
                 continue
             m = re.search(r'^\s{4}(\w.*)', line)
             if m:
-                field = self.__parse_field(m.group(1), model)
+                if m.group(1) != '__doc__':
+                    field = self.__parse_field(m.group(1), model)
                 continue
             m = re.search(r'^\s{8}(\S.*)', line)
             if m:

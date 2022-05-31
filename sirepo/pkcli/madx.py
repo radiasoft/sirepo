@@ -12,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx import code_var
 import glob
 import numpy
 import os
@@ -33,7 +34,7 @@ def run_background(cfg_dir):
 
 def create_particle_file(cfg_dir, data):
     twiss = PKDict()
-    if _is_matched_bunch(data):
+    if data.models.bunch.matchTwissParameters == '1':
         report = data.report
         # run twiss report and copy results into beam
         data.models.simulation.activeBeamlineId = data.models.simulation.visualizationBeamlineId
@@ -52,16 +53,17 @@ def create_particle_file(cfg_dir, data):
 def _generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
     beam = LatticeUtil.find_first_command(data, 'beam')
+    c = code_var(data.models.rpnVariables)
     p = particle_beam.populate_uncoupled_beam(
         bunch.numberOfParticles,
         float(bunch.betx),
         float(bunch.alfx),
-        float(bunch.ex),
+        float(c.eval_var_with_assert(beam.ex)),
         float(bunch.bety),
         float(bunch.alfy),
-        bunch.ey,
-        beam.sigt,
-        beam.sige,
+        c.eval_var_with_assert(beam.ey),
+        c.eval_var_with_assert(beam.sigt),
+        c.eval_var_with_assert(beam.sige),
         iseed=bunch.randomSeed,
     )
     v = PKDict(
@@ -82,10 +84,6 @@ def _generate_ptc_particles_file(run_dir, data, twiss):
            r += f', {f}={v[f][i]}'
         r +=';\n'
     pkio.write_text(run_dir.join(template.PTC_PARTICLES_FILE), r)
-
-
-def _is_matched_bunch(data):
-    return data.models.bunch.matchTwissParameters == '1'
 
 
 def _need_particle_file(data):

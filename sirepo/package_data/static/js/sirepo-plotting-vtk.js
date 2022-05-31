@@ -6,10 +6,936 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.ZERO_ARR = [0, 0, 0];
 SIREPO.ZERO_STR = '0, 0, 0';
 
+/**
+ * Collection of static methods and fields related to vtk
+ */
+class VTKUtils {
+
+    /**
+     * Modes when interacting with the vtk canvas
+     * @returns {Object} - interactionModes
+     */
+    static interactionMode() {
+        return {
+            INTERACTION_MODE_MOVE: 'move',
+            INTERACTION_MODE_SELECT: 'select',
+        };
+    }
+
+    /**
+     * Builds a wireframe box with the specified bounds and optional padding
+     * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    static buildBoundingBox(bounds, padPct = 0.0) {
+        const l = [
+            Math.abs(bounds[1] - bounds[0]),
+            Math.abs(bounds[3] - bounds[2]),
+            Math.abs(bounds[5] - bounds[4])
+        ].map(c=> (1 + padPct) * c);
+
+        const b = new BoxBundle(
+            l,
+            [(bounds[1] + bounds[0]) / 2, (bounds[3] + bounds[2]) / 2, (bounds[5] + bounds[4]) / 2]
+        );
+        b.actorProperties.setRepresentationToWireframe();
+        return b;
+    }
+
+    /**
+     * Makes an orientation widget out of the given vtk actor and interactor, placed in the given corner of the
+     * viewport
+     * @param {vtk.Rendering.Core.vtkActor} actor - vtk actor
+     * @param {vtk.Rendering.Core.vtkRenderWindowInteractor} interactor - interactor from a render window
+     * @param {vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners} location - which corner to place the widget
+     * @returns {vtk.Interaction.Widgets.vtkOrientationMarkerWidget}
+     */
+    static buildOrientationMarker(actor, interactor, location) {
+        const m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+            actor: actor,
+            interactor: interactor,
+        });
+        m.setViewportCorner(location);
+        m.setViewportSize(0.07);
+        m.computeViewport();
+        m.setMinPixelSize(50);
+        m.setMaxPixelSize(100);
+
+        return m;
+    }
+
+    /**
+     * Converts a string or an array of floats to an array of floats using vtk's conversion util, for use in
+     * colors
+     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
+     * @returns {[number]} - array of floats ranging from 0 - 1.
+     */
+    static colorToFloat(hexStringOrArray) {
+        return Array.isArray(hexStringOrArray) ? hexStringOrArray : vtk.Common.Core.vtkMath.hex2float(hexStringOrArray);
+    }
+
+    /**
+     * Converts a string or an array of floats to a string using vtk's conversion util, for use in
+     * colors
+     * @param {string|[number]} hexStringOrArray - a color string (#rrggbb) or array of floats
+     * @returns {string} - a color string (#rrggbb)
+     */
+    static colorToHex(hexStringOrArray) {
+       return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : hexStringOrArray;
+    }
+
+    /**
+     * Creates a vtk user matrix from a SquareMatrix.
+     * * @param {SquareMatrix} matrix - vtk actor
+     * @returns {[[number]]}
+     */
+    static userMatrix(matrix) {
+        let m = [];
+        for (const x of matrix.val) {
+            m = m.concat(x);
+            m.push(0);
+        }
+        m = m.concat([0, 0, 0, 1]);
+        return m;
+    }
+}
+
+
+/**
+ * This class encapsulates various basic vtk elements such as the renderer, and supplies methods for using them.
+ */
+class VTKScene {
+    /**
+     * @param {{}} container - jquery element in which to place the scene
+     * @param {string} resetSide - the dimension to display facing the user when the scene is reset
+     */
+    constructor(container, resetSide) {
+        this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+            background: [1, 1, 1, 1],
+            container: container,
+            listenWindowResize: false,
+        });
+
+        this.container = this.fsRenderer.getContainer();
+        this.renderer = this.fsRenderer.getRenderer();
+        this.renderWindow = this.fsRenderer.getRenderWindow();
+        this.cam = this.renderer.get().activeCamera;
+        this.camProperties = VTKScene.CAM_DEFAULTS();
+        this.resetSide = resetSide;
+
+        this.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
+
+        this.marker = null;
+        this.isMarkerEnabled = false;
+
+        this.viewSide = this.resetSide;
+        this.viewDirection = 1;
+    }
+
+    /**
+     * Gets a map of dimension to camera properties
+     * @returns {{x: {viewUp: number[]}, y: {viewUp: number[]}, z: {viewUp: number[]}}}
+     * @constructor
+     */
+    static CAM_DEFAULTS() {
+        return {
+            x: {
+                viewUp: [0, 0, 1],
+            },
+            y: {
+                viewUp: [0, 0, 1],
+            },
+            z: {
+                viewUp: [0, 1, 0],
+            }
+        };
+    }
+
+    /**
+     * Convenience method for adding an actor to the renderer
+     * @param {vtk.Rendering.Core.vtkActor} actor
+     */
+    addActor(actor) {
+        this.renderer.addActor(actor);
+    }
+
+    /**
+     * Gets an icon based on the view direction ("into/out of the screen")
+     * @returns {string}
+     */
+    directionIcon() {
+        return this.viewDirection === 1 ? '⊙' : '⦻';
+    }
+
+    /**
+     * @returns {boolean} - true if an orientation marker has been defined
+     */
+    hasMarker() {
+        return ! ! this.marker;
+    }
+
+    /**
+     * Convenience method for removing the given actor from the renderer
+     * @param {vtk.Rendering.Core.vtkActor} actor
+     */
+    removeActor(actor) {
+        if (! actor ) {
+            return;
+        }
+        this.renderer.removeActor(actor);
+    }
+
+    /**
+     * Convenience method for removing the given actors from the renderer, or all actors if input is null/empty
+     * @param {[vtk.Rendering.Core.vtkActor]|null} actors
+     */
+    removeActors(actors) {
+        if (! actors) {
+            this.renderer.removeAllActors();
+            return;
+        }
+        for (const a of actors) {
+            this.removeActor(a);
+        }
+        actors.length = 0;
+    }
+
+    /**
+     * Convenience method for triggering a render in the render window
+     */
+    render() {
+        this.renderWindow.render();
+    }
+
+    /**
+     * Sets the camera so that the resetSide is facing the user
+     */
+    resetView() {
+        this.showSide(this.resetSide, 1);
+    }
+
+    /**
+     * Builds a wireframe box around all the objects in the scene, with optional padding
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    sceneBoundingBox(padPct = 0.0) {
+        // must reset the camera before computing the bounds
+        this.renderer.resetCamera();
+        return VTKUtils.buildBoundingBox(this.renderer.computeVisiblePropBounds(), padPct);
+    }
+
+    /**
+     * Sets the background color of the renderer
+     * @param {string|[number]} color
+     */
+    setBgColor(color) {
+        this.renderer.setBackground(VTKUtils.colorToFloat(color));
+        this.render();
+    }
+
+    /**
+     * Sets the camera to the given position, pointing such that "up" is in the given direction
+     * @param {[number]} position
+     * @param {[numbeer]} viewUp
+     */
+    setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
+        this.cam.setPosition(...position);
+        this.cam.setFocalPoint(0, 0, 0);
+        this.cam.setViewUp(...viewUp);
+        this.renderer.resetCamera();
+        this.cam.yaw(0.6);
+        if (this.marker) {
+            this.marker.updateMarkerOrientation();
+        }
+        this.render();
+    }
+
+    /**
+     * Sets a property for the camera along the given dimension
+     * @param {string} dim x|y|z
+     * @param {string} name
+     * @param {*} val
+     */
+    setCamProperty(dim, name, val) {
+        this.camProperties[dim][name] = val;
+    }
+
+    /**
+     * Sets the camera so that the given side is facing the user. If that side is already set, flip to the
+     * other side
+     * @param {string} side - x|y|z
+     * @param {number} direction - -1|0|1
+     */
+    showSide(side = this.resetSide, direction = 0) {
+        if (side === this.viewSide) {
+            this.viewDirection *= -1;
+        }
+        if (direction) {
+            this.viewDirection = Math.sign(direction);
+        }
+        this.viewSide = side;
+        const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[side]
+            .map(c =>  c * this.viewDirection);
+        this.setCam(pos, this.camProperties[side].viewUp);
+    }
+
+    /**
+     * Refreshes the visibility of the orientation marker, if one exists
+     */
+    refreshMarker() {
+        if (! this.hasMarker()) {
+            return;
+        }
+        this.marker.setEnabled(this.isMarkerEnabled);
+        this.render();
+    }
+
+    /**
+     * Sets an orientation marker
+     * @param {vtk.Interaction.Widgets.vtkOrientationMarkerWidget} m
+     */
+    setMarker(m) {
+        this.marker = m;
+        this.isMarkerEnabled = true;
+        this.refreshMarker();
+    }
+
+    /**
+     * Cleans up vtk items
+     */
+    teardown() {
+        this.isMarkerEnabled = false;
+        this.refreshMarker();
+        this.fsRenderer.getInteractor().unbindEvents();
+        this.fsRenderer.delete();
+    }
+}
+
+/**
+ * A convenient object bundling a source, actor, and mapper, which almost always appear together anyway
+ */
+class ActorBundle {
+    /**
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(source, transform = new SIREPO.GEOMETRY.Transform(), actorProperties = {}) {
+        /** @member {SIREPO.GEOMETRY.Transform} - the transform */
+        this.transform = transform;
+
+        /** @member {vtk.Rendering.Core.vtkMapper} - a mapper */
+        this.mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+
+        /** @member {*} - vtk source */
+        this.setSource(source);
+
+        /** @member {vtk.Rendering.Core.vtkActor} - the transform */
+        this.actor = vtk.Rendering.Core.vtkActor.newInstance({
+            mapper: this.mapper
+        });
+
+        /** @member {vtk.Rendering.Core.Property} - properties of the actor */
+        this.actorProperties = this.actor.getProperty();
+
+        for (const p in actorProperties) {
+            this.setActorProperty(p, actorProperties[p]);
+        }
+
+        this.actor.setUserMatrix(VTKUtils.userMatrix(this.transform.matrix));
+    }
+
+    /**
+     * Builds a wireframe box around this actor, with optional padding
+     * @param {number} padPct - additional padding as a percentage of the size
+     * @returns {BoxBundle}
+     */
+    actorBoundingBox(padPct = 0.0) {
+        return VTKUtils.buildBoundingBox(this.actor.getBounds(), padPct);
+    }
+
+    /**
+     * Gets the value of the actor property with the given name
+     * @param {string} name - the name of the property
+     * @returns {*}
+     */
+    getActorProperty(name) {
+        return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
+    }
+
+    /**
+     * Sets the actor property with the given name to the given value
+     * @param {string} name - the name of the property
+     * @param {*} value - the value to set
+     */
+    setActorProperty(name, value) {
+        // special handling for colors
+        if (name === 'color') {
+            this.setColor(value);
+            return;
+        }
+        this.actorProperties[`set${SIREPO.UTILS.capitalize(name)}`](value);
+    }
+
+    /**
+     * Convenience method for setting the color. Uses colorToFloat to convert
+     * @param {string|[number]} color
+     */
+    setColor(color) {
+        this.actorProperties.setColor(VTKUtils.colorToFloat(color));
+    }
+
+    /**
+     * Sets the mapper for this bundle as well as the actor
+     * @param {vtk.Rendering.Core.vtkMapper} mapper
+     */
+    setMapper(mapper) {
+        this.mapper = mapper;
+        this.actor.setMapper(mapper);
+    }
+
+    /**
+     * Sets the source for this bundle. Also sets the mapper's input connection to the source's output
+     * @param {*} source - vtk source
+     */
+    setSource(source) {
+        if (source) {
+            this.source = source;
+            this.mapper.setInputConnection(source.getOutputPort());
+        }
+    }
+}
+
+/**
+ * A bundle for a cube source
+ */
+class BoxBundle extends ActorBundle {
+    /**
+     * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
+     * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labSize = [1, 1, 1],
+        labCenter = [0, 0, 0],
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(
+            vtk.Filters.Sources.vtkCubeSource.newInstance(),
+            transform,
+            actorProperties
+        );
+        this.setCenter(labCenter);
+        this.setSize(labSize);
+    }
+
+    /**
+     * Sets the center of the box
+     * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
+     */
+    setCenter(labCenter) {
+        this.source.setCenter(labCenter);
+    }
+
+    /**
+     * Sets the size of the box
+     * @param {[number]} labSize- array of the x, y, z lengths of the box
+     */
+    setSize(labSize) {
+        this.source.setXLength(labSize[0]);
+        this.source.setYLength(labSize[1]);
+        this.source.setZLength(labSize[2]);
+    }
+
+}
+
+/**
+ * A bundle for a line source defined by two points
+ */
+class LineBundle extends ActorBundle {
+    /**
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labP1 = [0, 0, 0],
+        labP2 = [0, 0, 1],
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(
+            vtk.Filters.Sources.vtkLineSource.newInstance({
+                point1: labP1,
+                point2: labP2,
+                resolution: 2
+            }),
+            transform,
+            actorProperties
+        );
+    }
+}
+
+/**
+ * A bundle for a plane source defined by three points
+ */
+class PlaneBundle extends ActorBundle {
+    /**
+     * @param {[number]} labOrigin - origin
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labOrigin = [0, 0, 0],
+        labP1 = [1, 0, 0],
+        labP2 = [0, 1, 0],
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(vtk.Filters.Sources.vtkPlaneSource.newInstance(), transform, actorProperties);
+        this.setPoints(labOrigin, labP1, labP2);
+        this.setResolution();
+    }
+
+    /**
+     * Set the defining points of the plane
+     * @param {[number]} labOrigin - origin
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     */
+    setPoints(labOrigin, labP1, labP2) {
+        this.source.setOrigin(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labOrigin)).val);
+        this.source.setPoint1(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labP1)).val);
+        this.source.setPoint2(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labP2)).val);
+    }
+
+    /**
+     * Set the resolution in each direction
+     * @param {number} xRes - resolution (number of divisions) in the direction of the origin to p1
+     * @param {number} yRes - resolution (number of divisions) in the direction of the origin to p2
+     */
+    setResolution(xRes = 1, yRes = 1) {
+        this.source.setXResolution(xRes);
+        this.source.setYResolution(yRes);
+    }
+}
+
+/**
+ * A bundle for a sphere source
+ */
+class SphereBundle extends ActorBundle {
+    /**
+     * @param {[number]} labCenter - center in the lab
+     * @param {number} radius
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        labCenter = [0, 0, 0],
+        radius = 1.0,
+        transform= new SIREPO.GEOMETRY.Transform(),
+        actorProperties= {}
+    ) {
+        super(
+            vtk.Filters.Sources.vtkSphereSource.newInstance(),
+            transform,
+            actorProperties
+        );
+        this.setCenter(labCenter);
+        this.setRadius(radius);
+        this.setRes();
+    }
+
+    /**
+     * Sets the center of the sphere
+     * @param {[number]} labCenter - center in the lab
+     */
+    setCenter(labCenter) {
+        this.source.setCenter(this.transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
+    }
+
+    /**
+     * Sets the radius of the sphere
+     * @param {number} radius
+     */
+    setRadius(radius) {
+        this.source.setRadius(radius);
+    }
+
+    /**
+     * Sets the resolution in each angular direction
+     * @param {number} thetaRes - number of latitude divisions
+     * @param {number} phiRes - number of longitude divisions
+     */
+    setRes(thetaRes = 16, phiRes = 16) {
+        this.source.setThetaResolution(thetaRes);
+        this.source.setPhiResolution(phiRes);
+    }
+}
+
+/**
+ * Provides a mapping from "lab" coordinates to vtk's coordinates via a SIREPO.GEOMETRY.Transform.
+ * Also wraps the creation of various Bundles so the transform gets applied automatically
+ */
+class CoordMapper {
+    /**
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     */
+    constructor(transform = new SIREPO.GEOMETRY.Transform()) {
+        this.transform = transform;
+    }
+
+    /**
+     * Creates a Bundle from an arbitrary source
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    buildActorBundle(source, actorProperties) {
+        return new ActorBundle(source, this.transform, actorProperties);
+    }
+
+    /**
+     * Builds a box
+     * @param {[number]} labSize - array of the x, y, z sides of the box in the lab
+     * @param {[number]} labCenter - array of the x, y, z coords of the box's center in the lab
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {BoxBundle}
+     */
+    buildBox(labSize, labCenter, actorProperties) {
+        return new BoxBundle(labSize, labCenter, this.transform, actorProperties);
+    }
+
+    /**
+     * Builds a line
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {LineBundle}
+     */
+    buildLine(labP1, labP2, actorProperties) {
+        return new LineBundle(labP1, labP2, this.transform, actorProperties);
+    }
+
+    /**
+     * Builds a plane
+     * @param {[number]} labOrigin - origin
+     * @param {[number]} labP1 - 1st point
+     * @param {[number]} labP2 - 2nd point
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {LineBundle}
+     */
+    buildPlane(labOrigin, labP1, labP2, actorProperties) {
+        return new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
+    }
+
+    /**
+     * Builds a sphere
+     * @param {[number]} labCenter - center in the lab
+     * @param {number} radius
+     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
+     * @returns {SphereBundle}
+     */
+    buildSphere(labCenter, radius, actorProperties) {
+        return new SphereBundle(labCenter, radius, this.transform, actorProperties);
+    }
+}
+
+/**
+ * A 2-dimensional representation of a 3-dimensional vtk object
+ */
+class ViewPortObject {
+    /**
+     * @param {*} source - a vtk source, reader, etc.
+     * @param {vtk.Rendering.Core.vtkRenderer} renderer - a vtk renderer
+     */
+    constructor(source, renderer) {
+        /** @member {*} - vtk source */
+        this.source = source;
+
+        /** @member {vtk.Rendering.Core.vtkCoordinate} - vtk coordinate system */
+        this.worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
+            renderer: renderer
+        });
+        this.worldCoord.setCoordinateSystemToWorld();
+    }
+
+    /**
+     * Calculates the rectangle surrounding the vtk object, projected into the viewport
+     * @returns {Rect}
+     */
+    boundingRect() {
+        const e = this.extrema();
+        const xCoords = [];
+        const yCoords = [];
+        e.x.concat(e.y).forEach(arr => {
+            arr.forEach(p => {
+                xCoords.push(p.x);
+                yCoords.push(p.y);
+            });
+        });
+        return new SIREPO.GEOMETRY.Rect(
+            new SIREPO.GEOMETRY.Point(Math.min.apply(null, xCoords), Math.min.apply(null, yCoords)),
+            new SIREPO.GEOMETRY.Point(Math.max.apply(null, xCoords), Math.max.apply(null, yCoords))
+        );
+    }
+
+    /**
+     * An external edge has all other corners on the same side of the line it defines
+     * @param {string} dim - dimension (x|y|z)
+     * @returns {[LineSegment]}
+     */
+    externalViewportEdgesForDimension(dim) {
+        const edges = [];
+        for (const edge of this.viewportEdges()[dim]) {
+            let numCorners = 0;
+            let compCount = 0;
+            for (const otherDim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                if (otherDim === dim) {
+                    continue;
+                }
+                for (const otherEdge of this.viewportEdges()[otherDim]) {
+                    const otherEdgeCorners = otherEdge.points;
+                    for (let k = 0; k <= 1; ++k) {
+                        const n = edge.comparePoint(otherEdgeCorners[k]);
+                        compCount += n;
+                        if (n !== 0) {
+                            numCorners++;
+                        }
+                    }
+                }
+            }
+            edges.push(Math.abs(compCount) === numCorners ? edge : null);
+        }
+        return edges;
+    }
+
+    /**
+     * points on the screen that have the largest and smallest values in each dimension
+     * @returns {{}} - mapping of dimension to the extrema, e.g. {x: [p1, p2, ...], ...}
+     */
+    extrema() {
+        const ex = {};
+        for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice(0, 2)) {
+            ex[dim] = [];
+            for (const x of [false, true]) {
+                ex[dim].push(SIREPO.GEOMETRY.GeometryUtils.extrema(this.viewPortCorners(), dim, x));
+            }
+        }
+        return ex;
+    }
+
+    /**
+     * Translates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
+     * world
+     * @param {Point} worldPoint
+     * @returns {Point}
+     */
+    viewPortPoint(worldPoint) {
+        // this is required to do conversions for different displays/devices
+        const pixels = window.devicePixelRatio;
+        this.worldCoord.setCoordinateSystemToWorld();
+        this.worldCoord.setValue(worldPoint.coords());
+        const lCoord = this.worldCoord.getComputedLocalDisplayValue()
+            .map(x => x / pixels);
+        return new SIREPO.GEOMETRY.Point(lCoord[0], lCoord[1]);
+    }
+
+    /**
+     * Translates the given Points from vtk world to viewport
+     * @param {[Point]} coords - 3d points
+     * @returns {[Point]} - 2d points
+     */
+   viewPortPoints(coords) {
+        return coords.map(x => this.viewPortPoint(x));
+   }
+
+    /**
+     * Translates corners from vtk world to viewport
+     * @returns {[Point]}
+     */
+    viewPortCorners() {
+        return this.viewPortPoints(this.worldCorners());
+    }
+
+    /**
+     * Translates edges from vtk world to viewport
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: [LineSegment1, LineSegment2], ...}
+     */
+    viewportEdges() {
+        const ee = {};
+        const es = this.worldEdges();
+        for (const e in es) {
+            const lEdges = [];
+            for (let edge of es[e]) {
+                const lpts = this.viewPortPoints(edge.points);
+                lEdges.push(new SIREPO.GEOMETRY.LineSegment(lpts[0], lpts[1]));
+            }
+            ee[e] = lEdges;
+        }
+        return ee;
+    }
+
+    /**
+     * Gets the center of the vtk object
+     * @returns {Point}
+     */
+    worldCenter() {
+        return new SIREPO.GEOMETRY.Point(...this.source.getCenter());
+    }
+
+    /**
+     * Gets the corners of the vtk object. Subclasses should override
+     * @returns {[Point]}
+     */
+    worldCorners() {
+        return [];
+    }
+
+    /**
+     * Gets the edges - that is, the lines connecting corners. Subclasses should override
+     * @returns {{}}
+     */
+    worldEdges() {
+        return {};
+    }
+}
+
+/**
+ * A ViewPortObject for a cube source
+ */
+class ViewPortBox extends ViewPortObject {
+    /**
+     * @param {vtk.Filters.Sources.vtkCubeSource} source - vtk cube source
+     * @param {vtk.Rendering.Core.vtkRenderer} renderer - vtk renderer
+     */
+    constructor(source, renderer) {
+        super(source, renderer);
+        this.arrangeEdges();
+    }
+
+    /**
+     * Puts the edges into suitable order
+     */
+    arrangeEdges() {
+        const edgeCfg = {
+            x: {
+                edgeCornerPairs: [[0, 1], [4, 5], [2, 3], [6, 7]],
+                sense: 1
+            },
+            y: {
+                edgeCornerPairs: [[0, 2], [1, 3], [4, 6], [5, 7]],
+                sense: 1
+            },
+            z: {
+                edgeCornerPairs: [[4, 0], [5, 1], [6, 2], [7, 3]],
+                sense: -1
+            },
+        };
+        for (const dim in edgeCfg) {
+            const c = edgeCfg[dim];
+            for (let i = 0; i < c.edgeCornerPairs.length; ++i) {
+                if (c.sense < 0) {
+                    c.edgeCornerPairs[i].reverse();
+                }
+            }
+        }
+        this.edgeCfg = edgeCfg;
+    }
+
+    /**
+     * Gets the lines through the center of the object for each dimension
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: LineSegment1, ...}
+     */
+    centerLines() {
+        const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
+        const cls = {};
+        const sz = this.worldSize();
+        const tx = new SIREPO.GEOMETRY.Transform(new SIREPO.GEOMETRY.Matrix(
+            [
+                [sz[0] / 2, 0, 0],
+                [0, sz[1] / 2, 0],
+                [0, 0, sz[2] / 2]
+            ]
+        ));
+        for(const dim in SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()) {
+            const txp = tx.apply(new SIREPO.GEOMETRY.Matrix(SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim]));
+            cls[dim] = new SIREPO.GEOMETRY.LineSegment(
+                this.viewPortPoint(new SIREPO.GEOMETRY.Point(...ctr.subtract(txp).val)),
+                this.viewPortPoint(new SIREPO.GEOMETRY.Point(...ctr.add(txp).val))
+            );
+        }
+        return cls;
+    }
+
+    /**
+     * Gets the corners of the box
+     * @returns {[Point]}
+     */
+    worldCorners() {
+        const ctr = this.worldCenter();
+        let corners = [];
+
+        const sides = [-0.5, 0.5];
+        const sz = this.worldSize();
+        for(const i in sides) {
+            for (const j in sides) {
+                for (const k in sides) {
+                    const s = [sides[k], sides[j], sides[i]];
+                    const c = [];
+                    for(let l = 0; l < 3; ++l) {
+                        c.push(ctr.coords()[l] + s[l] * sz[l]);
+                    }
+                    corners.push(new SIREPO.GEOMETRY.Point(...c));
+                }
+            }
+        }
+        return corners;
+    }
+
+    /**
+     * Gets the edges of the box in each dimension
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: [LineSegment1, LineSegment2], ...}
+     */
+    worldEdges() {
+        const c = this.worldCorners();
+        const e = {};
+        for (const dim in this.edgeCfg) {
+            const cp = this.edgeCfg[dim].edgeCornerPairs;
+            const lines = [];
+            for (const j in cp) {
+                const p = cp[j];
+                lines.push(new SIREPO.GEOMETRY.LineSegment(c[p[0]], c[p[1]]));
+            }
+            e[dim] = lines;
+        }
+        return e;
+    }
+
+    /**
+     * Gets the size of the box
+     * @returns {[number]}
+     */
+    worldSize() {
+        return [
+            this.source.getXLength(),
+            this.source.getYLength(),
+            this.source.getZLength()
+        ];
+    }
+}
+
 SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
 
-    var self = {};
-    var stlReaders = {};
+    let self = {};
+    let stlReaders = {};
 
     self.COORDINATE_PLANES = {
         'xy': [0, 0, 1],
@@ -22,20 +948,15 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.adjustContainerSize = function(container, rect, ctrAspectRatio, thresholdPct) {
-        var fsAspectRatio = window.screen.availWidth / window.screen.availHeight;
+        const fsAspectRatio = window.screen.availWidth / window.screen.availHeight;
 
         container.height(container.width() / (utilities.isFullscreen() ? fsAspectRatio : ctrAspectRatio));
 
-        var w = container.width();
-        var h = container.height();
-        var wThresh = Math.max(thresholdPct * w, 1);
-        var hThresh = Math.max(thresholdPct * h, 1);
-        var wdiff = Math.abs(w - rect.width);
-        var hdiff = Math.abs(h - rect.height);
-        if (hdiff > hThresh || wdiff > wThresh) {
-            return true;
-        }
-        return false;
+        const w = container.width();
+        const h = container.height();
+        return Math.abs(h - rect.height) > Math.max(thresholdPct * h, 1) ||
+            Math.abs(w - rect.width) > Math.max(thresholdPct * w, 1);
+
     };
 
     self.coordMapper = function(transform) {
@@ -208,6 +1129,40 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         };
     };
 
+    self.buildSTL = (coordMapper, file, callback) => {
+        let r = self.getSTLReader(file);
+        if (r) {
+            setSTL(r);
+            return;
+        }
+
+        self.loadSTLFile(file).then(function (r) {
+            r.loadData()
+                .then(function (res) {
+                    self.addSTLReader(file, r);
+                    setSTL(r);
+                }, function (reason) {
+                    throw new Error(file + ': Error loading data from .stl file: ' + reason);
+                }
+            ).catch(function (e) {
+                errorService.alertText(e);
+            });
+        });
+
+        function setSTL(r) {
+            const b = new ActorBundle(r, coordMapper.transform);
+            let m = [];
+            coordMapper.transform.matrix.val.forEach(x =>  {
+                m = m.concat(x);
+                m.push(0);
+            });
+            m = m.concat([0, 0, 0, 1]);
+            b.actor.setUserMatrix(m);
+            callback(b);
+        }
+
+    };
+
     self.clearSTLReaders = function() {
         stlReaders = {};
     };
@@ -343,343 +1298,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
     self.stlFileType = 'stl-file';
 
-    self.vtkPlot = function(scope, element) {
-
-        scope.element = element[0];
-        var requestData = plotting.initAnimation(scope);
-
-        scope.windowResize = utilities.debounce(function() {
-            scope.resize();
-        }, 250);
-
-        scope.$on('$destroy', function() {
-            scope.destroy();
-            scope.element = null;
-            $($window).off('resize', scope.windowResize);
-        });
-
-        scope.$on(
-            scope.modelName + '.changed',
-            function() {
-                scope.prevFrameIndex = -1;
-                if (scope.modelChanged) {
-                    scope.modelChanged();
-                }
-                panelState.clear(scope.modelName);
-                requestData();
-            });
-        scope.isLoading = function() {
-            return panelState.isLoading(scope.modelName);
-        };
-        $($window).resize(scope.windowResize);
-
-        scope.init();
-        if (appState.isLoaded()) {
-            requestData();
-        }
-    };
-
-    // "Superclass" for representation of vtk source objects in ViewPort coordinates
-    // Note this means that vpObjects are implicitly two-dimensional
-    // A vpObject is assumed to have corners and edges connecting them, but no other
-    // intrinsic properties
-    self.vpObject = function(vtkSource, renderer) {
-
-        var svc = self;
-        var vpObj = {};
-
-        var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
-            renderer: renderer
-        });
-        worldCoord.setCoordinateSystemToWorld();
-
-        // arbitrary configuration
-        vpObj.defaultCfg = {};
-
-        vpObj.worldReady = false;
-
-        vpObj.source = vtkSource;
-        vpObj.wCoord = worldCoord;
-        vpObj.worldCorners = wCorners();
-        vpObj.worldEdges = {};
-
-        vpObj.viewportCorners = [];
-        vpObj.viewportEdges = {};
-
-        // Override in subclass
-        // world geometry does not change so they can be set once
-
-        vpObj.wEdgesForDimension = function(dim) {
-            return vpObj.worldEdges[dim];
-        };
-
-        vpObj.boundingRect = function() {
-            var vpe = vpObj.vpExtrema();
-            var extrema = vpe.x.concat(vpe.y);
-            var xCoords = [];
-            var yCoords = [];
-            extrema.forEach(function (arr) {
-                arr.forEach(function (p) {
-                    xCoords.push(p.x);
-                    yCoords.push(p.y);
-                });
-            });
-            return geometry.rect(
-                geometry.point(Math.min.apply(null, xCoords), Math.min.apply(null, yCoords)),
-                geometry.point(Math.max.apply(null, xCoords), Math.max.apply(null, yCoords))
-            );
-        };
-
-        // an external edge has all other corners on the same side of the line it defines
-        vpObj.externalVpEdgesForDimension = function (dim) {
-            var ext = [];
-            vpObj.vpEdgesForDimension(dim).forEach(function (edge) {
-                var numCorners = 0;
-                var compCount = 0;
-                for(var i in geometry.basis) {
-                    var otherDim = geometry.basis[i];
-                    if (otherDim === dim) {
-                        continue;
-                    }
-                    var otherEdges = vpObj.vpEdgesForDimension(otherDim);
-                    for(var j = 0; j < otherEdges.length; ++j) {
-                        var otherEdgeCorners = otherEdges[j].points();
-                        for(var k = 0; k <= 1; ++k) {
-                            var n = edge.line().comparePoint(otherEdgeCorners[k]);
-                            compCount += n;
-                            if (n !== 0) {
-                                numCorners++;
-                            }
-                        }
-                    }
-                }
-                ext.push(Math.abs(compCount) === numCorners ? edge : null);
-            });
-            return ext;
-        };
-
-        vpObj.initializeWorld = function() {
-            if (! vpObj.worldReady) {
-                vpObj.worldReady = true;
-            }
-        };
-
-        vpObj.localCoordFromWorld = function (point) {
-            return svc.localCoordFromWorld(vpObj.wCoord, point);
-        };
-
-        vpObj.localCoordArrayFromWorld = function (arr) {
-            return arr.map(function (p) {
-                return vpObj.localCoordFromWorld(p);
-            });
-        };
-
-        vpObj.vpCorners = function() {
-            return vpObj.localCoordArrayFromWorld(vpObj.worldCorners);
-        };
-
-        vpObj.vpEdges = function() {
-            var ee = {};
-            var es = vpObj.worldEdges;
-            for (var e in es) {
-                var edges = es[e];
-                var lEdges = [];
-                for (var i = 0; i < edges.length; ++i) {
-                    var ls = edges[i];
-                    var wpts = ls.points();
-                    var lpts = [];
-                    for (var j = 0; j < wpts.length; ++j) {
-                        lpts.push(vpObj.localCoordFromWorld(wpts[j]));
-                    }
-                    var lEdge = geometry.lineSegment(lpts[0], lpts[1]);
-                    lEdges.push(lEdge);
-                }
-                ee[e] = lEdges;
-            }
-            return ee;
-        };
-
-        vpObj.vpEdgesForDimension = function (dim) {
-            return vpObj.vpEdges()[dim];
-        };
-
-        // points on the screen that have the largest and smallest values in each dimension
-        vpObj.vpExtrema = function() {
-            var ex = {};
-            // just x and y
-            var dims = geometry.basis.slice(0, 2);
-            var rev = [false, true];
-            dims.forEach(function (dim) {
-                ex[dim] = [];
-                for( var j in rev ) {
-                    ex[dim].push(geometry.extrema(vpObj.vpCorners(), dim, rev[j]));
-                }
-            });
-            return ex;
-        };
-
-        function wCorners() {
-            // [x0, x1, y0, y1, z0, z1]
-            var b = vpObj.source.getOutputData().getBounds();
-            return [
-                geometry.pointFromArr([b[0], b[2], b[4]]),
-                geometry.pointFromArr([b[0], b[2], b[5]]),
-                geometry.pointFromArr([b[0], b[3], b[4]]),
-                geometry.pointFromArr([b[0], b[3], b[5]]),
-                geometry.pointFromArr([b[1], b[2], b[4]]),
-                geometry.pointFromArr([b[1], b[2], b[5]]),
-                geometry.pointFromArr([b[1], b[3], b[4]]),
-                geometry.pointFromArr([b[1], b[3], b[5]])
-            ];
-        }
-
-        return vpObj;
-    };
-
-
-    // Takes a vtk cube source and renderer and returns a box in viewport coordinates with a bunch of useful
-    // geometric properties and methods
-    self.vpBox = function(vtkCubeSource, renderer) {
-
-        var box = self.vpObject(vtkCubeSource, renderer);
-        box.defaultCfg = {
-            edgeCfg: {
-                x: { sense: 1 },
-                y: { sense: 1 },
-                z: { sense: 1 },
-            }
-        };
-
-        // box corners are defined thus:
-        //
-        //   2------X2------3    6------X3------7
-        //   |              |    |              |
-        //   |              |    |              |
-        //   Y0   Front    Y1    Y2   Back     Y3
-        //   |              |    |              |
-        //   |              |    |              |
-        //   0------X0------1    4------X1------5
-        //
-        //TODO(mvk): Order is important only for axis direction and should be supplied externally
-        var edgeCornerPairs = {
-            x: [[0, 1], [4, 5], [2, 3], [6, 7]],
-            y: [[0, 2], [1, 3], [4, 6], [5, 7]],
-            z: [[4, 0], [5, 1], [6, 2], [7, 3]]
-        };
-
-        var initWorldFn = box.initializeWorld;
-        //box.initializeWorld = function () {
-        box.initializeWorld = function (cfg) {
-            if (! box.worldReady) {
-                cfg = cfg || box.defaultCfg;
-                for (var dim in cfg.edgeCfg) {
-                    var c = cfg.edgeCfg[dim];
-                    for (var i = 0; i < edgeCornerPairs[dim].length; ++i) {
-                        if (c.sense < 0) {
-                            edgeCornerPairs[dim][i].reverse();
-                        }
-                    }
-                }
-                box.worldCorners = wCorners();
-                box.worldEdges = wEdges();
-            }
-            initWorldFn();
-        };
-
-        function wCenter() {
-            return geometry.pointFromArr(box.source.getCenter());
-        }
-
-        // Convenience for indexed looping
-        function wLength() {
-            return [
-                box.source.getXLength(),
-                box.source.getYLength(),
-                box.source.getZLength()
-            ];
-        }
-
-        // Convenience for basis looping
-        function wl() {
-            var l = wLength();
-            return {
-                x: l[0],
-                y: l[1],
-                z: l[2]
-            };
-        }
-
-        function wCorners() {
-            var ctr = wCenter();
-            var corners = [];
-
-            var sides = [-0.5, 0.5];
-            var len = wLength();
-            for(var i in sides) {
-                for (var j in sides) {
-                    for (var k in sides) {
-                        var s = [sides[k], sides[j], sides[i]];
-                        var c = [];
-                        for(var l = 0; l < 3; ++l) {
-                            c.push(ctr.coords()[l] + s[l] * len[l]);
-                        }
-                        corners.push(geometry.pointFromArr(c));
-                    }
-                }
-            }
-            return corners;
-        }
-
-        function wEdges() {
-            var c = box.worldCorners;
-            var e = {};
-            for (var dim in edgeCornerPairs) {
-                var lines = [];
-                for (var j in  edgeCornerPairs[dim]) {
-                    var p = edgeCornerPairs[dim][j];
-                    var l = geometry.lineSegment(c[p[0]], c[p[1]]);
-                    lines.push(l);
-                }
-                e[dim] = lines;
-            }
-            return e;
-        }
-
-        box.vpCenterLineForDimension = function (dim) {
-            return vpCenterLines()[dim];
-        };
-
-        function vpCenterLines() {
-            var ctr = wCenter().coords();
-            var cls = {};
-            var lens = wl();
-            var m = [
-                [lens.x / 2, 0, 0],
-                [0, lens.y / 2, 0],
-                [0, 0, lens.z / 2]
-            ];
-            var tx = geometry.transform(m);
-            for(var dim in geometry.basisVectors) {
-                var txp = tx.doTransform(geometry.basisVectors[dim]);
-                var p1 = box.localCoordFromWorld(geometry.pointFromArr(
-                    geometry.vectorSubtract(ctr, txp)
-                ));
-                var p2 = box.localCoordFromWorld(geometry.pointFromArr(
-                    geometry.vectorAdd(ctr, txp)
-                ));
-                cls[dim] = geometry.lineSegment(p1, p2);
-            }
-            return cls;
-        }
-
-        return box;
-    };
-
-    self.vpSTL = function(stlReader, renderer) {
-        var stl = self.vpObject(stlReader, renderer);
-        return stl;
-    };
-
     self.addActors = function(renderer, actorArr) {
         actorArr.forEach(function(actor) {
             self.addActor(renderer, actor);
@@ -725,36 +1343,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         if (! waitToRender) {
             renderWindow.render();
         }
-    };
-
-    self.localCoordFromWorld = function (vtkCoord, point) {
-        // this is required to do conversions for different displays/devices
-        var pixels = window.devicePixelRatio;
-        vtkCoord.setCoordinateSystemToWorld();
-        vtkCoord.setValue(point.coords());
-        var lCoord = vtkCoord.getComputedLocalDisplayValue();
-        return geometry.point(lCoord[0] / pixels, lCoord[1] / pixels);
-    };
-
-    self.vtkUserMatrixFromMatrix = function(matrix) {
-        var um = [];
-        matrix.forEach(function (row) {
-            um = um.concat(row);
-            um.push(0);
-        });
-        um = um.concat([0, 0, 0, 1]);
-        return um;
-    };
-
-    self.worldCoordFromLocal = function (coord, point, view) {
-        var pixels = window.devicePixelRatio;
-        var newPoint = [pixels * point.coords()[0], pixels * point.coords()[1]];
-        // must first convert from "localDisplay" to "display"  - this is the inverse of
-        // what is done by vtk to get from display to localDisplay
-        var newPointView = [newPoint[0], view.getFramebufferSize()[1] - newPoint[1] - 1];
-        coord.setCoordinateSystemToDisplay();
-        coord.setValue(newPointView);
-        return coord.getComputedWorldValue();
     };
 
     return self;
@@ -1675,48 +2263,43 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             }
 
             function refresh() {
-                var size = [$($element).width(), $($element).height()];
-                var pos = $($element).offset();
-                //srdbg('axes pos', pos, 'sz', size);
-                var screenRect = geometry.rect(
-                    geometry.point(
+                const size = [$($element).width(), $($element).height()];
+                const screenRect = new SIREPO.GEOMETRY.Rect(
+                    new SIREPO.GEOMETRY.Point(
                         $scope.axesMargins.x.width,
                         $scope.axesMargins.y.height
                     ),
-                    geometry.point(
+                    new SIREPO.GEOMETRY.Point(
                         size[0] - $scope.axesMargins.x.width,
                         size[1] - $scope.axesMargins.y.height
                     )
                 );
 
-                var dsz = [size[0] / lastSize[0], size[1] / lastSize[1]];
                 // If an axis is shorter than this, don't display it -- the ticks will
                 // be cramped and unreadable
-                var minAxisDisplayLen = 50;
+                const minAxisDisplayLen = 50;
 
-                for (var i in geometry.basis) {
+                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
 
-                    var dim = geometry.basis[i];
-                    var cfg = axisCfg[dim];
+                    const cfg = axisCfg[dim];
+                    const isHorizontal = cfg.screenDim === 'x';
+                    const axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
+                    const perpScreenDim = isHorizontal ? 'y' : 'x';
 
-                    var screenDim = cfg.screenDim;
-                    var isHorizontal = screenDim === 'x';
-                    var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
-                    var perpScreenDim = isHorizontal ? 'y' : 'x';
-
-                    var showAxisEnds = false;
-                    var axisSelector = '.' + dim + '.axis';
-                    var axisLabelSelector = '.' + dim + '-axis-label';
+                    let showAxisEnds = false;
+                    const axisSelector = `.${dim}.axis`;
+                    const axisLabelSelector = `.${dim}-axis-label`;
 
                     // sort the external edges so we'll preferentially pick the left and bottom
-                    var externalEdges = $scope.boundObj.externalVpEdgesForDimension(dim)
+                    const externalEdges = $scope.boundObj.externalViewportEdgesForDimension(dim)
                         .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
-                    var seg = geometry.bestEdgeAndSectionInBounds(
+                    const seg = geometry.bestEdgeAndSectionInBounds(
                         externalEdges, screenRect, dim, false
                     );
-                    var cl = $scope.boundObj.vpCenterLineForDimension(dim);
-                    var cli = screenRect.boundaryIntersectionsWithSeg(cl);
-                    if (cli && cli.length == 2) {
+                    const cli = screenRect.boundaryIntersectionsWithSeg(
+                        $scope.boundObj.centerLines()[dim]
+                    );
+                    if (cli && cli.length === 2) {
                         $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
                         $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
                     }
@@ -1740,14 +2323,17 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         continue;
                     }
                     d3self.select(axisSelector).style('opacity', 1.0);
-                    //d3self.select(axisSelector).style('stroke', $scope.cfg.color);
 
-                    var fullSeg = seg.full;
-                    var clippedSeg = seg.clipped;
+                    const fullSeg = seg.full;
+                    const clippedSeg = seg.clipped;
                     var reverseOnScreen = vtkAxisService.shouldReverseOnScreen(
-                        $scope.boundObj.vpEdgesForDimension(dim)[seg.index], screenDim
+                        $scope.boundObj.viewportEdges()[dim][seg.index], cfg.screenDim
                     );
-                    var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
+                    var sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        clippedSeg.points,
+                        cfg.screenDim,
+                        false
+                    );
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
                     var axisRight = sortedPts[1].x;
@@ -1767,7 +2353,11 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     }
                     var angle = (180 * radAngle / Math.PI);
 
-                    var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), screenDim, false);
+                    const allPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        fullSeg.points.concat(clippedSeg.points),
+                        cfg.screenDim,
+                        false
+                    );
 
                     var limits = reverseOnScreen ? [cfg.max, cfg.min] : [cfg.min, cfg.max];
                     var newDom = [cfg.min, cfg.max];
@@ -1775,7 +2365,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     for (var m = 0; m < allPts.length; m += 2) {
                         // a point may coincide with its successor
                         var d = allPts[m].dist(allPts[m + 1]);
-                        if (d != 0) {
+                        if (d !== 0) {
                             var j = Math.floor(m / 2);
                             var k = reverseOnScreen ? 1 - j : j;
                             var l1 = limits[j];
@@ -1792,7 +2382,11 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
 
                     // this places the axis tick labels on the appropriate side of the axis
-                    var outsideCorner = geometry.sortInDimension($scope.boundObj.vpCorners(), perpScreenDim, isHorizontal)[0];
+                    var outsideCorner = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        $scope.boundObj.viewPortCorners(),
+                        perpScreenDim,
+                        isHorizontal
+                    )[0];
                     var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
                     if (isHorizontal) {
                         axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
@@ -1878,8 +2472,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 }
             }
 
-            appState.whenModelsLoaded($scope, init);
-
             $scope.$on('axes.refresh', refresh);
 
             // may not need this refresh?
@@ -1896,6 +2488,8 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     refresh();
                 }
             });
+
+            init();
         },
     };
 });
@@ -1916,14 +2510,14 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
             if (! e2) {
                 return -1;
             }
-            var pt1 = geometry.sortInDimension(e1.points(), dim, shouldReverse)[0];
-            var pt2 = geometry.sortInDimension(e2.points(), dim, shouldReverse)[0];
+            var pt1 = geometry.sortInDimension(e1.points, dim, shouldReverse)[0];
+            var pt2 = geometry.sortInDimension(e2.points, dim, shouldReverse)[0];
             return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
         };
     };
 
     svc.shouldReverseOnScreen = function(edge, screenDim) {
-        return edge.points()[1][screenDim] < edge.points()[0][screenDim];
+        return edge.points[1][screenDim] < edge.points[0][screenDim];
     };
 
     return svc;
@@ -1934,9 +2528,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
     return {
         restrict: 'A',
-        //transclude: {
-        //    visabilityControlSlot: '?visabilityControl',
-        //},
         scope: {
             axisCfg: '<',
             axisObj: '<',
@@ -1945,64 +2536,34 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            resetSide: '@',
             showBorder: '@',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
 
-            $scope.vtkUtils = vtkUtils;
+            $scope.VTKUtils = VTKUtils;
             $scope.markerState = {
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate';
-            $scope.modeText[vtkUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
+            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.selection = null;
 
-            // common
-            var api = {
-                getMode: getInteractionMode,
-                setBg: setBgColor,
-                setCam: setCam,
-                setMarker: setMarker,
-                resetSide: 'x',
-                showSide: showSide,
-                axisDirs: {
-                    dir: 1,
-                    x: {
-                        camViewUp: [0, 0, 1]
-                    },
-                    y: {
-                        camViewUp: [0, 0, 1]
-                    },
-                    z: {
-                        camViewUp: [0, 1, 0]
-                    }
-                },
-            };
-
-            var cam = null;
-            var canvas3d = null;
-            var didPan = false;
-            var fsRenderer = null;
-            var hasBodyEvt = false;
-            var hdlrs = {};
-            var isDragging = false;
-            var isPointerUp = true;
-            var marker = null;
-            var renderer = null;
-            var renderWindow = null;
-            var snapshotCanvas = null;
-            var snapshotCtx = null;
+            let canvas3d = null;
+            let didPan = false;
+            let hasBodyEvt = false;
+            let hdlrs = {};
+            let isDragging = false;
+            let isPointerUp = true;
+            let snapshotCanvas = null;
+            let snapshotCtx = null;
 
             const resize = utilities.debounce(refresh, 250);
 
-            function getInteractionMode() {
-                return $scope.interactionMode;
-            }
-
             // supplement or override these event handlers
-            var eventHandlers = {
+            let eventHandlers = {
                 onpointerdown: function (evt) {
                     isDragging = false;
                     isPointerUp = false;
@@ -2013,7 +2574,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                     isDragging = true;
                     didPan = didPan || evt.shiftKey;
-                    $scope.side = null;
+                    $scope.vtkScene.viewSide = null;
                     utilities.debounce(refresh, 100)();
                 },
                 onpointerup: function (evt) {
@@ -2030,92 +2591,35 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
             };
 
-            function ondblclick(evt) {
-                $scope.side = '';
-                $scope.showSide(api.resetSide);
+            function ondblclick() {
+                $scope.vtkScene.resetView();
+                refresh();
+                $scope.$apply();
             }
-
-            function setBgColor(hexColor) {
-                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
-                renderWindow.render();
-            }
-
-            function setCam(pos, vu) {
-                if (! fsRenderer) {
-                    return;
-                }
-                var cam = renderer.get().activeCamera;
-                //cam.setPosition(...(pos || [1, 0, 0]));
-                var p = pos || [1, 0, 0];
-                cam.setPosition(p[0], p[1], p[2]);
-                cam.setFocalPoint(0, 0, 0);
-                //cam.setViewUp(...(vu || [0, 0, 1]));
-                var v = vu || [0, 0, 1];
-                cam.setViewUp(v[0], v[1], v[2]);
-                renderer.resetCamera();
-                // make room for left axis label on wide plots
-                cam.yaw(0.6);
-                if (marker) {
-                    marker.updateMarkerOrientation();
-                }
-                renderWindow.render();
-            }
-
-            function setMarker(m) {
-                marker = m;
-                setMarkerVisible();
-            }
-
-            function setMarkerVisible() {
-                if (! marker) {
-                    return;
-                }
-                marker.setEnabled($scope.markerState.enabled);
-                renderWindow.render();
-            }
-
-            $scope.hasMarker = function() {
-                return ! ! marker;
-            };
 
             $scope.init = function() {
-                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
-                var body = angular.element($($document).find('body'))[0];
+                const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                const body = angular.element($($document).find('body'))[0];
                 hdlrs = $scope.eventHandlers || {};
 
                 // vtk adds keypress event listeners to the BODY of the entire document, not the render
                 // container.
                 hasBodyEvt = Object.keys(hdlrs).some(function (e) {
-                    return ['keypress', 'keydown', 'keyup'].indexOf(e) >= 0;
+                    return ['keypress', 'keydown', 'keyup'].includes(e);
                 });
                 if (hasBodyEvt) {
-                    var bodyAddEvtLsnr = body.addEventListener;
-                    var bodyRmEvtLsnr = body.removeEventListener;
-                    body.addEventListener = function(type, listener, opts) {
+                    const bodyAddEvtLsnr = body.addEventListener;
+                    const bodyRmEvtLsnr = body.removeEventListener;
+                    body.addEventListener = (type, listener, opts) => {
                         bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener, opts);
                     };
                     // seem to need to do this so listeners get removed correctly
-                    body.removeEventListener = function(type, listener, opts) {
+                    body.removeEventListener = (type, listener, opts) => {
                         bodyRmEvtLsnr(type, listener, opts);
                     };
                 }
 
-                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-                    background: [1, 1, 1, 1],
-                    container: rw,
-                    listenWindowResize: false,
-                });
-                renderer = fsRenderer.getRenderer();
-                renderWindow = fsRenderer.getRenderWindow();
-                var interactor = renderWindow.getInteractor();
-                var mainView = renderWindow.getViews()[0];
-
-                cam = renderer.get().activeCamera;
-
-                var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
-                    renderer: renderer
-                });
-                worldCoord.setCoordinateSystemToWorld();
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
@@ -2139,23 +2643,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 snapshotCanvas = document.createElement('canvas');
                 snapshotCtx = snapshotCanvas.getContext('2d');
                 plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
-
-                // allow ancestor scopes access to the renderer etc.
-                $scope.$emit('vtk-init', {
-                    api: api,
-                    objects: {
-                        camera: cam,
-                        container: fsRenderer.getContainer(),
-                        //listeners: lsnrs,
-                        renderer: renderer,
-                        window: renderWindow,
-                        fsRenderer: fsRenderer,
-                    }
-                });
+                $scope.$emit('vtk-init', $scope.vtkScene);
             };
 
             $scope.canvasGeometry = function() {
-                var vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
+                const vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
                 return {
                     pos: $(vtkCanvasHolder).position(),
                     size: {
@@ -2165,38 +2657,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 };
             };
 
-            $scope.interactionMode = vtkUtils.INTERACTION_MODE_MOVE;
-
-            $scope.setInteractionMode = function(mode) {
-                $scope.interactionMode = mode;
-                //renderWindow.getInteractor().setRecognizeGestures(mode === vtkUtils.INTERACTION_MODE_MOVE);
-            };
-
-            $scope.axisDirs = api.axisDirs;
-            $scope.side = 'x';
-            $scope.showSide = showSide;
-
-            function showSide(side) {
-                if (side == $scope.side) {
-                    $scope.axisDirs.dir *= -1;
-                }
-                $scope.side = side;
-                var cp = geometry.basisVectors[side].map(function (c) {
-                    return c * $scope.axisDirs.dir;
-                });
-                setCam(cp, $scope.axisDirs[side].camViewUp);
-                refresh();
-            }
-
-            $scope.toggleMarker = function() {
-                setMarkerVisible();
-            };
-
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);
-                fsRenderer.getInteractor().unbindEvents();
-                fsRenderer.delete();
+                $scope.vtkScene.teardown();
                 plotToPNG.removeCanvas($scope.reportId);
             });
 
@@ -2204,55 +2668,48 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 if (! snapshotCtx) {
                     return;
                 }
-                var w = parseInt(canvas3d.getAttribute('width'));
-                var h = parseInt(canvas3d.getAttribute('height'));
+                const w = parseInt(canvas3d.getAttribute('width'));
+                const h = parseInt(canvas3d.getAttribute('height'));
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                $scope.vtkScene.fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
             function refresh(doCacheCanvas) {
-
                 if ($scope.axisObj) {
                     $scope.$broadcast('axes.refresh');
                 }
-
                 if (doCacheCanvas) {
                     cacheCanvas();
                 }
             }
 
-            appState.whenModelsLoaded($scope, function () {
-                $scope.$on('vtk.selected', function (e, d) {
-                    $scope.$applyAsync(function () {
-                        $scope.selection = d;
-                    });
+            $scope.$on('vtk.selected', function (e, d) {
+                $scope.$applyAsync(() => {
+                    $scope.selection = d;
                 });
-                $scope.$on('vtk.showLoader', function (e, d) {
-                    setBgColor('#dddddd');
-                    $($element).find('.vtk-load-indicator img').css('display', 'block');
-                });
-                $scope.$on('vtk.hideLoader', function (e, d) {
-                    setBgColor('#ffffff');
-                    $($element).find('.vtk-load-indicator img').css('display', 'none');
-                });
-                $scope.init();
             });
+            $scope.$on('vtk.showLoader', function (e, d) {
+                $scope.vtkScene.setBgColor('#dddddd');
+                $($element).find('.vtk-load-indicator img').css('display', 'block');
+            });
+            $scope.$on('vtk.hideLoader', function (e, d) {
+                $scope.vtkScene.setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
+                $($element).find('.vtk-load-indicator img').css('display', 'none');
+            });
+            $scope.init();
+
 
             $($window).resize(resize);
         },
-
-        //link: function link(scope, element) {
-        //    vtkPlotting.vtkPlot(scope, element);
-        //},
     };
 });
 
 // general-purpose vtk methods
 SIREPO.app.service('vtkService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
-    var svc = {};
+    let svc = {};
     return svc;
 });
 
@@ -2266,9 +2723,9 @@ SIREPO.app.factory('vtkUtils', function() {
 
     // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
     // can't map, because we will still have a UINT8 array
-    self.rgbToFloat = function (rgb) {
-        var sc = [];
-        for (var i = 0; i < rgb.length; ++i) {
+    self.rgbToFloat = rgb => {
+        let sc = [];
+        for (let i = 0; i < rgb.length; ++i) {
             sc.push(rgb[i] / 255.0);
         }
         return sc;
@@ -2276,9 +2733,9 @@ SIREPO.app.factory('vtkUtils', function() {
 
     // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
     // can't map, because we will still have a UINT8 array
-    self.floatToRGB = function (f) {
-        var rgb = new window.Uint8Array(f.length);
-        for (var i = 0; i < rgb.length; ++i) {
+    self.floatToRGB =  f => {
+        const rgb = new window.Uint8Array(f.length);
+        for (let i = 0; i < rgb.length; ++i) {
             rgb[i] = Math.floor(255 * f[i]);
         }
         return rgb;
@@ -2286,3 +2743,14 @@ SIREPO.app.factory('vtkUtils', function() {
 
     return self;
 });
+
+SIREPO.VTK = {
+    ActorBundle: ActorBundle,
+    BoxBundle: BoxBundle,
+    CoordMapper: CoordMapper,
+    LineBundle: LineBundle,
+    PlaneBundle: PlaneBundle,
+    SphereBundle: SphereBundle,
+    ViewPortBox: ViewPortBox,
+    VTKUtils: VTKUtils,
+};

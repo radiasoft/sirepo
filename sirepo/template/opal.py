@@ -5,6 +5,8 @@ u"""OPAL execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import ast
+import astunparse
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -35,6 +37,25 @@ _DIM_INDEX = PKDict(
     y=1,
     z=2,
 )
+_OPAL_PI = 3.14159265358979323846
+_OPAL_CONSTANTS = PKDict(
+    pi=_OPAL_PI,
+    twopi=_OPAL_PI * 2.0,
+    raddeg=180.0 / _OPAL_PI,
+    degrad=_OPAL_PI / 180.0,
+    e=2.7182818284590452354,
+    emass=0.51099892e-03,
+    pmass=0.93827204e+00,
+    hmmass=0.939277e+00,
+    umass=238 * 0.931494027e+00,
+    cmass=12 * 0.931494027e+00,
+    mmass=0.10565837,
+    dmass=2*0.931494027e+00,
+    xemass=124*0.931494027e+00,
+    clight=299792458.0,
+    p0=1,
+    seed=123456789,
+)
 _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
 _OPAL_VTK_FILE = 'opal_ElementPositions.vtk'
@@ -46,11 +67,10 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
 
     def parse_file(self, path):
         from sirepo.template import opal_parser
-
         data, input_files = opal_parser.parse_file(
             pkio.read_text(path),
             filename=path.basename,
-            preserve_output_filenames=True,
+            update_filenames=False,
         )
         self._verify_files(path, [f.filename for f in input_files])
         return self._convert(data)
@@ -132,7 +152,7 @@ class OpalMadxConverter(MadxConverter):
             ['SBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
         ],
         ['RBEND',
-            ['RBEND', 'l', 'angle', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+            ['RBEND', 'l', 'angle', 'e1', 'gap=hgap', 'psi=tilt'],
         ],
         ['QUADRUPOLE',
             ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
@@ -202,6 +222,62 @@ class OpalMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP)
 
     def to_madx(self, data):
+
+        def _get_len_by_id(data, id):
+            for e in data.models.elements:
+                if e._id == id:
+                    return e.l
+            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
+
+        def _get_element_type(data, id):
+            for e in data.models.elements:
+                if e._id == id:
+                    return e.type
+            raise AssertionError(f'id={id} not found in elements={data.models.elements}')
+
+        def _get_drift(distance):
+            for e in data.models.elements:
+                if e.l == distance and e.type == 'DRIFT':
+                    return e
+            return False
+
+        def _insert_drift(distance, beam_idx, items_idx, pos, length):
+            d = _get_drift(distance)
+            n = LatticeUtil.max_id(data) + 1
+            m = 'D' + str(n)
+            if d:
+                n = d._id
+                m = d.name
+            new_drift = PKDict(
+                _id=n,
+                l=distance,
+                name=m,
+                type='DRIFT',
+            )
+            if not d:
+                data.models.elements.append(new_drift)
+            data.models.beamlines[beam_idx]['items'].insert(items_idx + 1, new_drift._id)
+            data.models.beamlines[beam_idx]['positions'].insert(
+                items_idx + 1,
+                PKDict(elemedge=str(float(pos) + length[0]))
+            )
+
+        def _get_distance_and_insert_drift(beamline, beam_idx):
+            for i, e in enumerate(beamline['items']):
+                    if i + 1 == len(beamline['items']):
+                        break
+                    if _get_element_type(data, e) == 'DRIFT':
+                        continue
+                    p = beamline.positions[i].elemedge
+                    n = beamline.positions[i + 1].elemedge
+                    l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                    d = round(float(n) - float(p) - l[0], 10)
+                    if d > 0:
+                        _insert_drift(d, beam_idx, i, p, l)
+
+        if data.models.simulation.elementPosition == 'absolute':
+            for j, b in enumerate(data.models.beamlines):
+                _get_distance_and_insert_drift(b, j)
         madx = super().to_madx(data)
         mb = LatticeUtil.find_first_command(madx, 'beam')
         ob = LatticeUtil.find_first_command(data, 'beam')
@@ -215,7 +291,7 @@ class OpalMadxConverter(MadxConverter):
         return madx
 
     def from_madx(self, madx):
-        data = super().from_madx(madx)
+        data = self.fill_in_missing_constants(super().from_madx(madx), _OPAL_CONSTANTS)
         data.models.simulation.elementPosition = 'relative'
         mb = LatticeUtil.find_first_command(madx, 'beam')
         LatticeUtil.find_first_command(data, 'option').version = 20000
@@ -227,7 +303,6 @@ class OpalMadxConverter(MadxConverter):
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
-
         if self.from_class.sim_type()  == SIM_TYPE:
             pass
         else:
@@ -309,25 +384,8 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     class _P(code_variable.PurePythonEval):
         #TODO(pjm): parse from opal files into schema
-        _OPAL_PI = 3.14159265358979323846
-        _OPAL_CONSTANTS = PKDict(
-            pi=_OPAL_PI,
-            twopi=_OPAL_PI * 2.0,
-            raddeg=180.0 / _OPAL_PI,
-            degrad=_OPAL_PI / 180.0,
-            e=2.7182818284590452354,
-            emass=0.51099892e-03,
-            pmass=0.93827204e+00,
-            hmmass=0.939277e+00,
-            umass=238 * 0.931494027e+00,
-            cmass=12 * 0.931494027e+00,
-            mmass=0.10565837,
-            dmass=2*0.931494027e+00,
-            xemass=124*0.931494027e+00,
-            clight=299792458.0,
-            p0=1,
-            seed=123456789,
-        )
+        _OPAL_PI = _OPAL_PI
+        _OPAL_CONSTANTS = _OPAL_CONSTANTS
 
         def __init__(self):
             super().__init__(self._OPAL_CONSTANTS)
@@ -351,7 +409,7 @@ def get_application_data(data, **kwargs):
         return data
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if frame < 0:
         return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:

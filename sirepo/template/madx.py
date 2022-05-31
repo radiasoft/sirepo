@@ -49,11 +49,13 @@ _FIELD_UNITS = PKDict(
     s='m',
     x='m',
     y='m',
+    x0='m',
+    y0='m',
 )
 
 _PI = 4 * math.atan(1)
 
-_MADX_CONSTANTS = PKDict(
+MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
     raddeg=180.0 / _PI,
@@ -205,7 +207,7 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     return code_variable.CodeVar(
         variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        code_variable.PurePythonEval(MADX_CONSTANTS),
         case_insensitive=True,
     )
 
@@ -270,6 +272,7 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
         PKDict(
             y_label='',
             x_label=field_label(x),
+            dynamicYLabel=True,
         )
     )
     if filename == _TWISS_OUTPUT_FILE and not results:
@@ -286,9 +289,21 @@ def extract_parameter_report(data, run_dir=None, filename=_TWISS_OUTPUT_FILE, re
     return res
 
 
+def _iterate_and_format_rpns(data, schema):
+
+    def _rpn_update(model, field):
+        if code_variable.CodeVar.is_var_value(model[field]):
+            model[field] = _format_rpn_value(model[field])
+
+    lattice.LatticeUtil(data, schema).iterate_models(lattice.UpdateIterator(_rpn_update))
+    return data
+
+
 def generate_parameters_file(data):
+    data = _iterate_and_format_rpns(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    _add_marker_and_observe(data)
+    if data.models.simulation.computeTwissFromParticles == '1':
+        _add_marker_and_observe(data)
     util = LatticeUtil(data, SCHEMA)
     filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
@@ -307,7 +322,7 @@ def generate_parameters_file(data):
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if frame == SCHEMA.constants.logFileFrameId:
         return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:
@@ -520,6 +535,7 @@ def _add_commands(data, util):
     commands.insert(idx + 1, PKDict(
         _type='use',
         sequence=util.select_beamline().id,
+        _id=LatticeUtil.max_id(data),
     ))
     if not util.find_first_command(data, PTC_LAYOUT_COMMAND):
         return
@@ -528,6 +544,7 @@ def _add_commands(data, util):
     commands.insert(idx + 1, PKDict(
         _type='call',
         file=PTC_PARTICLES_FILE,
+        _id=LatticeUtil.max_id(data),
     ))
 
 
@@ -543,16 +560,19 @@ def _add_marker_and_observe(data):
         for el in data.models.elements:
             el_map[el._id] = el
         items_copy = beam['items'].copy()
+        bi = 0
         for i, v in enumerate(items_copy):
+            bi += 1
             el = el_map[items_copy[i]]
-            if not el.get('l', 0):
+            if el.type == 'INSTRUMENT' or 'MONITOR' in el.type:
+                # always include instrument and monitor positions
+                pass
+            elif not el.get('l', 0):
                 continue
             m += 1
-            beam['items'].insert(
-                (i * 2) + 1,
-                m,
-            )
-            n = f'Marker{m}'
+            beam['items'].insert(bi, m)
+            bi += 1
+            n = f'Marker{m}_{el.type}'
             markers[m] = n
             data.models.elements.append(PKDict(
                 _id=m,
@@ -578,9 +598,6 @@ def _add_marker_and_observe(data):
                 place=m,
             ))
 
-    if not data.get('report') == 'animation' or \
-       not int(data.models.simulation.computeTwissFromParticles):
-        return
     uniquify_elements(data)
     _add_ptc_observe(*_add_marker(data))
 
@@ -798,8 +815,31 @@ def _format_field_value(state, model, field, el_type):
 
 
 def _format_rpn_value(value):
-    return code_variable.PurePythonEval.postfix_to_infix(value
-    )
+    import astunparse
+    import ast
+
+    class Visitor(ast.NodeTransformer):
+        def visit_Call(self, node):
+            if node.func.id == 'pow':
+                return ast.BinOp(
+                    left=node.args[0],
+                    op=ast.Pow(),
+                    right=node.args[1],
+                    keywords=[]
+                )
+            return node
+
+    if code_variable.CodeVar.infix_to_postfix(value) == value:
+        value = code_variable.PurePythonEval.postfix_to_infix(value)
+    if type(value) == str and 'pow' in value:
+        tree = ast.parse(value)
+        for n in ast.walk(tree):
+            Visitor().visit(n)
+            ast.fix_missing_locations(n)
+        return astunparse.unparse(tree).strip().replace('**', '^')
+    if type(value) == str and '-' in value and '^' in value:
+        value = '(' + value + ')'
+    return value
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)

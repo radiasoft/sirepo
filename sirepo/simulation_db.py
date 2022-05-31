@@ -885,7 +885,6 @@ def _init_schemas():
         _merge_dicts(s.get('appInfo', PKDict()), a)
         s.update(SCHEMA_COMMON)
         s.feature_config = feature_config.for_sim_type(t)
-        s.feature_config.update(feature_config.sim_common())
         s.simulationType = t
 
         #TODO(mvk): improve merging common and local schema
@@ -915,10 +914,7 @@ def _init_schemas():
         s.appInfo = a
     # In development, any schema update creates a new version
     if pkconfig.channel_in('dev'):
-        SCHEMA_COMMON.version = max([
-            _timestamp(fn.mtime()) \
-            for fn in sirepo.resource.static_paths_for_type('json')
-        ])
+        SCHEMA_COMMON.version = str(sirepo.srtime.utc_now_as_float())
     else:
         SCHEMA_COMMON.version = max([
             m.__version__ for m in sirepo.resource.root_modules()

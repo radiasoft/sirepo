@@ -40,8 +40,8 @@ def _mx(msg):
             key=lambda x: x.preference,
         ):
             yield str(x.exchange)
-    except dns.resolver.NoAnswer:
-        return h
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+        yield h
 
 
 def _send_directly(msg):

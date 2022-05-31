@@ -1,0 +1,23 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "FlatPlate"
+        },
+        "setupArguments": {
+            "auto": "1"
+        },
+        "simulation": {
+            "name": "FlatPlate",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "pres"
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 0.1,
+            "plot_var_1": "pres",
+            "plot_var_2": "temp"
+        }
+    },
+    "simulationType": "flash"
+}

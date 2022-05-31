@@ -2989,7 +2989,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             reportId: '<',
         },
         template: `
-            ', //'<div></div>
+            <div></div>
         `,
         controller: function($scope, $element) {
 
@@ -3308,7 +3308,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
@@ -3807,7 +3807,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 outlineBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(outlineBundle.actor);
 
-                vpOutline = vtkPlotting.vpBox(outlineBundle.source, renderer);
+                vpOutline = new SIREPO.VTK.ViewPortBox(outlineBundle.source, renderer);
 
                 // a little widget that mirrors the orientation (not the scale) of the scence
                 var axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
@@ -4105,7 +4105,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 renderWindow.render();
 
                 // wait to initialize after the render so the world to viewport transforms are ready
-                vpOutline.initializeWorld();
+                //line.initializeWorld();
 
                 refresh(true);
 
@@ -4361,12 +4361,12 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     height: $('.vtk-canvas-holder').height()
                 };
 
-                screenRect = geometry.rect(
-                    geometry.point(
+                screenRect = new SIREPO.GEOMETRY.Rect(
+                    new SIREPO.GEOMETRY.Point(
                         $scope.axesMargins.x.width,
                         $scope.axesMargins.y.height
                     ),
-                    geometry.point(
+                    new SIREPO.GEOMETRY.Point(
                         vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
                         vtkCanvasHolderSize.height - $scope.axesMargins.y.height
                     )
@@ -4423,7 +4423,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
 
                 offscreen = ! (
-                    sceneRect.intersectsRect(screenRect) ||
+                    sceneRect.intersects(screenRect) ||
                     screenRect.containsRect(sceneRect) ||
                     sceneRect.containsRect(screenRect)
                 );
@@ -4552,13 +4552,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     var axisLabelSelector = '.' + dim + '-axis-label';
 
                     // sort the external edges so we'll preferentially pick the left and bottom
-                    var externalEdges = vpOutline.externalVpEdgesForDimension(dim)
+                    var externalEdges = vpOutline.externalViewportEdgesForDimension(dim)
                         .sort(edgeSorter(perpScreenDim, ! isHorizontal));
                     var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
 
                     if (! seg) {
                         // all possible axis ends offscreen, so try a centerline
-                        var cl = vpOutline.vpCenterLineForDimension(dim);
+                        var cl = vpOutline.centerLines[dim];
                         seg = geometry.bestEdgeAndSectionInBounds([cl], screenRect, dim, false);
                         if (! seg) {
                             // don't draw axes
@@ -4573,7 +4573,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     var fullSeg = seg.full;
                     var clippedSeg = seg.clipped;
                     var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, screenDim);
-                    var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
+                    var sortedPts = geometry.sortInDimension(clippedSeg.points, screenDim, false);
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
                     var axisRight = sortedPts[1].x;
@@ -4589,7 +4589,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                     var angle = (180 * radAngle / Math.PI);
 
-                    var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), screenDim, false);
+                    var allPts = geometry.sortInDimension(fullSeg.points.concat(clippedSeg.points), screenDim, false);
 
                     var limits = reverseOnScreen ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
                     var newDom = [axisCfg[dim].min, axisCfg[dim].max];
@@ -4614,7 +4614,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
 
                     // this places the axis tick labels on the appropriate side of the axis
-                    var outsideCorner = geometry.sortInDimension(vpOutline.vpCorners(), perpScreenDim, isHorizontal)[0];
+                    var outsideCorner = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                        vpOutline.viewPortCorners(),
+                        perpScreenDim,
+                        isHorizontal
+                    )[0];
                     var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
                     if (isHorizontal) {
                         axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
@@ -4689,15 +4693,15 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     if (! e2) {
                         return -1;
                     }
-                    var pt1 = geometry.sortInDimension(e1.points(), dim, shouldReverse)[0];
-                    var pt2 = geometry.sortInDimension(e2.points(), dim, shouldReverse)[0];
+                    var pt1 = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(e1.points, dim, shouldReverse)[0];
+                    var pt2 = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(e2.points, dim, shouldReverse)[0];
                     return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
                 };
             }
 
             function shouldReverseOnScreen(dim, index, screenDim) {
-                var currentEdge = vpOutline.vpEdgesForDimension(dim)[index];
-                var currDiff = currentEdge.points()[1][screenDim] - currentEdge.points()[0][screenDim];
+                var currentEdge = vpOutline.viewportEdges()[dim][index];
+                var currDiff = currentEdge.points[1][screenDim] - currentEdge.points[0][screenDim];
                 return currDiff < 0;
             }
 
@@ -4771,7 +4775,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 snapshotCanvas.width = w;
                 snapshotCanvas.height = h;
                 // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                 snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
@@ -4868,6 +4872,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return selector ? e.select(selector) : e;
             }
 
+            $scope.$on('$destroy', function() {
+                if (orientationMarker) {
+                    orientationMarker.setEnabled(false);
+                }
+            });
 
         },
 

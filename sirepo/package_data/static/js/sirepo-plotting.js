@@ -1510,13 +1510,13 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
         }
 
         function calcFormat(count, unit, base, isBaseFormat) {
-            var code = 'e';
-            var tickValues = self.scale.ticks(count);
-            var v0 = applyUnit(tickValues[0] - (base || 0), unit);
-            var v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
-            var p0 = valuePrecision(v0);
-            var p1 = valuePrecision(v1);
-            var decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
+            let code = 'e';
+            const tickValues = self.scale.ticks(count);
+            const v0 = applyUnit(tickValues[0] - (base || 0), unit);
+            const v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
+            const p0 = valuePrecision(v0);
+            const p1 = valuePrecision(v1);
+            let decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
             if (isBaseFormat || useFloatFormat(decimals)) {
                 if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
                     code = 'f';
@@ -1532,6 +1532,9 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                 else {
                     decimals -= Math.max(p0, p1);
                 }
+            }
+            if (code == 'e' && decimals >= 0) {
+                decimals = -(p0 - decimals);
             }
             decimals = decimals < 0 ? Math.abs(decimals) : 0;
             return {
@@ -1839,6 +1842,15 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
                 /*jshint validthis: true*/
                 if (d3.event.defaultPrevented) {
                     // ignore event if drag is occurring
+                    return;
+                }
+                if (plotScope.noOverlay) {
+                    // if the data has multiple x datasets,
+                    // the overlay will not work correctly
+                    $scope.select()
+                        .on('mousedown', null)
+                        .on('click', null)
+                        .on('dblclick', null);
                     return;
                 }
                 // start listening on clicks instead of mouseover
@@ -3522,6 +3534,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         color: '#ff7f0e',
                     },
                 ];
+                if (plots[0].x_points) {
+                    $scope.noOverlay = true;
+                }
                 if (plots.length == 1 && ! json.y_label) {
                     json.y_label = plots[0].label;
                 }
@@ -3590,6 +3605,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .attr('class', 'scatter-point line-color')
                                 .style('fill', function (d, j) {
                                     return rgbaToCSS(pointColorMod[j]);
+                                })
+                                .style('opacity', (d, j) => {
+                                    if (d === null) {
+                                        return 0;
+                                    }
+                                    return 100;
                                 })
                                 .style('stroke', 'black')
                                 .style('stroke-width', 0.5);
@@ -3894,7 +3915,7 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
                     canvas.width = parseInt(canvas3d.getAttribute('width'));
                     canvas.height = parseInt(canvas3d.getAttribute('height'));
                     if (doTransverse) {
-                        vtkRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                        vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
                     }
                     else {
                         vtkRenderer.getRenderWindow().render();

@@ -23,7 +23,7 @@ _FRAME_FILENAME = PKDict({
 })
 
 
-def get_data_file(run_dir, model, frame, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     path = pkio.py_path(_SIM_DATA.lib_file_for_sim(data, _FRAME_FILENAME[frame]))
     return PKDict(filename=path);

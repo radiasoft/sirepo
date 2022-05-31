@@ -1,7 +1,7 @@
 
 OPTION, PSDUMPFREQ = 500;   // 6d data written every 10 time steps (h5).
 OPTION, STATDUMPFREQ = 500;  // Beam Stats written every 10 time steps (stat).
-OPTION, BOUNDPDESTROYFQ = 10; // Delete lost particles, if any       
+OPTION, BOUNDPDESTROYFQ = 10; // Delete lost particles, if any
 OPTION, AUTOPHASE = 4;
 OPTION, VERSION = 10900;
 
@@ -13,7 +13,7 @@ REAL n_particles=41428;      // Number of particles in simulation. (Overridden i
 
 // Initial Momentum (Set very small when starting simulation from cathode emission)
 REAL P0 = 1.0e-6;    //inital z momentum
-REAL rf_frequency = 1300.0; 
+REAL rf_frequency = 1300.0;
 
 REAL gun_phase = -20.0;
 REAL cc1_phase = -2.0;
@@ -28,15 +28,15 @@ REAL beam_current = 0.13;
 //----------------------------------------------------------------------------
 
 
-GUN: RFCAVITY, L = 0.265, VOLT = 42.93509225, 
-    FREQ = rf_frequency, 
+GUN: RFCAVITY, L = 0.265, VOLT = 42.93509225,
+    FREQ = rf_frequency,
     ELEMEDGE = 0.0,
-    FMAPFN = "GUN_SF7.T7", 
+    FMAPFN = "GUN_SF7.T7",
     LAG = gun_phase * Pi / 180,
-    APVETO = TRUE; 
+    APVETO = TRUE;
 
 MS:  Solenoid, L = 0, ELEMEDGE = -0.0017, KS = solenoid_strength_parameter,
-    FMAPFN = "SOLENO4.T7";
+    FMAPFN = "Should_be_ignored.T7";
 
 DG1: DRIFT, L = 0.363253, ELEMEDGE = GUN->ELEMEDGE + GUN->L;
 
@@ -54,11 +54,11 @@ DG7: DRIFT, L = 0.076743, ELEMEDGE = DG6->ELEMEDGE + DG6->L;
 
 DG8: DRIFT, L = 0.420191, ELEMEDGE = DG7->ELEMEDGE + DG7->L;
 
-CC1: RFCAVITY, L = 1.3492, VOLT = 28.57233448, 
-    FREQ = rf_frequency, 
-    ELEMEDGE = DG8->ELEMEDGE + DG8->L, 
-    FMAPFN = "TESLA_SF7.T7", 
-    LAG = cc1_phase * Pi/180; 
+CC1: RFCAVITY, L = 1.3492, VOLT = 28.57233448,
+    FREQ = rf_frequency,
+    ELEMEDGE = DG8->ELEMEDGE + DG8->L,
+    FMAPFN = "TESLA_SF7.T7",
+    LAG = cc1_phase * Pi/180;
 
 DCC1_1: DRIFT, L = 0.58952, ELEMEDGE = CC1->ELEMEDGE + CC1->L;
 
@@ -67,10 +67,10 @@ DCC1_2: DRIFT, L = 0.045959, ELEMEDGE = DCC1_1->ELEMEDGE + DCC1_1->L;
 DCC1_3: DRIFT, L = 0.724255, ELEMEDGE = DCC1_2->ELEMEDGE + DCC1_2->L;
 
 CC2: RFCAVITY, L = 1.3492, VOLT = 30.6427935,
-    FREQ = rf_frequency, 
-    ELEMEDGE = DCC1_3->ELEMEDGE + DCC1_3->L, 
-    FMAPFN = "TESLA_SF7.T7", 
-    LAG = cc2_phase * Pi/180; 
+    FREQ = rf_frequency,
+    ELEMEDGE = DCC1_3->ELEMEDGE + DCC1_3->L,
+    FMAPFN = "TESLA_SF7.T7",
+    LAG = cc2_phase * Pi/180;
 
 DCC2_1: DRIFT, L = 0.801182, ELEMEDGE = CC2->ELEMEDGE + CC1->L;
 
@@ -92,13 +92,13 @@ DCC2_9: DRIFT, L = 0.126538, ELEMEDGE = DCC2_8->ELEMEDGE + DCC2_8->L;
 
 DCC2_10: DRIFT, L = 0.078569, ELEMEDGE = DCC2_9->ELEMEDGE + DCC2_9->L;
 
-X_106: MONITOR, OUTFN = 'output_x_106.h5', ELEMEDGE = DCC2_10->ELEMEDGE + DCC2_10->L; 
+X_106: MONITOR, OUTFN = 'output_x_106.h5', ELEMEDGE = DCC2_10->ELEMEDGE + DCC2_10->L;
 
-Q_106: QUADRUPOLE, L = 0.167, ELEMEDGE = X_106->ELEMEDGE, K1S = I_Q106 * 10.135 * 40 / ( 1.8205 * 299.8 ); 
+Q_106: QUADRUPOLE, L = 0.167, ELEMEDGE = X_106->ELEMEDGE, K1S = I_Q106 * 10.135 * 40 / ( 1.8205 * 299.8 );
 
 DQ106: DRIFT, L = 0.034249, ELEMEDGE = Q_106->ELEMEDGE + Q_106->L;
 
-Q_107: QUADRUPOLE, L = 0.167, ELEMEDGE = DQ106->ELEMEDGE + DQ106->L, K1S = I_Q107 * 10.135 * 40 / ( 1.8205 * 299.8 ); 
+Q_107: QUADRUPOLE, L = 0.167, ELEMEDGE = DQ106->ELEMEDGE + DQ106->L, K1S = I_Q107 * 10.135 * 40 / ( 1.8205 * 299.8 );
 
 DX107: DRIFT, L = 0.255184, ELEMEDGE = Q_107->ELEMEDGE + Q_107->L;
 
@@ -110,13 +110,13 @@ LINAC: LINE = (GUN, MS, CC1, CC2, X_106, Q_106, Q_107, X_107);
 REAL fwhm = 3.12 / 360 * (1 / (rf_frequency*1.0e6));
 
 gen_dist: DISTRIBUTION, TYPE = FLATTOP,
-        SIGMAR = 0.001*2,     
-        TPULSEFWHM = fwhm*2, 
+        SIGMAR = 0.001*2,
+        TPULSEFWHM = fwhm*2,
         NBIN = 9,
         EMISSIONSTEPS = 100,
         EMISSIONMODEL = NONE,
-        EKIN = 0.55,        
-        EMITTED = True,        
+        EKIN = 0.55,
+        EMITTED = True,
         WRITETOFILE = True;    //Saves the distribution to a text file
 
 vc_dist: DISTRIBUTION, TYPE = FROMFILE,
@@ -124,8 +124,8 @@ vc_dist: DISTRIBUTION, TYPE = FROMFILE,
         EMISSIONMODEL = None,
         NBIN = 9,
         EMISSIONSTEPS = 100,
-        EKIN = 0.4,        
-        EMITTED = True;      
+        EKIN = 0.4,
+        EMITTED = True;
 
 //----------------------------------------------------------------------------
 // Define Field solvers
@@ -133,13 +133,13 @@ vc_dist: DISTRIBUTION, TYPE = FROMFILE,
 
 FS_SC: Fieldsolver, FSTYPE = FFT, // None or FFT
             MX = 26, MY = 26, MT = 25,
-            PARFFTX = false, 
-            PARFFTY = false, 
+            PARFFTX = false,
+            PARFFTY = false,
             PARFFTT = true,  //parallel in the z direction only
-            BCFFTX = open, 
-            BCFFTY = open, 
+            BCFFTX = open,
+            BCFFTY = open,
             BCFFTT = open,
-            BBOXINCR = 1, 
+            BBOXINCR = 1,
             GREENSF = INTEGRATED;
 
 //----------------------------------------------------------------------------
@@ -153,10 +153,10 @@ BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
 //----------------------------------------------------------------------------
 
 
-TRACK, LINE = LINAC, BEAM = BEAM1, MAXSTEPS = 2500000, 
+TRACK, LINE = LINAC, BEAM = BEAM1, MAXSTEPS = 2500000,
     DT = {2.0e-13}, ZSTOP={9.25};
 
-RUN, METHOD = "PARALLEL-T", BEAM = BEAM1, 
+RUN, METHOD = "PARALLEL-T", BEAM = BEAM1,
     FIELDSOLVER = FS_SC, DISTRIBUTION = vc_dist;
 ENDTRACK;
 

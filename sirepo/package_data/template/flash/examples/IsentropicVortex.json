@@ -1,0 +1,19 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "IsentropicVortex"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "withParticles": "1"
+        },
+        "simulation": {
+            "name": "IsentropicVortex",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "dens"
+        }
+    },
+    "simulationType": "flash"
+}

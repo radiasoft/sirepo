@@ -95,11 +95,6 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
-def _apply_segments(g_id, segments):
-    if segments and any([s > 1 for s in segments]):
-        radia.ObjDivMag(g_id, segments)
-
-
 def _clone_with_translation(g_id, num_copies, distance, alternate_fields):
     xf = radia.TrfTrsl(distance)
     if alternate_fields:
@@ -117,6 +112,11 @@ def _apply_rotation(g_id, xform):
             numpy.pi * float(xform.angle) / 180.
         )
     )
+
+
+def _apply_segments(g_id, segments):
+    if segments and any([s > 1 for s in segments]):
+        radia.ObjDivMag(g_id, segments)
 
 
 def _apply_symmetry(g_id, xform):
@@ -191,6 +191,10 @@ def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
 
 
+def multiply_vector_by_matrix(v, m):
+    return numpy.array(m).dot(numpy.array(v)).tolist()
+
+
 def apply_transform(g_id, xform):
     _TRANSFORMS[xform['model']](g_id, xform)
 
@@ -229,7 +233,8 @@ def extrude(**kwargs):
         d.points,
         numpy.full((len(d.points), 2), [1, 1]).tolist(),
         d.extrusion_axis,
-        d.magnetization
+        d.magnetization,
+        f'TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}' if d.t_level > 0 else ''
     )
     _apply_segments(g_id, d.segments)
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))

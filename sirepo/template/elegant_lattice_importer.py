@@ -235,6 +235,8 @@ def _validate_field(el, field, rpn_cache, code_var, update_filenames):
         _validate_enum(el, field, field_type)
     elif 'type' in el and el['type'] == 'SCRIPT' and field == 'command':
         _validate_script(el)
+    if not update_filenames:
+        return
     # Input files may have been from a sirepo export. Strip the sirepo file prefix if present.
     if field_type.startswith('InputFile'):
         el[field] = _strip_file_prefix(

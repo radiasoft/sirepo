@@ -4,12 +4,9 @@ u"""API's for jupyterhublogin sim
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
-import flask
-import py.error
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
 import sirepo.api_perm
 import sirepo.auth
@@ -17,11 +14,13 @@ import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.srdb
 import sirepo.uri_router
+import sirepo.uri
 import sirepo.util
 import sqlalchemy
-import string
+import werkzeug.exceptions
 
 cfg = None
 
@@ -32,30 +31,63 @@ _HUB_USER_SEP = '-'
 
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 
+class Request(sirepo.request.Base):
+    @sirepo.api_perm.allow_visitor
+    def api_checkAuthJupyterhub(self):
+        def _res_for_uri(uri):
+            return sirepo.http_reply.gen_json_ok(PKDict(uri=uri))
 
-@sirepo.api_perm.require_user
-def api_migrateJupyterhub():
-    if not cfg.rs_jupyter_migrate:
-        sirepo.util.raise_forbidden('migrate not enabled')
-    d = sirepo.http_request.parse_json()
-    if not d.doMigration:
-        create_user()
-        return sirepo.http_reply.gen_redirect('jupyterHub')
-    return sirepo.uri_router.call_api(
-        'authGithubLogin',
-        kwargs=PKDict(simulation_type='jupyterhublogin'),
-    )
-
-@sirepo.api_perm.require_user
-def api_redirectJupyterHub():
-    u = unchecked_jupyterhub_user_name()
-    if u:
-        return sirepo.http_reply.gen_redirect('jupyterHub')
-    if not cfg.rs_jupyter_migrate:
+        u = None
+        try:
+            sirepo.auth.require_user()
+            sirepo.auth.require_sim_type('jupyterhublogin')
+            u = _unchecked_jupyterhub_user_name(
+                have_simulation_db=False,
+            )
+        except werkzeug.exceptions.Forbidden:
+            return sirepo.http_reply.gen_json_ok()
+        except sirepo.util.Redirect as e:
+            return _res_for_uri(sirepo.uri_router.uri_for_api(
+                'root',
+                params=PKDict(path_info=e.sr_args.uri),
+            ))
+        except sirepo.util.SRException as e:
+            return _res_for_uri(sirepo.uri.local_route(
+                'jupyterhublogin',
+                route_name=e.sr_args.routeName,
+                external=True,
+            ))
         if not u:
+            u = create_user()
+        return sirepo.http_reply.gen_json_ok(PKDict(
+            username=u
+        ))
+
+    @sirepo.api_perm.require_user
+    def api_migrateJupyterhub(self):
+        sirepo.auth.require_sim_type('jupyterhublogin')
+        if not cfg.rs_jupyter_migrate:
+            sirepo.util.raise_forbidden('migrate not enabled')
+        d = self.parse_json()
+        if not d.doMigration:
             create_user()
-        return sirepo.http_reply.gen_redirect('jupyterHub')
-    return sirepo.http_reply.gen_json_ok()
+            return sirepo.http_reply.gen_redirect('jupyterHub')
+        return self.call_api(
+            'authGithubLogin',
+            kwargs=PKDict(simulation_type='jupyterhublogin'),
+        )
+
+    @sirepo.api_perm.require_user
+    def api_redirectJupyterHub(self):
+        sirepo.auth.require_sim_type('jupyterhublogin')
+        u = _unchecked_jupyterhub_user_name()
+        if u:
+            return sirepo.http_reply.gen_redirect('jupyterHub')
+        if not cfg.rs_jupyter_migrate:
+            if not u:
+                create_user()
+            return sirepo.http_reply.gen_redirect('jupyterHub')
+        return sirepo.http_reply.gen_json_ok()
 
 
 def create_user(github_handle=None, check_dir=False):
@@ -119,7 +151,7 @@ def create_user(github_handle=None, check_dir=False):
         return n
 
     with sirepo.util.THREAD_LOCK:
-        n = unchecked_jupyterhub_user_name()
+        n = _unchecked_jupyterhub_user_name()
         if n:
             return n
         u = __user_name()
@@ -134,7 +166,7 @@ def create_user(github_handle=None, check_dir=False):
 
 
 def delete_user_dir(uid):
-    n = unchecked_jupyterhub_user_name(have_simulation_db=False)
+    n = _unchecked_jupyterhub_user_name(have_simulation_db=False)
     if not n:
         return
     pkio.unchecked_remove(_user_dir(user_name=n))
@@ -162,10 +194,6 @@ def init_apis(*args, **kwargs):
         sirepo.events.register(PKDict(
             github_authorized=_event_github_authorized,
         ))
-
-
-def unchecked_jupyterhub_user_name(have_simulation_db=True):
-    return _unchecked_hub_user(sirepo.auth.logged_in_user(check_path=have_simulation_db))
 
 
 def _event_auth_logout(kwargs):
@@ -215,8 +243,12 @@ def _unchecked_hub_user(uid):
     return None
 
 
+def _unchecked_jupyterhub_user_name(have_simulation_db=True):
+    return _unchecked_hub_user(sirepo.auth.logged_in_user(check_path=have_simulation_db))
+
+
 def _user_dir(user_name=None):
     if not user_name:
-        user_name = unchecked_jupyterhub_user_name()
+        user_name = _unchecked_jupyterhub_user_name()
         assert user_name, 'must have user to get dir'
     return cfg.user_db_root_d.join(user_name)

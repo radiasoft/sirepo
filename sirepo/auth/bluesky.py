@@ -4,7 +4,6 @@ u"""NSLS-II BlueSky Login
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
@@ -18,6 +17,7 @@ import hashlib
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import time
 
 
@@ -40,32 +40,33 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-@api_perm.allow_cookieless_set_user
-def api_authBlueskyLogin():
-    req = sirepo.http_request.parse_post(id=True)
-    auth_hash(req.req_data, verify=True)
-    path = simulation_db.find_global_simulation(
-        req.type,
-        req.id,
-        checked=True,
-    )
-    sirepo.auth.login(
-        this_module,
-        uid=simulation_db.uid_from_dir_name(path),
-        # do not supply sim_type (see auth.login)
-    )
-    return sirepo.http_reply.gen_json_ok(
-        PKDict(
-            data=simulation_db.open_json_file(req.type, sid=req.id),
-            schema=simulation_db.get_schema(req.type),
-        ),
-    )
-
-
-@api_perm.allow_cookieless_set_user
-def api_blueskyAuth():
-    """Deprecated use `api_authBlueskyLogin`"""
-    return api_authBlueskyLogin()
+class Request(sirepo.request.Base):
+    @api_perm.allow_cookieless_set_user
+    def api_authBlueskyLogin(self):
+        req = self.parse_post(id=True)
+        auth_hash(req.req_data, verify=True)
+        path = simulation_db.find_global_simulation(
+            req.type,
+            req.id,
+            checked=True,
+        )
+        sirepo.auth.login(
+            this_module,
+            uid=simulation_db.uid_from_dir_name(path),
+            # do not supply sim_type (see auth.login)
+        )
+        return sirepo.http_reply.gen_json_ok(
+            PKDict(
+                data=simulation_db.open_json_file(req.type, sid=req.id),
+                schema=simulation_db.get_schema(req.type),
+            ),
+        )
+    
+    
+    @api_perm.allow_cookieless_set_user
+    def api_blueskyAuth(self):
+        """Deprecated use `api_authBlueskyLogin`"""
+        return self.api_authBlueskyLogin()
 
 
 def auth_hash(req, verify=False):

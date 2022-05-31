@@ -167,6 +167,7 @@ class CodeVar():
     def infix_to_postfix(cls, expr):
         try:
             if cls.is_var_value(expr):
+                expr = re.sub(r'\^', '**', expr)
                 rpn = cls.__parse_expr_infix(expr)
                 expr = rpn
         except Exception as e:

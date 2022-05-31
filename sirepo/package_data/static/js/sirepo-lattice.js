@@ -595,7 +595,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             <div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">
               <div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>
                 <div class="sr-panel-options pull-right">
-                  <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+                  <a href data-ng-show="hasBeamlineView()" data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
                 </div>
               </div>
               <div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
@@ -606,7 +606,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                      <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>
                   </div>
                 </div>
-                <div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> 
+                <div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)">
                   <div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>
                 </div>
               </div>
@@ -1356,7 +1356,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             function itemTrackHash(item, group, length, angle) {
                 return group.items.length + '-' + item.name + '-' + item._id + '-' + length + '-'
                     + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0)
-                    + '-' + item.beamlineIndex + '-' + (item.elemedge || 0);
+                    + '-' + item.beamlineIndex + '-' + (item.elemedge || 0)
+                    + '-' + (item.open_side || '');
             }
 
             function subScaleWatch() {
@@ -1453,10 +1454,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         var exitEdge = rpnValue(item.e2 || 0);
                         if (item.type.indexOf('RBEN') >= 0) {
                             if (SIREPO.APP_SCHEMA.simulationType == 'opal') {
-                                enterEdge = exitEdge = 0;
+                                exitEdge = angle - enterEdge;
                             }
-                            enterEdge += angle / 2;
-                            exitEdge += angle / 2;
+                            else {
+                                enterEdge += angle / 2;
+                                exitEdge += angle / 2;
+                            }
                         }
                         if ($scope.flatten) {
                             enterEdge = 0;
@@ -1548,7 +1551,15 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 groupItem.x -= 0.01;
                                 groupItem.width = 0.02;
                             }
-                            groupItem.opening = elRadius || 0.1;
+                            if (groupItem.element.open_side) {
+                                groupItem.openSide = groupItem.element.open_side == '+x'
+                                    ? 'right'
+                                    : groupItem.openSide = groupItem.element.open_side == '-x'
+                                        ? 'left'
+                                        : '';
+                            }
+                            groupItem.opening = 0.1;
+                            updateBounds(pos.bounds, pos.x, pos.y, 1);
                         }
                         else if (picType == 'alpha') {
                             var alphaAngle = 40.71;
@@ -2377,10 +2388,6 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                   <div class="panel panel-info" style="margin-bottom: 10px">
                     <div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>
                     <div class="panel-body">
-                      <div class="pull-right">
-                        <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> 
-                        <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
-                      </div>
                       <div data-lattice-element-table=""></div>
                     </div>
                   </div>
@@ -2394,11 +2401,19 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
     };
 });
 
-SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $rootScope) {
+SIREPO.app.directive('latticeElementTable', function(appState, latticeService, panelState, $rootScope) {
     return {
         restrict: 'A',
         scope: {},
         template: `
+            <div class="sr-sticky-heading">
+                <button style="min-width: 7em" data-ng-click="toggleCollapseElems()" class="btn btn-info btn-xs">{{ areAllExpanded ? 'Collapse' : 'Expand'}} All</button>
+                <input style="display: inline; width: 15em" class="form-control input-sm" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="Search Elements" />
+                <div class="pull-right" style="padding-top: 4px">
+                  <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
+                  <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                </div>
+            </div>
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
               <colgroup>
                 <col style="width: 20ex">
@@ -2419,7 +2434,13 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                   <td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': ! category.isCollapsed, \'glyphicon-chevron-down\': category.isCollapsed}"></span> <b>{{ category.name }}</b></td>
                 </tr>
                 <tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">
-                  <td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>
+                  <td style="padding-left: 1em">
+                    <div data-ng-attr-class="badge sr-badge-icon {{ element.isMarked ? 'sr-search-target' : ''}}">
+                      <span data-ng-drag="true" data-ng-drag-data="element">
+                        <span> {{ element.name }} </span>
+                      </span>
+                    </div>
+                  </td>
                   <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>
                   <td style="text-align: right">{{ elementLength(element) }}</td>
                   <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
@@ -2432,6 +2453,19 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             $scope.tree = [];
             var collapsedElements = {};
             var descriptionCache = {};
+
+            function areAllExpanded() {
+                if (appState.models.treeMap) {
+                    for (const k in appState.models.treeMap){
+                        if (appState.models.treeMap[k]){
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            $scope.areAllExpanded = areAllExpanded();
 
             function computeBend(element) {
                 var angle = element.angle;
@@ -2482,6 +2516,29 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 return res;
             }
 
+            function getCollapsedMap(){
+                const m = {};
+                $scope.tree.forEach((e) => {
+                    m[e.name] = e.isCollapsed;
+                });
+                return m;
+            }
+
+            function scrollToElem(found) {
+                if (found){
+                    panelState.waitForUI(() => {
+                        $('.sr-search-target')[0].scrollIntoView({block: 'center'});
+                    });
+                }
+            }
+
+            function getIsCollapsed(elType) {
+                if (appState.models.treeMap){
+                    return appState.models.treeMap[elType];
+                }
+                return false;
+            }
+
             function loadTree() {
                 $scope.tree = [];
                 descriptionCache = {};
@@ -2491,15 +2548,18 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                         category = {
                             name: element.type,
                             elements: [],
-                            isCollapsed: collapsedElements[element.type],
+                            isCollapsed: getIsCollapsed(element.type),
                         };
                         $scope.tree.push(category);
                     }
                     var clonedElement = appState.clone(element);
                     computeBend(clonedElement);
                     clonedElement.description = elementDescription(clonedElement);
+                    clonedElement.isMarked = false;
                     category.elements.push(clonedElement);
                 });
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveQuietly('treeMap');
             }
 
             $scope.deleteElement = function(element) {
@@ -2517,9 +2577,48 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 return latticeService.numFormat(element.l, 'm');
             };
 
+            $scope.findElement = (el) => {
+                if (!el){
+                    return;
+                }
+                let found = false;
+                let foundIndex = null;
+                $scope.tree.forEach((t, i) => {
+                    t.elements.forEach((e, j) => {
+                        if (e.name.toLowerCase().startsWith(el.toLowerCase()) && el.length > 1){
+                            foundIndex = i;
+                            $scope.tree[i].elements[j].isMarked = true;
+                            found = true;
+                        } else {
+                            $scope.tree[i].elements[j].isMarked = false;
+                        }
+                    });
+                    if (i == foundIndex){
+                        $scope.tree[i].isCollapsed = false;
+                    } else {
+                        $scope.tree[i].isCollapsed = true;
+                    }
+                });
+                $scope.areAllExpanded = false;
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveQuietly('treeMap');
+                scrollToElem(found);
+            };
+
             $scope.toggleCategory = function(category) {
                 category.isCollapsed = ! category.isCollapsed;
                 collapsedElements[category.name] = category.isCollapsed;
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveChanges('treeMap');
+            };
+
+            $scope.toggleCollapseElems = () => {
+                $scope.areAllExpanded = ! $scope.areAllExpanded;
+                $scope.tree.forEach(e => {
+                    e.isCollapsed = ! $scope.areAllExpanded;
+                });
+                appState.models.treeMap = getCollapsedMap();
+                appState.saveChanges('treeMap');
             };
 
             $scope.$on('modelChanged', function(e, name) {
@@ -2573,7 +2672,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">{{ twissReportTitle() }}</span>
                     <div class="sr-panel-options pull-right">
-                      <a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> 
+                      <a style="margin-top: -2px; margin-right: 10px" href data-ng-click="showTwissEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
                     </div>
                   </div>
                   <div class="modal-body">
@@ -2814,7 +2913,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         </div>
                         <div class="row">
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
                             <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
                           </div>
                         </div>

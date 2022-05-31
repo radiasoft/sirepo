@@ -8,6 +8,10 @@
             "longName": "Controls",
             "shortName": "Controls"
         },
+        "cloudmc": {
+            "longName": "CloudMC",
+            "shortName": "CloudMC"
+        },
         "elegant": {
             "longName": "elegant",
             "shortName": "elegant"
@@ -17,12 +21,8 @@
             "shortName": "FLASH"
         },
         "genesis": {
-            "longName": "Genesis",
-            "shortName": "Genesis"
-        },
-        "hellweg": {
-            "longName": "Hellweg",
-            "shortName": "Hellweg"
+            "longName": "GENESIS 1.3",
+            "shortName": "GENESIS 1.3"
         },
         "irad": {
             "longName": "IRAD",
@@ -107,8 +107,11 @@
         "warp": "/warppba"
     },
     "route": {
+        "adjustSupervisorSrtime": "/adjust-supervisor-srtime/?<days>",
         "adjustTime": "/adjust-time/?<days>",
         "admJobs": "/adm-jobs",
+        "admModerate": "/adm-moderate",
+        "admModerateRedirect": "/adm-moderate-redirect",
         "analysisJob": "/analysis-job",
         "authBlueskyLogin": "/auth-bluesky-login",
         "authCompleteRegistration": "/auth-complete-registration",
@@ -120,6 +123,7 @@
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "blueskyAuth": "/bluesky-auth",
+        "checkAuthJupyterhub": "/check-auth-jupyterhub",
         "comsol": "/comsol",
         "comsolRegister": "/comsol-register",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
@@ -136,6 +140,7 @@
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "forbidden": "/forbidden",
         "getApplicationData": "/get-application-data/?<filename>",
+        "getModerationRequestRows": "/get-moderation-request-rows",
         "homePage": "/en/*<path_info>",
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
@@ -155,6 +160,7 @@
         "runMulti": "/run-multi",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
+        "saveModerationReason": "/save-moderation-reason",
         "saveSimulationData": "/save-simulation",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
@@ -170,6 +176,16 @@
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
+        "adm": {
+            "userRoleInviteColumns": [
+              ["uid", "uid"],
+              ["role", "Role"],
+              ["token", "Token"],
+              ["status", "Status"],
+              ["last_updated", "Last Updated"],
+              ["moderator_uid", "Moderator uid"]
+            ]
+        },
         "appDefaults": {
             "route": "simulations"
         },
@@ -243,7 +259,8 @@
                     "sirepo-components.js",
                     "sirepo-plotting.js",
                     "sirepo-plotting-vtk.js",
-                    "sirepo-geometry.js"
+                    "sirepo-geometry.js",
+                    "sirepo-utils.js"
                 ]
             },
             "libURLs": [
@@ -305,6 +322,12 @@
                   "templateUrl": "/static/html/adm-jobs.html"
                 }
             },
+            "admRoles": {
+                "route": "/adm-roles",
+                "config": {
+                  "templateUrl": "/static/html/adm-roles.html"
+                }
+            },
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
@@ -363,6 +386,18 @@
                 "route": "/missing-cookies",
                 "config": {
                     "templateUrl": "/static/html/missing-cookies.html"
+                }
+            },
+            "moderationRequest":  {
+                "route": "/moderation-request",
+                "config": {
+                  "templateUrl": "/static/html/moderation-request.html"
+                }
+            },
+            "moderationPending":  {
+                "route": "/moderation-pending",
+                "config": {
+                  "templateUrl": "/static/html/moderation-pending.html"
                 }
             },
             "notFound": {

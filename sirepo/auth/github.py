@@ -6,7 +6,6 @@ GitHub is written Github and github (no underscore or dash) for ease of use.
 :copyright: Copyright (c) 2016-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
@@ -17,13 +16,13 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import feature_config
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import uri_router
 from sirepo import util
-import authlib.integrations.base_client
 import authlib.integrations.requests_client
+import authlib.oauth2.rfc6749.errors
 import flask
 import sirepo.events
+import sirepo.request
 import sqlalchemy
 
 
@@ -43,50 +42,62 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-@api_perm.allow_cookieless_set_user
-def api_authGithubAuthorized():
-    """Handle a callback from a successful OAUTH request.
-
-    Tracks oauth users in a database.
-    """
-    # clear temporary cookie values first
-    oc = _client(cookie.unchecked_remove(_COOKIE_NONCE))
-    t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
-    if not oc.authorize_access_token():
-        auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
-        raise AssertionError('auth.login_fail_redirect returned unexpectedly')
-    d = oc.get('user').json()
-    sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
-    with util.THREAD_LOCK:
-        u = AuthGithubUser.search_by(oauth_id=d['id'])
-        if u:
-            # always update user_name
-            u.user_name = d['login']
-        else:
-            u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
-        u.save()
-        auth.login(this_module, model=u, sim_type=t, want_redirect=True)
-        raise AssertionError('auth.login returned unexpectedly')
-
-
-@api_perm.require_cookie_sentinel
-def api_authGithubLogin(simulation_type):
-    """Redirects to Github"""
-    req = http_request.parse_params(type=simulation_type)
-    s = util.random_base62()
-    cookie.set_value(_COOKIE_NONCE, s)
-    cookie.set_value(_COOKIE_SIM_TYPE, req.type)
-    if not cfg.callback_uri:
-        # must be executed in an app and request context so can't
-        # initialize earlier.
-        cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
-    return _client(s).authorize_redirect(redirect_uri=cfg.callback_uri, state=s)
-
-
-@api_perm.allow_cookieless_set_user
-def api_oauthAuthorized(oauth_type):
-    """Deprecated use `api_authGithubAuthorized`"""
-    return api_authGithubAuthorized()
+class Request(sirepo.request.Base):
+    @api_perm.allow_cookieless_set_user
+    def api_authGithubAuthorized(self):
+        """Handle a callback from a successful OAUTH request.
+    
+        Tracks oauth users in a database.
+        """
+        # clear temporary cookie values first
+        s = cookie.unchecked_remove(_COOKIE_NONCE)
+        t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
+        oc = _client()
+        try:
+            oc.fetch_token(
+                authorization_response=flask.request.url,
+                state=s,
+            )
+        except authlib.oauth2.rfc6749.errors.MismatchingStateException:
+            auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
+            raise AssertionError('auth.login_fail_redirect returned unexpectedly')
+        d = oc.get('https://api.github.com/user').json()
+        sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
+        with util.THREAD_LOCK:
+            u = AuthGithubUser.search_by(oauth_id=d['id'])
+            if u:
+                # always update user_name
+                u.user_name = d['login']
+            else:
+                u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
+            u.save()
+            auth.login(this_module, model=u, sim_type=t, want_redirect=True)
+            raise AssertionError('auth.login returned unexpectedly')
+    
+    
+    @api_perm.require_cookie_sentinel
+    def api_authGithubLogin(self, simulation_type):
+        """Redirects to Github"""
+        req = self.parse_params(type=simulation_type)
+        s = util.random_base62()
+        cookie.set_value(_COOKIE_NONCE, s)
+        cookie.set_value(_COOKIE_SIM_TYPE, req.type)
+        if not cfg.callback_uri:
+            # must be executed in an app and request context so can't
+            # initialize earlier.
+            cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
+        u, _ = _client().create_authorization_url(
+            'https://github.com/login/oauth/authorize',
+            redirect_uri=cfg.callback_uri,
+            state=s,
+        )
+        return http_reply.gen_redirect(u)
+    
+    
+    @api_perm.allow_cookieless_set_user
+    def api_oauthAuthorized(self, oauth_type):
+        """Deprecated use `api_authGithubAuthorized`"""
+        return self.api_authGithubAuthorized()
 
 
 def avatar_uri(model, size):
@@ -96,49 +107,17 @@ def avatar_uri(model, size):
     )
 
 
-class _Client(authlib.integrations.base_client.RemoteApp):
-
-    def __init__(self, state):
-        super().__init__(
-            framework=PKDict(oauth2_client_cls=authlib.integrations.requests_client.OAuth2Session),
-            name='github',
-            access_token_params=None,
-            access_token_url='https://github.com/login/oauth/access_token',
-            api_base_url='https://api.github.com/',
-            authorize_params=None,
-            authorize_url='https://github.com/login/oauth/authorize',
-            client_id=cfg.key,
-            client_kwargs={'scope': 'user:email'},
-            client_secret=cfg.secret,
-        )
-        self.__state = state
-
-    def authorize_access_token(self):
-        assert flask.request.method == 'GET'
-        a = self.__state
-        assert a
-        b = flask.request.args.get('state')
-        if a != b:
-            pkdlog('mismatch oauth state: expected {} != got {}', a, b)
-            return None
-        t = self.fetch_access_token(code=flask.request.args['code'], state=b)
-        self.token = t
-        return t
-
-    def authorize_redirect(self, redirect_uri=None, **kwargs):
-        return http_reply.gen_redirect(
-            self.create_authorization_url(redirect_uri, **kwargs)['url'],
-        )
-
-    def request(self, method, url, token=None, **kwargs):
-        if token is None and not kwargs.get('withhold_token'):
-            token = self.token
-        return super().request(method, url, token=token, **kwargs)
-
-
-def _client(state):
+def _client(token=None):
     """Makes it easier to mock, see github_srunit.py"""
-    return _Client(state)
+    # OAuth2Session doesn't inherit from OAuth2Mixin for some reason.
+    # So, supplying api_base_url has no effect.
+    return authlib.integrations.requests_client.OAuth2Session(
+        cfg.key,
+        cfg.secret,
+        scope='user:email',
+        token=token,
+        token_endpoint='https://github.com/login/oauth/access_token',
+    )
 
 
 def _init():

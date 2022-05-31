@@ -11,14 +11,22 @@ import sirepo.feature_config
 ROLE_ADM = 'adm'
 ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
 ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
-
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
+_SIM_TYPE_ROLE_PREFIX = 'sim_type_'
+
+
+def for_moderated_sim_types():
+    return [for_sim_type(s) for s in sirepo.feature_config.cfg().moderated_sim_types]
 
 
 def for_new_user(is_guest):
     if is_guest and pkconfig.channel_in('dev'):
         return get_all()
-    return [for_sim_type(x) for x in sirepo.feature_config.cfg().default_proprietary_sim_types]
+    return []
+
+
+def for_sim_type(sim_type):
+    return _SIM_TYPE_ROLE_PREFIX + sim_type
 
 
 def get_all():
@@ -31,5 +39,5 @@ def get_all():
     ]
 
 
-def for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
+def sim_type(role):
+    return role[len(_SIM_TYPE_ROLE_PREFIX):]
