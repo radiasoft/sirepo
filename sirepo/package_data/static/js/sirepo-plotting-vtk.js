@@ -2542,6 +2542,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
 
+            $scope.GeometryUtils = SIREPO.GEOMETRY.GeometryUtils;
             $scope.VTKUtils = VTKUtils;
             $scope.markerState = {
                 enabled: true,
@@ -2549,6 +2550,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText = {};
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.ortho = false;
             $scope.selection = null;
 
             let canvas3d = null;
@@ -2655,6 +2657,12 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         height: Math.max(0, $(vtkCanvasHolder).height()),
                     }
                 };
+            };
+
+            $scope.toggleOrtho = () => {
+                $scope.ortho = ! $scope.ortho;
+                $scope.vtkScene.cam.setParallelProjection($scope.ortho);
+                $scope.vtkScene.render();
             };
 
             $scope.$on('$destroy', function() {
