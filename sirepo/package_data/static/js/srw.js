@@ -850,7 +850,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         scope: {
             nav: '=appFooter',
         },
-    template: `
+        template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
             <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
