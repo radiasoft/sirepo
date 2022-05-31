@@ -231,6 +231,7 @@
                     "ngDraggable.js",
                     "colorbar.js",
                     "canvg-and-dependencies.js",
+                    "html2canvas.js",
                     "FileSaver.js",
                     "Blob.js",
                     "canvas-toBlob.js",

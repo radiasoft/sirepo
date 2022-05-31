@@ -4048,29 +4048,50 @@ SIREPO.app.service('plotToPNG', function($http) {
 
     var canvases = {};
 
-    function downloadPlot(svg, height, plot3dCanvas, fileName) {
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext("2d");
+    function downloadPlot(svg, outputHeight, plot3dCanvas, fileName) {
+        //var scale = height / parseInt(svg.getAttribute('height'));
+        /*var canvas = document.createElement('canvas');
+        
         var scale = height / parseInt(svg.getAttribute('height'));
         canvas.width = parseInt(svg.getAttribute('width')) * scale;
         canvas.height = parseInt(svg.getAttribute('height')) * scale;
         context.fillStyle = '#FFFFFF';
         context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = '#000000';
-
-        if (plot3dCanvas) {
-            var el = $(plot3dCanvas);
-            context.drawImage(
-                plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
-                pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
-        }
-        d3.select(svg).classed('sr-download-png', true);
-        var svgString = svg.parentNode.innerHTML;
-        context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(function(blob) {
-            saveAs(blob, fileName);
-        });
-        d3.select(svg).classed('sr-download-png', false);
+        context.fillStyle = '#000000';*/
+        var scale = outputHeight / parseInt(svg.getAttribute('height'));
+        var height = parseInt(svg.getAttribute('height')) * scale;
+        var width = parseInt(svg.getAttribute('width')) * scale;
+        //d3.select(svg).classed('sr-download-png', true);
+        //var svgString = svg.parentNode.innerHTML;
+        //context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
+        html2canvas(svg.parentElement, {
+            height,
+            width,
+            scale: 1,
+            backgroundColor: '#ffffff',
+            removeContainer: false
+        }).then(canvas => {
+            var context = canvas.getContext("2d");
+            if (plot3dCanvas) {
+                var sourceX = plot3dCanvas.offsetLeft;
+                var sourceY = plot3dCanvas.offsetTop;
+                var destX = sourceX * scale;
+                var destY = sourceY * scale;
+                var sourceWidth = plot3dCanvas.offsetWidth;
+                var sourceHeight = plot3dCanvas.offsetHeight;
+                var destWidth = sourceWidth * scale;
+                var destHeight = sourceHeight * scale;
+                context.drawImage(
+                    plot3dCanvas,
+                    0,0
+                );
+            }
+            canvas.toBlob(function(blob) {
+                saveAs(blob, fileName);
+            });
+        })
+        
+        //d3.select(svg).classed('sr-download-png', false);
     }
 
     function pxToInteger(value) {
