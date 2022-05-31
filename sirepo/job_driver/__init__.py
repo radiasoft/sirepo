@@ -356,7 +356,7 @@ class DriverBase(PKDict):
             return
         await op.op_slot.alloc('Waiting for another simulation to complete')
         await op.run_dir_slot.alloc('Waiting for access to simulation state')
-        if n in OPS_THAT_NEED_OTHER_SLOTS:
+        if n not in OPS_THAT_NEED_CPU_SLOTS:
             return
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
