@@ -1989,7 +1989,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             // wrong app so just ignore
             return;
         }
-        var r = atob(p[1]);
+        var r = decodeURIComponent(p[1]);
         if ($location.path() != r) {
             event.preventDefault();
             self.localRedirect(r);
@@ -2053,7 +2053,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function saveCookieRedirect(route) {
-        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + btoa(route);
+        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(route);
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
