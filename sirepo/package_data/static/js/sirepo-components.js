@@ -4049,47 +4049,16 @@ SIREPO.app.service('plotToPNG', function($http) {
     var canvases = {};
 
     function downloadPlot(svg, outputHeight, plot3dCanvas, fileName) {
-        var scale = outputHeight / parseInt(svg.getAttribute('height'));
-        var height = parseInt(svg.getAttribute('height')) * scale;
-        var width = parseInt(svg.getAttribute('width')) * scale;
-        html2canvas(svg.parentElement, {
-            height,
-            width,
-            scale: 1,
+        const el = svg.parentElement.parentElement;
+        html2canvas(el, {
+            scale: outputHeight / $(el).height(),
             backgroundColor: '#ffffff',
-            removeContainer: false
+            ignoreElements: (element) => element.matches("path.pointer.axis")
         }).then(canvas => {
-            var destCanvas = document.createElement('canvas');
-            destCanvas.height = width;
-            destCanvas.width = height;
-            var context = destCanvas.getContext("2d");
-            context.fillStyle = '#FFFFFF';
-            context.fillRect(0, 0, destCanvas.width, destCanvas.height);
-            context.fillStyle = '#000000';
-            context.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, width * scale, height * scale);
-            if (plot3dCanvas) {
-                var destX = plot3dCanvas.offsetLeft * scale;
-                var destY = plot3dCanvas.offsetTop * scale;
-                var destWidth = plot3dCanvas.offsetWidth * scale;
-                var destHeight = plot3dCanvas.offsetHeight * scale;
-                context.drawImage(
-                    plot3dCanvas,
-                    destX, destY,
-                    destWidth,
-                    destHeight
-                );
-            }
-            destCanvas.toBlob(function(blob) {
+            canvas.toBlob(function(blob) {
                 saveAs(blob, fileName);
             });
         })
-        
-        //d3.select(svg).classed('sr-download-png', false);
-    }
-
-    function pxToInteger(value) {
-        value = value.replace(/px/, '');
-        return parseInt(value);
     }
 
     // Stores canvases for updates and later use.  We use the existing reportID
@@ -4142,34 +4111,7 @@ SIREPO.app.service('plotToPNG', function($http) {
     };
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
-        // embed all css styles into SVG node before rendering
-        if (svg.firstChild.nodeName == 'STYLE') {
-            downloadPlot(svg, height, plot3dCanvas, fileName);
-            return;
-        }
-        var promises = [];
-        ['sirepo.css'].concat(SIREPO.APP_SCHEMA.dynamicFiles.sirepoLibs.css || []).forEach(function(cssFile) {
-            promises.push($http.get('/static/css/' + cssFile + SIREPO.SOURCE_CACHE_KEY));
-        });
-        var cssText = '';
-        function cssResponse(response) {
-            promises.shift();
-            cssText += response.data;
-            if (promises.length) {
-                promises[0].then(cssResponse);
-                return;
-            }
-            if (svg.firstChild.nodeName != 'STYLE') {
-                var css = document.createElement('style');
-                css.type = 'text/css';
-                // work-around bug fix #857, canvg.js doesn't handle non-standard css
-                cssText = cssText.replace('input::-ms-clear', 'ms-clear');
-                css.appendChild(document.createTextNode(cssText));
-                svg.insertBefore(css, svg.firstChild);
-            }
-            downloadPlot(svg, height, plot3dCanvas, fileName);
-        }
-        promises[0].then(cssResponse);
+        downloadPlot(svg, height, plot3dCanvas, fileName);
     };
 
     this.downloadCanvas = function(reportId, width, height, fileName)  {
