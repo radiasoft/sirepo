@@ -2064,7 +2064,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
         elif report == 'coherentModesAnimation':
             v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
-            v.mpiMasterCount = max(2, int(sirepo.mpi.cfg.cores / 4))
+            v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = 'h5'
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
 
