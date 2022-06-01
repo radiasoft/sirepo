@@ -1085,6 +1085,13 @@ SIREPO.app.factory('timeService', function() {
     return self;
 });
 
+SIREPO.app.factory('userAgent', function() {
+    var self = {};
+
+    self.id = null;
+    return self;
+});
+
 // manages validators for ngModels and provides other validation services
 SIREPO.app.service('validationService', function(utilities) {
 
@@ -1915,7 +1922,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, userAgent, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2267,10 +2274,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
+        srdbg('sending request with id=', userAgent.id)
         t = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
-            headers: {'X-Sirepo-UserAgentId': 'aaa'}
+            headers: userAgent.id ? {'X-Sirepo-UserAgentId': userAgent.id} : {}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
@@ -2364,6 +2372,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         };
         req.then(
             function(response) {
+                const i = response.headers('X-Sirepo-UserAgentId');
+                if (i) {
+                    userAgent.id = i;
+                }
+                srdbg('got response header=', response.headers('X-Sirepo-UserAgentId'))
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
                     // properly handle file path returns from get_application_data, which do not live in json objects
@@ -2376,7 +2389,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                     return;
                 }
                 $interval.cancel(interval);
-                srdbg(`headers=`, response.headers('Content-Type'))
                 successCallback(data, response.status);
             },
             thisErrorCallback
@@ -3961,7 +3973,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         appState.saveQuietly('simFolder');
     });
     loadList();
-    wakeAgent();
+    // wakeAgent();
 
     // invoked in loadList() callback
     function checkURLForFolder() {

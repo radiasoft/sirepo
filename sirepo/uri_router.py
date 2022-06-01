@@ -144,6 +144,7 @@ def init(app, simulation_db):
         uri_router=pkinspect.this_module(),
     )
     sirepo.request.init(
+        flask=flask,
         uri_router=pkinspect.this_module(),
     )
 

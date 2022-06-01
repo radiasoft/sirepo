@@ -23,16 +23,13 @@ _Session = None
 
 
 def _event_end_api_call(kwargs):
-    kwargs.resp.headers['X-Sirepo-UserAgentId'] = sirepo.srcontext.get(_SRCONTEXT_KEY)
+    i = sirepo.srcontext.get(_SRCONTEXT_KEY)
+    if i:
+        kwargs.resp.headers['X-Sirepo-UserAgentId'] = i
 
 
 @contextlib.contextmanager
 def session():
-    # get agent id header
-    # if no header, create row
-    # else assert header is in db
-    # update request time
-    # send begin session if N time has elapsed between previous request time
     i = flask.request.headers.get('X-Sirepo-UserAgentId')
     pkdp('X-Sirepo-UserAgentId={}', i)
     pkdp('path={}', flask.request.path)
@@ -55,7 +52,7 @@ def session():
         sirepo.uri_router.call_api('wakeAgent', data=PKDict(simulationType='srw'))
     else:
         s = _Session.search_by(user_agent_id=i)
-        assert s, f'No session for user_agent_id={i}'
+        assert s, f'No session for user_agent_id={i} type={type(i)}'
         t = s.request_time
         if sirepo.srtime.utc_now() - t > datetime.timedelta(minutes=1):  # TODO(rorour) use constant tune 60
             sirepo.uri_router.call_api('wakeAgent', data=PKDict(simulationType='srw'))

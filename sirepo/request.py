@@ -21,6 +21,9 @@ class Base:
         """
         return uri_router.call_api(name, kwargs=kwargs, data=data)
 
+    def request_method(self):
+        return flask.request.method
+
 
 def init(**imports):
     import sirepo.util
