@@ -518,7 +518,7 @@
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
-            "mpiGroupCount": ["Number of MPI processes groups", "Integer", 2, "", 2],
+            "mpiGroupCount": ["Number of independent groups of MPI processes", "Integer", 2, "", 2],
             "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
             "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
