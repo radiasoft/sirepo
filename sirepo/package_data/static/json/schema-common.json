@@ -230,7 +230,6 @@
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
                     "colorbar.js",
-                    "canvg-and-dependencies.js",
                     "html2canvas.js",
                     "FileSaver.js",
                     "Blob.js",
