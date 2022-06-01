@@ -2274,7 +2274,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        srdbg('sending request with id=', userAgent.id)
         t = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
@@ -2376,7 +2375,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
                 if (i) {
                     userAgent.id = i;
                 }
-                srdbg('got response header=', response.headers('X-Sirepo-UserAgentId'))
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
                     // properly handle file path returns from get_application_data, which do not live in json objects
@@ -3973,7 +3971,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         appState.saveQuietly('simFolder');
     });
     loadList();
-    // wakeAgent();
 
     // invoked in loadList() callback
     function checkURLForFolder() {
