@@ -119,6 +119,7 @@
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
+        "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
         "comsolRegister": "/comsol-register",
@@ -168,8 +169,7 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
-        "wakeAgent": "/wake-agent"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "appDefaults": {

@@ -758,8 +758,8 @@ class _ComputeJob(PKDict):
     async def _receive_api_statelessCompute(self, req):
         return await self._send_simulation_compute(req)
 
-    async def _receive_api_wakeAgent(self, req):
-        c = self._create_op(job.OP_INITIALIZE, req)
+    async def _receive_api_beginSession(self, req):
+        c = self._create_op(job.OP_BEGIN_SESSION, req)
         try:
             await c.prepare_send()
         except Awaited:

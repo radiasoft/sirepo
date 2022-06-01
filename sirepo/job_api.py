@@ -208,7 +208,7 @@ class Request(sirepo.request.Base):
         return _request_compute()
 
     @api_perm.require_user
-    def api_wakeAgent(self):
+    def api_beginSession(self):
         t = sirepo.http_request.parse_post().req_data.simulationType
         s = pkjson.load_any(pkcompat.from_bytes(sirepo.uri_router.call_api(
             'listSimulations',

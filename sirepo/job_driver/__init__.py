@@ -343,7 +343,7 @@ class DriverBase(PKDict):
     async def _slots_ready(self, op):
         """Only one op of each type allowed"""
         n = op.opName
-        if n in (job.OP_CANCEL, job.OP_KILL, job.OP_INITIALIZE):
+        if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
             return
         if n == job.OP_SBATCH_LOGIN:
             l = [o for o in self.ops.values() if o.opId != op.opId]

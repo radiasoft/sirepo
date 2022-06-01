@@ -282,7 +282,7 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
-    async def _op_wakeup(self, msg):
+    async def _op_begin_session(self, msg):
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
         )

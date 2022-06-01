@@ -49,13 +49,13 @@ def session():
             request_time=t,
         ).save()
         # TODO(rorour) call self.call_api correctly
-        sirepo.uri_router.call_api('wakeAgent', data=PKDict(simulationType='srw'))
+        sirepo.uri_router.call_api('beginSession', data=PKDict(simulationType='srw'))
     else:
         s = _Session.search_by(user_agent_id=i)
         assert s, f'No session for user_agent_id={i} type={type(i)}'
         t = s.request_time
         if sirepo.srtime.utc_now() - t > datetime.timedelta(minutes=1):  # TODO(rorour) use constant tune 60
-            sirepo.uri_router.call_api('wakeAgent', data=PKDict(simulationType='srw'))
+            sirepo.uri_router.call_api('beginSession', data=PKDict(simulationType='srw'))
         s.request_time = sirepo.srtime.utc_now()
         s.save()
     sirepo.srcontext.set(_SRCONTEXT_KEY, i)

@@ -3755,9 +3755,9 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             });
     }
 
-    function wakeAgent() {
+    function beginSession() {
         requestSender.sendRequest(
-            'wakeAgent',
+            'beginSession',
             () => {},
             {simulationType: SIREPO.APP_SCHEMA.simulationType}
             );
