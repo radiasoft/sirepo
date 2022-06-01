@@ -178,8 +178,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.computeBeamParameters = function(callback=null) {
-
-        srdbg('computingBeamParams');
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -828,7 +826,7 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
             srwService.computeBeamParameters(() => {
                     appState.saveChanges(['electronBeamPosition', 'electronBeam']);
                 }
-            )
+            );
         }
         else if (name == 'gaussianBeam') {
             appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
@@ -1195,7 +1193,6 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, srwService, 
     }
 
     function updateBeamFields() {
-        srdbg('driftCalcMethod: ', appState.models.electronBeamPosition.driftCalculationMethod);
         var isTwissDefinition = appState.models.electronBeam.beamDefinition === 't';
         var isAutoDrift = appState.models.electronBeamPosition.driftCalculationMethod === 'auto';
         // show/hide column headings and input fields for the twiss/moments sections
@@ -1471,10 +1468,6 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     $scope.whenSelected = updateUndulator;
     $scope.watchFields = [
         ['tabulatedUndulator.undulatorType'], updateUndulator,
-        // [
-        //     'tabulatedUndulator.undulatorType', 'undulator.length',
-        //     'undulator.period', 'simulation.sourceType',
-        // ], srwService.computeBeamParameters,
         [
             'tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap',
             'tabulatedUndulator.undulatorType',
