@@ -1992,9 +1992,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             // wrong app so just ignore
             return;
         }
-        if ($location.path() != p[1]) {
+        var r = decodeURIComponent(p[1]);
+        if ($location.path() != r) {
             event.preventDefault();
-            self.localRedirect(p[1]);
+            self.localRedirect(r);
         }
     }
 
@@ -2055,7 +2056,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function saveCookieRedirect(route) {
-        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + route;
+        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(route);
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
@@ -2206,7 +2207,14 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (u.charAt(0) == '#') {
             u = u.slice(1);
         }
-        $location.path(u);
+        // needs to handle query params from calls using complete url differently
+        u = u.split("?");
+        
+        if(u.length > 1 && u[1].trim()) {
+            $location.path(u[0]).search(u[1]);
+        } else {
+            $location.path(u[0]);
+        }
     };
 
     self.localRedirectHome = function(simulationId) {
