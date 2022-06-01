@@ -28,13 +28,11 @@ def _event_end_api_call(kwargs):
         kwargs.resp.headers['X-Sirepo-UserAgentId'] = i
 
 
-@contextlib.contextmanager
-def session():
+def session(sreq):
     i = flask.request.headers.get('X-Sirepo-UserAgentId')
     pkdp('X-Sirepo-UserAgentId={}', i)
     pkdp('path={}', flask.request.path)
-    #TODO(rorour) make self.request_method which uses flask request method
-    if flask.request.method != 'POST' or 'static' in flask.request.path or 'schema' in flask.request.path:
+    if sreq.request_method() != 'POST' or 'static' in flask.request.path or 'schema' in flask.request.path:
         yield
         return
     if not i:
@@ -48,8 +46,7 @@ def session():
             start_time=t,
             request_time=t,
         ).save()
-        # TODO(rorour) call self.call_api correctly
-        sirepo.uri_router.call_api('beginSession', data=PKDict(simulationType='srw'))
+        sreq.call_api('beginSession', data=PKDict(simulationType='srw'))
     else:
         s = _Session.search_by(user_agent_id=i)
         assert s, f'No session for user_agent_id={i} type={type(i)}'

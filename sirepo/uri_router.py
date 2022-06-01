@@ -258,7 +258,8 @@ def _dispatch(path):
     """
     import sirepo.auth
 
-    with sirepo.auth.process_request():
+    r = sirepo.request.Base()
+    with sirepo.auth.process_request(r):
         try:
             if path is None:
                 return call_api(_default_route, PKDict(path_info=None))
