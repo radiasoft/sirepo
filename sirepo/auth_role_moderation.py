@@ -59,7 +59,7 @@ class Request(sirepo.request.Base):
                 moderator_uid=sirepo.auth.logged_in_user()
             )
 
-        req = sirepo.http_request.parse_post(type=False)
+        req = self.parse_post(type=False)
         i = sirepo.auth_db.UserRoleInvite.search_by(token=req.req_data.token)
         if not i:
             pkdlog(f'No record in UserRoleInvite for token={req.req_data.token}')
@@ -107,7 +107,7 @@ class Request(sirepo.request.Base):
                 body=pkjinja.render_resource('auth_role_moderation/moderation_email', info),
             )
 
-        req = sirepo.http_request.parse_post()
+        req = self.parse_post()
         d = req.req_data
         u = sirepo.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(d.simulationType)
