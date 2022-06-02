@@ -6,34 +6,44 @@ u"""Replies for all API calls.
 
 
 class Base:
-    def gen_exception(self, exc):
+    @classmethod
+    def exception(cls, exc):
         return http_reply.gen_exception(exc)
 
-    def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
+    @classmethod
+    def file_as_attachment(cls, content_or_path, filename=None, content_type=None):
         return http_reply.gen_file_as_attachment(content_or_path, filename=filename, content_type=content_type)
 
-    def gen_json(self, value, pretty=False, response_kwargs=None):
+    @classmethod
+    def json(cls, value, pretty=False, response_kwargs=None):
         return http_reply.gen_json(value, pretty=pretty, response_kwargs=response_kwargs)
 
-    def gen_json_ok(self, *args, **kwargs):
+    @classmethod
+    def json_ok(cls, *args, **kwargs):
         return http_reply.gen_json_ok(*args, **kwargs)
 
-    def gen_redirect(self, uri):
+    @classmethod
+    def redirect(cls, uri):
         return http_reply.gen_redirect(uri)
 
-    def gen_redirect_for_anchor(self, uri, **kwargs):
+    @classmethod
+    def redirect_for_anchor(cls, uri, **kwargs):
         return http_reply.gen_redirect_for_anchor(uri, **kwargs)
 
-    def gen_redirect_for_app_root(self, sim_type):
+    @classmethod
+    def redirect_for_app_root(cls, sim_type):
         return http_reply.gen_redirect_for_app_root(sim_type)
 
-    def gen_redirect_for_local_route(self, sim_type=None, route=None, params=None, query=None, **kwargs):
+    @classmethod
+    def redirect_for_local_route(cls, sim_type=None, route=None, params=None, query=None, **kwargs):
         return http_reply.gen_redirect_for_local_route(sim_type=sim_type, route=route, params=params, query=query, **kwargs)
 
-    def gen_response(self, *args, **kwargs):
+    @classmethod
+    def response(cls, *args, **kwargs):
         return http_reply.gen_response(*args, **kwargs)
 
-    def gen_tornado_exception(self, exc):
+    @classmethod
+    def tornado_exception(cls, exc):
         return http_reply.gen_tornado_exception(exc)
 
 
