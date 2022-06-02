@@ -534,7 +534,7 @@ class Request(sirepo.request.Base):
         if v.want_cookie:
             sirepo.cookie.set_sentinel()
         v.op()
-        return http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
     @api_perm.allow_visitor
