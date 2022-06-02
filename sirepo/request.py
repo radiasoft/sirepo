@@ -9,6 +9,9 @@ class Base:
     """Holds request context for all API calls.
     """
 
+    def __init__(self):
+        self.reply = reply.Base()
+
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
