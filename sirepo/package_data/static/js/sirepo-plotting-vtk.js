@@ -2772,8 +2772,12 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
             copyCanvas: function(event, doTraverse) {
                 panelState.waitForUI(function() {
                     const canvas3d = $(panel).find('canvas')[0];
-                    const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0].cloneNode(true);
-                    cleanElement(axesCanvas);
+                    const c = $(panel).find('svg.sr-vtk-axes')[0];
+                    let axesCanvas = null;
+                    if (c) {
+                        axesCanvas = c.cloneNode(true);
+                        cleanElement(axesCanvas);
+                    }
                     canvas.width = parseInt(canvas3d.getAttribute('width'));
                     canvas.height = parseInt(canvas3d.getAttribute('height'));
                     if (doTraverse) {
