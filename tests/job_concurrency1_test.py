@@ -13,13 +13,6 @@ import pytest
 
 import sirepo.util
 
-def setup_module(module):
-    import os
-    os.environ.update(
-        SIREPO_JOB_DRIVER_LOCAL_SLOTS_PARALLEL='1',
-        SIREPO_JOB_DRIVER_LOCAL_SLOTS_SEQUENTIAL='1'
-    )
-
 
 def test_myapp_cancel(fc):
     """https://github.com/radiasoft/sirepo/issues/2346"""
@@ -105,91 +98,6 @@ def test_myapp_cancel(fc):
         pkunit.pkfail('runStatus: failed to start running: {}', r1)
     c = fc.sr_post('runCancel', r1.nextRequest)
     pkunit.pkeq('canceled', c.state)
-
-
-def test_srw_io(fc):
-    import time
-    import threading
-    from pykern import pkunit
-    from pykern.pkdebug import pkdlog
-    from pykern.pkcollections import PKDict
-    from sirepo import srunit
-
-    #fc = srunit.flask_client(
-    #    cfg={
-    #        'SIREPO_FEATURE_CONFIG_SIM_TYPES': 'srw',
-    #        'SIREPO_JOB_DRIVER_LOCAL_SLOTS_PARALLEL': '4',
-    #    }
-    #)
-    #d = fc.sr_sim_data(sim_name='NSLS-II TES beamline', sim_type='srw')
-    d = fc.sr_sim_data('NSLS-II TES beamline')
-    reports = ['beamlineAnimation', 'coherentModesAnimation']
-    num_runs = len(reports)
-    runs = []
-    for _ in range(num_runs + 1):
-        runs.append(PKDict(res={}, done=False))
-
-    def _monitor_run(i):
-        r = runs[i]
-        for _ in range(100):
-            time.sleep(.1)
-            if r.done:
-                fc.sr_post('runCancel', r.res.nextRequest)
-                break
-            r.res = fc.sr_post('runStatus', r.res.nextRequest)
-
-    def _start_run(i):
-        r = runs[i]
-        r.res = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                forceRun=False,
-                models=d.models,
-                report=reports[i],
-                simulationId=d.models.simulation.simulationId,
-                simulationType=d.simulationType,
-            ),
-        )
-        for _ in range(50):
-            pkunit.pkok(r.res.state != 'error', 'unexpected error state: {}')
-            if r.res.state == 'pending' or r.res.state == 'running':
-                break
-            time.sleep(.1)
-            r.res = fc.sr_post('runStatus', r.res.nextRequest)
-        else:
-            pkunit.pkfail('runStatus: failed to start running: {}', r.res)
-        threading.Thread(target=_get_t(i + 1)).start()
-        _monitor_run(i)
-        time.sleep(.1)
-
-    def _tn():
-        try:
-            runs[num_runs].res = fc.sr_get(
-                'downloadDataFile',
-                PKDict(
-                    simulation_type=d.simulationType,
-                    simulation_id=d.models.simulation.simulationId,
-                    model=reports[0],
-                    frame='0',
-                    suffix='dat',
-                ),
-            )
-        except Exception as e:
-            runs[num_runs].res = str(e)
-        for r in runs:
-            r.done = True
-        time.sleep(1)
-
-    def _get_t(i):
-        if i < num_runs:
-            return lambda: _start_run(i)
-        return _tn
-
-    _get_t(0)()
-
-    pkdlog('** FINAL {} **', runs)
-    s = runs[num_runs - 1].res.state
-    pkunit.pkok(s == 'pending', 'unexpected run state: {}', s)
 
 
 def test_elegant_concurrent_sim_frame(fc):
