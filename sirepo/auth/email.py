@@ -69,7 +69,7 @@ class Request(sirepo.request.Base):
                 u.token = None
                 u.expires = None
                 u.save()
-                auth.login(this_module, sim_type=req.type, model=u, display_name=n)
+                auth.login(this_module, sim_type=req.type, sreq=self, model=u, display_name=n)
                 raise AssertionError('auth.login returned unexpectedly')
             if not u:
                 pkdlog('login with invalid token={}', token)

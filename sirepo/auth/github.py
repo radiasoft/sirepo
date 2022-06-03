@@ -71,7 +71,7 @@ class Request(sirepo.request.Base):
             else:
                 u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
             u.save()
-            auth.login(this_module, model=u, sim_type=t, want_redirect=True)
+            auth.login(this_module, model=u, sim_type=t, sreq=self, want_redirect=True)
             raise AssertionError('auth.login returned unexpectedly')
     
     

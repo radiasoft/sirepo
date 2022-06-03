@@ -199,7 +199,7 @@ def logged_in_user(check_path=True):
     return u
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
+def login(module, uid=None, model=None, sim_type=None, sreq=None, display_name=None, is_mock=False, want_redirect=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -254,7 +254,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         if guest_uid and guest_uid != uid:
             import sirepo.simulation_db
             sirepo.simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_response(sim_type, want_redirect)
+        login_success_response(sim_type, sreq, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -273,7 +273,7 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
     )
 
 
-def login_success_response(sim_type, want_redirect=False):
+def login_success_response(sim_type, sreq, want_redirect=False):
     r = None
     if (
         cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
@@ -286,7 +286,7 @@ def login_success_response(sim_type, want_redirect=False):
         ) else None
         raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
     raise sirepo.util.Response(
-        response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
+        response=sreq.reply_ok(PKDict(authState=_auth_state())),
     )
 
 
@@ -328,12 +328,7 @@ def require_auth_basic():
     _validate_method(m)
     uid = m.require_user()
     if not uid:
-        raise sirepo.util.Response(
-            http_reply.gen_response(
-                status=401,
-                headers={'WWW-Authenticate': 'Basic realm="*"'},
-            ),
-        )
+        raise sirepo.util.WWWAuthenticate()
     cookie.set_sentinel()
     login(m, uid=uid)
 

@@ -38,8 +38,8 @@ class Request(sirepo.request.Base):
         req = self.parse_params(type=simulation_type)
         # if already logged in as guest, just redirect
         if auth.user_if_logged_in(AUTH_METHOD):
-            auth.login_success_response(req.type)
-        auth.login(this_module, sim_type=req.type)
+            auth.login_success_response(req.type, self)
+        auth.login(this_module, sim_type=req.type, sreq=self)
         raise AssertionError('auth.login returned unexpectedly')
 
 
