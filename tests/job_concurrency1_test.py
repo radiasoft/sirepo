@@ -11,8 +11,6 @@ that can't be controlled by the test.
 """
 import pytest
 
-import sirepo.util
-
 
 def test_myapp_cancel(fc):
     """https://github.com/radiasoft/sirepo/issues/2346"""
