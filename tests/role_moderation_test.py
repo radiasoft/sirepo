@@ -6,13 +6,14 @@ u"""test moderated sim types
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
+import getpass
 import os
 import pytest
 
 def setup_module(module):
     os.environ.update(
         SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES='myapp',
-        SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=os.getlogin() + '@localhost.localdomain',
+        SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=getpass.getuser() + '@localhost.localdomain',
     )
 
 
