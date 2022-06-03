@@ -79,7 +79,7 @@ class Request(sirepo.request.Base):
         _set_moderation_status(p)
         pkdlog('status={} uid={} role={} token={}', p.status, i.uid, i.role, i.token)
         _send_moderation_status_email(p)
-        return sirepo.http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
     @sirepo.api_perm.require_adm
@@ -91,7 +91,7 @@ class Request(sirepo.request.Base):
 
     @sirepo.api_perm.require_adm
     def api_getModerationRequestRows(self):
-        return sirepo.http_reply.gen_json(
+        return self.reply_json(
             PKDict(
                 rows=[r.as_pkdict() for r in sirepo.auth_db.UserRoleInvite.get_moderation_request_rows()],
             ),
@@ -139,7 +139,7 @@ class Request(sirepo.request.Base):
                 uid=u,
             ).pkupdate(sirepo.http_request.user_agent_headers())
         )
-        return sirepo.http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
 def init_apis():

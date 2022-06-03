@@ -56,7 +56,7 @@ class Request(sirepo.request.Base):
         from sirepo import http_reply
 
         adjust_time(days, sreq=self)
-        return http_reply.gen_json_ok({
+        return self.reply_ok({
             'adjustedNow': utc_now().isoformat(),
             'systemNow': datetime.datetime.utcnow().isoformat(),
         })

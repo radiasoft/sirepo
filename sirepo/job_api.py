@@ -132,7 +132,7 @@ class Request(sirepo.request.Base):
         except Exception as e:
             pkdlog('ignoring exception={} stack={}', e, pkdexc())
         # Always true from the client's perspective
-        return sirepo.http_reply.gen_json({'state': 'canceled'})
+        return self.reply_json({'state': 'canceled'})
 
     @api_perm.require_user
     def api_runMulti(self):

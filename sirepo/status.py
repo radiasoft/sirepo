@@ -42,7 +42,7 @@ class Request(sirepo.request.Base):
         short period of time.
         """
         self._run_tests()
-        return http_reply.gen_json_ok({
+        return self.reply_ok({
             'datetime': datetime.datetime.utcnow().isoformat(),
         })
 

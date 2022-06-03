@@ -30,6 +30,12 @@ class Base:
     def parse_post(self, **kwargs):
         return http_request.parse_post(**kwargs)
 
+    def reply_json(self, value, pretty=False, response_kwargs=None):
+        return http_reply.gen_json(value, pretty=pretty, response_kwargs=response_kwargs)
+
+    def reply_ok(self, *args, **kwargs):
+        return http_reply.gen_json_ok(*args, **kwargs)
+
 def init(**imports):
     import sirepo.util
 

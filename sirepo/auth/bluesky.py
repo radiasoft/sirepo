@@ -55,7 +55,7 @@ class Request(sirepo.request.Base):
             uid=simulation_db.uid_from_dir_name(path),
             # do not supply sim_type (see auth.login)
         )
-        return sirepo.http_reply.gen_json_ok(
+        return self.reply_ok(
             PKDict(
                 data=simulation_db.open_json_file(req.type, sid=req.id),
                 schema=simulation_db.get_schema(req.type),

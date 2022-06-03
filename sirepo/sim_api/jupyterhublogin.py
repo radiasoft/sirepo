@@ -35,7 +35,7 @@ class Request(sirepo.request.Base):
     @sirepo.api_perm.allow_visitor
     def api_checkAuthJupyterhub(self):
         def _res_for_uri(uri):
-            return sirepo.http_reply.gen_json_ok(PKDict(uri=uri))
+            return self.reply_ok(PKDict(uri=uri))
 
         u = None
         try:
@@ -45,7 +45,7 @@ class Request(sirepo.request.Base):
                 have_simulation_db=False,
             )
         except werkzeug.exceptions.Forbidden:
-            return sirepo.http_reply.gen_json_ok()
+            return self.reply_ok()
         except sirepo.util.Redirect as e:
             return _res_for_uri(sirepo.uri_router.uri_for_api(
                 'root',
@@ -59,7 +59,7 @@ class Request(sirepo.request.Base):
             ))
         if not u:
             u = create_user()
-        return sirepo.http_reply.gen_json_ok(PKDict(
+        return self.reply_ok(PKDict(
             username=u
         ))
 
@@ -87,7 +87,7 @@ class Request(sirepo.request.Base):
             if not u:
                 create_user()
             return sirepo.http_reply.gen_redirect('jupyterHub')
-        return sirepo.http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
 def create_user(github_handle=None, check_dir=False):

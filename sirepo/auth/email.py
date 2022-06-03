@@ -134,8 +134,8 @@ class Request(sirepo.request.Base):
         )
         if not r:
             pkdlog('{}', uri)
-            return http_reply.gen_json_ok({'uri': uri})
-        return http_reply.gen_json_ok()
+            return self.reply_ok({'uri': uri})
+        return self.reply_ok()
 
     def _verify_confirm(self, sim_type, token, need_complete_registration):
         m = flask.request.method

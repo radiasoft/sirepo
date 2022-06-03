@@ -38,7 +38,7 @@ Name: {}
 Email: {}
 '''.format(req.name, req.email),
         )
-        return http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
 def init_apis(*args, **kwargs):

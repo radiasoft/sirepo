@@ -89,7 +89,7 @@ class Request(sirepo.request.Base):
         complete_registration(
             _parse_display_name(self.parse_json().get('displayName')),
         )
-        return http_reply.gen_json_ok()
+        return self.reply_ok()
     
     
     @api_perm.allow_visitor
