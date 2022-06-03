@@ -38,7 +38,7 @@ cfg = None
 
 _CPU_SLOT_OPS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
-_SLOT_OPS = frozenset().union(*[_CPU_SLOT_OPS, job.OP_IO])
+_SLOT_OPS = frozenset().union(*[_CPU_SLOT_OPS, (job.OP_IO,)])
 
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 
@@ -80,7 +80,7 @@ class DriverBase(PKDict):
             #TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
             # because OP_ANALYSIS touches the directory sometimes. Reasonably
             # there should only be one OP_ANALYSIS running on an agent at one time.
-            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in _CPU_SLOT_OPS}),
+            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in _SLOT_OPS}),
             uid=op.msg.uid,
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
