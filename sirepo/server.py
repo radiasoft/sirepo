@@ -452,7 +452,7 @@ class Request(sirepo.request.Base):
         if path_info is None:
             return self.reply_redirect(cfg.home_page_uri)
         if sirepo.template.is_sim_type(path_info):
-            return _render_root_page('index', PKDict(app_name=path_info))
+            return self._render_root_page('index', PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
         if u:
             return self.reply_redirect(u)
@@ -519,7 +519,7 @@ class Request(sirepo.request.Base):
 
     @api_perm.allow_visitor
     def api_srwLight(self):
-        return _render_root_page('light', PKDict())
+        return self._render_root_page('light', PKDict())
 
 
     @api_perm.allow_visitor
@@ -560,7 +560,7 @@ class Request(sirepo.request.Base):
                 path=p,
             )
         if re.match(r'^(html|en)/[^/]+html$', path_info):
-            return http_reply.render_html(p)
+            return self.reply_html(p)
         return flask.send_file(p, conditional=True)
 
 
@@ -635,6 +635,14 @@ class Request(sirepo.request.Base):
             'simulationId': req.id,
         })
 
+    def _render_root_page(self, page, values):
+        values.update(PKDict(
+            app_version=simulation_db.app_version(),
+            source_cache_key=_source_cache_key(),
+            static_files=simulation_db.static_libs(),
+        ))
+        return self.reply_static_jinja(page, 'html', values, cache_ok=True)
+
     def _save_new_and_reply(self, req, data):
         return self._simulation_data_reply(req, simulation_db.save_new_simulation(data))
 
@@ -698,15 +706,6 @@ def _lib_file_write_path(req):
     return req.sim_data.lib_file_write_path(
         req.sim_data.lib_file_name_with_type(req.filename, req.file_type),
     )
-
-
-def _render_root_page(page, values):
-    values.update(PKDict(
-        app_version=simulation_db.app_version(),
-        source_cache_key=_source_cache_key(),
-        static_files=simulation_db.static_libs(),
-    ))
-    return http_reply.render_static_jinja(page, 'html', values, cache_ok=True)
 
 
 def _simulation_data_iterator(res, path, data):

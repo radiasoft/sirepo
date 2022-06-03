@@ -94,7 +94,7 @@ class Request(sirepo.request.Base):
     
     @api_perm.allow_visitor
     def api_authState(self):
-        return http_reply.render_static_jinja(
+        return self.reply_static_jinja(
             'auth-state',
             'js',
             PKDict(auth_state=_auth_state()),

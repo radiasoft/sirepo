@@ -48,6 +48,11 @@ class Base:
     def reply_redirect_for_local_route(self, sim_type=None, route=None, params=None, query=None, **kwargs):
         return http_reply.gen_redirect_for_local_route(sim_type=sim_type, route=route, params=params, query=query, **kwargs)
 
+    def reply_html(self, path):
+        return http_reply.render_html(path)
+
+    def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
+        return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
 def init(**imports):
     import sirepo.util
