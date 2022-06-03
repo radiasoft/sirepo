@@ -117,7 +117,7 @@ class Request(sirepo.request.Base):
             events.emit('auth_logout', PKDict(uid=_get_user()))
             cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
             _set_log_user()
-        return http_reply.gen_redirect_for_app_root(req and req.type)
+        return self.reply_redirect_for_app_root(req and req.type)
 
 
 def complete_registration(name=None):

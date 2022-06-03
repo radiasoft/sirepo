@@ -77,7 +77,7 @@ class Request(sirepo.request.Base):
                 if len(f) > 0:
                     assert len(f) == 1, \
                         'too many files={}'.format(f)
-                    return sirepo.http_reply.gen_file_as_attachment(f[0])
+                    return self.reply_file(f[0])
             except requests.exceptions.HTTPError:
     #TODO(robnagler) HTTPError is too coarse a check
                 pass

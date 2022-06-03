@@ -30,11 +30,24 @@ class Base:
     def parse_post(self, **kwargs):
         return http_request.parse_post(**kwargs)
 
+    def reply_file(self, content_or_path, filename=None, content_type=None):
+        return http_reply.gen_file_as_attachment(content_or_path, filename=filename, content_type=content_type)
+
     def reply_json(self, value, pretty=False, response_kwargs=None):
         return http_reply.gen_json(value, pretty=pretty, response_kwargs=response_kwargs)
 
     def reply_ok(self, *args, **kwargs):
         return http_reply.gen_json_ok(*args, **kwargs)
+
+    def reply_redirect(self, uri):
+        return http_reply.gen_redirect(uri)
+
+    def reply_redirect_for_app_root(self, sim_type):
+        return http_reply.gen_redirect_for_app_root(sim_type)
+
+    def reply_redirect_for_local_route(self, sim_type=None, route=None, params=None, query=None, **kwargs):
+        return http_reply.gen_redirect_for_local_route(sim_type=sim_type, route=route, params=params, query=query, **kwargs)
+
 
 def init(**imports):
     import sirepo.util

@@ -71,7 +71,7 @@ class Request(sirepo.request.Base):
         d = self.parse_json()
         if not d.doMigration:
             create_user()
-            return sirepo.http_reply.gen_redirect('jupyterHub')
+            return self.reply_redirect('jupyterHub')
         return self.call_api(
             'authGithubLogin',
             kwargs=PKDict(simulation_type='jupyterhublogin'),
@@ -82,11 +82,11 @@ class Request(sirepo.request.Base):
         sirepo.auth.require_sim_type('jupyterhublogin')
         u = _unchecked_jupyterhub_user_name()
         if u:
-            return sirepo.http_reply.gen_redirect('jupyterHub')
+            return self.reply_redirect('jupyterHub')
         if not cfg.rs_jupyter_migrate:
             if not u:
                 create_user()
-            return sirepo.http_reply.gen_redirect('jupyterHub')
+            return self.reply_redirect('jupyterHub')
         return self.reply_ok()
 
 

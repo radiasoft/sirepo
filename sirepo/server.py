@@ -131,7 +131,7 @@ class Request(sirepo.request.Base):
         n = req.sim_data.lib_file_name_without_type(req.filename)
         p = req.sim_data.lib_file_abspath(req.filename)
         try:
-            return http_reply.gen_file_as_attachment(p, filename=n)
+            return self.reply_file(p, filename=n)
         except Exception as e:
             if pkio.exception_is_not_found(e):
                 sirepo.util.raise_not_found('lib_file={} not found', p)
@@ -166,7 +166,7 @@ class Request(sirepo.request.Base):
             type=simulation_type,
         )
         from sirepo import exporter
-        return exporter.create_archive(req)
+        return exporter.create_archive(req, self)
 
 
     @api_perm.allow_visitor
@@ -196,7 +196,7 @@ class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_findByName(self, simulation_type, application_mode, simulation_name):
         req = self.parse_params(type=simulation_type)
-        return http_reply.gen_redirect_for_local_route(
+        return self.reply_redirect_for_local_route(
             req.type,
             'findByName',
             PKDict(
@@ -245,7 +245,7 @@ class Request(sirepo.request.Base):
                     req.type,
                 )
         m = simulation_db.get_schema(req.type).appModes[application_mode]
-        return http_reply.gen_redirect_for_local_route(
+        return self.reply_redirect_for_local_route(
             req.type,
             m.localRoute,
             PKDict(simulationId=rows[0].simulationId),
@@ -269,7 +269,7 @@ class Request(sirepo.request.Base):
             res = req.template.get_application_data(req.req_data, tmp_dir=d)
             assert res != None, f'unhandled application data method: {req.req_data.method}'
             if 'filename' in req and isinstance(res, pkconst.PY_PATH_LOCAL_TYPE):
-                return http_reply.gen_file_as_attachment(
+                return self.reply_file(
                     res,
                     filename=req.filename,
                     content_type=req.req_data.get('contentType', None)
@@ -287,7 +287,7 @@ class Request(sirepo.request.Base):
         # special http_request parsing here
         data = sirepo.importer.do_form(flask.request.form, self)
         m = simulation_db.get_schema(data.simulationType).appModes.default
-        return http_reply.gen_redirect_for_local_route(
+        return self.reply_redirect_for_local_route(
             data.simulationType,
             m.localRoute,
             PKDict(simulationId=data.models.simulation.simulationId),
@@ -378,7 +378,7 @@ class Request(sirepo.request.Base):
         t = sirepo.template.import_module(simulation_type)
         assert hasattr(t, 'export_jupyter_notebook'), 'Jupyter export unavailable'
         d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
-        return http_reply.gen_file_as_attachment(
+        return self.reply_file(
             t.export_jupyter_notebook(d),
             f"{d.models.simulation.name}{'-' + srschema.parse_name(title) if title else ''}.ipynb",
             content_type='application/json'
@@ -390,7 +390,7 @@ class Request(sirepo.request.Base):
         t = sirepo.template.import_module(simulation_type)
         assert hasattr(t, 'export_rsopt_config'), 'Export rsopt unavailable'
         d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
-        return http_reply.gen_file_as_attachment(
+        return self.reply_file(
             t.export_rsopt_config(d, filename),
             filename,
             content_type='application/zip'
@@ -419,7 +419,7 @@ class Request(sirepo.request.Base):
         m = model and req.sim_data.parse_model(model)
         d = simulation_db.read_simulation_json(req.type, sid=req.id)
         suffix = simulation_db.get_schema(simulation_type).constants.simulationSourceExtension
-        return http_reply.gen_file_as_attachment(
+        return self.reply_file(
             req.template.python_source_for_model(d, m),
             '{}.{}'.format(
                 d.models.simulation.name + ('-' + title if title else ''),
@@ -450,12 +450,12 @@ class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_root(self, path_info):
         if path_info is None:
-            return http_reply.gen_redirect(cfg.home_page_uri)
+            return self.reply_redirect(cfg.home_page_uri)
         if sirepo.template.is_sim_type(path_info):
             return _render_root_page('index', PKDict(app_name=path_info))
         u = sirepo.uri.unchecked_root_redirect(path_info)
         if u:
-            return http_reply.gen_redirect(u)
+            return self.reply_redirect(u)
         sirepo.util.raise_not_found(f'unknown path={path_info}')
 
 

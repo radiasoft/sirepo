@@ -19,7 +19,7 @@ cfg = None
 class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_comsol(self):
-        return http_reply.gen_redirect(
+        return self.reply_redirect(
             'https://www.radiasoft.net/services/comsol-certified-consulting/',
         )
 

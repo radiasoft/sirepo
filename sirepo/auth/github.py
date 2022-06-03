@@ -91,7 +91,7 @@ class Request(sirepo.request.Base):
             redirect_uri=cfg.callback_uri,
             state=s,
         )
-        return http_reply.gen_redirect(u)
+        return self.reply_redirect(u)
     
     
     @api_perm.allow_cookieless_set_user
