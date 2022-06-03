@@ -71,7 +71,9 @@ def _widget_supported_codes(ctx):
               <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
     '''
     # TODO(e-carlin): https://git.radiasoft.org/sirepo/issues/3632
-    x = PKDict([(s, s) for s in sirepo.feature_config.PROD_FOSS_CODES])
+    x = PKDict([(sim, sim) for sim in sirepo.feature_config.cfg().sim_types ])
+
+    pkdp('\n\n\n x : {}', x)
     # TODO (gurhar1133):
     # - use feature_config.cfg().sim_types instead of FOSS_CODES
     # - populate with res but not dropdown (maybe buttons)
@@ -82,9 +84,12 @@ def _widget_supported_codes(ctx):
         jupyter='jupyterhublogin',
     )
     del x['ml']
+    r = ''
     for k in sorted(x.keys()):
-        res += f'<li><a href="/{x[k]}">{k}</a></li>'
-    return res + '</ul></li>'
+        r += f'''<p class="text-center">
+                    <a href="/{x[k]}" class="btn-link"><span>{x[k].upper()}</span></a>
+                </p>'''
+    return r
 
 
 _init()
