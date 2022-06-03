@@ -177,7 +177,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         });
     };
 
-    self.computeBeamParameters = function(callback=null) {
+    self.computeBeamParameters = function(replyHandler=null) {
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -189,8 +189,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     ebeam[f] = data[f];
                 });
                 appState.models.electronBeamPosition.drift = data.drift;
-                if (callback) {
-                    callback();
+                if (replyHandler) {
+                    replyHandler();
                 }
             },
             {
