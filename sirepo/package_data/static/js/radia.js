@@ -13,49 +13,49 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorBasic';
     SIREPO.appDefaultSimulationValues.simulation.freehandType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
-          '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-          '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
-        '</div>',
-        '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
-          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
-        '</div>',
-        '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="Group" class="col-sm-12">',
-            '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
-        '</div>',
-        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
-            '<div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>',
-        '</div>',
-        '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="ObjectType" class="col-sm-7">',
-            '<div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>',
-        '</div>',
-        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
-            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
-            '<div class="sr-input-warning">',
-            '</div>',
-        '</div>',
-        '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
-          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        '</div>',
-        '<div data-ng-switch-when="ShapeButton" class="col-sm-7">',
-            '<div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>',
-        '</div>',
-        '<div data-ng-switch-when="TerminationTable" class="col-sm-12">',
-          '<div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
-          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BevelTable" class="col-sm-12">
+          <div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
+        </div>
+        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+          <input type="color" data-ng-model="model[field]" class="sr-color-button">
+        </div>
+        <div data-ng-switch-when="FieldPaths" class="col-sm-7">
+          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+        </div>
+        <div data-ng-switch-when="FloatStringArray" class="col-sm-7">
+            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>
+        </div>
+        <div data-ng-switch-when="Group" class="col-sm-12">
+            <div data-group-editor="" data-field="model[field]" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="HMFile" data-ng-class="fieldClass">
+            <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
+        </div>
+        <div data-ng-switch-when="IntStringArray" class="col-sm-7">
+            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>
+        </div>
+        <div data-ng-switch-when="ObjectType" class="col-sm-7">
+            <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
+        </div>
+        <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
+            <div class="sr-input-warning">
+            </div>
+        </div>
+        <div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">
+          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
+        </div>
+        <div data-ng-switch-when="ShapeButton" class="col-sm-7">
+            <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
+        </div>
+        <div data-ng-switch-when="TerminationTable" class="col-sm-12">
+          <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
+        </div>
+        <div data-ng-switch-when="TransformTable" class="col-sm-12">
+          <div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
@@ -2609,6 +2609,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var initDone = false;
             var ptPicker = null;
             var renderer = null;
+            let savedObj = null;
             var selectedColor = [];
             var selectedInfo = null;
             var selectedObj = null;
@@ -3087,28 +3088,26 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 else if (info.type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
                     var j = info.colorIndices[cid];
                     selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
-                   //srdbg(info.name, 'poly tup', cid, selectedColor);
 
                     let g = radiaService.getObject(info.id);
-                    //srdbg(info.id, 'selected', g);
                     if (selectedObj === g) {
                         selectedObj = null;
+                        savedObj = null;
                     }
                     else {
                         selectedObj = g;
+                        savedObj = appState.clone(g);
                         selectedOutline = vtk.Filters.General.vtkOutlineFilter.newInstance();
                     }
-                    var highlight = selectedColor.map(function (c) {
-                        return 255 - c;
-                    });
 
-                    for (var id in actorInfo) {
+                    for (const id in actorInfo) {
                         setEdgeColor(
                             getActorInfo(id),
-                            selectedObj && sharesGroup(getActor(id), actor) ? highlight : [0, 0, 0]
+                            selectedObj && sharesGroup(getActor(id), actor) ? selectedColor.map(c =>  255 - c) : [0, 0, 0]
                         );
                     }
 
+                    $scope.radiaObject = selectedObj;
                     vtkSelection = {
                         info: selectedObj ? selectedObj.name : '--',
                         model: selectedObj ? {
@@ -3211,9 +3210,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.vtkScene.setBgColor(appState.models.magnetDisplay.bgColor);
             }
 
-            //function setColor(info, type, color, alpha=255) {
             function setColor(info, type, color, alpha) {
-                //srdbg('setColor', 'info', info, 'type', type, 'color', color, 'alpha', alpha);
                 if (angular.isUndefined(alpha)) {
                     alpha = 255;
                 }
@@ -3262,9 +3259,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! renderer) {
                     return;
                 }
-                //info.actor.getProperty().setEdgeColor(...color);
-                info.actor.getProperty().setEdgeColor(color[0], color[1], color[2]);
+                info.actor.getProperty().setEdgeColor(...color);
                 setColor(info, SIREPO.APP_SCHEMA.constants.geomTypeLines, color);
+                $scope.vtkScene.render();
             }
 
             function setScaling() {
@@ -3376,6 +3373,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('modelChanged', function(e, name) {
                 //srdbg('modelChanged', name);
             });
+            
+            $scope.$on('vtkScene.interactionMode', (e, d) => {
+                if (d === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE) {
+                    if (selectedObj) {
+                        $scope.$broadcast('vtk.selected', null);
+                        setEdgeColor(
+                            getActorInfo(selectedObj.id),
+                            [0, 0, 0]
+                        );
+                        selectedObj = null;
+                        savedObj = null;
+                    }
+                }
+            });
 
             $scope.$on('radiaObject.changed', function(e) {
                 radiaService.saveGeometry(true, false);
@@ -3388,13 +3399,27 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 updateViewer();
             });
 
-            $scope.$on('radiaObject.color', function (e, h) {
+            $scope.$watch('radiaObject.color', (color) => {
+                if(! color) {
+                    return;
+                }
                 setColor(
                     selectedInfo,
                     SIREPO.APP_SCHEMA.constants.geomTypePolys,
-                    vtkUtils.floatToRGB(vtk.Common.Core.vtkMath.hex2float(h))
+                    vtkUtils.floatToRGB((SIREPO.VTK.VTKUtils.colorToFloat(color)))
                 );
                 setAlpha();
+            });
+
+            // must handle this separately
+            $scope.$on('cancelChanges', (e, d) => {
+                if (d !== 'radiaObject') {
+                    return;
+                }
+                if (savedObj) {
+                    $scope.radiaObject.color = savedObj.color;
+                    $scope.radiaObject.name = savedObj.name;
+                }
             });
 
             $scope.$on('magnetDisplay.changed', function (e, d) {

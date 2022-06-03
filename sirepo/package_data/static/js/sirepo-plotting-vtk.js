@@ -2688,6 +2688,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 };
             };
 
+            $scope.setInteractionMode = mode => {
+                $scope.vtkScene.interactionMode = mode;
+                $scope.$emit('vtkScene.interactionMode', mode);
+            };
+
             $scope.toggleOrtho = () => {
                 $scope.ortho = ! $scope.ortho;
                 $scope.vtkScene.cam.setParallelProjection($scope.ortho);
