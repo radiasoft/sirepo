@@ -21,8 +21,8 @@ from sirepo import util
 import authlib.integrations.requests_client
 import authlib.oauth2.rfc6749.errors
 import flask
+import sirepo.api
 import sirepo.events
-import sirepo.request
 import sqlalchemy
 
 
@@ -42,7 +42,7 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_cookieless_set_user
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
@@ -71,7 +71,7 @@ class Request(sirepo.request.Base):
             else:
                 u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
             u.save()
-            auth.login(this_module, model=u, sim_type=t, sreq=self, want_redirect=True)
+            auth.login(this_module, model=u, sim_type=t, sapi=self, want_redirect=True)
             raise AssertionError('auth.login returned unexpectedly')
     
     

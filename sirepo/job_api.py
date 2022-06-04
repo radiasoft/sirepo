@@ -15,12 +15,12 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
 import sirepo.mpi
-import sirepo.request
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
@@ -30,7 +30,7 @@ import sirepo.util
 _MAX_FRAME_SEARCH_DEPTH = 6
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.internal_test
     def api_adjustSupervisorSrtime(self, days):
         return self._request(

@@ -11,12 +11,12 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import smtp
-import sirepo.request
+import sirepo.api
 
 cfg = None
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_visitor
     def api_comsol(self):
         return self.reply_redirect(

@@ -18,11 +18,11 @@ from sirepo import uri_router
 import contextlib
 import flask
 import re
+import sirepo.api
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.db_upgrade
-import sirepo.request
 import sirepo.resource
 import sirepo.sim_data
 import sirepo.smtp
@@ -56,7 +56,7 @@ _ROBOTS_TXT = None
 _app = None
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.require_user
     def api_copyNonSessionSimulation(self):
         req = self.parse_post(id=True, template=True)
@@ -345,7 +345,7 @@ class Request(sirepo.request.Base):
                         req,
                     )
                 with simulation_db.tmp_dir() as d:
-                    data = req.template.import_file(req, tmp_dir=d, reply_op=s, sreq=self)
+                    data = req.template.import_file(req, tmp_dir=d, reply_op=s, sapi=self)
                 if 'error' in data:
                     return self.reply_json(data)
             return s(data)

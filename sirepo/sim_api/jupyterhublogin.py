@@ -8,13 +8,13 @@ from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
+import sirepo.api
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.uri
@@ -31,7 +31,8 @@ _HUB_USER_SEP = '-'
 
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 
-class Request(sirepo.request.Base):
+
+class API(sirepo.api.Base):
     @sirepo.api_perm.allow_visitor
     def api_checkAuthJupyterhub(self):
         def _res_for_uri(uri):

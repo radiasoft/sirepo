@@ -14,10 +14,10 @@ from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import time
 
 
@@ -40,7 +40,7 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_cookieless_set_user
     def api_authBlueskyLogin(self):
         req = self.parse_post(id=True)

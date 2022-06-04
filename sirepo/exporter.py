@@ -21,7 +21,7 @@ import sirepo.util
 import zipfile
 
 
-def create_archive(sim, sreq):
+def create_archive(sim, sapi):
     """Zip up the json file and its dependencies
 
     Args:
@@ -31,7 +31,7 @@ def create_archive(sim, sreq):
         py.path.Local: zip file name
     """
     if hasattr(sim.template, 'create_archive'):
-        res = sim.template.create_archive(sim, sreq)
+        res = sim.template.create_archive(sim, sapi)
         if res:
             return res
     if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
@@ -45,7 +45,7 @@ def create_archive(sim, sreq):
             t = 'application/zip'
         else:
             f, t = _create_html(f, c)
-        return sreq.reply_file(
+        return sapi.reply_file(
             f,
             content_type=t,
             filename=sim.filename,

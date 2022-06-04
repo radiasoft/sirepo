@@ -8,6 +8,7 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdexc, pkdp, pkdlog
 from pykern.pkcollections import PKDict
 from pykern import pkjinja
+import sirepo.api
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
@@ -15,7 +16,6 @@ import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import sirepo.simulation_db
 import sirepo.smtp
 import sirepo.uri
@@ -31,7 +31,7 @@ _STATUS_TO_SUBJECT = PKDict(
 _cfg = None
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @sirepo.api_perm.require_adm
     def api_admModerate(self):
 

@@ -13,7 +13,7 @@ from sirepo import auth
 from sirepo import cookie
 from sirepo import srtime
 import datetime
-import sirepo.request
+import sirepo.api
 import sirepo.util
 
 
@@ -31,7 +31,7 @@ _COOKIE_EXPIRY_TIMESTAMP = 'srazt'
 _ONE_DAY = datetime.timedelta(days=1)
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.require_cookie_sentinel
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""
@@ -39,7 +39,7 @@ class Request(sirepo.request.Base):
         # if already logged in as guest, just redirect
         if auth.user_if_logged_in(AUTH_METHOD):
             auth.login_success_response(req.type, self)
-        auth.login(this_module, sim_type=req.type, sreq=self)
+        auth.login(this_module, sim_type=req.type, sapi=self)
         raise AssertionError('auth.login returned unexpectedly')
 
 

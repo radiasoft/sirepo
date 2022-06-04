@@ -106,10 +106,10 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def create_archive(sim, sreq):
+def create_archive(sim, sapi):
     from sirepo import http_reply
     if sim.filename.endswith('dat'):
-        return sreq.reply_file(
+        return sapi.reply_file(
             simulation_db.simulation_dir(SIM_TYPE, sid=sim.id).join(_DMP_FILE),
             content_type='application/octet-stream',
             filename=sim.filename,
