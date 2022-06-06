@@ -72,8 +72,6 @@ def _widget_supported_codes(ctx):
     '''
     # TODO(e-carlin): https://git.radiasoft.org/sirepo/issues/3632
     x = PKDict([(sim, sim) for sim in sirepo.feature_config.cfg().sim_types ])
-
-    pkdp('\n\n\n x : {}', x)
     # TODO (gurhar1133):
     # - use feature_config.cfg().sim_types instead of FOSS_CODES
     # - populate with res but not dropdown (maybe buttons)
@@ -87,7 +85,7 @@ def _widget_supported_codes(ctx):
     r = ''
     for k in sorted(x.keys()):
         r += f'''<p class="text-center">
-                    <a href="/{x[k]}" class="btn-link"><span>{x[k].upper()}</span></a>
+                    <a href="/{x[k]}" class="btn-link"><span>{k.upper()}</span></a>
                 </p>'''
     return r
 
