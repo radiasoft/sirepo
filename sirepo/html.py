@@ -72,11 +72,6 @@ def _widget_supported_codes(ctx):
     '''
     # TODO(e-carlin): https://git.radiasoft.org/sirepo/issues/3632
     x = PKDict([(sim, sim) for sim in sirepo.feature_config.cfg().sim_types ])
-    # TODO (gurhar1133):
-    # - use feature_config.cfg().sim_types instead of FOSS_CODES
-    # - populate with res but not dropdown (maybe buttons)
-    # - clear out en/
-    # - contact Jessie about intro (is dev?) and styling
     x.pkupdate(
         activait='ml',
         jupyter='jupyterhublogin',
