@@ -12,7 +12,7 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
     ].join('');
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList">',
@@ -2696,10 +2696,12 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             <button data-ng-attr-class="btn btn-{{ selectedDimension == dim ? \'primary\' : \'default\' }}" data-ng-click="setCamera(dim)">{{ dim | uppercase }}{{ viewDirection[dim] > 0 ? \'+\' : \'-\' }}</button>&nbsp;
             </div>
             </div>
-            <div style="padding-bottom:1px; clear: both; border: 1px solid black">
-              <div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>
+            <div class="sr-screenshot">
+              <div style="padding-bottom:1px; clear: both; border: 1px solid black">
+                <div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>
+              </div>
+              <svg></svg>
             </div>
-            <svg></svg>
         `,
         controller: function($scope, $element) {
             var LABEL_FONT_HEIGHT = 96;

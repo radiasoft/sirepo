@@ -27,7 +27,7 @@ SIREPO.app.config(function() {
         '</div>',
     ].join('');
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
     ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,

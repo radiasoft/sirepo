@@ -35,7 +35,7 @@ SIREPO.app.config(function() {
         '</div>',
     ].join('');
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
     ].join('');
     SIREPO.lattice = {
         elementColor: {},

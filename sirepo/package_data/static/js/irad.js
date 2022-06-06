@@ -3,10 +3,10 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="dicomPlot" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-    '<div data-ng-switch-when="dicomComparePlot" data-dicom-plot="" data-is-compare-plot="1" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-    '<div data-ng-switch-when="doseDifferencePlot" data-dicom-plot="" data-is-difference-plot="1" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-    '<div data-ng-switch-when="dicom3d" data-dicom-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+    '<div data-ng-switch-when="dicomPlot" data-dicom-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="dicomComparePlot" data-dicom-plot="" data-is-compare-plot="1" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="doseDifferencePlot" data-dicom-plot="" data-is-difference-plot="1" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="dicom3d" data-dicom-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
 ].join('');
 SIREPO.appPanelHeadingButtons = [
     '<div data-ng-if="isReport && modelKey == \'dicom3DReport\'" style="display: inline-block">',

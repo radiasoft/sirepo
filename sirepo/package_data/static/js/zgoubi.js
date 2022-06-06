@@ -14,7 +14,7 @@ SIREPO.app.config(function() {
         '</div>',
     ].join('');
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
+        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot sr-screenshot"></div>',
     ].join('');
     SIREPO.appDownloadLinks = [
         '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',

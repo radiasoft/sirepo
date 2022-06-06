@@ -10,8 +10,8 @@ SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-        '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-        '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>',
     ].join('');
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',

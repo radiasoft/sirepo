@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
     ].join('');
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.appFieldEditors += [

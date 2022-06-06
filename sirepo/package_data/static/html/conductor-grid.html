@@ -7,7 +7,7 @@
 <div data-ng-show="! is3dPreview || ! warpvndService.is3D()">
   <p class="lead text-center" style="margin-bottom: 0"><small><em>drag and drop conductor types here to layout the simulation grid</em></small></p>
   <span data-ng-show="warpvndService.is3D()"><a href="" data-ng-click="toggleTiledDomain()"><span class="glyphicon" data-ng-class="{'glyphicon-check': isDomainTiled, 'glyphicon-unchecked': ! isDomainTiled}"></span></a> <span>Show periodic domain</span></span>
-  <div>
+  <div class="sr-screenshot">
     <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
     <div style="-webkit-user-select: none"><svg class="sr-plot">
         <g data-ng-attr-transform="translate({{ margin.left }}, {{ margin.top }})">

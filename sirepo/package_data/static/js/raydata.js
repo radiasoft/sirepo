@@ -13,7 +13,7 @@ SIREPO.app.config(() => {
         </div>
     `;
     SIREPO.appReportTypes  = `
-        <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+        <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
     `;
 });
 

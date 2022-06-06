@@ -10,7 +10,7 @@ SIREPO.app.config(function() {
         'ring-lattice': '.tfs,.txt',
     };
     SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
+        '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot sr-screenshot"></div>',
     ].join('');
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
