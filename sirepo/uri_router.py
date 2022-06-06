@@ -14,12 +14,12 @@ import inspect
 import os
 import pkgutil
 import re
+import sirepo.api
 import sirepo.api_auth
 import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import sirepo.sim_api
 import sirepo.srcontext
 import sirepo.uri
@@ -156,7 +156,8 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )
-    sirepo.request.init(
+    sirepo.api.init(
+        http_reply=sirepo.http_reply,
         http_request=sirepo.http_request,
         uri_router=pkinspect.this_module(),
     )
@@ -193,13 +194,13 @@ def register_api_module(module=None):
     _api_modules.append(m)
     if hasattr(m, 'init_apis'):
         m.init_apis()
-    if not hasattr(m, 'Request'):
+    if not hasattr(m, 'API'):
         if pkinspect.module_functions('api_', module=m):
             raise AssertionError(f'module={m.__name__} has old interface')
-        pkdlog('module={} does not have Request class; no apis', m)
+        pkdlog('module={} does not have API class; no apis', m)
         # some modules (ex: sirepo.auth.basic) don't have any APIs
         return
-    c = m.Request
+    c = m.API
     for n, o in inspect.getmembers(c):
         if _is_api_func(cls=c, name=n, obj=o):
             assert not n in _api_funcs, \
