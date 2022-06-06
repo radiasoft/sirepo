@@ -2140,7 +2140,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
                     return;
                 }
-                plotToPNG.downloadPNG($($scope.panel).find('sr-screenshot')[0] || vtkElement(), height, fileName);
+                plotToPNG.downloadPNG($($scope.panel).find('.sr-screenshot')[0] || vtkElement(), height, fileName);
             };
 
             $scope.hasData = function() {
