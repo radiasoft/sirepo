@@ -11,7 +11,7 @@ import pytest
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_DEFAULT_PROPRIETARY_SIM_TYPES='jupyterhublogin',
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='jupyterhublogin',
     )
 
 

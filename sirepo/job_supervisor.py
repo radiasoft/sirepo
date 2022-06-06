@@ -576,7 +576,7 @@ class _ComputeJob(PKDict):
     async def _receive_api_downloadDataFile(self, req):
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
+            job.OP_IO,
             req,
             jobCmd='download_data_file',
             dataFileKey=req.content.pop('dataFileKey')

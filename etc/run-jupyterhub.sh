@@ -1,7 +1,37 @@
 #!/bin/bash
 set -eou pipefail
 
-export SIREPO_FEATURE_CONFIG_DEFAULT_PROPRIETARY_SIM_TYPES=jupyterhublogin
+if [[ ! -d ~/mail ]]; then
+    install -m 700 -d ~/mail
+    install -m 600 /dev/stdin ~/.procmailrc <<'END'
+UMASK=077
+:0
+mail/.
+END
+    sudo su - <<'END'
+        dnf install -y postfix procmail
+        postconf -e \
+            'mydestination=$myhostname, localhost.$mydomain, localhost, localhost.localdomain' \
+            mailbox_command=/usr/bin/procmail
+        systemctl enable postfix
+        systemctl restart postfix
+END
+    echo 'Testing mail delivery'
+    echo hello | sendmail vagrant@localhost.localdomain
+    sleep 4
+    if ! grep -s hello ~/mail/1; then
+        echo mail delivery test failed
+        exit 1
+    fi
+    rm ~/mail/1
+fi
+
+export SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES=jupyterhublogin
+export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL='vagrant@localhost.localdomain'
+export SIREPO_FROM_EMAIL='$USER+support@localhost.localdomain'
+export SIREPO_FROM_NAME='RadiaSoft Support'
+export SIREPO_SMTP_SERVER='localhost'
+export SIREPO_SMTP_SEND_DIRECTLY=1
 
 if [[ ! ${SIREPO_AUTH_METHODS:-} ]]; then
     export SIREPO_AUTH_METHODS=email

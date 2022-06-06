@@ -15,12 +15,12 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
 import sirepo.mpi
-import sirepo.request
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
@@ -30,7 +30,7 @@ import sirepo.util
 _MAX_FRAME_SEARCH_DEPTH = 6
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.internal_test
     def api_adjustSupervisorSrtime(self, days):
         return self._request(
@@ -38,21 +38,16 @@ class Request(sirepo.request.Base):
             _request_content=PKDict(days=days),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
         )
-
-    @api_perm.require_user
+    @api_perm.require_adm
     def api_admJobs(self):
-        sirepo.auth.check_user_has_role(
-            sirepo.auth.logged_in_user(),
-            sirepo.auth_role.ROLE_ADM,
-        )
         return self._request(
             _request_content=PKDict(**self.parse_post()),
         )
-    
+
     @api_perm.require_user
     def api_analysisJob(self):
         return self._request()
-    
+
     @api_perm.require_user
     def api_downloadDataFile(self, simulation_type, simulation_id, model, frame, suffix=None):
     #TODO(robnagler) validate suffix and frame
@@ -82,7 +77,7 @@ class Request(sirepo.request.Base):
                 if len(f) > 0:
                     assert len(f) == 1, \
                         'too many files={}'.format(f)
-                    return sirepo.http_reply.gen_file_as_attachment(f[0])
+                    return self.reply_file(f[0])
             except requests.exceptions.HTTPError:
     #TODO(robnagler) HTTPError is too coarse a check
                 pass
@@ -96,7 +91,7 @@ class Request(sirepo.request.Base):
     @api_perm.allow_visitor
     def api_jobSupervisorPing(self):
         import requests.exceptions
-    
+
         e = None
         try:
             k = sirepo.job.unique_key()
@@ -137,7 +132,7 @@ class Request(sirepo.request.Base):
         except Exception as e:
             pkdlog('ignoring exception={} stack={}', e, pkdexc())
         # Always true from the client's perspective
-        return sirepo.http_reply.gen_json({'state': 'canceled'})
+        return self.reply_json({'state': 'canceled'})
 
     @api_perm.require_user
     def api_runMulti(self):
@@ -163,8 +158,7 @@ class Request(sirepo.request.Base):
         if r.isParallel:
             r.isPremiumUser = sirepo.auth.is_premium_user()
         return self._request(_request_content=r)
-    
-    
+
     @api_perm.require_user
     def api_runStatus(self):
         return self._request()
@@ -190,12 +184,11 @@ class Request(sirepo.request.Base):
             ),
             self,
         )
-    
+
     @api_perm.require_user
     def api_statefulCompute(self):
         return self._request_compute()
-    
-    
+
     @api_perm.require_user
     def api_statelessCompute(self):
         return self._request_compute()

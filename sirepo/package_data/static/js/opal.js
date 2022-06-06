@@ -692,11 +692,11 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
         template: `
             <div class="row">
               <div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
-                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-reset-side="y"></div>
+                <div data-vtk-display="" data-report-id="reportId" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-reset-side="y"></div>
               </div>
             </div>`,
         controller: function($scope, $element) {
-            let data, pngCanvas, renderer, vtkScene;
+            let data, renderer, vtkScene;
             const coordMapper = new SIREPO.VTK.CoordMapper();
 
             function createAxes(bounds) {
@@ -749,18 +749,17 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 vtkScene.addActor(b.actor);
                 createAxes(data.bounds);
                 vtkScene.resetView();
-                pngCanvas.copyCanvas();
 
                 if ($scope.axisObj) {
                     panelState.waitForUI(() => {
                         $scope.$broadcast('axes.refresh');
+                        vtkScene.refreshCanvas();
                     });
                 }
             }
 
             $scope.destroy = () => {
                 getVtkElement().off();
-                pngCanvas.destroy();
             };
 
             $scope.init = $scope.resize = () => {};
@@ -776,7 +775,6 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                         vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                     )
                 );
-                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, vtkScene.fsRenderer, $element);
                 if (data) {
                     buildScene();
                 }

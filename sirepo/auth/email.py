@@ -22,7 +22,7 @@ import datetime
 import flask
 import hashlib
 import pyisemail
-import sirepo.request
+import sirepo.api
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -50,7 +50,7 @@ _EXPIRES_MINUTES = 8 * 60
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_cookieless_set_user
     def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email
@@ -69,7 +69,7 @@ class Request(sirepo.request.Base):
                 u.token = None
                 u.expires = None
                 u.save()
-                auth.login(this_module, sim_type=req.type, model=u, display_name=n)
+                auth.login(this_module, sim_type=req.type, sapi=self, model=u, display_name=n)
                 raise AssertionError('auth.login returned unexpectedly')
             if not u:
                 pkdlog('login with invalid token={}', token)
@@ -134,8 +134,8 @@ class Request(sirepo.request.Base):
         )
         if not r:
             pkdlog('{}', uri)
-            return http_reply.gen_json_ok({'uri': uri})
-        return http_reply.gen_json_ok()
+            return self.reply_ok({'uri': uri})
+        return self.reply_ok()
 
     def _verify_confirm(self, sim_type, token, need_complete_registration):
         m = flask.request.method
