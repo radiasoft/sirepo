@@ -2767,31 +2767,60 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
     }
 
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
+        var canvasWorking = null;
+        var doNextCanvasProcess = null;
+        
         const canvas = document.createElement('canvas');
         const context = canvas.getContext("2d");
+
         const res = {
-            copyCanvas: function(event, doTraverse) {
-                panelState.waitForUI(function() {
-                    const canvas3d = $(panel).find('canvas')[0];
-                    const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0];
-                    canvas.width = parseInt(canvas3d.getAttribute('width'));
-                    canvas.height = parseInt(canvas3d.getAttribute('height'));
-                    if (doTraverse) {
-                        vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                    }
-                    else {
-                        vtkRenderer.getRenderWindow().render();
-                    }
-                    context.drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
-                    if (axesCanvas) {
-                        html2canvas(axesCanvas.parentElement,
-                        {
-                            backgroundColor: null
-                        }).then(c => {
-                            context.drawImage(c, 0, 0);
-                        })
-                    }
-                });
+            copyCanvas: (event, doTraverse) => {
+                if(canvasWorking) {
+                    canvasWorking = new Object();
+                    doNextCanvasProcess = () => res.copyCanvas(event, doTraverse);
+                    return;
+                }
+                const processCanvas = () => {
+                    panelState.waitForUI(() => {
+                        const canvas3d = $(panel).find('canvas')[0];
+                        const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0];
+                        canvas.width = parseInt(canvas3d.getAttribute('width'));
+                        canvas.height = parseInt(canvas3d.getAttribute('height'));
+                        if (doTraverse) {
+                            vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
+                        }
+                        else {
+                            vtkRenderer.getRenderWindow().render();
+                        }
+                        context.drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
+                        if (axesCanvas) {
+                            html2canvas(axesCanvas.parentElement,
+                            {
+                                backgroundColor: null
+                            }).then(c => {
+                                context.drawImage(c, 0, 0);
+                                canvasWorking = null;
+                                if(doNextCanvasProcess) {
+                                    const proc = doNextCanvasProcess;
+                                    doNextCanvasProcess = null;
+                                    proc();
+                                }
+                            })
+                        }
+                    });
+                }
+                const waitForUserInteractionPause = () => {
+                    canvasWorking = new Object();
+                    const tempCanvasWorking = canvasWorking;
+                    setTimeout(() => {
+                        if(tempCanvasWorking === canvasWorking) {
+                            processCanvas();
+                        } else {
+                            waitForUserInteractionPause();
+                        }
+                    }, 250);
+                }
+                waitForUserInteractionPause();
             },
             destroy: function() {
                 panel.off();
