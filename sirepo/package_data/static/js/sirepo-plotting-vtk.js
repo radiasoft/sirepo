@@ -2768,16 +2768,12 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
 
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
         const canvas = document.createElement('canvas');
+        const context = canvas.getContext("2d");
         const res = {
             copyCanvas: function(event, doTraverse) {
                 panelState.waitForUI(function() {
                     const canvas3d = $(panel).find('canvas')[0];
-                    const c = $(panel).find('svg.sr-vtk-axes')[0];
-                    let axesCanvas = null;
-                    if (c) {
-                        axesCanvas = c.cloneNode(true);
-                        cleanElement(axesCanvas);
-                    }
+                    const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0];
                     canvas.width = parseInt(canvas3d.getAttribute('width'));
                     canvas.height = parseInt(canvas3d.getAttribute('height'));
                     if (doTraverse) {
@@ -2786,9 +2782,14 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
                     else {
                         vtkRenderer.getRenderWindow().render();
                     }
-                    canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
+                    context.drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
                     if (axesCanvas) {
-                        canvas.getContext('2d').drawSvg(axesCanvas.outerHTML, 0, 0, canvas.width, canvas.height);
+                        html2canvas(axesCanvas.parentElement,
+                        {
+                            backgroundColor: null
+                        }).then(c => {
+                            context.drawImage(c, 0, 0);
+                        })
                     }
                 });
             },
