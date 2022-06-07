@@ -8,6 +8,7 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdexc, pkdp, pkdlog
 from pykern.pkcollections import PKDict
 from pykern import pkjinja
+import sirepo.api
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
@@ -15,7 +16,6 @@ import sirepo.auth_role
 import sirepo.feature_config
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import sirepo.simulation_db
 import sirepo.smtp
 import sirepo.uri
@@ -31,7 +31,7 @@ _STATUS_TO_SUBJECT = PKDict(
 _cfg = None
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @sirepo.api_perm.require_adm
     def api_admModerate(self):
 
@@ -59,7 +59,7 @@ class Request(sirepo.request.Base):
                 moderator_uid=sirepo.auth.logged_in_user()
             )
 
-        req = sirepo.http_request.parse_post(type=False)
+        req = self.parse_post(type=False)
         i = sirepo.auth_db.UserRoleInvite.search_by(token=req.req_data.token)
         if not i:
             pkdlog(f'No record in UserRoleInvite for token={req.req_data.token}')
@@ -79,7 +79,7 @@ class Request(sirepo.request.Base):
         _set_moderation_status(p)
         pkdlog('status={} uid={} role={} token={}', p.status, i.uid, i.role, i.token)
         _send_moderation_status_email(p)
-        return sirepo.http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
     @sirepo.api_perm.require_adm
@@ -91,7 +91,7 @@ class Request(sirepo.request.Base):
 
     @sirepo.api_perm.require_adm
     def api_getModerationRequestRows(self):
-        return sirepo.http_reply.gen_json(
+        return self.reply_json(
             PKDict(
                 rows=[r.as_pkdict() for r in sirepo.auth_db.UserRoleInvite.get_moderation_request_rows()],
             ),
@@ -107,7 +107,7 @@ class Request(sirepo.request.Base):
                 body=pkjinja.render_resource('auth_role_moderation/moderation_email', info),
             )
 
-        req = sirepo.http_request.parse_post()
+        req = self.parse_post()
         d = req.req_data
         u = sirepo.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(d.simulationType)
@@ -139,7 +139,7 @@ class Request(sirepo.request.Base):
                 uid=u,
             ).pkupdate(sirepo.http_request.user_agent_headers())
         )
-        return sirepo.http_reply.gen_json_ok()
+        return self.reply_ok()
 
 
 def init_apis():

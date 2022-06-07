@@ -20,9 +20,9 @@ import contextlib
 import datetime
 import importlib
 import pyisemail
+import sirepo.api
 import sirepo.auth_role
 import sirepo.feature_config
-import sirepo.request
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
@@ -79,7 +79,7 @@ uri_router = None
 cfg = None
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.require_cookie_sentinel
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission
@@ -89,12 +89,12 @@ class Request(sirepo.request.Base):
         complete_registration(
             _parse_display_name(self.parse_json().get('displayName')),
         )
-        return http_reply.gen_json_ok()
+        return self.reply_ok()
     
     
     @api_perm.allow_visitor
     def api_authState(self):
-        return http_reply.render_static_jinja(
+        return self.reply_static_jinja(
             'auth-state',
             'js',
             PKDict(auth_state=_auth_state()),
@@ -117,7 +117,7 @@ class Request(sirepo.request.Base):
             events.emit('auth_logout', PKDict(uid=_get_user()))
             cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
             _set_log_user()
-        return http_reply.gen_redirect_for_app_root(req and req.type)
+        return self.reply_redirect_for_app_root(req and req.type)
 
 
 def complete_registration(name=None):
@@ -199,7 +199,7 @@ def logged_in_user(check_path=True):
     return u
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
+def login(module, uid=None, model=None, sim_type=None, sapi=None, display_name=None, is_mock=False, want_redirect=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -254,7 +254,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
         if guest_uid and guest_uid != uid:
             import sirepo.simulation_db
             sirepo.simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_response(sim_type, want_redirect)
+        login_success_response(sim_type, sapi, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -273,7 +273,7 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
     )
 
 
-def login_success_response(sim_type, want_redirect=False):
+def login_success_response(sim_type, sapi, want_redirect=False):
     r = None
     if (
         cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
@@ -286,7 +286,7 @@ def login_success_response(sim_type, want_redirect=False):
         ) else None
         raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
     raise sirepo.util.Response(
-        response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
+        response=sapi.reply_ok(PKDict(authState=_auth_state())),
     )
 
 
@@ -328,12 +328,7 @@ def require_auth_basic():
     _validate_method(m)
     uid = m.require_user()
     if not uid:
-        raise sirepo.util.Response(
-            http_reply.gen_response(
-                status=401,
-                headers={'WWW-Authenticate': 'Basic realm="*"'},
-            ),
-        )
+        raise sirepo.util.WWWAuthenticate()
     cookie.set_sentinel()
     login(m, uid=uid)
 

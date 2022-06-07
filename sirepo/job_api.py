@@ -15,12 +15,12 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
 import sirepo.mpi
-import sirepo.request
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
@@ -30,7 +30,7 @@ import sirepo.util
 _MAX_FRAME_SEARCH_DEPTH = 6
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.internal_test
     def api_adjustSupervisorSrtime(self, days):
         return self._request(
@@ -77,7 +77,7 @@ class Request(sirepo.request.Base):
                 if len(f) > 0:
                     assert len(f) == 1, \
                         'too many files={}'.format(f)
-                    return sirepo.http_reply.gen_file_as_attachment(f[0])
+                    return self.reply_file(f[0])
             except requests.exceptions.HTTPError:
     #TODO(robnagler) HTTPError is too coarse a check
                 pass
@@ -132,7 +132,7 @@ class Request(sirepo.request.Base):
         except Exception as e:
             pkdlog('ignoring exception={} stack={}', e, pkdexc())
         # Always true from the client's perspective
-        return sirepo.http_reply.gen_json({'state': 'canceled'})
+        return self.reply_json({'state': 'canceled'})
 
     @api_perm.require_user
     def api_runMulti(self):

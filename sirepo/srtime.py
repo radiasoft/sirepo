@@ -10,7 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 import datetime
-import sirepo.request
+import sirepo.api
 import sirepo.util
 import time
 
@@ -24,7 +24,7 @@ _timedelta = None
 #: Whether or not this module has been initilaized
 _initialized = False
 
-def adjust_time(days, sreq=None):
+def adjust_time(days, sapi=None):
     """Shift the system time by days
 
     Args:
@@ -39,13 +39,13 @@ def adjust_time(days, sreq=None):
             _timedelta = datetime.timedelta(days=d)
     except Exception:
         pass
-    if sreq:
+    if sapi:
         if not _timedelta:
             days = 0
-        sreq.call_api('adjustSupervisorSrtime', kwargs=PKDict(days=days))
+        sapi.call_api('adjustSupervisorSrtime', kwargs=PKDict(days=days))
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.internal_test
     def api_adjustTime(self, days=None):
         """Shift the system time by days and get the adjusted time
@@ -55,8 +55,8 @@ class Request(sirepo.request.Base):
         """
         from sirepo import http_reply
 
-        adjust_time(days, sreq=self)
-        return http_reply.gen_json_ok({
+        adjust_time(days, sapi=self)
+        return self.reply_ok({
             'adjustedNow': utc_now().isoformat(),
             'systemNow': datetime.datetime.utcnow().isoformat(),
         })

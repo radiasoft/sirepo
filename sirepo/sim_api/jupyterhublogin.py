@@ -8,13 +8,13 @@ from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
+import sirepo.api
 import sirepo.api_perm
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.uri
@@ -31,11 +31,12 @@ _HUB_USER_SEP = '-'
 
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 
-class Request(sirepo.request.Base):
+
+class API(sirepo.api.Base):
     @sirepo.api_perm.allow_visitor
     def api_checkAuthJupyterhub(self):
         def _res_for_uri(uri):
-            return sirepo.http_reply.gen_json_ok(PKDict(uri=uri))
+            return self.reply_ok(PKDict(uri=uri))
 
         u = None
         try:
@@ -45,7 +46,7 @@ class Request(sirepo.request.Base):
                 have_simulation_db=False,
             )
         except werkzeug.exceptions.Forbidden:
-            return sirepo.http_reply.gen_json_ok()
+            return self.reply_ok()
         except sirepo.util.Redirect as e:
             return _res_for_uri(sirepo.uri_router.uri_for_api(
                 'root',
@@ -59,7 +60,7 @@ class Request(sirepo.request.Base):
             ))
         if not u:
             u = create_user()
-        return sirepo.http_reply.gen_json_ok(PKDict(
+        return self.reply_ok(PKDict(
             username=u
         ))
 
@@ -71,7 +72,7 @@ class Request(sirepo.request.Base):
         d = self.parse_json()
         if not d.doMigration:
             create_user()
-            return sirepo.http_reply.gen_redirect('jupyterHub')
+            return self.reply_redirect('jupyterHub')
         return self.call_api(
             'authGithubLogin',
             kwargs=PKDict(simulation_type='jupyterhublogin'),
@@ -82,12 +83,12 @@ class Request(sirepo.request.Base):
         sirepo.auth.require_sim_type('jupyterhublogin')
         u = _unchecked_jupyterhub_user_name()
         if u:
-            return sirepo.http_reply.gen_redirect('jupyterHub')
+            return self.reply_redirect('jupyterHub')
         if not cfg.rs_jupyter_migrate:
             if not u:
                 create_user()
-            return sirepo.http_reply.gen_redirect('jupyterHub')
-        return sirepo.http_reply.gen_json_ok()
+            return self.reply_redirect('jupyterHub')
+        return self.reply_ok()
 
 
 def create_user(github_handle=None, check_dir=False):
