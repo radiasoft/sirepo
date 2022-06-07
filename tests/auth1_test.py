@@ -33,8 +33,8 @@ def test_login():
     sirepo.cookie.set_sentinel()
     # copying examples for new user takes time
     try:
-        a = sirepo.api.Base()
-        r = auth.login(sirepo.auth.guest, sim_type='myapp', sapi=a)
+        # TODO(rorour): get sapi from current request
+        r = auth.login(sirepo.auth.guest, sim_type='myapp', sapi=sirepo.api.Base())
         pkfail('expecting sirepo.util.Response')
     except sirepo.util.Response as e:
         r = e.sr_args.response
