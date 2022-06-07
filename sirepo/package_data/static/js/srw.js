@@ -1870,6 +1870,27 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
             $scope.rsOptParams = [];
             $scope.rsOptElementFields = [];
 
+            $scope.export = () => {
+                self.startSimulation($scope.modelName);
+                /*
+                panelState.requestData(
+                    'exportRsOpt',
+                    () => {
+                        requestSender.newWindow('downloadDataFile', {
+                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<model>': 'exportRsOpt',
+                        '<frame>': -1,
+                        '<suffix>': 'zip'
+                    })},
+                    true,
+                    (res) => {
+                        srdbg('OOPS', res);
+                    });
+                    */
+            };
+
+
             $scope.hasFields = function(e, p) {
                 return els[e.type][p];
             };
@@ -2004,9 +2025,7 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
                 appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
                 $scope.$on('beamline.changed', updateElements);
                 $scope.$on('exportRsOpt.changed', updateElements);
-                $scope.$on('exportRsOpt.saved', () => {
-                    self.startSimulation($scope.modelName);
-                });
+                $scope.$on('exportRsOpt.saved', $scope.export);
             });
         },
     };

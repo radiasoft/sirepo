@@ -154,6 +154,7 @@ class Request(sirepo.request.Base):
 
     @api_perm.require_user
     def api_runSimulation(self):
+        pkdp('JOB RUN SIM')
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
             r.isPremiumUser = sirepo.auth.is_premium_user()

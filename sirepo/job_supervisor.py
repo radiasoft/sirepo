@@ -123,6 +123,7 @@ class SlotQueue(sirepo.tornado.Queue):
 
     def __init__(self, maxsize=1):
         super().__init__(maxsize=maxsize)
+        pkdp('SLOT Q PUT {}', maxsize)
         for i in range(1, maxsize + 1):
             self.put_nowait(i)
 
@@ -652,6 +653,7 @@ class _ComputeJob(PKDict):
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
+                        pkdp('CANCEL REPLY GET')
                         await c.reply_get()
                     return r
                 except Awaited:
@@ -663,6 +665,7 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req, recursion_depth=0):
+        pkdp('JOB SPR REC RUN SIM')
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
             if f or not self._req_is_valid(req):
@@ -691,6 +694,7 @@ class _ComputeJob(PKDict):
                 )
             return r
         # Forced or canceled/errored/missing/invalid so run
+        pkdp('JOB SPR CREATE RUN OP {}', self.db.nextRequestSeconds)
         o = self._create_op(
             job.OP_RUN,
             req,
@@ -798,6 +802,7 @@ class _ComputeJob(PKDict):
         )
 
     async def _run(self, op, compute_job_serial, prev_db):
+        pkdp('*** _RUN ***')
         def _set_error(compute_job_serial, internal_error):
             if self.db.computeJobSerial != compute_job_serial:
                 # Another run has started
@@ -847,9 +852,11 @@ class _ComputeJob(PKDict):
         if not await _send_op(op, compute_job_serial, prev_db):
             return
         try:
+            pkdp('ENTER CREATE RUN')
             with op.set_job_situation('Entered __create._run'):
                 while True:
                     try:
+                        pkdp('CREATE RUN REPLY GET')
                         r = await op.reply_get()
                         #TODO(robnagler) is this ever true?
                         if op != self.run_op:
@@ -870,6 +877,7 @@ class _ComputeJob(PKDict):
                             self.db.lastUpdateTime = sirepo.srtime.utc_now_as_int()
                         #TODO(robnagler) will need final frame count
                         self.__db_write()
+                        pkdp('CREATE AFTER REPLY {}', r.state)
                         if r.state in job.EXIT_STATUSES:
                             break
                     except sirepo.util.ASYNC_CANCELED_ERROR:
@@ -902,7 +910,7 @@ class _ComputeJob(PKDict):
                 try:
                     await o.prepare_send()
                     o.send()
-                    r =  await o.reply_get()
+                    r = await o.reply_get()
                     # POSIT: any api_* that could run into runDirNotFound
                     # will call _send_with_single_reply() and this will
                     # properly format the reply
@@ -1015,12 +1023,14 @@ class _Op(PKDict):
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.
-        pkdlog('{} await _reply_q.get()', self)
+        pkdlog('{} await _reply_q.get() {}', self, self._reply_q.qsize())
         r = await self._reply_q.get()
+        pkdp('REPLY GOT')
         self._reply_q.task_done()
         return r
 
     def reply_put(self, reply):
+        pkdp('REPLY PUT')
         self._reply_q.put_nowait(reply)
 
     async def run_timeout(self):
