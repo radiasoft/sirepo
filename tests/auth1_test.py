@@ -16,6 +16,7 @@ def test_login():
     from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
     from sirepo import auth
     import flask
+    import sirepo.api
     import sirepo.auth.guest
     import sirepo.cookie
     import sirepo.http_request
@@ -32,7 +33,8 @@ def test_login():
     sirepo.cookie.set_sentinel()
     # copying examples for new user takes time
     try:
-        r = auth.login(sirepo.auth.guest, sim_type='myapp')
+        a = sirepo.api.Base()
+        r = auth.login(sirepo.auth.guest, sim_type='myapp', sapi=a)
         pkfail('expecting sirepo.util.Response')
     except sirepo.util.Response as e:
         r = e.sr_args.response
