@@ -179,6 +179,7 @@
     "common": {
         "adm": {
             "userRoleInviteColumns": [
+              ["email", "Email"],
               ["uid", "uid"],
               ["role", "Role"],
               ["token", "Token"],

@@ -310,6 +310,7 @@ def init():
 
     class UserRoleInvite(UserDbBase):
         __tablename__ = 'user_role_invite_t'
+        email = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
         uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
         role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
         status = sqlalchemy.Column(UserDbBase.STRING_NAME, nullable=False)
