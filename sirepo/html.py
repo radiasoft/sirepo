@@ -76,13 +76,72 @@ def _widget_supported_codes(ctx):
         activait='ml',
         jupyter='jupyterhublogin',
     )
+    new = PKDict(
+        xRay=PKDict(name='X-ray Beamlines', desc='Simulate synchrotron radiation and design x-ray beamlines.'),
+        particleAccellerators=PKDict(name='Particle Accelerators', desc='Model beam dynamics for a wide range of particle accelerators.'),
+        ml=PKDict(name='Machine Learning', desc='Analyze complex datasets and develop machine learning algorithms.'),
+        magnets=PKDict(name='Magnets', desc='Build and share three-dimensional simulations of permanent and electromagnets.'),
+        vac=PKDict(name='Vacuum Nanoelectronics', desc='Create vacuum nanoelectronics models in your browser.'),
+        controls=PKDict(name='Controls', desc='Test automated tuning programs with control-systems codes.'),
+        jupyter=PKDict(name='Jupyter', desc='Use our JupyterHub server with resources and libraries built in.'),
+        rest=PKDict(name='And More', desc='')
+    )
+
+    for key in x:
+        if key in ['srw', 'shadow']:
+            new.xRay[key]=x[key]
+        elif key in ['elegant', 'opal', 'warppba', 'jspec', 'zgoubi', 'madx', 'synergia']:
+            new.particleAccellerators[key] = x[key]
+        elif key in ['activait']:
+            new.ml[key] = x[key]
+        elif key in ['radia']:
+            new.magnets[key] = x[key]
+        elif key in ['warpvnd']:
+            new.vac[key] = x[key]
+        elif key in ['controls']:
+            new.controls[key] = x[key]
+        elif key in ['jupyter']:
+            new.jupyter[key] = x[key]
+        else:
+            new.rest[key]=x[key]
+
+
+
     del x['ml']
     r = ''
+    pkdp('\n\n\n x: {}', x)
+    pkdp('\n\n\n new: {}', new)
+
+    t = '<div style="display:flex; flex-wrap: wrap; margin: 1em;"  class="row">'
+    for k in new.keys():
+        t += f'''<div style="margin: 1em;" class="item">
+                    <h4> {new[k].name} </h4>
+                    <div> {new[k].desc} </div>
+                <button class="dropdown-toggle" type="button" id="sr-landing-supported-codes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                <span>Supported Codes</span>
+                <span class="caret"></span>
+              </button>
+            '''
+
+        for j in new[k]:
+            t += f'''
+
+            <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
+                <p class="text-center">
+                    <a href="/{new[k][j]}" style="width: 300px;" class="btn-link"><span>{j.upper()}</span></a>
+                </p>
+                </ul>'''
+
+        t += '</div>'
+
+    t += '</div>'
+    return t
     for k in sorted(x.keys()):
         r += f'''<p class="text-center">
-                    <a href="/{x[k]}" class="btn-link"><span>{k.upper()}</span></a>
+                    <a href="/{x[k]}" style="width: 300px;" class="btn-link"><span>{k.upper()}</span></a>
                 </p>'''
     return r
+
 
 
 _init()
