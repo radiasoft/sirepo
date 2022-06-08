@@ -78,20 +78,20 @@ def _widget_supported_codes(ctx):
     )
     new = PKDict(
         xRay=PKDict(name='X-ray Beamlines', desc='Simulate synchrotron radiation and design x-ray beamlines.'),
-        particleAccellerators=PKDict(name='Particle Accelerators', desc='Model beam dynamics for a wide range of particle accelerators.'),
+        particleAccelerators=PKDict(name='Particle Accelerators', desc='Model beam dynamics for a wide range of particle accelerators.'),
         ml=PKDict(name='Machine Learning', desc='Analyze complex datasets and develop machine learning algorithms.'),
         magnets=PKDict(name='Magnets', desc='Build and share three-dimensional simulations of permanent and electromagnets.'),
         vac=PKDict(name='Vacuum Nanoelectronics', desc='Create vacuum nanoelectronics models in your browser.'),
         controls=PKDict(name='Controls', desc='Test automated tuning programs with control-systems codes.'),
         jupyter=PKDict(name='Jupyter', desc='Use our JupyterHub server with resources and libraries built in.'),
-        rest=PKDict(name='And More', desc='')
+        rest=PKDict(name='And More', desc='And many more!')
     )
 
     for key in x:
         if key in ['srw', 'shadow']:
             new.xRay[key]=x[key]
         elif key in ['elegant', 'opal', 'warppba', 'jspec', 'zgoubi', 'madx', 'synergia']:
-            new.particleAccellerators[key] = x[key]
+            new.particleAccelerators[key] = x[key]
         elif key in ['activait']:
             new.ml[key] = x[key]
         elif key in ['radia']:
@@ -112,35 +112,35 @@ def _widget_supported_codes(ctx):
     pkdp('\n\n\n x: {}', x)
     pkdp('\n\n\n new: {}', new)
 
-    t = '<div style="display:flex; flex-wrap: wrap; margin: 1em;"  class="row">'
+    t = '<div style="display:flex; flex-wrap: wrap; margin: 1em; z-index: 10000;"  class="row">'
     for k in new.keys():
         t += f'''<div style="margin: 1em;" class="item">
+                    <img style="max-width: 250px;" src="./img/{k}.gif" />
                     <h4> {new[k].name} </h4>
-                    <div> {new[k].desc} </div>
-                <button class="dropdown-toggle" type="button" id="sr-landing-supported-codes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                <span>Supported Codes</span>
-                <span class="caret"></span>
-              </button>
+                    <div style="max-width: 250px;"> {new[k].desc} </div>
+
+                    <div style="position: relative;">
+                        <button class="dropdown-toggle btn-link" type="button" id="sr-landing-supported-codes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            <span>Apps</span>
+                        </button>
+                        <div  class="dropdown-menu">
             '''
 
         for j in new[k]:
-            t += f'''
+            if j not in ['name', 'desc']:
+                t += f'''
 
-            <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
-                <p class="text-center">
-                    <a href="/{new[k][j]}" style="width: 300px;" class="btn-link"><span>{j.upper()}</span></a>
-                </p>
-                </ul>'''
-
+                    <p class="text-center">
+                        <a href="/{new[k][j]}" style="width: 300px;" class="btn-link"><span>{j.upper()}</span></a>
+                    </p>
+                    '''
         t += '</div>'
+        t += '</div>'
+        t += '</div>'
+
 
     t += '</div>'
     return t
-    for k in sorted(x.keys()):
-        r += f'''<p class="text-center">
-                    <a href="/{x[k]}" style="width: 300px;" class="btn-link"><span>{k.upper()}</span></a>
-                </p>'''
-    return r
 
 
 
