@@ -71,12 +71,11 @@ def _widget_supported_codes(ctx):
               <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
     '''
     # TODO(e-carlin): https://git.radiasoft.org/sirepo/issues/3632
-    x = PKDict([(sim, sim) for sim in sirepo.feature_config.cfg().sim_types])
+    x = PKDict([(s, s) for s in sirepo.feature_config.cfg().sim_types])
     x.pkupdate(
         activait='ml',
         jupyter='jupyterhublogin',
     )
-
     del x['ml']
     r = '''
         <div class="container">
