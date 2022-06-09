@@ -80,11 +80,11 @@ def _widget_supported_codes(ctx):
         xRay=PKDict(name='X-ray Beamlines', desc='Simulate synchrotron radiation and design x-ray beamlines.'),
         particleAccelerators=PKDict(name='Particle Accelerators', desc='Model beam dynamics for a wide range of particle accelerators.'),
         ml=PKDict(name='Machine Learning', desc='Analyze complex datasets and develop machine learning algorithms.'),
-        magnets=PKDict(name='Magnets', desc='Build and share three-dimensional simulations of permanent and electromagnets.'),
+        magnets=PKDict(name='Magnets', desc='Build and share 3D simulations of permanent and electromagnets.'),
         vac=PKDict(name='Vacuum Nanoelectronics', desc='Create vacuum nanoelectronics models in your browser.'),
         controls=PKDict(name='Controls', desc='Test automated tuning programs with control-systems codes.'),
         jupyter=PKDict(name='Jupyter', desc='Use our JupyterHub server with resources and libraries built in.'),
-        rest=PKDict(name='And More', desc='And many more!')
+        rest=PKDict(name='More Codes', desc='And many more! Check out some of our other codes.')
     )
 
     for key in x:
@@ -115,7 +115,7 @@ def _widget_supported_codes(ctx):
     t = '<div style="display:flex; flex-wrap: wrap; margin: 1em; z-index: 10000;"  class="row">'
     for k in new.keys():
         t += f'''<div style="margin: 1em;" class="item">
-                    <img style="max-width: 250px;" src="./img/{k}.gif" />
+                    <img style="max-width: 250px; min-height: 200px;" src="./img/{k}.gif" />
                     <h4> {new[k].name} </h4>
                     <div style="max-width: 250px;"> {new[k].desc} </div>
 
