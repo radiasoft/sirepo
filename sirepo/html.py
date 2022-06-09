@@ -71,21 +71,29 @@ def _widget_supported_codes(ctx):
               <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
     '''
     # TODO(e-carlin): https://git.radiasoft.org/sirepo/issues/3632
-    x = PKDict([(sim, sim) for sim in sirepo.feature_config.cfg().sim_types ])
+    x = PKDict([(sim, sim) for sim in sirepo.feature_config.cfg().sim_types])
     x.pkupdate(
         activait='ml',
         jupyter='jupyterhublogin',
     )
 
     del x['ml']
-    r = '<div style="display:flex; flex-wrap: wrap; margin: 1em; z-index: 10000;"  class="row">'
+    r = '''
+        <div class="container">
+          <div class="row">
+    '''
     for k in sorted(x.keys()):
         r += f'''
-                    <p style="margin: 1em;" class="text-center">
-                        <a href="/{x[k]}" style="width: 300px;" class="btn-link"><span>{k.upper()}</span></a>
-                    </p>
+              <div class="col-xl-3 col-lg-4 col-sm-6 ">
+                <p style="margin: 1em;" class="text-center">
+                  <a href="/{x[k]}" style="width: 250px;" class="btn-link"><span>{k.upper()}</span></a>
+                </p>
+              </div>
         '''
-    r += '</div>'
+    r += '''
+          </div>
+        </div>
+        '''
     return r
 
 
