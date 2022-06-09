@@ -15,6 +15,9 @@ SIREPO.app.config(() => {
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3"></div>
         </div>
     `;
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'geometryInput-dagmcFile': '.h5m',
+    };
 });
 
 SIREPO.app.factory('cloudmcService', function(appState) {
@@ -102,7 +105,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope) {
             $scope.isClientOnly = true;
@@ -382,23 +385,40 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
         restrict: 'A',
         scope: {},
         template: `
-            <div style="padding: 0.5ex 1ex;">
+            <div style="padding: 0.5ex 1ex; border-bottom: 1px solid #ddd;">
               <div style="display: inline-block; cursor: pointer" data-ng-click="toggleAll()">
                 <span class="glyphicon" data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
               </div>
             </div>
-            <div data-ng-repeat="row in rows track by $index" style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
-              <div>
-                <div style="display: inline-block; cursor: pointer; white-space: nowrap" data-ng-click="toggleSelected(row)">
-                  <span class="glyphicon" data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                   {{ row.name }}
+            <div id="sr-volume-list" data-ng-style="heightStyle()">
+              <div data-ng-repeat="row in rows track by $index"
+                style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
+                <div>
+                  <div style="display: inline-block; cursor: pointer; white-space: nowrap"
+                    data-ng-click="toggleSelected(row)">
+                    <span class="glyphicon"
+                      data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
+                     {{ row.name }}
+                  </div>
+                  <div  data-ng-show="row.isVisible">
+<div class="col-sm-3">
+                  <input
+                    id="volume-{{ row.name }}-color" type="color"
+                    class="sr-color-button" data-ng-model="row.color"
+                    data-ng-change="broadcastVolumePropertyChanged(row, 'color')">
+</div>
+<div class="col-sm-9" style="margin-top: 10px">
+                  <input
+                    id="volume-{{ row.name }}-opacity-range" type="range"
+                    min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
+                    data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')">
+</div>
+                  </div>
                 </div>
-                <input id="volume-{{ row.name }}-opacity-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.opacity" data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')">
-                <input id="volume-{{ row.name }}-color" type="color" class="sr-color-button" data-ng-model="row.color" data-ng-change="broadcastVolumePropertyChanged(row, 'color')">
               </div>
             </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $window) {
             $scope.allVisible = true;
 
             function init() {
@@ -421,10 +441,23 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
             }
 
             $scope.broadcastVolumePropertyChanged = (row, prop) => {
-                appState.saveChanges('volumes');
+                appState.saveQuietly('volumes');
                 $rootScope.$broadcast('sr-volume-property.changed', row.volId, prop, row[prop]);
             };
 
+            let prevOffset = 0;
+            $scope.heightStyle = () => {
+                const el = $('#sr-volume-list:visible');
+                const offset = el.length ? el.offset().top : prevOffset;
+                prevOffset = offset;
+                return {
+                    // bottom padding is 35px
+                    //   .panel margin-bottom: 20px
+                    //   .panel-body padding: 15px
+                    height: `calc(100vh - ${Math.ceil(offset) + 35}px)`,
+                    overflow: 'auto',
+                };
+            };
 
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;
@@ -433,6 +466,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                         $scope.toggleSelected(v, true);
                     }
                 });
+                appState.saveChanges('volumes');
             };
 
             $scope.toggleSelected = (row, noSave) => {
