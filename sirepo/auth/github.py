@@ -16,14 +16,13 @@ from sirepo import auth_db
 from sirepo import cookie
 from sirepo import feature_config
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import uri_router
 from sirepo import util
 import authlib.integrations.requests_client
 import authlib.oauth2.rfc6749.errors
 import flask
+import sirepo.api
 import sirepo.events
-import sirepo.request
 import sqlalchemy
 
 
@@ -43,7 +42,7 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_cookieless_set_user
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
@@ -72,14 +71,14 @@ class Request(sirepo.request.Base):
             else:
                 u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
             u.save()
-            auth.login(this_module, model=u, sim_type=t, want_redirect=True)
+            auth.login(this_module, model=u, sim_type=t, sapi=self, want_redirect=True)
             raise AssertionError('auth.login returned unexpectedly')
     
     
     @api_perm.require_cookie_sentinel
     def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
-        req = http_request.parse_params(type=simulation_type)
+        req = self.parse_params(type=simulation_type)
         s = util.random_base62()
         cookie.set_value(_COOKIE_NONCE, s)
         cookie.set_value(_COOKIE_SIM_TYPE, req.type)
@@ -92,7 +91,7 @@ class Request(sirepo.request.Base):
             redirect_uri=cfg.callback_uri,
             state=s,
         )
-        return http_reply.gen_redirect(u)
+        return self.reply_redirect(u)
     
     
     @api_perm.allow_cookieless_set_user

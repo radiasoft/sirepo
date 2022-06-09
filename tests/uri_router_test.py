@@ -73,5 +73,6 @@ def test_uri_for_api():
             uri_router.uri_for_api('notAnApi')
         with pkexcept('missing parameter'):
             uri_router.uri_for_api('exportArchive', {'simulation_type': 'srw'})
+        pkeq('/', uri_router.uri_for_api('root', params={}, external=False))
 
     srunit.test_in_request(t)

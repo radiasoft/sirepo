@@ -90,6 +90,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if v == '1':
                     c.append(f'{k}=TRUE')
                 continue
+            if k not in s.model.setupArguments:
+                continue
             t = s.model.setupArguments[k][1]
             if t == 'SetupArgumentDimension':
                 # always include the setup dimension

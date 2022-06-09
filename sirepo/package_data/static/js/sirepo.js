@@ -124,6 +124,9 @@ angular.element(document).ready(function() {
             simulationType: SIREPO.APP_NAME,
         },
         success: function(result) {
+            if (result.state === 'srException') {
+                throw new Error(`srException in /simulation-schema result=${JSON.stringify(result)}`);
+            }
             SIREPO.APP_SCHEMA = result;
             $.when.apply($, loadDynamicModules()).then(
                 function() {
@@ -1277,41 +1280,54 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         function onError() {
             panelState.reportNotGenerated(modelName);
         }
-        var isHidden = panelState.isHidden(modelName);
-        var frameRequestTime = new Date().getTime();
-        var delay = isPlaying && ! isHidden
-            ? 1000 / parseInt(appState.models[modelName].framesPerSecond || 2)
-            : 0;
-        var requestFunction = function() {
-            if (SIREPO.SLOW_ANIMATION) {
-                // some apps like SRW may take a long time to process a frame
-                panelState.setLoading(modelName, true);
+        function now() {
+            return new Date().getTime();
+        }
+        let isHidden = panelState.isHidden(modelName);
+        let frameRequestTime = now();
+        let waitTimeHasElapsed = false;
+        const framePeriod = () => {
+            if (! isPlaying || isHidden) {
+                return 0;
             }
+            const milliseconds = 1000;
+            var x = appState.models[modelName].framesPerSecond;
+            if (! x) {
+                return  0.5 * milliseconds;
+            }
+            return  milliseconds / parseInt(x);
+        };
+
+        const requestFunction = function() {
+            setTimeout(() => {
+                if (! waitTimeHasElapsed) {
+                    panelState.setLoading(modelName, true);
+                }
+            }, 1000);
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
                         return;
                     }
-                    var endTime = new Date().getTime();
-                    var elapsed = endTime - frameRequestTime;
-                    if (elapsed < delay) {
-                        $interval(
-                            function() {
-                                callback(index, data);
-                            },
-                            delay - elapsed,
-                            1
-                        );
-                    }
-                    else {
+                    let e = framePeriod() - (now() - frameRequestTime);
+                    if (e <= 0) {
                         callback(index, data);
+                        return;
                     }
+                    $interval(
+                        function() {
+                            callback(index, data);
+                        },
+                        e,
+                        1
+                    );
                 },
                 null,
                 onError
@@ -1989,9 +2005,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             // wrong app so just ignore
             return;
         }
-        if ($location.path() != p[1]) {
+        var r = decodeURIComponent(p[1]);
+        if ($location.path() != r) {
             event.preventDefault();
-            self.localRedirect(p[1]);
+            self.localRedirect(r);
         }
     }
 
@@ -2052,7 +2069,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function saveCookieRedirect(route) {
-        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + route;
+        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(route);
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
@@ -2203,7 +2220,14 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (u.charAt(0) == '#') {
             u = u.slice(1);
         }
-        $location.path(u);
+        // needs to handle query params from calls using complete url differently
+        u = u.split("?");
+        
+        if(u.length > 1 && u[1].trim()) {
+            $location.path(u[0]).search(u[1]);
+        } else {
+            $location.path(u[0]);
+        }
     };
 
     self.localRedirectHome = function(simulationId) {

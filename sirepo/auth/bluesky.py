@@ -14,10 +14,10 @@ from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
+import sirepo.api
 import sirepo.auth
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.request
 import time
 
 
@@ -40,10 +40,10 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_cookieless_set_user
     def api_authBlueskyLogin(self):
-        req = sirepo.http_request.parse_post(id=True)
+        req = self.parse_post(id=True)
         auth_hash(req.req_data, verify=True)
         path = simulation_db.find_global_simulation(
             req.type,
@@ -55,7 +55,7 @@ class Request(sirepo.request.Base):
             uid=simulation_db.uid_from_dir_name(path),
             # do not supply sim_type (see auth.login)
         )
-        return sirepo.http_reply.gen_json_ok(
+        return self.reply_ok(
             PKDict(
                 data=simulation_db.open_json_file(req.type, sid=req.id),
                 schema=simulation_db.get_schema(req.type),
