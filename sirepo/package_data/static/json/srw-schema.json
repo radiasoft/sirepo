@@ -2166,6 +2166,9 @@
                 "effectiveDeflectingParameter"
             ],
             "advanced": [
+                "period",
+                "length",
+                "effectiveDeflectingParameter",
                 "longitudinalPosition",
                 [
                     ["Horizontal", [
