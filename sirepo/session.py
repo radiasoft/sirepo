@@ -5,10 +5,10 @@ from pykern.pkcollections import PKDict
 import contextlib
 import datetime
 import flask
+import sirepo.api
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.events
-import sirepo.request
 import sirepo.srcontext
 import sirepo.srtime
 import sirepo.uri_router  #TODO(rorour) remove
@@ -27,12 +27,13 @@ def _event_end_api_call(kwargs):
     if i:
         kwargs.resp.headers['X-Sirepo-UserAgentId'] = i
 
-
-def session(sreq):
-    i = flask.request.headers.get('X-Sirepo-UserAgentId')
+# TODO(e-carlin): rename maybe begin
+# TODO(e-carlin): global rename sreq to sapi
+@contextlib.contextmanager
+def session():
+    i = sirepo.api.Base.request_headers().get('X-Sirepo-UserAgentId')
     pkdp('X-Sirepo-UserAgentId={}', i)
-    pkdp('path={}', flask.request.path)
-    if sreq.request_method() != 'POST' or 'static' in flask.request.path or 'schema' in flask.request.path:
+    if sirepo.api.Base.request_method() != 'POST':
         yield
         return
     if not i:
@@ -46,7 +47,8 @@ def session(sreq):
             start_time=t,
             request_time=t,
         ).save()
-        sreq.call_api('beginSession', data=PKDict(simulationType='srw'))
+        # TODO(e-carlin): beginSession
+        # sreq.call_api('beginSession', data=PKDict(simulationType='srw'))
     else:
         s = _Session.search_by(user_agent_id=i)
         assert s, f'No session for user_agent_id={i} type={type(i)}'
@@ -57,6 +59,7 @@ def session(sreq):
         s.save()
     sirepo.srcontext.set(_SRCONTEXT_KEY, i)
     yield
+    # TODO(e-carlin): clear srcontext_key or restore to previous?
 
 
 def _init():

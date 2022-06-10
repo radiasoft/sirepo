@@ -3,6 +3,7 @@ u"""Requests hold context for API calls
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import flask
 
 
 class Base:
@@ -53,6 +54,14 @@ class Base:
 
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
+
+    @classmethod
+    def request_headers(cls):
+        return flask.request.headers
+
+    @classmethod
+    def request_method(cls):
+        return flask.request.method
 
 def init(**imports):
     import sirepo.util
