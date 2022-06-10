@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""Moderate user roles
 
-:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkconfig
@@ -14,7 +14,6 @@ import sirepo.auth
 import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.feature_config
-import sirepo.http_reply
 import sirepo.http_request
 import sirepo.simulation_db
 import sirepo.smtp
@@ -22,14 +21,14 @@ import sirepo.uri
 import sirepo.uri_router
 import sqlalchemy
 
-_STATUS_TO_SUBJECT = PKDict(
-    approve='{} Access Request Approved',
-    clarify='Sirepo {}: Additional Info?',
-    deny='{} Access Request Denied',
-)
+_STATUS_TO_SUBJECT = None
 
 _cfg = None
 
+_ACTIVE = frozenset([
+    sirepo.auth_role.ModerationStatus.CLARIFY,
+    sirepo.auth_role.ModerationStatus.PENDING,
+])
 
 class API(sirepo.api.Base):
     @sirepo.api_perm.require_adm
@@ -118,7 +117,7 @@ class API(sirepo.api.Base):
                 sirepo.auth_db.UserRoleInvite(
                     uid=u,
                     role=r,
-                    status='pending',
+                    status=sirepo.auth_role.ModerationStatus.PENDING,
                     token=sirepo.util.random_base62(32),
                 ).save()
             except sqlalchemy.exc.IntegrityError as e:
@@ -142,8 +141,32 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
 
+def control_for_user(uid, role):
+    s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
+    if s in _ACTIVE:
+        raise sirepo.util.SRException('moderationPending', None)
+    if s == 'denied':
+        sirepo.util.raise_forbidden(f'uid={uid} role={role} already denied')
+    assert s is None, \
+        f'Unexpected status={s} for uid={uid} and role={role}'
+    sirepo.auth.require_email_user()
+    raise sirepo.util.SRException('moderationRequest', None)
+
+
 def init_apis():
-    global _cfg
+    global _cfg, _STATUS_TO_SUBJECT
+
     _cfg = pkconfig.init(
         moderator_email=pkconfig.Required(str, 'The email address to send moderation emails to'),
     )
+    _STATUS_TO_SUBJECT = PKDict(
+        approve='{} Access Request Approved',
+#TODO(robnagler) should we send an email when moderation pending?
+        # For completeness
+        pending=None,
+        clarify='Sirepo {}: Additional Info?',
+        deny='{} Access Request Denied',
+    )
+    x = frozenset(_STATUS_TO_SUBJECT.keys())
+    if x != sirepo.auth_role.ModerationStatus.VALID_SET:
+        raise AssertionError(f'{x} not same as {sirepo.auth_role.ModerationStatus.VALID_SET}')

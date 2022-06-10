@@ -6,6 +6,7 @@ u"""User roles
 """
 from pykern import pkconfig
 from pykern.pkdebug import pkdp
+import aenum
 import sirepo.feature_config
 
 ROLE_ADM = 'adm'
@@ -13,6 +14,21 @@ ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
 ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 _SIM_TYPE_ROLE_PREFIX = 'sim_type_'
+
+
+class ModerationStatus(aenum.NamedConstant):
+    """States used by auth_role_moderation and UserRoleInvite"""
+    APPROVE = 'approve'
+    CLARIFY = 'clarify'
+    DENY = 'deny'
+    PENDING = 'pending'
+    VALID_SET = frozenset([APPROVE, CLARIFY, DENY, PENDING])
+
+    @classmethod
+    def check(cls, value):
+        assert value in cls.VALID_SET, \
+            f'status={value} is not in  valied_set={cls.VALID_SET}'
+        return value
 
 
 def for_moderated_sim_types():

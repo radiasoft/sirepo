@@ -57,13 +57,10 @@ class API(sirepo.api.Base):
     @api_perm.require_cookie_sentinel
     def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
-        raise util.Redirect(sirepo.oauth.create_authorize_redirect(
-            self.parse_params(
-                    type=simulation_type,
-                ).type,
+        sirepo.oauth.raise_authorize_redirect(
+            self.parse_params(type=simulation_type).type,
             github_auth=True,
-        ))
-
+        )
 
     @api_perm.allow_cookieless_set_user
     def api_oauthAuthorized(self, oauth_type):

@@ -10,6 +10,7 @@ import getpass
 import os
 import pytest
 
+
 def setup_module(module):
     os.environ.update(
         SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES='myapp',

@@ -11,7 +11,6 @@ import sirepo.sim_data
 import sirepo.srcontext
 import sirepo.srschema
 import sirepo.template
-import sirepo.uri_router
 import sirepo.util
 import user_agents
 
@@ -21,9 +20,7 @@ _POST_ATTR = 'sirepo_http_request_post'
 
 
 def init(**imports):
-    global sirepo
     sirepo.util.setattr_imports(imports)
-    import sirepo.auth
 
 
 def is_spider():
@@ -93,20 +90,20 @@ def parse_post(**kwargs):
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
 
-    def t(v):
+    def _type(v):
+        from sirepo import auth
+
         assert not isinstance(v, bool), \
             'missing type in params/post={}'.format(kwargs)
-        v = sirepo.template.assert_sim_type(v)
+        auth.control_sim_type_role(v)
         # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
         set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)
-        if sirepo.uri_router.is_sim_type_required_for_api():
-            sirepo.auth.require_sim_type(v)
         return v
 
     for x in (
         # must be first
-        ('type', ('simulationType',), t),
+        ('type', ('simulationType',), _type),
         ('file_type', ('file_type', 'fileType'), sirepo.util.secure_filename),
         ('filename', ('filename', 'fileName'), sirepo.util.secure_filename),
         ('folder', ('folder',), sirepo.srschema.parse_folder),
@@ -171,13 +168,17 @@ def sim_type(value=None):
 
 
 def user_agent_headers():
+
     def _dns_reverse_lookup(ip):
         import dns.resolver
         import dns.reversename
         try:
-            return str(dns.resolver.query(dns.reversename.from_address(ip), 'PTR')[0])
+            if ip:
+                return str(dns.resolver.query(dns.reversename.from_address(ip), 'PTR'))
         except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
-            return 'No Reverse DNS Lookup'
+            pass
+        return 'No Reverse DNS Lookup'
+
     return PKDict(
         ip_addr=flask.request.remote_addr,
         domain_name=_dns_reverse_lookup(flask.request.remote_addr),

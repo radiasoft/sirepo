@@ -19,30 +19,35 @@ import sirepo.util
 
 cfg = None
 
+_SIM_TYPE = 'flash'
+
 class API(sirepo.api.Base):
+
     @api_perm.require_user
     def api_simOauthFlashAuthorized(self):
-        oc, _ = sirepo.oauth.check_authorized_callback()
-        r = PKDict(oc.token)
-        i = PKDict(oc.get('https://flash.rochester.edu/id/userinfo').json())
-        assert i.status == 'G', \
-            f'unexpected status in userinfo={i}'
+        o, _ = sirepo.oauth.check_authorized_callback()
+        i = PKDict(o.get(cfg.info_url).json())
+#TODO(robnagler) should this not raise forbidden?
+        assert i.status == cfg.info_valid_user, \
+            f'unexpected status in info={i} expect={cfg.info_valid_user}'
         sirepo.auth_db.UserRole.add_role_or_update_expiration(
             sirepo.auth.logged_in_user(),
-            sirepo.auth_role.for_sim_type('flash'),
-            expiration=datetime.datetime.fromtimestamp(r.expires_at),
+            sirepo.auth_role.for_sim_type(_SIM_TYPE),
+            expiration=datetime.datetime.fromtimestamp(PKDict(o.token).expires_at),
         )
-        raise sirepo.util.Redirect('flash')
+        raise sirepo.util.Redirect(_SIM_TYPE)
 
 
 def init_apis():
     global cfg
     cfg = pkconfig.init(
-        authorize_url=('https://flash.rochester.edu/id/oauth2/auth', str, 'url to redirect to for authorization'),
+        authorize_url=pkconfig.Required(str, 'url to redirect to for authorization'),
         callback_uri=(None, str, 'Flash callback URI (defaults to api_simOauthFlashAuthorized)'),
+        info_valid_user=pkconfig.Required(str, 'valid user status code'),
+        info_url=pkconfig.required(str, 'to request user data'),
         key=pkconfig.Required(str, 'OAuth key'),
         scope=('openid', str, 'scope of data to request about user'),
         secret=pkconfig.Required(str, 'OAuth secret'),
-        token_endpoint=('https://flash.rochester.edu/id/oauth2/token', str, 'url for obtaining access token')
+        token_endpoint=pkconfig.Required(str, 'url for obtaining access token')
     )
     cfg.callback_api = 'simOauthFlashAuthorized'

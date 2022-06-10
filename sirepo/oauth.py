@@ -46,12 +46,12 @@ def check_authorized_callback(github_auth=False):
     sirepo.util.raise_forbidden(f'user denied access from sim_type={t}')
 
 
-def create_authorize_redirect(sim_type, github_auth=False):
+def raise_authorize_redirect(sim_type, github_auth=False):
     cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
     c = _cfg(sim_type, github_auth)
     u, s = _client(sim_type, github_auth).create_authorization_url(c.authorize_url)
     cookie.set_value(_COOKIE_NONCE, s)
-    return u
+    raise sirepo.util.Redirect(u)
 
 
 def _cfg(sim_type, github_auth):

@@ -378,15 +378,13 @@ def init():
                 s = cls.search_by(uid=uid, role=role)
                 if not s:
                     return None
-                return s.status
+                return sirepo.auth_role.ModerationStatus.check(s.status)
 
         @classmethod
         def set_status(cls, uid, role, status, moderator_uid=None):
-            assert status in ('approve', 'clarify', 'deny'), \
-                f'status={status} not in expected values'
             with sirepo.util.THREAD_LOCK:
                 s = cls.search_by(uid=uid, role=role)
-                s.status = status
+                s.status = sirepo.auth_role.ModerationStatus.check(status)
                 if moderator_uid:
                     s.moderator_uid = moderator_uid
                 s.save()

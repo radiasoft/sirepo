@@ -59,6 +59,5 @@ def check_api_call(func):
         raise AssertionError('unhandled api_perm={}'.format(expect))
 
 
-def is_sim_type_required_for_api(func):
-    e = getattr(func, api_perm.ATTR)
-    return e not in api_perm.SIM_TYPELESS_PERMS
+def maybe_sim_type_required_for_api(func):
+    return getattr(func, api_perm.ATTR) not in api_perm.SIM_TYPELESS_PERMS

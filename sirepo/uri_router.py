@@ -164,13 +164,11 @@ def init(app, simulation_db):
     )
 
 
-def is_sim_type_required_for_api():
+def maybe_sim_type_required_for_api():
     a = sirepo.srcontext.get(_API_ATTR)
     if not a:
         return True
-    return sirepo.api_auth.is_sim_type_required_for_api(
-        a.func if isinstance(a, _Route) else _api_to_route[a].func
-    )
+    return sirepo.api_auth.maybe_sim_type_required_for_api(a.func)
 
 
 def register_api_module(module=None):
@@ -370,16 +368,6 @@ def _register_sim_modules_from_package(package, valid_sim_types=None):
 
 def _register_sim_oauth_modules(oauth_sim_types):
     _register_sim_modules_from_package('sim_oauth', oauth_sim_types)
-
-
-@contextlib.contextmanager
-def _set_api_attr(route_or_name):
-    a = sirepo.srcontext.get(_API_ATTR)
-    try:
-        sirepo.srcontext.set(_API_ATTR, route_or_name)
-        yield
-    finally:
-        sirepo.srcontext.set(_API_ATTR, a)
 
 
 @contextlib.contextmanager
