@@ -123,7 +123,6 @@ class SlotQueue(sirepo.tornado.Queue):
 
     def __init__(self, maxsize=1):
         super().__init__(maxsize=maxsize)
-        pkdp('SLOT Q PUT {}', maxsize)
         for i in range(1, maxsize + 1):
             self.put_nowait(i)
 
@@ -653,7 +652,6 @@ class _ComputeJob(PKDict):
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
-                        pkdp('CANCEL REPLY GET')
                         await c.reply_get()
                     return r
                 except Awaited:

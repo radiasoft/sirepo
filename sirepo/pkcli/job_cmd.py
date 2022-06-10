@@ -48,6 +48,7 @@ def default_command(in_file):
     #TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
+        pkdp('JOB CMD GLOBALS DO {} F {}', msg.jobCmd, in_file)
         res = globals()['_do_' + msg.jobCmd](
             msg,
             sirepo.template.import_module(msg.simulationType)
