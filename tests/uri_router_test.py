@@ -9,16 +9,13 @@ import pytest
 pytest.importorskip('srwl_bl')
 
 
-def test_error_for_bots():
+def test_error_for_bots(fc):
     from pykern import pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq, pkexcept, pkok, pkre
     from sirepo import http_request
-    from sirepo import srunit
 
-    fc = srunit.flask_client()
     fc.sr_login_as_guest()
-
     uri = '/get-application-data'
     d = PKDict(simulationType='srw', method='NO SUCH METHOD')
 
@@ -40,12 +37,10 @@ def test_error_for_bots():
         pkeq(500, r.status_code)
 
 
-def test_not_found():
+def test_not_found(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
-    from sirepo import srunit
 
-    fc = srunit.flask_client()
     for uri in ('/some random uri', '/srw/wrong-param', '/export-archive'):
         resp = fc.get(uri)
         pkeq(404, resp.status_code)
@@ -58,9 +53,7 @@ def test_uri_for_api():
         from pykern.pkdebug import pkdp
         from pykern.pkunit import pkeq, pkexcept, pkre, pkeq
         from sirepo import uri_router
-        import re
 
-        fc = srunit.flask_client()
         uri = uri_router.uri_for_api('homePage', params={'path_info': None})
         pkre('http://[^/]+/en$', uri)
         uri = uri_router.uri_for_api(

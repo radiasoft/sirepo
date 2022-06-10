@@ -47,7 +47,7 @@ def set_optics(v, names=None, want_final_propagation=True):
                 shift_x=v.op_Sample_shiftX,
                 shift_y=v.op_Sample_shiftY,
                 invert=bool(int(v.op_Sample_invert)),
-                is_save_images=True,
+                is_save_images=False,
                 prefix='Sample_sample',
                 output_image_format=v.op_Sample_outputImageFormat,
             ))
