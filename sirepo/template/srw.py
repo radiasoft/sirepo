@@ -541,7 +541,7 @@ def sim_frame(frame_args):
     return extract_report_data(frame_args.sim_in)
 
 
-def import_file(req, tmp_dir, sreq, **kwargs):
+def import_file(req, tmp_dir, sapi, **kwargs):
     import sirepo.server
 
     i = None
@@ -564,7 +564,7 @@ def import_file(req, tmp_dir, sreq, **kwargs):
             forceRun=True,
             simulationId=i,
         )
-        r = sreq.call_api('runSimulation', data=d)
+        r = sapi.call_api('runSimulation', data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
             if r.status_code != 200:
                 raise sirepo.util.UserAlert(
@@ -595,7 +595,7 @@ def import_file(req, tmp_dir, sreq, **kwargs):
                     r,
                 )
             time.sleep(r.nextRequestSeconds)
-            r = sreq.call_api('runStatus', data=r.nextRequest)
+            r = sapi.call_api('runStatus', data=r.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 'error parsing python',
@@ -615,7 +615,7 @@ def import_file(req, tmp_dir, sreq, **kwargs):
                 pass
         raise
     raise sirepo.util.Response(
-        sreq.call_api('simulationData', kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i)),
+        sapi.call_api('simulationData', kwargs=PKDict(simulation_type=r.simulationType, simulation_id=i)),
     )
 
 
@@ -2064,7 +2064,7 @@ def _set_parameters(v, data, plot_reports, run_dir):
         elif report == 'coherentModesAnimation':
             v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
-            v.mpiMasterCount = max(2, int(sirepo.mpi.cfg.cores / 4))
+            v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = 'h5'
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
 

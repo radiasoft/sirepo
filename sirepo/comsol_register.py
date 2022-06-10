@@ -10,26 +10,24 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
-from sirepo import http_request
 from sirepo import smtp
-import sirepo.request
+import sirepo.api
 
 cfg = None
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.allow_visitor
     def api_comsol(self):
-        return http_reply.gen_redirect(
+        return self.reply_redirect(
             'https://www.radiasoft.net/services/comsol-certified-consulting/',
         )
-    
-    
+
     @api_perm.allow_visitor
     def api_comsolRegister(self):
         import sirepo.util
     
-        req = http_request.parse_json()
+        req = self.parse_json()
         smtp.send(
             recipient=cfg.mail_recipient_email,
         subject='Sirepo / COMSOL Registration',
@@ -39,8 +37,8 @@ Request for access to Sirepo / COMSOL.
 Name: {}
 Email: {}
 '''.format(req.name, req.email),
-    )
-    return http_reply.gen_json_ok()
+        )
+        return self.reply_ok()
 
 
 def init_apis(*args, **kwargs):

@@ -11,10 +11,9 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
-from sirepo import http_request
 from sirepo import srtime
 import datetime
-import sirepo.request
+import sirepo.api
 import sirepo.util
 
 
@@ -32,15 +31,15 @@ _COOKIE_EXPIRY_TIMESTAMP = 'srazt'
 _ONE_DAY = datetime.timedelta(days=1)
 
 
-class Request(sirepo.request.Base):
+class API(sirepo.api.Base):
     @api_perm.require_cookie_sentinel
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""
-        req = http_request.parse_params(type=simulation_type)
+        req = self.parse_params(type=simulation_type)
         # if already logged in as guest, just redirect
         if auth.user_if_logged_in(AUTH_METHOD):
-            auth.login_success_response(req.type)
-        auth.login(this_module, sim_type=req.type)
+            auth.login_success_response(req.type, self)
+        auth.login(this_module, sim_type=req.type, sapi=self)
         raise AssertionError('auth.login returned unexpectedly')
 
 

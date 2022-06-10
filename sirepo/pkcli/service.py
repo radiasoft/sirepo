@@ -103,6 +103,7 @@ def http():
 def jupyterhub():
     import importlib
     import sirepo.template
+    import socket
 
     assert pkconfig.channel_in('dev')
     sirepo.template.assert_sim_type('jupyterhublogin')
@@ -135,7 +136,11 @@ def jupyterhub():
         f = d.join('conf.py')
         pkjinja.render_resource(
             'jupyterhub_conf.py',
-            PKDict(_cfg()).pkupdate(**sirepo.sim_api.jupyterhublogin.cfg),
+            PKDict(_cfg()).pkupdate(
+                # POSIT: Running with nginx and uwsgi
+                sirepo_uri=f'http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}',
+                **sirepo.sim_api.jupyterhublogin.cfg,
+            ),
             output=f,
         )
         pksubprocess.check_call_with_signals(('jupyterhub', '-f', str(f)))

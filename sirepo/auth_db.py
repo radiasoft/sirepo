@@ -4,7 +4,8 @@ u"""Auth database
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+import sqlite3
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
@@ -37,6 +38,9 @@ UserRegistration = None
 
 #: roles for each user
 UserRole = None
+
+#: role invites for each user
+UserRoleInvite = None
 
 
 def all_uids():
@@ -120,7 +124,7 @@ def init():
             f'sqlalchemy tables={k} not a subset of known tables={b.TABLES}'
         b.metadata.create_all(engine)
 
-    global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
+    global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole, UserRoleInvite
 
     if _engine:
         return
@@ -147,6 +151,7 @@ def init():
             'auth_email_user_t',
             'jupyterhub_user_t',
             'user_role_t',
+            'user_role_invite_t',
             'user_registration_t',
             'db_upgrade_t',
         ]
@@ -154,6 +159,19 @@ def init():
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
                 setattr(self, k, v)
+
+        @classmethod
+        def all(cls):
+            with sirepo.util.THREAD_LOCK:
+                return cls._session().query(cls).all()
+
+        def as_pkdict(self):
+            return PKDict({c: getattr(self, c)
+                           for c in self.column_names()})
+
+        @classmethod
+        def column_names(cls):
+            return cls.__table__.columns.keys()
 
         def delete(self):
             with sirepo.util.THREAD_LOCK:
@@ -231,7 +249,6 @@ def init():
         name = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
         created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
 
-
     class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'
         uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
@@ -254,7 +271,10 @@ def init():
         def add_roles(cls, uid, roles):
             with sirepo.util.THREAD_LOCK:
                 for r in roles:
-                    UserRole(uid=uid, role=r).save()
+                    try:
+                        UserRole(uid=uid, role=r).save()
+                    except sqlalchemy.exc.IntegrityError:
+                        pass
                 audit_proprietary_lib_files(uid)
 
         @classmethod
@@ -276,7 +296,6 @@ def init():
                     uid=uid,
                 )
 
-
         @classmethod
         def has_role(cls, uid, role):
             with sirepo.util.THREAD_LOCK:
@@ -289,6 +308,45 @@ def init():
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
+
+    class UserRoleInvite(UserDbBase):
+        __tablename__ = 'user_role_invite_t'
+        uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
+        role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
+        status = sqlalchemy.Column(UserDbBase.STRING_NAME, nullable=False)
+        token = sqlalchemy.Column(UserDbBase.STRING_NAME, nullable=False, unique=True)
+        moderator_uid = sqlalchemy.Column(UserDbBase.STRING_ID)
+        last_updated = sqlalchemy.Column(
+            sqlalchemy.DateTime(),
+            server_default=sqlalchemy.sql.func.now(),
+            onupdate=sqlalchemy.sql.func.now(),
+            nullable=False,
+        )
+
+        @classmethod
+        def get_moderation_request_rows(cls):
+            with sirepo.util.THREAD_LOCK:
+                return cls.search_all_by(status='pending') + cls.search_all_by(status='clarify')
+
+        @classmethod
+        def get_status(cls, uid, role):
+            with sirepo.util.THREAD_LOCK:
+                s = cls.search_by(uid=uid, role=role)
+                if not s:
+                    return None
+                return s.status
+
+        @classmethod
+        def set_status(cls, uid, role, status, moderator_uid=None):
+            assert status in ('approve', 'clarify', 'deny'), \
+                f'status={status} not in expected values'
+            with sirepo.util.THREAD_LOCK:
+                s = cls.search_by(uid=uid, role=role)
+                s.status = status
+                if moderator_uid:
+                    s.moderator_uid = moderator_uid
+                s.save()
+
     _create_tables(_engine)
 
 

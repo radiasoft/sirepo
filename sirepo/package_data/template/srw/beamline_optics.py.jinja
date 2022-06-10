@@ -233,7 +233,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 shift_x={{ field(item, 'shiftX') }},
                 shift_y={{ field(item, 'shiftY') }},
                 invert=bool(int({{ field(item, 'invert') }})),
-                is_save_images=True,
+                is_save_images=False,
                 prefix='{{ item.name }}_sample',
                 output_image_format={{ field(item, 'outputImageFormat') }},
             ))
@@ -337,5 +337,6 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
 {% if items|length > 0 %}
     if want_final_propagation:
         pp.append(v.op_fin_pp)
-{% endif %}                
+{% endif %}
+
     return srwlib.SRWLOptC(el, pp)
