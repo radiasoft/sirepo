@@ -84,7 +84,6 @@ def call_api(route_or_name, kwargs=None, data=None):
     """
     p = None
     s = None
-    pkdp('URI RT CALL API {}', route_or_name.func_name)
     with _set_api_attr(route_or_name):
         try:
             # must be first so exceptions have access to sim_type

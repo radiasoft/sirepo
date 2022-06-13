@@ -48,7 +48,6 @@ def default_command(in_file):
     #TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
-        pkdp('JOB CMD GLOBALS DO {} F {}', msg.jobCmd, in_file)
         res = globals()['_do_' + msg.jobCmd](
             msg,
             sirepo.template.import_module(msg.simulationType)
@@ -92,7 +91,6 @@ def _do_cancel(msg, template):
     return PKDict()
 
 def _do_compute(msg, template):
-    pkdp('JOB CMD DO COMP')
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
         p = subprocess.Popen(
@@ -101,7 +99,6 @@ def _do_compute(msg, template):
             stderr=run_log,
         )
     while True:
-        pkdp('POLLING')
         for j in range(20):
             time.sleep(.1)
             r = p.poll()
@@ -193,12 +190,10 @@ def _do_fastcgi(msg, template):
     c = 0
     while True:
         try:
-            pkdp('JOB CMD FAST CGI RECV')
             m = _recv()
             if not m:
                 return
             with _update_run_dir_and_maybe_chdir(m):
-                pkdp('JOB CMD FAST CGI DO')
                 r = globals()['_do_' + m.jobCmd](
                     m,
                     sirepo.template.import_module(m.simulationType)
