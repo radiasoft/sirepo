@@ -76,7 +76,7 @@ def _widget_supported_codes(ctx):
         activait='ml',
         jupyter='jupyterhublogin',
     )
-    del x['ml']
+    x.pkdel('ml')
     r = '''
         <div class="container">
           <div class="row">
