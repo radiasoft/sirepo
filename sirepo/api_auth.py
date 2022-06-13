@@ -44,7 +44,7 @@ def check_api_call(func):
             auth.require_email_user()
         elif expect == a.REQUIRE_ADM:
             auth.require_adm()
-    elif expect == a.ALLOW_VISITOR:
+    elif expect in (a.ALLOW_VISITOR, a.MANUAL_PERMISSION_CHECK):
         pass
     elif expect == a.INTERNAL_TEST:
         if not pkconfig.channel_in_internal_test():

@@ -142,7 +142,6 @@ def control_sim_type_role(sim_type):
     t = sirepo.template.assert_sim_type(sim_type)
     if t not in sirepo.feature_config.auth_controlled_sim_types():
         return
-#QUESTION(robnagler) I think this is sufficient, that is, the tests can be reversed
     if not uri_router.maybe_sim_type_required_for_api():
         return
     u = logged_in_user()

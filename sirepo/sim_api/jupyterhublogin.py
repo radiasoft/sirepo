@@ -34,7 +34,7 @@ _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 
 
 class API(sirepo.api.Base):
-    @sirepo.api_perm.allow_visitor
+    @sirepo.api_perm.manual_permission_check
     def api_checkAuthJupyterhub(self):
         def _res_for_uri(uri):
             return self.reply_ok(PKDict(uri=uri))
@@ -42,7 +42,7 @@ class API(sirepo.api.Base):
         u = None
         try:
             sirepo.auth.require_user()
-            sirepo.auth.require_sim_type('jupyterhublogin')
+            sirepo.auth.control_sim_type_role('jupyterhublogin')
             u = _unchecked_jupyterhub_user_name(
                 have_simulation_db=False,
             )
@@ -67,7 +67,7 @@ class API(sirepo.api.Base):
 
     @sirepo.api_perm.require_user
     def api_migrateJupyterhub(self):
-        sirepo.auth.require_sim_type('jupyterhublogin')
+        sirepo.auth.control_sim_type_role('jupyterhublogin')
         if not cfg.rs_jupyter_migrate:
             sirepo.util.raise_forbidden('migrate not enabled')
         d = self.parse_json()
@@ -78,7 +78,7 @@ class API(sirepo.api.Base):
 
     @sirepo.api_perm.require_user
     def api_redirectJupyterHub(self):
-        sirepo.auth.require_sim_type('jupyterhublogin')
+        sirepo.auth.control_sim_type_role('jupyterhublogin')
         u = _unchecked_jupyterhub_user_name()
         if u:
             return self.reply_redirect('jupyterHub')

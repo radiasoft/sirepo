@@ -22,6 +22,8 @@ class APIPerm(aenum.Flag):
     ALLOW_VISITOR = aenum.auto()
     #: a logged in email user is required but they don't have to have a role for the sim type
     ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER = aenum.auto()
+    #: Visitor and permissions will be checked manually by API
+    MANUAL_PERMISSION_CHECK = aenum.auto()
     #: only users with role adm
     REQUIRE_ADM = aenum.auto()
     #: use basic auth authentication (only)
