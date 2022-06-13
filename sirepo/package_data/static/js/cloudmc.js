@@ -420,6 +420,7 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
         `,
         controller: function($scope, $window) {
             $scope.allVisible = true;
+            let prevOffset = 0;
 
             function init() {
                 $scope.rows = [];
@@ -445,10 +446,10 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                 $rootScope.$broadcast('sr-volume-property.changed', row.volId, prop, row[prop]);
             };
 
-            let prevOffset = 0;
             $scope.heightStyle = () => {
                 const el = $('#sr-volume-list:visible');
                 const offset = el.length ? el.offset().top : prevOffset;
+                // keep previous offset in case the element is hidden and then restored
                 prevOffset = offset;
                 return {
                     // bottom padding is 35px
