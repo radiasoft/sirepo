@@ -12,6 +12,7 @@ import contextlib
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
+import sqlalchemy.sql.expression
 # limit imports here
 import sirepo.auth_role
 import sirepo.srcontext
@@ -310,7 +311,6 @@ def init():
 
     class UserRoleInvite(UserDbBase):
         __tablename__ = 'user_role_invite_t'
-        email = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
         uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
         role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
         status = sqlalchemy.Column(UserDbBase.STRING_NAME, nullable=False)
@@ -325,8 +325,16 @@ def init():
 
         @classmethod
         def get_moderation_request_rows(cls):
+            import sirepo.auth
             with sirepo.util.THREAD_LOCK:
-                return cls.search_all_by(status='pending') + cls.search_all_by(status='clarify')
+                t = sirepo.auth.get_module('email').UserModel
+                return [r[1].as_pkdict().pkupdate(
+                    email=r[0].as_pkdict().get('user_name')
+                ) for r in cls._session().query(t, cls).filter(
+                    t.uid == cls.uid
+                ).filter(
+                    sqlalchemy.sql.expression.or_(cls.status == 'pending', cls.status == 'clarify')
+                ).all()]
 
         @classmethod
         def get_status(cls, uid, role):

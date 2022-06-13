@@ -92,7 +92,7 @@ class API(sirepo.api.Base):
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
-                rows=[r.as_pkdict() for r in sirepo.auth_db.UserRoleInvite.get_moderation_request_rows()],
+                rows=sirepo.auth_db.UserRoleInvite.get_moderation_request_rows(),
             ),
         )
 
@@ -109,27 +109,18 @@ class API(sirepo.api.Base):
         d = req.req_data
         u = sirepo.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(d.simulationType)
-        m = sirepo.auth.user_name()
         with sirepo.util.THREAD_LOCK:
             if sirepo.auth_db.UserRole.has_role(u, r):
                 raise sirepo.util.Redirect(sirepo.uri.local_route(d.simulationType))
             try:
                 sirepo.auth_db.UserRoleInvite(
-                    email=m,
                     uid=u,
                     role=r,
                     status='pending',
                     token=sirepo.util.random_base62(32),
                 ).save()
             except sqlalchemy.exc.IntegrityError as e:
-                pkdlog(
-                    'Error={} saving UserRoleInvite for email={} uid={} role={} stack={}',
-                    e,
-                    m,
-                    u,
-                    r,
-                    pkdexc(),
-                )
+                pkdlog('Error={} saving UserRoleInvite for uid={} role={} stack={}', e, u, r, pkdexc())
                 raise sirepo.util.UserAlert(
                     f"You've already submitted a moderation request.",
                 )
@@ -138,7 +129,7 @@ class API(sirepo.api.Base):
         _send_request_email(
             PKDict(
                 display_name=sirepo.auth.user_display_name(u),
-                email_addr=m,
+                email_addr=sirepo.auth.user_name(),
                 link=l,
                 reason=d.reason,
                 role=sirepo.auth_role.for_sim_type(d.simulationType),
