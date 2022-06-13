@@ -95,7 +95,7 @@ def parse_post(**kwargs):
 
         assert not isinstance(v, bool), \
             'missing type in params/post={}'.format(kwargs)
-        auth.control_sim_type_role(v)
+        auth.check_sim_type_role(v)
         # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
         set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)

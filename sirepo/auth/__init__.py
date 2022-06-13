@@ -120,22 +120,7 @@ class API(sirepo.api.Base):
         return self.reply_redirect_for_app_root(req and req.type)
 
 
-def complete_registration(name=None):
-    """Update the database with the user's display_name and sets state to logged-in.
-    Guests will have no name.
-    """
-    u = _get_user()
-    with util.THREAD_LOCK:
-        r = user_registration(u)
-        if cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
-            assert name is None, \
-                'Cookie method is {} and name is {}. Expected name to be None'.format(METHOD_GUEST, name)
-        r.display_name = name
-        r.save()
-    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
-
-
-def control_sim_type_role(sim_type):
+def check_sim_type_role(sim_type):
     from sirepo import oauth
     from sirepo import auth_role_moderation
 
@@ -153,6 +138,21 @@ def control_sim_type_role(sim_type):
     if r in sirepo.auth_role.for_moderated_sim_types():
         auth_role_moderation.raise_control_for_user(u, r)
     sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={t}')
+
+
+def complete_registration(name=None):
+    """Update the database with the user's display_name and sets state to logged-in.
+    Guests will have no name.
+    """
+    u = _get_user()
+    with util.THREAD_LOCK:
+        r = user_registration(u)
+        if cookie.unchecked_get_value(_COOKIE_METHOD) == METHOD_GUEST:
+            assert name is None, \
+                'Cookie method is {} and name is {}. Expected name to be None'.format(METHOD_GUEST, name)
+        r.display_name = name
+        r.save()
+    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
 def create_new_user(uid_generated_callback, module):
