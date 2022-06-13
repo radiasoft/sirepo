@@ -134,7 +134,7 @@ def check_sim_type_role(sim_type):
     if auth_db.UserRole.has_role(u, r) and not auth_db.UserRole.is_expired(u, r):
         return
     elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
-        oauth.raise_authorize_redirect(sirepo.auth_role.sim_type(role))
+        oauth.raise_authorize_redirect(sirepo.auth_role.sim_type(r))
     if r in sirepo.auth_role.for_moderated_sim_types():
         auth_role_moderation.raise_control_for_user(u, r)
     sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={t}')

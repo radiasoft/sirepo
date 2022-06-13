@@ -41,13 +41,13 @@ class API(sirepo.api.Base):
 def init_apis():
     global cfg
     cfg = pkconfig.init(
-        authorize_url=pkconfig.Required(str, 'url to redirect to for authorization'),
+        authorize_url=('https://flash.rochester.edu/id/oauth2/auth', str, 'url to redirect to for authorization'),
         callback_uri=(None, str, 'Flash callback URI (defaults to api_simOauthFlashAuthorized)'),
         info_valid_user=pkconfig.Required(str, 'valid user status code'),
-        info_url=pkconfig.required(str, 'to request user data'),
+        info_url=('https://flash.rochester.edu/id/userinfo', str, 'to request user data'),
         key=pkconfig.Required(str, 'OAuth key'),
         scope=('openid', str, 'scope of data to request about user'),
         secret=pkconfig.Required(str, 'OAuth secret'),
-        token_endpoint=pkconfig.Required(str, 'url for obtaining access token')
+        token_endpoint=('https://flash.rochester.edu/id/oauth2/token', str, 'url for obtaining access token')
     )
     cfg.callback_api = 'simOauthFlashAuthorized'
