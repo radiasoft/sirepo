@@ -143,7 +143,7 @@ def init():
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_secs=dict(
             analysis=(144, pkconfig.parse_seconds, 'maximum run-time for analysis job',),
-            io=(10, pkconfig.parse_seconds, 'maximum run-time for io job',),
+            io=(144, pkconfig.parse_seconds, 'maximum run-time for io job',),
             parallel=(3600, pkconfig.parse_seconds, 'maximum run-time for parallel job (except sbatch)'),
             parallel_premium=(3600*2, pkconfig.parse_seconds, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(360, pkconfig.parse_seconds, 'maximum run-time for sequential job'),
