@@ -151,7 +151,7 @@ def control_sim_type_role(sim_type):
     elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
         oauth.raise_authorize_redirect(sirepo.auth_role.sim_type(role))
     if r in sirepo.auth_role.for_moderated_sim_types():
-        auth_role_moderation.control_for_user(u, r)
+        auth_role_moderation.raise_control_for_user(u, r)
     sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={t}')
 
 

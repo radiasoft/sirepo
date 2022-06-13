@@ -141,7 +141,7 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
 
-def control_for_user(uid, role):
+def raise_control_for_user(uid, role):
     s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
     if s in _ACTIVE:
         raise sirepo.util.SRException('moderationPending', None)
