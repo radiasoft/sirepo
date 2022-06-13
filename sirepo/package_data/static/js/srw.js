@@ -1561,9 +1561,6 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $sc
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
     $scope.watchFields = [
         [
             'undulator.horizontalDeflectingParameter',
