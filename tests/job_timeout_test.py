@@ -15,6 +15,7 @@ def setup_module(module):
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_MAX_SECS_PARALLEL_PREMIUM=_MAX_SECS_PARALLEL_PREMIUM,
         SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS='3',
+        SIREPO_JOB_SUPERVISOR_MAX_SECS_IO='3',
     )
 
 
