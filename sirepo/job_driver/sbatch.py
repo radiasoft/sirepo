@@ -41,17 +41,17 @@ class SbatchDriver(job_driver.DriverBase):
             _local_user_dir=pkio.py_path(op.msg.userDir),
             _srdb_root=None,
             # Allow self.cfg.run_slots and every other op type to
-            # run (assume OP_RUN is one of OPS_THAT_NEED_SLOTS). This
+            # run (assume OP_RUN is one of SLOT_OPS). This
             # is essentially a no-op (sbatch constrains its own cpu
             # resources) but makes it easier to code the other cases.
             cpu_slot_q=sirepo.job_supervisor.SlotQueue(
-                len(job_driver.OPS_THAT_NEED_SLOTS)
+                len(job_driver.SLOT_OPS)
                 + self.cfg.run_slots
                 - 1,
             ),
             op_slot_q={
                 k: sirepo.job_supervisor.SlotQueue(maxsize=_op_queue_size(k))
-                for k in job_driver.OPS_THAT_NEED_SLOTS
+                for k in job_driver.SLOT_OPS
             },
         )
         self.__instances[self.uid] = self
