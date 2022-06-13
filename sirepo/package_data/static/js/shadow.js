@@ -419,6 +419,10 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-dialog=""></div>
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-srw-dialog" data-title="Open as a New Shadow Simulation"  data-cancel-text="Cancel" data-ok-text="Create" data-ok-clicked="">
+              <div> Create a SRW simulation with an equivalent beamline? </div>
+            </div>
+
         `,
     };
 });
@@ -440,6 +444,7 @@ SIREPO.app.directive('appHeader', function() {
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div><a href data-ng-click="openSRWConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New SRW Simulation</a></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -448,6 +453,11 @@ SIREPO.app.directive('appHeader', function() {
               </app-header-right-sim-list>
             </div>
         `,
+        controller: function($scope) {
+            $scope.openSRWConfirm = function() {
+                $('#sr-srw-dialog').modal('show');
+            };
+        }
     };
 });
 
