@@ -329,7 +329,7 @@ def init():
             with sirepo.util.THREAD_LOCK:
                 t = sirepo.auth.get_module('email').UserModel
                 return [r[1].as_pkdict().pkupdate(
-                    email=r[0].as_pkdict().get('user_name')
+                    email=r[0].as_pkdict().get('user_name'),
                 ) for r in cls._session().query(t, cls).filter(
                     t.uid == cls.uid
                 ).filter(
