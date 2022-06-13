@@ -410,7 +410,7 @@ SIREPO.viewLogic('geometricSourceView', function(appState, panelState, shadowSer
     ];
 });
 
-SIREPO.app.directive('appFooter', function() {
+SIREPO.app.directive('appFooter', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -419,11 +419,52 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-dialog=""></div>
-            <div data-confirmation-modal="" data-is-required="" data-id="sr-srw-dialog" data-title="Open as a New Shadow Simulation"  data-cancel-text="Cancel" data-ok-text="Create" data-ok-clicked="">
+            <div data-confirmation-modal=""  data-ok-clicked="openSRWSimulation()" data-is-required="" data-id="sr-srw-dialog" data-title="Open as a New Shadow Simulation"  data-cancel-text="Cancel" data-ok-text="Create" data-ok-clicked="">
               <div> Create a SRW simulation with an equivalent beamline? </div>
             </div>
-
         `,
+        controller: function($scope) {
+            function createNewSim(data) {
+                srdbg('data: ', data);
+                requestSender.sendRequest(
+                    'newSimulation',
+                    function(SRWData) {
+                        srdbg('default data? -> ', SRWData);
+                        var sim = SRWData.models.simulation;
+                        srdbg('sim: ', sim);
+                        ['simulationId', 'simulationSerial'].forEach(function(f) {
+                            data.models.simulation[f] = sim[f];
+                        });
+                        data.version = SRWData.version;
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            genSimURL,
+                            data);
+                    },
+                    newSimData(data)
+                );
+            }
+
+            function newSimData(data) {
+                var res = appState.clone(data.models.simulation);
+                res.simulationType = data.simulationType;
+                res.name = 'test'
+                srdbg('res in newSimData: ', res);
+                return res;
+            }
+
+            function genSimURL(data) {
+                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
+                srdbg($scope.newSimURL);
+            }
+
+            $scope.openSRWSimulation = function() {
+                const d = appState.models;
+                d.method = 'testing_shadow';
+                requestSender.sendStatefulCompute(appState, createNewSim, d)
+                return false;
+            }
+        }
     };
 });
 

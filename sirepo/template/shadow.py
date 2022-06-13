@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import template_common
+from sirepo import simulation_db
 from sirepo.template.template_common import ModelUnits
 import re
 import sirepo.sim_data
@@ -63,6 +64,14 @@ _WIGGLER_TRAJECTORY_FILENAME = 'xshwig.sha'
 
 def stateless_compute_compute_harmonic_photon_energy(data):
     return _compute_harmonic_photon_energy(data)
+
+
+def stateful_compute_testing_shadow(data, **kwargs):
+    pkdp('\n\n\n shadow data: {} \n\n\n', data)
+    d = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
+    pkdp('\n\n\n d: {}', d)
+    return d
+
 
 def get_data_file(run_dir, model, frame, options):
     if model == 'beamStatisticsReport':
