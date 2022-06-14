@@ -3024,6 +3024,49 @@ SIREPO.app.directive('simulationStatusTimer', function() {
     };
 });
 
+SIREPO.app.directive('downloadStatus', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=',
+            label: '=',
+        },
+        template: `
+            <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="col-sm-12">
+                          <div>{{ label }}{{ simState.dots }}</div>
+                          <div class="progress">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+                          </div>                          
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            /*
+                              <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ label }}</span>
+                  </div>
+
+             */
+            $scope.$on('download.started', (e, simState, label) => {
+                $scope.simState = simState;
+                $scope.label = label;
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('splitPanels', function($window) {
     var GUTTER_SIZE = 20;
     var MAX_TOP_PERCENT = 85;
