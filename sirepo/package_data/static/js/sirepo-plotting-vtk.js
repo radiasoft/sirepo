@@ -2671,6 +2671,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         }
                     };
                 });
+                // remove global VTK key listeners
+                for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {
+                    document.removeEventListener(
+                        n.toLowerCase(),
+                        $scope.vtkScene.fsRenderer.getInteractor()[`handle${n}`],
+                    );
+                }
                 $scope.vtkScene.addSnapshotCanvas(
                     vtkToPNG.pngCanvas($scope.reportId, $scope.vtkScene.fsRenderer, $element)
                 );
