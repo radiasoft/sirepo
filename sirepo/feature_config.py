@@ -101,6 +101,8 @@ def proprietary_sim_types():
     return frozenset(
         cfg().proprietary_sim_types.union(cfg().proprietary_oauth_sim_types),
     )
+
+
 def _data_dir(value):
     import sirepo.srdb
     return sirepo.srdb.root().join(value)
@@ -124,7 +126,7 @@ def _init():
         schema_common=dict(
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
         ),
-        moderated_sim_types=(set(), set, 'codes where all users must be authorized via moderation'),
+        moderated_sim_types=(frozenset(), set, 'codes where all users must be authorized via moderation'),
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
@@ -134,12 +136,12 @@ def _init():
             'Names of root packages that should be checked for codes and resources. Order is important, the first package with a matching code/resource will be used. sirepo added automatically.',
         ),
         proprietary_sim_types=(
-            set(),
+            frozenset(),
             set,
             'codes that contain proprietary information and authorization to use is granted manually',
         ),
         proprietary_oauth_sim_types=(
-            set(),
+            frozenset(),
             set,
             'codes that contain proprietary information and authorization to use is granted through oauth',
         ),
