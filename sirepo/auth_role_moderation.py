@@ -145,7 +145,7 @@ def raise_control_for_user(uid, role):
     s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
     if s in _ACTIVE:
         raise sirepo.util.SRException('moderationPending', None)
-    if s == 'denied':
+    if s == sirepo.auth_role.ModerationStatus.DENY:
         sirepo.util.raise_forbidden(f'uid={uid} role={role} already denied')
     assert s is None, \
         f'Unexpected status={s} for uid={uid} and role={role}'
