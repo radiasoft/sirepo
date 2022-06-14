@@ -15,7 +15,6 @@ from pykern import pkcli
 
 
 def main():
-    from pykern.pkdebug import pkdp
     return pkcli.main('sirepo')
 
 
