@@ -11,7 +11,20 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
+        <div data-ng-switch-when="Float3" class="col-sm-7">
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3"></div>
+        </div>
     `;
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'geometryInput-dagmcFile': '.h5m',
+    };
+});
+
+SIREPO.app.factory('cloudmcService', function(appState) {
+    const self = {};
+    appState.setAppService(self);
+    self.computeModel = (modelKey) => modelKey;
+    return self;
 });
 
 SIREPO.app.controller('GeometryController', function (appState, persistentSimulation, $scope) {
@@ -31,6 +44,20 @@ SIREPO.app.controller('GeometryController', function (appState, persistentSimula
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+});
+
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, persistentSimulation, $scope) {
+    const self = this;
+    self.frameCache = frameCache;
+    self.simScope = $scope;
+    self.simComputeModel = 'openmcAnimation';
+    self.simHandleStatus = function (data) {
+        if (data.frameCount) {
+            frameCache.setFrameCount(data.frameCount);
+        }
+    };
+    self.simState = persistentSimulation.initSimulationState(self);
+    return self;
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -58,6 +85,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('geometry')}"><a href data-ng-click="nav.openSection('geometry')"><span class="glyphicon glyphicon-globe"></span> Geometry</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('visualization')}"><a href data-ng-click="nav.openSection('visualization')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -77,7 +105,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display" style="width: 100%; height: 80vh;" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope) {
             $scope.isClientOnly = true;
@@ -357,24 +385,42 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
         restrict: 'A',
         scope: {},
         template: `
-            <div style="padding: 0.5ex 1ex;">
+            <div style="padding: 0.5ex 1ex; border-bottom: 1px solid #ddd;">
               <div style="display: inline-block; cursor: pointer" data-ng-click="toggleAll()">
                 <span class="glyphicon" data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
               </div>
             </div>
-            <div data-ng-repeat="row in rows track by $index" style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
-              <div>
-                <div style="display: inline-block; cursor: pointer; white-space: nowrap" data-ng-click="toggleSelected(row)">
-                  <span class="glyphicon" data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                   {{ row.name }}
+            <div id="sr-volume-list" data-ng-style="heightStyle()">
+              <div data-ng-repeat="row in rows track by $index"
+                style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
+                <div>
+                  <div style="display: inline-block; cursor: pointer; white-space: nowrap"
+                    data-ng-click="toggleSelected(row)">
+                    <span class="glyphicon"
+                      data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
+                     {{ row.name }}
+                  </div>
+                  <div  data-ng-show="row.isVisible">
+<div class="col-sm-3">
+                  <input
+                    id="volume-{{ row.name }}-color" type="color"
+                    class="sr-color-button" data-ng-model="row.color"
+                    data-ng-change="broadcastVolumePropertyChanged(row, 'color')">
+</div>
+<div class="col-sm-9" style="margin-top: 10px">
+                  <input
+                    id="volume-{{ row.name }}-opacity-range" type="range"
+                    min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
+                    data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')">
+</div>
+                  </div>
                 </div>
-                <input id="volume-{{ row.name }}-opacity-range" type="range" min="0" max="1.0" step="0.01" data-ng-model="row.opacity" data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')">
-                <input id="volume-{{ row.name }}-color" type="color" class="sr-color-button" data-ng-model="row.color" data-ng-change="broadcastVolumePropertyChanged(row, 'color')">
               </div>
             </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $window) {
             $scope.allVisible = true;
+            let prevOffset = 0;
 
             function init() {
                 $scope.rows = [];
@@ -396,23 +442,39 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
             }
 
             $scope.broadcastVolumePropertyChanged = (row, prop) => {
-                appState.saveChanges('volumes');
+                appState.saveQuietly('volumes');
                 $rootScope.$broadcast('sr-volume-property.changed', row.volId, prop, row[prop]);
             };
 
+            $scope.heightStyle = () => {
+                const el = $('#sr-volume-list:visible');
+                const offset = el.length ? el.offset().top : prevOffset;
+                // keep previous offset in case the element is hidden and then restored
+                prevOffset = offset;
+                return {
+                    // bottom padding is 35px
+                    //   .panel margin-bottom: 20px
+                    //   .panel-body padding: 15px
+                    height: `calc(100vh - ${Math.ceil(offset) + 35}px)`,
+                    overflow: 'auto',
+                };
+            };
 
             $scope.toggleAll = () => {
                 $scope.allVisible = ! $scope.allVisible;
                 Object.values(appState.models.volumes).forEach(v => {
                     if (v.isVisible != $scope.allVisible) {
-                        $scope.toggleSelected(v);
+                        $scope.toggleSelected(v, true);
                     }
                 });
+                appState.saveChanges('volumes');
             };
 
-            $scope.toggleSelected = (row) => {
+            $scope.toggleSelected = (row, noSave) => {
                 row.isVisible = ! row.isVisible;
-                appState.saveChanges('volumes');
+                if (! noSave) {
+                    appState.saveChanges('volumes');
+                }
                 $rootScope.$broadcast('sr-volume-visibility-toggled', row.volId, row.isVisible);
             };
 
