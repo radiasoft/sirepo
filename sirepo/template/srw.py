@@ -14,9 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
-import base64
 import copy
-import io
 import math
 import numpy as np
 import os
