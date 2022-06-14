@@ -3030,11 +3030,16 @@ SIREPO.app.directive('downloadStatus', function() {
         scope: {
             simState: '=',
             label: '=',
+            title: '=',
         },
         template: `
             <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-sm">
                 <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-ng-click="cancel()"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
                   <div class="modal-body">
                     <div class="container-fluid">
                       <div class="row">
@@ -3045,6 +3050,11 @@ SIREPO.app.directive('downloadStatus', function() {
                           </div>                          
                         </div>
                       </div>
+                      <div class="row">
+                        <div class="col-sm-12 col-sm-offset-4">
+                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>                      
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3052,16 +3062,17 @@ SIREPO.app.directive('downloadStatus', function() {
             </div>
         `,
         controller: function($scope) {
-            /*
-                              <div class="modal-header bg-warning">
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                    <span class="lead modal-title text-info">{{ label }}</span>
-                  </div>
 
-             */
-            $scope.$on('download.started', (e, simState, label) => {
+            $scope.cancel = () => {
+                $scope.simState.cancelSimulation(() => {
+                    $('#sr-download-status').modal('hide');
+                });
+            };
+
+            $scope.$on('download.started', (e, simState, title, label) => {
                 $scope.simState = simState;
                 $scope.label = label;
+                $scope.title = title;
             });
         },
     };

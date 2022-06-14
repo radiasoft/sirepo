@@ -864,7 +864,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
               </div>
             </div>
-            <div data-download-status="" data-sim-state="" data-label="Exporting">
+            <div data-download-status="" data-sim-state="" data-label="" data-title="">
             </div>
         `,
         controller: function($scope) {
@@ -1909,7 +1909,6 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
                 updateFormValid(numParams);
             };
 
-
             function updateElements() {
                 $scope.rsOptElements = srwService.updateRSOptElements();
                 $scope.elementData = {};
@@ -1994,7 +1993,7 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
     self.simComputeModel = 'exportRsOpt';
 
     self.simHandleStatus = data => {
-        if (! self.simState.isStateRunning() && ! state.isStatePending()) {
+        if (self.simState.isStopped()) {
             $('#sr-download-status').modal('hide');
         }
         if (self.simState.isStateCompleted()) {
@@ -2010,7 +2009,7 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
     self.startSimulation = function(model) {
         $('#sr-download-status').modal('show');
-        $rootScope.$broadcast('download.started', self.simState, 'Exporting Script');
+        $rootScope.$broadcast('download.started', self.simState, 'Export Script', 'Exporting exportRsOpt.zip');
         self.simState.saveAndRunSimulation([model]);
     };
 
@@ -2018,23 +2017,6 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
     $scope.export = () => {
         self.startSimulation($scope.modelName);
-        /*
-        panelState.requestData(
-            'exportRsOpt',
-            () => {
-                srdbg('DONEE');
-                requestSender.newWindow('downloadDataFile', {
-                '<simulation_id>': appState.models.simulation.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<model>': 'exportRsOpt',
-                '<frame>': -1,
-                '<suffix>': 'zip'
-            })},
-            true,
-            (res) => {
-                srdbg('OOPS', res);
-            });
-        */
     };
     
     $scope.whenSelected = () => {
