@@ -1015,7 +1015,7 @@ class _Op(PKDict):
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.
-        pkdlog('{} await _reply_q.get() {}', self, self._reply_q.qsize())
+        pkdlog('{} await _reply_q.get()', self)
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
