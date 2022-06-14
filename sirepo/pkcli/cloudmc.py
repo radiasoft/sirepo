@@ -301,4 +301,3 @@ def _vtk_to_bin(vol_id):
 
 # assert len(sys.argv) == 2, f'usage: python {sys.argv[0]} <filename>'
 # res = get_volumes_by_group(sys.argv[1])
-# print(res)
