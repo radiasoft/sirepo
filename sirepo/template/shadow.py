@@ -68,8 +68,11 @@ def stateless_compute_compute_harmonic_photon_energy(data):
 
 def stateful_compute_testing_shadow(data, **kwargs):
     pkdp('\n\n\n shadow data: {} \n\n\n', data)
+
     d = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
+    d.models.beamline = data.beamline
     pkdp('\n\n\n d: {}', d)
+
     return d
 
 

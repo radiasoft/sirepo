@@ -159,6 +159,7 @@ class SRWShadowConverter():
 
     def srw_to_shadow(self, models):
         res = simulation_db.default_data(_SHADOW.sim_type())
+        pkdp('\n\n\n res.models: {}', res.models)
         self.beamline = res.models.beamline
         self.__simulation_to_shadow(models, res.models)
         if res.models.simulation.sourceType == 'geometricSource':
@@ -301,6 +302,7 @@ class SRWShadowConverter():
         return angle, rotate, offset
 
     def __copy_fields(self, name, srw, shadow, is_item):
+        pkdp('\n\n\n srw: {}', srw)
         for m in self.__FIELD_MAP:
             if m[0] != name:
                 continue

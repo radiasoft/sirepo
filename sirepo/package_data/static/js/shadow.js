@@ -419,7 +419,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender) {
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-dialog=""></div>
-            <div data-confirmation-modal=""  data-ok-clicked="openSRWSimulation()" data-is-required="" data-id="sr-srw-dialog" data-title="Open as a New Shadow Simulation"  data-cancel-text="Cancel" data-ok-text="Create" data-ok-clicked="">
+            <div data-confirmation-modal=""  data-ok-clicked="openSRWSimulation()" data-is-required="" data-id="sr-srw-dialog" data-title="Open as a New SRW Simulation"  data-cancel-text="Cancel" data-ok-text="Create" data-ok-clicked="">
               <div> Create a SRW simulation with an equivalent beamline? </div>
             </div>
         `,
