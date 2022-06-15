@@ -18,13 +18,20 @@
             ["macro", "macro"]
         ],
         "EnrichmentType": [
-            ["none", "Not selected"],
-            ["ao", "Atom percent (ao)"],
-            ["wo", "Weight percent (wo)"]
+            ["none", ""],
+            ["ao", "ao"],
+            ["wo", "wo"]
+        ],
+        "MaterialComponent": [
+            ["add_element", "Element"],
+            ["add_elements_from_formula", "Elements from Formula"],
+            ["add_macroscopic", "Macroscopic"],
+            ["add_nuclide", "Nuclide"],
+            ["add_s_alpha_beta", "S alpha beta"]
         ],
         "PercentType": [
-            ["ao", "Atom percent (ao)"],
-            ["wo", "Weight percent (wo)"]
+            ["ao", "ao"],
+            ["wo", "wo"]
         ],
         "SourceSpace": [
             ["box", "Box"],
@@ -70,12 +77,18 @@
     },
     "model": {
         "dagmcAnimation": {},
-        "elements": {
-            "element": ["Element", "OptionalString"],
-            "percent": ["Percent", "OptionalFloat"],
+
+        "materialComponent": {
+            "component": ["Component", "MaterialComponent", "add_element"],
+            "name": ["Name", "ComponentName", ""],
+            "percent_with_type": ["Percent", "PercentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
+            "percent": ["Percent", "Float", 1.0],
             "percent_type": ["Percent Type", "PercentType", "ao"],
+            "enrichment_with_type": ["Enrichment", "EnrichmentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
             "enrichment": ["Enrichment", "OptionalFloat"],
-            "enrichment_type": ["Enrichment Type", "EnrichmentType", "none"]
+            "enrichment_type": ["Enrichment Type", "EnrichmentType", "none"],
+            "enrichment_target": ["Enrichment Target", "OptionalString"],
+            "fraction": ["Fraction", "Float", 1.0, "The fraction of relevant nuclei that are affected by the $S(\\alpha, \\beta)$ table."]
         },
         "geometryInput": {
             "dagmcFile": ["DAGMC File", "InputFile", ""]
@@ -88,18 +101,12 @@
         "material": {
             "name": ["Name", "String", ""],
             "temperature": ["Temperature [K] (Optional)", "OptionalFloat"],
+            "density_with_units": ["Density", "DensityWithUnits"],
             "density": ["Density", "Float"],
             "density_units": ["Density Units", "DensityUnits", "g/cm3"],
             "depletable": ["Depletable", "Boolean", "0"],
             "volume": ["Volume [$cm^3$] (Optional)", "OptionalFloat"],
-            "elements": ["", "ModelArray", ""],
-            "nuclides": ["", "ModelArray", ""],
-            "s_alpha_betas": ["", "ModelArray", ""]
-        },
-        "nuclides": {
-            "nuclide": ["Nuclide", "OptionalString"],
-            "percent": ["Percent", "OptionalFloat"],
-            "percent_type": ["Percent Type", "PercentType", "ao"]
+            "components": ["", "MaterialComponents"]
         },
         "openmcSettings": {
             "batches": ["Number of batches to simulation", "Integer", 1],
@@ -110,10 +117,6 @@
             "spaceType": ["Type", "SourceSpace", "box"],
             "boxLowerLeft": ["Lower Left", "Float3", "-1, -1, -1", "", "X, Y, Z"],
             "boxUpperRight": ["Upper Right", "Float3", "1, 1, 1", "", "X, Y, Z"]
-        },
-        "s_alpha_betas": {
-            "name": ["Name of the $S(\\alpha, \\beta)$ table", "OptionalString"],
-            "fraction": ["Fraction", "OptionalFloat", 1.0, "The fraction of relevant nuclei that are affected by the $S(\\alpha, \\beta)$ table."]
         },
         "tally": {
             "name": ["Name", "String"],
@@ -127,15 +130,6 @@
         "volumes": {}
     },
     "view": {
-        "elements": {
-            "title": "elements",
-            "maxRows": 5,
-            "advanced": [
-                "element",
-                "percent",
-                "percent_type"
-            ]
-        },
         "geometryInput": {
             "title": "Geometry Input",
             "basic": [
@@ -159,33 +153,12 @@
         "material": {
             "title": "Material",
             "advanced": [
-                ["Main", [
-                    "name",
-                    "density",
-                    "density_units",
-                    "depletable",
-                    "temperature",
-                    "volume"
-                ]],
-                ["Elements", [
-                    "elements"
-                ]],
-                ["Nuclides", [
-                    "nuclides"
-                ]],
-                ["S alpha beta", [
-                    "s_alpha_betas"
-                ]]
-            ]
-        },
-
-        "nuclides": {
-            "title": "Nuclides",
-            "maxRows": 5,
-            "advanced": [
-                "nuclide",
-                "percent",
-                "percent_type"
+                "name",
+                "density_with_units",
+                "depletable",
+                "temperature",
+                "volume",
+                "components"
             ]
         },
         "openmcSettings": {
@@ -203,14 +176,6 @@
                 ]]
             ],
             "advanced": []
-        },
-        "s_alpha_betas": {
-            "title": "$S(\\alpha, \\beta)$",
-            "maxRows": 5,
-            "advanced": [
-                "name",
-                "fraction"
-            ]
         },
         "simulationStatus": {
             "title": "Simulation Status",

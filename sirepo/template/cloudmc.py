@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import re
 import sirepo.sim_data
 
 
@@ -48,6 +49,31 @@ def get_data_file(run_dir, model, frame, options):
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
+
+
+def stateless_compute_validate_material_name(data):
+    import openmc
+    res = PKDict()
+    m = openmc.Material(name='test')
+    method = getattr(m, data.component)
+    try:
+        if data.component == 'add_macroscopic':
+            method(data.name)
+        elif data.component == 'add_nuclide':
+            method(data.name, 1)
+            if not re.search(r'^[^\d]+\d+$', data.name):
+                raise ValueError('invalid nuclide name')
+        elif data.component == 'add_s_alpha_beta':
+            method(data.name)
+        elif data.component == 'add_elements_from_formula':
+            method(data.name)
+        elif data.component == 'add_element':
+            method(data.name, 1)
+        else:
+            raise AssertionError(f'unknown material component: {data.component}')
+    except ValueError as e:
+        res.error = 'invalid material name'
+    return res
 
 
 def write_parameters(data, run_dir, is_parallel):
