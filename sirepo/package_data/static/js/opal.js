@@ -6,29 +6,29 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
     SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'plotAnimation', 'plot2Animation'];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
-        '</div>',
-        '<div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>',
-        '</div>',
-        '<div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>',
-        '</div>',
-        '<div data-ng-switch-when="WakeList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>',
-        '</div>',
-        '<div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">',
-          '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BeamList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>
+        </div>
+        <div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>
+        </div>
+        <div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>
+        </div>
+        <div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>
+        </div>
+        <div data-ng-switch-when="WakeList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>
+        </div>
+        <div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">
+          <div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>
+        </div>
+    `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+    `;
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {

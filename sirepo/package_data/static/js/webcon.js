@@ -4,39 +4,39 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
-          '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
-        '</div>',
-        '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
-          '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
-        '</div>',
-        '<div data-ng-switch-when="AnalysisOptionalParameter" class="col-sm-5">',
-          '<div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Equation" class="col-sm-7">',
-          '<div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>',
-          '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
-        '</div>',
-        '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
-          '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>',
-        '</div>',
-        '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
-          '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ClusterFields" class="col-sm-7">',
-          '<div data-cluster-fields="" data-model="model" data-field="field"></div>',
-        '</div>',
-        '<div data-ng-switch-when="PlotActionButtons" class="col-sm-12">',
-          '<div data-plot-action-buttons="" data-model="model" data-field="field"></div>',
-        '</div>',
-        '<div data-ng-switch-when="TrimButton" class="col-sm-5">',
-          '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="MiniFloat" class="col-sm-7">
+          <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+        </div>
+        <div data-ng-switch-when="AnalysisParameter" class="col-sm-5">
+          <div data-analysis-parameter="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="AnalysisOptionalParameter" class="col-sm-5">
+          <div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>
+        </div>
+        <div data-ng-switch-when="Equation" class="col-sm-7">
+          <div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>
+          <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
+        </div>
+        <div data-ng-switch-when="EquationVariables" class="col-sm-7">
+          <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>
+        </div>
+        <div data-ng-switch-when="EquationParameters" class="col-sm-7">
+          <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
+        </div>
+        <div data-ng-switch-when="ClusterFields" class="col-sm-7">
+          <div data-cluster-fields="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="PlotActionButtons" class="col-sm-12">
+          <div data-plot-action-buttons="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="TrimButton" class="col-sm-5">
+          <div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
+    `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+    `;
     SIREPO.lattice = {
         elementColor: {},
         elementPic: {

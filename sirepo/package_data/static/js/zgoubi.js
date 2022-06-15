@@ -5,20 +5,20 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
-          '<div data-magnet-files="" data-model="model" data-field="field"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
-          '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot sr-screenshot"></div>',
-    ].join('');
-    SIREPO.appDownloadLinks = [
-        '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">
+          <div data-magnet-files="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Changref2Array" class="col-sm-7">
+          <div data-changref2-fields="" data-model="model" data-field="field"></div>
+        </div>
+    `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot sr-screenshot"></div>
+    `;
+    SIREPO.appDownloadLinks = `
+        <li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>
+    `;
     SIREPO.lattice = {
         invalidElementName: /[#*'",]/g,
         elementColor: {

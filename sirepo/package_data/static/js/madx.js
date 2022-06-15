@@ -6,23 +6,23 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
     SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation', 'twissFromParticlesAnimation'];
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot sr-screenshot"></div>',
-    ].join('');
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="FloatArray" data-ng-class="fieldClass">',
-          '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
-        '</div>',
-        '<div data-ng-switch-when="Float2StringArray" class="col-sm-7">',
-          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="2"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Integer2StringArray" class="col-sm-7">',
-          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="2"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
-          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot sr-screenshot"></div>
+    `;
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="FloatArray" data-ng-class="fieldClass">
+          <input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />
+        </div>
+        <div data-ng-switch-when="Float2StringArray" class="col-sm-7">
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="2"></div>
+        </div>
+        <div data-ng-switch-when="Integer2StringArray" class="col-sm-7">
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="2"></div>
+        </div>
+        <div data-ng-switch-when="Float6StringArray" class="col-sm-7">
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>
+        </div>
+    `;
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {

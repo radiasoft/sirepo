@@ -4,18 +4,18 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+    `;
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="ROI" class="col-sm-7">',
-          '<div data-roi-selector="" data-field="model[field]"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
-          '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="ROI" class="col-sm-7">
+          <div data-roi-selector="" data-field="model[field]"></div>
+        </div>
+        <div data-ng-switch-when="ROIArray" class="col-sm-7">
+          <div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender, $rootScope) {

@@ -14,17 +14,17 @@ SIREPO.app.config(function() {
         'plot2Animation',
         'crystal3dAnimation',
     ];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">',
-          '<div data-select-element="" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">
+          <div data-select-element="" data-model="model" data-field="field"></div>
+        </div>
+    `;
     SIREPO.appDownloadLinks = [
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+    `;
 });
 
 SIREPO.app.factory('silasService', function(appState) {

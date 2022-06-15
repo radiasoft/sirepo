@@ -8,28 +8,28 @@ SIREPO.app.config(function() {
         'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
     };
     SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-        '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>',
-        '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>',
-    ].join('');
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
-          '<div data-cell-selector=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="YCell" data-ng-class="fieldClass">',
-          '<div data-cell-selector=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
-          '<div data-cell-selector=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-          '<div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
-        '</div>',
-        '<div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">',
-          '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
+        <div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
+    `;
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="XCell" data-ng-class="fieldClass">
+          <div data-cell-selector=""></div>
+        </div>
+        <div data-ng-switch-when="YCell" data-ng-class="fieldClass">
+          <div data-cell-selector=""></div>
+        </div>
+        <div data-ng-switch-when="ZCell" data-ng-class="fieldClass">
+          <div data-cell-selector=""></div>
+        </div>
+        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+          <div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>
+        </div>
+        <div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">
+          <div data-optimization-field-picker="" field="field" data-model="model"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {

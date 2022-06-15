@@ -11,7 +11,7 @@ if (( $# == 0 )); then
 fi
 
 IFS= read -r -d '' _perl <<'EOF' || true
-if (s{^(\s*(?:template:|SIREPO\.(?:appReportTypes|appPanelHeadingButtons|appFieldEditors)\s*\+?=)\s*)\[\s*$}{$1`\n}) {
+if (s{^(\s*(?:template:|SIREPO\.(?:appReportTypes|appPanelHeadingButtons|appFieldEditors|appDownloadLinks)\s*\+?=)\s*)\[\s*$}{$1`\n}) {
     $i = 1;
 }
 elsif (!$i) {
