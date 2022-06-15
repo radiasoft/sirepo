@@ -143,6 +143,7 @@ def init():
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_secs=dict(
             analysis=(144, pkconfig.parse_seconds, 'maximum run-time for analysis job',),
+            io=(144, pkconfig.parse_seconds, 'maximum run-time for io job',),
             parallel=(3600, pkconfig.parse_seconds, 'maximum run-time for parallel job (except sbatch)'),
             parallel_premium=(3600*2, pkconfig.parse_seconds, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(360, pkconfig.parse_seconds, 'maximum run-time for sequential job'),
@@ -1066,8 +1067,8 @@ class _Op(PKDict):
     def _get_max_run_secs(self):
         if self.driver.op_is_untimed(self):
             return 0
-        if self.opName == sirepo.job.OP_ANALYSIS:
-            return cfg.max_secs.analysis
+        if self.opName in (sirepo.job.OP_ANALYSIS, sirepo.job.OP_IO,):
+            return cfg.max_secs[self.opName]
         if self.kind == job.PARALLEL and self.msg.get('isPremiumUser'):
             return cfg.max_secs['parallel_premium']
         return cfg.max_secs[self.kind]
