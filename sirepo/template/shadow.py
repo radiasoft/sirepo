@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import template_common
 from sirepo import simulation_db
 from sirepo.template.template_common import ModelUnits
+from sirepo.template.srw_shadow_converter import SRWShadowConverter
 import re
 import sirepo.sim_data
 
@@ -68,12 +69,11 @@ def stateless_compute_compute_harmonic_photon_energy(data):
 
 def stateful_compute_testing_shadow(data, **kwargs):
     pkdp('\n\n\n shadow data: {} \n\n\n', data)
+    # TODO (gurhar1133): compare at element level
+    new = SRWShadowConverter().shadow_to_srw(data)
+    pkdp('\n\n\n new: {}', new)
 
-    d = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
-    d.models.beamline = data.beamline
-    pkdp('\n\n\n d: {}', d)
-
-    return d
+    return new
 
 
 def get_data_file(run_dir, model, frame, options):

@@ -5,6 +5,8 @@ u"""Convert codes to/from SRW/shadow.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from cmath import e
+from copy import copy
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern.pkcollections import PKDict
 from sirepo import simulation_db
@@ -155,7 +157,11 @@ class SRWShadowConverter():
 
     def shadow_to_srw(self, data):
         #TODO(pjm): implement this
-        pass
+        pkdp('\n\n\n data in converter {}', data)
+        res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
+        # assert 0, "STOP"
+        res.models.beamline = self.__beamline_to_srw(data)
+        return res
 
     def srw_to_shadow(self, models):
         res = simulation_db.default_data(_SHADOW.sim_type())
@@ -188,6 +194,38 @@ class SRWShadowConverter():
             vdiv2=0,
         )
         self.photon_energy = shadow.geometricSource.singleEnergyValue
+
+    def __beamline_to_srw(self, shadow):
+        new_beamline = []
+        for item in shadow.beamline:
+            if item.type in ('aperture', 'obstacle'):
+                ap = copy(item) # TODO (gurhar1133): use a __copy_item type method? or generalize current one
+                # in srw rect = r, circle = c in shadow rect = 0, circle = 1
+                ap.shape = 'r' if ap.shape == '0' else 'c'
+                new_beamline.append(ap)
+            elif item.type == 'watch':
+                new_beamline.append(item)
+            elif item.type == 'crl':
+                new_beamline.append(self.__crl_to_srw(item))
+        return new_beamline
+
+    def __crl_to_srw(self, item):
+        # res = self.__copy_item(item, PKDict(
+        #     type='crl',
+        #     attenuationCoefficient=1e-2 / float(item.attenuationLength),
+        #     fcyl='0',
+        #     fhit_c='1',
+        #     fmirr='4' if item.shape == '1' else '1',
+        #     focalDistance=float(item.position) * float(item.focalDistance) / (float(item.position) - float(item.focalDistance)),
+        #     pilingThickness=0,
+        #     refractionIndex=1 - float(item.refractiveIndex),
+        # ))
+        # if item.focalPlane in ('1', '2'):
+        #     res.fcyl = '1'
+        #     res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
+        # return res
+        # ^ __crl_to_shadow #TODO (gurhar1133): need to invert
+        pass
 
     def __beamline_to_shadow(self, srw, shadow):
         for item in srw.beamline:
@@ -338,7 +376,7 @@ class SRWShadowConverter():
         return res
 
     def __copy_item_fields(self, srw, shadow):
-        self.__copy_fields(shadow.type, srw, shadow, True)
+        self.__copy_fields(shadow.type, srw, shadow, True) #TODO (gurhar1133): difference between item and non
 
     def __copy_model_fields(self, name, srw, shadow):
         self.__copy_fields(name, srw, shadow, False)
