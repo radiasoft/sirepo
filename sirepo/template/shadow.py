@@ -68,12 +68,11 @@ def stateless_compute_compute_harmonic_photon_energy(data):
 
 
 def stateful_compute_testing_shadow(data, **kwargs):
-    pkdp('\n\n\n shadow data: {} \n\n\n', data)
+    # pkdp('\n\n\n shadow data: {} \n\n\n', data)
     # TODO (gurhar1133): compare at element level
-    new = SRWShadowConverter().shadow_to_srw(data)
-    pkdp('\n\n\n new: {}', new)
+    # pkdp('\n\n\n new: {}', new)
 
-    return new
+    return SRWShadowConverter().shadow_to_srw(data)
 
 
 def get_data_file(run_dir, model, frame, options):

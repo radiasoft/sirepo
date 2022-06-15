@@ -7,6 +7,7 @@ u"""Convert codes to/from SRW/shadow.
 from __future__ import absolute_import, division, print_function
 from cmath import e
 from copy import copy
+from dataclasses import field
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern.pkcollections import PKDict
 from sirepo import simulation_db
@@ -155,8 +156,41 @@ class SRWShadowConverter():
     def __init__(self):
         pass
 
+    def __invert_field_map(self):
+        res = []
+        for o in self.__FIELD_MAP:
+            res.append([
+                o[1],
+                o[0],
+                self.__invert_dict(o[2])
+            ])
+        return res
+
+
+    def __invert_dict(self, field_map):
+        n = PKDict()
+        for k in field_map:
+            if type(field_map[k]) == list:
+                n[field_map[k][0]] = [k, 1/field_map[k][1]]
+            else:
+                n[field_map[k]] = k
+        return n
+
+
     def shadow_to_srw(self, data):
         #TODO(pjm): implement this
+        from pykern import pkio
+        from pykern import pkcli
+
+        srw_to_shadow_content = str(self.__FIELD_MAP).replace("'", '"')
+        shadow_to_srw_content = str(self.__invert_field_map()).replace("'", '"')
+        pkio.write_text(pkio.py_path().join('srw_to_shadow.json'), srw_to_shadow_content)
+        pkio.write_text(pkio.py_path().join('shadow_to_srw.json'), shadow_to_srw_content)
+
+        # pkcli.fmt.run(pkio.py_path().join('srw_to_shadow.json'))
+        # pkcli.fmt.run(pkio.py_path().join('shadow_to_srw.json'))
+        #TODO (gurhar1133): one field map is working, use it with __Copy_fields ...etc
+
         pkdp('\n\n\n data in converter {}', data)
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         # assert 0, "STOP"
@@ -206,20 +240,23 @@ class SRWShadowConverter():
             elif item.type == 'watch':
                 new_beamline.append(item)
             elif item.type == 'crl':
-                new_beamline.append(self.__crl_to_srw(item))
+                # TODO (gurhar1133): temporary
+                continue
+                # new_beamline.append(self.__crl_to_srw(item))
         return new_beamline
 
     def __crl_to_srw(self, item):
-        # res = self.__copy_item(item, PKDict(
+        # res =  PKDict(
         #     type='crl',
-        #     attenuationCoefficient=1e-2 / float(item.attenuationLength),
-        #     fcyl='0',
-        #     fhit_c='1',
+        #     attenuationLength=float(item.attenuationCoefficient)*1e-2
+        #     # fcyl='0', #TODO (gurhar1133): not sure on this one yet
+        #     # fhit_c='1',
+        #     shape='1' if fmirr == '4'
         #     fmirr='4' if item.shape == '1' else '1',
         #     focalDistance=float(item.position) * float(item.focalDistance) / (float(item.position) - float(item.focalDistance)),
         #     pilingThickness=0,
         #     refractionIndex=1 - float(item.refractiveIndex),
-        # ))
+        # )
         # if item.focalPlane in ('1', '2'):
         #     res.fcyl = '1'
         #     res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
@@ -340,7 +377,7 @@ class SRWShadowConverter():
         return angle, rotate, offset
 
     def __copy_fields(self, name, srw, shadow, is_item):
-        pkdp('\n\n\n srw: {}', srw)
+        # TODO (gurhar1133): need to disect this more
         for m in self.__FIELD_MAP:
             if m[0] != name:
                 continue
