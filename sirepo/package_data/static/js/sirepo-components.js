@@ -4160,18 +4160,6 @@ SIREPO.app.service('plotToPNG', function($http) {
 
     var canvases = {};
 
-    function downloadPlot(el, outputHeight, fileName) {
-        html2canvas(el, {
-            scale: outputHeight / $(el).height(),
-            backgroundColor: '#ffffff',
-            ignoreElements: (element) => element.matches("path.pointer.axis")
-        }).then(canvas => {
-            canvas.toBlob(function(blob) {
-                saveAs(blob, fileName);
-            });
-        })
-    }
-
     // Stores canvases for updates and later use.  We use the existing reportID
     // as the key
     this.addCanvas = function(canvas, reportId) {
@@ -4221,8 +4209,16 @@ SIREPO.app.service('plotToPNG', function($http) {
         delete canvases[reportId];
     };
 
-    this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
-        downloadPlot(svg, height, plot3dCanvas, fileName);
+    this.downloadPNG = function(el, outputHeight, fileName) {
+        html2canvas(el, {
+            scale: outputHeight / $(el).height(),
+            backgroundColor: '#ffffff',
+            ignoreElements: (element) => element.matches("path.pointer.axis")
+        }).then(canvas => {
+            canvas.toBlob(function(blob) {
+                saveAs(blob, fileName);
+            });
+        })
     };
 
     this.downloadCanvas = function(reportId, width, height, fileName)  {
