@@ -57,7 +57,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
 
         def _maybe_html_redirect(response):
             m = re.search(r'window.location = "(.*)"', pkcompat.from_bytes(response.content))
-            m and self._redirect(handler, f'{self.sirepo_uri}{m.group(1)}')
+            m and self._redirect(handler, m.group(1))
 
         def _maybe_srexception_redirect(response):
             if 'srException' not in response:
@@ -70,8 +70,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
                     _SIM_TYPE,
                     route_name=e.routeName,
                     params=e.params,
-                    external=True,
-                    sirepo_uri=self.sirepo_uri,
+                    external=False,
                 )
             )
 
@@ -87,6 +86,8 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         _maybe_html_redirect(r)
         res = PKDict(r.json())
         _maybe_srexception_redirect(res)
+        assert 'username' in res, \
+            f'unexpected response={res}'
         return res
 
     def _redirect(self, handler, uri):

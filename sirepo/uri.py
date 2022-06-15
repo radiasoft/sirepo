@@ -17,13 +17,12 @@ PARAM_RE = r'([\?\*]?)<{}>'
 #: optional parameter that consumes rest of parameters
 PATH_INFO_CHAR = '*'
 
-def app_root(sim_type, external=False, sirepo_uri=None):
+def app_root(sim_type, external=False):
     """Generate uri for application root
 
     Args:
         sim_type (str): application name
         external (bool): if True, make the uri absolute [False]
-        sirepo_uri (str): Base uri for sirepo (ex https://sirepo.com)
     Returns:
         str: formatted URI
     """
@@ -32,7 +31,6 @@ def app_root(sim_type, external=False, sirepo_uri=None):
         'root',
         params=PKDict(path_info=t) if t else None,
         external=external,
-        sirepo_uri=sirepo_uri,
     )
 
 
@@ -46,7 +44,7 @@ def init(**imports):
     sirepo.util.setattr_imports(imports)
 
 
-def local_route(sim_type, route_name=None, params=None, query=None, external=False, sirepo_uri=None):
+def local_route(sim_type, route_name=None, params=None, query=None, external=False):
     """Generate uri for local route with params
 
     Args:
@@ -55,13 +53,9 @@ def local_route(sim_type, route_name=None, params=None, query=None, external=Fal
         params (dict): paramters to pass to route
         query (dict): query values (joined and escaped)
         external (bool): if True, make the uri absolute [False]
-        sirepo_uri (str): Base uri for sirepo (ex https://sirepo.com)
     Returns:
         str: formatted URI
     """
-    if sirepo_uri:
-        assert external, \
-            f'if sirepo_uri={sirepo_uri} then external={external} must be True'
     t = http_request.sim_type(sim_type)
     s = simulation_db.get_schema(t)
     if not route_name:
@@ -74,7 +68,7 @@ def local_route(sim_type, route_name=None, params=None, query=None, external=Fal
             if not params or p not in params:
                 continue
         u += '/' + _to_uri(params[p])
-    return app_root(t, external=external, sirepo_uri=sirepo_uri) + '#' + u + _query(query)
+    return app_root(t, external=external) + '#' + u + _query(query)
 
 
 def server_route(route_or_uri, params, query):

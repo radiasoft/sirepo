@@ -207,21 +207,20 @@ def register_api_module(module=None):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
-def uri_for_api(api_name, params=None, external=True, sirepo_uri=None):
+def uri_for_api(api_name, params=None, external=True):
     """Generate uri for api method
 
     Args:
         api_name (str): full name of api
         params (PKDict): paramters to pass to uri
         external (bool): if True, make the uri absolute [True]
-        sirepo_uri (str): Base uri for sirepo (ex https://sirepo.com)
     Returns:
         str: formmatted external URI
     """
     if params is None:
         params = PKDict()
     r = _api_to_route[api_name]
-    s = sirepo_uri if sirepo_uri else flask.url_for('_dispatch_empty', _external=external)
+    s = flask.url_for('_dispatch_empty', _external=external) if external else '/'
     res = (s + r.base_uri).rstrip('/')
     for p in r.params:
         if p.name in params:
