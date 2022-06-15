@@ -2767,20 +2767,11 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
     }
 
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
-        var canvasWorking = null;
-        var doNextCanvasProcess = null;
-        
         const canvas = document.createElement('canvas');
         const context = canvas.getContext("2d");
-
         const res = {
-            copyCanvas: (event, doTraverse) => {
-                if(canvasWorking) {
-                    canvasWorking = new Object();
-                    doNextCanvasProcess = () => res.copyCanvas(event, doTraverse);
-                    return;
-                }
-                const processCanvas = () => {
+            copyCanvas: this.utilities.debounce(
+                (event, doTraverse) => {
                     panelState.waitForUI(() => {
                         const canvas3d = $(panel).find('canvas')[0];
                         const axesCanvas = $(panel).find('svg.sr-vtk-axes')[0];
@@ -2799,29 +2790,11 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
                                 backgroundColor: null
                             }).then(c => {
                                 context.drawImage(c, 0, 0);
-                                canvasWorking = null;
-                                if(doNextCanvasProcess) {
-                                    const proc = doNextCanvasProcess;
-                                    doNextCanvasProcess = null;
-                                    proc();
-                                }
                             })
                         }
                     });
                 }
-                const waitForUserInteractionPause = () => {
-                    canvasWorking = new Object();
-                    const tempCanvasWorking = canvasWorking;
-                    setTimeout(() => {
-                        if(tempCanvasWorking === canvasWorking) {
-                            processCanvas();
-                        } else {
-                            waitForUserInteractionPause();
-                        }
-                    }, 250);
-                }
-                waitForUserInteractionPause();
-            },
+            , 500),
             destroy: function() {
                 panel.off();
                 plotToPNG.removeCanvas(reportId);
