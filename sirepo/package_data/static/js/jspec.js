@@ -9,17 +9,17 @@ SIREPO.app.config(function() {
     SIREPO.FILE_UPLOAD_TYPE = {
         'ring-lattice': '.tfs,.txt',
     };
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot sr-screenshot"></div>',
-    ].join('');
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
-          '<div data-sim-list="" data-model="model" data-field="field" data-code="elegant"></div>',
-        '</div>',
-        '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
-          '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot sr-screenshot"></div>
+    `;
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">
+          <div data-sim-list="" data-model="model" data-field="field" data-code="elegant"></div>
+        </div>
+        <div data-ng-switch-when="TwissFile" class="col-sm-7">
+          <div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('jspecService', function(appState) {
