@@ -2746,7 +2746,7 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
 
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext("2d");
+        const context = canvas.getContext('2d');
         const res = {
             copyCanvas: utilities.debounce(
                 (event, doTraverse) => {
