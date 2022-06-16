@@ -2744,28 +2744,6 @@ SIREPO.app.service('vtkService', function(appState, panelState, requestSender, f
 //TODO(pjm): share with warpvnd
 SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
 
-    /**
-     * Cleans out interpolated and other undesirable attributes and elements.
-     * This is not complete because angular can hide some things in weird ways
-     * @param element
-     */
-    function cleanElement(element) {
-        // if this element has opacity 0 remove it entirely
-        if (parseFloat($(element).css('opacity')) === 0) {
-            element.remove();
-            return;
-        }
-        for (let i = element.attributes.length - 1; i >= 0; --i) {
-            const a = element.attributes[i];
-            if (a.value.match(/{{.*}}/)) {
-                element.removeAttribute(a.name);
-            }
-        }
-        for (let i = element.children.length - 1; i >= 0 ; --i) {
-            cleanElement(element.children[i]);
-        }
-    }
-
     this.pngCanvas = function(reportId, vtkRenderer, panel) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext("2d");
