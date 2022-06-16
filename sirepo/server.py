@@ -285,7 +285,7 @@ class API(sirepo.api.Base):
         """
         import sirepo.importer
         # special http_request parsing here
-        data = sirepo.importer.do_form(flask.request.form, self)
+        data = sirepo.importer.do_form(self)
         m = simulation_db.get_schema(data.simulationType).appModes.default
         return self.reply_redirect_for_local_route(
             data.simulationType,
@@ -318,13 +318,13 @@ class API(sirepo.api.Base):
                 )
             req = self.parse_params(
                 filename=f.filename,
-                folder=flask.request.form.get('folder'),
-                id=flask.request.form.get('simulationId'),
+                folder=self.form.get('folder'),
+                id=self.form.get('simulationId'),
                 template=True,
                 type=simulation_type,
             )
             req.file_stream = f.stream
-            req.import_file_arguments = flask.request.form.get('arguments', '')
+            req.import_file_arguments = self.form.get('arguments', '')
 
             def s(data):
                 data.models.simulation.folder = req.folder
@@ -511,7 +511,7 @@ class API(sirepo.api.Base):
         return self.reply_json(
             simulation_db.get_schema(
                 self.parse_params(
-                    type=flask.request.form['simulationType'],
+                    type=self.form['simulationType'],
                 ).type,
             ),
         )
@@ -615,7 +615,7 @@ class API(sirepo.api.Base):
                 e = req.template.validate_file(req.file_type, t)
             if (
                 not e and req.sim_data.lib_file_exists(req.filename)
-                and not flask.request.form.get('confirm')
+                and not self.form.get('confirm')
             ):
                 in_use = _simulations_using_file(req, ignore_sim_id=req.id)
                 if in_use:

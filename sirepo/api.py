@@ -11,6 +11,7 @@ class Base:
 
     def __init__(self):
         self.content = flask.request.data
+        self.form = flask.request.form
 
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.

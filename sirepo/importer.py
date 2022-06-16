@@ -16,20 +16,20 @@ import six
 import zipfile
 
 
-def do_form(form, sapi):
+def do_form(sapi):
     """Self-extracting archive post
 
     Args:
-        form (flask.request.Form): what to import
+        sapi : sapi.form is what to import
 
     Returns:
         dict: data
     """
     from sirepo import simulation_db
 
-    if not 'zip' in form:
+    if not 'zip' in sapi.form:
         sirepo.util.raise_not_found('missing zip in form')
-    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form['zip'])), sapi)
+    data = read_zip(base64.decodebytes(pkcompat.to_bytes(sapi.form['zip'])), sapi)
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
     return simulation_db.save_new_simulation(data)
