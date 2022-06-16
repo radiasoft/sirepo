@@ -325,16 +325,17 @@ def init():
 
         @classmethod
         def get_moderation_request_rows(cls):
-            import sirepo.auth
+            from sirepo import auth
+            t = auth.get_module('email').UserModel
             with sirepo.util.THREAD_LOCK:
-                t = sirepo.auth.get_module('email').UserModel
-                return [r[1].as_pkdict().pkupdate(
-                    email=r[0].as_pkdict().get('user_name'),
-                ) for r in cls._session().query(t, cls).filter(
-                    t.uid == cls.uid
+                q = cls._session().query(t, cls).with_entities(
+                    t.user_name.label('email'),
+                    *cls.__table__.columns,
                 ).filter(
+                    t.uid == cls.uid,
                     sqlalchemy.sql.expression.or_(cls.status == 'pending', cls.status == 'clarify')
-                ).all()]
+                ).all()
+            return [PKDict(zip(r.keys(), r)) for r in q]
 
         @classmethod
         def get_status(cls, uid, role):
