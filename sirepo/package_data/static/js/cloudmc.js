@@ -97,7 +97,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requestSender, vtkToPNG, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requestSender, utilities, vtkToPNG, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -105,9 +105,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display" style="width: 85vh;" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display"  data-ng-attr-style="width: calc(92vh - {{ topHeight() }}px);" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             $scope.isClientOnly = true;
             $scope.model = appState.models[$scope.modelName];
 
@@ -315,10 +315,19 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 //TODO(pjm): reposition camera?
             };
 
+            $scope.topHeight = () => {
+                //srdbg('NAV', $('.navbar').outerHeight());
+                //srdbg('PH', $('.panel-heading').outerHeight());
+                //srdbg('PD', utilities.fontSizeFromString($('.panel-body').css('padding')));
+                return $('.navbar').outerHeight() +
+                    $('.panel-heading').outerHeight() +
+                    utilities.fontSizeFromString($('.panel-body').css('padding')) +
+                    utilities.fontSizeFromString($('.vtk-display').css('padding'));
+            };
+
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
                 vtkScene = d;
-
                 const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
                 const df = ca.getDefaultStyle();
