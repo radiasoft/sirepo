@@ -109,13 +109,12 @@ class VTKScene {
     /**
      * @param {{}} container - jquery element in which to place the scene
      * @param {string} resetSide - the dimension to display facing the user when the scene is reset
-     * @param {boolean} doFit - when true,
      */
-    constructor(container, resetSide, doFit) {
+    constructor(container, resetSide) {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
-            listenWindowResize: doFit,
+            listenWindowResize: true,
         });
 
         this.container = this.fsRenderer.getContainer();
@@ -2570,7 +2569,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             enableAxes: '=',
             enableSelection: '=',
             eventHandlers: '<',
-            fitToWindow: '@',
             modelName: '@',
             reportId: '<',
             resetSide: '@',
@@ -2659,7 +2657,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     };
                 }
 
-                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.fitToWindow);
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
