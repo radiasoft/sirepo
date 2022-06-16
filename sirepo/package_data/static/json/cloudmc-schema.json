@@ -126,6 +126,11 @@
         "simulationStatus": {},
         "volumes": {}
     },
+    "strings": {
+        "dagmcAnimation": {
+            "typeOfSimulation": "Volume Extraction"
+        }
+    },
     "view": {
         "elements": {
             "title": "elements",

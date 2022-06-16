@@ -27,22 +27,42 @@ SIREPO.app.factory('cloudmcService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('GeometryController', function (appState, persistentSimulation, $scope) {
+SIREPO.app.controller('GeometryController', function (appState, panelState, persistentSimulation, $scope) {
     const self = this;
+    let hasVolumes = false;
+
+    function processGeometry() {
+        panelState.showField('geometryInput', 'dagmcFile', false);
+        self.simState.runSimulation();
+    }
+
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
-    self.isGeometryProcessed = () => {
-        return Object.keys(appState.applicationState().volumes).length;
-    };
-    self.simScope = $scope;
-    self.simComputeModel = 'dagmcAnimation';
+    self.isGeometryProcessed = () => hasVolumes;
     self.simHandleStatus = data => {
-        if (data.volumes && ! self.isGeometryProcessed()) {
-            appState.models.volumes = data.volumes;
-            appState.saveChanges('volumes');
+        if (data.volumes) {
+            hasVolumes = true;
+            if (! Object.keys(appState.applicationState().volumes).length) {
+                appState.models.volumes = data.volumes;
+                appState.saveChanges('volumes');
+            }
+        }
+        else if (data.state == 'missing' || data.state == 'canceled') {
+            if (self.isGeometrySelected()) {
+                processGeometry();
+            }
         }
     };
+
+    $scope.$on('geometryInput.changed', () => {
+        if (! hasVolumes) {
+            processGeometry();
+        }
+    });
+
+    self.simScope = $scope;
+    self.simComputeModel = 'dagmcAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
@@ -68,6 +88,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
         `,
     };
 });
@@ -91,6 +112,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               <app-settings>
               </app-settings>
               <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
               </app-header-right-sim-list>
             </div>
         `,
