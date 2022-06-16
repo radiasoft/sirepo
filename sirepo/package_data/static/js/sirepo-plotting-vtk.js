@@ -2748,7 +2748,7 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext("2d");
         const res = {
-            copyCanvas: this.utilities.debounce(
+            copyCanvas: utilities.debounce(
                 (event, doTraverse) => {
                     panelState.waitForUI(() => {
                         const canvas3d = $(panel).find('canvas')[0];
