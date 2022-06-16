@@ -166,7 +166,6 @@ class SRWShadowConverter():
             ])
         return res
 
-
     def __invert_dict(self, field_map):
         n = PKDict()
         for k in field_map:
@@ -176,25 +175,14 @@ class SRWShadowConverter():
                 n[field_map[k]] = k
         return n
 
-
     def shadow_to_srw(self, data):
         #TODO(pjm): implement this
-        from pykern import pkio
-        from pykern import pkcli
-
-        srw_to_shadow_content = str(self.__FIELD_MAP).replace("'", '"')
-        shadow_to_srw_content = str(self.__invert_field_map()).replace("'", '"')
-        pkio.write_text(pkio.py_path().join('srw_to_shadow.json'), srw_to_shadow_content)
-        pkio.write_text(pkio.py_path().join('shadow_to_srw.json'), shadow_to_srw_content)
-
-        # pkcli.fmt.run(pkio.py_path().join('srw_to_shadow.json'))
-        # pkcli.fmt.run(pkio.py_path().join('shadow_to_srw.json'))
-        #TODO (gurhar1133): one field map is working, use it with __Copy_fields ...etc
 
         pkdp('\n\n\n data in converter {}', data)
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
-        # assert 0, "STOP"
-        res.models.beamline = self.__beamline_to_srw(data)
+        self.beamline = res.models.beamline
+        self.__beamline_to_srw(data)
+        res.models.beamline = self.beamline
         return res
 
     def srw_to_shadow(self, models):
@@ -230,20 +218,19 @@ class SRWShadowConverter():
         self.photon_energy = shadow.geometricSource.singleEnergyValue
 
     def __beamline_to_srw(self, shadow):
-        new_beamline = []
         for item in shadow.beamline:
             if item.type in ('aperture', 'obstacle'):
-                ap = copy(item) # TODO (gurhar1133): use a __copy_item type method? or generalize current one
+                ap = self.__copy_item(item, to_shadow=False) # TODO (gurhar1133): use a __copy_item type method? or generalize current one
                 # in srw rect = r, circle = c in shadow rect = 0, circle = 1
                 ap.shape = 'r' if ap.shape == '0' else 'c'
-                new_beamline.append(ap)
+                self.beamline.append(ap)
             elif item.type == 'watch':
-                new_beamline.append(item)
+                self.beamline.append(self.__copy_item(item, to_shadow=False))
             elif item.type == 'crl':
                 # TODO (gurhar1133): temporary
                 continue
                 # new_beamline.append(self.__crl_to_srw(item))
-        return new_beamline
+        return self.beamline
 
     def __crl_to_srw(self, item):
         # res =  PKDict(
@@ -376,29 +363,35 @@ class SRWShadowConverter():
         angle = 90 - (abs(float(item.grazingAngle)) * 180 / math.pi / 1e3)
         return angle, rotate, offset
 
-    def __copy_fields(self, name, srw, shadow, is_item):
-        # TODO (gurhar1133): need to disect this more
-        for m in self.__FIELD_MAP:
+    def __copy_fields(self, name, input, out, is_item, to_shadow):
+
+        fmap = self.__FIELD_MAP if to_shadow else self.__invert_field_map()
+
+        for m in fmap:
             if m[0] != name:
                 continue
-            _, srw_name, fields = m
-            if is_item and srw.type != srw_name:
+            _, from_name, fields = m
+            if is_item and input.type != from_name:
                 continue
-            schema = _SRW.schema().model[srw_name]
+
+            schema = _SRW.schema().model[from_name]
+            if not to_shadow:
+                schema = _SHADOW.schema().model[from_name]
+
             for f in fields:
                 if isinstance(fields[f], list):
-                    srw_f, scale = fields[f]
+                    from_f, scale = fields[f]
                 else:
-                    srw_f, scale = fields[f], 1
-                v = srw[srw_f] if is_item else srw[srw_name][srw_f]
-                if schema[srw_f][1] == 'Float':
+                    from_f, scale = fields[f], 1
+                v = input[from_f] if is_item else input[from_name][from_f]
+                if schema[from_f][1] == 'Float':
                     v = float(v) * scale
                 if is_item:
-                    shadow[f] = v
+                    out[f] = v
                 else:
-                    shadow[name][f] = v
+                    out[name][f] = v
 
-    def __copy_item(self, item, attrs=None):
+    def __copy_item(self, item, attrs=None, to_shadow=True):
         res = PKDict(
             id=self.__next_id(),
             type=item.type,
@@ -409,14 +402,14 @@ class SRWShadowConverter():
             res.isDisabled = item.isDisabled
         if attrs:
             res.update(attrs)
-        self.__copy_item_fields(item, res)
+        self.__copy_item_fields(item, res, to_shadow)
         return res
 
-    def __copy_item_fields(self, srw, shadow):
-        self.__copy_fields(shadow.type, srw, shadow, True) #TODO (gurhar1133): difference between item and non
+    def __copy_item_fields(self, input, out, to_shadow):
+        self.__copy_fields(out.type, input, out, True, to_shadow)
 
-    def __copy_model_fields(self, name, srw, shadow):
-        self.__copy_fields(name, srw, shadow, False)
+    def __copy_model_fields(self, name, input, out, to_shadow=True):
+        self.__copy_fields(name, input, out, False, to_shadow)
 
     def __grating_to_shadow(self, item, shadow):
         angle, rotate, offset = self.__compute_angle(
