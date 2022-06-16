@@ -105,7 +105,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display"  data-ng-attr-style="width: calc(92vh - {{ topHeight() }}px);" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display"  data-ng-attr-style="width: calc(92vh - {{ topHeight() }}px); margin: 0 auto;" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
             $scope.isClientOnly = true;
@@ -316,13 +316,10 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             };
 
             $scope.topHeight = () => {
-                //srdbg('NAV', $('.navbar').outerHeight());
-                //srdbg('PH', $('.panel-heading').outerHeight());
-                //srdbg('PD', utilities.fontSizeFromString($('.panel-body').css('padding')));
                 return $('.navbar').outerHeight() +
                     $('.panel-heading').outerHeight() +
                     utilities.fontSizeFromString($('.panel-body').css('padding')) +
-                    utilities.fontSizeFromString($('.vtk-display').css('padding'));
+                    2 * utilities.fontSizeFromString($('.vtk-display').css('padding'));
             };
 
             $scope.$on('vtk-init', (e, d) => {
