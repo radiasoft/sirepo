@@ -381,6 +381,13 @@ def _gen_exception_reply_UserAlert(args):
     )
 
 
+def _gen_exception_reply_WWWAuthenticate(args):
+    return gen_response(
+        status=401,
+        headers={'WWW-Authenticate': 'Basic realm="*"'},
+    )
+
+
 def _gen_exception_werkzeug(exc):
 #TODO(robnagler) convert exceptions to our own
     raise exc

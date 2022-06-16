@@ -200,7 +200,7 @@ def get_beam_pos_report(run_dir, data):
     )
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     report = data.models[data.report]
     path = str(run_dir.join(_analysis_data_path(data)))

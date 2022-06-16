@@ -64,7 +64,7 @@ _WIGGLER_TRAJECTORY_FILENAME = 'xshwig.sha'
 def stateless_compute_compute_harmonic_photon_energy(data):
     return _compute_harmonic_photon_energy(data)
 
-def get_data_file(run_dir, model, frame, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model == 'beamStatisticsReport':
         return BEAM_STATS_FILE
     return _SHADOW_OUTPUT_FILE

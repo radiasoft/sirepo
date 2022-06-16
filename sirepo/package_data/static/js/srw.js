@@ -7,7 +7,6 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
     SIREPO.SHOW_HELP_BUTTONS = true;
     SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-    SIREPO.SLOW_ANIMATION = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'coherentModesAnimation', 'fluxAnimation', 'multiElectronAnimation'];
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
@@ -177,7 +176,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         });
     };
 
-    self.computeBeamParameters = function() {
+    self.computeBeamParameters = function(replyHandler=null) {
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -189,6 +188,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     ebeam[f] = data[f];
                 });
                 appState.models.electronBeamPosition.drift = data.drift;
+                if (replyHandler) {
+                    replyHandler();
+                }
             },
             {
                 method: 'process_beam_parameters',
@@ -820,7 +822,10 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
-            appState.saveQuietly('electronBeamPosition');
+            srwService.computeBeamParameters(() => {
+                    appState.saveChanges(['electronBeamPosition', 'electronBeam']);
+                }
+            );
         }
         else if (name == 'gaussianBeam') {
             appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
@@ -853,9 +858,15 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
+              <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
+              <div data-ng-if="displayLink()">
+                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+              </div>
+            </div>
         `,
         controller: function($scope) {
+            $scope.newSimURL = false;
 
             function createNewSim(data) {
                 requestSender.sendRequest(
@@ -865,9 +876,10 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
                             data.models.simulation[f] = sim[f];
                         });
+                        data.version = shadowData.version;
                         requestSender.sendRequest(
                             'saveSimulationData',
-                            openNewSim,
+                            genSimURL,
                             data);
                     },
                     newSimData(data));
@@ -879,17 +891,31 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 return res;
             }
 
-            function openNewSim(data) {
-                requestSender.newLocalWindow(
-                    'beamline', {
-                        simulationId: data.models.simulation.simulationId,
-                    }, data.simulationType);
+            function genSimURL(data) {
+                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
+
+            $scope.closeModal = function() {
+                $('#sr-shadow-dialog').modal('hide');
+                $scope.resetURL();
+            };
+
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
 
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
+                return false;
+            };
+
+            $scope.displayLink = function() {
+                if ($scope.newSimURL) {
+                    return true;
+                }
+                return false;
             };
         },
     };
@@ -1212,7 +1238,7 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, srwService, 
             'electronBeam.verticalEmittance', 'electronBeam.verticalBeta',
             'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion',
             'electronBeam.verticalDispersionDerivative',
-        ], srwService.computeBeamParameters,
+        ], () => srwService.computeBeamParameters(),
         Object.keys(SIREPO.APP_SCHEMA.model.electronBeam).map(function(f) {
             return 'electronBeam.' + f;
         }), utilities.debounce(checkBeamName),
@@ -1463,10 +1489,6 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     $scope.watchFields = [
         ['tabulatedUndulator.undulatorType'], updateUndulator,
         [
-            'tabulatedUndulator.undulatorType', 'undulator.length',
-            'undulator.period', 'simulation.sourceType',
-        ], srwService.computeBeamParameters,
-        [
             'tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap',
             'tabulatedUndulator.undulatorType',
         ], computeUndulatorLength,
@@ -1536,10 +1558,6 @@ SIREPO.viewLogic('trajectoryReportView', function(appState, panelState, srwServi
 });
 
 SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $scope) {
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
-
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
@@ -2325,7 +2343,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
         restrict: 'A',
         template: `
             <div class="col-xs-5" style="white-space: nowrap">
-              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select> 
+              <select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
               <a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>
             </div>
             <div class="col-sm-12">
@@ -2457,7 +2475,7 @@ SIREPO.app.directive('sampleRandomShapes', function(appState) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -2465,6 +2483,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             title: '@',
         },
         template: `
+           <div data-ng-if="(simState.getFrameCount() > 0) || errorMessage()" class="well well-lg">
+              <a style="position: relative;" href="{{ logFileURL() }}" target="_blank">SRW log file</a>
+           </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
               <div class="progress" data-ng-if="simState.isProcessing()">
@@ -2513,7 +2534,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var self = this;
             self.simScope = $scope;
             self.simAnalysisModel = $scope.model;
-            $scope.runStepName = 'particle';
+            $scope.runStepName = 'macro-electrons';
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -2544,6 +2565,19 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 }
             }
 
+            $scope.logFileURL = () => {
+                if (! appState.isLoaded()) {
+                    return '';
+                }
+                return  requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': $scope.simState.model,
+                    '<frame>': -1,
+                    '<suffix>': 'run.log',
+                });
+            };
+
             self.simHandleStatus = function(data) {
                 if ($scope.simState.isProcessing()) {
                     setActiveAnimation();
@@ -2558,7 +2592,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     if (! isCoherentModes()) {
                         $scope.particleNumber = data.particleNumber;
                         $scope.runStepName = appState.models[$scope.model].wavefrontSource == 'cmd'
-                            ? 'mode' : 'particle';
+                            ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
                     if ($scope.simState.isStopped() && ! $scope.simState.isStateCanceled()) {

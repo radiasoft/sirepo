@@ -155,7 +155,7 @@ def get_application_data(data, **kwargs):
         raise RuntimeError('{}: unknown application data method'.format(data['method']))
 
 
-def get_data_file(run_dir, model, frame, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model == 'dicomAnimation4':
         filename = filename=_parent_file(run_dir, _DOSE_DICOM_FILE)
         uri = RTDOSE_EXPORT_FILENAME

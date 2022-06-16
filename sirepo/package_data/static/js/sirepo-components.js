@@ -390,6 +390,7 @@ SIREPO.app.directive('confirmationModal', function() {
             okText: '@',
             okClicked: '&',
             cancelText: '@',
+            modalClosed: '&',
             isRequired: '@',
         },
         template: `
@@ -448,6 +449,9 @@ SIREPO.app.directive('confirmationModal', function() {
 
             $($element).on('hidden.bs.modal', function() {
                 $rootScope.$broadcast('sr-clearDisableAfterClick');
+                if ($scope.modalClosed && angular.isFunction($scope.modalClosed())) {
+                    $scope.modalClosed()();
+                }
             });
         },
     };
@@ -931,7 +935,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
             <ul class="dropdown-menu">
               <li data-ng-repeat="item in itemList()" class="sr-model-list-item"><a href data-ng-click="selectItem(item)">{{ item }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="confirmDeleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a></li>
               <li class="divider"></li>
-              <li data-ng-hide="selectionRequired"><a href data-ng-click="selectItem(null)">{{ emptySelectionText }}</a></li>
+              <li data-ng-hide="selectionRequired"><a href data-ng-click="selectItem('')">{{ emptySelectionText }}</a></li>
               <li data-ng-hide="selectionRequired" class="divider"></li>
               <li><a href data-ng-click="showFileUpload()"><span class="glyphicon glyphicon-plus"></span> New</a></li>
             </ul>
@@ -1384,10 +1388,11 @@ SIREPO.app.directive('videoButton', function(appState, $window) {
             viewName: '@videoButton',
         },
         template: `
-            <div><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
+            <div data-ng-if="showLink"><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
         `,
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.tooltip = viewInfo.title + ' Help Video';
             $scope.openVideo = function() {
                 $window.open(
@@ -1787,7 +1792,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 }
                 const a = {
                     frameCount: f,
-                    typeOfSimulation: stringsService.formatKey('typeOfSimulation'),
+                    typeOfSimulation: stringsService.typeOfSimulation($scope.simState.model),
                     state: $scope.simState.stateAsText()
                 };
                 return  $sce.trustAsHtml(
@@ -1997,7 +2002,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
             };
             $scope.parseValues = function() {
                 // the model can change - reset the values in that case
-                if (! lastModel || lastModel !== $scope.model) {
+                if (lastModel !== $scope.model) {
                     lastModel = $scope.model;
                     $scope.values = null;
                 }
@@ -2130,21 +2135,21 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return '';
             };
             $scope.downloadImage = function(height) {
-                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
-                if(plotToPNG.hasCanvas($scope.reportId)) {
+                const fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
+                if(plotToPNG.hasCanvas($scope.reportId) || vtkElement()) {
                     plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
                     return;
                 }
-                var plot3dCanvas = $scope.panel.find('canvas')[0];
-                var svg = $($scope.panel).find('svg.sr-plot')[0];
-                if (! svg || $(svg).is(':hidden')) {
+                const plot3dCanvas = $scope.panel.find('canvas')[0];
+                const plot = $($scope.panel).find('svg.sr-plot')[0] || vtkElement();
+                if (! plot || $(plot).is(':hidden')) {
                     return;
                 }
-                plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
+                plotToPNG.downloadPNG(plot, height, plot3dCanvas, fileName);
             };
 
             $scope.hasData = function() {
-                if (! $($scope.panel).find('svg.sr-plot')[0]) {
+                if (! $($scope.panel).find('svg.sr-plot')[0] && ! vtkElement()) {
                     return;
                 }
                 if (appState.isLoaded()) {
@@ -2172,6 +2177,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             }
+
+            function vtkElement() {
+                return $($scope.panel).find('div[data-vtk-display]')[0];
+            }
+
             $scope.toggleFullScreen = function() {
                 if(panelState.isHidden($scope.modelKey)) {
                     return;
@@ -2408,7 +2418,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                             class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>
                     <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
                     <li data-help-link="helpUserForumURL" data-title="User Forum" data-icon="globe"></li>
-                    <li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
+                    <li data-ng-if="showLink" data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
                   </ul>
                 </li>
               </ul>
@@ -2431,7 +2441,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         controller: function($scope, stringsService) {
             $scope.authState = authState;
             $scope.slackUri = $scope.authState.slackUri;
-
+            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -3231,6 +3241,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
               <table class="table">
                 <thead>
                   <th data-ng-show="!wantAdm">Name</th>
+                  <th data-ng-show="!wantAdm">Report</th>
                   <th data-ng-repeat="c in displayedCols">{{ data.header[c].title }}</th>
                 </thead>
                 <tbody>
@@ -3239,6 +3250,9 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
                       <a ng-href="{{ getJobLink(j) }}">
                         {{ j['simName'] }}
                       </a>
+                    </td>
+                    <td data-ng-show="!wantAdm">
+                        {{ j['reportName'] }}
                     </td>
                     <td data-ng-repeat="c in displayedCols">
                       {{ getCellContent(j, c) }}
@@ -3255,6 +3269,9 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
         controller: function($scope, appState, panelState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
+                for(var job of data.jobs) {
+                    job.reportName = appState.viewInfo(job.computeModel)?.title;
+                }
             }
 
             function getUrl(simulationId, app) {
@@ -3437,6 +3454,56 @@ SIREPO.app.directive('modelArray', function() {
     };
 });
 
+SIREPO.app.directive('moderationRequest', function(appState, errorService, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+          <form>
+            <div class="form-group">
+              <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
+              <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
+            </div>
+            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+          </form>
+          <div data-ng-show="submitted">Response submitted.</div>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.data = {};
+            $scope.submitted = false;
+            $scope.submitRequest = function () {
+                const handleResponse = (data) => {
+                    if (data.state === 'error') {
+                        errorService.alertText(data.error);
+                    }
+                    $scope.submitted = true;
+                };
+                requestSender.sendRequest(
+                    'saveModerationReason',
+                    handleResponse,
+                    {
+                        reason: $scope.data.reason,
+                        simulationType: SIREPO.APP_NAME
+                    }
+                );
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('moderationPending', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+          <div>Your request to access {{ appName }} has been received. For additional information, contact 
+            <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
+          </div>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName;
+        },
+    };
+});
+
 SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -3566,6 +3633,64 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('admRolesList', function(appState, errorService, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+            <div>
+              <table class="table">
+              <thead>
+                <th data-ng-repeat="h in headers">{{ h[1] }}</th>
+              </thead>
+              <tbody>
+              <tr data-ng-repeat="r in rows track by $index">
+                <td data-ng-repeat="h in headers">{{ r[h[0]] }}</td>
+                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'approve')">Approve</button></td>
+                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'deny')">Deny</button></td>
+                <td><button class="btn btn-default" data-ng-show="r.status!=='clarify'" data-ng-click="setModerationStatus(r, 'clarify')">Clarify</button></td>
+              </tr>
+              </tbody>
+              </table>
+            </div>
+          <button type="submit" class="btn btn-primary" data-ng-click="getModerationRequestRows()">Refresh Table</button>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.rows = [];
+            $scope.headers = [];
+
+            $scope.getModerationRequestRows = function () {
+                const handleResponse = (r) => {
+                    $scope.rows = r.rows;
+                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleInviteColumns;
+                };
+                requestSender.sendRequest(
+                    'getModerationRequestRows',
+                    handleResponse,
+                    {}
+                );
+            };
+
+            $scope.setModerationStatus = function(info, status) {
+                const handleResponse = (data) => {
+                    if (data.state === 'error') {
+                        errorService.alertText(data.error);
+                    }
+                    $scope.getModerationRequestRows();
+                };
+                requestSender.sendRequest(
+                    'admModerate',
+                    handleResponse,
+                    {
+                        token: info.token,
+                        status: status,
+                    }
+                );
+            };
+
+            $scope.getModerationRequestRows();
+        },
+    };
+});
 
 SIREPO.app.directive('toolbar', function(appState) {
     return {
@@ -3969,7 +4094,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               </div>
             </form>
             <div class="clearfix"></div>
-            <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || errorMessage()">
+            <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || simState.isStateError() || errorMessage()">
               <a data-ng-href="{{ logFileURL() }}" target="_blank">View {{ ::appName }} log</a>
             </div>
             <div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>
@@ -3996,7 +4121,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.initMessage = function() {
                 const s = SIREPO.APP_SCHEMA.strings;
-                return s.initMessage || `Running ${stringsService.ucfirst(s.typeOfSimulation)}`;
+                return s.initMessage || `Running ${stringsService.typeOfSimulation($scope.simState.model)}`;
             };
 
             $scope.logFileURL = function() {
@@ -4024,7 +4149,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.startButtonLabel = function() {
-                return stringsService.startButtonLabel();
+                return stringsService.startButtonLabel($scope.simState.model);
             };
 
             $scope.stateAsText = function() {
@@ -4037,7 +4162,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.stopButtonLabel = function() {
-                return stringsService.stopButtonLabel();
+                return stringsService.stopButtonLabel($scope.simState.model);
             };
         },
     };

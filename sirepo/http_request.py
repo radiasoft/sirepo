@@ -4,15 +4,15 @@ u"""request input parsing
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
 import sirepo.sim_data
-import sirepo.template
-import sirepo.util
 import sirepo.srcontext
 import sirepo.srschema
+import sirepo.template
+import sirepo.uri_router
+import sirepo.util
 import user_agents
 
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
@@ -100,6 +100,8 @@ def parse_post(**kwargs):
         # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
         set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)
+        if sirepo.uri_router.is_sim_type_required_for_api():
+            sirepo.auth.require_sim_type(v)
         return v
 
     for x in (
@@ -133,7 +135,6 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
-    sirepo.auth.require_sim_type(res.type)
     return res
 
 
@@ -167,3 +168,18 @@ def sim_type(value=None):
     if value:
         return sirepo.template.assert_sim_type(value)
     return sirepo.srcontext.get(_SIM_TYPE_ATTR)
+
+
+def user_agent_headers():
+    def _dns_reverse_lookup(ip):
+        import dns.resolver
+        import dns.reversename
+        try:
+            return str(dns.resolver.query(dns.reversename.from_address(ip), 'PTR')[0])
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+            return 'No Reverse DNS Lookup'
+    return PKDict(
+        ip_addr=flask.request.remote_addr,
+        domain_name=_dns_reverse_lookup(flask.request.remote_addr),
+        user_agent=flask.request.headers.get("User-Agent"),
+    )

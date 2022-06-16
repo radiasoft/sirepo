@@ -186,7 +186,7 @@ def get_application_data(data, **kwargs):
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
-def get_data_file(run_dir, model, frame, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
         return _PARTICLE_FILE if model in ('particleAnimation', 'particle3d') else _EGUN_CURRENT_FILE
     files = _h5_file_list(run_dir, model)

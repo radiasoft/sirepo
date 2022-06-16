@@ -1,0 +1,17 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4" data-ng-if="! geometry.isGeometryProcessed()">
+      <div data-basic-editor-panel="" data-view-name="geometryInput">
+        <div data-ng-if="geometry.isGeometrySelected()" style="margin-top: 1em" data-sim-status-panel="geometry.simState"></div>
+      </div>
+    </div>
+    <div class="col-sm-3" data-ng-if="geometry.isGeometryProcessed()">
+      <div data-simple-panel="volumes">
+        <div data-volume-tabs=""></div>
+      </div>
+    </div>
+    <div class="col-sm-9" data-ng-if="geometry.isGeometryProcessed()">
+      <div data-report-panel="geometry3d" data-model-name="geometry3DReport"></div>
+    </div>
+  </div>
+</div>

@@ -793,6 +793,11 @@ input.ng-invalid.ng-invalid-email {
   right: 0.5em;
 }
 
+input[type='color'].sr-color-button {
+    height: 32px;
+    width: 32px;
+}
+
 .sr-button-bar-parent {
   display: none;
   position: relative;

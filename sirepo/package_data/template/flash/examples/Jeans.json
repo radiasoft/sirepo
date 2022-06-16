@@ -1,0 +1,22 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "Jeans"
+        },
+        "setupArguments": {
+            "auto": "1"
+        },
+        "simulation": {
+            "name": "Jeans",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "var": "dens"
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 0.2,
+            "plot_var_1": "dens"
+        }
+    },
+    "simulationType": "flash"
+}

@@ -1225,6 +1225,7 @@
         },
         "magnetDisplay": {
             "title": "Magnet Viewer",
+            "hasDataFile": false,
             "basic": [
                 "geometryReport.name",
                 "viewType",

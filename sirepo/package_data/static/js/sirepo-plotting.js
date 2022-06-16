@@ -1844,6 +1844,15 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
                     // ignore event if drag is occurring
                     return;
                 }
+                if (plotScope.noOverlay) {
+                    // if the data has multiple x datasets,
+                    // the overlay will not work correctly
+                    $scope.select()
+                        .on('mousedown', null)
+                        .on('click', null)
+                        .on('dblclick', null);
+                    return;
+                }
                 // start listening on clicks instead of mouseover
                 keypressService.addListener(listenerId, onKeyDown, $scope.reportId);
 
@@ -3525,6 +3534,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         color: '#ff7f0e',
                     },
                 ];
+                if (plots[0].x_points) {
+                    $scope.noOverlay = true;
+                }
                 if (plots.length == 1 && ! json.y_label) {
                     json.y_label = plots[0].label;
                 }
@@ -3889,40 +3901,6 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
         },
-    };
-});
-
-//TODO(pjm): share with warpvnd
-SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
-    this.pngCanvas = function(reportId, vtkRenderer, panel) {
-        var canvas = document.createElement('canvas');
-        var res = {
-            copyCanvas: function(event, doTransverse) {
-                panelState.waitForUI(function() {
-                    var canvas3d = $(panel).find('canvas')[0];
-                    canvas.width = parseInt(canvas3d.getAttribute('width'));
-                    canvas.height = parseInt(canvas3d.getAttribute('height'));
-                    if (doTransverse) {
-                        vtkRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                    }
-                    else {
-                        vtkRenderer.getRenderWindow().render();
-                    }
-                    canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
-                });
-            },
-            destroy: function() {
-                panel.off();
-                plotToPNG.removeCanvas(reportId);
-            },
-        };
-        plotToPNG.addCanvas(canvas, reportId);
-        $(panel).on('pointerup', res.copyCanvas);
-        $(panel).on('wheel', utilities.debounce(
-            function() {
-                res.copyCanvas(null, true);
-            }, 100));
-        return res;
     };
 });
 

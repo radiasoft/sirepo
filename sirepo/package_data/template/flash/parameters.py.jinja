@@ -1,5 +1,6 @@
 {% if not is_setup_animation %}
 from pykern import pkio
+import sirepo.mpi
 import subprocess
 
 pkio.write_text(
@@ -9,7 +10,12 @@ pkio.write_text(
 """,
 )
 
+
+{% if mpi_cores > 1 %}
+sirepo.mpi.run_program(
+{% else  %}
 subprocess.check_call(
-    ('{{ exe_name }}', '{{ par_filename }}'),
+{% endif %}
+    ['{{ exe_name }}', '{{ par_filename }}'],
 )
 {% endif %}

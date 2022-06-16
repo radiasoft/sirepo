@@ -270,6 +270,9 @@ class _Dispatcher(PKDict):
                 c.destroy()
         return None
 
+    async def _op_io(self, msg):
+        return await self._cmd(msg)
+
     async def _op_kill(self, msg):
         self.terminate()
         return None
@@ -284,7 +287,7 @@ class _Dispatcher(PKDict):
 
     async def _cmd(self, msg, **kwargs):
         try:
-            if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
+            if msg.opName in (job.OP_ANALYSIS, job.OP_IO,) and msg.jobCmd != 'fastcgi':
                 return await self._fastcgi_op(msg)
             p = self._get_cmd_type(msg)(
                 msg=msg,
@@ -566,20 +569,12 @@ class _SbatchCmd(_Cmd):
     def job_cmd_source_bashrc(self):
         if not self.msg.get('shifterImage'):
             return super().job_cmd_source_bashrc()
-        return f'''
-ulimit -c 0
-unset PYTHONPATH
-unset PYTHONSTARTUP
-export PYENV_ROOT=/home/vagrant/.pyenv
-export HOME=/home/vagrant
-source /home/vagrant/.bashrc >& /dev/null
-eval export HOME=~$USER
-'''
+        return ''
 
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
         c, s, e = super().job_cmd_cmd_stdin_env()
         if self.msg.get('shifterImage'):
-            c = ('shifter', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
+            c = ('shifter', '--entrypoint', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
         return c, s, e
 
     def job_cmd_env(self):
@@ -736,7 +731,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node=32
 {_assert_project()}'''
-            s = '--cpu-bind=cores shifter'
+            s = '--cpu-bind=cores shifter --entrypoint'
         m = '--mpi=pmi2' if pkconfig.channel_in('dev') else ''
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
@@ -745,15 +740,9 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
-cat > bash.stdin <<'EOF'
-{self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
-if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
-fi
-exec python {template_common.PARAMETERS_PYTHON_FILE}
-EOF
-exec srun {m} {s} /bin/bash bash.stdin
+{self.job_cmd_source_bashrc()}
+exec srun {m} {s} python {template_common.PARAMETERS_PYTHON_FILE}
 '''
         )
         return f

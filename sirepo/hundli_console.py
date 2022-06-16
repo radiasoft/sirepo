@@ -11,10 +11,10 @@ from __future__ import absolute_import, division, print_function
 import csv
 import numpy
 import os
+import pykern.pkyaml
 import random
 import sys
 import time
-import yaml
 
 
 _MAX_AGE_BY_WEIGHT = [
@@ -35,8 +35,7 @@ def main():
         sys.stderr.write('usage: hundli input.yml output.csv\n')
         exit(1)
     input_yaml, output_csv = sys.argv[1:]
-    with open(input_yaml, 'r') as f:
-        params = yaml.safe_load(f)
+    params = pykern.pkyaml.load_file(input_yaml)
 
     if params['name'] == 'srunit_long_run':
         time.sleep(100)

@@ -395,8 +395,8 @@ def get_application_data(data, **kwargs):
         return template_common.compute_field_range(data, _compute_range_across_frames)
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    if options and options.suffix == _ZGOUBI_COMMAND_FILE:
+def get_data_file(run_dir, model, frame, options):
+    if options.suffix == _ZGOUBI_COMMAND_FILE:
         return TUNES_INPUT_FILE if model == 'tunesReport' else _ZGOUBI_COMMAND_FILE
     elif model == 'elementStepAnimation':
         return _ZGOUBI_PLT_DATA_FILE

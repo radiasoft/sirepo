@@ -1,0 +1,24 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "WindTunnel"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "maxblocks": 10000
+        },
+        "simulation": {
+            "name": "WindTunnel",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "colorMap": "jet",
+            "var": "pres"
+        },
+        "IO_IOMain": {
+            "plot_var_1": "pres",
+            "plot_var_2": "temp"
+        }
+    },
+    "simulationType": "flash"
+}

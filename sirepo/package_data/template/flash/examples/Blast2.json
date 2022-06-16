@@ -1,0 +1,27 @@
+{
+    "models": {
+        "problemFiles": {
+            "flashExampleName": "Blast2"
+        },
+        "setupArguments": {
+            "auto": "1",
+            "nxb": 16,
+            "nyb": 16
+        },
+        "simulation": {
+            "name": "Blast2",
+            "folder": "/Examples"
+        },
+        "varAnimation": {
+            "amrGrid": "1",
+            "vmax": 20
+        },
+        "Grid_GridMain_paramesh": {
+            "lrefine_max": 6
+        },
+        "IO_IOMain": {
+            "plotFileIntervalTime": 0.002
+        }
+    },
+    "simulationType": "flash"
+}

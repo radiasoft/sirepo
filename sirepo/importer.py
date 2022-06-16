@@ -16,7 +16,7 @@ import six
 import zipfile
 
 
-def do_form(form):
+def do_form(form, sapi):
     """Self-extracting archive post
 
     Args:
@@ -29,13 +29,13 @@ def do_form(form):
 
     if not 'zip' in form:
         sirepo.util.raise_not_found('missing zip in form')
-    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form['zip'])))
+    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form['zip'])), sapi)
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
     return simulation_db.save_new_simulation(data)
 
 
-def read_json(text, sim_type=None):
+def read_json(text, sapi, sim_type=None):
     """Read json file and return
 
     Args:
@@ -58,10 +58,10 @@ def read_json(text, sim_type=None):
             data.simulationType,
             sim_type,
         )
-    return sirepo.http_request.parse_post(req_data=data).req_data
+    return sapi.parse_post(req_data=data).req_data
 
 
-def read_zip(zip_bytes, sim_type=None):
+def read_zip(zip_bytes, sapi, sim_type=None):
     """Read zip file and store contents
 
     Args:
@@ -84,7 +84,7 @@ def read_zip(zip_bytes, sim_type=None):
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
                     assert not data, \
                         'too many db files {} in archive'.format(b)
-                    data = read_json(c, sim_type)
+                    data = read_json(c, sapi, sim_type)
                     continue
                 if '__MACOSX' in i.filename:
                     continue

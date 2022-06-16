@@ -82,7 +82,7 @@ def extract_report_data(run_dir, sim_in):
     )
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     f = sim_in.models.files
     if 'fileColumnReport' in model:

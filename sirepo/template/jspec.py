@@ -151,7 +151,7 @@ def get_rates(run_dir):
     return o
 
 
-def get_data_file(run_dir, model, frame, options=None, **kwargs):
+def get_data_file(run_dir, model, frame, options):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         return _BEAM_EVOLUTION_OUTPUT_FILENAME
     elif model == 'forceTableAnimation':

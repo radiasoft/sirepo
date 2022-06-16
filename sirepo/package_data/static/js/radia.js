@@ -13,49 +13,49 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorBasic';
     SIREPO.appDefaultSimulationValues.simulation.freehandType = 'freehand';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="BevelTable" class="col-sm-12">',
-          '<div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-          '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
-        '</div>',
-        '<div data-ng-switch-when="FieldPaths" class="col-sm-7">',
-          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>',
-        '</div>',
-        '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="Group" class="col-sm-12">',
-            '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
-        '</div>',
-        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
-            '<div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>',
-        '</div>',
-        '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="ObjectType" class="col-sm-7">',
-            '<div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>',
-        '</div>',
-        '<div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">',
-            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>',
-            '<div class="sr-input-warning">',
-            '</div>',
-        '</div>',
-        '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
-          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        '</div>',
-        '<div data-ng-switch-when="ShapeButton" class="col-sm-7">',
-            '<div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>',
-        '</div>',
-        '<div data-ng-switch-when="TerminationTable" class="col-sm-12">',
-          '<div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="TransformTable" class="col-sm-12">',
-          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BevelTable" class="col-sm-12">
+          <div data-bevel-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
+        </div>
+        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+          <input type="color" data-ng-model="model[field]" class="sr-color-button">
+        </div>
+        <div data-ng-switch-when="FieldPaths" class="col-sm-7">
+          '<select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+        </div>
+        <div data-ng-switch-when="FloatStringArray" class="col-sm-7">
+            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>
+        </div>
+        <div data-ng-switch-when="Group" class="col-sm-12">
+            <div data-group-editor="" data-field="model[field]" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="HMFile" data-ng-class="fieldClass">
+            <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[2]" data-empty-selection-text="No File Selected" data-file-type="h-m"></div>
+        </div>
+        <div data-ng-switch-when="IntStringArray" class="col-sm-7">
+            <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>
+        </div>
+        <div data-ng-switch-when="ObjectType" class="col-sm-7">
+            <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
+        </div>
+        <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
+            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
+            <div class="sr-input-warning">
+            </div>
+        </div>
+        <div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">
+          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
+        </div>
+        <div data-ng-switch-when="ShapeButton" class="col-sm-7">
+            <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
+        </div>
+        <div data-ng-switch-when="TerminationTable" class="col-sm-12">
+          <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
+        </div>
+        <div data-ng-switch-when="TransformTable" class="col-sm-12">
+          <div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
@@ -2559,25 +2559,35 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             modelName: '@',
+            viewName: '@',
             viz: '<',
         },
         template: `
             <div class="col-md-6">
-                <div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">
-                    <div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
-                    <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
-                        <div class="colorbar"></div>
+                <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
+                  <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="magnetDisplay" data-is-report="true" data-model-key="modelKey" data-report-id="reportId"></div>
+                    <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+                      <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
+                      <div data-ng-transclude="">
+                        <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                        <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
+                            <div class="colorbar"></div>
+                        </div>
+                      </div>
                     </div>
+                  </div>
                 </div>
             </div>
         `,
         controller: function($scope, $element) {
-
+            $scope.reportId = utilities.reportId();
             $scope.axisObj = null;
             $scope.defaultColor = "#ff0000";
             $scope.mode = null;
+            $scope.modelKey = 'magnetDisplay';
 
             $scope.isViewTypeFields = function () {
                 return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
@@ -2603,7 +2613,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var alphaDelegate = radiaService.alphaDelegate();
             alphaDelegate.update = setAlpha;
             var beamAxis = [[-1, 0, 0], [1, 0, 0]];
-            var cm = vtkPlotting.coordMapper();
+            var cm = new SIREPO.VTK.CoordMapper();
             var colorbar = null;
             var colorbarPtr = null;
             var colorScale = null;
@@ -2623,7 +2633,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var initDone = false;
             var ptPicker = null;
             var renderer = null;
-            var renderWindow = null;
+            let savedObj = null;
             var selectedColor = [];
             var selectedInfo = null;
             var selectedObj = null;
@@ -2685,7 +2695,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 actorInfo[id] = info;
 
-                vtkPlotting.addActor(renderer, actor);
+                $scope.vtkScene.addActor(actor);
                 if (pickable) {
                     ptPicker.addPickList(actor);
                     //cPicker.addPickList(actor);
@@ -2707,7 +2717,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 let name = sceneData.name;
                 let data = sceneData.data;
 
-                vtkPlotting.removeActors(renderer);
+                $scope.vtkScene.removeActors();
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
@@ -2777,50 +2787,23 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
 
-                var pb = renderer.computeVisiblePropBounds();
-                radiaService.objBounds = pb;
-                //srdbg('bnds', b);
-                //srdbg('l', [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])]);
-                //srdbg('ctr', [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
+                const boundsBox = $scope.vtkScene.sceneBoundingBox(0.02);
+                const bounds = boundsBox.actor.getBounds();
+                $scope.vtkScene.addActor(boundsBox.actor);
+                $scope.axisObj = new SIREPO.VTK.ViewPortBox(boundsBox.source, $scope.vtkScene.renderer);
 
-                var padPct = 0.1;
-                var l = [
-                    Math.abs(pb[1] - pb[0]),
-                    Math.abs(pb[3] - pb[2]),
-                    Math.abs(pb[5] - pb[4])
-                ].map(function (c) {
-                    return (1 + padPct) * c;
-                });
-
-                var bndBox = cm.buildBox(l, [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
-                bndBox.actor.getProperty().setRepresentationToWireframe();
-                // NOTE: vtkLineFilter exists but is not included in the default vtk build
-                //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
-
-                renderer.addActor(bndBox.actor);
-                var vpb = vtkPlotting.vpBox(bndBox.source, renderer);
-                renderWindow.render();
-                vpb.defaultCfg.edgeCfg.z.sense = -1;
-                vpb.initializeWorld(
-                    {
-                        edgeCfg: {
-                            x: {sense: 1},
-                            y: {sense: 1},
-                            z: {sense: -1},
-                        }
-                    });
-                $scope.axisObj = vpb;
+                radiaService.objBounds = bounds;
 
                 var acfg = {};
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
                     acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = pb[2 * i + 1];
-                    acfg[dim].min = pb[2 * i];
+                    acfg[dim].max = bounds[2 * i + 1];
+                    acfg[dim].min = bounds[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                    acfg[dim].showCentral = dim === appState.models.simulation.beamAxis;
+                    acfg[dim].showCentral = true;
                 });
                 $scope.axisCfg = acfg;
 
@@ -2845,8 +2828,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 updateLayout();
                 setAlpha();
-                setBGColor();
-                vtkAPI.setCam();
+                setBgColor();
+                $scope.vtkScene.setCam();
+                $scope.vtkScene.refreshCanvas();
                 enableWatchFields(true);
             }
 
@@ -3020,7 +3004,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                var iMode = vtkAPI.getMode();
+                var iMode = $scope.vtkScene.interactionMode;
                 if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
                     (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
                 ) {
@@ -3128,28 +3112,26 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 else if (info.type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
                     var j = info.colorIndices[cid];
                     selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
-                   //srdbg(info.name, 'poly tup', cid, selectedColor);
 
                     let g = radiaService.getObject(info.id);
-                    //srdbg(info.id, 'selected', g);
                     if (selectedObj === g) {
                         selectedObj = null;
+                        savedObj = null;
                     }
                     else {
                         selectedObj = g;
+                        savedObj = appState.clone(g);
                         selectedOutline = vtk.Filters.General.vtkOutlineFilter.newInstance();
                     }
-                    var highlight = selectedColor.map(function (c) {
-                        return 255 - c;
-                    });
 
-                    for (var id in actorInfo) {
+                    for (const id in actorInfo) {
                         setEdgeColor(
                             getActorInfo(id),
-                            selectedObj && sharesGroup(getActor(id), actor) ? highlight : [0, 0, 0]
+                            selectedObj && sharesGroup(getActor(id), actor) ? selectedColor.map(c =>  255 - c) : [0, 0, 0]
                         );
                     }
 
+                    $scope.radiaObject = selectedObj;
                     vtkSelection = {
                         info: selectedObj ? selectedObj.name : '--',
                         model: selectedObj ? {
@@ -3192,18 +3174,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
 
-                var m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: ca,
-                    interactor: renderWindow.getInteractor()
-                });
-                m.setViewportCorner(
-                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                $scope.vtkScene.setMarker(
+                    SIREPO.VTK.VTKUtils.buildOrientationMarker(
+                        ca,
+                        $scope.vtkScene.renderWindow.getInteractor(),
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    )
                 );
-                m.setViewportSize(0.07);
-                m.computeViewport();
-                m.setMinPixelSize(50);
-                m.setMaxPixelSize(100);
-                vtkAPI.setMarker(m);
                 updateViewer();
                 updateLayout();
             }
@@ -3250,17 +3227,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         Math.floor(255 * alpha)
                     );
                 }
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
-            function setBGColor(a, b) {
-                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(appState.models.magnetDisplay.bgColor));
-                renderWindow.render();
+            function setBgColor() {
+                $scope.vtkScene.setBgColor(appState.models.magnetDisplay.bgColor);
             }
 
-            //function setColor(info, type, color, alpha=255) {
             function setColor(info, type, color, alpha) {
-                //srdbg('setColor', 'info', info, 'type', type, 'color', color, 'alpha', alpha);
                 if (angular.isUndefined(alpha)) {
                     alpha = 255;
                 }
@@ -3299,7 +3273,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     colorbar.scale(colorScale);
                     colorbarPtr = d3.select('.colorbar').call(colorbar);
                 }
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
             function setEdgeColor(info, color) {
@@ -3309,9 +3283,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! renderer) {
                     return;
                 }
-                //info.actor.getProperty().setEdgeColor(...color);
-                info.actor.getProperty().setEdgeColor(color[0], color[1], color[2]);
+                info.actor.getProperty().setEdgeColor(...color);
                 setColor(info, SIREPO.APP_SCHEMA.constants.geomTypeLines, color);
+                $scope.vtkScene.render();
             }
 
             function setScaling() {
@@ -3331,7 +3305,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         mapper.setScaleModeToScaleByComponents();
                     }
                 });
-                renderWindow.render();
+                $scope.vtkScene.render();
             }
 
             function setupSceneData(data) {
@@ -3395,37 +3369,47 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 keypress: function (evt) {
                     // do nothing?  Stops vtk from changing render based on key presses
                 },
-                //ondblclick: function(evt) {
-                //    vtkAPI.setCam();
-                //}
             };
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
-                appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
+                appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBgColor);
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
             });
 
             // or keep stuff on vtk viewer scope?
             // start using custom javascript events to break away from angular?
             $scope.$on('vtk-init', function (e, d) {
-                //srdbg('VTK INIT', e, d);
-                renderer = d.objects.renderer;
-                renderWindow = d.objects.window;
-                vtkAPI = d.api;
+                $scope.vtkScene = d;
+                renderer = $scope.vtkScene.renderer;
+
                 // move pickers to vtkdisplay?
                 cPicker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 cPicker.setPickFromList(false);
                 ptPicker = vtk.Rendering.Core.vtkPointPicker.newInstance();
                 ptPicker.setPickFromList(true);
                 ptPicker.initializePickList();
-                renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
             });
 
             $scope.$on('modelChanged', function(e, name) {
                 //srdbg('modelChanged', name);
+            });
+            
+            $scope.$on('vtkScene.interactionMode', (e, d) => {
+                if (d === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE) {
+                    if (selectedObj) {
+                        $scope.$broadcast('vtk.selected', null);
+                        setEdgeColor(
+                            getActorInfo(selectedObj.id),
+                            [0, 0, 0]
+                        );
+                        selectedObj = null;
+                        savedObj = null;
+                    }
+                }
             });
 
             $scope.$on('radiaObject.changed', function(e) {
@@ -3439,13 +3423,27 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 updateViewer();
             });
 
-            $scope.$on('radiaObject.color', function (e, h) {
+            $scope.$watch('radiaObject.color', (color) => {
+                if(! color) {
+                    return;
+                }
                 setColor(
                     selectedInfo,
                     SIREPO.APP_SCHEMA.constants.geomTypePolys,
-                    vtkUtils.floatToRGB(vtk.Common.Core.vtkMath.hex2float(h))
+                    vtkUtils.floatToRGB((SIREPO.VTK.VTKUtils.colorToFloat(color)))
                 );
                 setAlpha();
+            });
+
+            // must handle this separately
+            $scope.$on('cancelChanges', (e, d) => {
+                if (d !== 'radiaObject') {
+                    return;
+                }
+                if (savedObj) {
+                    $scope.radiaObject.color = savedObj.color;
+                    $scope.radiaObject.name = savedObj.name;
+                }
             });
 
             $scope.$on('magnetDisplay.changed', function (e, d) {
