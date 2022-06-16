@@ -128,23 +128,6 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
 
             const _SCENE_BOX = '_scene';
 
-            function buildOpacityDelegate() {
-                const m = $scope.modelName;
-                const f = 'opacity';
-                const d = panelState.getFieldDelegate(m, f);
-                d.range = () => {
-                    return {
-                        min: appState.fieldProperties(m, f).min,
-                        max: appState.fieldProperties(m, f).max,
-                        step: 0.01
-                    };
-                };
-                d.readout = () => {
-                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
-                };
-                d.update = setGlobalProperties;
-            }
-
             function addVolume(volId) {
                 const reader = vtk.IO.Core.vtkHttpDataSetReader.newInstance();
                 const res = reader.setUrl(volumeURL(volId), {
@@ -186,7 +169,25 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                     $scope.axisCfg[dim].max = bounds[2 * i + 1];
                     $scope.axisCfg[dim].min = bounds[2 * i];
                 });
-                $scope.$apply();
+                // force the full screen renderer to resize
+                $scope.$apply(vtkScene.fsRenderer.resize());
+            }
+
+            function buildOpacityDelegate() {
+                const m = $scope.modelName;
+                const f = 'opacity';
+                const d = panelState.getFieldDelegate(m, f);
+                d.range = () => {
+                    return {
+                        min: appState.fieldProperties(m, f).min,
+                        max: appState.fieldProperties(m, f).max,
+                        step: 0.01
+                    };
+                };
+                d.readout = () => {
+                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+                };
+                d.update = setGlobalProperties;
             }
 
             function getVolumeById(volId) {
