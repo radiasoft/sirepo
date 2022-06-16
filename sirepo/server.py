@@ -152,7 +152,7 @@ class API(sirepo.api.Base):
                 'ip={}: error parsing javascript exception={} input={}',
                 ip,
                 e,
-                flask.request.data and flask.request.data.decode('unicode-escape'),
+                self.content and self.content.decode('unicode-escape'),
             )
         return self.reply_ok()
 
@@ -314,7 +314,7 @@ class API(sirepo.api.Base):
                 raise sirepo.util.Error(
                     'must supply a file',
                     'no file in request={}',
-                    flask.request.data,
+                    self.content,
                 )
             req = self.parse_params(
                 filename=f.filename,
