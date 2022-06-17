@@ -916,7 +916,6 @@ def write_parameters(data, run_dir, is_parallel):
         p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        #_trim(_generate_parameters_file(data, run_dir=run_dir))
         p
     )
     if is_parallel:
