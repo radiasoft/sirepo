@@ -14,7 +14,7 @@ SIREPO.app.config(function() {
         </div>
     `;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot sr-screenshot"></div>
+        <div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>
     `;
     SIREPO.appDownloadLinks = `
         <li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>
@@ -1114,7 +1114,7 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
     };
 });
 
-SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
+SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1122,7 +1122,7 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
             reportId: '<',
         },
         template: `
-            <div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
+            <div class="sr-screenshot" data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
               <div class="main-title text-center">{{ title }}</div>
               <div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">
               </div>
@@ -1234,6 +1234,7 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
                 orientationMarker.setViewportCorner(
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
+                plotToPNG.initVTK($element, fsRenderer);
             };
 
             $scope.load = function(json) {

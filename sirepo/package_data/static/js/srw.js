@@ -11,7 +11,7 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="BeamList">
@@ -59,7 +59,7 @@ SIREPO.app.config(function() {
     `;
     SIREPO.appPanelHeadingButtons = `
         <div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">
-        <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> 
+        <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
         <ul class="dropdown-menu dropdown-menu-right">
         <li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>
         </ul>
@@ -2702,7 +2702,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkToPNG) {
+SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -2719,7 +2719,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
               <div style="padding-bottom:1px; clear: both; border: 1px solid black">
                 <div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>
               </div>
-              <svg></svg>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2727,7 +2726,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
-            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
+            var beamline, fsRenderer, labelCanvas, labels, orientationMarker;
             var itemDisplayDefaults = {
                 aperture: {
                     color: color('#666666'),
@@ -3168,7 +3167,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             $scope.destroy = function() {
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
-                pngCanvas.destroy();
             };
 
             $scope.init = function() {
@@ -3182,7 +3180,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 });
                 labelCanvas = document.createElement('canvas');
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
-                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
+                plotToPNG.initVTK($element, fsRenderer);
             };
 
             $scope.load = function(json) {
@@ -3205,7 +3203,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     addOrientationMarker();
                 }
                 $scope.setCamera($scope.dimensions[0]);
-                pngCanvas.copyCanvas();
             };
 
             $scope.resize = function() {};

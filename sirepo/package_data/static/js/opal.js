@@ -27,7 +27,7 @@ SIREPO.app.config(function() {
         </div>
     `;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
     SIREPO.lattice = {
         canReverseBeamline: true,
@@ -592,7 +592,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
               <div data-ng-repeat="info in missingFiles">
                 <div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">
                   <span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>
-                  <label>{{ info.filename }}</label> 
+                  <label>{{ info.filename }}</label>
                   ({{ info.label + ": " + info.type }})
                   <input id="file-import" type="file" data-file-model="info.file">
                   <div data-ng-if="uploadDatafile(info)"></div>
@@ -682,7 +682,7 @@ SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, vtkPlotting, vtkToPNG) {
+SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting) {
     return {
         restrict: 'A',
         scope: {
@@ -751,10 +751,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 vtkScene.resetView();
 
                 if ($scope.axisObj) {
-                    panelState.waitForUI(() => {
-                        $scope.$broadcast('axes.refresh');
-                        vtkScene.refreshCanvas();
-                    });
+                    panelState.waitForUI(() => $scope.$broadcast('axes.refresh'));
                 }
             }
 
@@ -778,6 +775,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 if (data) {
                     buildScene();
                 }
+                plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
             $scope.load = (json) => {
@@ -785,17 +783,6 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
                 if (renderer) {
                     buildScene();
                 }
-            };
-
-            $scope.vtkCanvasGeometry = () => {
-                const vtkCanvasHolder = getVtkElement();
-                return {
-                    pos: vtkCanvasHolder.position(),
-                    size: {
-                        width: vtkCanvasHolder.width(),
-                        height: vtkCanvasHolder.height()
-                    }
-                };
             };
         },
         link: function link(scope, element) {

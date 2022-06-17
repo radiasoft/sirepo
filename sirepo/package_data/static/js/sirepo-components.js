@@ -2134,18 +2134,17 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 }
                 return '';
             };
+
             $scope.downloadImage = function(height) {
-                const fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
-                if(plotToPNG.hasCanvas($scope.reportId) || vtkElement()) {
-                    plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
-                    return;
-                }
-                plotToPNG.downloadPNG($($scope.panel).find('.sr-screenshot')[0] || vtkElement(), height, fileName);
+                plotToPNG.downloadPNG(
+                    $scope.panel,
+                    height,
+                    panelState.fileNameFromText($scope.panelHeading, 'png'));
             };
 
             $scope.hasData = function() {
-                if (! $($scope.panel).find('svg.sr-plot')[0] && ! vtkElement()) {
-                    return;
+                if (! plotToPNG.hasScreenshotElement($scope.panel)) {
+                    return false;
                 }
                 if (appState.isLoaded()) {
                     if (panelState.isHidden($scope.modelKey)) {
@@ -2171,10 +2170,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-            }
-
-            function vtkElement() {
-                return $($scope.panel).find('div[data-vtk-display]')[0];
             }
 
             $scope.toggleFullScreen = function() {
@@ -2233,7 +2228,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
                 <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="particle" data-particle="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
                 <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
                 <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
@@ -4165,58 +4160,15 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
 SIREPO.app.service('plotToPNG', function($http) {
 
-    var canvases = {};
-
-    // Stores canvases for updates and later use.  We use the existing reportID
-    // as the key
-    this.addCanvas = function(canvas, reportId) {
-        if (!reportId) {
-            return;
-        }
-        canvases[reportId] = canvas;
-    };
-
-    this.getCanvas = function(reportId) {
-        return canvases[reportId];
-    };
-
-    this.getCopy = function (reportId, size) {
-        var canvas = this.getCanvas(reportId);
-        if(! canvas ) {
-            return null;
-        }
-
-        var s = [
-            parseInt(canvas.getAttribute('width')),
-            parseInt(canvas.getAttribute('height'))
-        ];
-        size.forEach(function (dim, i) {
-            var nextI = (i + 1) % 2;
-            var next = size[nextI];
-            if(! dim) {
-                if(next) {
-                    s[i] *= (next / s[nextI]);
-                    s[nextI] = next;
-                }
-            }
-        });
-        var cnvCopy = document.createElement('canvas');
-        var cnvCtx = cnvCopy.getContext('2d');
-        cnvCopy.width = s[0];
-        cnvCopy.height = s[1];
-        cnvCtx.drawImage(canvas, 0, 0, s[0], s[1]);
-        return cnvCopy;
-    };
-
-    this.hasCanvas = function(reportId) {
-        return ! ! canvases[reportId];
-    };
-
-    this.removeCanvas = function(reportId) {
-        delete canvases[reportId];
-    };
+    function screenshotElement(element, isVisible) {
+        return $(element).find(`.sr-screenshot${isVisible ? ':visible' : ''}`)[0];
+    }
 
     this.downloadPNG = function(el, outputHeight, fileName) {
+        el = screenshotElement(el, true);
+        if (el.srUpdateCanvas) {
+            el.srUpdateCanvas();
+        }
         html2canvas(el, {
             scale: outputHeight / $(el).height(),
             backgroundColor: '#ffffff',
@@ -4228,11 +4180,18 @@ SIREPO.app.service('plotToPNG', function($http) {
         });
     };
 
-    this.downloadCanvas = function(reportId, width, height, fileName)  {
-        var cnv = this.getCopy(reportId, [width || 0, height || 0]);
-        cnv.toBlob(function(blob) {
-            saveAs(blob, fileName);
-        });
+    this.hasScreenshotElement = element => {
+        return screenshotElement(element) ? true : false;
+    };
+
+    this.initVTK = (element, renderer) => {
+        const el = screenshotElement(element);
+        if (! el) {
+            throw new Error('Missing sr-screenshot class within vtk element');
+        }
+        el.srUpdateCanvas = () => {
+            renderer.getRenderWindow().render();
+        };
     };
 
 });
