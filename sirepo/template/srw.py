@@ -956,6 +956,24 @@ def _beamline_animation_percent_complete(run_dir, res):
     return res
 
 
+def _write_rsopt_zip(ctx):
+    filename = f'{ctx.fileBase}.zip'
+    with zipfile.ZipFile(
+        filename,
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in tf:
+            z.writestr(tf[f].filename, tf[f].content)
+        z.writestr(
+            ctx.readmeFileName,
+            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName)
+        )
+        for f in ctx.libFiles:
+            z.write(f, f)
+
+
 def _compute_material_characteristics(model, photon_energy, prefix=''):
     import bnlcrl.pkcli.simulate
 
@@ -1257,28 +1275,24 @@ def _enum_text(name, model, field):
 
 def _export_rsopt_config(data):
     v = _rsopt_jinja_context(data.models.exportRsOpt)
-    filename = 'rsOptExport.zip'
-    f = re.sub(r'[^\w.]+', '-', pkio.py_path(filename).purebasename).strip('-')
-    fz = pkio.py_path(filename)
-    v.runDir = f'{f}_scan'
-    v.fileBase = f
-    tf = {k: PKDict(filename=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
+    v.fileBase = 'rsOptExport'
+    v.runDir = f'{v.fileBase}_scan'
+    tf = {k: PKDict(filename=f'{v.fileBase}.{k}') for k in ('py', 'sh', 'yml')}
     for t in tf:
         v[f'{t}FileName'] = tf[t].filename
-    v.outFileName = f'{f}.out'
+    v.outFileName = f'{v.fileBase}.out'
     v.readmeFileName = 'README.txt'
     v.libFiles = _SIM_DATA.lib_file_basenames(data)
-    v.hasLibFiles = len(v.libFiles) > 0
-    v.randomSeed = data.models.exportRsOpt.randomSeed if \
-        data.models.exportRsOpt.randomSeed is not None else ''
 
     # do this in a second loop so v is fully updated
     # note that the rsopt context is regenerated in python_source_for_model()
     for t in tf:
-        tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
+        tf[t].content = python_source_for_model(data, v.fileBase, plot_reports=False) \
             if t == 'py' else \
-            template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
+            template_common.render_jinja(SIM_TYPE, v, f'{v.fileBase}.{t}')
 
+    fz = f'{v.fileBase}.zip'
+    #_write_rsopt_zip(v)
     with zipfile.ZipFile(
         fz,
         mode='w',
@@ -1292,11 +1306,11 @@ def _export_rsopt_config(data):
             template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
         )
         for f in v.libFiles:
-            z.write(pkio.py_path(f), f)
+            z.write(f, f)
 
     return PKDict(
         content_type='application/zip',
-        filename=fz
+        filename=fz,
     )
 
 
@@ -1989,6 +2003,7 @@ def _rsopt_jinja_context(model):
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
+        randomSeed=model.randomSeed if model.randomSeed is not None else '',
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
