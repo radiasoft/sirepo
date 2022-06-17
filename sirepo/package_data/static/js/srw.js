@@ -1976,7 +1976,9 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
 
             updateElements();
             updateElementWatchFields();
-            panelState.enableField('exportRsOpt', 'totalSamples', false);
+            panelState.waitForUI(() => {
+                panelState.enableField('exportRsOpt', 'totalSamples', false);
+            });
             appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
             appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
             appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);

@@ -127,7 +127,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
         units=['m', 'm', '{intensity_units}'],
     ),
-    exportRsOpt=PKDict(filename='rsOptExport.zip')
+    exportRsOpt=PKDict(filename='exportRsOpt.zip')
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
@@ -956,22 +956,36 @@ def _beamline_animation_percent_complete(run_dir, res):
     return res
 
 
-def _write_rsopt_zip(ctx):
+def _write_rsopt_zip(data, ctx):
     filename = f'{ctx.fileBase}.zip'
+    files = []
+    for t in ('py', 'sh', 'yml',):
+        f = f'{ctx.fileBase}.{t}'
+        ctx[f'{t}FileName'] = f
+        files.append(f)
     with zipfile.ZipFile(
         filename,
         mode='w',
         compression=zipfile.ZIP_DEFLATED,
         allowZip64=True,
     ) as z:
-        for f in tf:
-            z.writestr(tf[f].filename, tf[f].content)
+        # the shell script depends on the other filenames being defined
+        for f in files:
+            z.writestr(
+                f,
+                python_source_for_model(data, ctx.fileBase, plot_reports=False) if f.endswith('.py') else
+                    template_common.render_jinja(SIM_TYPE, ctx, f)
+            )
         z.writestr(
             ctx.readmeFileName,
             template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName)
         )
         for f in ctx.libFiles:
             z.write(f, f)
+    return PKDict(
+        content_type='application/zip',
+        filename=filename,
+    )
 
 
 def _compute_material_characteristics(model, photon_energy, prefix=''):
@@ -1274,44 +1288,10 @@ def _enum_text(name, model, field):
 
 
 def _export_rsopt_config(data):
-    v = _rsopt_jinja_context(data.models.exportRsOpt)
-    v.fileBase = 'rsOptExport'
-    v.runDir = f'{v.fileBase}_scan'
-    tf = {k: PKDict(filename=f'{v.fileBase}.{k}') for k in ('py', 'sh', 'yml')}
-    for t in tf:
-        v[f'{t}FileName'] = tf[t].filename
-    v.outFileName = f'{v.fileBase}.out'
-    v.readmeFileName = 'README.txt'
+    r = 'exportRsOpt'
+    v = _rsopt_jinja_context(r, data.models[r])
     v.libFiles = _SIM_DATA.lib_file_basenames(data)
-
-    # do this in a second loop so v is fully updated
-    # note that the rsopt context is regenerated in python_source_for_model()
-    for t in tf:
-        tf[t].content = python_source_for_model(data, v.fileBase, plot_reports=False) \
-            if t == 'py' else \
-            template_common.render_jinja(SIM_TYPE, v, f'{v.fileBase}.{t}')
-
-    fz = f'{v.fileBase}.zip'
-    #_write_rsopt_zip(v)
-    with zipfile.ZipFile(
-        fz,
-        mode='w',
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
-        for f in tf:
-            z.writestr(tf[f].filename, tf[f].content)
-        z.writestr(
-            v.readmeFileName,
-            template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
-        )
-        for f in v.libFiles:
-            z.write(f, f)
-
-    return PKDict(
-        content_type='application/zip',
-        filename=fz,
-    )
+    return _write_rsopt_zip(data, v)
 
 
 def _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd):
@@ -1656,7 +1636,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
-        rsopt_ctx = _rsopt_jinja_context(dm.exportRsOpt)
+        rsopt_ctx = _rsopt_jinja_context(data.report, dm.exportRsOpt)
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
@@ -1995,19 +1975,23 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
-def _rsopt_jinja_context(model):
+def _rsopt_jinja_context(file_base, model):
     import multiprocessing
     e = _process_rsopt_elements(model.elements)
     return PKDict(
+        fileBase=file_base,
         forRSOpt=True,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
+        outFileName=f'{file_base}.out',
         randomSeed=model.randomSeed if model.randomSeed is not None else '',
+        readmeFileName='README.txt',
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName='scan_results',
+        runDir=f'{file_base}_scan',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
     )
