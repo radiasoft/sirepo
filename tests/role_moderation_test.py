@@ -64,13 +64,11 @@ def test_moderation(auth_fc):
     pkunit.pkok(r.get('models'), 'no models r={}', r)
 
 
-def test_no_guest():
+def test_no_guest(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from pykern.pkcollections import PKDict
-    from sirepo import srunit
 
-    fc = srunit.flask_client()
     fc.sr_login_as_guest(sim_type='srw')
     r = fc.sr_post(
         'saveModerationReason',

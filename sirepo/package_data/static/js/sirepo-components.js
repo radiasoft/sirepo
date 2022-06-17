@@ -3236,6 +3236,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
               <table class="table">
                 <thead>
                   <th data-ng-show="!wantAdm">Name</th>
+                  <th data-ng-show="!wantAdm">Report</th>
                   <th data-ng-repeat="c in displayedCols">{{ data.header[c].title }}</th>
                 </thead>
                 <tbody>
@@ -3244,6 +3245,9 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
                       <a ng-href="{{ getJobLink(j) }}">
                         {{ j['simName'] }}
                       </a>
+                    </td>
+                    <td data-ng-show="!wantAdm">
+                        {{ j['reportName'] }}
                     </td>
                     <td data-ng-repeat="c in displayedCols">
                       {{ getCellContent(j, c) }}
@@ -3260,6 +3264,9 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
         controller: function($scope, appState, panelState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
+                for(var job of data.jobs) {
+                    job.reportName = appState.viewInfo(job.computeModel)?.title;
+                }
             }
 
             function getUrl(simulationId, app) {

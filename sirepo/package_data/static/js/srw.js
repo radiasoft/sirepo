@@ -176,7 +176,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         });
     };
 
-    self.computeBeamParameters = function() {
+    self.computeBeamParameters = function(replyHandler=null) {
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -188,6 +188,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     ebeam[f] = data[f];
                 });
                 appState.models.electronBeamPosition.drift = data.drift;
+                if (replyHandler) {
+                    replyHandler();
+                }
             },
             {
                 method: 'process_beam_parameters',
@@ -819,7 +822,10 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
-            appState.saveQuietly('electronBeamPosition');
+            srwService.computeBeamParameters(() => {
+                    appState.saveChanges(['electronBeamPosition', 'electronBeam']);
+                }
+            );
         }
         else if (name == 'gaussianBeam') {
             appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
@@ -1232,7 +1238,7 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, srwService, 
             'electronBeam.verticalEmittance', 'electronBeam.verticalBeta',
             'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion',
             'electronBeam.verticalDispersionDerivative',
-        ], srwService.computeBeamParameters,
+        ], () => srwService.computeBeamParameters(),
         Object.keys(SIREPO.APP_SCHEMA.model.electronBeam).map(function(f) {
             return 'electronBeam.' + f;
         }), utilities.debounce(checkBeamName),
@@ -1483,10 +1489,6 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     $scope.watchFields = [
         ['tabulatedUndulator.undulatorType'], updateUndulator,
         [
-            'tabulatedUndulator.undulatorType', 'undulator.length',
-            'undulator.period', 'simulation.sourceType',
-        ], srwService.computeBeamParameters,
-        [
             'tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap',
             'tabulatedUndulator.undulatorType',
         ], computeUndulatorLength,
@@ -1559,9 +1561,6 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $sc
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
     $scope.watchFields = [
         [
             'undulator.horizontalDeflectingParameter',
