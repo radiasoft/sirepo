@@ -72,14 +72,17 @@ def delete_user(uid):
     this script runs all records are blown away from the db's so if you
     forget to configure something you will have to delete manually.
 
+    Does nothing if `uid` does not exist.
+
     Args:
-        uid: UID of the user to delete
+        uid (str): user to delete
     """
     import sirepo.server
     import sirepo.template
+
     sirepo.server.init()
     with auth_db.session_and_lock():
-        if auth_db.UserRegistration.search_by(uid=uid) is None:
+        if auth.unchecked_get_user(uid) is None:
             return
         with auth.set_user_outside_of_http_request(uid):
             if sirepo.template.is_sim_type('jupyterhublogin'):
