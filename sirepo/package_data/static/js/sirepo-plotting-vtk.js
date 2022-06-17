@@ -2768,11 +2768,11 @@ SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
                                 backgroundColor: null
                             }).then(c => {
                                 context.drawImage(c, 0, 0);
-                            })
+                            });
                         }
                     });
-                }
-            , 500),
+                },
+                500),
             destroy: function() {
                 panel.off();
                 plotToPNG.removeCanvas(reportId);

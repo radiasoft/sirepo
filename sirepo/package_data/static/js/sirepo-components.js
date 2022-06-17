@@ -3489,7 +3489,7 @@ SIREPO.app.directive('moderationPending', function(appState, panelState) {
     return {
         restrict: 'A',
         template: `
-          <div>Your request to access {{ appName }} has been received. For additional information, contact 
+          <div>Your request to access {{ appName }} has been received. For additional information, contact
             <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
           </div>
         `,
@@ -4225,7 +4225,7 @@ SIREPO.app.service('plotToPNG', function($http) {
             canvas.toBlob(function(blob) {
                 saveAs(blob, fileName);
             });
-        })
+        });
     };
 
     this.downloadCanvas = function(reportId, width, height, fileName)  {
