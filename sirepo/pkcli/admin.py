@@ -78,15 +78,17 @@ def delete_user(uid):
     import sirepo.server
     import sirepo.template
     sirepo.server.init()
-    with auth_db.session_and_lock(), \
-         auth.set_user_outside_of_http_request(uid):
-        if sirepo.template.is_sim_type('jupyterhublogin'):
-            from sirepo.sim_api import jupyterhublogin
-            jupyterhublogin.delete_user_dir(uid)
-        simulation_db.delete_user(uid)
-        # This needs to be done last so we have access to the records in
-        # previous steps.
-        auth_db.UserDbBase.delete_user(uid)
+    with auth_db.session_and_lock():
+        if auth_db.UserRegistration.search_by(uid=uid) is None:
+            return
+        with auth.set_user_outside_of_http_request(uid):
+            if sirepo.template.is_sim_type('jupyterhublogin'):
+                from sirepo.sim_api import jupyterhublogin
+                jupyterhublogin.delete_user_dir(uid)
+            simulation_db.delete_user(uid)
+            # This needs to be done last so we have access to the records in
+            # previous steps.
+            auth_db.UserDbBase.delete_user(uid)
 
 
 def move_user_sims(target_uid=''):

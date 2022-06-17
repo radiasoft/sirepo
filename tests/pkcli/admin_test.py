@@ -20,10 +20,8 @@ def setup_module(module):
 
 def test_no_user():
     import sirepo.pkcli.admin
-    from pykern import pkunit
-    u = 'xxx'
-    with pkunit.pkexcept('.*no registered user with uid=' + u):
-        sirepo.pkcli.admin.delete_user(u)
+
+    sirepo.pkcli.admin.delete_user('xxx')
 
 
 def test_delete_user():
@@ -38,7 +36,10 @@ def test_delete_user():
 
     pkio.unchecked_remove(sirepo.srdb.root())
     pkunit.data_dir().join('db').copy(sirepo.srdb.root())
-    sirepo.pkcli.admin.delete_user('IYgnLlSy')
+    u = 'IYgnLlSy'
+    with auth_db.session_and_lock():
+        pkunit.pkeq(u, importlib.import_module('sirepo.auth_db').UserRegistration.search_by(uid=u).uid)
+    sirepo.pkcli.admin.delete_user(u)
     with auth_db.session_and_lock():
         for m, t in (
                 ('sim_api.jupyterhublogin', 'JupyterhubUser'),
