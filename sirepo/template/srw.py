@@ -955,38 +955,6 @@ def _beamline_animation_percent_complete(run_dir, res):
     return res
 
 
-def _write_rsopt_zip(data, ctx):
-    filename = f'{ctx.fileBase}.zip'
-    files = []
-    for t in ('py', 'sh', 'yml',):
-        f = f'{ctx.fileBase}.{t}'
-        ctx[f'{t}FileName'] = f
-        files.append(f)
-    with zipfile.ZipFile(
-        filename,
-        mode='w',
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
-        # the shell script depends on the other filenames being defined
-        for f in files:
-            z.writestr(
-                f,
-                python_source_for_model(data, ctx.fileBase, plot_reports=False) if f.endswith('.py') else
-                    template_common.render_jinja(SIM_TYPE, ctx, f)
-            )
-        z.writestr(
-            ctx.readmeFileName,
-            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName)
-        )
-        for f in ctx.libFiles:
-            z.write(f, f)
-    return PKDict(
-        content_type='application/zip',
-        filename=filename,
-    )
-
-
 def _compute_material_characteristics(model, photon_energy, prefix=''):
     import bnlcrl.pkcli.simulate
 
@@ -2280,6 +2248,38 @@ def _wavefront_pickle_filename(el_id):
     if el_id:
         return f'wid-{el_id}.pkl'
     return 'initial.pkl'
+
+
+def _write_rsopt_zip(data, ctx):
+    filename = f'{ctx.fileBase}.zip'
+    files = []
+    for t in ('py', 'sh', 'yml',):
+        f = f'{ctx.fileBase}.{t}'
+        ctx[f'{t}FileName'] = f
+        files.append(f)
+    with zipfile.ZipFile(
+        filename,
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        # the shell script depends on the other filenames being defined
+        for f in files:
+            z.writestr(
+                f,
+                python_source_for_model(data, ctx.fileBase, plot_reports=False) if f.endswith('.py') else
+                    template_common.render_jinja(SIM_TYPE, ctx, f)
+            )
+        z.writestr(
+            ctx.readmeFileName,
+            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName)
+        )
+        for f in ctx.libFiles:
+            z.write(f, f)
+    return PKDict(
+        content_type='application/zip',
+        filename=filename,
+    )
 
 
 def _zip_path_for_file(zf, file_to_find):
