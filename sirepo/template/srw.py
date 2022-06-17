@@ -1267,8 +1267,7 @@ def _export_rsopt_config(data):
         v[f'{t}FileName'] = tf[t].filename
     v.outFileName = f'{f}.out'
     v.readmeFileName = 'README.txt'
-    lf = _SIM_DATA.lib_file_basenames(data)
-    v.libFiles = lf
+    v.libFiles = _SIM_DATA.lib_file_basenames(data)
     v.hasLibFiles = len(v.libFiles) > 0
     v.randomSeed = data.models.exportRsOpt.randomSeed if \
         data.models.exportRsOpt.randomSeed is not None else ''
@@ -1292,7 +1291,7 @@ def _export_rsopt_config(data):
             v.readmeFileName,
             template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
         )
-        for f in lf:
+        for f in v.libFiles:
             z.write(pkio.py_path(f), f)
 
     return PKDict(
