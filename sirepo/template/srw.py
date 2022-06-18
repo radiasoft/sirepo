@@ -127,7 +127,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
         units=['m', 'm', '{intensity_units}'],
     ),
-    exportRsOpt=PKDict(filename='exportRsOpt.zip')
+    exportRsOpt=PKDict(filename='exportRsOpt.zip',)
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
