@@ -232,6 +232,8 @@ class SRWShadowConverter():
                 srw_crl = self.__crl_to_srw(item)
                 pkdp('SRW_CRL: {}', srw_crl)
                 self.beamline.append(srw_crl)
+            elif item.type == 'zonePlate':
+                self.beamline.append(self.__zoneplate_to_srw(item))
         return self.beamline
 
     def __crl_to_srw(self, item):
@@ -556,3 +558,10 @@ class SRWShadowConverter():
             zone_plate_type='0',
             b_min=(2 * item.outerRadius * 1e-3) / (4 * item.numberOfZones) * 1e6,
         )))
+
+
+    def __zoneplate_to_srw(self, item):
+        res = _SRW.model_defaults(item.type)
+        return self.__copy_item(item, res.pkupdate(PKDict(
+            type='zonePlate',
+        )), to_shadow=False)
