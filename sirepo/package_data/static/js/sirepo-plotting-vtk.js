@@ -114,7 +114,7 @@ class VTKScene {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
-            listenWindowResize: false,
+            listenWindowResize: true,
         });
 
         this.container = this.fsRenderer.getContainer();
@@ -736,8 +736,7 @@ class ViewPortObject {
     }
 
     /**
-     * Translates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
-     * world
+     * Translates a 3-dimensional Point in the vttk world corresponding to the given 2-dimensional point in the viewport
      * @param {Point} worldPoint
      * @returns {Point}
      */
@@ -2570,7 +2569,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText = {};
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
-            $scope.ortho = false;
+            $scope.isOrtho = false;
             $scope.selection = null;
 
             let didPan = false;
@@ -2579,7 +2578,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             let isDragging = false;
             let isPointerUp = true;
 
-            const resize = utilities.debounce(refresh, 250);
+            const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
 
             // supplement or override these event handlers
             let eventHandlers = {
@@ -2608,6 +2607,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.resetView();
                 refresh();
                 $scope.$apply();
+            }
+
+            function resize() {
+                refresh(true);
             }
 
             $scope.init = function() {
@@ -2650,15 +2653,15 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     };
                 });
                 $scope.$emit('vtk-init', $scope.vtkScene);
+                resize();
             };
 
             $scope.canvasGeometry = function() {
-                const vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
                 return {
-                    pos: $(vtkCanvasHolder).position(),
+                    pos: $(canvasHolder).position(),
                     size: {
-                        width: Math.max(0, $(vtkCanvasHolder).width()),
-                        height: Math.max(0, $(vtkCanvasHolder).height()),
+                        width: Math.max(0, $(canvasHolder).width()),
+                        height: Math.max(0, $(canvasHolder).height()),
                     }
                 };
             };
@@ -2668,10 +2671,16 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.$emit('vtkScene.interactionMode', mode);
             };
 
+            $scope.showSide = side => {
+                $scope.vtkScene.showSide(side);
+                refresh(true);
+            };
+
             $scope.toggleOrtho = () => {
-                $scope.ortho = ! $scope.ortho;
-                $scope.vtkScene.cam.setParallelProjection($scope.ortho);
+                $scope.isOrtho = ! $scope.isOrtho;
+                $scope.vtkScene.cam.setParallelProjection($scope.isOrtho);
                 $scope.vtkScene.render();
+                refresh(true);
             };
 
             $scope.$on('$destroy', function() {

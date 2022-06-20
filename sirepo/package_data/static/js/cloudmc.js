@@ -139,12 +139,16 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display"
+              data-ng-style="sizeStyle()" data-show-border="true"
+              data-report-id="reportId" data-model-name="{{ modelName }}"
+              data-event-handlers="eventHandlers" data-reset-side="z"
+              data-enable-axes="true" data-axis-cfg="axisCfg"
+              data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
             $scope.isClientOnly = true;
             $scope.model = appState.models[$scope.modelName];
-
             let axesBoxes = {};
             let picker = null;
             let vtkScene = null;
@@ -161,23 +165,6 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
             const watchFields = ['geometry3DReport.bgColor', 'geometry3DReport.showEdges'];
 
             const _SCENE_BOX = '_scene';
-
-            function buildOpacityDelegate() {
-                const m = $scope.modelName;
-                const f = 'opacity';
-                const d = panelState.getFieldDelegate(m, f);
-                d.range = () => {
-                    return {
-                        min: appState.fieldProperties(m, f).min,
-                        max: appState.fieldProperties(m, f).max,
-                        step: 0.01
-                    };
-                };
-                d.readout = () => {
-                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
-                };
-                d.update = setGlobalProperties;
-            }
 
             function addVolume(volId) {
                 const reader = vtk.IO.Core.vtkHttpDataSetReader.newInstance();
@@ -220,7 +207,25 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                     $scope.axisCfg[dim].max = bounds[2 * i + 1];
                     $scope.axisCfg[dim].min = bounds[2 * i];
                 });
-                $scope.$apply();
+                // force the full screen renderer to resize
+                $scope.$apply(vtkScene.fsRenderer.resize());
+            }
+
+            function buildOpacityDelegate() {
+                const m = $scope.modelName;
+                const f = 'opacity';
+                const d = panelState.getFieldDelegate(m, f);
+                d.range = () => {
+                    return {
+                        min: appState.fieldProperties(m, f).min,
+                        max: appState.fieldProperties(m, f).max,
+                        step: 0.01
+                    };
+                };
+                d.readout = () => {
+                    return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+                };
+                d.update = setGlobalProperties;
             }
 
             function getVolumeById(volId) {
@@ -349,10 +354,20 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plot
                 //TODO(pjm): reposition camera?
             };
 
+            $scope.sizeStyle = () => {
+                // 53 legend size + 35 bottom panel padding
+                const ph = Math.ceil(
+                    $(window).height() - ($($element).offset().top + 53 + 35));
+                const pw = Math.ceil($($element).width() - 1);
+                return {
+                    width: `${Math.min(ph, pw)}px`,
+                    margin: '0 auto',
+                };
+            };
+
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
                 vtkScene = d;
-
                 const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
                 const df = ca.getDefaultStyle();
