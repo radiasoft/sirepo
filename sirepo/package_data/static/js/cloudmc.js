@@ -7,12 +7,46 @@ SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
+    //TODO(pjm): OptionalInteger and OptionalFloat should be standard
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
         <div data-ng-switch-when="Float3" class="col-sm-7">
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="3"></div>
+        </div>
+        <div data-ng-switch-when="OptionalInteger" data-ng-class="fieldClass">
+          <input data-string-to-number="integer" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" />
+        </div>
+        <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
+          <input data-string-to-number="" data-ng-model="model[field]"
+            data-min="info[4]" data-max="info[5]" class="form-control"
+            style="text-align: right" data-lpignore="true" />
+        </div>
+        <div data-ng-switch-when="MaterialComponents" class="col-sm-12">
+          <div data-material-components=""></div>
+        </div>
+        <div data-ng-switch-when="ComponentName" data-ng-class="fieldClass">
+          <input data-component-name="" data-ng-model="model[field]"
+            class="form-control" data-lpignore="true" data-ng-required="isRequired()"
+            autocomplete="chrome-off" />
+        </div>
+        <div data-ng-switch-when="PercentWithType" data-ng-class="fieldClass">
+          <div data-compound-field="" data-field1="percent"
+            data-field2="percent_type" data-field2-size="8em"
+            data-model-name="modelName" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="EnrichmentWithType" data-ng-class="fieldClass">
+          <div data-compound-field="" data-field1="enrichment"
+            data-field2="enrichment_type" data-field2-size="8em"
+            data-model-name="modelName" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="DensityWithUnits" data-ng-class="fieldClass">
+          <div data-compound-field="" data-field1="density"
+            data-field2="density_units" data-field2-size="10em"
+            data-model-name="modelName" data-model="model"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -351,14 +385,9 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 );
             });
 
-
             $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
-                if (prop === 'opacity') {
-                    getVolumeById(volId).isVisible = val > 0;
-                }
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
-
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
         },
@@ -368,51 +397,74 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
     };
 });
 
-SIREPO.app.directive('volumeMaterial', function(appState) {
+SIREPO.app.directive('compoundField', function() {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            field1: '@',
+            field2: '@',
+            field2Size: '@',
+            modelName: '=',
+            model: '=',
+        },
+        //TODO(pjm): couldn't find a good way to layout fields together without table
         template: `
-            <div style="padding: 10px">
-              volume/material editor goes here
-            </div>
+          <div class="row">
+            <table><tr><td>
+              <div data-field-editor="field1" data-label-size="0"
+                data-field-size="12" data-model-name="modelName" data-model="model"></div>
+            </td><td>
+              <div data-ng-attr-style="margin-left: -27px; width: {{ field2Size }}">
+                <div data-field-editor="field2" data-label-size="0"
+                  data-field-size="12" data-model-name="modelName"
+                  data-model="model"></div>
+              </div>
+            </td></tr></table>
+          </div>
         `,
     };
 });
 
-SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
+SIREPO.app.directive('volumeSelector', function(appState, panelState, $rootScope) {
     return {
         restrict: 'A',
         scope: {},
         template: `
             <div style="padding: 0.5ex 1ex; border-bottom: 1px solid #ddd;">
-              <div style="display: inline-block; cursor: pointer" data-ng-click="toggleAll()">
-                <span class="glyphicon" data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
+              <div style="display: inline-block; cursor: pointer"
+                data-ng-click="toggleAll()">
+                <span class="glyphicon"
+                  data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
               </div>
             </div>
             <div id="sr-volume-list" data-ng-style="heightStyle()">
-              <div data-ng-repeat="row in rows track by $index"
+              <div class="sr-hover-row" data-ng-repeat="row in rows track by $index"
                 style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden">
-                <div>
-                  <div style="display: inline-block; cursor: pointer; white-space: nowrap"
+                <div style="position: relative">
+                  <div
+                    style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                     data-ng-click="toggleSelected(row)">
                     <span class="glyphicon"
                       data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                     {{ row.name }}
+                    {{ row.name }}
                   </div>
-                  <div  data-ng-show="row.isVisible">
-<div class="col-sm-3">
-                  <input
-                    id="volume-{{ row.name }}-color" type="color"
-                    class="sr-color-button" data-ng-model="row.color"
-                    data-ng-change="broadcastVolumePropertyChanged(row, 'color')">
-</div>
-<div class="col-sm-9" style="margin-top: 10px">
-                  <input
-                    id="volume-{{ row.name }}-opacity-range" type="range"
-                    min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
-                    data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')">
-</div>
+                  <div style="position: absolute; top: 0px; right: 5px">
+                    <button data-ng-click="editMaterial(row)"
+                      class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                  </div>
+                  <div data-ng-show="row.isVisible">
+                    <div class="col-sm-3">
+                      <input
+                        id="volume-{{ row.name }}-color" type="color"
+                        class="sr-color-button" data-ng-model="row.color"
+                        data-ng-change="broadcastVolumePropertyChanged(row, 'color')" />
+                    </div>
+                    <div class="col-sm-9" style="margin-top: 10px">
+                      <input
+                        id="volume-{{ row.name }}-opacity-range" type="range"
+                        min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
+                        data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -420,30 +472,55 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
         `,
         controller: function($scope, $window) {
             $scope.allVisible = true;
+            let editRowKey = null;
             let prevOffset = 0;
 
-            function init() {
+            function loadRows() {
                 $scope.rows = [];
                 for (const n in appState.models.volumes) {
                     const row = appState.models.volumes[n];
-                    row.name = n;
-                    row.color = SIREPO.VTK.VTKUtils.colorToHex(row.color || randomColor());
-                    row.opacity = row.opacity || 0.3;
-                    const v = row.isVisible;
-                    row.isVisible = v === undefined ? true : v;
+                    row.key = n;
+                    if (! row.color) {
+                        row.name = n;
+                        row.color = randomColor();
+                        row.opacity = 0.3;
+                        row.isVisible = true;
+                    }
                     $scope.rows.push(row);
                 }
-                appState.saveChanges('volumes');
-                //TODO(pjm): sort rows by name
+                $scope.rows.sort((a, b) => a.name.localeCompare(b.name));
             }
 
             function randomColor() {
-                return Array(3).fill(0).map(() => Math.random());
+                return SIREPO.VTK.VTKUtils.colorToHex(
+                    Array(3).fill(0).map(() => Math.random()));
+            }
+
+            function unloadMaterial() {
+                appState.removeModel('material');
+                editRowKey = null;
             }
 
             $scope.broadcastVolumePropertyChanged = (row, prop) => {
                 appState.saveQuietly('volumes');
-                $rootScope.$broadcast('sr-volume-property.changed', row.volId, prop, row[prop]);
+                $rootScope.$broadcast(
+                    'sr-volume-property.changed',
+                    row.volId,
+                    prop,
+                    row[prop]);
+            };
+
+            $scope.editMaterial = (row) => {
+                if (! row.material) {
+                    row.material = appState.setModelDefaults(
+                        {
+                            name: row.name,
+                        },
+                        'material');
+                }
+                editRowKey = row.key;
+                appState.models.material = appState.clone(row.material);
+                panelState.showModalEditor('material');
             };
 
             $scope.heightStyle = () => {
@@ -475,29 +552,194 @@ SIREPO.app.directive('volumeSelector', function(appState, $rootScope) {
                 if (! noSave) {
                     appState.saveChanges('volumes');
                 }
-                $rootScope.$broadcast('sr-volume-visibility-toggled', row.volId, row.isVisible);
+                $rootScope.$broadcast(
+                    'sr-volume-visibility-toggled',
+                    row.volId,
+                    row.isVisible);
             };
 
-            init();
+            $scope.$on('material.changed', () => {
+                if (editRowKey) {
+                    const r = appState.models.volumes[editRowKey];
+                    r.material = appState.models.material;
+                    r.name = r.material.name;
+                    appState.saveChanges('volumes', loadRows);
+                    unloadMaterial();
+                }
+            });
+
+            $scope.$on('cancelChanges', (event, name) => {
+                if (editRowKey && name == 'material') {
+                    appState.cancelChanges('volumes');
+                    unloadMaterial();
+                }
+            });
+
+            loadRows();
         },
     };
 });
 
-SIREPO.app.directive('volumeTabs', function() {
+SIREPO.app.directive('materialComponents', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {},
         template: `
-            <ul class="nav nav-tabs">
-              <li data-ng-repeat="tab in tabs track by $index" role="presentation" data-ng-class="{ active: activeTab == tab}"><a href data-ng-click="setTab($index)"><strong>{{ tab }}</strong></a></li>
-            </ul>
-            <div data-ng-show="activeTab == tabs[0]" data-volume-selector=""></div>
-            <div data-ng-show="activeTab == tabs[1]" data-volume-material=""></div>
+              <table class="table table-hover table-condensed">
+                <tr data-ng-init="ci = $index"
+                    data-ng-repeat="c in appState.models.material.components track by $index">
+                  <td data-ng-repeat="fieldInfo in componentInfo(ci) track by fieldTrack(ci, $index)">
+                    <div data-ng-if="fieldInfo.field">
+                      <div data-label-with-tooltip="" data-label="{{ fieldInfo.label }}"
+                        data-tooltip="{{ fieldInfo.tooltip }}"></div>
+                      <div class="row" data-field-editor="fieldInfo.field"
+                        data-field-size="12" data-model-name="'materialComponent'"
+                        data-model="c" data-label-size="0"></div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="sr-button-bar-parent pull-right">
+                      <div class="sr-button-bar">
+                        <button data-ng-click="deleteComponent($index)"
+                          class="btn btn-danger btn-xs">
+                          <span class="glyphicon glyphicon-remove"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 15em">
+                    <b>Add Component</b>
+                      <select class="form-control" data-ng-model="selectedComponent"
+                        data-ng-options="item[0] as item[1] for item in componentEnum"
+                        data-ng-change="addComponent()"></select>
+                  </td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </table>
         `,
         controller: function($scope) {
-            $scope.tabs = ['Viewer', 'Material'];
-            $scope.activeTab = $scope.tabs[0];
-            $scope.setTab = index => $scope.activeTab = $scope.tabs[index];
+            const componentInfo = [];
+            $scope.appState = appState;
+            $scope.selectedComponent = '';
+            $scope.componentEnum = SIREPO.APP_SCHEMA.enum.MaterialComponent;
+            const fieldsByComponent = {
+                add_element: [
+                    'percent_with_type',
+                    'enrichment_with_type',
+                    'enrichment_target',
+                ],
+                add_elements_from_formula: [
+                    'percent_type',
+                    'enrichment_with_type',
+                    'enrichment_target',
+                ],
+                add_macroscopic: [],
+                add_nuclide: ['percent_with_type'],
+                add_s_alpha_beta: ['fraction'],
+            };
+            const fieldInfo = {};
+
+            function buildFieldInfo() {
+                const mi = appState.modelInfo('materialComponent');
+                for (const p in fieldsByComponent) {
+                    fieldsByComponent[p].unshift('component', 'name');
+                    fieldInfo[p] = [];
+                    for (const f of fieldsByComponent[p]) {
+                        fieldInfo[p].push({
+                            field: f,
+                            label: mi[f][0],
+                            tooltip: mi[f][3],
+                        });
+                    }
+                    while (fieldInfo[p].length < 5) {
+                        fieldInfo[p].push({
+                            field: '',
+                        });
+                    }
+                }
+            }
+
+            $scope.addComponent = () => {
+                if (! $scope.selectedComponent) {
+                    return;
+                }
+                var c = appState.models.material;
+                if (! c.components) {
+                    c.components = [];
+                }
+                var m = appState.setModelDefaults({}, 'materialComponent');
+                m.component = $scope.selectedComponent;
+                c.components.push(m);
+                $scope.selectedComponent = '';
+            };
+
+            $scope.componentInfo = idx => {
+                const c = appState.models.material.components[idx];
+                componentInfo[idx] = fieldInfo[c.component];
+                return componentInfo[idx];
+            };
+
+            $scope.deleteComponent = idx => {
+                appState.models.material.components.splice(idx, 1);
+            };
+
+            $scope.fieldTrack = (componentIndex, idx) => {
+                var c = appState.models.material.components[componentIndex];
+                return c.component + idx;
+            };
+
+            buildFieldInfo();
+
         },
+    };
+});
+
+SIREPO.app.directive('componentName', function(appState, requestSender) {
+    var requestIndex = 0;
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+
+            scope.isRequired = () => true;
+
+            ngModel.$parsers.push(function(value) {
+                if (ngModel.$isEmpty(value)) {
+                    return null;
+                }
+                requestIndex++;
+                const currentRequestIndex = requestIndex;
+                requestSender.sendStatelessCompute(
+                    appState,
+                    data => {
+                        // check for a stale request
+                        if (requestIndex != currentRequestIndex) {
+                            return;
+                        }
+                        ngModel.$setValidity('', data.error ? false : true);
+                    },
+                    {
+                        method: 'validate_material_name',
+                        name: value,
+                        component: scope.model.component,
+                    }
+                );
+
+
+                return value;
+            });
+            ngModel.$formatters.push(function(value) {
+                if (ngModel.$isEmpty(value)) {
+                    return value;
+                }
+                return value.toString();
+            });
+        }
     };
 });
