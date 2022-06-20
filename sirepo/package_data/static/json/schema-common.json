@@ -166,6 +166,7 @@
         "saveSimulationData": "/save-simulation",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
+        "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
@@ -180,6 +181,7 @@
     "common": {
         "adm": {
             "userRoleInviteColumns": [
+              ["email", "Email"],
               ["uid", "uid"],
               ["role", "Role"],
               ["token", "Token"],
@@ -246,7 +248,7 @@
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
                     "colorbar.js",
-                    "canvg-and-dependencies.js",
+                    "html2canvas.js",
                     "FileSaver.js",
                     "Blob.js",
                     "canvas-toBlob.js",

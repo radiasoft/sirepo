@@ -15,6 +15,7 @@ import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.oauth
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.uri
@@ -31,33 +32,16 @@ _HUB_USER_SEP = '-'
 
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = 'jupyterhub_logout_user_name'
 
+_SIM_TYPE = 'jupyterhublogin'
+
 
 class API(sirepo.api.Base):
-    @sirepo.api_perm.allow_visitor
+    @sirepo.api_perm.require_user
     def api_checkAuthJupyterhub(self):
-        def _res_for_uri(uri):
-            return self.reply_ok(PKDict(uri=uri))
-
-        u = None
-        try:
-            sirepo.auth.require_user()
-            sirepo.auth.require_sim_type('jupyterhublogin')
-            u = _unchecked_jupyterhub_user_name(
-                have_simulation_db=False,
-            )
-        except werkzeug.exceptions.Forbidden:
-            return self.reply_ok()
-        except sirepo.util.Redirect as e:
-            return _res_for_uri(sirepo.uri_router.uri_for_api(
-                'root',
-                params=PKDict(path_info=e.sr_args.uri),
-            ))
-        except sirepo.util.SRException as e:
-            return _res_for_uri(sirepo.uri.local_route(
-                'jupyterhublogin',
-                route_name=e.sr_args.routeName,
-                external=True,
-            ))
+        self.parse_params(type=_SIM_TYPE)
+        u = _unchecked_jupyterhub_user_name(
+            have_simulation_db=False,
+        )
         if not u:
             u = create_user()
         return self.reply_ok(PKDict(
@@ -66,21 +50,18 @@ class API(sirepo.api.Base):
 
     @sirepo.api_perm.require_user
     def api_migrateJupyterhub(self):
-        sirepo.auth.require_sim_type('jupyterhublogin')
+        self.parse_params(type=_SIM_TYPE)
         if not cfg.rs_jupyter_migrate:
             sirepo.util.raise_forbidden('migrate not enabled')
         d = self.parse_json()
         if not d.doMigration:
             create_user()
             return self.reply_redirect('jupyterHub')
-        return self.call_api(
-            'authGithubLogin',
-            kwargs=PKDict(simulation_type='jupyterhublogin'),
-        )
+        sirepo.oauth.raise_authorize_redirect(_SIM_TYPE, github_auth=True)
 
     @sirepo.api_perm.require_user
     def api_redirectJupyterHub(self):
-        sirepo.auth.require_sim_type('jupyterhublogin')
+        self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name()
         if u:
             return self.reply_redirect('jupyterHub')
@@ -141,7 +122,7 @@ def create_user(github_handle=None, check_dir=False):
                not _user_dir(user_name=github_handle).exists():
                 raise sirepo.util.SRException(
                     'jupyterNameConflict',
-                    PKDict(sim_type='jupyterhublogin'),
+                    PKDict(sim_type=_SIM_TYPE),
                 )
             return github_handle
         n = __handle_or_name_sanitized()
@@ -187,14 +168,14 @@ def init_apis(*args, **kwargs):
     )
     pkio.mkdir_parent(cfg.user_db_root_d)
     sirepo.auth_db.init_model(_init_model)
-    sirepo.events.register(PKDict(
-        auth_logout=_event_auth_logout,
-        end_api_call=_event_end_api_call,
-    ))
     if cfg.rs_jupyter_migrate:
         sirepo.events.register(PKDict(
             github_authorized=_event_github_authorized,
         ))
+    sirepo.events.register(PKDict(
+        auth_logout=_event_auth_logout,
+        end_api_call=_event_end_api_call,
+    ))
 
 
 def _event_auth_logout(kwargs):

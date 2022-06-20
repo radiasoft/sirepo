@@ -498,7 +498,8 @@
                 "renderCount",
                 "colorMap",
                 "impactColorMap"
-            ]
+            ],
+            "canFullScreen": false
         },
         "simulationGrid": {
             "title": "Simulation Grid",

@@ -120,6 +120,26 @@ class API(sirepo.api.Base):
         return self.reply_redirect_for_app_root(req and req.type)
 
 
+def check_sim_type_role(sim_type):
+    from sirepo import oauth
+    from sirepo import auth_role_moderation
+
+    t = sirepo.template.assert_sim_type(sim_type)
+    if t not in sirepo.feature_config.auth_controlled_sim_types():
+        return
+    if not uri_router.maybe_sim_type_required_for_api():
+        return
+    u = logged_in_user()
+    r = sirepo.auth_role.for_sim_type(t)
+    if auth_db.UserRole.has_role(u, r) and not auth_db.UserRole.is_expired(u, r):
+        return
+    elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
+        oauth.raise_authorize_redirect(sirepo.auth_role.sim_type(r))
+    if r in sirepo.auth_role.for_moderated_sim_types():
+        auth_role_moderation.raise_control_for_user(u, r)
+    sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={t}')
+
+
 def complete_registration(name=None):
     """Update the database with the user's display_name and sets state to logged-in.
     Guests will have no name.
@@ -348,47 +368,11 @@ def require_auth_basic():
     login(m, uid=uid)
 
 
-def require_sim_type(sim_type):
-    def _assert_login():
-        try:
-            return logged_in_user()
-        except util.SRException as e:
-            if (
-                    getattr(e, 'sr_args', PKDict()).get('routeName') == LOGIN_ROUTE_NAME
-                    and not uri_router.is_sim_type_required_for_api()
-            ):
-                return None
-            raise
-
-    def _moderate(uid, role):
-        s = sirepo.auth_db.UserRoleInvite.get_status(uid, role)
-        if s in ('clarify', 'pending'):
-            raise sirepo.util.SRException('moderationPending', None)
-        if s == 'denied':
-            sirepo.util.raise_forbidden(f'uid={uid} role={role} already denied')
-        assert s is None, \
-            f'Unexpected status={s} for uid={uid} and role={role}'
-        require_email_user()
-        raise sirepo.util.SRException('moderationRequest', None)
-
-    if sim_type not in sirepo.feature_config.auth_controlled_sim_types():
-        return
-    u = _assert_login()
-    if u is None:
-        return
-    r = sirepo.auth_role.for_sim_type(sim_type)
-    if auth_db.UserRole.has_role(u, r):
-        return
-    if r not in sirepo.auth_role.for_moderated_sim_types():
-        sirepo.util.raise_forbidden(f'uid={u} does not have access to sim_type={sim_type}')
-    _moderate(u, r)
-
-
 def require_email_user():
-    uid = require_user()
-    u = user_name(uid)
+    i = require_user()
+    u = user_name(i)
     if not pyisemail.is_email(u):
-        util.raise_forbidden(f'uid={uid} username={u} is not an email')
+        util.raise_forbidden(f'uid={i} username={u} is not an email')
 
 
 def require_user():
