@@ -39,6 +39,8 @@ PARSED_DATA_ATTR = 'srwParsedData'
 
 _CANVAS_MAX_SIZE = 65535
 
+_RSOPT_EXPORT_BASE_NAME = 'exportRsOpt'
+
 _OUTPUT_FOR_MODEL = PKDict(
     coherenceXAnimation=PKDict(
         title='',
@@ -127,7 +129,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
         units=['m', 'm', '{intensity_units}'],
     ),
-    exportRsOpt=PKDict(filename='exportRsOpt.zip',)
+    exportRsOpt=PKDict(filename=f'{_RSOPT_EXPORT_BASE_NAME}.zip',)
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
@@ -341,7 +343,7 @@ def extract_report_data(sim_in):
         return _extract_brilliance_report(dm.brillianceReport, out.filename)
     if r == 'trajectoryReport':
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
-    if r == 'exportRsOpt':
+    if r == _RSOPT_EXPORT_BASE_NAME:
         return out
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ('coherenceXAnimation', 'coherenceYAnimation'):
@@ -909,7 +911,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report == 'exportRsOpt':
+    if data.report == _RSOPT_EXPORT_BASE_NAME:
         p = ''
         _export_rsopt_config(data)
     else:
@@ -1255,8 +1257,7 @@ def _enum_text(name, model, field):
 
 
 def _export_rsopt_config(data):
-    r = 'exportRsOpt'
-    v = _rsopt_jinja_context(r, data.models[r])
+    v = _rsopt_jinja_context(data.models[_RSOPT_EXPORT_BASE_NAME])
     v.libFiles = _SIM_DATA.lib_file_basenames(data)
     return _write_rsopt_zip(data, v)
 
@@ -1603,7 +1604,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
-        rsopt_ctx = _rsopt_jinja_context(data.report, dm.exportRsOpt)
+        rsopt_ctx = _rsopt_jinja_context(dm.exportRsOpt)
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
@@ -1749,7 +1750,7 @@ def _intensity_units(sim_in):
 
 
 def _is_for_rsopt(report):
-    return report == 'exportRsOpt'
+    return report == _RSOPT_EXPORT_BASE_NAME
 
 
 def _load_user_model_list(model_name):
@@ -1942,23 +1943,23 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
-def _rsopt_jinja_context(file_base, model):
+def _rsopt_jinja_context(model):
     import multiprocessing
     e = _process_rsopt_elements(model.elements)
     return PKDict(
-        fileBase=file_base,
+        fileBase=_RSOPT_EXPORT_BASE_NAME,
         forRSOpt=True,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
-        outFileName=f'{file_base}.out',
+        outFileName=f'{_RSOPT_EXPORT_BASE_NAME}.out',
         randomSeed=model.randomSeed if model.randomSeed is not None else '',
         readmeFileName='README.txt',
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName='scan_results',
-        runDir=f'{file_base}_scan',
+        runDir=f'{_RSOPT_EXPORT_BASE_NAME}_scan',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
     )
@@ -2251,12 +2252,16 @@ def _wavefront_pickle_filename(el_id):
 
 
 def _write_rsopt_zip(data, ctx):
-    filename = f'{ctx.fileBase}.zip'
-    files = []
-    for t in ('py', 'sh', 'yml',):
-        f = f'{ctx.fileBase}.{t}'
-        ctx[f'{t}FileName'] = f
-        files.append(f)
+
+    def _files():
+        files = []
+        for t in ('py', 'sh', 'yml',):
+            f = f'{_RSOPT_EXPORT_BASE_NAME}.{t}'
+            ctx[f'{t}FileName'] = f
+            files.append(f)
+        return files
+
+    filename = f'{_RSOPT_EXPORT_BASE_NAME}.zip'
     with zipfile.ZipFile(
         filename,
         mode='w',
@@ -2264,7 +2269,7 @@ def _write_rsopt_zip(data, ctx):
         allowZip64=True,
     ) as z:
         # the shell script depends on the other filenames being defined
-        for f in files:
+        for f in _files():
             z.writestr(
                 f,
                 python_source_for_model(data, ctx.fileBase, plot_reports=False) if f.endswith('.py') else
