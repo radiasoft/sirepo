@@ -2229,7 +2229,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         }
         // needs to handle query params from calls using complete url differently
         u = u.split("?");
-        
+
         if(u.length > 1 && u[1].trim()) {
             $location.path(u[0]).search(u[1]);
         } else {
@@ -2396,6 +2396,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         req.then(
             function(response) {
                 const i = response.headers('X-Sirepo-UserAgentId');
+                srdbg(`iiiiiii `, i);
                 if (i) {
                     userAgent.id = i;
                 }

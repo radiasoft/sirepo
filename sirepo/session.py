@@ -27,13 +27,12 @@ def _event_end_api_call(kwargs):
     if i:
         kwargs.resp.headers['X-Sirepo-UserAgentId'] = i
 
-# TODO(e-carlin): rename maybe begin
-# TODO(e-carlin): global rename sreq to sapi
 @contextlib.contextmanager
-def session():
-    i = sirepo.api.Base.request_headers().get('X-Sirepo-UserAgentId')
+def begin(sreq):
+    # TODO(e-carlin): use sreq
+    i = sreq.headers().get('X-Sirepo-UserAgentId')
     pkdp('X-Sirepo-UserAgentId={}', i)
-    if sirepo.api.Base.request_method() != 'POST':
+    if not sreq.has_params():
         yield
         return
     if not i:

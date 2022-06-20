@@ -20,6 +20,7 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.request
 import sirepo.sim_api
 import sirepo.srcontext
 import sirepo.uri
@@ -283,7 +284,7 @@ def _dispatch(path):
     """
     import sirepo.auth
 
-    with sirepo.auth.process_request():
+    with sirepo.auth.process_request(sirepo.request.begin()):
         try:
             if path is None:
                 return call_api(_default_route, PKDict(path_info=None))
