@@ -8,28 +8,28 @@ SIREPO.app.config(function() {
         'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
     };
     SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-        '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-        '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-    ].join('');
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
-          '<div data-cell-selector=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="YCell" data-ng-class="fieldClass">',
-          '<div data-cell-selector=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
-          '<div data-cell-selector=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-          '<div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
-        '</div>',
-        '<div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">',
-          '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
+        <div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
+    `;
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="XCell" data-ng-class="fieldClass">
+          <div data-cell-selector=""></div>
+        </div>
+        <div data-ng-switch-when="YCell" data-ng-class="fieldClass">
+          <div data-cell-selector=""></div>
+        </div>
+        <div data-ng-switch-when="ZCell" data-ng-class="fieldClass">
+          <div data-cell-selector=""></div>
+        </div>
+        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+          <div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>
+        </div>
+        <div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">
+          <div data-optimization-field-picker="" field="field" data-model="model"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {
@@ -2124,7 +2124,7 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
               <div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>
             </div>
             <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> 
+              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
               <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
             </div>
             </form>
@@ -2539,7 +2539,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                   <div data-ng-show="simState.isStateRunning()">
                     <div class="col-sm-12">
                       <div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">
-                        Running Simulation 
+                        Running Simulation
                         <span data-ng-if="mpiCores">with {{ mpiCores }} CPU Cores </span>
                         {{ simState.dots }}
                       </div>
@@ -2989,7 +2989,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             reportId: '<',
         },
         template: `
-            <div></div>
+          <div class="sr-screenshot">
+            <div class="vtk-canvas-holder"></div>
+          </div>
         `,
         controller: function($scope, $element) {
 
@@ -3002,13 +3004,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
             var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
             var fsRenderer = null;
-
-            // this canvas is the one created by vtk
-            var canvas3d;
-
-            // we keep this one updated with a copy of the vtk canvas
-            var snapshotCanvas;
-            var snapshotCtx;
 
             var stlActors = {};
             var stlReaders = {};
@@ -3160,7 +3155,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     isAdjustingSize = false;
                     return;
                 }
-                var cnt = $($element);
+                var cnt = $($element).find('.vtk-canvas-holder');
                 var fitThreshold = 0.01;
                 var cntAspectRatio = 1.3;
                 isAdjustingSize = vtkPlotting.adjustContainerSize(cnt, rect, cntAspectRatio, fitThreshold);
@@ -3170,7 +3165,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function init() {
-                var rw = $($element);
+                var rw = $($element).find('.vtk-canvas-holder');
                 rw.on('dblclick', reset);
 
                 // removed listenWindowResize: false - turns out we need it for fullscreen to work.
@@ -3178,24 +3173,12 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
                     {
                         background: [1, 1, 1, 1],
-                        container: rw[0],
+                        container: $('.vtk-canvas-holder')[0],
                     });
                 fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
                 fsRenderer.setResizeCallback(adjustSize);
-
-                rw.on('pointerup', cacheCanvas);
-                rw.on('wheel', function () {
-                    utilities.debounce(cacheCanvas, 100)();
-                });
-
-                canvas3d = $($element).find('canvas')[0];
-
-                // this canvas is used to store snapshots of the 3d canvas
-                snapshotCanvas = document.createElement('canvas');
-                snapshotCtx = snapshotCanvas.getContext('2d');
-                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
-
                 refresh();
+                plotToPNG.initVTK($element, fsRenderer);
             }
 
             var labMatrix = [
@@ -3297,36 +3280,20 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 renderer.resetCamera();
                 cam.zoom(1.3);
                 fsRenderer.getRenderWindow().render();
-                cacheCanvas();
-            }
-            function cacheCanvas() {
-                if (! snapshotCtx) {
-                    return;
-                }
-                var w = parseInt(canvas3d.getAttribute('width'));
-                var h = parseInt(canvas3d.getAttribute('height'));
-                snapshotCanvas.width = w;
-                snapshotCanvas.height = h;
-                // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
             $scope.$on('conductors.changed', refresh);
             $scope.$on('$destroy', function() {
-                $element.off();
+                $($element).find('.vtk-canvas-holder').off();
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
-                plotToPNG.removeCanvas($scope.reportId);
             });
 
-            appState.whenModelsLoaded($scope, function() {
-                init();
-                $scope.$on('simulationGrid.changed', refresh);
-                $scope.$on('box.changed', refresh);
-                $scope.$on('stl.changed', refresh);
-            });
+            $scope.$on('simulationGrid.changed', refresh);
+            $scope.$on('box.changed', refresh);
+            $scope.$on('stl.changed', refresh);
+            init();
         },
     };
 });
@@ -3594,13 +3561,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
             var reflectedParticleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.reflectedParticleTrackColor);
 
-            // this canvas is the one created by vtk
-            var canvas3d;
-
-            // we keep this one updated with a copy of the vtk canvas
-            var snapshotCanvas;
-            var snapshotCtx;
-
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             function addSTLConductors() {
@@ -3721,7 +3681,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 d3self = d3.selectAll($element);
 
-                var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
+                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
                     background: [1, 1, 1, 1],
                     container: rw,
@@ -3763,7 +3723,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                     isDragging = false;
                     isPointerUp = true;
-                    refresh(true);
                 };
                 rw.onwheel = function(evt) {
                     var camPos = cam.getPosition();
@@ -3773,11 +3732,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     if (! malSized) {
                         zoomUnits += evt.deltaY;
                     }
-                    utilities.debounce(
-                        function() {
-                            refresh(true);
-                        },
-                        100)();
                 };
 
                 //warpVTKService.initScene(coordMapper, renderer);
@@ -3839,13 +3793,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 absorbedLineBundle = coordMapper.buildActorBundle();
                 reflectedLineBundle = coordMapper.buildActorBundle();
-
-                canvas3d = $($element).find('canvas')[0];
-
-                // this canvas is used to store snapshots of the 3d canvas
-                snapshotCanvas = document.createElement('canvas');
-                snapshotCtx = snapshotCanvas.getContext('2d');
-                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+                plotToPNG.initVTK($element, renderer);
             };
 
             $scope.load = function() {
@@ -4107,7 +4055,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 // wait to initialize after the render so the world to viewport transforms are ready
                 //line.initializeWorld();
 
-                refresh(true);
+                refresh();
 
                 // allow the sizing to take hold and initialize the camera position
                 $timeout(resetCam, 0);
@@ -4350,7 +4298,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 };
             };
 
-            function refresh(doCacheCanvas) {
+            function refresh() {
 
                 var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
                 $scope.width = plotting.constrainFullscreenSize($scope, width, xzAspectRatio);
@@ -4523,10 +4471,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     ];
 
                 }
-
-                if (doCacheCanvas) {
-                    cacheCanvas();
-                }
             }
 
             function refreshAxes() {
@@ -4542,6 +4486,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     //var dim = b[i];
                     var dim = geometry.basis[i];
 
+                    if (! axisCfg[dim]) {
+                        return;
+                    }
                     var screenDim = axisCfg[dim].screenDim;
                     var isHorizontal = screenDim === 'x';
                     var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
@@ -4759,24 +4706,12 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 zoomUnits = 0;
                 didPan = false;
                 orientationMarker.updateMarkerOrientation();
-                refresh(true);
+                refresh();
             }
             function setCam(pos, fp, vu) {
                 cam.setPosition(pos[0], pos[1], pos[2]);
                 cam.setFocalPoint(fp[0], fp[1], fp[2]);
                 cam.setViewUp(vu[0], vu[1], vu[2]);
-            }
-            function cacheCanvas() {
-                if (! snapshotCtx) {
-                    return;
-                }
-                var w = parseInt(canvas3d.getAttribute('width'));
-                var h = parseInt(canvas3d.getAttribute('height'));
-                snapshotCanvas.width = w;
-                snapshotCanvas.height = h;
-                // this call makes sure the buffer is fresh (it appears)
-                fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
             function resetZoom() {
@@ -4792,7 +4727,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 $($element).off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
-                plotToPNG.removeCanvas($scope.reportId);
             };
 
             $scope.resize = function() {
