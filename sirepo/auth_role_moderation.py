@@ -80,7 +80,6 @@ class API(sirepo.api.Base):
         _send_moderation_status_email(p)
         return self.reply_ok()
 
-
     @sirepo.api_perm.require_adm
     def api_admModerateRedirect(self):
         t = set(
@@ -92,10 +91,9 @@ class API(sirepo.api.Base):
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
-                rows=[r.as_pkdict() for r in sirepo.auth_db.UserRoleInvite.get_moderation_request_rows()],
+                rows=sirepo.auth_db.UserRoleInvite.get_moderation_request_rows(),
             ),
         )
-
 
     @sirepo.api_perm.allow_sim_typeless_require_email_user
     def api_saveModerationReason(self):
