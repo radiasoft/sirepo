@@ -287,7 +287,7 @@ class _Dispatcher(PKDict):
 
     async def _cmd(self, msg, **kwargs):
         try:
-            if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
+            if msg.opName in (job.OP_ANALYSIS, job.OP_IO,) and msg.jobCmd != 'fastcgi':
                 return await self._fastcgi_op(msg)
             p = self._get_cmd_type(msg)(
                 msg=msg,

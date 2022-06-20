@@ -1238,7 +1238,7 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, srwService, 
             'electronBeam.verticalEmittance', 'electronBeam.verticalBeta',
             'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion',
             'electronBeam.verticalDispersionDerivative',
-        ], srwService.computeBeamParameters,
+        ], () => srwService.computeBeamParameters(),
         Object.keys(SIREPO.APP_SCHEMA.model.electronBeam).map(function(f) {
             return 'electronBeam.' + f;
         }), utilities.debounce(checkBeamName),
@@ -1561,9 +1561,6 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $sc
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
     $scope.watchFields = [
         [
             'undulator.horizontalDeflectingParameter',
