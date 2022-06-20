@@ -39,10 +39,10 @@ def _proprietary_codes():
     import urllib.error
     import urllib.request
 
-    for s in sirepo.feature_config.cfg().proprietary_sim_types:
+    for s in sirepo.feature_config.proprietary_sim_types():
         f = sirepo.sim_data.get_class(s).proprietary_code_tarball()
         if not f:
-            return
+            continue
         r = pkio.mkdir_parent(
             sirepo.srdb.proprietary_code_dir(s),
         ).join(f)

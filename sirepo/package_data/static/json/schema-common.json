@@ -165,6 +165,7 @@
         "saveSimulationData": "/save-simulation",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
+        "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
