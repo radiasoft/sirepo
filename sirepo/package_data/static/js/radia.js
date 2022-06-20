@@ -2546,7 +2546,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
                   <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="magnetDisplay" data-is-report="true" data-model-key="modelKey" data-report-id="reportId"></div>
                     <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
-                      <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
+                      <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
                       <div data-ng-transclude="">
                         <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
                         <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
@@ -2806,7 +2806,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 setAlpha();
                 setBgColor();
                 $scope.vtkScene.setCam();
-                $scope.vtkScene.refreshCanvas();
                 enableWatchFields(true);
             }
 
@@ -3368,12 +3367,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 ptPicker.initializePickList();
                 $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
+                plotToPNG.initVTK($element, $scope.vtkScene.renderer);
             });
 
             $scope.$on('modelChanged', function(e, name) {
                 //srdbg('modelChanged', name);
             });
-            
+
             $scope.$on('vtkScene.interactionMode', (e, d) => {
                 if (d === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE) {
                     if (selectedObj) {
