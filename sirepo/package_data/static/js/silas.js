@@ -14,17 +14,17 @@ SIREPO.app.config(function() {
         'plot2Animation',
         'crystal3dAnimation',
     ];
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">',
-          '<div data-select-element="" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="SelectElement" data-ng-class="fieldClass">
+          <div data-select-element="" data-model="model" data-field="field"></div>
+        </div>
+    `;
     SIREPO.appDownloadLinks = [
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+    `;
 });
 
 SIREPO.app.factory('silasService', function(appState) {
@@ -307,7 +307,7 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
     };
 });
 
-SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, utilities) {
+SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plotToPNG, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -316,13 +316,15 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, uti
         },
         template: `
             <div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
-              <table><tr><td width="100%">
-                <div class="sr-plot vtk-canvas-holder"></div>
-              </td><td>
-                <div style="margin-left: 1em"><svg width="80" ng-attr-height="{{canvasHeight}}">
-                  <g class="colorbar"></g>
-                </svg></div>
-              </td></tr></table>
+              <div class="sr-screenshot">
+                <table><tr><td width="100%">
+                  <div class="sr-plot vtk-canvas-holder"></div>
+                </td><td>
+                  <div style="margin-left: 1em"><svg width="80" ng-attr-height="{{canvasHeight}}">
+                    <g class="colorbar"></g>
+                  </svg></div>
+                </td></tr></table>
+              </div>
               <div style="margin-top: 1ex" class="row">
                 <div class="col-sm-4">
                   <input data-ng-model="showEdges" data-ng-change="resize()" type="checkbox" id="showEdges" checked="checked" /> <label for="showEdges">Show Edges</label>
@@ -497,6 +499,7 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, uti
                 orientationMarker.setViewportCorner(
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
+                plotToPNG.initVTK($element, fsRenderer);
             };
 
             $scope.load = function(json) {

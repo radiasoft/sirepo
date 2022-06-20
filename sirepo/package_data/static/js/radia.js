@@ -2806,7 +2806,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 setAlpha();
                 setBgColor();
                 $scope.vtkScene.setCam();
-                $scope.vtkScene.refreshCanvas();
                 enableWatchFields(true);
             }
 
@@ -3368,12 +3367,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 ptPicker.initializePickList();
                 $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
+                plotToPNG.initVTK($element, $scope.vtkScene.renderer);
             });
 
             $scope.$on('modelChanged', function(e, name) {
                 //srdbg('modelChanged', name);
             });
-            
+
             $scope.$on('vtkScene.interactionMode', (e, d) => {
                 if (d === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE) {
                     if (selectedObj) {

@@ -131,7 +131,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requestSender, vtkToPNG, vtkPlotting, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, plotToPNG, requestSender, vtkPlotting, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -141,7 +141,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
         template: `
             <div data-vtk-display="" class="vtk-display" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             $scope.isClientOnly = true;
             $scope.model = appState.models[$scope.modelName];
 
@@ -377,6 +377,7 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(false);
                 vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
             $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {

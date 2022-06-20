@@ -2134,23 +2134,17 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 }
                 return '';
             };
+
             $scope.downloadImage = function(height) {
-                const fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
-                if(plotToPNG.hasCanvas($scope.reportId) || vtkElement()) {
-                    plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
-                    return;
-                }
-                const plot3dCanvas = $scope.panel.find('canvas')[0];
-                const plot = $($scope.panel).find('svg.sr-plot')[0] || vtkElement();
-                if (! plot || $(plot).is(':hidden')) {
-                    return;
-                }
-                plotToPNG.downloadPNG(plot, height, plot3dCanvas, fileName);
+                plotToPNG.downloadPNG(
+                    $scope.panel,
+                    height,
+                    panelState.fileNameFromText($scope.panelHeading, 'png'));
             };
 
             $scope.hasData = function() {
-                if (! $($scope.panel).find('svg.sr-plot')[0] && ! vtkElement()) {
-                    return;
+                if (! plotToPNG.hasScreenshotElement($scope.panel)) {
+                    return false;
                 }
                 if (appState.isLoaded()) {
                     if (panelState.isHidden($scope.modelKey)) {
@@ -2176,10 +2170,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-            }
-
-            function vtkElement() {
-                return $($scope.panel).find('div[data-vtk-display]')[0];
             }
 
             $scope.toggleFullScreen = function() {
@@ -2234,15 +2224,15 @@ SIREPO.app.directive('reportContent', function(panelState) {
         template: `
             <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
               <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">
-                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="particle" data-particle="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>
+                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>
                 ${SIREPO.appReportTypes || ''}
               </div>
               <div data-ng-transclude=""></div>
@@ -3494,7 +3484,7 @@ SIREPO.app.directive('moderationPending', function(appState, panelState) {
     return {
         restrict: 'A',
         template: `
-          <div>Your request to access {{ appName }} has been received. For additional information, contact 
+          <div>Your request to access {{ appName }} has been received. For additional information, contact
             <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
           </div>
         `,
@@ -4170,123 +4160,38 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
 SIREPO.app.service('plotToPNG', function($http) {
 
-    var canvases = {};
-
-    function downloadPlot(svg, height, plot3dCanvas, fileName) {
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext("2d");
-        var scale = height / parseInt(svg.getAttribute('height'));
-        canvas.width = parseInt(svg.getAttribute('width')) * scale;
-        canvas.height = parseInt(svg.getAttribute('height')) * scale;
-        context.fillStyle = '#FFFFFF';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = '#000000';
-
-        if (plot3dCanvas) {
-            var el = $(plot3dCanvas);
-            context.drawImage(
-                plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
-                pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
-        }
-        d3.select(svg).classed('sr-download-png', true);
-        var svgString = svg.parentNode.innerHTML;
-        context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(function(blob) {
-            saveAs(blob, fileName);
-        });
-        d3.select(svg).classed('sr-download-png', false);
+    function screenshotElement(element, isVisible) {
+        return $(element).find(`.sr-screenshot${isVisible ? ':visible' : ''}`)[0];
     }
 
-    function pxToInteger(value) {
-        value = value.replace(/px/, '');
-        return parseInt(value);
-    }
-
-    // Stores canvases for updates and later use.  We use the existing reportID
-    // as the key
-    this.addCanvas = function(canvas, reportId) {
-        if (!reportId) {
-            return;
+    this.downloadPNG = function(el, outputHeight, fileName) {
+        el = screenshotElement(el, true);
+        if (el.srUpdateCanvas) {
+            el.srUpdateCanvas();
         }
-        canvases[reportId] = canvas;
-    };
-
-    this.getCanvas = function(reportId) {
-        return canvases[reportId];
-    };
-
-    this.getCopy = function (reportId, size) {
-        var canvas = this.getCanvas(reportId);
-        if(! canvas ) {
-            return null;
-        }
-
-        var s = [
-            parseInt(canvas.getAttribute('width')),
-            parseInt(canvas.getAttribute('height'))
-        ];
-        size.forEach(function (dim, i) {
-            var nextI = (i + 1) % 2;
-            var next = size[nextI];
-            if(! dim) {
-                if(next) {
-                    s[i] *= (next / s[nextI]);
-                    s[nextI] = next;
-                }
-            }
+        html2canvas(el, {
+            scale: outputHeight / $(el).height(),
+            backgroundColor: '#ffffff',
+            ignoreElements: (element) => element.matches("path.pointer.axis")
+        }).then(canvas => {
+            canvas.toBlob(function(blob) {
+                saveAs(blob, fileName);
+            });
         });
-        var cnvCopy = document.createElement('canvas');
-        var cnvCtx = cnvCopy.getContext('2d');
-        cnvCopy.width = s[0];
-        cnvCopy.height = s[1];
-        cnvCtx.drawImage(canvas, 0, 0, s[0], s[1]);
-        return cnvCopy;
     };
 
-    this.hasCanvas = function(reportId) {
-        return ! ! canvases[reportId];
+    this.hasScreenshotElement = element => {
+        return screenshotElement(element) ? true : false;
     };
 
-    this.removeCanvas = function(reportId) {
-        delete canvases[reportId];
-    };
-
-    this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
-        // embed all css styles into SVG node before rendering
-        if (svg.firstChild.nodeName == 'STYLE') {
-            downloadPlot(svg, height, plot3dCanvas, fileName);
-            return;
+    this.initVTK = (element, renderer) => {
+        const el = screenshotElement(element);
+        if (! el) {
+            throw new Error('Missing sr-screenshot class within vtk element');
         }
-        var promises = [];
-        ['sirepo.css'].concat(SIREPO.APP_SCHEMA.dynamicFiles.sirepoLibs.css || []).forEach(function(cssFile) {
-            promises.push($http.get('/static/css/' + cssFile + SIREPO.SOURCE_CACHE_KEY));
-        });
-        var cssText = '';
-        function cssResponse(response) {
-            promises.shift();
-            cssText += response.data;
-            if (promises.length) {
-                promises[0].then(cssResponse);
-                return;
-            }
-            if (svg.firstChild.nodeName != 'STYLE') {
-                var css = document.createElement('style');
-                css.type = 'text/css';
-                // work-around bug fix #857, canvg.js doesn't handle non-standard css
-                cssText = cssText.replace('input::-ms-clear', 'ms-clear');
-                css.appendChild(document.createTextNode(cssText));
-                svg.insertBefore(css, svg.firstChild);
-            }
-            downloadPlot(svg, height, plot3dCanvas, fileName);
-        }
-        promises[0].then(cssResponse);
-    };
-
-    this.downloadCanvas = function(reportId, width, height, fileName)  {
-        var cnv = this.getCopy(reportId, [width || 0, height || 0]);
-        cnv.toBlob(function(blob) {
-            saveAs(blob, fileName);
-        });
+        el.srUpdateCanvas = () => {
+            renderer.getRenderWindow().render();
+        };
     };
 
 });

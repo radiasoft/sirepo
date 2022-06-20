@@ -29,7 +29,8 @@
         </div>
     </div>
     <!-- the canvas holder is the container for the vtk render window -->
-    <div class="vtk-canvas-holder" data-ng-style="interactionStyle()" data-ng-show="! dataCleared">
+    <div class="sr-screenshot">
+      <div class="vtk-canvas-holder" data-ng-style="interactionStyle()" data-ng-show="! dataCleared"></div>
     </div>
     <div class="vtk-info-overlay" data-ng-class="{'vtk-info-overlay-move': mode == 'move', 'vtk-info-overlay-select': mode == 'select'}" data-ng-attr-width="{{ vtkCanvasGeometry().size.width }}px" data-ng-attr-height="{{ vtkCanvasGeometry().size.height }}px" data-ng-attr-style="top:{{ vtkCanvasGeometry().pos.top }}px; left:{{ vtkCanvasGeometry().pos.left }}px;">
       <svg data-ng-attr-width="{{ vtkCanvasGeometry().size.width }}" data-ng-attr-height="{{ vtkCanvasGeometry().size.height }}">
