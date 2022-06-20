@@ -182,7 +182,9 @@ class SRWShadowConverter():
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         self.beamline = res.models.beamline
         self.__beamline_to_srw(data)
+
         res.models.beamline = self.beamline
+        pkdp('self.beamline: {}', self.beamline)
         return res
 
     def srw_to_shadow(self, models):
@@ -227,9 +229,9 @@ class SRWShadowConverter():
             elif item.type == 'watch':
                 self.beamline.append(self.__copy_item(item, to_shadow=False))
             elif item.type == 'crl':
-                # TODO (gurhar1133): temporary
-                continue
-                # new_beamline.append(self.__crl_to_srw(item))
+                srw_crl = self.__crl_to_srw(item)
+                pkdp('SRW_CRL: {}', srw_crl)
+                self.beamline.append(srw_crl)
         return self.beamline
 
     def __crl_to_srw(self, item):
@@ -248,9 +250,24 @@ class SRWShadowConverter():
             #     res.fcyl = '1'
             #     res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
             # return res
-        #TODO (gurhar1133): need to invert
-        #TODO (gurhar1133): compare srw and shadow crl elements side by side in sirepo-data.json
-        pass
+        #TODO (gurhar1133): still unsure on how to invert __crl_to_shadow
+        res = _SRW.model_defaults(item.type)
+
+
+
+        res.pkupdate(PKDict(
+            attenuationLength=1e-2/float(item.attenuationCoefficient),
+            shape='1' if item.fmirr == '4' else '2',
+            refractiveIndex=1 - item.refractionIndex,
+            focalDistance=float(item.position)*(item.focalDistance)/(float(item.position)+(item.focalDistance)),
+        ))
+
+
+
+        res = self.__copy_item(item, res, to_shadow=False)
+        pkdp('\n\n\n CRL: {}', res)
+        return res
+
 
     def __beamline_to_shadow(self, srw, shadow):
         for item in srw.beamline:

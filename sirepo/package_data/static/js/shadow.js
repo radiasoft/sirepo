@@ -449,7 +449,7 @@ SIREPO.app.directive('appFooter', function(appState, requestSender) {
                 var res = appState.clone(data.models.simulation);
                 res.simulationType = data.simulationType;
                 res.name = 'test'
-                srdbg('res in newSimData: ', res);
+                srdbg('beam: ', data.models.beamline);
                 return res;
             }
 

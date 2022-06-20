@@ -543,6 +543,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'grazingAngle' in i and 'normalVectorX' in i and 'autocomputeVectors' not in i:
                 i.autocomputeVectors = '1'
             if t == 'crl':
+                pkdp('i in fixup: {}', i)
                 for k, v in PKDict(
                     material='User-defined',
                     method='server',
