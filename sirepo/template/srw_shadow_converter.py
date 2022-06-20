@@ -233,22 +233,23 @@ class SRWShadowConverter():
         return self.beamline
 
     def __crl_to_srw(self, item):
-        # res =  PKDict(
-        #     type='crl',
-        #     attenuationLength=float(item.attenuationCoefficient)*1e-2
-        #     # fcyl='0', #TODO (gurhar1133): not sure on this one yet
-        #     # fhit_c='1',
-        #     shape='1' if fmirr == '4'
-        #     fmirr='4' if item.shape == '1' else '1',
-        #     focalDistance=float(item.position) * float(item.focalDistance) / (float(item.position) - float(item.focalDistance)),
-        #     pilingThickness=0,
-        #     refractionIndex=1 - float(item.refractiveIndex),
-        # )
-        # if item.focalPlane in ('1', '2'):
-        #     res.fcyl = '1'
-        #     res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
-        # return res
-        # ^ __crl_to_shadow #TODO (gurhar1133): need to invert
+        #  def __crl_to_shadow(self, item):
+            # res = self.__copy_item(item, PKDict(
+            #     type='crl',
+            #     attenuationCoefficient=1e-2 / float(item.attenuationLength),
+            #     fcyl='0',
+            #     fhit_c='1',
+            #     fmirr='4' if item.shape == '1' else '1',
+            #     focalDistance=float(item.position) * float(item.focalDistance) / (float(item.position) - float(item.focalDistance)),
+            #     pilingThickness=0,
+            #     refractionIndex=1 - float(item.refractiveIndex),
+            # ))
+            # if item.focalPlane in ('1', '2'):
+            #     res.fcyl = '1'
+            #     res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
+            # return res
+        #TODO (gurhar1133): need to invert
+        #TODO (gurhar1133): compare srw and shadow crl elements side by side in sirepo-data.json
         pass
 
     def __beamline_to_shadow(self, srw, shadow):
