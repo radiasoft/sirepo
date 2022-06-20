@@ -105,12 +105,16 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
             reportId: '<',
         },
         template: `
-            <div data-vtk-display="" class="vtk-display"  data-ng-attr-style="width: calc(92vh - {{ topHeight() }}px); margin: 0 auto;" data-show-border="true" data-report-id="reportId" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-reset-side="z" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>
+            <div data-vtk-display="" class="vtk-display"
+              data-ng-style="sizeStyle()" data-show-border="true"
+              data-report-id="reportId" data-model-name="{{ modelName }}"
+              data-event-handlers="eventHandlers" data-reset-side="z"
+              data-enable-axes="true" data-axis-cfg="axisCfg"
+              data-axis-obj="axisObj" data-enable-selection="true"></div>
         `,
         controller: function($scope, $element) {
             $scope.isClientOnly = true;
             $scope.model = appState.models[$scope.modelName];
-
             let axesBoxes = {};
             let picker = null;
             let vtkScene = null;
@@ -316,11 +320,15 @@ SIREPO.app.directive('geometry3d', function(appState, panelState, plotting, requ
                 //TODO(pjm): reposition camera?
             };
 
-            $scope.topHeight = () => {
-                return $('.navbar').outerHeight() +
-                    $('.panel-heading').outerHeight() +
-                    utilities.fontSizeFromString($('.panel-body').css('padding')) +
-                    2 * utilities.fontSizeFromString($('.vtk-display').css('padding'));
+            $scope.sizeStyle = () => {
+                // 53 legend size + 35 bottom panel padding
+                const ph = Math.ceil(
+                    $(window).height() - ($($element).offset().top + 53 + 35));
+                const pw = Math.ceil($($element).width() - 1);
+                return {
+                    width: `${Math.min(ph, pw)}px`,
+                    margin: '0 auto',
+                };
             };
 
             $scope.$on('vtk-init', (e, d) => {
