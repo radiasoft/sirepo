@@ -1957,7 +1957,6 @@ def _rsopt_jinja_context(data):
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName='scan_results',
-        runDir=f'{_SIM_DATA.EXPORT_RSOPT}_scan',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
     )
