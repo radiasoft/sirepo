@@ -153,6 +153,11 @@ class SRWShadowConverter():
         )],
     ]
 
+    _MATERIAL_MAP = PKDict({
+        'Germanium (X0h)': 'Ge',
+        'Diamond (X0h)': 'Diamond',
+    })
+
     def __init__(self):
         pass
 
@@ -234,6 +239,8 @@ class SRWShadowConverter():
                 self.beamline.append(srw_crl)
             elif item.type == 'zonePlate':
                 self.beamline.append(self.__zoneplate_to_srw(item))
+            elif item.type == 'crystal':
+                self.__crystal_to_srw(item)
             elif item.type == 'lens':
                 self.beamline.append(self.__copy_item(item, PKDict(
                     type='lens',
@@ -332,10 +339,7 @@ class SRWShadowConverter():
         return res
 
     def __crystal_to_shadow(self, item):
-        material_map = PKDict({
-            'Germanium (X0h)': 'Ge',
-            'Diamond (X0h)': 'Diamond',
-        })
+        material_map = self._MATERIAL_MAP
         angle, rotate, offset = self.__compute_angle(
             'vertical' if item.diffractionAngle == '0' or item.diffractionAngle == '3.14159265' \
             else 'horizontal',
@@ -351,8 +355,27 @@ class SRWShadowConverter():
         )))
         self.__reset_rotation(rotate, item.position)
 
+    def __crystal_to_srw(self, item):
+        material_map = self.__invert_dict(self._MATERIAL_MAP)
+        o = 'horizontal'
+        # nvx, nvy, nvz = self.__compute_angle(o, item, to_shadow=False)
+        self.beamline.append(
+            self.__copy_item(
+                item,
+                PKDict(
+                    type='crystal',
+                    material=material_map.get(item.braggMaterial, 'Si (SRW)'),
+                    energy=item.braggMinEnergy + 500,
+                    # nvx=nvx,
+                    # nvy=nvy,
+                    # nvz=nvz,
+                ), to_shadow=False
+            )
+        )
+        # self.__reset_rotation_to_srw(rotate, item.position)
 
-    def __compute_angle(self, orientation, item):
+
+    def __compute_angle(self, orientation, item, to_shadow=True):
         rotate = 0
         offset = 0
         if orientation == 'horizontal':
