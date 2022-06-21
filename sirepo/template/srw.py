@@ -143,7 +143,7 @@ _RSOPT_PARAMS = {
     i for sublist in [v for v in [list(SCHEMA.constants.rsOptElements[k].keys()) for
         k in SCHEMA.constants.rsOptElements]] for i in sublist
 }
-_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != 'rotation']
+_RSOPT_PARAMS_NO_ROT = [p for p in _RSOPT_PARAMS if p != 'rotation']
 
 _SRW_LOG_FILE = 'run.log'
 
@@ -1955,7 +1955,7 @@ def _rsopt_jinja_context(data):
         readmeFileName='README.txt',
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
-        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
+        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,
         rsOptOutFileName='scan_results',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
