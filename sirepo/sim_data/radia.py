@@ -82,6 +82,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.exampleName = dm.simulation.name
             if dm.simulation.name == 'Wiggler':
                 dm.geometryReport.isSolvable = '0'
+                if not dm.simulation.get('heightAxis'):
+                    dm.simulation.heightAxis = 'z'
                 if not len(dm.fieldPaths.paths):
                     dm.fieldPaths.paths.append(PKDict(
                         _super='fieldPath',

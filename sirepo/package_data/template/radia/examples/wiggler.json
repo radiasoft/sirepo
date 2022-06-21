@@ -50,6 +50,7 @@
             "enableKickMaps": "0",
             "exampleName": "Wiggler",
             "folder": "/Examples",
+            "heightAxis": "z",
             "isExample": true,
             "name": "Wiggler",
             "notes": "",
