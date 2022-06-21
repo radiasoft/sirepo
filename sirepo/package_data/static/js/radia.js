@@ -3420,6 +3420,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! $scope.model.fieldPoints) {
                     $scope.model.fieldPoints = [];
                 }
+                const r = 'fieldLineoutReport';
+                for (const p of appState.models.fieldPaths.paths) {
+                    if (p.id === appState.models[r].fieldPath.id) {
+                        appState.models[r].fieldPath = p;
+                        appState.saveChanges(r);
+                        break;
+                    }
+                }
                 updateViewer();
             });
 
