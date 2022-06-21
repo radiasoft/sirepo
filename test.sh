@@ -10,9 +10,9 @@ test_err() {
 }
 
 test_js() {
-    npm run lint -- "${jsfiles[@]}"
+    jshint --config=etc/jshint.conf "${jsfiles[@]}"
     if [[ ! ${sirepo_test_no_karma:-} ]]; then
-        npm run test
+        karma start etc/karma-conf.js
     fi
 }
 
