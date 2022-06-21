@@ -1257,9 +1257,7 @@ def _enum_text(name, model, field):
 
 
 def _export_rsopt_config(data):
-    v = _rsopt_jinja_context(data.models[_RSOPT_EXPORT_BASE_NAME])
-    v.libFiles = _SIM_DATA.lib_file_basenames(data)
-    return _write_rsopt_zip(data, v)
+    return _write_rsopt_zip(data, _rsopt_jinja_context(data))
 
 
 def _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd):
@@ -1604,7 +1602,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
-        rsopt_ctx = _rsopt_jinja_context(dm.exportRsOpt)
+        rsopt_ctx = _rsopt_jinja_context(data)
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
@@ -1943,12 +1941,14 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
-def _rsopt_jinja_context(model):
+def _rsopt_jinja_context(data):
     import multiprocessing
+    model = data.models[_RSOPT_EXPORT_BASE_NAME]
     e = _process_rsopt_elements(model.elements)
     return PKDict(
         fileBase=_RSOPT_EXPORT_BASE_NAME,
         forRSOpt=True,
+        libFiles=_SIM_DATA.lib_file_basenames(data),
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
