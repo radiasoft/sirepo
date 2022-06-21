@@ -2258,6 +2258,13 @@ def _write_rsopt_zip(data, ctx):
             files.append(f)
         return files
 
+    def _write(zip_file, path):
+        zip_file.writestr(
+            path,
+            python_source_for_model(data, ctx.fileBase, plot_reports=False) if path.endswith('.py') else
+                template_common.render_jinja(SIM_TYPE, ctx, path)
+        )
+
     filename = f'{_SIM_DATA.EXPORT_RSOPT}.zip'
     with zipfile.ZipFile(
         filename,
@@ -2267,11 +2274,7 @@ def _write_rsopt_zip(data, ctx):
     ) as z:
         # the shell script depends on the other filenames being defined
         for f in _files():
-            z.writestr(
-                f,
-                python_source_for_model(data, ctx.fileBase, plot_reports=False) if f.endswith('.py') else
-                    template_common.render_jinja(SIM_TYPE, ctx, f)
-            )
+            _write(z, f)
         z.writestr(
             ctx.readmeFileName,
             template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName)
