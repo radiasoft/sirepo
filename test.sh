@@ -10,7 +10,6 @@ test_err() {
 }
 
 test_js() {
-    karma --version && jshint --version || npm install
     npm run lint -- "${jsfiles[@]}"
     if [[ ! ${sirepo_test_no_karma:-} ]]; then
         npm run test
