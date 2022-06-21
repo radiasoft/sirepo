@@ -234,41 +234,24 @@ class SRWShadowConverter():
                 self.beamline.append(srw_crl)
             elif item.type == 'zonePlate':
                 self.beamline.append(self.__zoneplate_to_srw(item))
+            elif item.type == 'lens':
+                self.beamline.append(self.__copy_item(item, PKDict(
+                    type='lens',
+                    verticalOffset=0,
+                    horizontalOffset=0,
+                ), to_shadow=False))
         return self.beamline
 
     def __crl_to_srw(self, item):
-        #  def __crl_to_shadow(self, item):
-            # res = self.__copy_item(item, PKDict(
-            #     type='crl',
-            #     attenuationCoefficient=1e-2 / float(item.attenuationLength),
-            #     fcyl='0',
-            #     fhit_c='1',
-            #     fmirr='4' if item.shape == '1' else '1',
-            #     focalDistance=float(item.position) * float(item.focalDistance) / (float(item.position) - float(item.focalDistance)),
-            #     pilingThickness=0,
-            #     refractionIndex=1 - float(item.refractiveIndex),
-            # ))
-            # if item.focalPlane in ('1', '2'):
-            #     res.fcyl = '1'
-            #     res.cil_ang = '90.0' if item.focalPlane == '1' else '0.0'
-            # return res
-        #TODO (gurhar1133): still unsure on how to invert __crl_to_shadow
+
         res = _SRW.model_defaults(item.type)
-
-
-
         res.pkupdate(PKDict(
             attenuationLength=1e-2/float(item.attenuationCoefficient),
             shape='1' if item.fmirr == '4' else '2',
             refractiveIndex=1 - item.refractionIndex,
             focalDistance=float(item.position)*(item.focalDistance)/(float(item.position)+(item.focalDistance)),
         ))
-
-
-
-        res = self.__copy_item(item, res, to_shadow=False)
-        pkdp('\n\n\n CRL: {}', res)
-        return res
+        return self.__copy_item(item, res, to_shadow=False)
 
 
     def __beamline_to_shadow(self, srw, shadow):
