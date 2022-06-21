@@ -39,8 +39,6 @@ PARSED_DATA_ATTR = 'srwParsedData'
 
 _CANVAS_MAX_SIZE = 65535
 
-_RSOPT_EXPORT_BASE_NAME = 'exportRsOpt'
-
 _OUTPUT_FOR_MODEL = PKDict(
     coherenceXAnimation=PKDict(
         title='',
@@ -129,7 +127,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         labels=['Horizontal Position', 'Vertical Position', 'Intensity'],
         units=['m', 'm', '{intensity_units}'],
     ),
-    exportRsOpt=PKDict(filename=f'{_RSOPT_EXPORT_BASE_NAME}.zip',)
+    exportRsOpt=PKDict(filename=f'{_SIM_DATA.EXPORT_RSOPT}.zip',)
 )
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
@@ -343,7 +341,7 @@ def extract_report_data(sim_in):
         return _extract_brilliance_report(dm.brillianceReport, out.filename)
     if r == 'trajectoryReport':
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
-    if r == _RSOPT_EXPORT_BASE_NAME:
+    if r == _SIM_DATA.EXPORT_RSOPT:
         return out
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ('coherenceXAnimation', 'coherenceYAnimation'):
@@ -911,7 +909,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if data.report == _RSOPT_EXPORT_BASE_NAME:
+    if data.report == _SIM_DATA.EXPORT_RSOPT:
         p = ''
         _export_rsopt_config(data)
     else:
@@ -1748,7 +1746,7 @@ def _intensity_units(sim_in):
 
 
 def _is_for_rsopt(report):
-    return report == _RSOPT_EXPORT_BASE_NAME
+    return report == _SIM_DATA.EXPORT_RSOPT
 
 
 def _load_user_model_list(model_name):
@@ -1943,23 +1941,23 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
 
 def _rsopt_jinja_context(data):
     import multiprocessing
-    model = data.models[_RSOPT_EXPORT_BASE_NAME]
+    model = data.models[_SIM_DATA.EXPORT_RSOPT]
     e = _process_rsopt_elements(model.elements)
     return PKDict(
-        fileBase=_RSOPT_EXPORT_BASE_NAME,
+        fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
-        outFileName=f'{_RSOPT_EXPORT_BASE_NAME}.out',
+        outFileName=f'{_SIM_DATA.EXPORT_RSOPT}.out',
         randomSeed=model.randomSeed if model.randomSeed is not None else '',
         readmeFileName='README.txt',
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
         rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
         rsOptOutFileName='scan_results',
-        runDir=f'{_RSOPT_EXPORT_BASE_NAME}_scan',
+        runDir=f'{_SIM_DATA.EXPORT_RSOPT}_scan',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
     )
@@ -2256,12 +2254,12 @@ def _write_rsopt_zip(data, ctx):
     def _files():
         files = []
         for t in ('py', 'sh', 'yml',):
-            f = f'{_RSOPT_EXPORT_BASE_NAME}.{t}'
+            f = f'{_SIM_DATA.EXPORT_RSOPT}.{t}'
             ctx[f'{t}FileName'] = f
             files.append(f)
         return files
 
-    filename = f'{_RSOPT_EXPORT_BASE_NAME}.zip'
+    filename = f'{_SIM_DATA.EXPORT_RSOPT}.zip'
     with zipfile.ZipFile(
         filename,
         mode='w',
