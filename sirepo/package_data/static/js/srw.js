@@ -1898,9 +1898,7 @@ SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState,
                         }
                         numParams += e[srwService.rsOptElementOffsetField(p)]
                             .split(',')
-                            .map(parseFloat)
-                            .filter(x => x !== 0)
-                            .length;
+                            .reduce((c, x) => c + (parseFloat(x) ? 1 : 0), 0);
                     }
                 }
                 $scope.model.totalSamples = numParams === 0 ? 0 :
