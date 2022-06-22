@@ -864,6 +864,8 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
               </div>
             </div>
+            <div data-download-status="" data-sim-state="" data-label="" data-title="">
+            </div>
         `,
         controller: function($scope) {
             $scope.newSimURL = false;
@@ -1822,7 +1824,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, validationService) {
+SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState, srwService, utilities, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1893,11 +1895,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                         }
                         numParams += e[srwService.rsOptElementOffsetField(p)]
                             .split(',')
-                            .map(parseFloat)
-                            .filter((x) => {
-                                return x != 0;
-                            })
-                            .length;
+                            .reduce((c, x) => c + (parseFloat(x) ? 1 : 0), 0);
                     }
                 }
                 $scope.model.totalSamples = numParams === 0 ? 0 :
@@ -1969,29 +1967,62 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
             $scope.$on('exportRsOpt.editor.show', () => {
                 updateElements();
-                // set form dirty so user does not have to change anything to export
-                $scope.form.$setDirty();
             });
 
-            appState.whenModelsLoaded($scope, function() {
-                updateElements();
-                updateElementWatchFields();
+            updateElements();
+            updateElementWatchFields();
+            panelState.waitForUI(() => {
                 panelState.enableField('exportRsOpt', 'totalSamples', false);
-                appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
-                appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
-                appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
-                $scope.$on('beamline.changed', updateElements);
-                $scope.$on('exportRsOpt.changed', updateElements);
-                $scope.$on('exportRsOpt.saved', () => {
-                    requestSender.newWindow('exportRSOptConfig', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
-                    });
-                });
             });
+            appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
+            appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
+            appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
+            $scope.$on('beamline.changed', updateElements);
+            $scope.$on('exportRsOpt.changed', updateElements);
         },
     };
+});
+
+SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSimulation, requestSender, $scope, $rootScope) {
+
+    const self = this;
+    self.simScope = $scope;
+    self.simComputeModel = 'exportRsOpt';
+
+    self.simHandleStatus = data => {
+        if (self.simState.isStopped()) {
+            $('#sr-download-status').modal('hide');
+        }
+        if (self.simState.isStateCompleted()) {
+            requestSender.newWindow('downloadDataFile', {
+                '<simulation_id>': appState.models.simulation.simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<model>': 'exportRsOpt',
+                '<frame>': -1,
+                '<suffix>': 'zip'
+            });
+        }
+    };
+
+    self.startSimulation = function(model) {
+        $('#sr-download-status').modal('show');
+        $rootScope.$broadcast('download.started', self.simState, 'Export Script', 'Exporting exportRsOpt.zip');
+        self.simState.saveAndRunSimulation([model]);
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.export = () => {
+        self.startSimulation($scope.modelName);
+    };
+    
+    $scope.whenSelected = () => {
+        // set form dirty so user does not have to change anything to export
+        $scope.$parent.form.$setDirty();
+    };
+
+    $scope.$on('exportRsOpt.saved', $scope.export);
+
 });
 
 

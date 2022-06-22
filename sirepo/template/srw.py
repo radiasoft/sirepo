@@ -4,7 +4,6 @@ u"""SRW execution template.
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -129,6 +128,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         units=['m', 'm', '{intensity_units}'],
     ),
 )
+_OUTPUT_FOR_MODEL[f'{_SIM_DATA.EXPORT_RSOPT}'] = PKDict(filename=f'{_SIM_DATA.EXPORT_RSOPT}.zip',)
 _OUTPUT_FOR_MODEL.fluxAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.fluxReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation = copy.deepcopy(_OUTPUT_FOR_MODEL.watchpointReport)
 _OUTPUT_FOR_MODEL.beamlineAnimation.filename='res_int_pr_se{watchpoint_id}.dat'
@@ -143,7 +143,7 @@ _RSOPT_PARAMS = {
     i for sublist in [v for v in [list(SCHEMA.constants.rsOptElements[k].keys()) for
         k in SCHEMA.constants.rsOptElements]] for i in sublist
 }
-_RSOPT_PARAMS_NO_ROTATION = [p for p in _RSOPT_PARAMS if p != 'rotation']
+_RSOPT_PARAMS_NO_ROT = [p for p in _RSOPT_PARAMS if p != 'rotation']
 
 _SRW_LOG_FILE = 'run.log'
 
@@ -341,6 +341,8 @@ def extract_report_data(sim_in):
         return _extract_brilliance_report(dm.brillianceReport, out.filename)
     if r == 'trajectoryReport':
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
+    if r == _SIM_DATA.EXPORT_RSOPT:
+        return out
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if r in ('coherenceXAnimation', 'coherenceYAnimation'):
         _fix_file_header(out.filename)
@@ -385,45 +387,6 @@ def extract_report_data(sim_in):
     if out.dimensions == 3:
         res = _remap_3d(res, allrange, out, dm[r])
     return res
-
-
-def export_rsopt_config(data, filename):
-    v = _rsopt_jinja_context(data.models.exportRsOpt)
-
-    fz = pkio.py_path(filename)
-    f = re.sub(r'[^\w.]+', '-', fz.purebasename).strip('-')
-    v.runDir = f'{f}_scan'
-    v.fileBase = f
-    tf = {k: PKDict(file=f'{f}.{k}') for k in ['py', 'sh', 'yml']}
-    for t in tf:
-        v[f'{t}FileName'] = tf[t].file
-    v.outFileName = f'{f}.out'
-    v.readmeFileName = 'README.txt'
-    v.libFiles = [f.basename for f in _SIM_DATA.lib_files_for_export(data)]
-    v.hasLibFiles = len(v.libFiles) > 0
-    v.randomSeed = data.models.exportRsOpt.randomSeed if \
-        data.models.exportRsOpt.randomSeed is not None else ''
-
-    # do this in a second loop so v is fully updated
-    # note that the rsopt context is regenerated in python_source_for_model()
-    for t in tf:
-        tf[t].content = python_source_for_model(data, 'rsoptExport', plot_reports=False) \
-            if t == 'py' else \
-            template_common.render_jinja(SIM_TYPE, v, f'rsoptExport.{t}')
-    readme = template_common.render_jinja(SIM_TYPE, v, v.readmeFileName)
-
-    with zipfile.ZipFile(
-        fz,
-        mode='w',
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
-        for t in tf:
-            z.writestr(tf[t].file, tf[t].content)
-        z.writestr(v.readmeFileName, readme)
-        for d in _SIM_DATA.lib_files_for_export(data):
-            z.write(d, d.basename)
-    return fz
 
 
 def get_application_data(data, **kwargs):
@@ -946,9 +909,14 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    if data.report == _SIM_DATA.EXPORT_RSOPT:
+        p = ''
+        _export_rsopt_config(data)
+    else:
+        p = _trim(_generate_parameters_file(data, run_dir=run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _trim(_generate_parameters_file(data, run_dir=run_dir))
+        p,
     )
     if is_parallel:
         return template_common.get_exec_parameters_cmd(_SIM_DATA.is_run_mpi(data))
@@ -1284,6 +1252,10 @@ def _enum_text(name, model, field):
     if field in model:
         return template_common.enum_text(SCHEMA, name, model[field])
     return ''
+
+
+def _export_rsopt_config(data):
+    return _write_rsopt_zip(data, _rsopt_jinja_context(data))
 
 
 def _extend_plot(ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd):
@@ -1628,7 +1600,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     dm = data.models
     # do this before validation or arrays get turned into strings
     if is_for_rsopt:
-        rsopt_ctx = _rsopt_jinja_context(dm.exportRsOpt)
+        rsopt_ctx = _rsopt_jinja_context(data)
     _validate_data(data, SCHEMA)
     _update_model_fields(dm)
     _update_models_for_report(report, dm)
@@ -1774,7 +1746,7 @@ def _intensity_units(sim_in):
 
 
 def _is_for_rsopt(report):
-    return report == 'rsoptExport'
+    return report == _SIM_DATA.EXPORT_RSOPT
 
 
 def _load_user_model_list(model_name):
@@ -1967,17 +1939,23 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     return ar2d, x_range, y_range
 
 
-def _rsopt_jinja_context(model):
+def _rsopt_jinja_context(data):
     import multiprocessing
+    model = data.models[_SIM_DATA.EXPORT_RSOPT]
     e = _process_rsopt_elements(model.elements)
     return PKDict(
+        fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
+        libFiles=_SIM_DATA.lib_file_basenames(data),
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
+        outFileName=f'{_SIM_DATA.EXPORT_RSOPT}.out',
+        randomSeed=model.randomSeed if model.randomSeed is not None else '',
+        readmeFileName='README.txt',
         rsOptElements=e,
         rsOptParams=_RSOPT_PARAMS,
-        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROTATION,
+        rsOptParamsNoRot=_RSOPT_PARAMS_NO_ROT,
         rsOptOutFileName='scan_results',
         scanType=model.scanType,
         totalSamples=model.totalSamples,
@@ -2268,6 +2246,45 @@ def _wavefront_pickle_filename(el_id):
     if el_id:
         return f'wid-{el_id}.pkl'
     return 'initial.pkl'
+
+
+def _write_rsopt_zip(data, ctx):
+
+    def _files():
+        files = []
+        for t in ('py', 'sh', 'yml',):
+            f = f'{_SIM_DATA.EXPORT_RSOPT}.{t}'
+            ctx[f'{t}FileName'] = f
+            files.append(f)
+        return files
+
+    def _write(zip_file, path):
+        zip_file.writestr(
+            path,
+            python_source_for_model(data, ctx.fileBase, plot_reports=False) if path.endswith('.py') else
+                template_common.render_jinja(SIM_TYPE, ctx, path)
+        )
+
+    filename = f'{_SIM_DATA.EXPORT_RSOPT}.zip'
+    with zipfile.ZipFile(
+        filename,
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        # the shell script depends on the other filenames being defined
+        for f in _files():
+            _write(z, f)
+        z.writestr(
+            ctx.readmeFileName,
+            template_common.render_jinja(SIM_TYPE, ctx, ctx.readmeFileName)
+        )
+        for f in ctx.libFiles:
+            z.write(f, f)
+    return PKDict(
+        content_type='application/zip',
+        filename=filename,
+    )
 
 
 def _zip_path_for_file(zf, file_to_find):
