@@ -60,7 +60,7 @@ def assign_instance_op(op):
         'op.msg.uid={} is not same as db.uid={} for jid={}'.format(
             m.uid,
             res.uid,
-            m.computeJid,
+            m.get('computeJid'),
         )
     res.ops[op.opId] = op
     return res

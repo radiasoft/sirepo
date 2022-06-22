@@ -27,6 +27,7 @@ def _event_end_api_call(kwargs):
     if i:
         kwargs.resp.headers['X-Sirepo-UserAgentId'] = i
 
+
 @contextlib.contextmanager
 def begin(sreq):
     # TODO(e-carlin): use sreq
@@ -46,20 +47,23 @@ def begin(sreq):
             start_time=t,
             request_time=t,
         ).save()
-        # TODO(e-carlin): beginSession
-        # sreq.call_api('beginSession', data=PKDict(simulationType='srw'))
+        _begin()
     else:
         s = _Session.search_by(user_agent_id=i)
         assert s, f'No session for user_agent_id={i} type={type(i)}'
         t = s.request_time
         if sirepo.srtime.utc_now() - t > datetime.timedelta(minutes=1):  # TODO(rorour) use constant tune 60
-            sirepo.uri_router.call_api('beginSession', data=PKDict(simulationType='srw'))
+            _begin()
         s.request_time = sirepo.srtime.utc_now()
         s.save()
     sirepo.srcontext.set(_SRCONTEXT_KEY, i)
     yield
     # TODO(e-carlin): clear srcontext_key or restore to previous?
 
+
+def _begin():
+    from sirepo import job_api
+    job_api.begin_session()
 
 def _init():
     sirepo.events.register(PKDict(

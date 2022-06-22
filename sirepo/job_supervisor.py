@@ -92,7 +92,7 @@ class ServerReq(PKDict):
             'no secret in message content={}'.format(self.content)
         assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match content={}'.format(self.content)
-        return await _ComputeJob.receive(self)
+        return await _ATC.receive(self)
 
 
 class SlotProxy(PKDict):
@@ -169,8 +169,89 @@ async def terminate():
 
     await job_driver.terminate()
 
+# TODO(e-carlin): sort
+# TODO(e-carlin): name?
+class _ATC(PKDict):
 
-class _ComputeJob(PKDict):
+    def __init__(self, **kwargs):
+        super().__init__(
+            **kwargs,
+        )
+
+    def destroy_op(self, op):
+        pass
+
+    @classmethod
+    def get_compute_job_or_self(cls, req):
+        try:
+            j = req.content.computeJid
+        except AttributeError:
+            return cls()
+        self = _ComputeJob.instances.pksetdefault(j, lambda: _ComputeJob.create(req))[j]
+        # SECURITY: must only return instances for authorized user
+        assert req.content.uid == self.db.uid, \
+            'req.content.uid={} is not same as db.uid={} for jid={}'.format(
+                req.content.uid,
+                self.db.uid,
+                j,
+            )
+        return self
+
+    @classmethod
+    async def receive(cls, req):
+        if req.content.get('api') != 'api_runStatus':
+            pkdlog('{}', req)
+        try:
+            o = cls.get_compute_job_or_self(req)
+            return await getattr(
+                o,
+                '_receive_' + req.content.api,
+            )(req)
+        except sirepo.util.ASYNC_CANCELED_ERROR:
+            return PKDict(state=job.CANCELED)
+        except Exception as e:
+            pkdlog('{} error={} stack={}', req, e, pkdexc())
+            return sirepo.http_reply.gen_tornado_exception(e)
+
+    async def op_run_timeout(self, op):
+        pass
+
+    # TODO(e-carlin): sort
+    # TODO(e-carlin): so this is what I need to be able to do
+    # TODO(e-carlin): move the adm jobs stuff here too?
+    async def _receive_api_beginSession(self, req):
+        c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, 'sequential')
+        try:
+            await c.prepare_send()
+        except Awaited:
+            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
+            # In the event that it does, the agent is still started,
+            # so no need to try again after Awaited.
+            pass
+        finally:
+            c.destroy(cancel=False)
+        return PKDict()
+
+    def _create_op(self, opName, req, kind, job_run_mode,  **kwargs):
+        req.kind = kind
+        o = _Op(
+            # TODO(e-carlin): computeJob should be renamed
+            computeJob=self,
+            kind=req.kind,
+            msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=job_run_mode),
+            opName=opName,
+        )
+        if 'dataFileKey' in kwargs:
+            kwargs['dataFileUri'] = job.supervisor_file_uri(
+                o.driver.cfg.supervisor_uri,
+                job.DATA_FILE_URI,
+                kwargs.pop('dataFileKey'),
+            )
+        o.msg.pkupdate(**kwargs)
+        return o
+
+
+class _ComputeJob(_ATC):
 
     instances = PKDict()
     _purged_jids_cache = set()
@@ -193,10 +274,28 @@ class _ComputeJob(PKDict):
             del self.instances[self.db.computeJid]
 
     def cache_timeout_set(self):
+        # TODO(e-carlin): I think this name self.timer conflicts with the timer for send
+        # but it sort of works out because of destroy_op? Idk but I think it should have a different
+        # name
         self.timer = tornado.ioloop.IOLoop.current().call_later(
             cfg.job_cache_secs,
             self.cache_timeout,
         )
+
+    @classmethod
+    def create(cls, req):
+        try:
+            d = cls.__db_load(req.content.computeJid)
+            self = cls(req, db=d)
+            if self._is_running_pending():
+#TODO(robnagler) when we reconnect with running processes at startup,
+#  we'll need to change this
+                self.__db_update(status=job.CANCELED)
+            return self
+        except Exception as e:
+            if pykern.pkio.exception_is_not_found(e):
+                return cls(req).__db_write()
+            raise
 
     def destroy_op(self, op):
         if op in self.ops:
@@ -212,22 +311,13 @@ class _ComputeJob(PKDict):
             else self.db.dbUpdateTime
         ) - self.db.computeJobStart
 
-    @classmethod
-    def get_instance_or_class(cls, req):
-        try:
-            j = req.content.computeJid
-        except AttributeError:
-            return cls
-        self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
-        # SECURITY: must only return instances for authorized user
-        assert req.content.uid == self.db.uid, \
-            'req.content.uid={} is not same as db.uid={} for jid={}'.format(
-                req.content.uid,
-                self.db.uid,
-                j,
-            )
-        return self
+    async def op_run_timeout(self, op):
+        await self._receive_api_runCancel(
+            ServerReq(content=op.msg),
+            timed_out_op=op,
+        )
 
+    # TODO(e-carlin): create on in _ATC
     def pkdebug_str(self):
         d = self.get('db')
         if not d:
@@ -304,22 +394,6 @@ class _ComputeJob(PKDict):
                 cls.purge_free_simulations,
             )
 
-    @classmethod
-    async def receive(cls, req):
-        if req.content.get('api') != 'api_runStatus':
-            pkdlog('{}', req)
-        try:
-            o = cls.get_instance_or_class(req)
-            return await getattr(
-                o,
-                '_receive_' + req.content.api,
-            )(req)
-        except sirepo.util.ASYNC_CANCELED_ERROR:
-            return PKDict(state=job.CANCELED)
-        except Exception as e:
-            pkdlog('{} error={} stack={}', req, e, pkdexc())
-            return sirepo.http_reply.gen_tornado_exception(e)
-
     def set_situation(self, op, situation, exception=None):
         if op.opName != job.OP_RUN:
             return
@@ -334,21 +408,6 @@ class _ComputeJob(PKDict):
                 exception = repr(exception)
             situation = f'{p}{exception}, while {s}'
         self.__db_update(jobStatusMessage=situation)
-
-    @classmethod
-    def __create(cls, req):
-        try:
-            d = cls.__db_load(req.content.computeJid)
-            self = cls(req, db=d)
-            if self._is_running_pending():
-#TODO(robnagler) when we reconnect with running processes at startup,
-#  we'll need to change this
-                self.__db_update(status=job.CANCELED)
-            return self
-        except Exception as e:
-            if pykern.pkio.exception_is_not_found(e):
-                return cls(req).__db_write()
-            raise
 
     @classmethod
     def __db_file(cls, computeJid):
@@ -759,23 +818,7 @@ class _ComputeJob(PKDict):
     async def _receive_api_statelessCompute(self, req):
         return await self._send_simulation_compute(req)
 
-    async def _receive_api_beginSession(self, req):
-        c = self._create_op(job.OP_BEGIN_SESSION, req)
-        try:
-            await c.prepare_send()
-        except Awaited:
-            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
-            # In the event that it does, the agent is still started,
-            # so no need to try again after Awaited.
-            pass
-        finally:
-            c.destroy(cancel=False)
-        return PKDict()
-
     def _create_op(self, opName, req, **kwargs):
-#TODO(robnagler) kind should be set earlier in the queuing process.
-        req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
-            else job.SEQUENTIAL
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
         # not self.db.jobRunMode
@@ -783,22 +826,9 @@ class _ComputeJob(PKDict):
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
             sirepo.util.raise_not_found('invalid jobRunMode={} req={}', r, req)
-        o = _Op(
-#TODO(robnagler) don't like the camelcase. It doesn't actually work right because
-# these values are never sent directly, only msg which can be camelcase
-            computeJob=self,
-            kind=req.kind,
-            msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=r),
-            opName=opName,
-            task=asyncio.current_task(),
-        )
-        if 'dataFileKey' in kwargs:
-            kwargs['dataFileUri'] = job.supervisor_file_uri(
-                o.driver.cfg.supervisor_uri,
-                job.DATA_FILE_URI,
-                kwargs.pop('dataFileKey'),
-            )
-        o.msg.pkupdate(**kwargs)
+        k = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
+            else job.SEQUENTIAL
+        o = super()._create_op(opName, req, k, r, **kwargs).pkupdate(task=asyncio.current_task())
         self.ops.append(o)
         return o
 
@@ -983,9 +1013,10 @@ class _Op(PKDict):
             do_not_send=False,
             internal_error=None,
             opId=job.unique_key(),
-            run_dir_slot=self.computeJob.run_dir_slot_q.sr_slot_proxy(self),
             _reply_q=sirepo.tornado.Queue(),
         )
+        if 'run_dir_slot_q' in self.computeJob:
+            self.run_dir_slot = self.computeJob.run_dir_slot_q.sr_slot_proxy(self)
         self.msg.update(opId=self.opId, opName=self.opName)
         self.driver = job_driver.assign_instance_op(self)
         self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
@@ -995,11 +1026,10 @@ class _Op(PKDict):
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True, internal_error=None):
-        self.run_dir_slot.free()
-        if cancel:
-            if self.task:
-                self.task.cancel()
-                self.task = None
+        'run_dir_slot' in self and self.run_dir_slot.free()
+        if cancel and self.get('task'):
+            self.task.cancel()
+            self.task = None
         # Ops can be destroyed multiple times
         # The first error is "closest to the source" so don't overwrite it
         if not self.internal_error:
@@ -1018,7 +1048,6 @@ class _Op(PKDict):
 
     async def prepare_send(self):
         """Ensures resources are available for sending to agent
-
         To maintain consistency, do not modify global state before
         calling this method.
         """
@@ -1040,10 +1069,7 @@ class _Op(PKDict):
     async def run_timeout(self):
         """Can be any op that's timed"""
         pkdlog('{} max_run_secs={}', self, self.max_run_secs)
-        await self.computeJob._receive_api_runCancel(
-            ServerReq(content=self.msg),
-            timed_out_op=self,
-        )
+        await self.computeJob.op_run_timeout(self)
 
     def send(self):
         if self.max_run_secs:

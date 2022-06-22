@@ -327,6 +327,20 @@ class API(sirepo.api.Base):
         return request_content
 
 
+def begin_session():
+    a = API()
+    # TODO(e-carlin): make public
+    u = sirepo.auth.logged_in_user()
+    r = a._request(
+        api_name='api_beginSession',
+        _request_content=PKDict(
+            uid=u,
+            userDir=str(sirepo.simulation_db.user_path(u)),
+        ),
+    )
+    pkdp(f'e-carlin rrrrrrrrrrrr={r}')
+
+
 def init_apis(*args, **kwargs):
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
