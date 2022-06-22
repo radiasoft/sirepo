@@ -158,6 +158,13 @@ class SRWShadowConverter():
         'Diamond (X0h)': 'Diamond',
     })
 
+    _MIRROR_SHAPE = PKDict(
+                mirror='5',
+                ellipsoidMirror='2',
+                sphericalMirror='1',
+                toroidalMirror='3',
+            )
+
     def __init__(self):
         pass
 
@@ -240,7 +247,10 @@ class SRWShadowConverter():
             elif item.type == 'zonePlate':
                 self.beamline.append(self.__zoneplate_to_srw(item))
             elif item.type == 'crystal':
+                assert 0, 'Crystal conversion implementation needs to be implemented still'
                 self.__crystal_to_srw(item)
+            elif item.type == 'mirror':
+                self.__mirror_to_srw(item)
             elif item.type == 'lens':
                 self.beamline.append(self.__copy_item(item, PKDict(
                     type='lens',
@@ -373,7 +383,6 @@ class SRWShadowConverter():
                 ), to_shadow=False
             )
         )
-        # self.__reset_rotation_to_srw(rotate, item.position)
 
 
     def __compute_angle(self, orientation, item, to_shadow=True):
@@ -473,15 +482,10 @@ class SRWShadowConverter():
             orientation = 'horizontal' if item.orientation == 'x' else 'vertical'
         angle, rotate, offset = self.__compute_angle(orientation, item)
         if item.type in ('mirror', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'):
-            mirror_shape = PKDict(
-                mirror='5',
-                ellipsoidMirror='2',
-                sphericalMirror='1',
-                toroidalMirror='3',
-            )
+
             self.beamline.append(self.__copy_item(item, PKDict(
                 type='mirror',
-                fmirr=mirror_shape[item.type],
+                fmirr=self._MIRROR_SHAPE[item.type],
                 t_incidence=angle,
                 alpha=rotate,
                 fhit_c='1',
@@ -493,6 +497,30 @@ class SRWShadowConverter():
             )))
         self.__reset_rotation(rotate, item.position)
         #TODO(pjm): set vars: offx, offy, x_rot, y_rot, z_rot, cil_ang
+
+    def __mirror_to_srw(self, item):
+        if item.alpha == 0 or item.alpha == 180:
+            o = 'vertical'
+        else:
+            o = 'horizontal'
+        n = self.__copy_item(
+            item,
+            _SRW.model_defaults(item.type).pkupdate(
+                sirepo.template.srw._compute_grazing_orientation(
+                    PKDict(
+                        type=self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
+                        grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
+                        autocomputeVectors=o,
+                        horizontalOffset=item.offz if o == 'horizontal' else 0,
+                        verticalOffset=item.offz if o == 'vertical' else 0,
+                        title=item.title,
+                        heightProfileFile=''
+                    )
+                )
+            ),
+            to_shadow=False
+        )
+        self.beamline.append(n)
 
     def __multipole_to_shadow(self, srw, shadow):
         self.__copy_model_fields('bendingMagnet', srw, shadow)
