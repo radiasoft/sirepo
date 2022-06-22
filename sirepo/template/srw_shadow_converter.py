@@ -368,8 +368,20 @@ class SRWShadowConverter():
     def __crystal_to_srw(self, item):
         # TODO (gurhar1133): self.__mirror_to_srw(item) can be a helpful guide here
         assert 0, 'not implemented yet'
-
-
+        material_map = self.__invert_dict(self._MATERIAL_MAP)
+        self.beamline.append(
+            self.__copy_item(
+                item,
+                PKDict(
+                    type='crystal',
+                    material=material_map.get(item.braggMaterial, 'Si (SRW)'),
+                    energy=item.braggMinEnergy + 500,
+                    # nvx=0,
+                    # nvy=0,
+                    # nvz=0,
+                ), to_shadow=False
+            )
+        )
 
     def __compute_angle(self, orientation, item, to_shadow=True):
         rotate = 0
