@@ -54,6 +54,21 @@ class Base:
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
+
+class Spec:
+    def __init__(self, perm):
+        self.perm = perm
+
+    def __call__(self, func):
+
+        def _wrapper(*args, **kwargs):
+            return self.func(*args, **kwargs)
+
+        self.func = func
+        setattr(_wrapper, api_perm.ATTR, self.perm)
+        return _wrapper
+
+
 def init(**imports):
     import sirepo.util
 
