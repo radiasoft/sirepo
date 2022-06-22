@@ -247,9 +247,9 @@ class SRWShadowConverter():
             elif item.type == 'zonePlate':
                 self.beamline.append(self.__zoneplate_to_srw(item))
             elif item.type == 'crystal':
-                assert 0, 'Crystal conversion implementation needs to be implemented still'
+                # assert 0, 'Crystal conversion implementation needs to be implemented still'
                 self.__crystal_to_srw(item)
-            elif item.type == 'mirror':
+            elif item.type == 'mirror' or item.type == 'crystal':
                 self.__mirror_to_srw(item)
             elif item.type == 'lens':
                 self.beamline.append(self.__copy_item(item, PKDict(
@@ -366,23 +366,9 @@ class SRWShadowConverter():
         self.__reset_rotation(rotate, item.position)
 
     def __crystal_to_srw(self, item):
-        material_map = self.__invert_dict(self._MATERIAL_MAP)
-        # TODO (gurhar1133): need to figure out orientation, then get rotational data from inverted_compute_angle(item, orientation)
-        # TODO (gurhar1133): with rotational data i can add beamline element and the call __reset_rotation_to_srw(rotational data, item)
-        # nvx, nvy, nvz = self.__compute_angle(o, item, to_shadow=False)
-        self.beamline.append(
-            self.__copy_item(
-                item,
-                PKDict(
-                    type='crystal',
-                    material=material_map.get(item.braggMaterial, 'Si (SRW)'),
-                    energy=item.braggMinEnergy + 500,
-                    # nvx=0,
-                    # nvy=0,
-                    # nvz=0,
-                ), to_shadow=False
-            )
-        )
+        # TODO (gurhar1133): self.__mirror_to_srw(item) can be a helpful guide here
+        assert 0, 'not implemented yet'
+
 
 
     def __compute_angle(self, orientation, item, to_shadow=True):
@@ -508,7 +494,7 @@ class SRWShadowConverter():
             _SRW.model_defaults(item.type).pkupdate(
                 sirepo.template.srw._compute_grazing_orientation(
                     PKDict(
-                        type=self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
+                        type= 'crystal' if item.type == 'crystal' else self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
                         grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
                         autocomputeVectors=o,
                         horizontalOffset=item.offz if o == 'horizontal' else 0,
