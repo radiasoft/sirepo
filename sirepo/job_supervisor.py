@@ -216,22 +216,6 @@ class _ATC(PKDict):
     async def op_run_timeout(self, op):
         pass
 
-    # TODO(e-carlin): sort
-    # TODO(e-carlin): so this is what I need to be able to do
-    # TODO(e-carlin): move the adm jobs stuff here too?
-    async def _receive_api_beginSession(self, req):
-        c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, 'sequential')
-        try:
-            await c.prepare_send()
-        except Awaited:
-            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
-            # In the event that it does, the agent is still started,
-            # so no need to try again after Awaited.
-            pass
-        finally:
-            c.destroy(cancel=False)
-        return PKDict()
-
     def _create_op(self, opName, req, kind, job_run_mode,  **kwargs):
         req.kind = kind
         o = _Op(
@@ -249,6 +233,20 @@ class _ATC(PKDict):
             )
         o.msg.pkupdate(**kwargs)
         return o
+
+    # TODO(e-carlin): move the adm jobs stuff here too?
+    async def _receive_api_beginSession(self, req):
+        c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, 'sequential')
+        try:
+            await c.prepare_send()
+        except Awaited:
+            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
+            # In the event that it does, the agent is still started,
+            # so no need to try again after Awaited.
+            pass
+        finally:
+            c.destroy(cancel=False)
+        return PKDict()
 
 
 class _ComputeJob(_ATC):
@@ -356,9 +354,6 @@ class _ComputeJob(_ATC):
 
         def _purge_sim(jid):
             d = cls.__db_load(jid)
-            # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
-            # frequently so we don't need to check again. A user could run a sim
-            # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)

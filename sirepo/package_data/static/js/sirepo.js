@@ -2396,7 +2396,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         req.then(
             function(response) {
                 const i = response.headers('X-Sirepo-UserAgentId');
-                srdbg(`iiiiiii `, i);
                 if (i) {
                     userAgent.id = i;
                 }

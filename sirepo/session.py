@@ -4,7 +4,6 @@ from pykern.pkdebug import pkdp
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
-import flask
 import sirepo.api
 import sirepo.auth
 import sirepo.auth_db
@@ -14,6 +13,8 @@ import sirepo.srtime
 import sirepo.uri_router  #TODO(rorour) remove
 import sirepo.util
 import sqlalchemy
+
+_RENEW_SESSION_TIMEOUT_SECS = 5 * 60
 
 _SRCONTEXT_KEY = __name__
 
@@ -30,35 +31,37 @@ def _event_end_api_call(kwargs):
 
 @contextlib.contextmanager
 def begin(sreq):
-    # TODO(e-carlin): use sreq
-    i = sreq.headers().get('X-Sirepo-UserAgentId')
-    pkdp('X-Sirepo-UserAgentId={}', i)
-    if not sreq.has_params():
-        yield
-        return
-    if not i:
+    def _new_session():
         l = sirepo.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
-        i = sirepo.util.random_base62(_USER_AGENT_ID_LEN)
         _Session(
-            user_agent_id=i,
+            user_agent_id=sirepo.util.random_base62(_USER_AGENT_ID_LEN),
             login_state=l,
             uid=sirepo.auth.logged_in_user() if l else None,
             start_time=t,
             request_time=t,
         ).save()
         _begin()
-    else:
-        s = _Session.search_by(user_agent_id=i)
-        assert s, f'No session for user_agent_id={i} type={type(i)}'
+
+    def _update_session(user_agent_id):
+        s = _Session.search_by(user_agent_id=user_agent_id)
+        assert s, f'No session for user_agent_id={user_agent_id}'
         t = s.request_time
-        if sirepo.srtime.utc_now() - t > datetime.timedelta(minutes=1):  # TODO(rorour) use constant tune 60
+        if sirepo.srtime.utc_now() - t > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS):
             _begin()
         s.request_time = sirepo.srtime.utc_now()
         s.save()
+
+    i = sreq.headers().get('X-Sirepo-UserAgentId')
+    if not sreq.has_params():
+        yield
+        return
+    if not i:
+        _new_session()
+    else:
+        _update_session(i)
     sirepo.srcontext.set(_SRCONTEXT_KEY, i)
     yield
-    # TODO(e-carlin): clear srcontext_key or restore to previous?
 
 
 def _begin():
