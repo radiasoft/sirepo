@@ -657,6 +657,7 @@
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
             "area": ["_", "Float", 0,0],
+            "coordPlane": ["_", "CoordPlane", ""],
             "extrusionAxis": ["Extrusion Direction", "BeamAxis", "z"],
             "extrusionAxisSegments": ["Segments in Extrusion Direction", "Integer", 1, "", 1],
             "heightAxis": ["_", "BeamAxis", "y"],
@@ -1261,6 +1262,9 @@
                     "stemmed.stemPosition",
                     "jay.hookHeight",
                     "jay.hookWidth"
+                ]],
+                ["Point Editor", [
+                    "extrudedPoly.coordPlane"
                 ]],
                 ["Modifications", [
                     "bevels"

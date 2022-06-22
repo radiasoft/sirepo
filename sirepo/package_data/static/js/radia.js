@@ -2040,6 +2040,22 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
     };
 });
 
+SIREPO.app.directive('pointEditor', function(appState, geometry, panelState, plotting, radiaService, utilities) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            model: '=',
+        },
+        template: `
+            <div data-report-content="parameter" data-model-key="extrudedPoly" data-report-id=""></div>
+        `,
+        controller: function($scope, $element) {
+        },
+    };
+});
+
 SIREPO.app.directive('terminationTable', function(appState, panelState, radiaService, validationService) {
     return {
         restrict: 'A',
