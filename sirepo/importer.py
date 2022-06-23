@@ -27,7 +27,7 @@ def do_form(sapi):
     """
     from sirepo import simulation_db
 
-    if not 'zip' in sapi.form:
+    if 'zip' not in sapi.form:
         sirepo.util.raise_not_found('missing zip in form')
     data = read_zip(base64.decodebytes(pkcompat.to_bytes(sapi.form['zip'])), sapi)
     data.models.simulation.folder = '/Import'
