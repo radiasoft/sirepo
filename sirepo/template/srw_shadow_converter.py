@@ -360,6 +360,7 @@ class SRWShadowConverter():
             f_mosaic='0',
             braggMinEnergy=item.energy - 500,
             braggMaxEnergy=item.energy + 500,
+            f_refract='0' if item.useCase == '1' else '1',
             braggEnergyStep=50,
             alpha=rotate,
         )))
@@ -367,21 +368,34 @@ class SRWShadowConverter():
 
     def __crystal_to_srw(self, item):
         # TODO (gurhar1133): self.__mirror_to_srw(item) can be a helpful guide here
-        assert 0, 'not implemented yet'
+        # assert 0, 'not implemented yet'
         material_map = self.__invert_dict(self._MATERIAL_MAP)
-        self.beamline.append(
-            self.__copy_item(
-                item,
-                PKDict(
-                    type='crystal',
-                    material=material_map.get(item.braggMaterial, 'Si (SRW)'),
-                    energy=item.braggMinEnergy + 500,
-                    # nvx=0,
-                    # nvy=0,
-                    # nvz=0,
+        if item.alpha == 0 or item.alpha == 180:
+            o = 'vertical'
+        else:
+            o = 'horizontal'
+        n = self.__copy_item(
+            item,
+                sirepo.template.srw._compute_grazing_orientation(
+                    sirepo.template.srw._compute_crystal_orientation(
+                        sirepo.template.srw._compute_crystal_init(
+                            _SRW.model_defaults(item.type).pkupdate(PKDict(
+                                grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
+                                autocomputeVectors=o,
+                                horizontalOffset=item.offz if o == 'horizontal' else 0,
+                                verticalOffset=item.offz if o == 'vertical' else 0,
+                                type='crystal',
+                                useCase='2' if item.f_refract == '1' else '1',
+                                material=material_map.get(item.braggMaterial, 'Si (SRW)'),
+                                energy=item.braggMinEnergy + 500,
+                            ))
+                        )
+                    )
                 ), to_shadow=False
-            )
+            # )
         )
+        pkdp('\n\n\n NEW CRYSTAL: {}', n)
+        self.beamline.append(n)
 
     def __compute_angle(self, orientation, item, to_shadow=True):
         rotate = 0
@@ -506,7 +520,7 @@ class SRWShadowConverter():
             _SRW.model_defaults(item.type).pkupdate(
                 sirepo.template.srw._compute_grazing_orientation(
                     PKDict(
-                        type= 'crystal' if item.type == 'crystal' else self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
+                        type=self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
                         grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
                         autocomputeVectors=o,
                         horizontalOffset=item.offz if o == 'horizontal' else 0,
