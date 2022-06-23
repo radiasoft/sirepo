@@ -175,7 +175,8 @@ def user_agent_headers():
         try:
             if ip:
                 return str(dns.resolver.query(dns.reversename.from_address(ip), 'PTR'))
-        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+        # 127.0.0.1 is not reverse mapped, resulting in dns.resolver.NoNameservers exception
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers):
             pass
         return 'No Reverse DNS Lookup'
 
