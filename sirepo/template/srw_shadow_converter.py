@@ -234,7 +234,7 @@ class SRWShadowConverter():
     def __beamline_to_srw(self, shadow):
         for item in shadow.beamline:
             if item.type in ('aperture', 'obstacle'):
-                ap = self.__copy_item(item, to_shadow=False) # TODO (gurhar1133): use a __copy_item type method? or generalize current one
+                ap = self.__copy_item(item, to_shadow=False)
                 # in srw rect = r, circle = c in shadow rect = 0, circle = 1
                 ap.shape = 'r' if ap.shape == '0' else 'c'
                 self.beamline.append(ap)
@@ -249,8 +249,10 @@ class SRWShadowConverter():
             elif item.type == 'crystal':
                 # assert 0, 'Crystal conversion implementation needs to be implemented still'
                 self.__crystal_to_srw(item)
-            elif item.type == 'mirror' or item.type == 'crystal':
+            elif item.type == 'mirror':
                 self.__mirror_to_srw(item)
+            elif item.type == 'grating':
+                self.__grating_to_srw(item)
             elif item.type == 'lens':
                 self.beamline.append(self.__copy_item(item, PKDict(
                     type='lens',
@@ -367,8 +369,6 @@ class SRWShadowConverter():
         self.__reset_rotation(rotate, item.position)
 
     def __crystal_to_srw(self, item):
-        # TODO (gurhar1133): self.__mirror_to_srw(item) can be a helpful guide here
-        # assert 0, 'not implemented yet'
         material_map = self.__invert_dict(self._MATERIAL_MAP)
         if item.alpha == 0 or item.alpha == 180:
             o = 'vertical'
@@ -481,6 +481,31 @@ class SRWShadowConverter():
             offz=offset,
         )))
         self.__reset_rotation(rotate, item.position)
+
+    def __grating_to_srw(self, item):
+        # TODO (gurhar1133): need angle, rotate, offset?
+        if item.alpha == 0 or item.alpha == 180:
+            o = 'vertical'
+        else:
+            o = 'horizontal'
+        n = self.__copy_item(
+            item,
+            _SRW.model_defaults(item.type).pkupdate(
+                sirepo.template.srw._compute_grating_orientation(
+                    # sirepo.template.srw._compute_grazing_orientation(
+                        PKDict(
+                            type='grating',
+                            grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
+                            autocomputeVectors=o,
+                            # horizontalOffset=item.offz if o == 'horizontal' else 0,
+                            # verticalOffset=item.offz if o == 'vertical' else 0,
+                        )
+                    # )
+                )
+            ),
+            to_shadow=False
+        )
+        self.beamline.append(n)
 
     def __fix_undulator_gratings(self, shadow):
         # fix target photon energy on any gratings to exact photon energy value
