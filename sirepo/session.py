@@ -1,6 +1,6 @@
 """Manage user sessions"""
 
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
@@ -37,18 +37,20 @@ def begin(sreq):
         _Session(
             user_agent_id=sirepo.util.random_base62(_USER_AGENT_ID_LEN),
             login_state=l,
-            uid=sirepo.auth.logged_in_user() if l else None,
+            uid=sirepo.auth.logged_in_user(check_path=False) if l else None,
             start_time=t,
             request_time=t,
         ).save()
-        _begin()
+        l and _begin()
 
     def _update_session(user_agent_id):
         s = _Session.search_by(user_agent_id=user_agent_id)
         assert s, f'No session for user_agent_id={user_agent_id}'
+        l = sirepo.auth.is_logged_in()
         t = s.request_time
         if sirepo.srtime.utc_now() - t > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS):
-            _begin()
+             l and _begin()
+        s.login_state = l
         s.request_time = sirepo.srtime.utc_now()
         s.save()
 
@@ -66,7 +68,10 @@ def begin(sreq):
 
 def _begin():
     from sirepo import job_api
-    job_api.begin_session()
+    try:
+        job_api.begin_session()
+    except Exception as e:
+        pkdlog('error={} trying job_api.begin_session() stack={}', e, pkdexc())
 
 def _init():
     sirepo.events.register(PKDict(
