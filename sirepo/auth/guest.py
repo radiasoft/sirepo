@@ -32,7 +32,7 @@ _ONE_DAY = datetime.timedelta(days=1)
 
 
 class API(sirepo.api.Base):
-    @api_perm.require_cookie_sentinel
+    @sirepo.api.Spec('require_cookie_sentinel')
     def api_authGuestLogin(self, simulation_type):
         """You have to be an anonymous or logged in user at this point"""
         req = self.parse_params(type=simulation_type)

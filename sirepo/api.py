@@ -60,12 +60,13 @@ class Spec:
         self.perm = perm
 
     def __call__(self, func):
+        import sirepo.api_perm
 
         def _wrapper(*args, **kwargs):
             return self.func(*args, **kwargs)
 
         self.func = func
-        setattr(_wrapper, api_perm.ATTR, self.perm)
+        setattr(_wrapper, sirepo.api_perm.ATTR, getattr(sirepo.api_perm.APIPerm, self.perm.upper()))
         return _wrapper
 
 
