@@ -491,21 +491,17 @@ class SRWShadowConverter():
         n = self.__copy_item(
             item,
             _SRW.model_defaults(item.type).pkupdate(
-                sirepo.template.srw._compute_grating_orientation(
-                    # sirepo.template.srw._compute_grazing_orientation(
                         PKDict(
                             type='grating',
                             grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
                             autocomputeVectors=o,
-                            # horizontalOffset=item.offz if o == 'horizontal' else 0,
-                            # verticalOffset=item.offz if o == 'vertical' else 0,
                         )
-                    # )
-                )
             ),
             to_shadow=False
         )
+        # TODO (gurhar1133): need to _compute_grating_orientation, or _compute_grazing_orientation?
         self.beamline.append(n)
+
 
     def __fix_undulator_gratings(self, shadow):
         # fix target photon energy on any gratings to exact photon energy value
