@@ -73,6 +73,14 @@
                 ],
                 "stroke": "black"
             },
+            "extrudedPoints": {
+                "doClose": true,
+                "fill": "#97B6D5",
+                "points": [
+                    [0, 0], [8, 0], [16, 16], [24, 20], [24, 24], [0, 24]
+                ],
+                "stroke": "black"
+            },
             "jay": {
                 "doClose": true,
                 "fill": "#97B6D5",
@@ -141,6 +149,13 @@
                         "model": "jay",
                         "title": "J-Bend",
                         "type": "jay"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "extrudedPoints",
+                        "title": "Extruded",
+                        "type": "extrudedPoints"
                     },
                     {
                         "layoutShape": "rect",
@@ -305,6 +320,7 @@
             ["cuboid", "Cuboid"],
             ["cee", "Extruded C-Bend"],
             ["ell", "Extruded L-Bend"],
+            ["extrudedPoints", "Extruded Points"],
             ["jay", "Extruded J-Bend"],
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"]
@@ -653,6 +669,10 @@
         "ell": {
             "_super": ["_", "model", "stemmed"],
             "type": ["_", "ObjectType", "ell"]
+        },
+        "extrudedPoints": {
+            "_super": ["_", "model", "extrudedPoly"],
+            "pointsFile": ["File", "InputFile", "", ""]
         },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
@@ -1253,9 +1273,10 @@
                 ["Dimensions", [
                     "type",
                     "color",
-                    "stemmed.extrusionAxis",
+                    "extrudedPoly.extrusionAxis",
                     "extrudedPoly.extrusionAxisSegments",
                     "extrudedPoly.triangulationLevel",
+                    "extrudedPoints.pointsFile",
                     "stemmed.armHeight",
                     "stemmed.armPosition",
                     "stemmed.stemWidth",

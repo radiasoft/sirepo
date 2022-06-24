@@ -3669,18 +3669,14 @@ SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plo
 
 SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, radiaService, utilities) {
 
-    const availableShapes = ['cuboid', 'ell', 'cee', 'jay'];
+    const availableShapes = ['cuboid', 'ell', 'cee', 'jay', 'extrudedPoints',];
     let sel = new SIREPO.DOM.UISelect('', [
         new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
     ]);
     sel.addClasses('form-control');
     sel.addOptions(SIREPO.APP_SCHEMA.enum.ObjectType
-        .filter(o => {
-            return availableShapes.indexOf(o[0]) >= 0;
-        })
-        .map(o => {
-            return new SIREPO.DOM.UIEnumOption('', o);
-        })
+        .filter(o => availableShapes.indexOf(o[0]) >= 0)
+        .map(o => new SIREPO.DOM.UIEnumOption('', o))
     );
 
     return {
@@ -3766,13 +3762,53 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
 
+    let editedModels = [];
+
     $scope.modelData = appState.models[$scope.modelName];
 
-    return {
-        getBaseObject: function() {
-            return $scope.modelData;
-        },
-    };
+    $scope.watchFields = [
+        [
+            'geomObject.type',
+        ], updateObjectEditor
+    ];
+
+    $scope.whenSelected = () => {
+        editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
+        //appState.saveChanges(editedModels);
+        //srdbg('GEEOM OBH SEL', editedModels);
+    }
+
+
+    $scope.$on('geomObject.changed', () => {
+        //srdbg('OBJ CH', appState.models.geomObject, $scope.modelData);
+        //const o = radiaService.getObject($scope.modelData.id);
+        //const i = appState.models.geometryReport.objects.indexOf(o);
+        //srdbg(o, 'AT', i);
+        /*
+        for (const m of editedModels) {
+            const d = appState.models[m];
+            for (const f in d) {
+                if (f in $scope.modelData) {
+                    srdbg(m, 'ALRREADY HAVE', f, 'APPS', d[f], $scope.modelData[f]);
+                    continue;
+                }
+                srdbg(m, 'NEED TO ADD', f);
+            }
+        }
+
+         */
+        editedModels = [];
+    });
+
+    function updateObjectEditor()  {
+        srdbg('GEOM OBJ CH');
+    }
+    const self = {};
+
+    self.getBaseObject = () => $scope.modelData;
+
+
+    return self;
 });
 
 for(const m of ['Dipole', 'Undulator']) {
