@@ -197,6 +197,9 @@ class SRWShadowConverter():
 
         res.models.beamline = self.beamline
         pkdp('self.beamline: {}', self.beamline)
+        pkdp('\n\n\n RES AT BEGINNING: {}', res)
+        self.__undulator_to_srw(data, res.models)
+
         return res
 
     def srw_to_shadow(self, models):
@@ -422,9 +425,9 @@ class SRWShadowConverter():
             if is_item and input.type != from_name:
                 continue
 
-            schema = _SRW.schema().model[from_name]
-            if not to_shadow:
-                schema = _SHADOW.schema().model[from_name]
+            schema = _SHADOW.schema().model[from_name]
+            if to_shadow:
+                schema = _SRW.schema().model[from_name]
 
             for f in fields:
                 if isinstance(fields[f], list):
@@ -617,6 +620,14 @@ class SRWShadowConverter():
             maxangle=angle,
         )
         self.photon_energy = energy
+
+    def __undulator_to_srw(self, shadow, srw):
+        self.__copy_model_fields('undulator', shadow, srw, to_shadow=False)
+        self.__copy_model_fields('electronBeam', shadow, srw, to_shadow=False)
+
+        # srw.undulator.update(
+
+        # )
 
 
     def __zoneplate_to_shadow(self, item, shadow):
