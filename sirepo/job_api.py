@@ -311,7 +311,7 @@ class API(sirepo.api.Base):
 
 
 def begin_session():
-    u = sirepo.auth.logged_in_user()
+    u = sirepo.auth.logged_in_user(check_path=False)
     API().request(
         api_name='api_beginSession',
         _request_content=PKDict(
