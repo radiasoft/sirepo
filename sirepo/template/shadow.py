@@ -72,8 +72,7 @@ def stateful_compute_testing_shadow(data, **kwargs):
     # TODO (gurhar1133): compare at element level
     # pkdp('\n\n\n new: {}', new)
 
-    res = SRWShadowConverter().shadow_to_srw(data)
-    pkdp('in compute: {}', res.models.beamline)
+    res = SRWShadowConverter('srw').shadow_to_srw(data)
     return res
 
 

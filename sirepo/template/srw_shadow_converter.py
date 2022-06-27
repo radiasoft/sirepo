@@ -19,7 +19,7 @@ _SRW = sirepo.sim_data.get_class('srw')
 _SHADOW = sirepo.sim_data.get_class('shadow')
 
 
-class SRWShadowConverter():
+class SRWShadowConverter:
     # TODO (gurhar1133): set conversion direction flag on __init__ instead of copy_item default param
     __FIELD_MAP = [
         # [shadow model, srw model, field map (field=field or field=[field, scale])
@@ -165,8 +165,9 @@ class SRWShadowConverter():
                 toroidalMirror='3',
             )
 
-    def __init__(self):
-        pass
+    def __init__(self, conversion_direction):
+        assert (conversion_direction == 'srw' or conversion_direction == 'shadow'), 'Can only convert from shadow to srw and vice versa'
+        self.conversion_direction = conversion_direction
 
     def __invert_field_map(self):
         res = []
@@ -232,12 +233,12 @@ class SRWShadowConverter():
     def __beamline_to_srw(self, shadow, srw):
         for item in shadow.beamline:
             if item.type in ('aperture', 'obstacle'):
-                ap = self.__copy_item(item, to_shadow=False)
+                ap = self.__copy_item(item)
                 # in srw rect = r, circle = c in shadow rect = 0, circle = 1
                 ap.shape = 'r' if ap.shape == '0' else 'c'
                 self.beamline.append(ap)
             elif item.type == 'watch':
-                watch = self.__copy_item(item, to_shadow=False)
+                watch = self.__copy_item(item)
                 self.beamline.append(watch)
                 srw[f'watchpointReport{item.id}'] = PKDict(
                     colorMap=shadow[f'watchpointReport{watch.id}'].colorMap,
@@ -259,7 +260,7 @@ class SRWShadowConverter():
                     type='lens',
                     verticalOffset=0,
                     horizontalOffset=0,
-                ), to_shadow=False))
+                )))
         return self.beamline
 
     def __crl_to_srw(self, item):
@@ -271,7 +272,7 @@ class SRWShadowConverter():
             refractiveIndex=1 - item.refractionIndex,
             focalDistance=float(item.position)*(item.focalDistance)/(float(item.position)+(item.focalDistance)),
         ))
-        return self.__copy_item(item, res, to_shadow=False)
+        return self.__copy_item(item, res)
 
 
     def __beamline_to_shadow(self, srw, shadow):
@@ -392,11 +393,11 @@ class SRWShadowConverter():
                             ))
                         )
                     )
-                ), to_shadow=False
+                )
         )
         self.beamline.append(n)
 
-    def __compute_angle(self, orientation, item, to_shadow=True):
+    def __compute_angle(self, orientation, item):
         rotate = 0
         offset = 0
         if orientation == 'horizontal':
@@ -410,9 +411,9 @@ class SRWShadowConverter():
         angle = 90 - (abs(float(item.grazingAngle)) * 180 / math.pi / 1e3)
         return angle, rotate, offset
 
-    def __copy_fields(self, name, input, out, is_item, to_shadow):
+    def __copy_fields(self, name, input, out, is_item):
 
-        fmap = self.__FIELD_MAP if to_shadow else self.__invert_field_map()
+        fmap = self.__FIELD_MAP if self.conversion_direction == 'shadow' else self.__invert_field_map()
 
         for m in fmap:
             if m[0] != name:
@@ -422,7 +423,7 @@ class SRWShadowConverter():
                 continue
 
             schema = _SHADOW.schema().model[from_name]
-            if to_shadow:
+            if self.conversion_direction == 'shadow':
                 schema = _SRW.schema().model[from_name]
 
             for f in fields:
@@ -438,7 +439,7 @@ class SRWShadowConverter():
                 else:
                     out[name][f] = v
 
-    def __copy_item(self, item, attrs=None, to_shadow=True):
+    def __copy_item(self, item, attrs=None):
         res = PKDict(
             id=self.__next_id(),
             type=item.type,
@@ -449,14 +450,14 @@ class SRWShadowConverter():
             res.isDisabled = item.isDisabled
         if attrs:
             res.update(attrs)
-        self.__copy_item_fields(item, res, to_shadow)
+        self.__copy_item_fields(item, res)
         return res
 
-    def __copy_item_fields(self, input, out, to_shadow):
-        self.__copy_fields(out.type, input, out, True, to_shadow)
+    def __copy_item_fields(self, input, out):
+        self.__copy_fields(out.type, input, out, True)
 
-    def __copy_model_fields(self, name, input, out, to_shadow=True):
-        self.__copy_fields(name, input, out, False, to_shadow)
+    def __copy_model_fields(self, name, input, out):
+        self.__copy_fields(name, input, out, False)
 
     def __grating_to_shadow(self, item, shadow):
         angle, rotate, offset = self.__compute_angle(
@@ -494,8 +495,7 @@ class SRWShadowConverter():
                             grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
                             autocomputeVectors=o,
                         )
-            ),
-            to_shadow=False
+            )
         )
         # TODO (gurhar1133): need to _compute_grating_orientation, or _compute_grazing_orientation?
         self.beamline.append(n)
@@ -548,8 +548,7 @@ class SRWShadowConverter():
                         heightProfileFile=''
                     )
                 )
-            ),
-            to_shadow=False
+            )
         )
         self.beamline.append(n)
 
@@ -621,8 +620,8 @@ class SRWShadowConverter():
         self.photon_energy = energy
 
     def __undulator_to_srw(self, shadow, srw):
-        self.__copy_model_fields('undulator', shadow, srw, to_shadow=False)
-        self.__copy_model_fields('electronBeam', shadow, srw, to_shadow=False)
+        self.__copy_model_fields('undulator', shadow, srw)
+        self.__copy_model_fields('electronBeam', shadow, srw)
 
 
     def __zoneplate_to_shadow(self, item, shadow):
@@ -638,4 +637,4 @@ class SRWShadowConverter():
         res = _SRW.model_defaults(item.type)
         return self.__copy_item(item, res.pkupdate(PKDict(
             type='zonePlate',
-        )), to_shadow=False)
+        )))
