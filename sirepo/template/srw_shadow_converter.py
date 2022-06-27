@@ -203,7 +203,6 @@ class SRWShadowConverter:
         res.models.beamline = self.beamline
         self.__undulator_to_srw(data, res.models)
         _SRW.fixup_old_data(res)
-        pkdp('\n\n\n data: {}', res.models.beamlineAnimation9)
         return res
 
     def srw_to_shadow(self, models):
@@ -271,7 +270,7 @@ class SRWShadowConverter:
         return self.beamline
 
     def __crl_to_srw(self, item):
-
+        #TODO (gurhar1133): crl focal distance conversion needs fix
         res = _SRW.model_defaults(item.type)
         res.pkupdate(PKDict(
             attenuationLength=1e-2/float(item.attenuationCoefficient),
