@@ -3711,7 +3711,10 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
-        ], updateObjectEditor
+        ], updateObjectEditor,
+        [
+            "extrudedPoly.pointsFile",
+        ], buildPoints,
     ];
 
     $scope.whenSelected = function() {
@@ -3720,6 +3723,27 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
         updateObjectEditor();
     };
+
+    function setPoints(pts) {
+        srdbg('GOT PTTS', pts);
+        $scope.modelData.points = pts;
+        appState.saveChanges('objectShape');
+        updateObjectEditor();
+    }
+
+    function loadPoints() {
+        if (! $scope.modelData.pointsFile) {
+            return;
+        }
+        requestSender.sendStatefulCompute(
+            appState,
+            setPoints,
+            {
+                points_file: $scope.modelData.pointsFile,
+                method: 'build_shape_points',
+            }
+        );
+    }
 
     function buildTriangulationLevelDelegate() {
         const m = 'extrudedPoly';

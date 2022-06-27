@@ -236,6 +236,12 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
     return template_common.parse_mpi_log(run_dir)
 
 
+def stateful_compute_build_shape_points(data):
+    import csv
+
+    return None #compute_undulator_length(data['tabulated_undulator'])
+
+
 def python_source_for_model(data, model):
     return _generate_parameters_file(data, False, for_export=True)
 
