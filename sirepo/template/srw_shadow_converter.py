@@ -165,6 +165,12 @@ class SRWShadowConverter:
                 toroidalMirror='3',
             )
 
+    _SOURCE_TYPE = PKDict(
+            g='geometricSource',
+            u='undulator',
+            m='bendingMagnet',
+        )
+
     def __init__(self, conversion_direction):
         assert (conversion_direction == 'srw' or conversion_direction == 'shadow'), 'Can only convert from shadow to srw and vice versa'
         self.conversion_direction = conversion_direction
@@ -197,6 +203,7 @@ class SRWShadowConverter:
         res.models.beamline = self.beamline
         self.__undulator_to_srw(data, res.models)
         _SRW.fixup_old_data(res)
+        pkdp('\n\n\n data: {}', res.models.beamlineAnimation9)
         return res
 
     def srw_to_shadow(self, models):
@@ -589,13 +596,8 @@ class SRWShadowConverter:
             ))
 
     def __simulation_to_shadow(self, srw, shadow):
-        _SOURCE_TYPE = PKDict(
-            g='geometricSource',
-            u='undulator',
-            m='bendingMagnet',
-        )
         shadow.simulation.update(
-            sourceType=_SOURCE_TYPE[srw.simulation.sourceType],
+            sourceType=self._SOURCE_TYPE[srw.simulation.sourceType],
             name=f'{srw.simulation.name} (from SRW)',
             npoint=100000,
         )
@@ -603,6 +605,10 @@ class SRWShadowConverter:
         shadow.initialIntensityReport.colorMap = srw.initialIntensityReport.colorMap
 
     def __sim_to_srw(self, shadow, srw):
+        shadow.simulation.update(
+            sourceType=self.__invert_dict(self._SOURCE_TYPE)[shadow.simulation.sourceType],
+            name=f'{shadow.simulation.name} (from shadow)',
+        )
         srw.simulation.distanceFromSource = shadow.plotXYReport.distanceFromSource
         srw.initialIntensityReport.colorMap = shadow.initialIntensityReport.colorMap
 
