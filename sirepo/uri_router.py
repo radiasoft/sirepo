@@ -163,6 +163,7 @@ def init(app, simulation_db):
         http_request=sirepo.http_request,
         uri_router=pkinspect.this_module(),
     )
+    sirepo.session.init()
 
 
 def maybe_sim_type_required_for_api():

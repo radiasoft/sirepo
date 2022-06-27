@@ -68,18 +68,19 @@ def begin(sreq):
     yield
 
 
+def init():
+    sirepo.events.register(PKDict(
+        end_api_call=_event_end_api_call
+    ))
+    sirepo.auth_db.init_model(_init_model)
+
+
 def _begin():
     from sirepo import job_api
     try:
         job_api.begin_session()
     except Exception as e:
         pkdlog('error={} trying job_api.begin_session stack={}', e, pkdexc())
-
-def _init():
-    sirepo.events.register(PKDict(
-        end_api_call=_event_end_api_call
-    ))
-    sirepo.auth_db.init_model(_init_model)
 
 
 def _init_model(base):
@@ -93,6 +94,3 @@ def _init_model(base):
         request_time = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
         # TODO(rorour) enable when using websockets
         # end_time = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
-
-
-_init()

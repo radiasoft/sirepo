@@ -23,6 +23,7 @@ import pyisemail
 import sirepo.api
 import sirepo.auth_role
 import sirepo.feature_config
+import sirepo.session
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
@@ -342,9 +343,7 @@ def need_complete_registration(model):
 
 @contextlib.contextmanager
 def process_request(sreq, unit_test=None):
-    # TODO(e-carlin): rm
-    from sirepo import session
-    with auth_db.session(), cookie.process_header(unit_test), session.begin(sreq):
+    with auth_db.session(), cookie.process_header(unit_test), sirepo.session.begin(sreq):
         # Logging happens after the return to Flask so the log user must persist
         # beyond the life of process_request
         _set_log_user()
