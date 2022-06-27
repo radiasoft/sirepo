@@ -189,17 +189,13 @@ class SRWShadowConverter():
 
     def shadow_to_srw(self, data):
         #TODO(pjm): implement this
-
-        pkdp('\n\n\n data in converter {}', data)
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         self.beamline = res.models.beamline
-        self.__beamline_to_srw(data)
-
+        self.__sim_to_srw(data, res.models)
+        self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
-        pkdp('self.beamline: {}', self.beamline)
-        pkdp('\n\n\n RES AT BEGINNING: {}', res)
         self.__undulator_to_srw(data, res.models)
-
+        _SRW.fixup_old_data(res)
         return res
 
     def srw_to_shadow(self, models):
@@ -234,7 +230,7 @@ class SRWShadowConverter():
         )
         self.photon_energy = shadow.geometricSource.singleEnergyValue
 
-    def __beamline_to_srw(self, shadow):
+    def __beamline_to_srw(self, shadow, srw):
         for item in shadow.beamline:
             if item.type in ('aperture', 'obstacle'):
                 ap = self.__copy_item(item, to_shadow=False)
@@ -242,7 +238,11 @@ class SRWShadowConverter():
                 ap.shape = 'r' if ap.shape == '0' else 'c'
                 self.beamline.append(ap)
             elif item.type == 'watch':
-                self.beamline.append(self.__copy_item(item, to_shadow=False))
+                watch = self.__copy_item(item, to_shadow=False)
+                self.beamline.append(watch)
+                srw[f'watchpointReport{item.id}'] = PKDict(
+                    colorMap=shadow[f'watchpointReport{watch.id}'].colorMap,
+                )
             elif item.type == 'crl':
                 srw_crl = self.__crl_to_srw(item)
                 pkdp('SRW_CRL: {}', srw_crl)
@@ -608,6 +608,10 @@ class SRWShadowConverter():
         shadow.plotXYReport.distanceFromSource = srw.simulation.distanceFromSource
         shadow.initialIntensityReport.colorMap = srw.initialIntensityReport.colorMap
 
+    def __sim_to_srw(self, shadow, srw):
+        srw.simulation.distanceFromSource = shadow.plotXYReport.distanceFromSource
+        srw.initialIntensityReport.colorMap = shadow.initialIntensityReport.colorMap
+
     def __undulator_to_shadow(self, srw, shadow):
         self.__copy_model_fields('undulator', srw, shadow)
         self.__copy_model_fields('undulatorBeam', srw, shadow)
@@ -624,10 +628,6 @@ class SRWShadowConverter():
     def __undulator_to_srw(self, shadow, srw):
         self.__copy_model_fields('undulator', shadow, srw, to_shadow=False)
         self.__copy_model_fields('electronBeam', shadow, srw, to_shadow=False)
-
-        # srw.undulator.update(
-
-        # )
 
 
     def __zoneplate_to_shadow(self, item, shadow):

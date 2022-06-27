@@ -500,6 +500,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.updateIntensityLimit = function(modelName, modelKey) {
+        srdbg('appState.models in self.updateIntensityLimits: ', appState.models);
+        srdbg("modelKey", modelKey, "modelName", modelName);
+        srdbg("[modelKey || modelName]", modelKey || modelName);
         panelState.showFields(modelName, [
             ['minIntensityLimit', 'maxIntensityLimit'],
             appState.models[modelKey || modelName].useIntensityLimits == '1',
@@ -1003,7 +1006,7 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
         ]);
         panelState.showField('simulation', 'photonEnergy', isSource);
     }
-
+    srdbg('appState.models: ', appState.models);
     var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
