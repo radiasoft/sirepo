@@ -20,7 +20,7 @@ _SHADOW = sirepo.sim_data.get_class('shadow')
 
 
 class SRWShadowConverter():
-
+    # TODO (gurhar1133): set conversion direction flag on __init__ instead of copy_item default param
     __FIELD_MAP = [
         # [shadow model, srw model, field map (field=field or field=[field, scale])
         ['aperture', 'aperture', PKDict(
@@ -200,7 +200,6 @@ class SRWShadowConverter():
 
     def srw_to_shadow(self, models):
         res = simulation_db.default_data(_SHADOW.sim_type())
-        pkdp('\n\n\n res.models: {}', res.models)
         self.beamline = res.models.beamline
         self.__simulation_to_shadow(models, res.models)
         if res.models.simulation.sourceType == 'geometricSource':
@@ -245,7 +244,6 @@ class SRWShadowConverter():
                 )
             elif item.type == 'crl':
                 srw_crl = self.__crl_to_srw(item)
-                pkdp('SRW_CRL: {}', srw_crl)
                 self.beamline.append(srw_crl)
             elif item.type == 'zonePlate':
                 self.beamline.append(self.__zoneplate_to_srw(item))
@@ -395,9 +393,7 @@ class SRWShadowConverter():
                         )
                     )
                 ), to_shadow=False
-            # )
         )
-        pkdp('\n\n\n NEW CRYSTAL: {}', n)
         self.beamline.append(n)
 
     def __compute_angle(self, orientation, item, to_shadow=True):
@@ -486,7 +482,6 @@ class SRWShadowConverter():
         self.__reset_rotation(rotate, item.position)
 
     def __grating_to_srw(self, item):
-        # TODO (gurhar1133): need angle, rotate, offset?
         if item.alpha == 0 or item.alpha == 180:
             o = 'vertical'
         else:
