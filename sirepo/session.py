@@ -34,14 +34,16 @@ def begin(sreq):
     def _new_session():
         l = sirepo.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
+        i = sirepo.util.random_base62(_USER_AGENT_ID_LEN)
         _Session(
-            user_agent_id=sirepo.util.random_base62(_USER_AGENT_ID_LEN),
+            user_agent_id=i,
             login_state=l,
             uid=sirepo.auth.logged_in_user(check_path=False) if l else None,
             start_time=t,
             request_time=t,
         ).save()
         l and _begin()
+        return i
 
     def _update_session(user_agent_id):
         s = _Session.search_by(user_agent_id=user_agent_id)
@@ -49,7 +51,7 @@ def begin(sreq):
         l = sirepo.auth.is_logged_in()
         t = s.request_time
         if sirepo.srtime.utc_now() - t > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS):
-             l and _begin()
+            l and _begin()
         s.login_state = l
         s.request_time = sirepo.srtime.utc_now()
         s.save()
@@ -59,7 +61,7 @@ def begin(sreq):
         yield
         return
     if not i:
-        _new_session()
+        i = _new_session()
     else:
         _update_session(i)
     sirepo.srcontext.set(_SRCONTEXT_KEY, i)
@@ -71,7 +73,7 @@ def _begin():
     try:
         job_api.begin_session()
     except Exception as e:
-        pkdlog('error={} trying job_api.begin_session() stack={}', e, pkdexc())
+        pkdlog('error={} trying job_api.begin_session stack={}', e, pkdexc())
 
 def _init():
     sirepo.events.register(PKDict(
