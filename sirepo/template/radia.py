@@ -239,7 +239,15 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
 def stateful_compute_build_shape_points(data):
     import csv
 
-    return None #compute_undulator_length(data['tabulated_undulator'])
+    pts = []
+    with open(_SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_model_field(
+        'extrudedPoints',
+        'pointsFile',
+         data.points_file
+    )), 'rt') as f:
+        for r in csv.reader(f):
+            pts.append([float(x) for x in r])
+    return PKDict(points=pts)
 
 
 def python_source_for_model(data, model):

@@ -3701,8 +3701,9 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, utilities, $scope) {
+SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $scope) {
     let modelType = null;
+    let editedModels = [];
     const parent = $scope.$parent;
 
     $scope.watchFields = [
@@ -3714,25 +3715,29 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         ], updateObjectEditor,
         [
             "extrudedPoly.pointsFile",
-        ], buildPoints,
+        ], loadPoints,
     ];
 
     $scope.whenSelected = function() {
         modelType = appState.models.geomObject.type;
         $scope.modelData = appState.models[$scope.modelName];
-        radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
+        editedModels = radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
         updateObjectEditor();
     };
 
-    function setPoints(pts) {
-        srdbg('GOT PTTS', pts);
-        $scope.modelData.points = pts;
-        appState.saveChanges('objectShape');
+    $scope.$on('geomObject.changed', () => {
+        editedModels = [];
+    });
+
+    function setPoints(d) {
+        $scope.modelData.points = d.points;
+        appState.saveChanges(editedModels);
         updateObjectEditor();
     }
 
     function loadPoints() {
         if (! $scope.modelData.pointsFile) {
+            $scope.modelData.points = [];
             return;
         }
         requestSender.sendStatefulCompute(
