@@ -5,20 +5,20 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
-          '<div data-magnet-files="" data-model="model" data-field="field"></div>',
-        '</div>',
-        '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
-          '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
-    ].join('');
-    SIREPO.appDownloadLinks = [
-        '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">
+          <div data-magnet-files="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="Changref2Array" class="col-sm-7">
+          <div data-changref2-fields="" data-model="model" data-field="field"></div>
+        </div>
+    `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>
+    `;
+    SIREPO.appDownloadLinks = `
+        <li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>
+    `;
     SIREPO.lattice = {
         invalidElementName: /[#*'",]/g,
         elementColor: {
@@ -1114,7 +1114,7 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
     };
 });
 
-SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
+SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1122,7 +1122,7 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
             reportId: '<',
         },
         template: `
-            <div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
+            <div class="sr-screenshot" data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">
               <div class="main-title text-center">{{ title }}</div>
               <div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">
               </div>
@@ -1234,6 +1234,7 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
                 orientationMarker.setViewportCorner(
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
+                plotToPNG.initVTK($element, fsRenderer);
             };
 
             $scope.load = function(json) {

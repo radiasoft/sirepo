@@ -41,7 +41,6 @@ def test_flash_change_role_change_lib_files(auth_fc):
     _proprietary_file = 'flash.tar.gz'
     fc = auth_fc
     fc.sr_email_register('a@b.c', sim_type='flash')
-
     r = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type}, raw_response=True)
     pkunit.pkeq(403, r.status_code)
 

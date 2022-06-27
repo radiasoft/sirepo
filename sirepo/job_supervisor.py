@@ -903,7 +903,7 @@ class _ComputeJob(PKDict):
                 try:
                     await o.prepare_send()
                     o.send()
-                    r =  await o.reply_get()
+                    r = await o.reply_get()
                     # POSIT: any api_* that could run into runDirNotFound
                     # will call _send_with_single_reply() and this will
                     # properly format the reply
