@@ -313,17 +313,18 @@ class API(sirepo.api.Base):
 def begin_session():
     try:
         u = sirepo.auth.logged_in_user()
+        # begin_session is called before we are inside of an API so need to create one manually
+        API().request(
+            api_name='api_beginSession',
+            _request_content=PKDict(
+                uid=u,
+                userDir=str(sirepo.simulation_db.user_path(u)),
+            ),
+        )
     except sirepo.util.Reply:
         # If we get any Sirepo generated errors (ex. user dir not found) then just ignore and don't
         # try to start session (ex. agent would be started in user dir which may not exist).
-        return
-    API().request(
-        api_name='api_beginSession',
-        _request_content=PKDict(
-            uid=u,
-            userDir=str(sirepo.simulation_db.user_path(u)),
-        ),
-    )
+        pass
 
 
 def init_apis(*args, **kwargs):

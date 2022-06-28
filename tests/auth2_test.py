@@ -14,10 +14,6 @@ def test_myapp_user_dir_deleted(fc):
     from pykern.pkdebug import pkdp
     import sirepo.srdb
 
-    p = sirepo.srdb.root().join(
-        'user',
-        fc.sr_auth_state().uid,
-    )
     sirepo.srdb.root().join(
         'user',
         fc.sr_auth_state().uid,

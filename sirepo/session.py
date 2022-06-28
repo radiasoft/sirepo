@@ -18,15 +18,9 @@ _RENEW_SESSION_TIMEOUT_SECS = 5 * 60
 
 _SRCONTEXT_KEY = __name__
 
-_USER_AGENT_ID_LEN = 8
-
 _Session = None
 
-
-def _event_end_api_call(kwargs):
-    i = sirepo.srcontext.get(_SRCONTEXT_KEY)
-    if i:
-        kwargs.resp.headers['X-Sirepo-UserAgentId'] = i
+_USER_AGENT_ID_HEADER = 'X-Sirepo-UserAgentId'
 
 
 @contextlib.contextmanager
@@ -34,7 +28,7 @@ def begin(sreq):
     def _new_session():
         l = sirepo.auth.is_logged_in()
         t = sirepo.srtime.utc_now()
-        i = sirepo.util.random_base62(_USER_AGENT_ID_LEN)
+        i = sirepo.util.random_base62()
         _Session(
             user_agent_id=i,
             login_state=l,
@@ -42,7 +36,8 @@ def begin(sreq):
             start_time=t,
             request_time=t,
         ).save()
-        l and _begin()
+        if l:
+            _begin()
         return i
 
     def _update_session(user_agent_id):
@@ -50,13 +45,13 @@ def begin(sreq):
         assert s, f'No session for user_agent_id={user_agent_id}'
         l = sirepo.auth.is_logged_in()
         t = s.request_time
-        if sirepo.srtime.utc_now() - t > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS):
-            l and _begin()
+        if sirepo.srtime.utc_now() - t > datetime.timedelta(seconds=_RENEW_SESSION_TIMEOUT_SECS) and l:
+            _begin()
         s.login_state = l
         s.request_time = sirepo.srtime.utc_now()
         s.save()
 
-    i = sreq.headers().get('X-Sirepo-UserAgentId')
+    i = sreq.headers().get(_USER_AGENT_ID_HEADER)
     if not sreq.has_params():
         yield
         return
@@ -81,6 +76,12 @@ def _begin():
         job_api.begin_session()
     except Exception as e:
         pkdlog('error={} trying job_api.begin_session stack={}', e, pkdexc())
+
+
+def _event_end_api_call(kwargs):
+    i = sirepo.srcontext.get(_SRCONTEXT_KEY)
+    if i:
+        kwargs.resp.headers[_USER_AGENT_ID_HEADER] = i
 
 
 def _init_model(base):

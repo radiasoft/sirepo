@@ -1089,7 +1089,9 @@ SIREPO.app.factory('timeService', function() {
 });
 
 SIREPO.app.factory('userAgent', function() {
-    var self = {};
+    var self = {
+        HEADER: 'X-Sirepo-UserAgentId'
+    };
 
     self.id = null;
     return self;
@@ -2301,7 +2303,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         t = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
-            headers: userAgent.id ? {'X-Sirepo-UserAgentId': userAgent.id} : {}
+            headers: userAgent.id ? {[userAgent.HEADER]: userAgent.id} : {}
         };
         if (SIREPO.http_timeout > 0) {
             interval = $interval(
@@ -2395,7 +2397,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, userAg
         };
         req.then(
             function(response) {
-                const i = response.headers('X-Sirepo-UserAgentId');
+                const i = response.headers(userAgent.HEADER);
                 if (i) {
                     userAgent.id = i;
                 }
