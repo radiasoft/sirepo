@@ -992,6 +992,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'materialFile',
             o.material === 'custom'
         );
+        panelState.enableArrayField(
+            'geomObject',
+            'size',
+            SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.extrusionAxis),
+            o.type !== 'extrudedPoints'
+        );
 
         radiaService.validateMagnetization(o.magnetization, o.material);
     }
@@ -3731,6 +3737,10 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
     function setPoints(d) {
         $scope.modelData.points = d.points;
+        // the size is determined by the points
+        //let s = [0, 0, 0];
+        //s[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.extrusionAxis)] =
+        ///   $scope.modelData
         appState.saveChanges(editedModels);
         updateObjectEditor();
     }
@@ -3830,7 +3840,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     });
 
     function updateObjectEditor()  {
-        srdbg('GEOM OBJ CH');
     }
     const self = {};
 
