@@ -3738,9 +3738,9 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     function setPoints(d) {
         $scope.modelData.points = d.points;
         // the size is determined by the points
-        //let s = [0, 0, 0];
-        //s[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.extrusionAxis)] =
-        ///   $scope.modelData
+        let s = [0, 0, 0];
+        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.extrusionAxis);
+        s[i] = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat)[i];
         appState.saveChanges(editedModels);
         updateObjectEditor();
     }
