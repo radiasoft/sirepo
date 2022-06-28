@@ -199,9 +199,19 @@ class SRWShadowConverter:
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         self.beamline = res.models.beamline
         self.__sim_to_srw(data, res.models)
+        pkdp('\n\n\n sourceType: {}', res.models.simulation.sourceType)
+        #TODO (gurhar1133): use sourceType to determine which photon energy to set
+        # handle single line vs uniform
+
+        if res.models.simulation.sourceType == 'u':
+            self.__undulator_to_srw(data, res.models)
+        elif res.models.simulation.sourceType == 'g':
+            self.__geometric_source_to_srw(data, res.models)
+        elif res.models.simulation.sourceType == 'm':
+            pass
+
         self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
-        self.__undulator_to_srw(data, res.models)
         _SRW.fixup_old_data(res)
         return res
 
@@ -235,6 +245,11 @@ class SRWShadowConverter:
             vdiv2=0,
         )
         self.photon_energy = shadow.geometricSource.singleEnergyValue
+
+    def __geometric_source_to_srw(self, shadow, srw):
+        self.__copy_model_fields('g', shadow, srw)
+        pkdp('\n\n\n srw.shadow.geometricSource.singleEnergyValue: {}', srw.shadow.geometricSource.singleEnergyValue)
+        srw.simulation.photonEnergy = srw.shadow.geometricSource.singleEnergyValue
 
     def __beamline_to_srw(self, shadow, srw):
         for item in shadow.beamline:
@@ -418,7 +433,7 @@ class SRWShadowConverter:
         return angle, rotate, offset
 
     def __copy_fields(self, name, input, out, is_item):
-
+        pkdp('\n\n\n conversion direction: {}', self.conversion_direction)
         fmap = self.__FIELD_MAP if self.conversion_direction == 'shadow' else self.__invert_field_map()
 
         for m in fmap:
@@ -427,10 +442,10 @@ class SRWShadowConverter:
             _, from_name, fields = m
             if is_item and input.type != from_name:
                 continue
-
-            schema = _SHADOW.schema().model[from_name]
             if self.conversion_direction == 'shadow':
                 schema = _SRW.schema().model[from_name]
+            else:
+                schema = _SHADOW.schema().model[from_name]
 
             for f in fields:
                 if isinstance(fields[f], list):
@@ -622,12 +637,14 @@ class SRWShadowConverter:
             photon_energy=energy,
             maxangle=angle,
         )
+        pkdp('\n\n\n\n ENERGY: {}', energy)
         self.photon_energy = energy
 
     def __undulator_to_srw(self, shadow, srw):
         self.__copy_model_fields('undulator', shadow, srw)
         self.__copy_model_fields('electronBeam', shadow, srw)
-
+        pkdp('\n\n\n shadow.undulator.photon_energy: {}', shadow.undulator.photon_energy)
+        srw.simulation.photonEnergy = shadow.undulator.photon_energy
 
     def __zoneplate_to_shadow(self, item, shadow):
         #TODO(pjm): map User-defined matrials to defaults
