@@ -60,7 +60,7 @@ def assign_instance_op(op):
         'op.msg.uid={} is not same as db.uid={} for jid={}'.format(
             m.uid,
             res.uid,
-            m.computeJid,
+            m.get('computeJid'),
         )
     res.ops[op.opId] = op
     return res
@@ -345,7 +345,7 @@ class DriverBase(PKDict):
     async def _slots_ready(self, op):
         """Only one op of each type allowed"""
         n = op.opName
-        if n in (job.OP_CANCEL, job.OP_KILL,):
+        if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
             return
         if n == job.OP_SBATCH_LOGIN:
             l = [o for o in self.ops.values() if o.opId != op.opId]

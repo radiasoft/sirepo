@@ -54,6 +54,7 @@ class Base:
     def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
         return http_reply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
 
+
 def init(**imports):
     import sirepo.util
 
