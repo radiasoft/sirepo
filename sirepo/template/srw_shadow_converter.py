@@ -209,8 +209,7 @@ class SRWShadowConverter:
             self.__geometric_source_to_srw(data, res.models)
         elif res.models.simulation.sourceType == 'm':
             # TODO (gurhar1133): get source tab working
-            pass
-
+            self.__multipole_to_srw(data, res.models)
         self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
         _SRW.fixup_old_data(res)
@@ -604,6 +603,40 @@ class SRWShadowConverter:
                 f = 1
         shadow.bendingMagnet.r_magnet = 1e9 / scipy.constants.c * srw.electronBeam.energy / f
 
+    def __multipole_to_srw(self, shadow, srw):
+
+        # [shadow model, srw model, field map (field=field or field=[field, scale])
+        # ['rayFilter', 'simulation', PKDict(
+        #     x1=['horizontalRange', -0.5],
+        #     x2=['horizontalRange', 0.5],
+        #     z1=['verticalRange', -0.5],
+        #     z2=['verticalRange', 0.5],
+        # )]
+
+        srw.simulation.horizontalRange = shadow.rayFilter.x2 - shadow.rayFilter.x1
+        srw.simulation.verticalRange = shadow.rayFilter.z2 - shadow.rayFilter.z1
+
+        srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
+        srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
+        # ['bendingMagnet', 'simulation', PKDict(
+        #     ph1='photonEnergy',
+        #     ph2='photonEnergy',
+        # )]
+
+        # ['electronBeam', 'electronBeam', PKDict(
+        #     bener='energy',
+        #     sigmax='rmsSizeX',
+        #     sigmaz='rmsSizeY',
+        #     epsi_x='horizontalEmittance',
+        #     epsi_z='verticalEmittance',
+        # )]
+
+        srw.electronBeam.rmsSizeX = shadow.electronBeam.sigmax
+        srw.electronBeam.rmsSizeY = shadow.electronBeam.sigmaz
+        srw.electronBeam.horizontalEmittance = shadow.electronBeam.epsi_x
+        srw.electronBeam.verticalEmittance = shadow.electronBeam.epsi_z
+
+        srw.electronBeam.energy = shadow.electronBeam.bener
 
     def __next_id(self):
         res = 0
