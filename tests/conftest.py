@@ -321,8 +321,8 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     env.pkupdate(**cfg)
 
     for p in [
-        env['SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT'],
         env['SIREPO_PKCLI_JOB_SUPERVISOR_PORT'],
+        env['SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT'],
     ]:
         subprocess.run(['kill $(lsof -t -i :' + p + ')'], shell=True)
 
