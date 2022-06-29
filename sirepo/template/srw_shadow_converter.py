@@ -202,14 +202,13 @@ class SRWShadowConverter:
         self.__sim_to_srw(data, res.models)
         res.models.simulation.sourceType = data.simulation.sourceType
         pkdp('\n\n\n sourceType: {}', res.models.simulation.sourceType)
-        #TODO (gurhar1133): use sourceType to determine which photon energy to set
-        # handle single line vs uniform
 
         if res.models.simulation.sourceType == 'u':
             self.__undulator_to_srw(data, res.models)
         elif res.models.simulation.sourceType == 'g':
             self.__geometric_source_to_srw(data, res.models)
         elif res.models.simulation.sourceType == 'm':
+            # TODO (gurhar1133): get source tab working
             pass
 
         self.__beamline_to_srw(data, res.models)
@@ -249,19 +248,18 @@ class SRWShadowConverter:
         self.photon_energy = shadow.geometricSource.singleEnergyValue
 
     def __geometric_source_to_srw(self, shadow, srw):
-        self.__copy_model_fields('g', shadow, srw)
+        self.__copy_model_fields('gaussianBeam', shadow, srw)
         pkdp('\n\n\n shadow.geometricSource.singleEnergyValue: {}', shadow.geometricSource.singleEnergyValue)
         srw.simulation.photonEnergy = shadow.geometricSource.singleEnergyValue
         srw.gaussianBeam.photonEnergy = srw.simulation.photonEnergy
         # srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
         srw.sourceIntensityReport.distanceFromSource = shadow.plotXYReport.distanceFromSource
         srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
-        srw.sourceIntensityReport.horizontalRange = 1.7
-        srw.sourceIntensityReport.verticalRange = 1.7
-        srw.simulation.horizontalRange = 3
-        srw.simulation.verticalRange = 3
+        srw.sourceIntensityReport.horizontalRange = 2
+        srw.sourceIntensityReport.verticalRange = 2
+        srw.simulation.horizontalRange = 2
+        srw.simulation.verticalRange = 2
         srw.simulation.sampleFactor = 2
-
 
         pkdp('\n\n\n SRW: {}', srw)
 
