@@ -320,10 +320,11 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(**cfg)
 
-    if env.get('GITHUB_ACTIONS'):
-        import os
-        os.system(f'npx kill-port {env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"]} '
-                  f'{env["SIREPO_PKCLI_JOB_SUPERVISOR_PORT"]}')
+    for p in [
+        env['SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT'],
+        env['SIREPO_PKCLI_JOB_SUPERVISOR_PORT'],
+    ]:
+        subprocess.run(['kill $(lsof -t -i :' + p + ')'], shell=True)
 
     import sirepo.srunit
     c = None
@@ -351,15 +352,14 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
     import time
 
     def _post(uri, data):
-        for i in range(30):
+        for _ in range(30):
             try:
                 r = requests.post(uri, json=data)
                 if r.status_code == 200:
-                    break
+                    return
             except requests.exceptions.ConnectionError:
                 time.sleep(.3)
-        else:
-            pkunit.pkfail('could not connect to {}', uri)
+        pkunit.pkfail('could not connect to {}', uri)
 
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
