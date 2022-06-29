@@ -314,7 +314,6 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     if uwsgi:
         cfg.SIREPO_PKCLI_SERVICE_PORT = '8102'
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = '8180'
-
     for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
         cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(_LOCALHOST, p)
     if sbatch_module:
