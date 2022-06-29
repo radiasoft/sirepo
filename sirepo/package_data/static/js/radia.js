@@ -39,15 +39,22 @@ SIREPO.app.config(function() {
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
         <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
-            '<select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
+          <select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
             <div class="sr-input-warning">
             </div>
         </div>
         <div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">
-          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
+          <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
+        </div>
+        <div data-ng-switch-when="Points" data-ng-class="fieldClass">
+          <label>{{ model.widthAxis }}</label> <label>{{ model.heightAxis }}</label>
+          <div data-ng-repeat="p in model[field]">
+            <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[0]"  style="text-align: right" required />
+            <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[1]"  style="text-align: right" required />
+          </div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
-            <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
+          <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
         </div>
         <div data-ng-switch-when="TerminationTable" class="col-sm-12">
           <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
@@ -2055,9 +2062,12 @@ SIREPO.app.directive('pointEditor', function(appState, geometry, panelState, plo
             model: '=',
         },
         template: `
-            <div data-report-content="parameter" data-model-key="extrudedPoly" data-report-id=""></div>
+            <div>
+                <div data-ng-repeat=""></div>
+            </div>
         `,
         controller: function($scope, $element) {
+            //<div data-report-content="parameter" data-model-key="extrudedPoly" data-report-id=""></div>
         },
     };
 });
@@ -3732,15 +3742,26 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     };
 
     $scope.$on('geomObject.changed', () => {
+        if (editedModels.includes('extrudedPoly')) {
+            $scope.modelData.widthAxis = nextAxis($scope.modelData.extrusionAxis);
+            $scope.modelData.heightAxis = nextAxis($scope.modelData.widthAxis);
+        }
+        appState.saveQuietly($scope.modelName);
         editedModels = [];
     });
+
+    function nextAxis(axis) {
+        const b = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+        return b[b.indexOf(axis) + 1 % b.length];
+    }
 
     function setPoints(d) {
         $scope.modelData.points = d.points;
         // the size is determined by the points
-        let s = [0, 0, 0];
-        const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.extrusionAxis);
-        s[i] = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat)[i];
+        //let s = [0, 0, 0];
+        //const sz = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
+        //const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.extrusionAxis);
+        //s[i] = sz[i];
         appState.saveChanges(editedModels);
         updateObjectEditor();
     }
@@ -3814,28 +3835,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     $scope.whenSelected = () => {
         editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
         //appState.saveChanges(editedModels);
-        //srdbg('GEEOM OBH SEL', editedModels);
     }
 
-
     $scope.$on('geomObject.changed', () => {
-        //srdbg('OBJ CH', appState.models.geomObject, $scope.modelData);
-        //const o = radiaService.getObject($scope.modelData.id);
-        //const i = appState.models.geometryReport.objects.indexOf(o);
-        //srdbg(o, 'AT', i);
-        /*
-        for (const m of editedModels) {
-            const d = appState.models[m];
-            for (const f in d) {
-                if (f in $scope.modelData) {
-                    srdbg(m, 'ALRREADY HAVE', f, 'APPS', d[f], $scope.modelData[f]);
-                    continue;
-                }
-                srdbg(m, 'NEED TO ADD', f);
-            }
-        }
-
-         */
         editedModels = [];
     });
 

@@ -1617,7 +1617,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.enableArrayField = function(model, field, index, isEnabled) {
-        srdbg('F', $(fieldClass(model, field)).find('input.form-control')[index]);
         $(fieldClass(model, field)).find('input.form-control').eq(index).prop('readonly', ! isEnabled);
     };
 

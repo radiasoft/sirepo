@@ -1285,7 +1285,7 @@
                     "jay.hookWidth"
                 ]],
                 ["Point Editor", [
-                    "extrudedPoly.coordPlane"
+                    "extrudedPoints.points"
                 ]],
                 ["Modifications", [
                     "bevels"
