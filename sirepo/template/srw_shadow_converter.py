@@ -6,6 +6,7 @@ u"""Convert codes to/from SRW/shadow.
 """
 from __future__ import absolute_import, division, print_function
 from cmath import e
+from configparser import InterpolationMissingOptionError
 from copy import copy
 from dataclasses import field
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -199,6 +200,7 @@ class SRWShadowConverter:
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         self.beamline = res.models.beamline
         self.__sim_to_srw(data, res.models)
+        res.models.simulation.sourceType = data.simulation.sourceType
         pkdp('\n\n\n sourceType: {}', res.models.simulation.sourceType)
         #TODO (gurhar1133): use sourceType to determine which photon energy to set
         # handle single line vs uniform
@@ -248,8 +250,21 @@ class SRWShadowConverter:
 
     def __geometric_source_to_srw(self, shadow, srw):
         self.__copy_model_fields('g', shadow, srw)
-        pkdp('\n\n\n srw.shadow.geometricSource.singleEnergyValue: {}', srw.shadow.geometricSource.singleEnergyValue)
-        srw.simulation.photonEnergy = srw.shadow.geometricSource.singleEnergyValue
+        pkdp('\n\n\n shadow.geometricSource.singleEnergyValue: {}', shadow.geometricSource.singleEnergyValue)
+        srw.simulation.photonEnergy = shadow.geometricSource.singleEnergyValue
+        srw.gaussianBeam.photonEnergy = srw.simulation.photonEnergy
+        # srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.distanceFromSource = shadow.plotXYReport.distanceFromSource
+        srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.horizontalRange = 1.7
+        srw.sourceIntensityReport.verticalRange = 1.7
+        srw.simulation.horizontalRange = 3
+        srw.simulation.verticalRange = 3
+        srw.simulation.sampleFactor = 2
+
+
+        pkdp('\n\n\n SRW: {}', srw)
+
 
     def __beamline_to_srw(self, shadow, srw):
         for item in shadow.beamline:

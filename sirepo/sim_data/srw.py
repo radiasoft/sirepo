@@ -117,6 +117,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 n = 'beamlineAnimation{}'.format(cls.watchpoint_id(m))
                 if n not in dm:
                     dm[n] = dm[m]
+                    pkdp('\n\n\n\n BEAMLINEANIMATION: {}', dm[m])
             if m == 'initialIntensityReport' and 'beamlineAnimation0' not in dm:
                 dm.beamlineAnimation0 = dm[m]
                 if 'fieldUnits' in dm[m]:
