@@ -314,27 +314,27 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     if uwsgi:
         cfg.SIREPO_PKCLI_SERVICE_PORT = '8102'
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = '8180'
+
     for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
         cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(_LOCALHOST, p)
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(**cfg)
 
-    for p in [
-        env['SIREPO_PKCLI_JOB_SUPERVISOR_PORT'],
-        env['SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT'],
-    ]:
-        subprocess.run(['kill $(lsof -t -i :' + p + ')'], shell=True)
-
     import sirepo.srunit
     c = None
+    u = [env['SIREPO_PKCLI_JOB_SUPERVISOR_PORT']]
     if uwsgi:
         c = sirepo.srunit.UwsgiClient(env)
+        u.append(env['SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT'])
     else:
         c = sirepo.srunit.flask_client(
             cfg=cfg,
             job_run_mode='sbatch' if sbatch_module else None,
         )
+
+    for i in u:
+        subprocess.run(['kill $(lsof -t -i :' + i + ')'], shell=True)
 
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
