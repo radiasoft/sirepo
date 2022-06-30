@@ -618,6 +618,7 @@ class SRWShadowConverter:
 
         srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
         srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
         # ['bendingMagnet', 'simulation', PKDict(
         #     ph1='photonEnergy',
         #     ph2='photonEnergy',
