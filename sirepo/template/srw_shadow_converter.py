@@ -588,6 +588,8 @@ class SRWShadowConverter:
 
     def __multipole_to_srw(self, shadow, srw):
         self.__set_srw_simfields(shadow, srw)
+        srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
+        srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
         self.__set_srw_electronBeam(shadow, srw)
         self.__set_source_distance(shadow, srw)
         srw.multipole.by = (srw.electronBeam.energy  * 1e9) / (scipy.constants.c * shadow.bendingMagnet.r_magnet)
@@ -596,15 +598,11 @@ class SRWShadowConverter:
         srw.simulation.horizontalRange = shadow.rayFilter.x2 - shadow.rayFilter.x1
         srw.simulation.verticalRange = shadow.rayFilter.z2 - shadow.rayFilter.z1
         srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
-        srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
-        srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
 
     def __set_srw_electronBeam(self, shadow, srw):
-        srw.electronBeam.rmsSizeX = shadow.electronBeam.sigmax
-        srw.electronBeam.rmsSizeY = shadow.electronBeam.sigmaz
-        srw.electronBeam.horizontalEmittance = shadow.electronBeam.epsi_x
-        srw.electronBeam.verticalEmittance = shadow.electronBeam.epsi_z
-        srw.electronBeam.energy = shadow.electronBeam.bener
+        e = self.__invert_dict(self.__FIELD_MAP[5][2])
+        for k in e:
+            srw.electronBeam[k] = shadow.electronBeam[e[k]]
 
     def __set_source_distance(self, shadow, srw):
         d = shadow.beamline[0].position
