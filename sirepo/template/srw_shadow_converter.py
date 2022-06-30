@@ -395,10 +395,7 @@ class SRWShadowConverter:
 
     def __crystal_to_srw(self, item):
         material_map = self.__invert_dict(self._MATERIAL_MAP)
-        if item.alpha == 0 or item.alpha == 180:
-            o = 'vertical'
-        else:
-            o = 'horizontal'
+        o = self.__get_orientation(item)
         n = self.__copy_item(
             item,
                 sirepo.template.srw._compute_grazing_orientation(
@@ -503,11 +500,13 @@ class SRWShadowConverter:
         )))
         self.__reset_rotation(rotate, item.position)
 
-    def __grating_to_srw(self, item):
+    def __get_orientation(self, item):
         if item.alpha == 0 or item.alpha == 180:
-            o = 'vertical'
-        else:
-            o = 'horizontal'
+            return 'vertical'
+        return 'horizontal'
+
+    def __grating_to_srw(self, item):
+        o = self.__get_orientation(item)
         n = self.__copy_item(
             item,
             _SRW.model_defaults(item.type).pkupdate(
@@ -550,10 +549,7 @@ class SRWShadowConverter:
         #TODO(pjm): set vars: offx, offy, x_rot, y_rot, z_rot, cil_ang
 
     def __mirror_to_srw(self, item):
-        if item.alpha == 0 or item.alpha == 180:
-            o = 'vertical'
-        else:
-            o = 'horizontal'
+        o = self.__get_orientation(item)
         n = self.__copy_item(
             item,
             _SRW.model_defaults(item.type).pkupdate(
