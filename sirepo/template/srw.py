@@ -1238,7 +1238,6 @@ def _compute_grazing_orientation(model):
         old_value = item[field] if field in item else 0
         was_negative = float(old_value) < 0
         item[field] = float(new_value)
-        pkdp('\n\n\n old_value {}, item[field] {}, item {} , field {}', old_value, item[field], item, field)
         if (was_negative and item[field] > 0) or item[field] < 0:
             item[field] = - item[field]
 
