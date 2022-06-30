@@ -3007,6 +3007,83 @@ SIREPO.app.directive('commonFooter', function() {
     };
 });
 
+
+SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            convMethod: '@',
+        },
+        template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-python=""></div>
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
+              <div data-ng-if="!displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
+              <div data-ng-if="displayLink()">
+                {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.newSimURL = false;
+            $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
+            function createNewSim(data) {
+                requestSender.sendRequest(
+                    'newSimulation',
+                    function(simData) {
+                        var sim = simData.models.simulation;
+                        ['simulationId', 'simulationSerial'].forEach(function(f) {
+                            data.models.simulation[f] = sim[f];
+                        });
+                        data.version = simData.version;
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            genSimURL,
+                            data);
+                    },
+                    newSimData(data));
+            }
+
+            function newSimData(data) {
+                var res = appState.clone(data.models.simulation);
+                res.simulationType = data.simulationType;
+                if (!res.name){
+                    res.name = 'newSim';
+                }
+                return res;
+            }
+
+            function genSimURL(data) {
+                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
+            }
+
+            $scope.closeModal = function() {
+                $('#sr-conv-dialog').modal('hide');
+                $scope.resetURL();
+            };
+
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
+
+            $scope.openConvertedSimulation = function() {
+                srdbg('convMethod: ', $scope.convMethod);
+                const d = appState.models;
+                d.method = $scope.convMethod;
+                requestSender.sendStatefulCompute(appState, createNewSim, d);
+                return false;
+            };
+
+            $scope.displayLink = function() {
+                if ($scope.newSimURL) {
+                    return true;
+                }
+                return false;
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('simulationStatusTimer', function() {
     return {
         restrict: 'A',

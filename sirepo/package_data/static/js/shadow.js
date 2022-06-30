@@ -410,70 +410,19 @@ SIREPO.viewLogic('geometricSourceView', function(appState, panelState, shadowSer
     ];
 });
 
-SIREPO.app.directive('appFooter', function(appState, requestSender) {
+
+SIREPO.app.directive('appFooter', function() {
     return {
         restrict: 'A',
         scope: {
             nav: '=appFooter',
         },
         template: `
-            <div data-common-footer="nav"></div>
-            <div data-import-dialog=""></div>
-            <div data-confirmation-modal=""  data-ok-clicked="openSRWSimulation()" data-is-required="" data-id="sr-srw-dialog" data-title="Open as a New SRW Simulation"  data-cancel-text="Cancel" data-ok-text="Create" data-ok-clicked="">
-              <div data-ng-if="!newSimURL"> Create a SRW simulation with an equivalent beamline? </div>
-              <div data-ng-if="newSimURL">
-                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
-              </div>
-            </div>
+            <div data-sim-conversion-modal="" data-conv-method="convert_to_srw"></div>
         `,
-        controller: function($scope) {
-            $scope.newSimURL = false;
-            function createNewSim(data) {
-                srdbg('data: ', data);
-                requestSender.sendRequest(
-                    'newSimulation',
-                    function(SRWData) {
-                        srdbg('default data? -> ', SRWData);
-                        var sim = SRWData.models.simulation;
-                        srdbg('sim: ', sim);
-                        ['simulationId', 'simulationSerial'].forEach(function(f) {
-                            data.models.simulation[f] = sim[f];
-                        });
-                        data.version = SRWData.version;
-                        requestSender.sendRequest(
-                            'saveSimulationData',
-                            genSimURL,
-                            data);
-                    },
-                    newSimData(data)
-                );
-            }
-
-            function newSimData(data) {
-                var res = appState.clone(data.models.simulation);
-                res.simulationType = data.simulationType;
-                res.name = 'test';
-                return res;
-            }
-
-            function genSimURL(data) {
-                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
-            }
-
-            $scope.openSRWSimulation = function() {
-                const d = appState.models;
-                d.method = 'testing_shadow';
-                requestSender.sendStatefulCompute(appState, createNewSim, d)
-                return false;
-            }
-
-            $scope.closeModal = function() {
-                $('#sr-srw-dialog').modal('hide');
-                $scope.newSimURL = false;
-            };
-        }
-    };
+    }
 });
+
 
 SIREPO.app.directive('appHeader', function() {
     return {
@@ -503,11 +452,12 @@ SIREPO.app.directive('appHeader', function() {
         `,
         controller: function($scope) {
             $scope.openSRWConfirm = function() {
-                $('#sr-srw-dialog').modal('show');
+                $('#sr-conv-dialog').modal('show');
             };
         }
     };
 });
+
 
 SIREPO.app.directive('reflectivityMaterial', function() {
     return {
