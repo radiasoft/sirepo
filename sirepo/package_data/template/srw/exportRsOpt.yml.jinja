@@ -19,8 +19,10 @@ codes:
         {% endfor %}
       setup:
         input_file: {{ pyFileName }}
-        function: set_rsopt_params_dummy
+        function: rsopt_set_params_and_run
         execution_type: parallel
+        postprocess: [{{ pyFileName }}, rsopt_post_process]
+
 options:
   {% if scanType == 'grid' %}
   software: mesh_scan
@@ -31,5 +33,6 @@ options:
   batch_size: {{ numSamples }}
   {% endif %}
   output_file: {{ fileBase }}
-  sim_dirs_make: False
+  sym_links: {{ libFiles }}
+  sim_dirs_make: True
 

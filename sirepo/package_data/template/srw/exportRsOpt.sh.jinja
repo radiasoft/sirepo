@@ -13,6 +13,8 @@ echo "Running $run_rsopt"
 echo "Output is in '{{ outFileName }}'"
 echo "Entering $PWD"
 "${run_rsopt[@]}" > '{{ outFileName }}' 2>&1
+echo done
+exit 0
 if [ $? -eq 0 ]
 then
     run_py=( python '{{ pyFileName }}' rsopt_run '{{ fileBase }}.npy' )

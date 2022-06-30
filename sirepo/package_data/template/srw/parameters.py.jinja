@@ -442,7 +442,31 @@ def _rsopt_run_set(param_arr, start, end, proc_num):
 
 
 def rsopt_set_params_and_run({{ rsOptFuctionSignature() }}):
-    pass
+    vp = _rsopt_set_params({{ rsOptFuctionSignature() }})
+    f = _get_beamline_param(
+        vp,
+        'ws_fni',
+        '{{ ws_fni_desc }}'
+    )
+    f[2] = 'res_int_se.dat'
+{{srwMain}}
+    beam = _read_srw_file(f[2])
+    h = beam.shape[0]
+    w = beam.shape[1]
+    beam = beam.reshape(1, h, w)
+    numpy.save('beam.npy', beam)
+    numpy.save('params.npy', [{{ rsOptFuctionSignature(true) }}])
+    numpy.save('values.npy', [{{ rsOptFuctionSignature() }}])
+
+
+def rsopt_post_process():
+
+    # get output from ensemble/worker<n>/sim<m>
+    #with h5py.File('results.h5', 'w') as f:
+    #    f.create_dataset('params', data=[{{ rsOptFuctionSignature(true) }}])
+    #    f.create_dataset('paramVals', data=params_all.tolist())
+    #    f.create_dataset('beamIntensities', data=beams_all.tolist())
+
 
 def _rsopt_run_single(param_vals, proc_num, task_num):
     vp = _rsopt_set_params(*param_vals)
