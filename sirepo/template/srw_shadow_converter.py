@@ -21,7 +21,6 @@ _SHADOW = sirepo.sim_data.get_class('shadow')
 
 
 class SRWShadowConverter:
-    # TODO (gurhar1133): set conversion direction flag on __init__ instead of copy_item default param
     __FIELD_MAP = [
         # [shadow model, srw model, field map (field=field or field=[field, scale])
         ['aperture', 'aperture', PKDict(
@@ -172,9 +171,8 @@ class SRWShadowConverter:
             m='bendingMagnet',
         )
 
-    def __init__(self, conversion_direction):
-        assert (conversion_direction == 'srw' or conversion_direction == 'shadow'), 'Can only convert from shadow to srw and vice versa'
-        self.conversion_direction = conversion_direction
+    def __init__(self):
+        pass
 
     def __invert_field_map(self):
         res = []
@@ -196,19 +194,16 @@ class SRWShadowConverter:
         return n
 
     def shadow_to_srw(self, data):
-        #TODO(pjm): implement this
+        self.conversion_direction = 'srw'
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         self.beamline = res.models.beamline
         self.__sim_to_srw(data, res.models)
         res.models.simulation.sourceType = data.simulation.sourceType
-        pkdp('\n\n\n sourceType: {}', res.models.simulation.sourceType)
-
         if res.models.simulation.sourceType == 'u':
             self.__undulator_to_srw(data, res.models)
         elif res.models.simulation.sourceType == 'g':
             self.__geometric_source_to_srw(data, res.models)
         elif res.models.simulation.sourceType == 'm':
-            # TODO (gurhar1133): get source tab working
             self.__multipole_to_srw(data, res.models)
         self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
@@ -216,6 +211,7 @@ class SRWShadowConverter:
         return res
 
     def srw_to_shadow(self, models):
+        self.conversion_direction = 'shadow'
         res = simulation_db.default_data(_SHADOW.sim_type())
         self.beamline = res.models.beamline
         self.__simulation_to_shadow(models, res.models)
@@ -248,10 +244,8 @@ class SRWShadowConverter:
 
     def __geometric_source_to_srw(self, shadow, srw):
         self.__copy_model_fields('gaussianBeam', shadow, srw)
-        pkdp('\n\n\n shadow.geometricSource.singleEnergyValue: {}', shadow.geometricSource.singleEnergyValue)
         srw.simulation.photonEnergy = shadow.geometricSource.singleEnergyValue
         srw.gaussianBeam.photonEnergy = srw.simulation.photonEnergy
-        # srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
         srw.sourceIntensityReport.distanceFromSource = shadow.plotXYReport.distanceFromSource
         srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
         srw.sourceIntensityReport.horizontalRange = 2
@@ -259,8 +253,6 @@ class SRWShadowConverter:
         srw.simulation.horizontalRange = 2
         srw.simulation.verticalRange = 2
         srw.simulation.sampleFactor = 2
-
-        pkdp('\n\n\n SRW: {}', srw)
 
 
     def __beamline_to_srw(self, shadow, srw):
@@ -282,7 +274,6 @@ class SRWShadowConverter:
             elif item.type == 'zonePlate':
                 self.beamline.append(self.__zoneplate_to_srw(item))
             elif item.type == 'crystal':
-                # assert 0, 'Crystal conversion implementation needs to be implemented still'
                 self.__crystal_to_srw(item)
             elif item.type == 'mirror':
                 self.__mirror_to_srw(item)
@@ -297,7 +288,6 @@ class SRWShadowConverter:
         return self.beamline
 
     def __crl_to_srw(self, item):
-        #TODO (gurhar1133): crl focal distance conversion needs fix
         res = _SRW.model_defaults(item.type)
         res.pkupdate(PKDict(
             attenuationLength=1e-2/float(item.attenuationCoefficient),
@@ -445,9 +435,7 @@ class SRWShadowConverter:
         return angle, rotate, offset
 
     def __copy_fields(self, name, input, out, is_item):
-        pkdp('\n\n\n conversion direction: {}', self.conversion_direction)
         fmap = self.__FIELD_MAP if self.conversion_direction == 'shadow' else self.__invert_field_map()
-
         for m in fmap:
             if m[0] != name:
                 continue
@@ -530,7 +518,6 @@ class SRWShadowConverter:
                         )
             )
         )
-        # TODO (gurhar1133): need to _compute_grating_orientation, or _compute_grazing_orientation?
         self.beamline.append(n)
 
 
@@ -604,40 +591,40 @@ class SRWShadowConverter:
         shadow.bendingMagnet.r_magnet = 1e9 / scipy.constants.c * srw.electronBeam.energy / f
 
     def __multipole_to_srw(self, shadow, srw):
+        self.__set_srw_simfields(shadow, srw)
+        self.__set_srw_electronBeam(shadow, srw)
+        self.__set_source_distance(shadow, srw)
+        pkdp('\n\n\n\n srw.electronBeam.energy: {}', srw.electronBeam.energy)
+        # assert (1e9 / scipy.constants.c * srw.electronBeam.energy / 1.72) == shadow.bendingMagnet.r_magnet
 
-        # [shadow model, srw model, field map (field=field or field=[field, scale])
-        # ['rayFilter', 'simulation', PKDict(
-        #     x1=['horizontalRange', -0.5],
-        #     x2=['horizontalRange', 0.5],
-        #     z1=['verticalRange', -0.5],
-        #     z2=['verticalRange', 0.5],
-        # )]
+        srw.multipole.by = (scipy.constants.c * srw.electronBeam.energy * shadow.bendingMagnet.r_magnet)/1e9
 
+    def __set_srw_simfields(self, shadow, srw):
         srw.simulation.horizontalRange = shadow.rayFilter.x2 - shadow.rayFilter.x1
         srw.simulation.verticalRange = shadow.rayFilter.z2 - shadow.rayFilter.z1
-
         srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
         srw.coherentModesAnimation.photonEnergy = srw.simulation.photonEnergy
         srw.sourceIntensityReport.photonEnergy = srw.simulation.photonEnergy
-        # ['bendingMagnet', 'simulation', PKDict(
-        #     ph1='photonEnergy',
-        #     ph2='photonEnergy',
-        # )]
 
-        # ['electronBeam', 'electronBeam', PKDict(
-        #     bener='energy',
-        #     sigmax='rmsSizeX',
-        #     sigmaz='rmsSizeY',
-        #     epsi_x='horizontalEmittance',
-        #     epsi_z='verticalEmittance',
-        # )]
-
+    def __set_srw_electronBeam(self, shadow, srw):
         srw.electronBeam.rmsSizeX = shadow.electronBeam.sigmax
         srw.electronBeam.rmsSizeY = shadow.electronBeam.sigmaz
         srw.electronBeam.horizontalEmittance = shadow.electronBeam.epsi_x
         srw.electronBeam.verticalEmittance = shadow.electronBeam.epsi_z
 
-        srw.electronBeam.energy = shadow.electronBeam.bener
+    def __set_source_distance(self, shadow, srw):
+        d = shadow.beamline[0].position
+        k = [
+            'coherentModesAnimation',
+            'fluxReport',
+            'intensityReport',
+            'powerDensityReport',
+            'simulation',
+            'sourceIntensityReport'
+        ]
+        for n in k:
+            srw[n]['distanceFromSource'] = d
+
 
     def __next_id(self):
         res = 0
@@ -684,13 +671,11 @@ class SRWShadowConverter:
             photon_energy=energy,
             maxangle=angle,
         )
-        pkdp('\n\n\n\n ENERGY: {}', energy)
         self.photon_energy = energy
 
     def __undulator_to_srw(self, shadow, srw):
         self.__copy_model_fields('undulator', shadow, srw)
         self.__copy_model_fields('electronBeam', shadow, srw)
-        pkdp('\n\n\n shadow.undulator.photon_energy: {}', shadow.undulator.photon_energy)
         srw.simulation.photonEnergy = shadow.undulator.photon_energy
 
     def __zoneplate_to_shadow(self, item, shadow):
