@@ -588,7 +588,9 @@ class SRWShadowConverter:
                 f = srw.multipole.bx
             else:
                 f = 1
+
         shadow.bendingMagnet.r_magnet = 1e9 / scipy.constants.c * srw.electronBeam.energy / f
+        pkdp('\n\n\n\n\n\n f {}, r_magnet: {}, srw.electronBeam.energy: {}', f, shadow.bendingMagnet.r_magnet, srw.electronBeam.energy)
 
     def __multipole_to_srw(self, shadow, srw):
         self.__set_srw_simfields(shadow, srw)
@@ -597,7 +599,8 @@ class SRWShadowConverter:
         pkdp('\n\n\n\n srw.electronBeam.energy: {}', srw.electronBeam.energy)
         # assert (1e9 / scipy.constants.c * srw.electronBeam.energy / 1.72) == shadow.bendingMagnet.r_magnet
 
-        srw.multipole.by = (scipy.constants.c * srw.electronBeam.energy * shadow.bendingMagnet.r_magnet)/1e9
+        srw.multipole.by = (scipy.constants.c * srw.electronBeam.energy) * shadow.bendingMagnet.r_magnet/1e9
+        pkdp('\n\n\n\n\n\n r_magnet: {}, srw.electronBeam.energy: {}, shadow.electrongBeam.energy: {}, srw.multipole.by: {}', shadow.bendingMagnet.r_magnet, srw.electronBeam.energy, shadow.electronBeam.bener, srw.multipole.by)
 
     def __set_srw_simfields(self, shadow, srw):
         srw.simulation.horizontalRange = shadow.rayFilter.x2 - shadow.rayFilter.x1
@@ -611,6 +614,7 @@ class SRWShadowConverter:
         srw.electronBeam.rmsSizeY = shadow.electronBeam.sigmaz
         srw.electronBeam.horizontalEmittance = shadow.electronBeam.epsi_x
         srw.electronBeam.verticalEmittance = shadow.electronBeam.epsi_z
+        srw.electronBeam.energy = shadow.electronBeam.bener
 
     def __set_source_distance(self, shadow, srw):
         d = shadow.beamline[0].position

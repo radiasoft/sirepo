@@ -764,7 +764,7 @@ def stateful_compute_compute_undulator_length(data):
 
 def stateful_compute_create_shadow_simulation(data):
     from sirepo.template.srw_shadow_converter import SRWShadowConverter
-    return SRWShadowConverter('shadow').srw_to_shadow(data)
+    return SRWShadowConverter().srw_to_shadow(data)
 
 
 def stateful_compute_delete_user_models(data):
