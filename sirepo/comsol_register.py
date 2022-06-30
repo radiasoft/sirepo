@@ -17,13 +17,13 @@ cfg = None
 
 
 class API(sirepo.api.Base):
-    @api_perm.allow_visitor
+    @sirepo.api.Spec('allow_visitor')
     def api_comsol(self):
         return self.reply_redirect(
             'https://www.radiasoft.net/services/comsol-certified-consulting/',
         )
 
-    @api_perm.allow_visitor
+    @sirepo.api.Spec('allow_visitor')
     def api_comsolRegister(self):
         import sirepo.util
     
