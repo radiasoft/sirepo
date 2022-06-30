@@ -441,6 +441,9 @@ def _rsopt_run_set(param_arr, start, end, proc_num):
         task_num += 1
 
 
+def rsopt_set_params_and_run({{ rsOptFuctionSignature() }}):
+    pass
+
 def _rsopt_run_single(param_vals, proc_num, task_num):
     vp = _rsopt_set_params(*param_vals)
     f = _get_beamline_param(
