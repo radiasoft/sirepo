@@ -270,6 +270,9 @@ class _Dispatcher(PKDict):
                 c.destroy()
         return None
 
+    async def _op_io(self, msg):
+        return await self._cmd(msg)
+
     async def _op_kill(self, msg):
         self.terminate()
         return None
@@ -282,9 +285,15 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
+    async def _op_begin_session(self, msg):
+        await self.send(
+            self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
+        )
+        return None
+
     async def _cmd(self, msg, **kwargs):
         try:
-            if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
+            if msg.opName in (job.OP_ANALYSIS, job.OP_IO,) and msg.jobCmd != 'fastcgi':
                 return await self._fastcgi_op(msg)
             p = self._get_cmd_type(msg)(
                 msg=msg,

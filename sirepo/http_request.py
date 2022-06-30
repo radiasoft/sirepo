@@ -4,15 +4,14 @@ u"""request input parsing
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
 import sirepo.sim_data
-import sirepo.template
-import sirepo.util
 import sirepo.srcontext
 import sirepo.srschema
+import sirepo.template
+import sirepo.util
 import user_agents
 
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
@@ -21,9 +20,7 @@ _POST_ATTR = 'sirepo_http_request_post'
 
 
 def init(**imports):
-    global sirepo
     sirepo.util.setattr_imports(imports)
-    import sirepo.auth
 
 
 def is_spider():
@@ -93,10 +90,12 @@ def parse_post(**kwargs):
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
 
-    def t(v):
+    def _type(v):
+        from sirepo import auth
+
         assert not isinstance(v, bool), \
             'missing type in params/post={}'.format(kwargs)
-        v = sirepo.template.assert_sim_type(v)
+        auth.check_sim_type_role(v)
         # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
         set_sim_type(v)
         res.sim_data = sirepo.sim_data.get_class(v)
@@ -104,7 +103,7 @@ def parse_post(**kwargs):
 
     for x in (
         # must be first
-        ('type', ('simulationType',), t),
+        ('type', ('simulationType',), _type),
         ('file_type', ('file_type', 'fileType'), sirepo.util.secure_filename),
         ('filename', ('filename', 'fileName'), sirepo.util.secure_filename),
         ('folder', ('folder',), sirepo.srschema.parse_folder),
@@ -133,7 +132,6 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
-    sirepo.auth.require_sim_type(res.type)
     return res
 
 
@@ -167,3 +165,23 @@ def sim_type(value=None):
     if value:
         return sirepo.template.assert_sim_type(value)
     return sirepo.srcontext.get(_SIM_TYPE_ATTR)
+
+
+def user_agent_headers():
+
+    def _dns_reverse_lookup(ip):
+        import dns.resolver
+        import dns.reversename
+        try:
+            if ip:
+                return str(dns.resolver.query(dns.reversename.from_address(ip), 'PTR'))
+        # 127.0.0.1 is not reverse mapped, resulting in dns.resolver.NoNameservers exception
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers):
+            pass
+        return 'No Reverse DNS Lookup'
+
+    return PKDict(
+        ip_addr=flask.request.remote_addr,
+        domain_name=_dns_reverse_lookup(flask.request.remote_addr),
+        user_agent=flask.request.headers.get("User-Agent"),
+    )

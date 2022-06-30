@@ -82,10 +82,13 @@ def run_background(cfg_dir):
     data = sirepo.simulation_db.read_json(
         template_common.INPUT_BASE_NAME,
     )
-    sirepo.simulation_db.write_json(
-        sirepo.template.cloudmc.VOLUME_INFO_FILE,
-        extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
-    )
+    if 'report' in data and data.report == 'dagmcAnimation':
+        sirepo.simulation_db.write_json(
+            sirepo.template.cloudmc.VOLUME_INFO_FILE,
+            extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
+        )
+        return
+    template_common.exec_parameters()
 
 
 def _array_from_list(arr, arr_type):
@@ -259,3 +262,42 @@ def _vtk_to_bin(vol_id):
             f.write(fn)
     pkio.unchecked_remove(_DATA_DIR)
     pkio.unchecked_remove(filename)
+
+
+#TODO(pjm): when pymoab is available, replace the mbsize parsing with something like this
+
+# from pykern.pkcollections import PKDict
+# from pymoab import core, types
+# import re
+# import sys
+
+# def get_volumes_by_group(filename):
+
+#     def get_tag_value(mb, tag, handle):
+#         return mb.tag_get_data(tag, handle).flat[0]
+
+#     mb = core.Core()
+#     mb.load_file(filename)
+#     name_h = mb.tag_get_handle(types.NAME_TAG_NAME)
+#     id_h = mb.tag_get_handle(types.GLOBAL_ID_TAG_NAME)
+#     res = PKDict()
+#     for group in mb.get_entities_by_type_and_tag(
+#         mb.get_root_set(),
+#         types.MBENTITYSET,
+#         [mb.tag_get_handle(types.CATEGORY_TAG_NAME)],
+#         ['Group'],
+#     ):
+#         name = get_tag_value(mb, name_h, group)
+#         if not re.search(r'^mat:', name):
+#             continue
+#         assert not res.get(group)
+#         res[group] = PKDict(
+#             name=name,
+#             volumes=[],
+#         )
+#         for volume in mb.get_entities_by_handle(group):
+#             res[group].volumes.append(get_tag_value(mb, id_h, volume))
+#     return res
+
+# assert len(sys.argv) == 2, f'usage: python {sys.argv[0]} <filename>'
+# res = get_volumes_by_group(sys.argv[1])

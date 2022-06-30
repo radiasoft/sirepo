@@ -16,6 +16,7 @@ def test_login():
     from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
     from sirepo import auth
     import flask
+    import sirepo.api
     import sirepo.auth.guest
     import sirepo.cookie
     import sirepo.http_request
@@ -24,7 +25,6 @@ def test_login():
 
     r = sirepo.uri_router.call_api('authState')
     pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
-    auth.process_request()
     with pkunit.pkexcept('SRException.*routeName=login'):
         auth.logged_in_user()
     with pkexcept('SRException.*routeName=login'):
@@ -32,7 +32,8 @@ def test_login():
     sirepo.cookie.set_sentinel()
     # copying examples for new user takes time
     try:
-        r = auth.login(sirepo.auth.guest, sim_type='myapp')
+        # TODO(rorour): get sapi from current request
+        r = auth.login(sirepo.auth.guest, sim_type='myapp', sapi=sirepo.api.Base())
         pkfail('expecting sirepo.util.Response')
     except sirepo.util.Response as e:
         r = e.sr_args.response

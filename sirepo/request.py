@@ -1,28 +1,29 @@
 u"""Requests hold context for API calls
 
-:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import flask
 
 
-class Base:
-    """Holds request context for all API calls.
-    """
-
-    def call_api(self, name, kwargs=None, data=None):
-        """Calls uri_router.call_api, which calls the API with permission checks.
-
-        Args:
-            name (object): api name (without `api_` prefix)
-            kwargs (dict): to be passed to API [None]
-            data (dict): will be returned `http_request.parse_json` [None]
-        Returns:
-            flask.Response: result
-        """
-        return uri_router.call_api(name, kwargs=kwargs, data=data)
-
+def begin():
+    return _Base()
 
 def init(**imports):
     import sirepo.util
 
     sirepo.util.setattr_imports(imports)
+
+
+class _Base:
+    """Holds context for incoming requests
+    """
+    # TODO(e-carlin): used to be named request_method
+    def has_params(self):
+        # TODO(e-carlin): naive and not accurate (ex. simulationFrame has params but is not a post)
+        # but good enough for now
+        return flask.request.method == 'POST'
+
+    @classmethod
+    def headers(cls):
+        return flask.request.headers

@@ -165,6 +165,20 @@ class UserAlert(Reply):
         )
 
 
+class WWWAuthenticate(Reply):
+    """Raised to generate 401 response
+
+    Args:
+        log_fmt (str): server side log data
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            PKDict(),
+            *args,
+            **kwargs
+        )
+
+
 def convert_exception(exception, display_text='unexpected error'):
     """Convert exception so can be raised
 

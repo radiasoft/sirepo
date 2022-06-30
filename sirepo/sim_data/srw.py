@@ -14,7 +14,6 @@ import numpy
 import re
 import sirepo.sim_data
 
-
 class SimData(sirepo.sim_data.SimDataBase):
 
     ANALYSIS_ONLY_FIELDS = frozenset((
@@ -38,6 +37,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         'verticalOffset',
         'verticalSize',
     ))
+
+    EXPORT_RSOPT = 'exportRsOpt'
 
     SRW_RUN_ALL_MODEL = 'simulation'
 
@@ -76,6 +77,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             return 'multiElectronAnimation'
         if 'beamlineAnimation' in analysis_model:
             return 'beamlineAnimation'
+        if analysis_model == cls.EXPORT_RSOPT:
+            return cls.EXPORT_RSOPT
         # SRW is different: it doesn't translate *Animation into animation
         return analysis_model
 
@@ -327,7 +330,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return not report or cls.is_watchpoint(report) \
             or report in ('multiElectronAnimation', cls.SRW_RUN_ALL_MODEL) \
             or report == 'beamline3DReport' \
-            or  report == 'rsoptExport'
+            or report == 'exportRsOpt'
 
     @classmethod
     def srw_is_dipole_source(cls, sim):

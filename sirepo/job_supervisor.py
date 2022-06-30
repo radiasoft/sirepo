@@ -92,7 +92,7 @@ class ServerReq(PKDict):
             'no secret in message content={}'.format(self.content)
         assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match content={}'.format(self.content)
-        return await _ComputeJob.receive(self)
+        return await _Supervisor.receive(self)
 
 
 class SlotProxy(PKDict):
@@ -143,6 +143,7 @@ def init():
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_secs=dict(
             analysis=(144, pkconfig.parse_seconds, 'maximum run-time for analysis job',),
+            io=(144, pkconfig.parse_seconds, 'maximum run-time for io job',),
             parallel=(3600, pkconfig.parse_seconds, 'maximum run-time for parallel job (except sbatch)'),
             parallel_premium=(3600*2, pkconfig.parse_seconds, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(360, pkconfig.parse_seconds, 'maximum run-time for sequential job'),
@@ -169,7 +170,188 @@ async def terminate():
     await job_driver.terminate()
 
 
-class _ComputeJob(PKDict):
+class _Supervisor(PKDict):
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            **kwargs,
+        )
+
+    def destroy_op(self, op):
+        pass
+
+    @classmethod
+    def get_compute_job_or_self(cls, req):
+        try:
+            j = req.content.computeJid
+        except AttributeError:
+            return cls(req=req)
+        self = _ComputeJob.instances.pksetdefault(j, lambda: _ComputeJob.create(req))[j]
+        # SECURITY: must only return instances for authorized user
+        assert req.content.uid == self.db.uid, \
+            'req.content.uid={} is not same as db.uid={} for jid={}'.format(
+                req.content.uid,
+                self.db.uid,
+                j,
+            )
+        return self
+
+    def pkdebug_str(self):
+        return pkdformat(
+            '_Supervisor(api={} uid={})',
+            self.req.api,
+            self.req.content.uid
+        )
+
+    @classmethod
+    async def receive(cls, req):
+        if req.content.get('api') != 'api_runStatus':
+            pkdlog('{}', req)
+        try:
+            o = cls.get_compute_job_or_self(req)
+            return await getattr(
+                o,
+                '_receive_' + req.content.api,
+            )(req)
+        except sirepo.util.ASYNC_CANCELED_ERROR:
+            return PKDict(state=job.CANCELED)
+        except Exception as e:
+            pkdlog('{} error={} stack={}', req, e, pkdexc())
+            return sirepo.http_reply.gen_tornado_exception(e)
+
+    async def op_run_timeout(self, op):
+        pass
+
+    def _create_op(self, opName, req, kind, job_run_mode,  **kwargs):
+        req.kind = kind
+        o = _Op(
+            _supervisor=self,
+            kind=req.kind,
+            msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=job_run_mode),
+            opName=opName,
+        )
+        if 'dataFileKey' in kwargs:
+            kwargs['dataFileUri'] = job.supervisor_file_uri(
+                o.driver.cfg.supervisor_uri,
+                job.DATA_FILE_URI,
+                kwargs.pop('dataFileKey'),
+            )
+        o.msg.pkupdate(**kwargs)
+        return o
+
+    def _get_running_pending_jobs(self, uid=None):
+        def _filter_jobs(job):
+            if uid and job.db.uid != uid:
+                return False
+            return job._is_running_pending()
+
+        def _get_header():
+            h = PKDict(
+                simulationType=PKDict(
+                    title='App',
+                    type='String',
+                ),
+                simulationId=PKDict(
+                    title='Simulation id',
+                    type='String',
+                ),
+                startTime=PKDict(
+                    title='Start',
+                    type='DateTime',
+                ),
+                lastUpdateTime=PKDict(
+                    title='Last Update',
+                    type='DateTime',
+                ),
+                elapsedTime=PKDict(
+                    title='Elapsed',
+                    type='Time',
+                ),
+                statusMessage=PKDict(
+                    title='Status',
+                    type='String',
+                ),
+            )
+            if uid:
+                h.name = PKDict(
+                    title='Name',
+                    type='String',
+                )
+            else:
+                h.uid = PKDict(
+                    title='User id',
+                    type='String',
+                )
+                h.displayName = PKDict(
+                    title='Display name',
+                    type='String',
+                )
+                h.queuedTime = PKDict(
+                    title='Queued',
+                    type='Time',
+                )
+                h.driverDetails = PKDict(
+                    title='Driver details',
+                    type='String',
+                )
+                h.isPremiumUser = PKDict(
+                    title='Premium user',
+                    type='String',
+                )
+            return h
+
+        def _get_jobs():
+            def _get_queued_time(db):
+                m = i.db.computeJobStart if i.db.status == job.RUNNING \
+                    else sirepo.srtime.utc_now_as_int()
+                return m - db.computeJobQueued
+
+            r = []
+            with sirepo.auth_db.session():
+                for i in filter(_filter_jobs, _ComputeJob.instances.values()):
+                    d = PKDict(
+                        simulationType=i.db.simulationType,
+                        simulationId=i.db.simulationId,
+                        startTime=i.db.computeJobStart,
+                        lastUpdateTime=i.db.lastUpdateTime,
+                        elapsedTime=i.elapsed_time(),
+                        statusMessage=i.db.get('jobStatusMessage', ''),
+                        computeModel=sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
+                    )
+                    if uid:
+                        d.simName = i.db.simName
+                    else:
+                        d.uid = i.db.uid
+                        d.displayName = sirepo.auth_db.UserRegistration.search_by(uid=i.db.uid).display_name or 'n/a'
+                        d.queuedTime = _get_queued_time(i.db)
+                        d.driverDetails = ' | '.join(sorted(i.db.driverDetails.values()))
+                        d.isPremiumUser = i.db.isPremiumUser
+                    r.append(d)
+            return r
+
+        return PKDict(header=_get_header(), jobs=_get_jobs())
+
+    async def _receive_api_admJobs(self, req):
+        return self._get_running_pending_jobs()
+
+    async def _receive_api_beginSession(self, req):
+        c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, 'sequential')
+        try:
+            await c.prepare_send()
+        except Awaited:
+            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
+            # In the event that it does, the agent is still started,
+            # so no need to try again after Awaited.
+            pass
+        finally:
+            c.destroy(cancel=False)
+        return PKDict()
+
+    async def _receive_api_ownJobs(self, req):
+        return self._get_running_pending_jobs(uid=req.content.uid)
+
+
+class _ComputeJob(_Supervisor):
 
     instances = PKDict()
     _purged_jids_cache = set()
@@ -197,6 +379,21 @@ class _ComputeJob(PKDict):
             self.cache_timeout,
         )
 
+    @classmethod
+    def create(cls, req):
+        try:
+            d = cls.__db_load(req.content.computeJid)
+            self = cls(req, db=d)
+            if self._is_running_pending():
+#TODO(robnagler) when we reconnect with running processes at startup,
+#  we'll need to change this
+                self.__db_update(status=job.CANCELED)
+            return self
+        except Exception as e:
+            if pykern.pkio.exception_is_not_found(e):
+                return cls(req).__db_write()
+            raise
+
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
@@ -211,21 +408,11 @@ class _ComputeJob(PKDict):
             else self.db.dbUpdateTime
         ) - self.db.computeJobStart
 
-    @classmethod
-    def get_instance_or_class(cls, req):
-        try:
-            j = req.content.computeJid
-        except AttributeError:
-            return cls
-        self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
-        # SECURITY: must only return instances for authorized user
-        assert req.content.uid == self.db.uid, \
-            'req.content.uid={} is not same as db.uid={} for jid={}'.format(
-                req.content.uid,
-                self.db.uid,
-                j,
-            )
-        return self
+    async def op_run_timeout(self, op):
+        await self._receive_api_runCancel(
+            ServerReq(content=op.msg),
+            timed_out_op=op,
+        )
 
     def pkdebug_str(self):
         d = self.get('db')
@@ -265,9 +452,6 @@ class _ComputeJob(PKDict):
 
         def _purge_sim(jid):
             d = cls.__db_load(jid)
-            # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
-            # frequently so we don't need to check again. A user could run a sim
-            # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)
@@ -303,22 +487,6 @@ class _ComputeJob(PKDict):
                 cls.purge_free_simulations,
             )
 
-    @classmethod
-    async def receive(cls, req):
-        if req.content.get('api') != 'api_runStatus':
-            pkdlog('{}', req)
-        try:
-            o = cls.get_instance_or_class(req)
-            return await getattr(
-                o,
-                '_receive_' + req.content.api,
-            )(req)
-        except sirepo.util.ASYNC_CANCELED_ERROR:
-            return PKDict(state=job.CANCELED)
-        except Exception as e:
-            pkdlog('{} error={} stack={}', req, e, pkdexc())
-            return sirepo.http_reply.gen_tornado_exception(e)
-
     def set_situation(self, op, situation, exception=None):
         if op.opName != job.OP_RUN:
             return
@@ -333,21 +501,6 @@ class _ComputeJob(PKDict):
                 exception = repr(exception)
             situation = f'{p}{exception}, while {s}'
         self.__db_update(jobStatusMessage=situation)
-
-    @classmethod
-    def __create(cls, req):
-        try:
-            d = cls.__db_load(req.content.computeJid)
-            self = cls(req, db=d)
-            if self._is_running_pending():
-#TODO(robnagler) when we reconnect with running processes at startup,
-#  we'll need to change this
-                self.__db_update(status=job.CANCELED)
-            return self
-        except Exception as e:
-            if pykern.pkio.exception_is_not_found(e):
-                return cls(req).__db_write()
-            raise
 
     @classmethod
     def __db_file(cls, computeJid):
@@ -455,99 +608,6 @@ class _ComputeJob(PKDict):
     def __db_write_file(cls, db):
         sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
-    @classmethod
-    def _get_running_pending_jobs(cls, uid=None):
-        def _filter_jobs(job):
-            if uid and job.db.uid != uid:
-                return False
-            return job._is_running_pending()
-
-        def _get_header():
-            h = PKDict(
-                simulationType=PKDict(
-                    title='App',
-                    type='String',
-                ),
-                simulationId=PKDict(
-                    title='Simulation id',
-                    type='String',
-                ),
-                startTime=PKDict(
-                    title='Start',
-                    type='DateTime',
-                ),
-                lastUpdateTime=PKDict(
-                    title='Last Update',
-                    type='DateTime',
-                ),
-                elapsedTime=PKDict(
-                    title='Elapsed',
-                    type='Time',
-                ),
-                statusMessage=PKDict(
-                    title='Status',
-                    type='String',
-                ),
-            )
-            if uid:
-                h.name = PKDict(
-                    title='Name',
-                    type='String',
-                )
-            else:
-                h.uid = PKDict(
-                    title='User id',
-                    type='String',
-                )
-                h.displayName = PKDict(
-                    title='Display name',
-                    type='String',
-                )
-                h.queuedTime = PKDict(
-                    title='Queued',
-                    type='Time',
-                )
-                h.driverDetails = PKDict(
-                    title='Driver details',
-                    type='String',
-                )
-                h.isPremiumUser = PKDict(
-                    title='Premium user',
-                    type='String',
-                )
-            return h
-
-        def _get_jobs():
-            def _get_queued_time(db):
-                m = i.db.computeJobStart if i.db.status == job.RUNNING \
-                    else sirepo.srtime.utc_now_as_int()
-                return m - db.computeJobQueued
-
-            r = []
-            with sirepo.auth_db.session():
-                for i in filter(_filter_jobs, cls.instances.values()):
-                    d = PKDict(
-                        simulationType=i.db.simulationType,
-                        simulationId=i.db.simulationId,
-                        startTime=i.db.computeJobStart,
-                        lastUpdateTime=i.db.lastUpdateTime,
-                        elapsedTime=i.elapsed_time(),
-                        statusMessage=i.db.get('jobStatusMessage', ''),
-                        computeModel=sirepo.sim_data.split_jid(i.db.computeJid).compute_model,
-                    )
-                    if uid:
-                        d.simName = i.db.simName
-                    else:
-                        d.uid = i.db.uid
-                        d.displayName = sirepo.auth_db.UserRegistration.search_by(uid=i.db.uid).display_name or 'n/a'
-                        d.queuedTime = _get_queued_time(i.db)
-                        d.driverDetails = ' | '.join(sorted(i.db.driverDetails.values()))
-                        d.isPremiumUser = i.db.isPremiumUser
-                    r.append(d)
-            return r
-
-        return PKDict(header=_get_header(), jobs=_get_jobs())
-
     def _is_running_pending(self):
         return self.db.status in (job.RUNNING, job.PENDING)
 
@@ -562,10 +622,6 @@ class _ComputeJob(PKDict):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
             sirepo.util.raise_not_found('purged or missing {}', req)
 
-    @classmethod
-    async def _receive_api_admJobs(cls, req):
-        return cls._get_running_pending_jobs()
-
     async def _receive_api_analysisJob(self, req):
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
@@ -576,15 +632,11 @@ class _ComputeJob(PKDict):
     async def _receive_api_downloadDataFile(self, req):
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
+            job.OP_IO,
             req,
             jobCmd='download_data_file',
             dataFileKey=req.content.pop('dataFileKey')
         )
-
-    @classmethod
-    async def _receive_api_ownJobs(cls, req):
-        return cls._get_running_pending_jobs(uid=req.content.uid)
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops
@@ -759,9 +811,6 @@ class _ComputeJob(PKDict):
         return await self._send_simulation_compute(req)
 
     def _create_op(self, opName, req, **kwargs):
-#TODO(robnagler) kind should be set earlier in the queuing process.
-        req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
-            else job.SEQUENTIAL
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
         # not self.db.jobRunMode
@@ -769,22 +818,9 @@ class _ComputeJob(PKDict):
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
             sirepo.util.raise_not_found('invalid jobRunMode={} req={}', r, req)
-        o = _Op(
-#TODO(robnagler) don't like the camelcase. It doesn't actually work right because
-# these values are never sent directly, only msg which can be camelcase
-            computeJob=self,
-            kind=req.kind,
-            msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=r),
-            opName=opName,
-            task=asyncio.current_task(),
-        )
-        if 'dataFileKey' in kwargs:
-            kwargs['dataFileUri'] = job.supervisor_file_uri(
-                o.driver.cfg.supervisor_uri,
-                job.DATA_FILE_URI,
-                kwargs.pop('dataFileKey'),
-            )
-        o.msg.pkupdate(**kwargs)
+        k = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
+            else job.SEQUENTIAL
+        o = super()._create_op(opName, req, k, r, **kwargs).pkupdate(task=asyncio.current_task())
         self.ops.append(o)
         return o
 
@@ -902,7 +938,7 @@ class _ComputeJob(PKDict):
                 try:
                     await o.prepare_send()
                     o.send()
-                    r =  await o.reply_get()
+                    r = await o.reply_get()
                     # POSIT: any api_* that could run into runDirNotFound
                     # will call _send_with_single_reply() and this will
                     # properly format the reply
@@ -969,9 +1005,10 @@ class _Op(PKDict):
             do_not_send=False,
             internal_error=None,
             opId=job.unique_key(),
-            run_dir_slot=self.computeJob.run_dir_slot_q.sr_slot_proxy(self),
             _reply_q=sirepo.tornado.Queue(),
         )
+        if 'run_dir_slot_q' in self._supervisor:
+            self.run_dir_slot = self._supervisor.run_dir_slot_q.sr_slot_proxy(self)
         self.msg.update(opId=self.opId, opName=self.opName)
         self.driver = job_driver.assign_instance_op(self)
         self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
@@ -981,11 +1018,10 @@ class _Op(PKDict):
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True, internal_error=None):
-        self.run_dir_slot.free()
-        if cancel:
-            if self.task:
-                self.task.cancel()
-                self.task = None
+        'run_dir_slot' in self and self.run_dir_slot.free()
+        if cancel and self.get('task'):
+            self.task.cancel()
+            self.task = None
         # Ops can be destroyed multiple times
         # The first error is "closest to the source" so don't overwrite it
         if not self.internal_error:
@@ -993,7 +1029,7 @@ class _Op(PKDict):
         for x in 'run_callback', 'timer':
             if x in self:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))
-        self.computeJob.destroy_op(self)
+        self._supervisor.destroy_op(self)
         self.driver.destroy_op(self)
 
     def make_lib_dir_symlink(self):
@@ -1004,7 +1040,6 @@ class _Op(PKDict):
 
     async def prepare_send(self):
         """Ensures resources are available for sending to agent
-
         To maintain consistency, do not modify global state before
         calling this method.
         """
@@ -1026,10 +1061,7 @@ class _Op(PKDict):
     async def run_timeout(self):
         """Can be any op that's timed"""
         pkdlog('{} max_run_secs={}', self, self.max_run_secs)
-        await self.computeJob._receive_api_runCancel(
-            ServerReq(content=self.msg),
-            timed_out_op=self,
-        )
+        await self._supervisor.op_run_timeout(self)
 
     def send(self):
         if self.max_run_secs:
@@ -1041,20 +1073,20 @@ class _Op(PKDict):
 
     @contextlib.contextmanager
     def set_job_situation(self, situation):
-        self.computeJob.set_situation(self, situation)
+        self._supervisor.set_situation(self, situation)
         try:
             yield
-            self.computeJob.set_situation(self, None)
+            self._supervisor.set_situation(self, None)
         except Exception as e:
             pkdlog('{} situation={} stack={}', self, situation, pkdexc())
-            self.computeJob.set_situation(self, None, exception=e)
+            self._supervisor.set_situation(self, None, exception=e)
             raise
 
     def _get_max_run_secs(self):
         if self.driver.op_is_untimed(self):
             return 0
-        if self.opName == sirepo.job.OP_ANALYSIS:
-            return cfg.max_secs.analysis
+        if self.opName in (sirepo.job.OP_ANALYSIS, sirepo.job.OP_IO,):
+            return cfg.max_secs[self.opName]
         if self.kind == job.PARALLEL and self.msg.get('isPremiumUser'):
             return cfg.max_secs['parallel_premium']
         return cfg.max_secs[self.kind]

@@ -390,6 +390,7 @@ SIREPO.app.directive('confirmationModal', function() {
             okText: '@',
             okClicked: '&',
             cancelText: '@',
+            modalClosed: '&',
             isRequired: '@',
         },
         template: `
@@ -448,6 +449,9 @@ SIREPO.app.directive('confirmationModal', function() {
 
             $($element).on('hidden.bs.modal', function() {
                 $rootScope.$broadcast('sr-clearDisableAfterClick');
+                if ($scope.modalClosed && angular.isFunction($scope.modalClosed())) {
+                    $scope.modalClosed()();
+                }
             });
         },
     };
@@ -2130,23 +2134,17 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 }
                 return '';
             };
+
             $scope.downloadImage = function(height) {
-                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
-                if(plotToPNG.hasCanvas($scope.reportId)) {
-                    plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
-                    return;
-                }
-                var plot3dCanvas = $scope.panel.find('canvas')[0];
-                var svg = $($scope.panel).find('svg.sr-plot')[0];
-                if (! svg || $(svg).is(':hidden')) {
-                    return;
-                }
-                plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
+                plotToPNG.downloadPNG(
+                    $scope.panel,
+                    height,
+                    panelState.fileNameFromText($scope.panelHeading, 'png'));
             };
 
             $scope.hasData = function() {
-                if (! $($scope.panel).find('svg.sr-plot')[0]) {
-                    return;
+                if (! plotToPNG.hasScreenshotElement($scope.panel)) {
+                    return false;
                 }
                 if (appState.isLoaded()) {
                     if (panelState.isHidden($scope.modelKey)) {
@@ -2173,6 +2171,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             }
+
             $scope.toggleFullScreen = function() {
                 if(panelState.isHidden($scope.modelKey)) {
                     return;
@@ -2225,15 +2224,15 @@ SIREPO.app.directive('reportContent', function(panelState) {
         template: `
             <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
               <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">
-                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="particle" data-particle="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>
+                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>
                 ${SIREPO.appReportTypes || ''}
               </div>
               <div data-ng-transclude=""></div>
@@ -3015,6 +3014,60 @@ SIREPO.app.directive('simulationStatusTimer', function() {
     };
 });
 
+SIREPO.app.directive('downloadStatus', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=',
+            label: '=',
+            title: '=',
+        },
+        template: `
+            <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                  <div class="modal-header bg-warning">
+                    <button type="button" class="close" data-ng-click="cancel()"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="col-sm-12">
+                          <div>{{ label }}{{ simState.dots }}</div>
+                          <div class="progress">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
+                          </div>                          
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-sm-12 col-sm-offset-4">
+                          <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>                      
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            $scope.cancel = () => {
+                $scope.simState.cancelSimulation(() => {
+                    $('#sr-download-status').modal('hide');
+                });
+            };
+
+            $scope.$on('download.started', (e, simState, title, label) => {
+                $scope.simState = simState;
+                $scope.label = label;
+                $scope.title = title;
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('splitPanels', function($window) {
     var GUTTER_SIZE = 20;
     var MAX_TOP_PERCENT = 85;
@@ -3232,6 +3285,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
               <table class="table">
                 <thead>
                   <th data-ng-show="!wantAdm">Name</th>
+                  <th data-ng-show="!wantAdm">Report</th>
                   <th data-ng-repeat="c in displayedCols">{{ data.header[c].title }}</th>
                 </thead>
                 <tbody>
@@ -3240,6 +3294,9 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
                       <a ng-href="{{ getJobLink(j) }}">
                         {{ j['simName'] }}
                       </a>
+                    </td>
+                    <td data-ng-show="!wantAdm">
+                        {{ j['reportName'] }}
                     </td>
                     <td data-ng-repeat="c in displayedCols">
                       {{ getCellContent(j, c) }}
@@ -3256,6 +3313,9 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
         controller: function($scope, appState, panelState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
+                for(var job of data.jobs) {
+                    job.reportName = appState.viewInfo(job.computeModel)?.title;
+                }
             }
 
             function getUrl(simulationId, app) {
@@ -3438,6 +3498,56 @@ SIREPO.app.directive('modelArray', function() {
     };
 });
 
+SIREPO.app.directive('moderationRequest', function(appState, errorService, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+          <form>
+            <div class="form-group">
+              <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
+              <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
+            </div>
+            <button data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
+          </form>
+          <div data-ng-show="submitted">Response submitted.</div>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.data = {};
+            $scope.submitted = false;
+            $scope.submitRequest = function () {
+                const handleResponse = (data) => {
+                    if (data.state === 'error') {
+                        errorService.alertText(data.error);
+                    }
+                    $scope.submitted = true;
+                };
+                requestSender.sendRequest(
+                    'saveModerationReason',
+                    handleResponse,
+                    {
+                        reason: $scope.data.reason,
+                        simulationType: SIREPO.APP_NAME
+                    }
+                );
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('moderationPending', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+          <div>Your request to access {{ appName }} has been received. For additional information, contact
+            <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
+          </div>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName;
+        },
+    };
+});
+
 SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -3567,6 +3677,64 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('admRolesList', function(appState, errorService, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+            <div>
+              <table class="table">
+              <thead>
+                <th data-ng-repeat="h in headers">{{ h[1] }}</th>
+              </thead>
+              <tbody>
+              <tr data-ng-repeat="r in rows track by $index">
+                <td data-ng-repeat="h in headers">{{ r[h[0]] }}</td>
+                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'approve')">Approve</button></td>
+                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'deny')">Deny</button></td>
+                <td><button class="btn btn-default" data-ng-show="r.status!=='clarify'" data-ng-click="setModerationStatus(r, 'clarify')">Clarify</button></td>
+              </tr>
+              </tbody>
+              </table>
+            </div>
+          <button type="submit" class="btn btn-primary" data-ng-click="getModerationRequestRows()">Refresh Table</button>
+        `,
+        controller: function(requestSender, $scope) {
+            $scope.rows = [];
+            $scope.headers = [];
+
+            $scope.getModerationRequestRows = function () {
+                const handleResponse = (r) => {
+                    $scope.rows = r.rows;
+                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleInviteColumns;
+                };
+                requestSender.sendRequest(
+                    'getModerationRequestRows',
+                    handleResponse,
+                    {}
+                );
+            };
+
+            $scope.setModerationStatus = function(info, status) {
+                const handleResponse = (data) => {
+                    if (data.state === 'error') {
+                        errorService.alertText(data.error);
+                    }
+                    $scope.getModerationRequestRows();
+                };
+                requestSender.sendRequest(
+                    'admModerate',
+                    handleResponse,
+                    {
+                        token: info.token,
+                        status: status,
+                    }
+                );
+            };
+
+            $scope.getModerationRequestRows();
+        },
+    };
+});
 
 SIREPO.app.directive('toolbar', function(appState) {
     return {
@@ -4046,123 +4214,38 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
 SIREPO.app.service('plotToPNG', function($http) {
 
-    var canvases = {};
-
-    function downloadPlot(svg, height, plot3dCanvas, fileName) {
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext("2d");
-        var scale = height / parseInt(svg.getAttribute('height'));
-        canvas.width = parseInt(svg.getAttribute('width')) * scale;
-        canvas.height = parseInt(svg.getAttribute('height')) * scale;
-        context.fillStyle = '#FFFFFF';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = '#000000';
-
-        if (plot3dCanvas) {
-            var el = $(plot3dCanvas);
-            context.drawImage(
-                plot3dCanvas, pxToInteger(el.css('left')) * scale, pxToInteger(el.css('top')) * scale,
-                pxToInteger(el.css('width')) * scale, pxToInteger(el.css('height')) * scale);
-        }
-        d3.select(svg).classed('sr-download-png', true);
-        var svgString = svg.parentNode.innerHTML;
-        context.drawSvg(svgString, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(function(blob) {
-            saveAs(blob, fileName);
-        });
-        d3.select(svg).classed('sr-download-png', false);
+    function screenshotElement(element, isVisible) {
+        return $(element).find(`.sr-screenshot${isVisible ? ':visible' : ''}`)[0];
     }
 
-    function pxToInteger(value) {
-        value = value.replace(/px/, '');
-        return parseInt(value);
-    }
-
-    // Stores canvases for updates and later use.  We use the existing reportID
-    // as the key
-    this.addCanvas = function(canvas, reportId) {
-        if (!reportId) {
-            return;
+    this.downloadPNG = function(el, outputHeight, fileName) {
+        el = screenshotElement(el, true);
+        if (el.srUpdateCanvas) {
+            el.srUpdateCanvas();
         }
-        canvases[reportId] = canvas;
-    };
-
-    this.getCanvas = function(reportId) {
-        return canvases[reportId];
-    };
-
-    this.getCopy = function (reportId, size) {
-        var canvas = this.getCanvas(reportId);
-        if(! canvas ) {
-            return null;
-        }
-
-        var s = [
-            parseInt(canvas.getAttribute('width')),
-            parseInt(canvas.getAttribute('height'))
-        ];
-        size.forEach(function (dim, i) {
-            var nextI = (i + 1) % 2;
-            var next = size[nextI];
-            if(! dim) {
-                if(next) {
-                    s[i] *= (next / s[nextI]);
-                    s[nextI] = next;
-                }
-            }
+        html2canvas(el, {
+            scale: outputHeight / $(el).height(),
+            backgroundColor: '#ffffff',
+            ignoreElements: (element) => element.matches("path.pointer.axis")
+        }).then(canvas => {
+            canvas.toBlob(function(blob) {
+                saveAs(blob, fileName);
+            });
         });
-        var cnvCopy = document.createElement('canvas');
-        var cnvCtx = cnvCopy.getContext('2d');
-        cnvCopy.width = s[0];
-        cnvCopy.height = s[1];
-        cnvCtx.drawImage(canvas, 0, 0, s[0], s[1]);
-        return cnvCopy;
     };
 
-    this.hasCanvas = function(reportId) {
-        return ! ! canvases[reportId];
+    this.hasScreenshotElement = element => {
+        return screenshotElement(element) ? true : false;
     };
 
-    this.removeCanvas = function(reportId) {
-        delete canvases[reportId];
-    };
-
-    this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
-        // embed all css styles into SVG node before rendering
-        if (svg.firstChild.nodeName == 'STYLE') {
-            downloadPlot(svg, height, plot3dCanvas, fileName);
-            return;
+    this.initVTK = (element, renderer) => {
+        const el = screenshotElement(element);
+        if (! el) {
+            throw new Error('Missing sr-screenshot class within vtk element');
         }
-        var promises = [];
-        ['sirepo.css'].concat(SIREPO.APP_SCHEMA.dynamicFiles.sirepoLibs.css || []).forEach(function(cssFile) {
-            promises.push($http.get('/static/css/' + cssFile + SIREPO.SOURCE_CACHE_KEY));
-        });
-        var cssText = '';
-        function cssResponse(response) {
-            promises.shift();
-            cssText += response.data;
-            if (promises.length) {
-                promises[0].then(cssResponse);
-                return;
-            }
-            if (svg.firstChild.nodeName != 'STYLE') {
-                var css = document.createElement('style');
-                css.type = 'text/css';
-                // work-around bug fix #857, canvg.js doesn't handle non-standard css
-                cssText = cssText.replace('input::-ms-clear', 'ms-clear');
-                css.appendChild(document.createTextNode(cssText));
-                svg.insertBefore(css, svg.firstChild);
-            }
-            downloadPlot(svg, height, plot3dCanvas, fileName);
-        }
-        promises[0].then(cssResponse);
-    };
-
-    this.downloadCanvas = function(reportId, width, height, fileName)  {
-        var cnv = this.getCopy(reportId, [width || 0, height || 0]);
-        cnv.toBlob(function(blob) {
-            saveAs(blob, fileName);
-        });
+        el.srUpdateCanvas = () => {
+            renderer.getRenderWindow().render();
+        };
     };
 
 });

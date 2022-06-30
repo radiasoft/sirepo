@@ -114,7 +114,7 @@ class VTKScene {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
-            listenWindowResize: false,
+            listenWindowResize: true,
         });
 
         this.container = this.fsRenderer.getContainer();
@@ -283,13 +283,16 @@ class VTKScene {
 
     /**
      * Refreshes the visibility of the orientation marker, if one exists
+     * @param doRender - if true, perform a render
      */
-    refreshMarker() {
+    refreshMarker(doRender=true) {
         if (! this.hasMarker()) {
             return;
         }
         this.marker.setEnabled(this.isMarkerEnabled);
-        this.render();
+        if (doRender) {
+            this.render();
+        }
     }
 
     /**
@@ -307,7 +310,7 @@ class VTKScene {
      */
     teardown() {
         this.isMarkerEnabled = false;
-        this.refreshMarker();
+        this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();
         this.fsRenderer.delete();
     }
@@ -733,8 +736,7 @@ class ViewPortObject {
     }
 
     /**
-     * Translates a 2-dimensional Point in the viewport corresponding to the given 3-dimensional point in the vtk
-     * world
+     * Translates a 3-dimensional Point in the vttk world corresponding to the given 2-dimensional point in the viewport
      * @param {Point} worldPoint
      * @returns {Point}
      */
@@ -852,10 +854,19 @@ class ViewPortBox extends ViewPortObject {
 
     /**
      * Gets the lines through the center of the object for each dimension
-     * @returns {{}} - mapping of dimension to the edges, e.g. {x: LineSegment1, ...}
+     * @returns {{}} - mapping of dimension to the lines, e.g. {x: LineSegment1, ...}
      */
     centerLines() {
-        const ctr = new SIREPO.GEOMETRY.Matrix(this.worldCenter().coords());
+        return this.coordLines(this.worldCenter().coords());
+    }
+
+    /**
+     * Gets coordinate axis lines through the given point
+     * @param {[number]} origin
+     * @returns {{}} - mapping of dimension to the lines, e.g. {x: LineSegment1, ...}
+     */
+    coordLines(origin=[0, 0, 0]) {
+        const ctr = new SIREPO.GEOMETRY.Matrix(origin);
         const cls = {};
         const sz = this.worldSize();
         const tx = new SIREPO.GEOMETRY.Transform(new SIREPO.GEOMETRY.Matrix(
@@ -873,6 +884,14 @@ class ViewPortBox extends ViewPortObject {
             );
         }
         return cls;
+    }
+
+    /**
+     * Gets the lines through the world origin for each dimension
+     * @returns {{}} - mapping of dimension to the edges, e.g. {x: LineSegment1, ...}
+     */
+    originLines() {
+        return this.coordLines();
     }
 
     /**
@@ -2198,7 +2217,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             width: '<',
         },
         template: `
-            <svg data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
+            <svg class="sr-vtk-axes" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
             <g class="vtk-axes">
                 <g data-ng-repeat="dim in geometry.basis">
                     <g class="{{ dim }} axis"></g>
@@ -2207,7 +2226,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     <text class="{{ dim }} axis-end high"></text>
                 </g>
                 <g data-ng-repeat="dim in geometry.basis">
-                    <g class="{{ dim }}-axis-central" data-ng-show="axisCfg[dim].showCentral">
+                    <g class="{{ dim }}-axis-central" data-ng-if="axisCfg[dim].showCentral">
                         <line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
                     </g>
                 </g>
@@ -2297,7 +2316,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         externalEdges, screenRect, dim, false
                     );
                     const cli = screenRect.boundaryIntersectionsWithSeg(
-                        $scope.boundObj.centerLines()[dim]
+                        $scope.boundObj.originLines()[dim]
                     );
                     if (cli && cli.length === 2) {
                         $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
@@ -2542,6 +2561,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
 
+            $scope.GeometryUtils = SIREPO.GEOMETRY.GeometryUtils;
             $scope.VTKUtils = VTKUtils;
             $scope.markerState = {
                 enabled: true,
@@ -2549,18 +2569,16 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText = {};
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
             $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.isOrtho = false;
             $scope.selection = null;
 
-            let canvas3d = null;
             let didPan = false;
             let hasBodyEvt = false;
             let hdlrs = {};
             let isDragging = false;
             let isPointerUp = true;
-            let snapshotCanvas = null;
-            let snapshotCtx = null;
 
-            const resize = utilities.debounce(refresh, 250);
+            const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
 
             // supplement or override these event handlers
             let eventHandlers = {
@@ -2580,21 +2598,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 onpointerup: function (evt) {
                     isDragging = false;
                     isPointerUp = true;
-                    refresh(true);
+                    refresh();
                 },
-                onwheel: function (evt) {
-                    utilities.debounce(
-                        function() {
-                            refresh(true);
-                        },
-                        100)();
-                }
+                onwheel: utilities.debounce(refresh, 100),
             };
 
             function ondblclick() {
                 $scope.vtkScene.resetView();
                 refresh();
                 $scope.$apply();
+            }
+
+            function resize() {
+                refresh(true);
             }
 
             $scope.init = function() {
@@ -2636,53 +2652,53 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         }
                     };
                 });
-
-                canvas3d = $($element).find('canvas')[0];
-
-                // this canvas is used to store snapshots of the 3d canvas
-                snapshotCanvas = document.createElement('canvas');
-                snapshotCtx = snapshotCanvas.getContext('2d');
-                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+                // remove global VTK key listeners
+                for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {
+                    document.removeEventListener(
+                        n.toLowerCase(),
+                        $scope.vtkScene.fsRenderer.getInteractor()[`handle${n}`],
+                    );
+                }
                 $scope.$emit('vtk-init', $scope.vtkScene);
+                resize();
             };
 
             $scope.canvasGeometry = function() {
-                const vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
                 return {
-                    pos: $(vtkCanvasHolder).position(),
+                    pos: $(canvasHolder).position(),
                     size: {
-                        width: Math.max(0, $(vtkCanvasHolder).width()),
-                        height: Math.max(0, $(vtkCanvasHolder).height()),
+                        width: Math.max(0, $(canvasHolder).width()),
+                        height: Math.max(0, $(canvasHolder).height()),
                     }
                 };
+            };
+
+            $scope.setInteractionMode = mode => {
+                $scope.vtkScene.interactionMode = mode;
+                $scope.$emit('vtkScene.interactionMode', mode);
+            };
+
+            $scope.showSide = side => {
+                $scope.vtkScene.showSide(side);
+                refresh(true);
+            };
+
+            $scope.toggleOrtho = () => {
+                $scope.isOrtho = ! $scope.isOrtho;
+                $scope.vtkScene.cam.setParallelProjection($scope.isOrtho);
+                $scope.vtkScene.render();
+                refresh(true);
             };
 
             $scope.$on('$destroy', function() {
                 $element.off();
                 $($window).off('resize', resize);
                 $scope.vtkScene.teardown();
-                plotToPNG.removeCanvas($scope.reportId);
             });
 
-            function cacheCanvas() {
-                if (! snapshotCtx) {
-                    return;
-                }
-                const w = parseInt(canvas3d.getAttribute('width'));
-                const h = parseInt(canvas3d.getAttribute('height'));
-                snapshotCanvas.width = w;
-                snapshotCanvas.height = h;
-                // this call makes sure the buffer is fresh (it appears)
-                $scope.vtkScene.fsRenderer.getApiSpecificRenderWindow().traverseAllPasses();
-                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
-            }
-
-            function refresh(doCacheCanvas) {
+            function refresh() {
                 if ($scope.axisObj) {
                     $scope.$broadcast('axes.refresh');
-                }
-                if (doCacheCanvas) {
-                    cacheCanvas();
                 }
             }
 

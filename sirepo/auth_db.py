@@ -4,17 +4,18 @@ u"""Auth database
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
+import sqlalchemy.sql.expression
 # limit imports here
 import sirepo.auth_role
 import sirepo.srcontext
 import sirepo.srdb
+import sirepo.srtime
 import sirepo.util
 
 
@@ -37,6 +38,9 @@ UserRegistration = None
 
 #: roles for each user
 UserRole = None
+
+#: role invites for each user
+UserRoleInvite = None
 
 
 def all_uids():
@@ -84,7 +88,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
                 if force or f not in e:
                     t.join(f).rename(l.join(f))
 
-    s = sirepo.feature_config.cfg().proprietary_sim_types
+    s = sirepo.feature_config.proprietary_sim_types()
     if sim_types:
         assert sim_types.issubset(s), \
             f'sim_types={sim_types} not a subset of proprietary_sim_types={s}'
@@ -92,7 +96,7 @@ def audit_proprietary_lib_files(uid, force=False, sim_types=None):
     for t in s:
         c = sirepo.sim_data.get_class(t)
         if not c.proprietary_code_tarball():
-            return
+            continue
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), \
             f'{d} proprietary_code_dir must exist' \
@@ -120,7 +124,7 @@ def init():
             f'sqlalchemy tables={k} not a subset of known tables={b.TABLES}'
         b.metadata.create_all(engine)
 
-    global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole
+    global _engine, DbUpgrade, UserDbBase, UserRegistration, UserRole, UserRoleInvite
 
     if _engine:
         return
@@ -146,13 +150,45 @@ def init():
             'auth_email_user_t',
             'jupyterhub_user_t',
             'user_role_t',
+            'user_role_invite_t',
             'user_registration_t',
             'db_upgrade_t',
+            'session_t',
         ]
 
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
                 setattr(self, k, v)
+
+        @classmethod
+        def add_column_if_not_exists(cls, table, column, column_type):
+            column_type = column_type.upper()
+            t = table.__table__.name
+            r = cls._execute_raw_sql(f'PRAGMA table_info({t})')
+            for c in r.all():
+                if not c[1] == column:
+                    continue
+                assert c[2] == column_type, \
+                    (
+                        f'unexpected column={c} when adding column={column} of',
+                        f' type={column_type} to table={table}',
+                    )
+                return
+            r = cls._execute_raw_sql(f'ALTER TABLE {t} ADD {column} {column_type}')
+            cls._session().commit()
+
+        @classmethod
+        def all(cls):
+            with sirepo.util.THREAD_LOCK:
+                return cls._session().query(cls).all()
+
+        def as_pkdict(self):
+            return PKDict({c: getattr(self, c)
+                           for c in self.column_names()})
+
+        @classmethod
+        def column_names(cls):
+            return cls.__table__.columns.keys()
 
         def delete(self):
             with sirepo.util.THREAD_LOCK:
@@ -173,7 +209,7 @@ def init():
 
         @classmethod
         def execute(cls, statement):
-            cls._session().execute(
+            return cls._session().execute(
                 statement.execution_options(synchronize_session='fetch')
             )
 
@@ -215,6 +251,10 @@ def init():
                 cls._session().commit()
 
         @classmethod
+        def _execute_raw_sql(cls, text):
+            return cls.execute(sqlalchemy.text(text + ';'))
+
+        @classmethod
         def _session(cls):
             return sirepo.srcontext.get(_SRCONTEXT_SESSION_KEY)
 
@@ -230,7 +270,6 @@ def init():
         name = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
         created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
 
-
     class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'
         uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
@@ -241,6 +280,7 @@ def init():
         __tablename__ = 'user_role_t'
         uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
         role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
+        expiration = sqlalchemy.Column(sqlalchemy.DateTime())
 
         @classmethod
         def all_roles(cls):
@@ -250,11 +290,26 @@ def init():
                 ]
 
         @classmethod
-        def add_roles(cls, uid, roles):
+        def add_roles(cls, uid, role_or_roles, expiration=None):
+            if isinstance(role_or_roles, str):
+                role_or_roles = [role_or_roles]
             with sirepo.util.THREAD_LOCK:
-                for r in roles:
-                    UserRole(uid=uid, role=r).save()
+                for r in role_or_roles:
+                    try:
+                        UserRole(uid=uid, role=r, expiration=expiration).save()
+                    except sqlalchemy.exc.IntegrityError:
+                        pass
                 audit_proprietary_lib_files(uid)
+
+        @classmethod
+        def add_role_or_update_expiration(cls, uid, role, expiration):
+            with sirepo.util.THREAD_LOCK:
+                if not cls.has_role(uid, role):
+                    cls.add_roles(uid, role, expiration=expiration)
+                    return
+                r = cls.search_by(uid=uid, role=role)
+                r.expiration = expiration
+                r.save()
 
         @classmethod
         def delete_roles(cls, uid, roles):
@@ -275,11 +330,22 @@ def init():
                     uid=uid,
                 )
 
-
         @classmethod
         def has_role(cls, uid, role):
             with sirepo.util.THREAD_LOCK:
                 return bool(cls.search_by(uid=uid, role=role))
+
+
+        @classmethod
+        def is_expired(cls, uid, role):
+            with sirepo.util.THREAD_LOCK:
+                assert cls.has_role(uid, role), \
+                    f'No role for uid={uid} and role={role}'
+                r = cls.search_by(uid=uid, role=role)
+                if not r.expiration:
+                    # Roles with no expiration can't expire
+                    return False
+                return r.expiration < sirepo.srtime.utc_now()
 
         @classmethod
         def uids_of_paid_users(cls):
@@ -288,6 +354,52 @@ def init():
                     cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
                 ).distinct().all()
             ]
+
+    class UserRoleInvite(UserDbBase):
+        __tablename__ = 'user_role_invite_t'
+        uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
+        role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
+        status = sqlalchemy.Column(UserDbBase.STRING_NAME, nullable=False)
+        token = sqlalchemy.Column(UserDbBase.STRING_NAME, nullable=False, unique=True)
+        moderator_uid = sqlalchemy.Column(UserDbBase.STRING_ID)
+        last_updated = sqlalchemy.Column(
+            sqlalchemy.DateTime(),
+            server_default=sqlalchemy.sql.func.now(),
+            onupdate=sqlalchemy.sql.func.now(),
+            nullable=False,
+        )
+
+        @classmethod
+        def get_moderation_request_rows(cls):
+            from sirepo import auth
+            t = auth.get_module('email').UserModel
+            with sirepo.util.THREAD_LOCK:
+                q = cls._session().query(t, cls).with_entities(
+                    t.user_name.label('email'),
+                    *cls.__table__.columns,
+                ).filter(
+                    t.uid == cls.uid,
+                    sqlalchemy.sql.expression.or_(cls.status == 'pending', cls.status == 'clarify')
+                ).all()
+            return [PKDict(zip(r.keys(), r)) for r in q]
+
+        @classmethod
+        def get_status(cls, uid, role):
+            with sirepo.util.THREAD_LOCK:
+                s = cls.search_by(uid=uid, role=role)
+                if not s:
+                    return None
+                return sirepo.auth_role.ModerationStatus.check(s.status)
+
+        @classmethod
+        def set_status(cls, uid, role, status, moderator_uid=None):
+            with sirepo.util.THREAD_LOCK:
+                s = cls.search_by(uid=uid, role=role)
+                s.status = sirepo.auth_role.ModerationStatus.check(status)
+                if moderator_uid:
+                    s.moderator_uid = moderator_uid
+                s.save()
+
     _create_tables(_engine)
 
 

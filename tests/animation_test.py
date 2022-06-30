@@ -204,7 +204,7 @@ def test_warpvnd(fc):
                 expect_y_range='-4.5e-08, 4.5e-08, 23',
             ),
         ),
-        timeout=20,
+        timeout=30,
     )
 
 

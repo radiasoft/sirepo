@@ -278,7 +278,7 @@ class Matrix extends GeometricObject {
         }
 
         if (this.dimension === 1) {
-            return new Matrix(this.val.map((x, i) => x * constant * matrix.val[i]));
+            return new Matrix(this.val.map((x, i) => x + constant * matrix.val[i]));
         }
         return new Matrix(
             this.val.map((x, i) => new Matrix(x).linearCombination(new Matrix(matrix.val[i]), constant))

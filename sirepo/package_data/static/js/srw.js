@@ -7,65 +7,64 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
     SIREPO.SHOW_HELP_BUTTONS = true;
     SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-    SIREPO.SLOW_ANIMATION = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'coherentModesAnimation', 'fluxAnimation', 'multiElectronAnimation'];
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
-    SIREPO.appReportTypes = [
-        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    ].join('');
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="BeamList">',
-          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-        '</div>',
-        '<div data-ng-switch-when="FloatStringArray" class="col-sm-12">',
-            '<div data-srw-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="UndulatorList">',
-          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-          '<div data-file-field="field" data-file-type="sample" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
-        '</div>',
-        '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-          '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
-        '</div>',
-        '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
-          '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
-        '</div>',
-        '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-          '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
-        '</div>',
-        '<div data-ng-switch-when="RandomSeed" class="col-sm-7">',
-          '<div data-random-seed="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-max="info[5]" data-view-name="viewName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="RSOptElements" class="col-sm-12">',
-          '<div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-field-class="fieldClass"></div>',
-        '</div>',
-        '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
-          '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-        '</div>',
-        '<div data-ng-switch-when="OutputImageFormat">',
-          '<div data-sample-preview=""></div>',
-        '</div>',
-        '<div data-ng-switch-when="SampleRandomShapeArray" class="col-sm-7">',
-          '<div data-sample-random-shapes="" data-model="model" data-field="field"></div>',
-        '</div>',
-    ].join('');
-    SIREPO.appDownloadLinks = [
-        '<li data-lineout-csv-link="x"></li>',
-        '<li data-lineout-csv-link="y"></li>',
-        '<li data-lineout-csv-link="full"></li>',
-        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-    ].join('');
-    SIREPO.appPanelHeadingButtons = [
-        '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
-        '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-        '<ul class="dropdown-menu dropdown-menu-right">',
-        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-        '</ul>',
-        '</div>',
-    ].join('');
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+    `;
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="BeamList">
+          <div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>
+        </div>
+        <div data-ng-switch-when="FloatStringArray" class="col-sm-12">
+            <div data-srw-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>
+        </div>
+        <div data-ng-switch-when="UndulatorList">
+          <div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>
+        </div>
+        <div data-ng-switch-when="ImageFile" class="col-sm-7">
+          <div data-file-field="field" data-file-type="sample" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>
+        </div>
+        <div data-ng-switch-when="MagneticZipFile" class="col-sm-7">
+          <div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>
+        </div>
+        <div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">
+          <div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>
+        </div>
+        <div data-ng-switch-when="MirrorFile" class="col-sm-7">
+          <div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>
+        </div>
+        <div data-ng-switch-when="RandomSeed" class="col-sm-7">
+          <div data-random-seed="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-max="info[5]" data-view-name="viewName"></div>
+        </div>
+        <div data-ng-switch-when="RSOptElements" class="col-sm-12">
+          <div data-rs-opt-elements="" data-model="model" data-field="field" data-model-name="modelName" data-form="form" data-field-class="fieldClass"></div>
+        </div>
+        <div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">
+          <div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>
+        </div>
+        <div data-ng-switch-when="OutputImageFormat">
+          <div data-sample-preview=""></div>
+        </div>
+        <div data-ng-switch-when="SampleRandomShapeArray" class="col-sm-7">
+          <div data-sample-random-shapes="" data-model="model" data-field="field"></div>
+        </div>
+    `;
+    SIREPO.appDownloadLinks = `
+        <li data-lineout-csv-link="x"></li>
+        <li data-lineout-csv-link="y"></li>
+        <li data-lineout-csv-link="full"></li>
+        <li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>
+    `;
+    SIREPO.appPanelHeadingButtons = `
+        <div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">
+        <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
+        <ul class="dropdown-menu dropdown-menu-right">
+        <li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>
+        </ul>
+        </div>
+    `;
 
     SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
     SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
@@ -177,7 +176,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         });
     };
 
-    self.computeBeamParameters = function() {
+    self.computeBeamParameters = function(replyHandler=null) {
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -189,6 +188,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     ebeam[f] = data[f];
                 });
                 appState.models.electronBeamPosition.drift = data.drift;
+                if (replyHandler) {
+                    replyHandler();
+                }
             },
             {
                 method: 'process_beam_parameters',
@@ -820,7 +822,10 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
-            appState.saveQuietly('electronBeamPosition');
+            srwService.computeBeamParameters(() => {
+                    appState.saveChanges(['electronBeamPosition', 'electronBeam']);
+                }
+            );
         }
         else if (name == 'gaussianBeam') {
             appState.models.sourceIntensityReport.photonEnergy = appState.models.gaussianBeam.photonEnergy;
@@ -853,9 +858,17 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
-            <div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openShadowSimulation()">
+              <div data-ng-if="!displayLink()"> Create a Shadow simulation with an equivalent beamline? </div>
+              <div data-ng-if="displayLink()">
+                Shadow simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+              </div>
+            </div>
+            <div data-download-status="" data-sim-state="" data-label="" data-title="">
+            </div>
         `,
         controller: function($scope) {
+            $scope.newSimURL = false;
 
             function createNewSim(data) {
                 requestSender.sendRequest(
@@ -865,9 +878,10 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
                             data.models.simulation[f] = sim[f];
                         });
+                        data.version = shadowData.version;
                         requestSender.sendRequest(
                             'saveSimulationData',
-                            openNewSim,
+                            genSimURL,
                             data);
                     },
                     newSimData(data));
@@ -879,17 +893,31 @@ SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) 
                 return res;
             }
 
-            function openNewSim(data) {
-                requestSender.newLocalWindow(
-                    'beamline', {
-                        simulationId: data.models.simulation.simulationId,
-                    }, data.simulationType);
+            function genSimURL(data) {
+                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
+
+            $scope.closeModal = function() {
+                $('#sr-shadow-dialog').modal('hide');
+                $scope.resetURL();
+            };
+
+            $scope.resetURL = function() {
+                $scope.newSimURL = false;
+            };
 
             $scope.openShadowSimulation = function() {
                 const d = appState.models;
                 d.method = 'create_shadow_simulation';
                 requestSender.sendStatefulCompute(appState, createNewSim, d);
+                return false;
+            };
+
+            $scope.displayLink = function() {
+                if ($scope.newSimURL) {
+                    return true;
+                }
+                return false;
             };
         },
     };
@@ -1212,7 +1240,7 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, srwService, 
             'electronBeam.verticalEmittance', 'electronBeam.verticalBeta',
             'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion',
             'electronBeam.verticalDispersionDerivative',
-        ], srwService.computeBeamParameters,
+        ], () => srwService.computeBeamParameters(),
         Object.keys(SIREPO.APP_SCHEMA.model.electronBeam).map(function(f) {
             return 'electronBeam.' + f;
         }), utilities.debounce(checkBeamName),
@@ -1463,10 +1491,6 @@ SIREPO.viewLogic('tabulatedUndulatorView', function(appState, panelState, reques
     $scope.watchFields = [
         ['tabulatedUndulator.undulatorType'], updateUndulator,
         [
-            'tabulatedUndulator.undulatorType', 'undulator.length',
-            'undulator.period', 'simulation.sourceType',
-        ], srwService.computeBeamParameters,
-        [
             'tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap',
             'tabulatedUndulator.undulatorType',
         ], computeUndulatorLength,
@@ -1539,9 +1563,6 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, srwService, $sc
     $scope.whenSelected = function() {
         panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
     };
-    if ($scope.fieldDef == 'basic') {
-        return;
-    }
     $scope.watchFields = [
         [
             'undulator.horizontalDeflectingParameter',
@@ -1803,7 +1824,7 @@ SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSender, srwService, validationService) {
+SIREPO.app.directive('rsOptElements', function(appState, frameCache, panelState, srwService, utilities, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1874,11 +1895,7 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
                         }
                         numParams += e[srwService.rsOptElementOffsetField(p)]
                             .split(',')
-                            .map(parseFloat)
-                            .filter((x) => {
-                                return x != 0;
-                            })
-                            .length;
+                            .reduce((c, x) => c + (parseFloat(x) ? 1 : 0), 0);
                     }
                 }
                 $scope.model.totalSamples = numParams === 0 ? 0 :
@@ -1950,29 +1967,62 @@ SIREPO.app.directive('rsOptElements', function(appState, panelState, requestSend
 
             $scope.$on('exportRsOpt.editor.show', () => {
                 updateElements();
-                // set form dirty so user does not have to change anything to export
-                $scope.form.$setDirty();
             });
 
-            appState.whenModelsLoaded($scope, function() {
-                updateElements();
-                updateElementWatchFields();
+            updateElements();
+            updateElementWatchFields();
+            panelState.waitForUI(() => {
                 panelState.enableField('exportRsOpt', 'totalSamples', false);
-                appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
-                appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
-                appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
-                $scope.$on('beamline.changed', updateElements);
-                $scope.$on('exportRsOpt.changed', updateElements);
-                $scope.$on('exportRsOpt.saved', () => {
-                    requestSender.newWindow('exportRSOptConfig', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>':  `${appState.models.simulation.name}-rsOptExport.zip`,
-                    });
-                });
             });
+            appState.watchModelFields($scope, exportFields, $scope.updateTotalSamples);
+            appState.watchModelFields($scope, elementFields, $scope.updateTotalSamples);
+            appState.watchModelFields($scope, ['exportRsOpt.scanType'], showRandomSeeed);
+            $scope.$on('beamline.changed', updateElements);
+            $scope.$on('exportRsOpt.changed', updateElements);
         },
     };
+});
+
+SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSimulation, requestSender, $scope, $rootScope) {
+
+    const self = this;
+    self.simScope = $scope;
+    self.simComputeModel = 'exportRsOpt';
+
+    self.simHandleStatus = data => {
+        if (self.simState.isStopped()) {
+            $('#sr-download-status').modal('hide');
+        }
+        if (self.simState.isStateCompleted()) {
+            requestSender.newWindow('downloadDataFile', {
+                '<simulation_id>': appState.models.simulation.simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<model>': 'exportRsOpt',
+                '<frame>': -1,
+                '<suffix>': 'zip'
+            });
+        }
+    };
+
+    self.startSimulation = function(model) {
+        $('#sr-download-status').modal('show');
+        $rootScope.$broadcast('download.started', self.simState, 'Export Script', 'Exporting exportRsOpt.zip');
+        self.simState.saveAndRunSimulation([model]);
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.export = () => {
+        self.startSimulation($scope.modelName);
+    };
+    
+    $scope.whenSelected = () => {
+        // set form dirty so user does not have to change anything to export
+        $scope.$parent.form.$setDirty();
+    };
+
+    $scope.$on('exportRsOpt.saved', $scope.export);
+
 });
 
 
@@ -2683,7 +2733,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkToPNG) {
+SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -2696,17 +2746,18 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             <button data-ng-attr-class="btn btn-{{ selectedDimension == dim ? \'primary\' : \'default\' }}" data-ng-click="setCamera(dim)">{{ dim | uppercase }}{{ viewDirection[dim] > 0 ? \'+\' : \'-\' }}</button>&nbsp;
             </div>
             </div>
-            <div style="padding-bottom:1px; clear: both; border: 1px solid black">
-              <div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>
+            <div class="sr-screenshot">
+              <div style="padding-bottom:1px; clear: both; border: 1px solid black">
+                <div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>
+              </div>
             </div>
-            <svg></svg>
         `,
         controller: function($scope, $element) {
             var LABEL_FONT_HEIGHT = 96;
             var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
-            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
+            var beamline, fsRenderer, labelCanvas, labels, orientationMarker;
             var itemDisplayDefaults = {
                 aperture: {
                     color: color('#666666'),
@@ -3147,7 +3198,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             $scope.destroy = function() {
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
-                pngCanvas.destroy();
             };
 
             $scope.init = function() {
@@ -3161,7 +3211,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 });
                 labelCanvas = document.createElement('canvas');
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
-                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
+                plotToPNG.initVTK($element, fsRenderer);
             };
 
             $scope.load = function(json) {
@@ -3184,7 +3234,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     addOrientationMarker();
                 }
                 $scope.setCamera($scope.dimensions[0]);
-                pngCanvas.copyCanvas();
             };
 
             $scope.resize = function() {};
