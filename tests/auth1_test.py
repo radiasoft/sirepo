@@ -25,7 +25,6 @@ def test_login():
 
     r = sirepo.uri_router.call_api('authState')
     pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
-    auth.process_request()
     with pkunit.pkexcept('SRException.*routeName=login'):
         auth.logged_in_user()
     with pkexcept('SRException.*routeName=login'):

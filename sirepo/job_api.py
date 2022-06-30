@@ -3,7 +3,7 @@ u"""Entry points for job execution
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkinspect, pkjson
+from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
@@ -33,20 +33,20 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 class API(sirepo.api.Base):
     @sirepo.api.Spec('internal_test')
     def api_adjustSupervisorSrtime(self, days):
-        return self._request(
+        return self.request(
             api_name='not used',
             _request_content=PKDict(days=days),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
         )
     @sirepo.api.Spec('require_adm')
     def api_admJobs(self):
-        return self._request(
+        return self.request(
             _request_content=PKDict(**self.parse_post()),
         )
 
     @sirepo.api.Spec('require_user')
     def api_analysisJob(self):
-        return self._request()
+        return self.request()
 
     @sirepo.api.Spec('require_user')
     def api_downloadDataFile(self, simulation_type, simulation_id, model, frame, suffix=None):
@@ -64,7 +64,7 @@ class API(sirepo.api.Base):
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
             try:
-                r = self._request(
+                r = self.request(
                     computeJobHash='unused',
                     dataFileKey=t.basename,
                     frame=int(frame),
@@ -95,7 +95,7 @@ class API(sirepo.api.Base):
         e = None
         try:
             k = sirepo.job.unique_key()
-            r = self._request(
+            r = self.request(
                 _request_content=PKDict(ping=k),
                 _request_uri=self._supervisor_uri(sirepo.job.SERVER_PING_URI),
             )
@@ -118,7 +118,7 @@ class API(sirepo.api.Base):
 
     @sirepo.api.Spec('require_user')
     def api_ownJobs(self):
-        return self._request(
+        return self.request(
             _request_content=PKDict(
                 uid=sirepo.auth.logged_in_user(),
                 **self.parse_post()
@@ -128,7 +128,7 @@ class API(sirepo.api.Base):
     @sirepo.api.Spec('require_user')
     def api_runCancel(self):
         try:
-            return self._request()
+            return self.request()
         except Exception as e:
             pkdlog('ignoring exception={} stack={}', e, pkdexc())
         # Always true from the client's perspective
@@ -147,7 +147,7 @@ class API(sirepo.api.Base):
             c = self._request_content(PKDict(req_data=m))
             c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
             r.append(c)
-        return self._request(
+        return self.request(
             _request_content=PKDict(data=r),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
         )
@@ -157,11 +157,11 @@ class API(sirepo.api.Base):
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
             r.isPremiumUser = sirepo.auth.is_premium_user()
-        return self._request(_request_content=r)
+        return self.request(_request_content=r)
 
     @sirepo.api.Spec('require_user')
     def api_runStatus(self):
-        return self._request()
+        return self.request()
 
     @sirepo.api.Spec('require_user')
     def api_sbatchLogin(self):
@@ -169,13 +169,13 @@ class API(sirepo.api.Base):
             PKDict(computeJobHash='unused', jobRunMode=sirepo.job.SBATCH),
         )
         r.sbatchCredentials = r.pkdel('data')
-        return self._request(_request_content=r)
+        return self.request(_request_content=r)
 
     @sirepo.api.Spec('require_user')
     def api_simulationFrame(self, frame_id):
         return template_common.sim_frame(
             frame_id,
-            lambda a: self._request(
+            lambda a: self.request(
                 analysisModel=a.frameReport,
                 # simulation frames are always sequential requests even though
                 # the report name has 'animation' in it.
@@ -193,7 +193,7 @@ class API(sirepo.api.Base):
     def api_statelessCompute(self):
         return self._request_compute()
 
-    def _request(self, **kwargs):
+    def request(self, **kwargs):
         def get_api_name():
             if 'api_name' in kwargs:
                 return kwargs['api_name']
@@ -225,7 +225,7 @@ class API(sirepo.api.Base):
         return pkjson.load_any(r.content)
 
     def _request_compute(self):
-        return self._request(
+        return self.request(
             jobRunMode=sirepo.job.SEQUENTIAL,
             req_data=PKDict(
                 **self.parse_post().req_data,
@@ -308,6 +308,23 @@ class API(sirepo.api.Base):
             assert m[f] > 0, f'{f}={m[f]} must be greater than 0'
             c[f] = m[f]
         return request_content
+
+
+def begin_session():
+    try:
+        u = sirepo.auth.logged_in_user()
+        # begin_session is called before we are inside of an API so need to create one manually
+        API().request(
+            api_name='api_beginSession',
+            _request_content=PKDict(
+                uid=u,
+                userDir=str(sirepo.simulation_db.user_path(u)),
+            ),
+        )
+    except sirepo.util.Reply:
+        # If we get any Sirepo generated errors (ex. user dir not found) then just ignore and don't
+        # try to start session (ex. agent would be started in user dir which may not exist).
+        pass
 
 
 def init_apis(*args, **kwargs):
