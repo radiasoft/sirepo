@@ -81,7 +81,7 @@ cfg = None
 
 
 class API(sirepo.api.Base):
-    @api_perm.require_cookie_sentinel
+    @sirepo.api.Spec('require_cookie_sentinel')
     def api_authCompleteRegistration(self):
         # Needs to be explicit, because we would need a special permission
         # for just this API.
@@ -93,7 +93,7 @@ class API(sirepo.api.Base):
         return self.reply_ok()
 
 
-    @api_perm.allow_visitor
+    @sirepo.api.Spec('allow_visitor')
     def api_authState(self):
         return self.reply_static_jinja(
             'auth-state',
@@ -102,7 +102,7 @@ class API(sirepo.api.Base):
         )
 
 
-    @api_perm.allow_visitor
+    @sirepo.api.Spec('allow_visitor')
     def api_authLogout(self, simulation_type=None):
         """Set the current user as logged out.
 
