@@ -172,7 +172,7 @@ class SRWShadowConverter:
         )
 
     def __init__(self):
-        pass
+        self._CONVERSION_DIRECTION = None
 
     def __invert_field_map(self):
         res = []
@@ -432,6 +432,7 @@ class SRWShadowConverter:
         return angle, rotate, offset
 
     def __copy_fields(self, name, input, out, is_item):
+        self.__validate_conversion_direction()
         fmap = self.__FIELD_MAP if self._CONVERSION_DIRECTION == 'shadow' else self.__invert_field_map()
         for m in fmap:
             if m[0] != name:
@@ -599,16 +600,18 @@ class SRWShadowConverter:
         srw.simulation.verticalRange = shadow.rayFilter.z2 - shadow.rayFilter.z1
         srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
 
-    def __get_field(self, shadow_name, srw_name):
+    def __get_model(self, shadow_name, srw_name):
+        self.__validate_conversion_direction()
         map = self.__FIELD_MAP
         if self._CONVERSION_DIRECTION == 'srw':
             map = self.__invert_field_map()
         for n in map:
             if n[0] == srw_name and n[1] == shadow_name:
                 return n[2]
+        raise AssertionError(f'No match in the field map for shadow_name: {shadow_name} srw_name: {srw_name}')
 
     def __set_srw_electronBeam(self, shadow, srw):
-        e = self.__get_field('electronBeam', 'electronBeam')
+        e = self.__get_model('electronBeam', 'electronBeam')
         for k in e:
             srw.electronBeam[k] = shadow.electronBeam[e[k]]
 
@@ -677,6 +680,10 @@ class SRWShadowConverter:
         self.__copy_model_fields('undulator', shadow, srw)
         self.__copy_model_fields('electronBeam', shadow, srw)
         srw.simulation.photonEnergy = shadow.undulator.photon_energy
+
+    def __validate_conversion_direction(self):
+        if not self._CONVERSION_DIRECTION:
+            raise AssertionError('Conversion direction has not been established')
 
     def __zoneplate_to_shadow(self, item, shadow):
         #TODO(pjm): map User-defined matrials to defaults
