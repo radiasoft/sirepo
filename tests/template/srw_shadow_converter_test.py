@@ -29,3 +29,20 @@ def test_convert_srw_to_shadow():
 def _read_json_from_data_dir(name):
     from pykern import pkio, pkjson
     return pkjson.load_any(pkio.read_text(pkunit.data_dir().join(name)))
+
+def test_convert_shadow_to_srw():
+    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    from pykern import pkunit
+    from pykern import pkjson
+    from pykern.pkcollections import PKDict
+
+    for d in pkunit.case_dirs():
+        # TODO (gurhar1133): read a sirepo-data.json shadow into pkdict
+        # then call
+        expect = PKDict(pkjson.load_any(d.join('example_srw_result_data.json')))
+        data = PKDict(pkjson.load_any(d.join('example_shadow_data.json')))
+        actual = SRWShadowConverter().shadow_to_srw(data)
+        print('expect type ', type(expect))
+        print('actual type: ', type(actual))
+        assert 0
+        pkunit.pkeq(actual.models, expect.models)
