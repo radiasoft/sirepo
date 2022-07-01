@@ -194,7 +194,7 @@ class SRWShadowConverter:
         return n
 
     def shadow_to_srw(self, data):
-        self.conversion_direction = 'srw'
+        self._CONVERSION_DIRECTION = 'srw'
         res = simulation_db.default_data(sirepo.sim_data.get_class('srw').sim_type())
         self.beamline = res.models.beamline
         self.__sim_to_srw(data, res.models)
@@ -211,7 +211,7 @@ class SRWShadowConverter:
         return res
 
     def srw_to_shadow(self, models):
-        self.conversion_direction = 'shadow'
+        self._CONVERSION_DIRECTION = 'shadow'
         res = simulation_db.default_data(_SHADOW.sim_type())
         self.beamline = res.models.beamline
         self.__simulation_to_shadow(models, res.models)
@@ -432,14 +432,14 @@ class SRWShadowConverter:
         return angle, rotate, offset
 
     def __copy_fields(self, name, input, out, is_item):
-        fmap = self.__FIELD_MAP if self.conversion_direction == 'shadow' else self.__invert_field_map()
+        fmap = self.__FIELD_MAP if self._CONVERSION_DIRECTION == 'shadow' else self.__invert_field_map()
         for m in fmap:
             if m[0] != name:
                 continue
             _, from_name, fields = m
             if is_item and input.type != from_name:
                 continue
-            if self.conversion_direction == 'shadow':
+            if self._CONVERSION_DIRECTION == 'shadow':
                 schema = _SRW.schema().model[from_name]
             else:
                 schema = _SHADOW.schema().model[from_name]
@@ -599,8 +599,16 @@ class SRWShadowConverter:
         srw.simulation.verticalRange = shadow.rayFilter.z2 - shadow.rayFilter.z1
         srw.simulation.photonEnergy = shadow.bendingMagnet.ph1
 
+    def __get_field(self, shadow_name, srw_name):
+        map = self.__FIELD_MAP
+        if self._CONVERSION_DIRECTION == 'srw':
+            map = self.__invert_field_map()
+        for n in map:
+            if n[0] == srw_name and n[1] == shadow_name:
+                return n[2]
+
     def __set_srw_electronBeam(self, shadow, srw):
-        e = self.__invert_dict(self.__FIELD_MAP[5][2])
+        e = self.__get_field('electronBeam', 'electronBeam')
         for k in e:
             srw.electronBeam[k] = shadow.electronBeam[e[k]]
 
