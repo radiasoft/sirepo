@@ -68,8 +68,6 @@ def stateless_compute_compute_harmonic_photon_energy(data):
 
 
 def stateful_compute_convert_to_srw(data):
-    # from pykern import pkjson
-    # pkjson.dump_pretty(data, filename='x.json')
     return SRWShadowConverter().shadow_to_srw(data)
 
 
