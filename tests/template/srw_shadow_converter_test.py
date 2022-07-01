@@ -37,13 +37,7 @@ def test_convert_shadow_to_srw():
     from pykern.pkcollections import PKDict
 
     for d in pkunit.case_dirs():
-        # TODO (gurhar1133): read a sirepo-data.json shadow into pkdict
-        # then call
-        # expect = PKDict(pkjson.load_any(d.join('example_srw_result_data.json')))
-        data = PKDict(pkjson.load_any(d.join('example_shadow_data.json')))
-        actual = SRWShadowConverter().shadow_to_srw(data)
+        # TODO (gurhar1133): figure out diff
+        data = pkjson.load_any(d.join('example_shadow_data.json'))
+        actual = SRWShadowConverter().shadow_to_srw(data).models
         pkjson.dump_pretty(actual, d.join('example_srw_result_data.json'))
-        # print('expect type ', type(expect))
-        # print('actual type: ', type(actual))
-        # assert 0
-        # pkunit.pkeq(actual.models, expect.models)
