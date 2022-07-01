@@ -859,7 +859,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-sim-conversion-modal="" data-conv-method="create_shadow_simulation"></div>
         `,
-    }
+    };
 });
 
 

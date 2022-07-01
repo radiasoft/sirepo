@@ -3067,7 +3067,6 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             };
 
             $scope.openConvertedSimulation = function() {
-                srdbg('convMethod: ', $scope.convMethod);
                 const d = appState.models;
                 d.method = $scope.convMethod;
                 requestSender.sendStatefulCompute(appState, createNewSim, d);

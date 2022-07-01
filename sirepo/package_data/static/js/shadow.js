@@ -420,7 +420,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-sim-conversion-modal="" data-conv-method="convert_to_srw"></div>
         `,
-    }
+    };
 });
 
 

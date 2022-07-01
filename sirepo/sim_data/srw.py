@@ -117,7 +117,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 n = 'beamlineAnimation{}'.format(cls.watchpoint_id(m))
                 if n not in dm:
                     dm[n] = dm[m]
-                    pkdp('\n\n\n\n BEAMLINEANIMATION: {}', dm[m])
             if m == 'initialIntensityReport' and 'beamlineAnimation0' not in dm:
                 dm.beamlineAnimation0 = dm[m]
                 if 'fieldUnits' in dm[m]:
@@ -544,7 +543,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             if 'grazingAngle' in i and 'normalVectorX' in i and 'autocomputeVectors' not in i:
                 i.autocomputeVectors = '1'
             if t == 'crl':
-                pkdp('i in fixup: {}', i)
                 for k, v in PKDict(
                     material='User-defined',
                     method='server',
