@@ -2645,7 +2645,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                 });
                 Object.keys(eventHandlers).forEach(function (k) {
-                    rw[k] = function (evt) {
+                    body[k] = function (evt) {
                         eventHandlers[k](evt);
                         if (hdlrs[k]) {
                             hdlrs[k](evt);
