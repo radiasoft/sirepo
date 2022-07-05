@@ -862,7 +862,6 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-
 var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
     var fields = [
         'normalVectorX', 'normalVectorY', 'normalVectorZ',

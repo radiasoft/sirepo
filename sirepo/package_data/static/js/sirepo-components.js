@@ -3074,10 +3074,7 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             };
 
             $scope.displayLink = function() {
-                if ($scope.newSimURL) {
-                    return true;
-                }
-                return false;
+                return Boolean($scope.newSimURL);
             };
         },
     };
@@ -3564,7 +3561,7 @@ SIREPO.app.directive('moderationPending', function(appState, panelState) {
         restrict: 'A',
         template: `
           <div>Your request to access {{ appName }} has been received. For additional information, contact
-            <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
+            <a href="mailto:support@sirepo.com">support@sirepo.com</a>.
           </div>
         `,
         controller: function(requestSender, $scope) {
