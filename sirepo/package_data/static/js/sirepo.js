@@ -2114,6 +2114,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
 
     self.formatUrlLocal = function(routeName, params, app) {
         var u = '#' + formatUrl(localMap, routeName, params);
+        srdbg('u: ', u);
         return app ? '/' + app + u : u;
     };
 
@@ -2222,7 +2223,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         // needs to handle query params from calls using complete url differently
         u = u.split("?");
-        
+
         if(u.length > 1 && u[1].trim()) {
             $location.path(u[0]).search(u[1]);
         } else {

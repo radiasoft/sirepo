@@ -3054,6 +3054,8 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             }
 
             function genSimURL(data) {
+                srdbg('formatURLLocal', requestSender.formatUrlLocal);
+                srdbg(requestSender.formatUrlLocal('', data.models.simulation.simulationId, data.simulationType));
                 $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
             }
 
