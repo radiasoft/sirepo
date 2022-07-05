@@ -4,6 +4,8 @@ import pytest
 import requests
 import subprocess
 
+#: Convenience constant
+_LOCALHOST = '127.0.0.1'
 #: Maximum time an individual test case (function) can run
 MAX_CASE_RUN_SECS = int(os.getenv('SIREPO_CONFTEST_MAX_CASE_RUN_SECS', 120))
 
@@ -299,14 +301,13 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     env = PKDict(os.environ)
     if not cfg:
         cfg = PKDict()
-    i = '127.0.0.1'
     from pykern import pkunit
     from pykern import pkio
     # different port than default so can run tests when supervisor running
     p = '8101'
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
-        SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
+        SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
         SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join('db'))),
     )
@@ -314,20 +315,25 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         cfg.SIREPO_PKCLI_SERVICE_PORT = '8102'
         cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = '8180'
     for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
-        cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
+        cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(_LOCALHOST, p)
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(**cfg)
 
     import sirepo.srunit
     c = None
+    u = [env['SIREPO_PKCLI_JOB_SUPERVISOR_PORT']]
     if uwsgi:
         c = sirepo.srunit.UwsgiClient(env)
+        u.append(env['SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT'])
     else:
         c = sirepo.srunit.flask_client(
             cfg=cfg,
             job_run_mode='sbatch' if sbatch_module else None,
         )
+
+    for i in u:
+        subprocess.run(['kill -9 $(lsof -t -i :' + i + ')'], shell=True)
 
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
@@ -344,6 +350,16 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
     import sirepo.srunit
     import time
 
+    def _post(uri, data):
+        for _ in range(30):
+            try:
+                r = requests.post(uri, json=data)
+                if r.status_code == 200:
+                    return
+            except requests.exceptions.ConnectionError:
+                time.sleep(.3)
+        pkunit.pkfail('could not connect to {}', uri)
+
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
 
@@ -351,24 +367,16 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
     wd = pkunit.work_dir()
     p = []
     try:
+        _subprocess(('sirepo', 'job_supervisor'))
+        _post(env['SIREPO_JOB_API_SUPERVISOR_URI'] + '/job-api-ping', PKDict(ping='echoedValue'))
         if uwsgi:
             for s in ('nginx-proxy', 'uwsgi'):
                 _subprocess(('sirepo', 'service', s))
-        _subprocess(('sirepo', 'job_supervisor'))
-
-        for i in range(30):
-            try:
-                r = c.sr_post('jobSupervisorPing', PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT))
-                if r.state == 'ok':
-                    break
-            except requests.exceptions.ConnectionError:
-                pass
-            time.sleep(.1)
-        else:
-            import sirepo.job_api
-            from pykern.pkdebug import pkdlog
-            pkdlog(sirepo.job_api.cfg.supervisor_uri)
-            pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
+            _post(
+                f'http://{_LOCALHOST}:{env["SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT"]}'
+                f'/job-supervisor-ping',
+                PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT),
+            )
         yield c
     finally:
         for x in p:

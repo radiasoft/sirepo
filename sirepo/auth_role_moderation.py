@@ -31,7 +31,7 @@ _ACTIVE = frozenset([
 ])
 
 class API(sirepo.api.Base):
-    @sirepo.api_perm.require_adm
+    @sirepo.api.Spec('require_adm')
     def api_admModerate(self):
 
         def _send_moderation_status_email(info):
@@ -80,14 +80,14 @@ class API(sirepo.api.Base):
         _send_moderation_status_email(p)
         return self.reply_ok()
 
-    @sirepo.api_perm.require_adm
+    @sirepo.api.Spec('require_adm')
     def api_admModerateRedirect(self):
         t = set(
             sirepo.feature_config.cfg().sim_types - sirepo.feature_config.auth_controlled_sim_types(),
         ).pop()
         raise sirepo.util.Redirect(sirepo.uri.local_route(t, route_name='admRoles', external=True))
 
-    @sirepo.api_perm.require_adm
+    @sirepo.api.Spec('require_adm')
     def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
@@ -95,7 +95,7 @@ class API(sirepo.api.Base):
             ),
         )
 
-    @sirepo.api_perm.allow_sim_typeless_require_email_user
+    @sirepo.api.Spec('allow_sim_typeless_require_email_user')
     def api_saveModerationReason(self):
         def _send_request_email(info):
             sirepo.smtp.send(

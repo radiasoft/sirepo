@@ -285,6 +285,12 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
+    async def _op_begin_session(self, msg):
+        await self.send(
+            self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
+        )
+        return None
+
     async def _cmd(self, msg, **kwargs):
         try:
             if msg.opName in (job.OP_ANALYSIS, job.OP_IO,) and msg.jobCmd != 'fastcgi':

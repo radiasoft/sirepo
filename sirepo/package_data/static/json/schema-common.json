@@ -122,6 +122,7 @@
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
+        "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
         "comsol": "/comsol",

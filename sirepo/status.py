@@ -33,7 +33,7 @@ _SIM_REPORT = 'initialIntensityReport'
 
 
 class API(sirepo.api.Base):
-    @api_perm.require_auth_basic
+    @sirepo.api.Spec('require_auth_basic')
     def api_serverStatus(self):
         """Allow for remote monitoring of the web server status.
     

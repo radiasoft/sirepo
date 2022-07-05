@@ -616,8 +616,9 @@ def simulation_dir(simulation_type, sid=None, uid=None):
     """
     p = user_path(uid) if uid else logged_in_user_path()
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
-    if not d.exists():
-        _create_lib_and_examples(p, d.basename)
+    with util.THREAD_LOCK:
+        if not d.exists():
+            _create_lib_and_examples(p, d.basename)
     if not sid:
         return d
     return d.join(assert_sid(sid))

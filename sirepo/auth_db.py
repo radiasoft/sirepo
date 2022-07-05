@@ -153,6 +153,7 @@ def init():
             'user_role_invite_t',
             'user_registration_t',
             'db_upgrade_t',
+            'session_t',
         ]
 
         def __init__(self, **kwargs):
