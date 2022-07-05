@@ -19,9 +19,8 @@ codes:
         {% endfor %}
       setup:
         input_file: {{ pyFileName }}
-        function: rsopt_set_params_and_run
+        function: rsopt_run
         execution_type: parallel
-        postprocess: [{{ pyFileName }}, rsopt_post_process]
 
 options:
   {% if scanType == 'grid' %}
