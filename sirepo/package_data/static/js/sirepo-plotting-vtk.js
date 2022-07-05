@@ -2646,12 +2646,17 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     }
                 });
                 Object.keys(eventHandlers).forEach(function (k) {
-                    view[k] = function (evt) {
+                    const f = function (evt) {
                         eventHandlers[k](evt);
                         if (hdlrs[k]) {
                             hdlrs[k](evt);
                         }
                     };
+                    if (k == 'onpointermove') {
+                        view[k] = f;
+                        return;
+                    }
+                    rw[k] = f;
                 });
                 // remove global VTK key listeners
                 for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {
