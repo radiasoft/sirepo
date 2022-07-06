@@ -325,7 +325,6 @@ class Converter:
                 self.beamline.append(ap)
             elif item.type == "watch":
                 watch = self.__copy_item(item)
-                pkdp("\n\n\n watch id: {}, item id: {}", watch.id, item.id)
                 self.beamline.append(watch)
                 srw[f"watchpointReport{watch.id}"] = PKDict(
                     colorMap=shadow[f"watchpointReport{item.id}"].colorMap,
@@ -690,7 +689,6 @@ class Converter:
         self.beamline.append(n)
 
     def __multipole_to_shadow(self, srw, shadow):
-        pkdp("\n\n\n self: {}", self)
         self.__copy_model_fields("bendingMagnet", srw, shadow)
         shadow.bendingMagnet.ph2 = shadow.bendingMagnet.ph1 + 0.001
         self.__copy_model_fields("electronBeam", srw, shadow)
