@@ -47,7 +47,8 @@ SIREPO.app.config(function() {
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
-          <label>{{ model.widthAxis }}</label> <label>{{ model.heightAxis }}</label>
+          <div data-report-content="pointEditor" data-model-key="extrudedPoly"></div>
+          <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
           <div data-ng-repeat="p in model[field]">
             <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[0]"  style="text-align: right" required />
             <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[1]"  style="text-align: right" required />
@@ -62,6 +63,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="TransformTable" class="col-sm-12">
           <div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>
         </div>
+    `;
+    SIREPO.appReportTypes += `
+        <div data-ng-switch-when="pointEditor" data-parameter-plot="" class="sr-plot" data-model-name="extrudedPoly" data-report-id="reportId"></div>
     `;
 });
 
@@ -566,28 +570,25 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = function(o) {
-        var center = radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-        var size =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-        var isGroup = o.members && o.members.length;  //false;
+        let center = radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        let size =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        const isGroup = o.members && o.members.length;
 
-        if (o.members && o.members.length) {
-            isGroup = true;
-            var b = groupBounds(o.members.map(function (id) {
-                return self.getObject(id);
-            }));
-            center = b.map(function (c) {
-                return (c[0] + c[1]) / 2;
-            });
-            size = b.map(function (c) {
-                return Math.abs((c[1] - c[0]));
-            });
+        if (isGroup) {
+            const b = groupBounds(o.members.map(id => self.getObject(id)));
+            center = b.map(c => (c[0] + c[1]) / 2);
+            size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        var shape = vtkPlotting.plotShape(
+        if ('extrudedPoly' in appState.superClasses(o.type)) {
+            o.layoutShape = 'polygon'
+        }
+        const shape = vtkPlotting.plotShape(
             o.id, o.name,
             center, size,
             o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
-            o.layoutShape
+            o.layoutShape,
+            o.points
         );
         if (isGroup) {
             shape.outlineOffset = 5.0;

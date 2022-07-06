@@ -72,7 +72,7 @@ _KICK_TEXT_FILE = 'kickMap.txt'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'get_kick_map', 'save_field']
 _POST_SIM_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'kickMapReport']
 _SIM_REPORTS = ['geometryReport', 'reset', 'solverAnimation']
-_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'geometryReport', 'kickMapReport', 'reset', 'solverAnimation']
+_REPORTS = ['fieldIntegralReport', 'fieldLineoutReport', 'geometryReport', 'kickMapReport', 'pointsReport', 'reset', 'solverAnimation']
 _REPORT_RES_MAP = PKDict(
     reset='geometryReport',
     solverAnimation='geometryReport',
@@ -120,9 +120,9 @@ def create_archive(sim, sapi):
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, 'report={}: unknown report'.format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
-    if 'reset' in sim_in.report:
+    if sim_in.report == "reset":
         template_common.write_sequential_result({}, run_dir=run_dir)
-    if 'geometryReport' in sim_in.report:
+    if sim_in.report == "geometryReport":
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type ==\
             SCHEMA.constants.viewTypeFields else None
@@ -138,12 +138,12 @@ def extract_report_data(run_dir, sim_in):
             d,
             run_dir=run_dir,
         )
-    if 'kickMapReport' in sim_in.report:
+    if sim_in.report == "kickMapReport":
         template_common.write_sequential_result(
             _kick_map_plot(sim_in.models.kickMapReport),
             run_dir=run_dir,
         )
-    if 'fieldIntegralReport' in sim_in.report:
+    if sim_in.report == "fieldIntegralReport":
         template_common.write_sequential_result(
             _generate_field_integrals(
                 sim_in.models.simulation.simulationId,
@@ -152,7 +152,7 @@ def extract_report_data(run_dir, sim_in):
             ),
             run_dir=run_dir
         )
-    if 'fieldLineoutReport' in sim_in.report:
+    if sim_in.report == "fieldLineoutReport":
         template_common.write_sequential_result(
             _field_lineout_plot(
                 sim_in.models.simulation.simulationId,
@@ -160,6 +160,16 @@ def extract_report_data(run_dir, sim_in):
                 sim_in.models.fieldLineoutReport.fieldType,
                 sim_in.models.fieldLineoutReport.fieldPath,
                 sim_in.models.fieldLineoutReport.plotAxis
+            ),
+            run_dir=run_dir,
+        )
+    if sim_in.report == "extrudedPolyReport":
+        template_common.write_sequential_result(
+            _extruded_points_plot(
+                sim_in.models.geomObject.name,
+                sim_in.models.extrudedPoly.points,
+                sim_in.models.extrudedPoly.widthAxis,
+                sim_in.models.extrudedPoly.heightAxis
             ),
             run_dir=run_dir,
         )
@@ -492,6 +502,25 @@ def _delim_string(val=None, default_val=None):
     d = default_val if default_val is not None else []
     return sirepo.util.to_comma_delimited_string(val if val is not None else d)
 
+
+def _extruded_points_plot(name, points, width_axis, height_axis):
+    pts = numpy.array(points).T
+    plots = PKDict(
+            points=pts[1].tolist(),
+            label=None,
+            style='line'
+        )
+    return template_common.parameter_plot(
+        pts[0].tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title=name,
+            y_label=f"{width_axis} [mm]",
+            x_label=f'{height_axis} [mm]',
+            summaryData=PKDict(),
+        ),
+    )
 
 _FIELD_PT_BUILDERS = {
     'axis': _build_field_line_pts,

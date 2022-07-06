@@ -1232,8 +1232,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     // create a 3d shape
-    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape) {
-        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape);
+    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points) {
+        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points);
         shape.axes.push('z');
         shape.center.z = center[2];
         shape.size.z = size[2];
@@ -1958,6 +1958,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 );
             }
 
+            function shapePoints(shape, dim) {
+                var labDim = shape.elev[dim].axis;
+                return [];
+            }
+
             function shapeCenter(shape, dim) {
                 var labDim = shape.elev[dim].axis;
                 return axes[dim].scale(shape.center[labDim]);
@@ -2017,6 +2022,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('href', function (d) {
                         return d.href ? `#${d.href}` : '';
+                    })
+                    .attr('points', function(d) {
+                        return shapePoints(d, 'x');
                     })
                     .attr('x', function(d) {
                         return shapeOrigin(d, 'x') - (d.outlineOffset || 0);
