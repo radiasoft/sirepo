@@ -418,6 +418,8 @@ SIREPO.app.directive('appFooter', function() {
             nav: '=appFooter',
         },
         template: `
+            <div data-common-footer="nav"></div>
+            <div data-import-dialog=""></div>
             <div data-sim-conversion-modal="" data-conv-method="convert_to_srw"></div>
         `,
     };

@@ -195,12 +195,11 @@ class Converter:
         self.beamline = res.models.beamline
         self.__sim_to_srw(data, res.models)
         res.models.simulation.sourceType = data.simulation.sourceType
-        if res.models.simulation.sourceType == 'u':
-            self.__undulator_to_srw(data, res.models)
-        elif res.models.simulation.sourceType == 'g':
-            self.__geometric_source_to_srw(data, res.models)
-        elif res.models.simulation.sourceType == 'm':
-            self.__multipole_to_srw(data, res.models)
+        PKDict(
+            u=self.__undulator_to_srw,
+            g=self.__geometric_source_to_srw,
+            m=self.__multipole_to_srw,
+        )[res.models.simulation.sourceType](data, res.models)
         self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
         _SRW.fixup_old_data(res)
@@ -211,12 +210,11 @@ class Converter:
         res = simulation_db.default_data(_SHADOW.sim_type())
         self.beamline = res.models.beamline
         self.__simulation_to_shadow(models, res.models)
-        if res.models.simulation.sourceType == 'geometricSource':
-            self.__beam_to_shadow(models, res.models)
-        elif res.models.simulation.sourceType == 'undulator':
-            self.__undulator_to_shadow(models, res.models)
-        elif res.models.simulation.sourceType == 'bendingMagnet':
-            self.__multipole_to_shadow(models, res.models)
+        PKDict(
+            geometricSource=self.__beam_to_shadow,
+            undulator=self.__undulator_to_shadow,
+            bendingMagnet=self.__multipole_to_shadow,
+        )[res.models.simulation.sourceType](models, res.models)
         self.__beamline_to_shadow(models, res.models)
         if res.models.simulation.sourceType == 'undulator':
             self.__fix_undulator_gratings(res.models)
@@ -260,9 +258,10 @@ class Converter:
                 self.beamline.append(ap)
             elif item.type == 'watch':
                 watch = self.__copy_item(item)
+                pkdp('\n\n\n watch id: {}, item id: {}', watch.id, item.id)
                 self.beamline.append(watch)
-                srw[f'watchpointReport{item.id}'] = PKDict(
-                    colorMap=shadow[f'watchpointReport{watch.id}'].colorMap,
+                srw[f'watchpointReport{watch.id}'] = PKDict(
+                    colorMap=shadow[f'watchpointReport{item.id}'].colorMap,
                 )
             elif item.type == 'crl':
                 srw_crl = self.__crl_to_srw(item)
@@ -281,7 +280,14 @@ class Converter:
                     verticalOffset=0,
                     horizontalOffset=0,
                 )))
+            # elif item.type == 'emptyElement':
+            #     self.__decrement_beamline_ids(shadow, shadow.beamline.index(item))
         return self.beamline
+
+    # def __decrement_beamline_ids(self, shadow, index):
+    #     for i, e in enumerate(shadow.beamline):
+    #         if i > index:
+    #             shadow.beamline[i].id = shadow.beamline[i].id - 1
 
     def __crl_to_srw(self, item):
         res = _SRW.model_defaults(item.type)
@@ -566,6 +572,7 @@ class Converter:
         self.beamline.append(n)
 
     def __multipole_to_shadow(self, srw, shadow):
+        pkdp('\n\n\n self: {}', self)
         self.__copy_model_fields('bendingMagnet', srw, shadow)
         shadow.bendingMagnet.ph2 = shadow.bendingMagnet.ph1 + 0.001
         self.__copy_model_fields('electronBeam', srw, shadow)
