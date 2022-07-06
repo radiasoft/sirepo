@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
             SEXTUPOLE: 'lightgreen',
             OCTUPOLE: 'yellow',
         },
-        elementPic: {
+        elementPic: {// TODO (gurhar1133): add new elements here
             alpha: [],
             aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'RCOLLIMATOR'],
             bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
