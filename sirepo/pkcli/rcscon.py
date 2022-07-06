@@ -25,15 +25,15 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data.report == 'elegantAnimation':
+    if data.report == "elegantAnimation":
         return _run_elegant_simulation(cfg_dir)
     template_common.exec_parameters()
 
 
 def _build_arrays():
     sigma = sdds_util.read_sdds_pages(
-        'run_setup.sigma.sdds',
-        ['s', 's1', 's12', 's2', 's3', 's34', 's4', 's5', 's56', 's6'],
+        "run_setup.sigma.sdds",
+        ["s", "s1", "s12", "s2", "s3", "s34", "s4", "s5", "s56", "s6"],
     )
     errors = _error_values()
     inputs = []
@@ -42,26 +42,43 @@ def _build_arrays():
     for i in range(len(errors)):
         for j in range(int(len(sigma.s) / len(errors))):
             initial_index = k - j
-            inputs.append([
-                errors[i, 1], errors[i, 2], sigma.s[k],
-                sigma.s1[initial_index], sigma.s12[initial_index], sigma.s2[initial_index],
-                sigma.s3[initial_index], sigma.s34[initial_index], sigma.s4[initial_index],
-                sigma.s5[initial_index], sigma.s56[initial_index], sigma.s6[initial_index],
-            ])
-            outputs.append([
-                sigma.s1[k], sigma.s12[k], sigma.s2[k],
-                sigma.s3[k], sigma.s34[k], sigma.s4[k],
-                sigma.s5[k], sigma.s56[k], sigma.s6[k],
-            ])
-            k+=1
+            inputs.append(
+                [
+                    errors[i, 1],
+                    errors[i, 2],
+                    sigma.s[k],
+                    sigma.s1[initial_index],
+                    sigma.s12[initial_index],
+                    sigma.s2[initial_index],
+                    sigma.s3[initial_index],
+                    sigma.s34[initial_index],
+                    sigma.s4[initial_index],
+                    sigma.s5[initial_index],
+                    sigma.s56[initial_index],
+                    sigma.s6[initial_index],
+                ]
+            )
+            outputs.append(
+                [
+                    sigma.s1[k],
+                    sigma.s12[k],
+                    sigma.s2[k],
+                    sigma.s3[k],
+                    sigma.s34[k],
+                    sigma.s4[k],
+                    sigma.s5[k],
+                    sigma.s56[k],
+                    sigma.s6[k],
+                ]
+            )
+            k += 1
     return np.asarray(inputs), np.asarray(outputs)
 
 
 def _error_values():
     pages = sdds_util.read_sdds_pages(
-        'error_control.error_log.sdds',
-        ['ElementParameter', 'ParameterValue'],
-        True)
+        "error_control.error_log.sdds", ["ElementParameter", "ParameterValue"], True
+    )
     res = []
     for page in range(len(pages.ElementParameter)):
         values = PKDict()
@@ -79,15 +96,22 @@ def _error_values():
 
 def _run_elegant_simulation(cfg_dir):
     import sirepo.pkcli.elegant
+
     sirepo.pkcli.elegant.run_elegant()
     inputs, outputs = _build_arrays()
     common = [
-        's1', 's12', 's2',
-        's3', 's34', 's4',
-        's5', 's56', 's6',
+        "s1",
+        "s12",
+        "s2",
+        "s3",
+        "s34",
+        "s4",
+        "s5",
+        "s56",
+        "s6",
     ]
-    in_cols = ['average phase', 'total volts', 'position']
-    in_header = ','.join(in_cols + ['initial ' + x for x in common])
-    out_header = ','.join(common)
-    np.savetxt('inputs.csv', inputs, delimiter=',', comments='', header=in_header)
-    np.savetxt('outputs.csv', outputs, delimiter=',', comments='', header=out_header)
+    in_cols = ["average phase", "total volts", "position"]
+    in_header = ",".join(in_cols + ["initial " + x for x in common])
+    out_header = ",".join(common)
+    np.savetxt("inputs.csv", inputs, delimiter=",", comments="", header=in_header)
+    np.savetxt("outputs.csv", outputs, delimiter=",", comments="", header=out_header)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""async requests to server over http
+"""async requests to server over http
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -30,75 +30,73 @@ import tornado.locks
 _CODES = PKDict(
     elegant=(
         PKDict(
-            name='bunchComp - fourDipoleCSR',
+            name="bunchComp - fourDipoleCSR",
             reports=(
-                PKDict(report='bunchReport1', binary_data_file=False),
-                PKDict(report='elementAnimation10-5', binary_data_file=True),
+                PKDict(report="bunchReport1", binary_data_file=False),
+                PKDict(report="elementAnimation10-5", binary_data_file=True),
             ),
         ),
         PKDict(
-            name='SPEAR3',
+            name="SPEAR3",
             reports=(
-                PKDict(report='bunchReport2', binary_data_file=False),
-                PKDict(report='elementAnimation62-20', binary_data_file=True),
+                PKDict(report="bunchReport2", binary_data_file=False),
+                PKDict(report="elementAnimation62-20", binary_data_file=True),
             ),
         ),
     ),
     jspec=(
         PKDict(
-            name='Booster Ring',
+            name="Booster Ring",
             reports=(
-                PKDict(report='particleAnimation', binary_data_file=False),
-                PKDict(report='rateCalculationReport', binary_data_file=False),
+                PKDict(report="particleAnimation", binary_data_file=False),
+                PKDict(report="rateCalculationReport", binary_data_file=False),
             ),
         ),
     ),
     srw=(
         PKDict(
-            name='Tabulated Undulator Example',
+            name="Tabulated Undulator Example",
             reports=(
-                PKDict(report='intensityReport', binary_data_file=False),
-                PKDict(report='trajectoryReport', binary_data_file=False),
-                PKDict(report='multiElectronAnimation', binary_data_file=False),
-                PKDict(report='powerDensityReport', binary_data_file=False),
-                PKDict(report='sourceIntensityReport', binary_data_file=False),
+                PKDict(report="intensityReport", binary_data_file=False),
+                PKDict(report="trajectoryReport", binary_data_file=False),
+                PKDict(report="multiElectronAnimation", binary_data_file=False),
+                PKDict(report="powerDensityReport", binary_data_file=False),
+                PKDict(report="sourceIntensityReport", binary_data_file=False),
             ),
         ),
         PKDict(
-            name='Bending Magnet Radiation',
+            name="Bending Magnet Radiation",
             reports=(
-                PKDict(report='initialIntensityReport', binary_data_file=False),
-                PKDict(report='intensityReport', binary_data_file=False),
-                PKDict(report='powerDensityReport', binary_data_file=False),
-                PKDict(report='sourceIntensityReport', binary_data_file=False),
-                PKDict(report='trajectoryReport', binary_data_file=False),
+                PKDict(report="initialIntensityReport", binary_data_file=False),
+                PKDict(report="intensityReport", binary_data_file=False),
+                PKDict(report="powerDensityReport", binary_data_file=False),
+                PKDict(report="sourceIntensityReport", binary_data_file=False),
+                PKDict(report="trajectoryReport", binary_data_file=False),
             ),
         ),
     ),
     synergia=(
         PKDict(
-            name='IOTA 6-6 Bare',
+            name="IOTA 6-6 Bare",
             reports=(
-                PKDict(report='beamEvolutionAnimation', binary_data_file=True),
-                PKDict(report='bunchReport1', binary_data_file=False),
+                PKDict(report="beamEvolutionAnimation", binary_data_file=True),
+                PKDict(report="bunchReport1", binary_data_file=False),
             ),
         ),
     ),
     warppba=(
         PKDict(
-            name='Laser Pulse',
+            name="Laser Pulse",
             reports=(
-                PKDict(report='fieldAnimation', binary_data_file=True),
-                PKDict(report='laserPreviewReport', binary_data_file=False),
+                PKDict(report="fieldAnimation", binary_data_file=True),
+                PKDict(report="laserPreviewReport", binary_data_file=False),
             ),
         ),
     ),
     warpvnd=(
         PKDict(
-            name='EGun Example',
-            reports=(
-                PKDict(report='fieldAnimation', binary_data_file=True),
-            ),
+            name="EGun Example",
+            reports=(PKDict(report="fieldAnimation", binary_data_file=True),),
         ),
     ),
 )
@@ -113,11 +111,13 @@ def default_command():
         a = []
         for c in await _clients():
             for t in _CODES.keys():
-                a.append(await _App(
-                    sim_type=t,
-                    client=c.copy(),
-                    examples=copy.deepcopy(_CODES[t]),
-                ).setup_sim_data())
+                a.append(
+                    await _App(
+                        sim_type=t,
+                        client=c.copy(),
+                        examples=copy.deepcopy(_CODES[t]),
+                    ).setup_sim_data()
+                )
         return a
 
     async def _clients():
@@ -126,6 +126,7 @@ def default_command():
     def _register_signal_handlers(main_task):
         def _s(*args):
             main_task.cancel()
+
         signal.signal(signal.SIGTERM, _s)
         signal.signal(signal.SIGINT, _s)
 
@@ -141,7 +142,7 @@ def default_command():
             if isinstance(e, sirepo.util.ASYNC_CANCELED_ERROR):
                 # Will only be canceled by a signal handler
                 return
-            pkdlog('error={} stack={} sims={}', e, pkdexc(), _sims)
+            pkdlog("error={} stack={} sims={}", e, pkdexc(), _sims)
             raise
 
     async def _sims_tasks():
@@ -161,13 +162,11 @@ def default_command():
 
 class _App(PKDict):
     def __init__(self, **kwargs):
-        super().__init__(
-            **kwargs
-        )
+        super().__init__(**kwargs)
         self.client.app = self
 
     async def setup_sim_data(self):
-        r = await self.client.post('/simulation-list', PKDict(), self)
+        r = await self.client.post("/simulation-list", PKDict(), self)
         self._sim_db = PKDict()
         self._sid = PKDict([(x.name, x.simulationId) for x in r])
         self.sim_data = sirepo.sim_data.get_class(self.sim_type)
@@ -181,7 +180,7 @@ class _App(PKDict):
             return self._sim_db[sim_name]
         except KeyError:
             self._sim_db[sim_name] = await self.client.get(
-                '/simulation/{}/{}/0'.format(
+                "/simulation/{}/{}/0".format(
                     self.sim_type,
                     self.get_sid(sim_name),
                 ),
@@ -191,7 +190,7 @@ class _App(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(sim_type={} email={} uid={})',
+            "{}(sim_type={} email={} uid={})",
             self.__class__.__name__,
             self.sim_type,
             self.client.email,
@@ -202,7 +201,7 @@ class _App(PKDict):
 async def _cancel_all_tasks(tasks):
     for t in tasks:
         await _pause_for_server()
-        pkdlog('cancelling task={}', _task_id(t))
+        pkdlog("cancelling task={}", _task_id(t))
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
     # finally blocks (ex await post('run-cancel)). We need return_exceptions
@@ -211,13 +210,12 @@ async def _cancel_all_tasks(tasks):
 
 
 class _Client(PKDict):
-
     def __init__(self, email, **kwargs):
         super().__init__(
             email=email,
             uid=None,
-            _headers=PKDict({'User-Agent': 'test_http'}),
-            **kwargs
+            _headers=PKDict({"User-Agent": "test_http"}),
+            **kwargs,
         )
         tornado.httpclient.AsyncHTTPClient.configure(None, max_clients=1000)
         self._client = tornado.httpclient.AsyncHTTPClient()
@@ -225,7 +223,7 @@ class _Client(PKDict):
     def copy(self):
         n = _Client(self.email)
         for k, v in self.items():
-            if k != '_client':
+            if k != "_client":
                 n[k] = copy.deepcopy(v)
         return n
 
@@ -236,68 +234,68 @@ class _Client(PKDict):
                 await self._client.fetch(
                     uri,
                     headers=self._headers,
-                    method='GET',
-                    **self._fetch_default_args()
+                    method="GET",
+                    **self._fetch_default_args(),
                 ),
                 expect_binary_body=expect_binary_body,
             )
 
     async def login(self):
-        r = await self.post('/simulation-list', PKDict(), self)
-        assert r.srException.routeName == 'missingCookies'
-        r = await self.post('/simulation-list', PKDict(), self)
-        assert r.srException.routeName == 'login'
-        r = await self.post('/auth-email-login', PKDict(email=self.email), self)
+        r = await self.post("/simulation-list", PKDict(), self)
+        assert r.srException.routeName == "missingCookies"
+        r = await self.post("/simulation-list", PKDict(), self)
+        assert r.srException.routeName == "login"
+        r = await self.post("/auth-email-login", PKDict(email=self.email), self)
         t = sirepo.util.create_token(
             self.email,
         )
         r = await self.post(
-            self._uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
+            self._uri("/auth-email-authorized/{}/{}".format(self.sim_type, t)),
             PKDict(token=t, email=self.email),
             self,
         )
-        assert r.state != 'srException', 'r={}'.format(r)
+        assert r.state != "srException", "r={}".format(r)
         if r.authState.needCompleteRegistration:
             r = await self.post(
-                '/auth-complete-registration',
+                "/auth-complete-registration",
                 PKDict(displayName=self.email),
                 self,
             )
         self.uid = re.search(
             r'"uid": "(\w+)"',
-            await self.get('/auth-state', self),
+            await self.get("/auth-state", self),
         ).group(1)
         return self
 
     def parse_response(self, resp, expect_binary_body=False):
-        assert resp.code == 200, 'resp={}'.format(resp)
-        if 'Set-Cookie' in resp.headers:
-            self._headers.Cookie = resp.headers['Set-Cookie']
-        if 'json' in resp.headers['content-type']:
+        assert resp.code == 200, "resp={}".format(resp)
+        if "Set-Cookie" in resp.headers:
+            self._headers.Cookie = resp.headers["Set-Cookie"]
+        if "json" in resp.headers["content-type"]:
             return pkjson.load_any(resp.body)
         try:
             b = pkcompat.from_bytes(resp.body)
-            assert not expect_binary_body, \
-                'expecting binary body resp={} body={}'.format(
-                    resp,
-                    b[:1000],
-                )
+            assert (
+                not expect_binary_body
+            ), "expecting binary body resp={} body={}".format(
+                resp,
+                b[:1000],
+            )
         except UnicodeDecodeError:
-            assert expect_binary_body, \
-                'unexpected binary body resp={}'.format(resp)
+            assert expect_binary_body, "unexpected binary body resp={}".format(resp)
             # Binary data files can't be decoded
             return
-        if 'html' in resp.headers['content-type']:
+        if "html" in resp.headers["content-type"]:
             m = re.search('location = "(/[^"]+)', b)
             if m:
-                if 'error' in m.group(1):
-                    return PKDict(state='error', error='server error')
-                return PKDict(state='redirect', uri=m.group(1))
+                if "error" in m.group(1):
+                    return PKDict(state="error", error="server error")
+                return PKDict(state="redirect", uri=m.group(1))
         return b
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(email={} uid={})',
+            "{}(email={} uid={})",
             self.__class__.__name__,
             self.email,
             self.uid,
@@ -313,10 +311,10 @@ class _Client(PKDict):
                     uri,
                     body=pkjson.dump_bytes(data),
                     headers=self._headers.pksetdefault(
-                        'Content-type',  'application/json'
+                        "Content-type", "application/json"
                     ),
-                    method='POST',
-                    **self._fetch_default_args()
+                    method="POST",
+                    **self._fetch_default_args(),
                 ),
             )
 
@@ -331,14 +329,13 @@ class _Client(PKDict):
     def _timer(self, uri, caller):
         s = time.time()
         yield
-        if 'run-status' not in uri:
+        if "run-status" not in uri:
             pkdlog(
-                '{} {} elapsed_time={:.6}',
+                "{} {} elapsed_time={:.6}",
                 uri,
                 caller.pkdebug_str(),
                 time.time() - s,
             )
-
 
     @property
     def sim_type(self):
@@ -347,16 +344,16 @@ class _Client(PKDict):
         except AttributeError:
             # We don't have an app so the sim type doesn't matter
             # just used for login()
-            return 'elegant'
+            return "elegant"
 
     def _uri(self, uri):
-        if uri.startswith('http'):
+        if uri.startswith("http"):
             return uri
-        assert uri.startswith('/')
+        assert uri.startswith("/")
         # Elegant frame_id's sometimes have spaces in them so need to
         # make them url safe. But, the * in the url should not be made
         # url safe
-        return cfg.server_uri + uri.replace(' ', '%20')
+        return cfg.server_uri + uri.replace(" ", "%20")
 
 
 class _Sim(PKDict):
@@ -366,7 +363,7 @@ class _Sim(PKDict):
             _sim_name=sim_name,
             _report=report,
             _binary_data_file=binary_data_file,
-            **kwargs
+            **kwargs,
         )
         self._sid = self._app.get_sid(self._sim_name)
 
@@ -374,10 +371,10 @@ class _Sim(PKDict):
     def _set_waiting_on_status(self, frame_before_caller=False):
         f = inspect.currentframe().f_back.f_back
         if frame_before_caller:
-            f = getattr(f, 'f_back')
+            f = getattr(f, "f_back")
         c = pkinspect.Call(f)
         self._waiting_on = {
-            k: c[k] for k in sorted(c.keys()) if k in ('lineno', 'name')
+            k: c[k] for k in sorted(c.keys()) if k in ("lineno", "name")
         }
         yield
         # Only clear _waiting_on in the successful case. In failure
@@ -403,12 +400,15 @@ class _Sim(PKDict):
                             await self._run_sim()
                             c = False
                         with self._set_waiting_on_status():
-                            f = await self._app.client.get('/simulation-frame/' + g, self)
-                        assert f.state == 'error', \
-                            '{} expecting error instead of frame={}'.format(
-                                self.pkdebug_str(),
-                                f,
+                            f = await self._app.client.get(
+                                "/simulation-frame/" + g, self
                             )
+                        assert (
+                            f.state == "error"
+                        ), "{} expecting error instead of frame={}".format(
+                            self.pkdebug_str(),
+                            f,
+                        )
                     except Exception:
                         e = True
                         raise
@@ -422,14 +422,15 @@ class _Sim(PKDict):
                 # The error will be logged 2x (once here and once at the top level).
                 # This is not ideal but we need the context we have here which
                 # we don't have at the top level
-                pkdlog('{} error={} stack={}', self, e, pkdexc())
+                pkdlog("{} error={} stack={}", self, e, pkdexc())
                 raise
+
         # TODO(e-carlin): in py3.8 set the task_name to be pkdebug_str()
         return asyncio.create_task(_run())
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(email={} sim_type={} computeJid={} task={} waiting_on={})',
+            "{}(email={} sim_type={} computeJid={} task={} waiting_on={})",
             self.__class__.__name__,
             self._app.client.email,
             self._app.sim_type,
@@ -437,13 +438,13 @@ class _Sim(PKDict):
                 PKDict(simulationId=self._sid, report=self._report),
                 uid=self._app.client.uid,
             ),
-            self.get('_task_id', '<unknown>'),
-            self.get('_waiting_on', '<unknown>'),
+            self.get("_task_id", "<unknown>"),
+            self.get("_waiting_on", "<unknown>"),
         )
 
     async def _cancel(self, error=False):
         c = self._app.client.post(
-            '/run-cancel',
+            "/run-cancel",
             PKDict(
                 report=self._report,
                 models=self._data.models,
@@ -461,14 +462,14 @@ class _Sim(PKDict):
     async def _get_sim_frame(self, next_request):
         g = self._app.sim_data.frame_id(self._data, next_request, self._report, 0)
         with self._set_waiting_on_status():
-            f = await self._app.client.get('/simulation-frame/' + g, self)
-        assert f.state == 'completed', \
-            f'{self.pkdebug_str()} expected state completed frame={f}'
-        assert 'title' in f, \
-            '{} no title in frame={}'.format(self.pkdebug_str(), f)
+            f = await self._app.client.get("/simulation-frame/" + g, self)
+        assert (
+            f.state == "completed"
+        ), f"{self.pkdebug_str()} expected state completed frame={f}"
+        assert "title" in f, "{} no title in frame={}".format(self.pkdebug_str(), f)
         with self._set_waiting_on_status():
             await self._app.client.get(
-                '/download-data-file/{}/{}/{}/{}'.format(
+                "/download-data-file/{}/{}/{}/{}".format(
                     self._app.sim_type,
                     self._sid,
                     self._report,
@@ -481,10 +482,10 @@ class _Sim(PKDict):
 
     async def _run_sim(self):
         r = self._report
-        if 'animation' in self._report.lower() and self._app.sim_type != 'srw':
-            r = 'animation'
+        if "animation" in self._report.lower() and self._app.sim_type != "srw":
+            r = "animation"
         return await self._app.client.post(
-            '/run-simulation',
+            "/run-simulation",
             PKDict(
                 # works for sequential simulations, too
                 forceRun=True,
@@ -494,7 +495,7 @@ class _Sim(PKDict):
                 simulationType=self._app.sim_type,
             ),
             self,
-            )
+        )
 
     async def _run_sim_until_completion(self):
         c = True
@@ -504,25 +505,25 @@ class _Sim(PKDict):
                 r = await self._run_sim()
             t = random.randrange(cfg.run_min_secs, cfg.run_max_secs)
             for _ in range(t):
-                if r.state == 'completed' or r.state == 'error':
+                if r.state == "completed" or r.state == "error":
                     c = False
-                    assert r.state != 'error', \
-                        '{} unexpected error state {}'.format(
-                            self.pkdebug_str(),
-                            r,
-                        )
-                    break
-                assert 'nextRequest' in r, \
-                    '{} expected "nextRequest" in response={}'.format(
+                    assert r.state != "error", "{} unexpected error state {}".format(
                         self.pkdebug_str(),
                         r,
                     )
+                    break
+                assert (
+                    "nextRequest" in r
+                ), '{} expected "nextRequest" in response={}'.format(
+                    self.pkdebug_str(),
+                    r,
+                )
                 with self._set_waiting_on_status():
-                    r = await self._app.client.post('/run-status', r.nextRequest, self)
+                    r = await self._app.client.post("/run-status", r.nextRequest, self)
                 with self._set_waiting_on_status():
                     await tornado.gen.sleep(1)
             else:
-                pkdlog('{} timeout={}', self, t)
+                pkdlog("{} timeout={}", self, t)
             return r
         except Exception:
             e = True
@@ -538,15 +539,31 @@ def _init():
         return
     c = sirepo.pkcli.service._cfg()
     cfg = pkconfig.init(
-        emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
-        server_uri=(
-            'http://{}:{}'.format(c.ip, c.port),
-            str,
-            'where to send requests',
+        emails=(
+            ["one@radia.run", "two@radia.run", "three@radia.run"],
+            list,
+            "emails to test",
         ),
-        run_min_secs=(90, pkconfig.parse_seconds, 'minimum amount of time to let a simulation run'),
-        run_max_secs=(120, pkconfig.parse_seconds, 'maximum amount of time to let a simulation run'),
-        validate_cert=(not pkconfig.channel_in('dev'), bool, 'whether or not to validate server tls cert')
+        server_uri=(
+            "http://{}:{}".format(c.ip, c.port),
+            str,
+            "where to send requests",
+        ),
+        run_min_secs=(
+            90,
+            pkconfig.parse_seconds,
+            "minimum amount of time to let a simulation run",
+        ),
+        run_max_secs=(
+            120,
+            pkconfig.parse_seconds,
+            "maximum amount of time to let a simulation run",
+        ),
+        validate_cert=(
+            not pkconfig.channel_in("dev"),
+            bool,
+            "whether or not to validate server tls cert",
+        ),
     )
 
 

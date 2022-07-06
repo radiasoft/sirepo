@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-u"""Type agnostic OAuth operations
+"""Type agnostic OAuth operations
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import sirepo.util
+
 
 def import_module(type_or_data):
 
@@ -15,4 +16,4 @@ def import_module(type_or_data):
     Returns:
         module: simulation type module instance
     """
-    return sirepo.util.import_submodule('sim_oauth', type_or_data)
+    return sirepo.util.import_submodule("sim_oauth", type_or_data)

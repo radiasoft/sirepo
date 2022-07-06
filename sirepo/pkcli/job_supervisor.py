@@ -36,9 +36,9 @@ def default_command():
     global cfg
 
     cfg = pkconfig.init(
-        debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=(sirepo.job.DEFAULT_IP, str, 'ip to listen on'),
-        port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
+        debug=(pkconfig.channel_in("dev"), bool, "run supervisor in debug mode"),
+        ip=(sirepo.job.DEFAULT_IP, str, "ip to listen on"),
+        port=(sirepo.job.DEFAULT_PORT, int, "what port to listen on"),
     )
     sirepo.srtime.init()
     sirepo.job_supervisor.init()
@@ -51,19 +51,19 @@ def default_command():
             (sirepo.job.SERVER_RUN_MULTI_URI, _ServerReqRunMulti),
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
-            (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
-            (sirepo.job.SIM_DB_FILE_URI + '/(.+)', sirepo.sim_db_file.FileReq),
+            (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
+            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.FileReq),
         ],
         debug=cfg.debug,
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
         # tornado expects a trailing slash
-        static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
+        static_url_prefix=sirepo.job.LIB_FILE_URI + "/",
         websocket_max_message_size=sirepo.job.cfg.max_message_bytes,
         websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
     if cfg.debug:
-        for f in sirepo.util.files_to_watch_for_reload('json', 'py'):
+        for f in sirepo.util.files_to_watch_for_reload("json", "py"):
             tornado.autoreload.watch(f)
 
     server = tornado.httpserver.HTTPServer(
@@ -74,7 +74,7 @@ def default_command():
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
-    pkdlog('ip={} port={}', cfg.ip, cfg.port)
+    pkdlog("ip={} port={}", cfg.ip, cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -86,19 +86,19 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         try:
-            d = getattr(self, 'sr_driver', None)
+            d = getattr(self, "sr_driver", None)
             if d:
                 del self.sr_driver
                 d.websocket_on_close()
         except Exception as e:
-            pkdlog('error={} {}', e, pkdexc())
+            pkdlog("error={} {}", e, pkdexc())
 
     async def on_message(self, msg):
         await _incoming(msg, self)
 
     def open(self):
         pkdlog(
-            'uri={} remote_ip={} ',
+            "uri={} remote_ip={} ",
             self.request.uri,
             self.request.remote_ip,
         )
@@ -108,7 +108,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
         Unsets driver to avoid a callback loop.
         """
-        if hasattr(self, 'sr_driver'):
+        if hasattr(self, "sr_driver"):
             del self.sr_driver
         self.close()
 
@@ -121,16 +121,14 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
-
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
 
 class _ServerPing(_JsonPostRequestHandler):
-
     async def post(self):
         r = pkjson.load_any(self.request.body)
-        self.write(r.pkupdate(state='ok'))
+        self.write(r.pkupdate(state="ok"))
 
 
 class _ServerReq(_JsonPostRequestHandler):
@@ -154,21 +152,21 @@ class _ServerReq(_JsonPostRequestHandler):
         self.send_error()
         self.on_connection_close()
 
-class _ServerSrtime(_JsonPostRequestHandler):
 
+class _ServerSrtime(_JsonPostRequestHandler):
     def post(self):
-        assert pkconfig.channel_in_internal_test(), \
-            'You can only adjust time in internal test'
+        assert (
+            pkconfig.channel_in_internal_test()
+        ), "You can only adjust time in internal test"
         sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
         self.write(PKDict())
 
 
 class _ServerReqRunMulti(_ServerReq):
-
     async def post(self):
         async def _await_reply(content, handler):
             r = copy.deepcopy(content.data)
-            del r['models']
+            del r["models"]
             return PKDict(
                 # OPTIMIZATION: return just a few details of the
                 # reuqest (ex computeModel) so we know which request
@@ -177,6 +175,7 @@ class _ServerReqRunMulti(_ServerReq):
                 request=r,
                 response=await _incoming(content, handler),
             )
+
         b = pkjson.load_any(self.request.body)
         futures = []
         for m in b.data:
@@ -185,7 +184,7 @@ class _ServerReqRunMulti(_ServerReq):
                 m.pkupdate(serverSecret=b.serverSecret, api=m.data.api),
                 self,
             )
-            if m.data.get('awaitReply'):
+            if m.data.get("awaitReply"):
                 futures.append(i())
                 continue
             tornado.ioloop.IOLoop.current().add_callback(i)
@@ -202,25 +201,20 @@ async def _incoming(content, handler):
         c = content
         if not isinstance(content, dict):
             c = pkjson.load_any(content)
-        if c.get('api') != 'api_runStatus':
+        if c.get("api") != "api_runStatus":
             pkdc(
-                'class={} content={}',
+                "class={} content={}",
                 handler.sr_class,
                 c,
             )
         return await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
-        pkdlog(
-            'exception={} handler={} content={}',
-            e,
-            handler,
-            content
-        )
+        pkdlog("exception={} handler={} content={}", e, handler, content)
         pkdlog(pkdexc())
         try:
             handler.sr_on_exception()
         except Exception as e:
-            pkdlog('sr_on_exception: exception={}', e)
+            pkdlog("sr_on_exception: exception={}", e)
 
 
 def _sigterm(signum, frame):
@@ -228,18 +222,14 @@ def _sigterm(signum, frame):
 
 
 class _DataFileReq(tornado.web.RequestHandler):
-
     async def put(self, path):
         # should be exactly two levels
-        (d, f) = path.split('/')
-        assert sirepo.job.UNIQUE_KEY_RE.search(d), \
-            'invalid directory={}'.format(d)
+        (d, f) = path.split("/")
+        assert sirepo.job.UNIQUE_KEY_RE.search(d), "invalid directory={}".format(d)
         d = sirepo.job.DATA_FILE_ROOT.join(d)
-        assert d.check(dir=True), \
-            'directory does not exist={}'.format(d)
+        assert d.check(dir=True), "directory does not exist={}".format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
-        assert not f.startswith('.'), \
-            'invalid file={}'.format(f)
+        assert not f.startswith("."), "invalid file={}".format(f)
         d.join(f).write_binary(self.request.body)
 
 
@@ -247,5 +237,5 @@ async def _terminate():
     try:
         await sirepo.job_supervisor.terminate()
     except Exception as e:
-        pkdlog('error={} stack={}', e, pkdexc())
+        pkdlog("error={} stack={}", e, pkdexc())
     tornado.ioloop.IOLoop.current().stop()

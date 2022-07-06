@@ -30,18 +30,17 @@ def run(cfg_dir):
     )
     a.frameReport = a.sim_in.report
     a.update(a.sim_in.models[a.frameReport])
-    if a.frameReport == 'laserPreviewReport':
+    if a.frameReport == "laserPreviewReport":
         res = template.sim_frame_fieldAnimation(a)
-    elif a.frameReport == 'beamPreviewReport':
+    elif a.frameReport == "beamPreviewReport":
         res = template.sim_frame_beamAnimation(a)
     else:
-        raise AssertionError('invalid report: {}'.format(a.frameReport))
+        raise AssertionError("invalid report: {}".format(a.frameReport))
     template_common.write_sequential_result(res)
 
 
 def _run_code():
-    """Run code program with isolated locals()
-    """
+    """Run code program with isolated locals()"""
     r = template_common.exec_parameters()
     # advance the window until zmin is >= 0 (avoids mirroring in output)
     i = r.inc_steps

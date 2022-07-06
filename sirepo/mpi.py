@@ -16,18 +16,18 @@ FIRST_RANK = 0
 
 
 def abort_on_signal_code():
-    return '''
+    return """
 
 from mpi4py import MPI
 if MPI.COMM_WORLD.Get_rank():
     import signal
     signal.signal(signal.SIGTERM, lambda x, y: MPI.COMM_WORLD.Abort(1))
 
-'''
+"""
 
 
 def get_cmd():
-    c = ['python', 'parameters.py']
+    c = ["python", "parameters.py"]
     return c if cfg.in_slurm else _mpiexec_cmd() + c
 
 
@@ -45,6 +45,7 @@ def restrict_op_to_first_rank(op):
     res = None
     try:
         import mpi4py.MPI
+
         c = mpi4py.MPI.COMM_WORLD
         if c.Get_size() > 1:
             r = c.Get_rank()
@@ -54,13 +55,14 @@ def restrict_op_to_first_rank(op):
         try:
             res = op()
         except Exception as e:
-            pkdlog('op={} exception={} stack={}', op, e, pkdexc())
+            pkdlog("op={} exception={} stack={}", op, e, pkdexc())
             if c:
                 c.Abort(1)
             raise e
     if c:
         res = c.bcast(res, root=FIRST_RANK)
     return res
+
 
 def run_program(cmd, output=sirepo.const.MPI_LOG, env=None):
     """Execute python script with mpi.
@@ -77,6 +79,7 @@ def run_program(cmd, output=sirepo.const.MPI_LOG, env=None):
         env=env,
     )
 
+
 def run_script(script):
     """Execute python script with mpi.
 
@@ -84,26 +87,26 @@ def run_script(script):
         script (str): python text
     """
     a = abort_on_signal_code()
-    n = re.sub(r'^from __future.*', a, script, count=1, flags=re.MULTILINE)
+    n = re.sub(r"^from __future.*", a, script, count=1, flags=re.MULTILINE)
     script = a + script if n == script else n
-    fn = 'mpi_run.py'
+    fn = "mpi_run.py"
     pkio.write_text(fn, script)
-    run_program([sys.executable or 'python', fn])
+    run_program([sys.executable or "python", fn])
 
 
 def _mpiexec_cmd():
     return [
-        'mpiexec',
-        '--bind-to',
-        'none',
-        '-n',
+        "mpiexec",
+        "--bind-to",
+        "none",
+        "-n",
         str(cfg.cores),
     ]
 
 
 cfg = pkconfig.init(
-    cores=(1, int, 'cores to use per run'),
-    in_slurm=(False, bool, 'True if being run by slurm'),
-    slaves=(1, int, 'DEPRECATED: set $SIREPO_MPI_CORES'),
+    cores=(1, int, "cores to use per run"),
+    in_slurm=(False, bool, "True if being run by slurm"),
+    slaves=(1, int, "DEPRECATED: set $SIREPO_MPI_CORES"),
 )
 cfg.cores = max(cfg.cores, cfg.slaves)

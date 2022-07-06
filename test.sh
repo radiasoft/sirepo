@@ -18,7 +18,7 @@ test_js() {
 
 test_main() {
     local pyfiles=( $(find sirepo -name \*.py | sort) )
-    test_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
+    pykern ci check_prints
     local jsfiles=( sirepo/package_data/static/js/*.js )
     test_no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
     test_no_h5py

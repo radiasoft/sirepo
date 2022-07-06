@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""User state management via an HTTP cookie
+"""User state management via an HTTP cookie
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,12 +24,12 @@ auth_hook_from_header = None
 _MAX_AGE_SECONDS = 10 * 365 * 24 * 3600
 
 #: Identifies if the cookie has been returned at least once by the client
-_COOKIE_SENTINEL = 'srk'
+_COOKIE_SENTINEL = "srk"
 
 #: Unique, truthy that can be asserted on decrypt
-_COOKIE_SENTINEL_VALUE = 'z'
+_COOKIE_SENTINEL_VALUE = "z"
 
-_SERIALIZER_SEP = ' '
+_SERIALIZER_SEP = " "
 
 _SRCONTEXT_KEY = __name__
 
@@ -48,7 +48,7 @@ def has_sentinel():
 
 @contextlib.contextmanager
 def process_header(unit_test=None):
-    with _set_state(unit_test or flask.request.environ.get('HTTP_COOKIE', '')):
+    with _set_state(unit_test or flask.request.environ.get("HTTP_COOKIE", "")):
         yield
 
 
@@ -58,7 +58,7 @@ def reset_state(error):
     Args:
         error (str): to be logged
     """
-    pkdlog('resetting cookie: error={} values={}', error, _state())
+    pkdlog("resetting cookie: error={} values={}", error, _state())
     _state().clear()
 
 
@@ -67,15 +67,17 @@ def save_to_cookie(resp):
 
 
 @contextlib.contextmanager
-def set_cookie_outside_of_flask_request(cookie_header=''):
+def set_cookie_outside_of_flask_request(cookie_header=""):
     """A mock cookie for utilities"""
-    assert not sirepo.util.in_flask_request(), \
-        'Only call from outside a flask request context'
+    assert (
+        not sirepo.util.in_flask_request()
+    ), "Only call from outside a flask request context"
     if cookie_header:
-        cookie_header = f'{cfg.http_name}={cookie_header}'
+        cookie_header = f"{cfg.http_name}={cookie_header}"
     with _set_state(cookie_header):
         set_sentinel()
         yield
+
 
 def set_sentinel(values=None):
     """Bypasses the state where the cookie has not come back from the client.
@@ -91,11 +93,13 @@ def set_sentinel(values=None):
 
 def set_value(key, value):
     value = str(value)
-    assert not _SERIALIZER_SEP in value, \
-        'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
+    assert (
+        not _SERIALIZER_SEP in value
+    ), 'value must not container serializer sep "{}"'.format(_SERIALIZER_SEP)
     s = _state()
-    assert key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in s, \
-        'cookie is not valid so cannot set key={}'.format(key)
+    assert (
+        key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in s
+    ), "cookie is not valid so cannot set key={}".format(key)
     s[key] = value
 
 
@@ -126,11 +130,10 @@ def _set_state(header):
 
 
 class _State(dict):
-
     def __init__(self, header):
         super(_State, self).__init__()
         self.crypto = None
-        self.incoming_serialized = ''
+        self.incoming_serialized = ""
         self._from_cookie_header(header)
 
     def set_sentinel(self, values=None):
@@ -151,18 +154,24 @@ class _State(dict):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=cfg.is_secure,
-            #TODO(pjm): enabling this causes self-extracting simulations to break
-            #samesite='Strict',
+            # TODO(pjm): enabling this causes self-extracting simulations to break
+            # samesite='Strict',
         )
 
     def _crypto(self):
         if not self.crypto:
             if cfg.private_key is None:
-                assert pkconfig.channel_in('dev'), \
-                    'must configure private_key in non-dev channel={}'.format(pkconfig.cfg.channel)
-                cfg.private_key = base64.urlsafe_b64encode(b'01234567890123456789012345678912')
-            assert len(base64.urlsafe_b64decode(cfg.private_key)) == 32, \
-                'private_key must be 32 characters and encoded with urlsafe_b64encode'
+                assert pkconfig.channel_in(
+                    "dev"
+                ), "must configure private_key in non-dev channel={}".format(
+                    pkconfig.cfg.channel
+                )
+                cfg.private_key = base64.urlsafe_b64encode(
+                    b"01234567890123456789012345678912"
+                )
+            assert (
+                len(base64.urlsafe_b64decode(cfg.private_key)) == 32
+            ), "private_key must be 32 characters and encoded with urlsafe_b64encode"
             self.crypto = cryptography.fernet.Fernet(cfg.private_key)
         return self.crypto
 
@@ -170,14 +179,15 @@ class _State(dict):
         d = self._crypto().decrypt(
             base64.urlsafe_b64decode(pkcompat.to_bytes(value)),
         )
-        pkdc('{}', d)
+        pkdc("{}", d)
         return pkcompat.from_bytes(d)
 
     def _deserialize(self, value):
         v = value.split(_SERIALIZER_SEP)
         v = dict(zip(v[::2], v[1::2]))
-        assert v[_COOKIE_SENTINEL] == _COOKIE_SENTINEL_VALUE, \
-            'cookie sentinel value is not correct'
+        assert (
+            v[_COOKIE_SENTINEL] == _COOKIE_SENTINEL_VALUE
+        ), "cookie sentinel value is not correct"
         return v
 
     def _encrypt(self, text):
@@ -192,7 +202,7 @@ class _State(dict):
         err = None
         try:
             match = re.search(
-                r'\b{}=([^;]+)'.format(cfg.http_name),
+                r"\b{}=([^;]+)".format(cfg.http_name),
                 header,
             )
             if match:
@@ -201,14 +211,14 @@ class _State(dict):
                 self.incoming_serialized = s
                 return
         except Exception as e:
-            if 'crypto' in type(e).__module__:
+            if "crypto" in type(e).__module__:
                 # cryptography module exceptions serialize to empty string
                 # so just report the type.
                 e = type(e)
             err = e
-            pkdc('{}', pkdexc())
+            pkdc("{}", pkdexc())
         if err:
-            pkdlog('Cookie decoding failed: {} value={}', err, s)
+            pkdlog("Cookie decoding failed: {} value={}", err, s)
 
     def _serialize(self):
         return _SERIALIZER_SEP.join(
@@ -220,25 +230,25 @@ class _State(dict):
 
 @pkconfig.parse_none
 def _cfg_http_name(value):
-    assert re.search(r'^\w{1,32}$', value), \
-        'must be 1-32 word characters; http_name={}'.format(value)
+    assert re.search(
+        r"^\w{1,32}$", value
+    ), "must be 1-32 word characters; http_name={}".format(value)
     return value
 
 
 def _state(check_none=True):
     s = sirepo.srcontext.get(_SRCONTEXT_KEY)
     if check_none and s is None:
-        raise AssertionError(f'no {_SRCONTEXT_KEY}')
+        raise AssertionError(f"no {_SRCONTEXT_KEY}")
     return s
 
 
-
 cfg = pkconfig.init(
-    http_name=('sirepo_' + pkconfig.cfg.channel, _cfg_http_name, 'Set-Cookie name'),
-    private_key=(None, str, 'urlsafe base64 encrypted 32-byte key'),
+    http_name=("sirepo_" + pkconfig.cfg.channel, _cfg_http_name, "Set-Cookie name"),
+    private_key=(None, str, "urlsafe base64 encrypted 32-byte key"),
     is_secure=(
-        not pkconfig.channel_in('dev'),
+        not pkconfig.channel_in("dev"),
         pkconfig.parse_bool,
-        'Add secure attriute to Set-Cookie',
-    )
+        "Add secure attriute to Set-Cookie",
+    ),
 )

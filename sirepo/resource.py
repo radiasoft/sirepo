@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Functions for accessing resource files
+"""Functions for accessing resource files
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -38,8 +38,8 @@ def glob_paths(*paths):
         [py.path]: paths that match pattern
     """
     return pkresource.glob_paths(
-            _join_paths(paths),
-            packages=sirepo.feature_config.cfg().package_path,
+        _join_paths(paths),
+        packages=sirepo.feature_config.cfg().package_path,
     )
 
 
@@ -49,7 +49,9 @@ def root_modules():
     Returns:
         [module]: root modules
     """
-    return [importlib.import_module(p) for p in sirepo.feature_config.cfg().package_path]
+    return [
+        importlib.import_module(p) for p in sirepo.feature_config.cfg().package_path
+    ]
 
 
 def static(*paths):
@@ -73,7 +75,7 @@ def static_paths_for_type(file_type):
     Returns:
         [py.path]: paths that match pattern
     """
-    return glob_paths(static_url(file_type, f'*.{file_type}'))
+    return glob_paths(static_url(file_type, f"*.{file_type}"))
 
 
 def static_url(*paths):
@@ -85,10 +87,10 @@ def static_url(*paths):
     Returns:
         str: url for file
     """
-    return _join_paths(['static', *paths])
+    return _join_paths(["static", *paths])
 
 
 def _join_paths(paths):
     a = [p for p in paths if os.path.isabs(p)]
-    assert not a, f'absolute paths={a} in paths={paths}'
+    assert not a, f"absolute paths={a} in paths={paths}"
     return os.path.join(*paths)
