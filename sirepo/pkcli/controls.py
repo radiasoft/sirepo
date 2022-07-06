@@ -35,9 +35,9 @@ def run_background(cfg_dir):
 
 def _create_particle_file_for_external_lattice(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data.models.controlSettings.operationMode == 'madx':
+    if data.models.controlSettings.operationMode == "madx":
         madx = data.models.externalLattice
         madx.models.command_beam = data.models.command_beam
         madx.models.bunch = data.models.bunch
-        madx.models.bunch.matchTwissParameters = '0'
+        madx.models.bunch.matchTwissParameters = "0"
         sirepo.pkcli.madx.create_particle_file(cfg_dir, madx)

@@ -20,7 +20,7 @@ import sirepo.template.opal as template
 def run(cfg_dir):
     _run_opal()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if 'bunchReport' in data.report or data.report == 'twissReport':
+    if "bunchReport" in data.report or data.report == "twissReport":
         template.save_sequential_report_data(data, py.path.local(cfg_dir))
 
 
@@ -33,12 +33,12 @@ def _run_opal(with_mpi=False, compute_positions=False):
         with_mpi = False
     if with_mpi:
         mpi.run_program(
-            ['opal', template.OPAL_INPUT_FILE],
+            ["opal", template.OPAL_INPUT_FILE],
             output=template.OPAL_OUTPUT_FILE,
         )
     else:
         pksubprocess.check_call_with_signals(
-            ['opal', template.OPAL_INPUT_FILE],
+            ["opal", template.OPAL_INPUT_FILE],
             output=template.OPAL_OUTPUT_FILE,
             msg=pkdlog,
         )

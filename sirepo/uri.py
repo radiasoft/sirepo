@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""uri formatting
+"""uri formatting
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,10 +12,11 @@ import re
 from urllib.parse import urlencode, quote
 
 #: route parsing
-PARAM_RE = r'([\?\*]?)<{}>'
+PARAM_RE = r"([\?\*]?)<{}>"
 
 #: optional parameter that consumes rest of parameters
-PATH_INFO_CHAR = '*'
+PATH_INFO_CHAR = "*"
+
 
 def app_root(sim_type, external=False):
     """Generate uri for application root
@@ -28,7 +29,7 @@ def app_root(sim_type, external=False):
     """
     t = http_request.sim_type(sim_type)
     return uri_router.uri_for_api(
-        'root',
+        "root",
         params=PKDict(path_info=t) if t else None,
         external=external,
     )
@@ -60,15 +61,15 @@ def local_route(sim_type, route_name=None, params=None, query=None, external=Fal
     s = simulation_db.get_schema(t)
     if not route_name:
         route_name = default_local_route_name(s)
-    parts = s.localRoutes[route_name].route.split('/:')
+    parts = s.localRoutes[route_name].route.split("/:")
     u = parts.pop(0)
     for p in parts:
-        if p.endswith('?'):
+        if p.endswith("?"):
             p = p[:-1]
             if not params or p not in params:
                 continue
-        u += '/' + _to_uri(params[p])
-    return app_root(t, external=external) + '#' + u + _query(query)
+        u += "/" + _to_uri(params[p])
+    return app_root(t, external=external) + "#" + u + _query(query)
 
 
 def server_route(route_or_uri, params, query):
@@ -81,25 +82,24 @@ def server_route(route_or_uri, params, query):
     Returns:
         str: URI
     """
-    if '/' in route_or_uri:
-        assert not params and not query, \
-            'when uri={} must not have params={} or query={}'.format(
-                route_or_uri,
-                params,
-                query,
-            )
+    if "/" in route_or_uri:
+        assert (
+            not params and not query
+        ), "when uri={} must not have params={} or query={}".format(
+            route_or_uri,
+            params,
+            query,
+        )
         return route_or_uri
-    route = simulation_db.SCHEMA_COMMON['route'][route_or_uri]
+    route = simulation_db.SCHEMA_COMMON["route"][route_or_uri]
     if params:
         for k, v in params.items():
             k2 = PARAM_RE.format(k)
             n = re.sub(k2, _to_uri(str(v)), route)
-            assert n != route, \
-                '{}: not found in "{}"'.format(k2, route)
+            assert n != route, '{}: not found in "{}"'.format(k2, route)
             route = n
-    route = re.sub(r'\??<[^>]+>', '', route)
-    assert not '<' in route, \
-        '{}: missing params'.format(route)
+    route = re.sub(r"\??<[^>]+>", "", route)
+    assert not "<" in route, "{}: missing params".format(route)
     route += _query(query)
     return route
 
@@ -110,8 +110,8 @@ def unchecked_root_redirect(path):
 
 def _query(query):
     if not query:
-        return ''
-    return '?' + urlencode(query)
+        return ""
+    return "?" + urlencode(query)
 
 
 def _to_uri(element):

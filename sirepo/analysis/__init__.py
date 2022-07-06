@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Data analysus
+"""Data analysus
 
 :copyright: Copyright (c) 2018-2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -35,8 +35,8 @@ def get_fft(t_vals, y_vals):
     # get the frequencies found
     # fftfreq just generates an array of equally-spaced values that represent the x-axis
     # of the fft of data of a given length.  It includes negative values
-    freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period) #/ sample_period
-    w = 2. * numpy.pi * freqs[0:half_num_samples]
+    freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period)  # / sample_period
+    w = 2.0 * numpy.pi * freqs[0:half_num_samples]
 
     coefs = (2.0 / num_samples) * numpy.abs(fft_out[0:half_num_samples])
     peaks, props = scipy.signal.find_peaks(coefs)
@@ -44,11 +44,15 @@ def get_fft(t_vals, y_vals):
 
     bin_spread = 10
     min_bin = max(0, peaks[0] - bin_spread) if len(peaks) > 0 else 0
-    max_bin = min(half_num_samples, peaks[-1] + bin_spread) if len(peaks) > 0 else half_num_samples
+    max_bin = (
+        min(half_num_samples, peaks[-1] + bin_spread)
+        if len(peaks) > 0
+        else half_num_samples
+    )
     yy = 2.0 / num_samples * numpy.abs(fft_out[min_bin:max_bin])
     max_yy = numpy.max(yy)
     yy_norm = yy / (max_yy if max_yy != 0 else 1)
-    ww = 2. * numpy.pi * freqs[min_bin:max_bin]
+    ww = 2.0 * numpy.pi * freqs[min_bin:max_bin]
 
     max_y = numpy.max(y)
     y_norm = y / (max_y if max_y != 0 else 1)
@@ -61,7 +65,7 @@ def fit_to_equation(x, y, equation, var, params):
     sym_str = f"{var} {' '.join(params)}"
 
     syms = sympy.symbols(sym_str)
-    sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
+    sym_curve_l = sympy.lambdify(syms, sym_curve, "numpy")
 
     p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
     sigma = numpy.sqrt(numpy.diagonal(pcov))
@@ -83,13 +87,19 @@ def fit_to_equation(x, y, equation, var, params):
     y_fit_min = sym_curve.subs(p_subs_min)
     y_fit_max = sym_curve.subs(p_subs_max)
 
-    y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
-    y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
-    y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
+    y_fit_l = sympy.lambdify(var, y_fit, "numpy")
+    y_fit_min_l = sympy.lambdify(var, y_fit_min, "numpy")
+    y_fit_max_l = sympy.lambdify(var, y_fit_max, "numpy")
 
     x_uniform = numpy.linspace(numpy.min(x), numpy.max(x), 100)
-    return x_uniform, y_fit_l(x_uniform), y_fit_min_l(x_uniform), y_fit_max_l(x_uniform),\
-        p_vals, sigma
+    return (
+        x_uniform,
+        y_fit_l(x_uniform),
+        y_fit_min_l(x_uniform),
+        y_fit_max_l(x_uniform),
+        p_vals,
+        sigma,
+    )
 
 
 def _init():

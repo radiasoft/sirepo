@@ -16,7 +16,10 @@ import sirepo.util
 import tornado.web
 
 _AUTH_HEADER_RE = re.compile(
-    sirepo.util.AUTH_HEADER_SCHEME_BEARER + r'\s(' + sirepo.job.UNIQUE_KEY_CHARS_RE + ')',
+    sirepo.util.AUTH_HEADER_SCHEME_BEARER
+    + r"\s("
+    + sirepo.job.UNIQUE_KEY_CHARS_RE
+    + ")",
     re.IGNORECASE,
 )
 
@@ -24,10 +27,9 @@ _TOKEN_TO_UID = PKDict()
 
 
 class FileReq(tornado.web.RequestHandler):
-
     def delete(self, path):
         self.__validate_req()
-        for f in pkio.sorted_glob(sirepo.srdb.root().join(path + '*')):
+        for f in pkio.sorted_glob(sirepo.srdb.root().join(path + "*")):
             pkio.unchecked_remove(f)
 
     def get(self, path):
@@ -45,23 +47,22 @@ class FileReq(tornado.web.RequestHandler):
         t = self.request.headers.get(sirepo.util.AUTH_HEADER)
         if not t:
             raise sirepo.tornado.error_forbidden()
-        p = t.split(' ')
+        p = t.split(" ")
         if len(p) != 2:
             raise sirepo.tornado.error_forbidden()
         m = _AUTH_HEADER_RE.search(t)
         if not m:
-            pkdlog('invalid auth header={}', t)
+            pkdlog("invalid auth header={}", t)
             raise sirepo.tornado.error_forbidden()
         u = _TOKEN_TO_UID.get(m.group(1))
         if not u:
-            pkdlog('token={} not found', m.group(1))
+            pkdlog("token={} not found", m.group(1))
             raise sirepo.tornado.error_forbidden()
         sirepo.simulation_db.validate_sim_db_file_path(self.request.path, u)
 
 
 def token_for_user(uid):
-    assert not sirepo.util.flask_app(), \
-        'can only be called from a non-threaded context'
+    assert not sirepo.util.flask_app(), "can only be called from a non-threaded context"
     for u, k in _TOKEN_TO_UID.items():
         if u == uid:
             return k

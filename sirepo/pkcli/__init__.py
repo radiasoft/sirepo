@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Common pkcli operations
+"""Common pkcli operations
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,4 +15,5 @@ def import_module(type_or_data):
         module: simulation type module instance
     """
     from sirepo import util
-    return util.import_submodule('pkcli', type_or_data)
+
+    return util.import_submodule("pkcli", type_or_data)

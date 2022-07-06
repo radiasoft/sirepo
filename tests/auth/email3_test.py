@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""test oauth conversion
+"""test oauth conversion
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,8 +10,9 @@ import pytest
 
 # NOTE: Do not rename this file, because conftest keys off the name
 #  to set the config for this test case.
-#TODO(robnagler) figure out how to pass parameters conveniently
+# TODO(robnagler) figure out how to pass parameters conveniently
 #   to fixtures.
+
 
 def test_oauth_conversion_setup(auth_fc, monkeypatch):
     """Prepares data for auth conversion
@@ -30,15 +31,15 @@ def test_oauth_conversion_setup(auth_fc, monkeypatch):
     from sirepo.auth import github
     from sirepo import github_srunit
 
-    oc = github_srunit.MockOAuthClient(monkeypatch, 'emailer')
-    fc.sr_get('authGithubLogin', {'simulation_type': fc.sr_sim_type}, redirect=False)
+    oc = github_srunit.MockOAuthClient(monkeypatch, "emailer")
+    fc.sr_get("authGithubLogin", {"simulation_type": fc.sr_sim_type}, redirect=False)
     t = fc.sr_auth_state(userName=None, isLoggedIn=False, method=None)
     state = oc.values.state
-    r = fc.sr_get('authGithubAuthorized', query={'state': state})
+    r = fc.sr_get("authGithubAuthorized", query={"state": state})
     uid = fc.sr_auth_state(
         displayName=None,
-        method='github',
+        method="github",
         needCompleteRegistration=True,
-        userName='emailer',
+        userName="emailer",
     ).uid
-    fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
+    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})

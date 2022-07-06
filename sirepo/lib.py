@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Public functions from sirepo
+"""Public functions from sirepo
 
 Use this to call sirepo from other packages or Python notebooks.
 
@@ -37,30 +37,32 @@ class LibAdapterBase:
                 for k, x in s.items():
                     t = x[1]
                     v = model[k] if k in model else x[2]
-                    if t == 'RPNValue':
-                        t = 'Float'
+                    if t == "RPNValue":
+                        t = "Float"
                         if cv.is_var_value(v):
                             model[k] = cv.eval_var_with_assert(v)
                             continue
-                    if t == 'Float':
-                        model[k] = float(v) if v else 0.
-                    elif t == 'Integer':
+                    if t == "Float":
+                        model[k] = float(v) if v else 0.0
+                    elif t == "Integer":
                         model[k] = int(v) if v else 0
             except Exception as e:
-                pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+                pkdlog(
+                    "model={} field={} decl={} value={} exception={}", name, k, x, v, e
+                )
                 raise
 
         cv = self._code_var(data.models.rpnVariables)
-        for x in  data.models.rpnVariables:
+        for x in data.models.rpnVariables:
             x.value = cv.eval_var_with_assert(x.value)
         for k, v in data.models.items():
             if k in self._schema.model:
                 _model(v, k)
-        for x in ('elements', 'commands'):
+        for x in ("elements", "commands"):
             for m in data.models[x]:
                 _model(m, LatticeUtil.model_name_for_data(m))
         for bl in data.models.beamlines:
-            if 'positions' in bl:
+            if "positions" in bl:
                 for p in bl.positions:
                     p.elemedge = cv.eval_var_with_assert(p.elemedge)
         return data
@@ -70,14 +72,15 @@ class LibAdapterBase:
             if f in self._ignore_files:
                 continue
             p = path.dirpath().join(f)
-            assert p.check(file=True), \
-                f'file={f} missing'
+            assert p.check(file=True), f"file={f} missing"
 
     def _write_input_files(self, data, source_path, dest_dir):
         for f in set(
-            LatticeUtil(data, self._schema).iterate_models(
+            LatticeUtil(data, self._schema)
+            .iterate_models(
                 lattice.InputFileIterator(self._sim_data, update_filenames=False),
-            ).result,
+            )
+            .result,
         ):
             f = self._sim_data.lib_file_name_without_type(f)
             try:
@@ -96,7 +99,7 @@ class GenerateBase:
     def util(self):
         from sirepo.template.lattice import LatticeUtil
 
-        if not hasattr(self, '_util'):
+        if not hasattr(self, "_util"):
             self._util = LatticeUtil(self.data, self._schema)
         return self._util
 
@@ -109,10 +112,13 @@ class Importer:
         sim_type (str): type of simulation (eg. 'elegant' or 'madx')
         ignore_files (list): files ignored during verification and symlink routines [None]
     """
+
     def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
 
-        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(ignore_files or [])
+        self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(
+            ignore_files or []
+        )
 
     def parse_file(self, path):
         p = pykern.pkio.py_path(path)
@@ -129,7 +135,7 @@ class SimData(PKDict):
 
     def __init__(self, data, source, adapter):
         super().__init__(data)
-        self.pkdel('report')
+        self.pkdel("report")
         self.__source = source
         self.__adapter = adapter
 

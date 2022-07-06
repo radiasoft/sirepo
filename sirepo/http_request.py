@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""request input parsing
+"""request input parsing
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,9 +14,9 @@ import sirepo.template
 import sirepo.util
 import user_agents
 
-_SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
+_SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 
-_POST_ATTR = 'sirepo_http_request_post'
+_POST_ATTR = "sirepo_http_request_post"
 
 
 def init(**imports):
@@ -24,8 +24,8 @@ def init(**imports):
 
 
 def is_spider():
-    a = flask.request.headers.get('User-Agent')
-    if 'python-requests' in a:
+    a = flask.request.headers.get("User-Agent")
+    if "python-requests" in a:
         # user_agents doesn't see Python's requests module as a bot.
         # The package robot_detection does see it, but we don't want to introduce another dependency.
         return True
@@ -37,9 +37,9 @@ def parse_json():
     if d:
         return d
     req = flask.request
-    if req.mimetype != 'application/json':
+    if req.mimetype != "application/json":
         sirepo.util.raise_bad_request(
-            'content-type is not application/json: mimetype={}',
+            "content-type is not application/json: mimetype={}",
             req.mimetype,
         )
     # Adapted from flask.wrappers.Request.get_json
@@ -49,7 +49,7 @@ def parse_json():
     # and strict in what we send out.
     return simulation_db.json_load(
         req.get_data(cache=False),
-        encoding=req.mimetype_params.get('charset'),
+        encoding=req.mimetype_params.get("charset"),
     )
 
 
@@ -82,10 +82,10 @@ def parse_post(**kwargs):
     """
     res = PKDict()
     kwargs = PKDict(kwargs)
-    r = kwargs.pkdel('req_data')
+    r = kwargs.pkdel("req_data")
     if r is None:
         r = parse_json()
-    if kwargs.pkdel('fixup_old_data'):
+    if kwargs.pkdel("fixup_old_data"):
         r = simulation_db.fixup_old_data(r)[0]
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
@@ -93,8 +93,7 @@ def parse_post(**kwargs):
     def _type(v):
         from sirepo import auth
 
-        assert not isinstance(v, bool), \
-            'missing type in params/post={}'.format(kwargs)
+        assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
         auth.check_sim_type_role(v)
         # Do this in order to maintain explicit coupling of _SIM_TYPE_ATTR
         set_sim_type(v)
@@ -103,15 +102,15 @@ def parse_post(**kwargs):
 
     for x in (
         # must be first
-        ('type', ('simulationType',), _type),
-        ('file_type', ('file_type', 'fileType'), sirepo.util.secure_filename),
-        ('filename', ('filename', 'fileName'), sirepo.util.secure_filename),
-        ('folder', ('folder',), sirepo.srschema.parse_folder),
-        ('id', ('simulationId',), lambda a: res.sim_data.parse_sid(r)),
-        ('model', ('report',), lambda a: res.sim_data.parse_model(r)),
-        ('name', ('name',), sirepo.srschema.parse_name),
+        ("type", ("simulationType",), _type),
+        ("file_type", ("file_type", "fileType"), sirepo.util.secure_filename),
+        ("filename", ("filename", "fileName"), sirepo.util.secure_filename),
+        ("folder", ("folder",), sirepo.srschema.parse_folder),
+        ("id", ("simulationId",), lambda a: res.sim_data.parse_sid(r)),
+        ("model", ("report",), lambda a: res.sim_data.parse_model(r)),
+        ("name", ("name",), sirepo.srschema.parse_name),
         # will break if someone passes a template as a value
-        ('template', ('template',), lambda a: sirepo.template.import_module(res.type)),
+        ("template", ("template",), lambda a: sirepo.template.import_module(res.type)),
     ):
         n, z, f = x
         v = kwargs.pkdel(n)
@@ -127,11 +126,12 @@ def parse_post(**kwargs):
         else:
             r[z[0]] = v
         res[n] = f(v)
-    if kwargs.pkdel('check_sim_exists') \
-        and not simulation_db.sim_data_file(res.type, res.id).exists():
-        sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
-    assert not kwargs, \
-        'unexpected kwargs={}'.format(kwargs)
+    if (
+        kwargs.pkdel("check_sim_exists")
+        and not simulation_db.sim_data_file(res.type, res.id).exists()
+    ):
+        sirepo.util.raise_not_found("type={} sid={} does not exist", res.type, res.id)
+    assert not kwargs, "unexpected kwargs={}".format(kwargs)
     return res
 
 
@@ -168,17 +168,21 @@ def sim_type(value=None):
 
 
 def user_agent_headers():
-
     def _dns_reverse_lookup(ip):
         import dns.resolver
         import dns.reversename
+
         try:
             if ip:
-                return str(dns.resolver.query(dns.reversename.from_address(ip), 'PTR'))
+                return str(dns.resolver.query(dns.reversename.from_address(ip), "PTR"))
         # 127.0.0.1 is not reverse mapped, resulting in dns.resolver.NoNameservers exception
-        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers):
+        except (
+            dns.resolver.NoAnswer,
+            dns.resolver.NXDOMAIN,
+            dns.resolver.NoNameservers,
+        ):
             pass
-        return 'No Reverse DNS Lookup'
+        return "No Reverse DNS Lookup"
 
     return PKDict(
         ip_addr=flask.request.remote_addr,

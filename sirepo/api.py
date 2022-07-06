@@ -1,4 +1,4 @@
-u"""Requests hold context for API calls
+"""Requests hold context for API calls
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -6,8 +6,7 @@ u"""Requests hold context for API calls
 
 
 class Base:
-    """Holds request context for all API calls.
-    """
+    """Holds request context for all API calls."""
 
     def call_api(self, name, kwargs=None, data=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
@@ -31,10 +30,14 @@ class Base:
         return http_request.parse_post(**kwargs)
 
     def reply_file(self, content_or_path, filename=None, content_type=None):
-        return http_reply.gen_file_as_attachment(content_or_path, filename=filename, content_type=content_type)
+        return http_reply.gen_file_as_attachment(
+            content_or_path, filename=filename, content_type=content_type
+        )
 
     def reply_json(self, value, pretty=False, response_kwargs=None):
-        return http_reply.gen_json(value, pretty=pretty, response_kwargs=response_kwargs)
+        return http_reply.gen_json(
+            value, pretty=pretty, response_kwargs=response_kwargs
+        )
 
     def reply_ok(self, *args, **kwargs):
         return http_reply.gen_json_ok(*args, **kwargs)
@@ -45,8 +48,12 @@ class Base:
     def reply_redirect_for_app_root(self, sim_type):
         return http_reply.gen_redirect_for_app_root(sim_type)
 
-    def reply_redirect_for_local_route(self, sim_type=None, route=None, params=None, query=None, **kwargs):
-        return http_reply.gen_redirect_for_local_route(sim_type=sim_type, route=route, params=params, query=query, **kwargs)
+    def reply_redirect_for_local_route(
+        self, sim_type=None, route=None, params=None, query=None, **kwargs
+    ):
+        return http_reply.gen_redirect_for_local_route(
+            sim_type=sim_type, route=route, params=params, query=query, **kwargs
+        )
 
     def reply_html(self, path):
         return http_reply.render_html(path)
@@ -66,7 +73,11 @@ class Spec:
             return self.func(*args, **kwargs)
 
         self.func = func
-        setattr(_wrapper, sirepo.api_perm.ATTR, getattr(sirepo.api_perm.APIPerm, self.perm.upper()))
+        setattr(
+            _wrapper,
+            sirepo.api_perm.ATTR,
+            getattr(sirepo.api_perm.APIPerm, self.perm.upper()),
+        )
         return _wrapper
 
 

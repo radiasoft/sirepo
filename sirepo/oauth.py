@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""oauth for authentication and role moderation
+"""oauth for authentication and role moderation
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,8 +20,8 @@ import sirepo.util
 
 
 #: cookie keys for oauth (prefix is "sroa")
-_COOKIE_NONCE = 'sroan'
-_COOKIE_SIM_TYPE = 'sroas'
+_COOKIE_NONCE = "sroan"
+_COOKIE_SIM_TYPE = "sroas"
 
 
 def check_authorized_callback(github_auth=False):
@@ -37,13 +37,13 @@ def check_authorized_callback(github_auth=False):
             # SECURITY: This *must* be the grant_type otherwise authlib defaults to
             # client_credentials which just returns details about the oauth client. That response
             # can easily be confused for a valid authorization_code response.
-            grant_type='authorization_code',
+            grant_type="authorization_code",
         )
 
         return c, t
     except Exception as e:
-        pkdlog('url={} exception={} stack={}', flask.request.url, e, pkdexc())
-    sirepo.util.raise_forbidden(f'user denied access from sim_type={t}')
+        pkdlog("url={} exception={} stack={}", flask.request.url, e, pkdexc())
+    sirepo.util.raise_forbidden(f"user denied access from sim_type={t}")
 
 
 def raise_authorize_redirect(sim_type, github_auth=False):
@@ -59,6 +59,7 @@ def _cfg(sim_type, github_auth):
         # We are authenticating to sirepo using github oauth
         # or doing jupyter migration.
         from sirepo.auth import github
+
         return github.cfg
     # We are doing oauth for a sim type
     return sirepo.sim_oauth.import_module(sim_type).cfg
@@ -71,5 +72,5 @@ def _client(sim_type, github_auth):
         c.key,
         c.secret,
         redirect_uri=c.callback_uri or sirepo.uri_router.uri_for_api(c.callback_api),
-        **c
+        **c,
     )
