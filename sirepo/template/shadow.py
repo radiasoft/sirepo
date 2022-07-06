@@ -12,7 +12,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import template_common
 from sirepo import simulation_db
 from sirepo.template.template_common import ModelUnits
-from sirepo.template.srw_shadow_converter import SRWShadowConverter
+import sirepo.template.srw_shadow_converter
 import re
 import sirepo.sim_data
 
@@ -68,7 +68,7 @@ def stateless_compute_compute_harmonic_photon_energy(data):
 
 
 def stateful_compute_convert_to_srw(data):
-    return SRWShadowConverter().shadow_to_srw(data)
+    return sirepo.template.srw_shadow_converter.Converter().shadow_to_srw(data)
 
 
 def get_data_file(run_dir, model, frame, options):

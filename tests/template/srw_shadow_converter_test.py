@@ -13,12 +13,12 @@ import pytest
 def test_convert_srw_to_shadow():
     from pykern import pkio, pkjson
     from pykern.pkunit import pkeq
-    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    from sirepo.template.srw_shadow_converter import Converter
 
     with pkunit.save_chdir_work():
         for name in ('crl', 'gaussian', 'grating'):
             srw = _read_json_from_data_dir(f'{name}-srw.json')
-            actual = SRWShadowConverter().srw_to_shadow(srw.models)
+            actual = Converter().srw_to_shadow(srw.models)
             del actual['version']
             actual.models.simulation.pkdel('lastModified')
             pkjson.dump_pretty(actual, f'{name}-shadow.json')
@@ -31,12 +31,12 @@ def _read_json_from_data_dir(name):
     return pkjson.load_any(pkio.read_text(pkunit.data_dir().join(name)))
 
 def test_convert_shadow_to_srw():
-    from sirepo.template.srw_shadow_converter import SRWShadowConverter
+    from sirepo.template.srw_shadow_converter import Converter
     from pykern import pkunit
     from pykern import pkjson
     from pykern.pkcollections import PKDict
 
     for d in pkunit.case_dirs():
         data = pkjson.load_any(d.join('example_shadow_data.json'))
-        actual = SRWShadowConverter().shadow_to_srw(data).models
+        actual = Converter().shadow_to_srw(data).models
         pkjson.dump_pretty(actual, d.join('example_srw_result_data.json'))

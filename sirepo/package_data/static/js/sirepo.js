@@ -2114,7 +2114,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
 
     self.formatUrlLocal = function(routeName, params, app) {
         var u = '#' + formatUrl(localMap, routeName, params);
-        srdbg('u: ', u);
         return app ? '/' + app + u : u;
     };
 

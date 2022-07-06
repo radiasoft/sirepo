@@ -3018,7 +3018,7 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             <div data-common-footer="nav"></div>
             <div data-import-python=""></div>
             <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
-              <div data-ng-if="!displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
+              <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
                 {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
               </div>
@@ -3027,13 +3027,13 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
         controller: function($scope) {
             $scope.newSimURL = false;
             $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
+
             function createNewSim(data) {
                 requestSender.sendRequest(
                     'newSimulation',
-                    function(simData) {
-                        var sim = simData.models.simulation;
+                    simData => {
                         ['simulationId', 'simulationSerial'].forEach(function(f) {
-                            data.models.simulation[f] = sim[f];
+                            data.models.simulation[f] = simData.models.simulation[f];
                         });
                         data.version = simData.version;
                         requestSender.sendRequest(
@@ -3045,18 +3045,22 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             }
 
             function newSimData(data) {
-                var res = appState.clone(data.models.simulation);
+                const res = appState.clone(data.models.simulation);
                 res.simulationType = data.simulationType;
-                if (!res.name){
+                if (! res.name){
                     res.name = 'newSim';
                 }
                 return res;
             }
 
             function genSimURL(data) {
-                srdbg('formatURLLocal', requestSender.formatUrlLocal);
-                srdbg(requestSender.formatUrlLocal('', data.models.simulation.simulationId, data.simulationType));
-                $scope.newSimURL = '/' + data.simulationType + '#/beamline/' + data.models.simulation.simulationId;
+                $scope.newSimURL = requestSender.formatUrlLocal(
+                    'beamline',
+                    {
+                        'simulationId': data.models.simulation.simulationId
+                    },
+                    data.simulationType
+                );
             }
 
             $scope.closeModal = function() {

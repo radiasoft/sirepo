@@ -16,7 +16,7 @@ _SRW = sirepo.sim_data.get_class('srw')
 _SHADOW = sirepo.sim_data.get_class('shadow')
 
 
-class SRWShadowConverter:
+class Converter:
     __FIELD_MAP = [
         # [shadow model, srw model, field map (field=field or field=[field, scale])
         ['aperture', 'aperture', PKDict(
@@ -286,10 +286,10 @@ class SRWShadowConverter:
     def __crl_to_srw(self, item):
         res = _SRW.model_defaults(item.type)
         res.pkupdate(PKDict(
-            attenuationLength=1e-2/float(item.attenuationCoefficient),
+            attenuationLength=1e-2 / float(item.attenuationCoefficient),
             shape='1' if item.fmirr == '4' else '2',
             refractiveIndex=1 - item.refractionIndex,
-            focalDistance=float(item.position)*(item.focalDistance)/(float(item.position)+(item.focalDistance)),
+            focalDistance=float(item.position) * (item.focalDistance) / (float(item.position) + (item.focalDistance)),
         ))
         return self.__copy_item(item, res)
 
@@ -398,7 +398,7 @@ class SRWShadowConverter:
                     sirepo.template.srw._compute_crystal_orientation(
                         sirepo.template.srw._compute_crystal_init(
                             _SRW.model_defaults(item.type).pkupdate(PKDict(
-                                grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
+                                grazingAngle=((math.pi * (90 - item.t_incidence)) / 180) * 1000,
                                 autocomputeVectors=o,
                                 horizontalOffset=item.offz if o == 'horizontal' else 0,
                                 verticalOffset=item.offz if o == 'vertical' else 0,
@@ -553,7 +553,7 @@ class SRWShadowConverter:
                 sirepo.template.srw._compute_grazing_orientation(
                     PKDict(
                         type=self.__invert_dict(self._MIRROR_SHAPE)[item.fmirr],
-                        grazingAngle=((math.pi*(90 - item.t_incidence))/180)*1000,
+                        grazingAngle=((math.pi * (90 - item.t_incidence)) / 180) * 1000,
                         autocomputeVectors=o,
                         horizontalOffset=item.offz if o == 'horizontal' else 0,
                         verticalOffset=item.offz if o == 'vertical' else 0,
@@ -612,17 +612,16 @@ class SRWShadowConverter:
             srw.electronBeam[k] = shadow.electronBeam[e[k]]
 
     def __set_source_distance(self, shadow, srw):
-        d = shadow.beamline[0].position
         k = [
             'coherentModesAnimation',
             'fluxReport',
             'intensityReport',
             'powerDensityReport',
             'simulation',
-            'sourceIntensityReport'
+            'sourceIntensityReport',
         ]
         for n in k:
-            srw[n]['distanceFromSource'] = d
+            srw[n]['distanceFromSource'] = shadow.beamline[0].position
 
 
     def __next_id(self):
