@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Test pkcli.admin
+"""Test pkcli.admin
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,9 +8,9 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-_UID_IN_DB = 'IYgnLlSy'
+_UID_IN_DB = "IYgnLlSy"
 
-_UID_NOT_IN_DB = 'notexist'
+_UID_NOT_IN_DB = "notexist"
 
 
 def setup_module(module):
@@ -19,7 +19,7 @@ def setup_module(module):
 
     srunit.setup_srdb_root()
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='jupyterhublogin',
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
     )
 
 
@@ -56,7 +56,7 @@ def _init_db():
     from sirepo import srdb
 
     pkio.unchecked_remove(srdb.root())
-    pkunit.data_dir().join('db').copy(srdb.root())
+    pkunit.data_dir().join("db").copy(srdb.root())
 
 
 def _is_empty(result):
@@ -68,7 +68,7 @@ def _is_empty(result):
 def _is_empty_dir(path):
     from pykern import pkio
 
-    _is_empty(pkio.sorted_glob(path.join('*')))
+    _is_empty(pkio.sorted_glob(path.join("*")))
 
 
 def _is_empty_table(table):

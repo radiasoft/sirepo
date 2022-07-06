@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Test background processes
+"""Test background processes
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,56 +12,56 @@ import pytest
 def test_controls(fc):
     _r(
         fc,
-        'Sample MAD-X beamline',
-        'initialMonitorPositionsReport',
+        "Sample MAD-X beamline",
+        "initialMonitorPositionsReport",
     )
 
 
 def test_elegant(fc):
     _r(
         fc,
-        'Compact Storage Ring',
-        'twissReport',
+        "Compact Storage Ring",
+        "twissReport",
     )
 
 
 def test_madx(fc):
     _r(
         fc,
-        'FODO PTC',
-        'bunchReport1',
+        "FODO PTC",
+        "bunchReport1",
     )
 
 
 def test_ml(fc):
     _r(
         fc,
-        '2019 World Happiness',
-        'fileColumnReport1',
+        "2019 World Happiness",
+        "fileColumnReport1",
     )
 
 
 def test_opal(fc):
     _r(
         fc,
-        'Slit-1',
-        'bunchReport1',
+        "Slit-1",
+        "bunchReport1",
     )
 
 
 def test_radia(fc):
     _r(
         fc,
-        'Dipole',
-        'geometryReport',
+        "Dipole",
+        "geometryReport",
     )
 
 
 def test_shadow(fc):
     _r(
         fc,
-        'Diffraction Profile',
-        'beamStatisticsReport',
+        "Diffraction Profile",
+        "beamStatisticsReport",
     )
 
 
@@ -69,32 +69,32 @@ def test_srw(fc):
     _r(
         fc,
         "Young's Double Slit Experiment",
-        'initialIntensityReport',
+        "initialIntensityReport",
     )
 
 
 def test_synergia(fc):
     _r(
         fc,
-        'Simple FODO',
-        'bunchReport1',
-        shared_model='bunchReport2',
+        "Simple FODO",
+        "bunchReport1",
+        shared_model="bunchReport2",
     )
 
 
 def test_warppba(fc):
     _r(
         fc,
-        'Laser Pulse',
-        'laserPreviewReport',
+        "Laser Pulse",
+        "laserPreviewReport",
     )
 
 
 def test_zgoubi(fc):
     _r(
         fc,
-        'Los Alamos Proton Storage Ring',
-        'twissReport',
+        "Los Alamos Proton Storage Ring",
+        "twissReport",
     )
 
 
@@ -109,4 +109,4 @@ def _r(fc, sim_name, analysis_model, shared_model=None):
     r = fc.sr_run_sim(data, analysis_model)
     if shared_model:
         r = fc.sr_run_sim(data, shared_model, timeout=2, forceRun=False)
-        pkunit.pkeq('completed',  r.state)
+        pkunit.pkeq("completed", r.state)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""WARP execution template.
+"""WARP execution template.
 
 :copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -44,7 +44,7 @@ def background_percent_complete(report, run_dir, is_running):
     Fr, info = _read_field_circ(files[file_index])
     plasma_length = float(data.models.electronPlasma.length) / 1e3
     zmin = float(data.models.simulationGrid.zMin) / 1e6
-    percent_complete = (info.imshow_extent[1] / (plasma_length - zmin))
+    percent_complete = info.imshow_extent[1] / (plasma_length - zmin)
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
@@ -69,21 +69,21 @@ def extract_field_report(field, coordinate, mode, data_file):
         theta=0.0,
         vmax=None,
         output=True,
-        slicing_dir='y',
-
+        slicing_dir="y",
     )
     extent = info.imshow_extent
-    if field == 'rho':
+    if field == "rho":
         field_label = field
     else:
-        field_label = '{} {}'.format(field, coordinate)
+        field_label = "{} {}".format(field, coordinate)
     return PKDict(
         x_range=[extent[0], extent[1], len(F[0])],
         y_range=[extent[2], extent[3], len(F)],
-        x_label='{} [m]'.format(info.axes[1]),
-        y_label='{} [m]'.format(info.axes[0]),
+        x_label="{} [m]".format(info.axes[1]),
+        y_label="{} [m]".format(info.axes[0]),
         title="{} in the mode {} at {}".format(
-            field_label, mode, _iteration_title(opmd, data_file)),
+            field_label, mode, _iteration_title(opmd, data_file)
+        ),
         z_matrix=numpy.flipud(F).tolist(),
     )
 
@@ -103,29 +103,32 @@ def extract_particle_report(frame_args, particle_type):
         plot=False,
     )
     with h5py.File(data_file.filename) as f:
-        data_list.append(main.read_species_data(f, particle_type, 'w', ()))
+        data_list.append(main.read_species_data(f, particle_type, "w", ()))
     select = _particle_selection_args(frame_args)
     if select:
         with h5py.File(data_file.filename) as f:
             main.apply_selection(f, data_list, select, particle_type, ())
-    xunits = ' [m]' if len(xarg) == 1 else ''
-    yunits = ' [m]' if len(yarg) == 1 else ''
+    xunits = " [m]" if len(xarg) == 1 else ""
+    yunits = " [m]" if len(yarg) == 1 else ""
 
-    if xarg == 'z':
+    if xarg == "z":
         data_list = _adjust_z_width(data_list, data_file)
 
     hist, edges = numpy.histogramdd(
         [data_list[0], data_list[1]],
         template_common.histogram_bins(nbins),
         weights=data_list[2],
-        range=[_select_range(data_list[0], xarg, select), _select_range(data_list[1], yarg, select)],
+        range=[
+            _select_range(data_list[0], xarg, select),
+            _select_range(data_list[1], yarg, select),
+        ],
     )
     return PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        x_label='{}{}'.format(xarg, xunits),
-        y_label='{}{}'.format(yarg, yunits),
-        title='t = {}'.format(_iteration_title(opmd, data_file)),
+        x_label="{}{}".format(xarg, xunits),
+        y_label="{}{}".format(yarg, yunits),
+        title="t = {}".format(_iteration_title(opmd, data_file)),
         z_matrix=hist.T.tolist(),
         frameCount=data_file.num_frames,
     )
@@ -134,23 +137,23 @@ def extract_particle_report(frame_args, particle_type):
 def generate_parameters_file(data, is_parallel=False):
     template_common.validate_models(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    v['isAnimationView'] = is_parallel
-    v['incSteps'] = 50
-    v['diagnosticPeriod'] = 50
-    if data['models']['simulation']['sourceType'] == 'electronBeam':
-        v['useBeam'] = 1
-        v['useLaser'] = 0
+    v["isAnimationView"] = is_parallel
+    v["incSteps"] = 50
+    v["diagnosticPeriod"] = 50
+    if data["models"]["simulation"]["sourceType"] == "electronBeam":
+        v["useBeam"] = 1
+        v["useLaser"] = 0
     else:
-        v['useBeam'] = 0
-        v['useLaser'] = 1
-    if data['models']['electronBeam']['beamRadiusMethod'] == 'a':
-        v['electronBeam_transverseEmittance'] = 0
+        v["useBeam"] = 0
+        v["useLaser"] = 1
+    if data["models"]["electronBeam"]["beamRadiusMethod"] == "a":
+        v["electronBeam_transverseEmittance"] = 0
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def get_data_file(run_dir, model, frame, options):
     files = _h5_file_list(run_dir)
-    #TODO(pjm): last client file may have been deleted on a canceled animation,
+    # TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.
     if len(files) < frame + 1:
         frame = -1
@@ -158,38 +161,38 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def new_simulation(data, new_simulation_data):
-    source = new_simulation_data['sourceType']
+    source = new_simulation_data["sourceType"]
     if not source:
-        source = 'laserPulse'
-    data['models']['simulation']['sourceType'] = source
-    if source == 'electronBeam':
-        grid = data['models']['simulationGrid']
-        grid['gridDimensions'] = 'e'
-        grid['rCellResolution'] = 20
-        grid['rCellsPerSpotSize'] = 8
-        grid['rCount'] = 100
-        grid['rLength'] = 264.0501846240597
-        grid['rMax'] = 264.0501846240597
-        grid['rMin'] = 0
-        grid['rParticlesPerCell'] = 2
-        grid['rScale'] = 5
-        grid['zCellResolution'] = 30
-        grid['zCellsPerWavelength'] = 8
-        grid['zCount'] = 90
-        grid['zLength'] = 316.86022154887166
-        grid['zMax'] = 0
-        grid['zMin'] = -316.86022154887166
-        grid['zParticlesPerCell'] = 2
-        grid['zScale'] = 3
-        data['models']['electronPlasma']['density'] = 1e23
-        data['models']['electronPlasma']['length'] = 1
-        data['models']['fieldAnimation']['coordinate'] = 'z'
-        data['models']['fieldAnimation']['mode'] = '0'
-        data['models']['particleAnimation']['histogramBins'] = 90
-        data['models']['particleAnimation']['yMin'] = -50
-        data['models']['particleAnimation']['yMax'] = 50
-        data['models']['beamAnimation']['histogramBins'] = 91
-        data['models']['beamPreviewReport']['histogramBins'] = 91
+        source = "laserPulse"
+    data["models"]["simulation"]["sourceType"] = source
+    if source == "electronBeam":
+        grid = data["models"]["simulationGrid"]
+        grid["gridDimensions"] = "e"
+        grid["rCellResolution"] = 20
+        grid["rCellsPerSpotSize"] = 8
+        grid["rCount"] = 100
+        grid["rLength"] = 264.0501846240597
+        grid["rMax"] = 264.0501846240597
+        grid["rMin"] = 0
+        grid["rParticlesPerCell"] = 2
+        grid["rScale"] = 5
+        grid["zCellResolution"] = 30
+        grid["zCellsPerWavelength"] = 8
+        grid["zCount"] = 90
+        grid["zLength"] = 316.86022154887166
+        grid["zMax"] = 0
+        grid["zMin"] = -316.86022154887166
+        grid["zParticlesPerCell"] = 2
+        grid["zScale"] = 3
+        data["models"]["electronPlasma"]["density"] = 1e23
+        data["models"]["electronPlasma"]["length"] = 1
+        data["models"]["fieldAnimation"]["coordinate"] = "z"
+        data["models"]["fieldAnimation"]["mode"] = "0"
+        data["models"]["particleAnimation"]["histogramBins"] = 90
+        data["models"]["particleAnimation"]["yMin"] = -50
+        data["models"]["particleAnimation"]["yMax"] = 50
+        data["models"]["beamAnimation"]["histogramBins"] = 91
+        data["models"]["beamPreviewReport"]["histogramBins"] = 91
 
 
 def open_data_file(run_dir, file_index=None):
@@ -208,7 +211,7 @@ def open_data_file(run_dir, file_index=None):
     res.num_frames = len(files)
     res.frame_index = res.num_frames - 1 if file_index is None else file_index
     res.filename = str(files[res.frame_index])
-    res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
+    res.iteration = int(re.search(r"data(\d+)", res.filename).group(1))
     return res
 
 
@@ -223,13 +226,13 @@ def remove_last_frame(run_dir):
 
 
 def sim_frame_beamAnimation(frame_args):
-    return extract_particle_report(frame_args, 'beam')
+    return extract_particle_report(frame_args, "beam")
 
 
 def sim_frame_fieldAnimation(frame_args):
     f = open_data_file(frame_args.run_dir, frame_args.frameIndex)
     m = frame_args.mode
-    if m != 'all':
+    if m != "all":
         m = int(m)
     return extract_field_report(
         frame_args.field,
@@ -240,7 +243,7 @@ def sim_frame_fieldAnimation(frame_args):
 
 
 def sim_frame_particleAnimation(frame_args):
-    return extract_particle_report(frame_args, 'electrons')
+    return extract_particle_report(frame_args, "electrons")
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -276,14 +279,14 @@ def _adjust_z_width(data_list, data_file):
 
 def _h5_file_list(run_dir):
     return pkio.walk_tree(
-        run_dir.join('hdf5'),
-        r'\.h5$',
+        run_dir.join("hdf5"),
+        r"\.h5$",
     )
 
 
 def _iteration_title(opmd, data_file):
     fs = opmd.t[0] * 1e15
-    return '{:.1f} fs (iteration {})'.format(fs, data_file.iteration)
+    return "{:.1f} fs (iteration {})".format(fs, data_file.iteration)
 
 
 def _opmd_time_series(data_file):
@@ -298,14 +301,14 @@ def _opmd_time_series(data_file):
 
 
 def _particle_selection_args(args):
-    if not 'uxMin' in args:
+    if not "uxMin" in args:
         return None
     res = PKDict()
-    for f in '', 'u':
-        for f2 in 'x', 'y', 'z':
-            field = '{}{}'.format(f, f2)
-            min = float(args[field + 'Min']) / 1e6
-            max = float(args[field + 'Max']) / 1e6
+    for f in "", "u":
+        for f2 in "x", "y", "z":
+            field = "{}{}".format(f, f2)
+            min = float(args[field + "Min"]) / 1e6
+            max = float(args[field + "Max"]) / 1e6
             if min == 0 and max == 0:
                 continue
             res[field] = [min, max]
@@ -315,7 +318,7 @@ def _particle_selection_args(args):
 def _read_field_circ(filename):
     return field_reader.read_field_circ(
         str(filename),
-        'E/r',
+        "E/r",
         slice_across=None,
         slice_relative_position=None,
     )
@@ -323,7 +326,7 @@ def _read_field_circ(filename):
 
 def _select_range(values, arg, select):
     if select and arg in select:
-        if arg in ('x', 'y', 'z'):
+        if arg in ("x", "y", "z"):
             return [select[arg][0] / 1e6, select[arg][1] / 1e6]
         return select[arg]
     return [min(values), max(values)]

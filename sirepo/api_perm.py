@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""decorators for API permissions and the permissions themselves
+"""decorators for API permissions and the permissions themselves
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,7 +11,8 @@ import aenum
 
 
 #: decorator sets this attribute with an APIPerm
-ATTR = 'api_perm'
+ATTR = "api_perm"
+
 
 class APIPerm(aenum.Flag):
     #: A user is required but there might not be a cookie yet

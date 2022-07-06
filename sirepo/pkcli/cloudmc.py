@@ -23,30 +23,30 @@ import uuid
 import zipfile
 
 
-_DATA_DIR = 'data'
+_DATA_DIR = "data"
 _VTI_TEMPLATE = PKDict(
     CellData=PKDict(),
     FieldData=PKDict(),
-    vtkClass='vtkPolyData',
+    vtkClass="vtkPolyData",
     lines=PKDict(
-        name='_lines',
+        name="_lines",
         numberOfComponents=1,
-        dataType='Uint32Array',
-        vtkClass='vtkCellArray',
+        dataType="Uint32Array",
+        vtkClass="vtkCellArray",
         ref=PKDict(
-            encode='LittleEndian',
+            encode="LittleEndian",
             basepath=_DATA_DIR,
             id=None,
         ),
         size=None,
     ),
     polys=PKDict(
-        name='_polys',
+        name="_polys",
         numberOfComponents=1,
-        dataType='Uint32Array',
-        vtkClass='vtkCellArray',
+        dataType="Uint32Array",
+        vtkClass="vtkCellArray",
         ref=PKDict(
-            encode='LittleEndian',
+            encode="LittleEndian",
             basepath=_DATA_DIR,
             id=None,
         ),
@@ -54,12 +54,12 @@ _VTI_TEMPLATE = PKDict(
     ),
     PointData=PKDict(),
     points=PKDict(
-        name='Points',
+        name="Points",
         numberOfComponents=3,
-        dataType='Float32Array',
-        vtkClass='vtkPoints',
+        dataType="Float32Array",
+        vtkClass="vtkPoints",
         ref=PKDict(
-            encode='LittleEndian',
+            encode="LittleEndian",
             basepath=_DATA_DIR,
             id=None,
         ),
@@ -82,7 +82,7 @@ def run_background(cfg_dir):
     data = sirepo.simulation_db.read_json(
         template_common.INPUT_BASE_NAME,
     )
-    if 'report' in data and data.report == 'dagmcAnimation':
+    if "report" in data and data.report == "dagmcAnimation":
         sirepo.simulation_db.write_json(
             sirepo.template.cloudmc.VOLUME_INFO_FILE,
             extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
@@ -98,12 +98,12 @@ def _array_from_list(arr, arr_type):
 
 
 def _assert_size(res, name):
-    n = f'{name}s'
+    n = f"{name}s"
     if res[n] is None:
-        raise AssertionError(f'Missing {n}')
-    c = res[f'{name}_count']
+        raise AssertionError(f"Missing {n}")
+    c = res[f"{name}_count"]
     if len(res[n]) != c:
-        raise AssertionError(f'{n} do not match count: {len(res[n])} != {c}')
+        raise AssertionError(f"{n} do not match count: {len(res[n])} != {c}")
 
 
 def _extract_volumes(filename):
@@ -111,7 +111,7 @@ def _extract_volumes(filename):
     entities = _parse_volumes(filename)
     visited = PKDict()
     for e in entities.values():
-        if e.CATEGORY == 'Group':
+        if e.CATEGORY == "Group":
             name = _parse_entity_name(e.NAME)
             if not name:
                 continue
@@ -123,14 +123,14 @@ def _extract_volumes(filename):
             )
             for i in vol_ids:
                 if i in visited:
-                    raise AssertionError(f'volume used in multiple groups: {i} {e}')
+                    raise AssertionError(f"volume used in multiple groups: {i} {e}")
                 visited[i] = True
             os.system(f'mbconvert -v {",".join(vol_ids)} {filename} {vol_ids[0]}.vtk')
     return res
 
 
 def _parse_attr(name, line, entity=None):
-    m = re.search(f'^\s*{name} =?\s*(.*?)$', line)
+    m = re.search(f"^\s*{name} =?\s*(.*?)$", line)
     if m:
         v = m.group(1)
         if entity is not None:
@@ -140,16 +140,17 @@ def _parse_attr(name, line, entity=None):
 
 
 def _parse_entity_name(name):
-    m = re.search('^mat:(.*)$', name)
+    m = re.search("^mat:(.*)$", name)
     if m:
         return m.group(1)
     return None
 
+
 def _parse_entity_set(entity_set):
-    m = re.search('^(\d+) \- (\d+)$', entity_set)
+    m = re.search("^(\d+) \- (\d+)$", entity_set)
     if m:
         return [str(x) for x in range(int(m.group(1)), int(m.group(2)) + 1)]
-    assert re.search('^(\d+)$', entity_set)
+    assert re.search("^(\d+)$", entity_set)
     return [entity_set]
 
 
@@ -158,30 +159,30 @@ def _parse_volumes(filename):
     e = None
     # using subprocess not pksubprocess because we don't want to read in all
     # the output at once which can be hundreds of megabytes
-    p = subprocess.Popen(['mbsize', '-ll', filename], stdout=subprocess.PIPE)
-    for line in io.TextIOWrapper(p.stdout, encoding='ascii'):
-        if e and re.search('^\s*$', line):
-            if 'CATEGORY' in e:
+    p = subprocess.Popen(["mbsize", "-ll", filename], stdout=subprocess.PIPE)
+    for line in io.TextIOWrapper(p.stdout, encoding="ascii"):
+        if e and re.search("^\s*$", line):
+            if "CATEGORY" in e:
                 res[e.MBENTITYSET] = e
             e = None
             continue
-        if _parse_attr('MBENTITYSET', line):
+        if _parse_attr("MBENTITYSET", line):
             assert e is None
             e = PKDict(volumes=[])
-            assert _parse_attr('MBENTITYSET', line, e)
+            assert _parse_attr("MBENTITYSET", line, e)
             continue
         if not e:
             continue
-        if _parse_attr('GLOBAL_ID', line, e):
+        if _parse_attr("GLOBAL_ID", line, e):
             continue
-        if _parse_attr('EntitySet', line, e):
+        if _parse_attr("EntitySet", line, e):
             e.volumes += _parse_entity_set(e.EntitySet)
             continue
-        if _parse_attr('CATEGORY', line, e):
-            if e.CATEGORY not in ('Volume', 'Group'):
+        if _parse_attr("CATEGORY", line, e):
+            if e.CATEGORY not in ("Volume", "Group"):
                 e = None
             continue
-        if _parse_attr('NAME', line, e):
+        if _parse_attr("NAME", line, e):
             continue
     return res
 
@@ -196,75 +197,75 @@ def _parse_vtk(filename):
         poly_count=0,
         cell_count=None,
     )
-    state = 'header'
+    state = "header"
     with pkio.open_text(str(filename)) as f:
         for line in f:
-            if state == 'header':
-                m = re.match(r'^POINTS (\d+)', line)
+            if state == "header":
+                m = re.match(r"^POINTS (\d+)", line)
                 if m:
                     res.point_count = int(m.group(1)) * 3
-                    state = 'points'
-            elif state == 'points':
-                m = re.match(r'^CELLS \d+ (\d+)', line)
+                    state = "points"
+            elif state == "points":
+                m = re.match(r"^CELLS \d+ (\d+)", line)
                 if m:
                     res.cell_count = int(m.group(1))
-                    state = 'cells'
+                    state = "cells"
                     continue
-                p = [float(v) for v in line.split(' ')]
+                p = [float(v) for v in line.split(" ")]
                 if len(p) != 3:
-                    raise AssertionError(f'Invalid point: {p}')
+                    raise AssertionError(f"Invalid point: {p}")
                 res.points += p
-            elif state == 'cells':
-                m = re.match(r'^CELL_TYPES', line)
+            elif state == "cells":
+                m = re.match(r"^CELL_TYPES", line)
                 if m:
                     break
-                p = [int(v) for v in line.split(' ')]
+                p = [int(v) for v in line.split(" ")]
                 if p[0] == 2:
                     res.lines += p
                     res.line_count += len(p)
                 else:
                     res.polys += p
                     res.poly_count += len(p)
-    _assert_size(res, 'point')
-    _assert_size(res, 'line')
-    _assert_size(res, 'poly')
+    _assert_size(res, "point")
+    _assert_size(res, "line")
+    _assert_size(res, "poly")
     if res.line_count + res.poly_count != res.cell_count:
-        raise AssertionError('line and poly count != cell count')
+        raise AssertionError("line and poly count != cell count")
     return PKDict(
-        points=_array_from_list(res.points, 'f'),
-        lines=_array_from_list(res.lines, 'I'),
-        polys=_array_from_list(res.polys, 'I'),
+        points=_array_from_list(res.points, "f"),
+        lines=_array_from_list(res.lines, "I"),
+        polys=_array_from_list(res.polys, "I"),
     )
 
 
 def _vtk_to_bin(vol_id):
-    filename = f'{vol_id}.vtk'
+    filename = f"{vol_id}.vtk"
     v = _parse_vtk(filename)
     pkio.unchecked_remove(_DATA_DIR)
     pkio.mkdir_parent(_DATA_DIR)
     vti = copy.deepcopy(_VTI_TEMPLATE)
-    vti.metadata.name = f'{vol_id}.vtp'
+    vti.metadata.name = f"{vol_id}.vtp"
     if not len(v.lines):
-        del vti['lines']
+        del vti["lines"]
     fns = []
-    for n in ('lines', 'polys', 'points'):
+    for n in ("lines", "polys", "points"):
         if n not in vti:
             continue
-        fn = str(uuid.uuid1()).replace('-', '')
-        with open (f'{_DATA_DIR}/{fn}', 'wb') as f:
+        fn = str(uuid.uuid1()).replace("-", "")
+        with open(f"{_DATA_DIR}/{fn}", "wb") as f:
             v[n].tofile(f)
         vti[n].ref.id = fn
         vti[n].size = int(len(v[n]))
-        fns.append(f'{_DATA_DIR}/{fn}')
-    with zipfile.ZipFile(f'{vol_id}.zip', 'w') as f:
-        f.writestr('index.json', json.dumps(vti))
+        fns.append(f"{_DATA_DIR}/{fn}")
+    with zipfile.ZipFile(f"{vol_id}.zip", "w") as f:
+        f.writestr("index.json", json.dumps(vti))
         for fn in fns:
             f.write(fn)
     pkio.unchecked_remove(_DATA_DIR)
     pkio.unchecked_remove(filename)
 
 
-#TODO(pjm): when pymoab is available, replace the mbsize parsing with something like this
+# TODO(pjm): when pymoab is available, replace the mbsize parsing with something like this
 
 # from pykern.pkcollections import PKDict
 # from pymoab import core, types
