@@ -18,21 +18,22 @@ def create_scans(num_scans, delay=True):
     import time
 
     num_scans = int(num_scans)
-    assert num_scans > 0, \
-        f'num_scans={num_scans} must be > 0'
+    assert num_scans > 0, f"num_scans={num_scans} must be > 0"
     d = databroker.Broker.named(raydata.catalog().name)
     RE = bluesky.RunEngine({})
     RE.subscribe(d.insert)
     for i in range(num_scans):
-        RE(bluesky.plans.count(
-            [ophyd.sim.det1, ophyd.sim.det2],
-            num=5,
-            md={
-                'T_sample_': i,
-                'owner': 'foo',
-                'sequence id': i,
-            },
-        ))
+        RE(
+            bluesky.plans.count(
+                [ophyd.sim.det1, ophyd.sim.det2],
+                num=5,
+                md={
+                    "T_sample_": i,
+                    "owner": "foo",
+                    "sequence id": i,
+                },
+            )
+        )
         if delay:
             time.sleep(2)
 
@@ -40,6 +41,7 @@ def create_scans(num_scans, delay=True):
 def run(cfg_dir):
     _run()
     template_common.write_sequential_result(PKDict())
+
 
 def run_background(cfg_dir):
     _run()

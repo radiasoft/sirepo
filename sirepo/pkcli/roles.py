@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""CRUD operations for user roles
+"""CRUD operations for user roles
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -64,7 +64,6 @@ def list_roles(*args):
     return list(*args)
 
 
-
 # TODO(e-carlin): This only works for email auth or using a uid
 # doesn't work for other auth methods (ex GitHub)
 @contextlib.contextmanager
@@ -72,16 +71,17 @@ def _parse_args(uid_or_email, roles):
     sirepo.server.init()
     with sirepo.auth_db.session_and_lock():
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
-        if '@' in uid_or_email:
+        if "@" in uid_or_email:
             u = sirepo.auth.get_module(
-                'email',
+                "email",
             ).unchecked_user_by_user_name(uid_or_email)
         else:
             u = sirepo.auth.unchecked_get_user(uid_or_email)
         if not u:
-            pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
+            pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
         if roles:
             a = sirepo.auth_role.get_all()
-            assert set(roles).issubset(a), \
-                'roles={} not a subset of all_roles={}'.format(roles, a)
+            assert set(roles).issubset(
+                a
+            ), "roles={} not a subset of all_roles={}".format(roles, a)
         yield u

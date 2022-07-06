@@ -11,11 +11,14 @@ import os
 import shutil
 
 
-pytestmark = pytest.mark.skipif(not bool(shutil.which('nginx')), reason='nginx not found')
+pytestmark = pytest.mark.skipif(
+    not bool(shutil.which("nginx")), reason="nginx not found"
+)
 
 
 def test_ping(uwsgi_module):
     import sirepo.util
     from pykern import pkunit
-    r = uwsgi_module.sr_post('jobSupervisorPing', {})
-    pkunit.pkeq('ok', r.state)
+
+    r = uwsgi_module.sr_post("jobSupervisorPing", {})
+    pkunit.pkeq("ok", r.state)

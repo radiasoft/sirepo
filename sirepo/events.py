@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Reigster callbacks for events and call callbacks when events are emitted.
+"""Reigster callbacks for events and call callbacks when events are emitted.
 
 Using events allows disparate areas of the code base to perform some task on
 an event without muddling the code that triggered the event. In addition events

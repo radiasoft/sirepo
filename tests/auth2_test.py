@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-u"""Test sirepo.auth
+"""Test sirepo.auth
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+
 
 def test_myapp_user_dir_deleted(fc):
     from pykern import pkunit, pkcompat
@@ -14,11 +15,11 @@ def test_myapp_user_dir_deleted(fc):
     import sirepo.srdb
 
     sirepo.srdb.root().join(
-        'user',
+        "user",
         fc.sr_auth_state().uid,
     ).remove(rec=1)
     r = fc.sr_post(
-        'listSimulations',
+        "listSimulations",
         PKDict(simulationType=fc.sr_sim_type),
         raw_response=True,
     )

@@ -33,36 +33,36 @@ class AbortOptimizationException(Exception):
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if 'analysisReport' in data.report:
+    if "analysisReport" in data.report:
         res = template.get_analysis_report(py.path.local(cfg_dir), data)
-    elif 'fftReport' in data.report:
+    elif "fftReport" in data.report:
         res = template.get_fft(py.path.local(cfg_dir), data)
-    elif 'correctorSettingReport' in data.report:
+    elif "correctorSettingReport" in data.report:
         res = template.get_settings_report(py.path.local(cfg_dir), data)
-    elif 'beamPositionReport' in data.report:
+    elif "beamPositionReport" in data.report:
         res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
     else:
-        raise AssertionError('unknown report: {}'.format(data.report))
+        raise AssertionError("unknown report: {}".format(data.report))
     template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data.report == 'epicsServerAnimation':
+    if data.report == "epicsServerAnimation":
         epics_settings = data.models.epicsServerAnimation
-        if epics_settings.serverType == 'local':
+        if epics_settings.serverType == "local":
             server_address = _run_epics(data)
             epics_settings.serverAddress = server_address
         else:
-            assert epics_settings.serverAddress, 'missing remote server address'
+            assert epics_settings.serverAddress, "missing remote server address"
             server_address = epics_settings.serverAddress
         _run_epics_monitor(server_address)
-        if epics_settings.serverType == 'local':
+        if epics_settings.serverType == "local":
             _run_simulation_loop(server_address)
         else:
             _run_forever(server_address)
     else:
-        raise AssertionError('unknown report: {}'.format(data.report))
+        raise AssertionError("unknown report: {}".format(data.report))
 
 
 def _check_beam_steering(is_steering):
@@ -71,7 +71,7 @@ def _check_beam_steering(is_steering):
     if os.path.exists(template.STEERING_FILE):
         steering = simulation_db.read_json(template.STEERING_FILE)
         os.remove(template.STEERING_FILE)
-        is_steering = steering.useSteering == '1'
+        is_steering = steering.useSteering == "1"
     return is_steering, steering
 
 
@@ -83,16 +83,27 @@ def _cost_function(values, server_address, periodic_callback):
     # periodic_callback() either waits for the remote EPICS or runs a local sim which populates local EPICS
     periodic_callback(server_address)
     readings = template.read_epics_values(server_address, template.BPM_FIELDS)
-    #cost = np.sum((np.array(readings) * 1000.) ** 2)
-    cost = np.sum((np.array(
-        [readings[4] - readings[6], readings[5] - readings[7], readings[6], readings[7]]
-    ) * 1000.) ** 2)
+    # cost = np.sum((np.array(readings) * 1000.) ** 2)
+    cost = np.sum(
+        (
+            np.array(
+                [
+                    readings[4] - readings[6],
+                    readings[5] - readings[7],
+                    readings[6],
+                    readings[7],
+                ]
+            )
+            * 1000.0
+        )
+        ** 2
+    )
     return cost
 
 
 def _find_free_port():
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('', 0))
+        s.bind(("", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()
 
@@ -101,21 +112,24 @@ def _optimize_nelder_mead(server_address, periodic_callback):
     opt = scipy.optimize.minimize(
         _cost_function,
         np.zeros(len(template.CURRENT_FIELDS)),
-        method='Nelder-Mead',
+        method="Nelder-Mead",
         options={
-            'maxiter': 500,
-            'maxfev': 500,
+            "maxiter": 500,
+            "maxfev": 500,
         },
         tol=1e-4,
-        args=(server_address, periodic_callback,),
+        args=(
+            server_address,
+            periodic_callback,
+        ),
     )
-    pkdlog('optimization results: {}', opt)
+    pkdlog("optimization results: {}", opt)
     res = {
-        'message': opt.message,
-        'success': opt.success,
+        "message": opt.message,
+        "success": opt.success,
     }
-    if 'x' in opt and len(opt.x) == len(template.CURRENT_FIELDS):
-        res['result'] = opt.x
+    if "x" in opt and len(opt.x) == len(template.CURRENT_FIELDS):
+        res["result"] = opt.x
     return res
 
 
@@ -130,65 +144,81 @@ def _optimize_polyfit(server_address, periodic_callback):
             is_steering, steering = _check_beam_steering(True)
             if not is_steering:
                 raise AbortOptimizationException()
-            setting_test = sets[i,:] * sets_a[j]
-            template.write_epics_values(server_address, template.CURRENT_FIELDS, setting_test)
+            setting_test = sets[i, :] * sets_a[j]
+            template.write_epics_values(
+                server_address, template.CURRENT_FIELDS, setting_test
+            )
             periodic_callback(server_address)
-            readings[:,j] = template.read_epics_values(server_address, template.BPM_FIELDS)
+            readings[:, j] = template.read_epics_values(
+                server_address, template.BPM_FIELDS
+            )
         for k in range(0, len(settings_0)):
-            M[i,k] = np.polyfit(sets_a, readings[k,:], 1)[0]
+            M[i, k] = np.polyfit(sets_a, readings[k, :], 1)[0]
     # inverse response matrix
     MI = np.linalg.pinv(M.T)
     # reset the beam-line
     template.write_epics_values(server_address, template.CURRENT_FIELDS, settings_0)
     periodic_callback(server_address)
-    readings_1 = np.asarray(template.read_epics_values(server_address, template.BPM_FIELDS))
+    readings_1 = np.asarray(
+        template.read_epics_values(server_address, template.BPM_FIELDS)
+    )
     # create settings to cancel out offsets
     new_sets = np.dot(MI, -readings_1)
     return {
-        'message': '',
-        'success': True,
-        'result': new_sets,
+        "message": "",
+        "success": True,
+        "result": new_sets,
     }
 
 
 def _ping_epics(server_address):
-    return template.read_epics_values(server_address, [template.BPM_FIELDS[0]]) is not None
+    return (
+        template.read_epics_values(server_address, [template.BPM_FIELDS[0]]) is not None
+    )
 
 
 def _run_beam_steering(server_address, steering, periodic_callback):
     method = steering.steeringMethod
     try:
-        if method == 'nmead':
+        if method == "nmead":
             res = _optimize_nelder_mead(server_address, periodic_callback)
-        elif method == 'polyfit':
+        elif method == "polyfit":
             res = _optimize_polyfit(server_address, periodic_callback)
-        if 'result' in res:
-            template.write_epics_values(server_address, template.CURRENT_FIELDS, res['result'])
-        simulation_db.write_json(template.OPTIMIZER_RESULT_FILE, {
-            'message': res['message'],
-            'success': res['success'],
-        })
+        if "result" in res:
+            template.write_epics_values(
+                server_address, template.CURRENT_FIELDS, res["result"]
+            )
+        simulation_db.write_json(
+            template.OPTIMIZER_RESULT_FILE,
+            {
+                "message": res["message"],
+                "success": res["success"],
+            },
+        )
     except AbortOptimizationException as e:
         pass
 
 
 def _run_epics(data):
     host, port = _find_free_port()
-    server_address = '{}:{}'.format(host, port)
-    #TODO(pjm): process management
-    _subprocess(server_address, 'softIoc epics-boot.cmd > epics.log')
+    server_address = "{}:{}".format(host, port)
+    # TODO(pjm): process management
+    _subprocess(server_address, "softIoc epics-boot.cmd > epics.log")
     return server_address
 
 
 def _run_epics_monitor(server_address):
     global _camonitor_proc
-    #TODO(pjm): dev restarts when code changes doesn't terminate camonitor
-    #TODO(pjm): process management
+    # TODO(pjm): dev restarts when code changes doesn't terminate camonitor
+    # TODO(pjm): process management
     signal.signal(signal.SIGTERM, _terminate_subprocesses)
     _camonitor_proc = _subprocess(
         server_address,
-        'exec camonitor ' + ' '.join(template.BPM_FIELDS + template.CURRENT_FIELDS)
-        + ' > ' + template.MONITOR_LOGFILE)
+        "exec camonitor "
+        + " ".join(template.BPM_FIELDS + template.CURRENT_FIELDS)
+        + " > "
+        + template.MONITOR_LOGFILE,
+    )
 
 
 def _run_forever(server_address):
@@ -201,7 +231,7 @@ def _run_simulation_loop(server_address):
 
 
 def _subprocess(server_address, cmd):
-    #TODO(pjm): need better process management, remove shell=True
+    # TODO(pjm): need better process management, remove shell=True
     return subprocess.Popen(
         cmd,
         shell=True,
@@ -220,10 +250,10 @@ def _terminate_subprocesses(*args):
 def _wait_for_beam_steering(server_address, periodic_callback):
     is_steering = False
     if not _ping_epics(server_address):
-        return 'Failed connection to EPICS server'
-    #TODO(pjm): don't run forever. Exit after a long period of no changes?
+        return "Failed connection to EPICS server"
+    # TODO(pjm): don't run forever. Exit after a long period of no changes?
     while True:
-        #TODO(pjm): add periodic _ping_epics()
+        # TODO(pjm): add periodic _ping_epics()
         is_steering, steering = _check_beam_steering(is_steering)
         if is_steering:
             _run_beam_steering(server_address, steering, periodic_callback)

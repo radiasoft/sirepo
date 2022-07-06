@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""GitHub Login
+"""GitHub Login
 
 GitHub is written Github and github (no underscore or dash) for ease of use.
 
@@ -26,7 +26,7 @@ import sirepo.events
 import sqlalchemy
 
 
-AUTH_METHOD = 'github'
+AUTH_METHOD = "github"
 
 #: Used by auth_db
 AuthGithubUser = None
@@ -38,15 +38,15 @@ UserModel = None
 this_module = pkinspect.this_module()
 
 #: cookie keys for github (prefix is "srag")
-_COOKIE_NONCE = 'sragn'
-_COOKIE_SIM_TYPE = 'srags'
+_COOKIE_NONCE = "sragn"
+_COOKIE_SIM_TYPE = "srags"
 
 
 class API(sirepo.api.Base):
     @api_perm.allow_cookieless_set_user
     def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
-    
+
         Tracks oauth users in a database.
         """
         # clear temporary cookie values first
@@ -59,22 +59,21 @@ class API(sirepo.api.Base):
                 state=s,
             )
         except authlib.oauth2.rfc6749.errors.MismatchingStateException:
-            auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
-            raise AssertionError('auth.login_fail_redirect returned unexpectedly')
-        d = oc.get('https://api.github.com/user').json()
-        sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
+            auth.login_fail_redirect(t, this_module, "oauth-state", reload_js=True)
+            raise AssertionError("auth.login_fail_redirect returned unexpectedly")
+        d = oc.get("https://api.github.com/user").json()
+        sirepo.events.emit("github_authorized", PKDict(user_name=d["login"]))
         with util.THREAD_LOCK:
-            u = AuthGithubUser.search_by(oauth_id=d['id'])
+            u = AuthGithubUser.search_by(oauth_id=d["id"])
             if u:
                 # always update user_name
-                u.user_name = d['login']
+                u.user_name = d["login"]
             else:
-                u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
+                u = AuthGithubUser(oauth_id=d["id"], user_name=d["login"])
             u.save()
             auth.login(this_module, model=u, sim_type=t, sapi=self, want_redirect=True)
-            raise AssertionError('auth.login returned unexpectedly')
-    
-    
+            raise AssertionError("auth.login returned unexpectedly")
+
     @api_perm.require_cookie_sentinel
     def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
@@ -85,15 +84,14 @@ class API(sirepo.api.Base):
         if not cfg.callback_uri:
             # must be executed in an app and request context so can't
             # initialize earlier.
-            cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
+            cfg.callback_uri = uri_router.uri_for_api("authGithubAuthorized")
         u, _ = _client().create_authorization_url(
-            'https://github.com/login/oauth/authorize',
+            "https://github.com/login/oauth/authorize",
             redirect_uri=cfg.callback_uri,
             state=s,
         )
         return self.reply_redirect(u)
-    
-    
+
     @api_perm.allow_cookieless_set_user
     def api_oauthAuthorized(self, oauth_type):
         """Deprecated use `api_authGithubAuthorized`"""
@@ -101,7 +99,7 @@ class API(sirepo.api.Base):
 
 
 def avatar_uri(model, size):
-    return 'https://avatars.githubusercontent.com/{}?size={}'.format(
+    return "https://avatars.githubusercontent.com/{}?size={}".format(
         model.user_name,
         size,
     )
@@ -114,9 +112,9 @@ def _client(token=None):
     return authlib.integrations.requests_client.OAuth2Session(
         cfg.key,
         cfg.secret,
-        scope='user:email',
+        scope="user:email",
         token=token,
-        token_endpoint='https://github.com/login/oauth/access_token',
+        token_endpoint="https://github.com/login/oauth/access_token",
     )
 
 
@@ -126,7 +124,7 @@ def _init():
         global AuthGithubUser, UserModel
 
         class AuthGithubUser(base):
-            __tablename__ = 'auth_github_user_t'
+            __tablename__ = "auth_github_user_t"
             oauth_id = sqlalchemy.Column(base.STRING_NAME, primary_key=True)
             user_name = sqlalchemy.Column(base.STRING_NAME, unique=True, nullable=False)
             uid = sqlalchemy.Column(base.STRING_ID, unique=True)
@@ -135,14 +133,18 @@ def _init():
 
     global cfg, AUTH_METHOD_VISIBLE
     cfg = pkconfig.init(
-        callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
-        key=pkconfig.Required(str, 'Github key'),
+        callback_uri=(
+            None,
+            str,
+            "Github callback URI (defaults to api_authGithubAuthorized)",
+        ),
+        key=pkconfig.Required(str, "Github key"),
         method_visible=(
             True,
             bool,
-            'github auth method is visible to users when it is an enabled method',
+            "github auth method is visible to users when it is an enabled method",
         ),
-        secret=pkconfig.Required(str, 'Github secret'),
+        secret=pkconfig.Required(str, "Github secret"),
     )
     AUTH_METHOD_VISIBLE = cfg.method_visible
     auth_db.init_model(_init_model)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Jupyterhub login
+"""Jupyterhub login
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,7 +15,8 @@ import traitlets
 
 
 def template_dirs():
-    return pykern.pkresource.filename('jupyterhub_templates')
+    return pykern.pkresource.filename("jupyterhub_templates")
+
 
 class SirepoAuthenticator(jupyterhub.auth.Authenticator):
     # Do not prompt with jupyterhub login page. self.authenticate()
@@ -25,7 +26,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
     auto_login = True
     refresh_pre_spawn = True
 
-    sirepo_uri = traitlets.Unicode(config=True, help='uri to reach sirepo')
+    sirepo_uri = traitlets.Unicode(config=True, help="uri to reach sirepo")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,9 +34,9 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
 
     async def authenticate(self, handler, data):
         d = self._check_permissions(handler)
-        if 'username' in d:
+        if "username" in d:
             return d.username
-        elif 'uri' in d:
+        elif "uri" in d:
             handler.redirect(d.uri)
             raise tornado.web.Finish()
         # returning None means the user is forbidden (403)
@@ -44,18 +45,19 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
 
     async def refresh_user(self, user, handler=None):
         try:
-            return bool(self._check_permissions(handler).get('username'))
+            return bool(self._check_permissions(handler).get("username"))
         except Exception:
             # Returning False is what the jupyterhub API expects and jupyterhub
             # will handle re-authenticating the user.
             # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.refresh_user
             return False
-        raise AssertionError('should not get here')
+        raise AssertionError("should not get here")
 
     def _check_permissions(self, handler):
         r = requests.post(
             # POSIT: no params on checkAuthJupyterhub
-            self.sirepo_uri + sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub,
+            self.sirepo_uri
+            + sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub,
             cookies={k: handler.get_cookie(k) for k in handler.cookies.keys()},
         )
         r.raise_for_status()

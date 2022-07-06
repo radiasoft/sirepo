@@ -28,34 +28,35 @@ _MAX_AGE_BY_WEIGHT = [
 def main():
     """Read the input yaml and write the output csv"""
     # hack support for openmpi/mpich so we can run under mpi with only one output file
-    if os.environ.get('OMPI_COMM_WORLD_RANK', os.environ.get('PMI_RANK', '0')) != '0':
-        sys.stderr.write('does not work with MPI\n')
+    if os.environ.get("OMPI_COMM_WORLD_RANK", os.environ.get("PMI_RANK", "0")) != "0":
+        sys.stderr.write("does not work with MPI\n")
         exit(0)
     if len(sys.argv) != 3:
-        sys.stderr.write('usage: hundli input.yml output.csv\n')
+        sys.stderr.write("usage: hundli input.yml output.csv\n")
         exit(1)
     input_yaml, output_csv = sys.argv[1:]
     params = pykern.pkyaml.load_file(input_yaml)
 
-    if params['name'] == 'srunit_long_run':
+    if params["name"] == "srunit_long_run":
         time.sleep(100)
-    elif params['name'] == 'srunit_error_run':
-        raise AssertionError('a big ugly error')
+    elif params["name"] == "srunit_error_run":
+        raise AssertionError("a big ugly error")
 
-    max_age = _max_age(params['weight'])
+    max_age = _max_age(params["weight"])
     years = numpy.linspace(0, max_age, int(max_age) + 1).tolist()
-    heights = _points_size(params['height'], years)
-    weights = _points_size(params['weight'], years)
+    heights = _points_size(params["height"], years)
+    weights = _points_size(params["weight"], years)
     activity = _points_activity(years)
-    with open(output_csv, 'w') as f:
+    with open(output_csv, "w") as f:
         out = csv.writer(f)
-        out.writerow(('Year', 'Height', 'Weight', 'Activity'))
+        out.writerow(("Year", "Height", "Weight", "Activity"))
         out.writerows(zip(years, heights, weights, activity))
 
 
 def _factor(v, max_value, exp):
-    return (random.random() * 0.5) * max_value / exp \
-        + max_value * (exp - 1.0) / exp * (1.0 - 1.0 / (1.0 + v ** 2))
+    return (random.random() * 0.5) * max_value / exp + max_value * (exp - 1.0) / exp * (
+        1.0 - 1.0 / (1.0 + v**2)
+    )
 
 
 def _max_age(weight):
@@ -81,12 +82,12 @@ def _points_activity(years):
 
 
 def _points_size(max_value, years):
-    """Randomized """
+    """Randomized"""
     return map(
         lambda v: _factor(v, max_value, 20.0),
         years,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

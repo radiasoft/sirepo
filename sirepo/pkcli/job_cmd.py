@@ -45,12 +45,11 @@ def default_command(in_file):
         job.init()
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
-    #TODO(e-carlin): find common place to serialize/deserialize paths
+        # TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
-        res = globals()['_do_' + msg.jobCmd](
-            msg,
-            sirepo.template.import_module(msg.simulationType)
+        res = globals()["_do_" + msg.jobCmd](
+            msg, sirepo.template.import_module(msg.simulationType)
         )
         if res is None:
             return
@@ -62,6 +61,7 @@ def default_command(in_file):
 
 class _AbruptSocketCloseError(Exception):
     """Fastcgi unix domain socket closed"""
+
     pass
 
 
@@ -71,8 +71,8 @@ def _background_percent_complete(msg, template, is_running):
         msg.runDir,
         is_running,
     ).pksetdefault(
-#TODO(robnagler) this is incorrect, because we want to see file updates
-#   not just our polling frequency
+        # TODO(robnagler) this is incorrect, because we want to see file updates
+        #   not just our polling frequency
         lastUpdateTime=lambda: _mtime_or_now(msg.runDir),
         frameCount=0,
         percentComplete=0.0,
@@ -81,18 +81,20 @@ def _background_percent_complete(msg, template, is_running):
 
 def _dispatch_compute(msg):
     try:
-        return getattr(template_common, f'{msg.jobCmd}_dispatch')(msg.data)
+        return getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
     except Exception as e:
         return _maybe_parse_user_alert(e)
 
+
 def _do_cancel(msg, template):
-    if hasattr(template, 'remove_last_frame'):
+    if hasattr(template, "remove_last_frame"):
         template.remove_last_frame(msg.runDir)
     return PKDict()
 
+
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
-    with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
+    with msg.runDir.join(template_common.RUN_LOG).open("w") as run_log:
         p = subprocess.Popen(
             _do_prepare_simulation(msg, template).cmd,
             stdout=run_log,
@@ -100,12 +102,15 @@ def _do_compute(msg, template):
         )
     while True:
         for j in range(20):
-            time.sleep(.1)
+            time.sleep(0.1)
             r = p.poll()
             i = r is None
             if not i:
                 if r == -signal.SIGKILL:
-                    return PKDict(state=job.ERROR, error='Terminated Process. Possibly ran out of memory')
+                    return PKDict(
+                        state=job.ERROR,
+                        error="Terminated Process. Possibly ran out of memory",
+                    )
                 break
         if msg.isParallel:
             # TODO(e-carlin): This has a potential to fail. We likely
@@ -137,14 +142,16 @@ def _do_download_data_file(msg, template):
             if isinstance(r, str):
                 r = msg.runDir.join(r, abs=1)
             r = PKDict(filename=r)
-        u = r.get('uri')
+        u = r.get("uri")
         if u is None:
             u = r.filename.basename
-        c = r.get('content')
+        c = r.get("content")
         if c is None:
-            c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
-                if u.endswith(('.py', '.txt', '.csv')) \
+            c = (
+                pkcompat.to_bytes(pkio.read_text(r.filename))
+                if u.endswith((".py", ".txt", ".csv"))
                 else r.filename.read_binary()
+            )
             e = _validate_msg(c)
             if e:
                 return e
@@ -165,24 +172,24 @@ def _do_fastcgi(msg, template):
     def _update_run_dir_and_maybe_chdir(msg):
         msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
         with pkio.save_chdir(
-                msg.runDir,
+            msg.runDir,
         ) if msg.runDir else contextlib.nullcontext():
             yield
 
     def _recv():
-        m = b''
+        m = b""
         while True:
             r = s.recv(_MAX_FASTCGI_MSG)
             if not r:
                 pkdlog(
-                    'job_cmd should be killed before socket is closed msg={}',
+                    "job_cmd should be killed before socket is closed msg={}",
                     msg,
                 )
                 raise _AbruptSocketCloseError()
             if len(m) + len(r) > _MAX_FASTCGI_MSG:
-                raise RuntimeError('message larger than {} bytes',  _MAX_FASTCGI_MSG)
+                raise RuntimeError("message larger than {} bytes", _MAX_FASTCGI_MSG)
             m += r
-            if m[-1:] == b'\n':
+            if m[-1:] == b"\n":
                 return pkjson.load_any(m)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -194,17 +201,17 @@ def _do_fastcgi(msg, template):
             if not m:
                 return
             with _update_run_dir_and_maybe_chdir(m):
-                r = globals()['_do_' + m.jobCmd](
-                    m,
-                    sirepo.template.import_module(m.simulationType)
+                r = globals()["_do_" + m.jobCmd](
+                    m, sirepo.template.import_module(m.simulationType)
                 )
             r = PKDict(r).pksetdefault(state=job.COMPLETED)
             c = 0
         except _AbruptSocketCloseError:
             return
         except Exception as e:
-            assert c < _MAX_FASTCGI_EXCEPTIONS, \
-                'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
+            assert (
+                c < _MAX_FASTCGI_EXCEPTIONS
+            ), "too many fastgci exceptions {}. Most recent error={}".format(c, e)
             c += 1
             r = _maybe_parse_user_alert(e)
         s.sendall(_validate_msg_and_jsonl(r))
@@ -216,11 +223,11 @@ def _do_get_simulation_frame(msg, template):
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
     except Exception as e:
-        return _maybe_parse_user_alert(e, error='report not generated')
+        return _maybe_parse_user_alert(e, error="report not generated")
 
 
 def _do_prepare_simulation(msg, template):
-    if 'libFileList' in msg:
+    if "libFileList" in msg:
         msg.data.libFileList = msg.libFileList
     return PKDict(
         cmd=simulation_db.prepare_simulation(
@@ -248,10 +255,11 @@ def _do_sbatch_status(msg, template):
 def _do_sequential_result(msg, template):
     r = template_common.read_sequential_result(msg.runDir)
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
-    if (hasattr(template, 'prepare_sequential_output_file') and 'models' in msg.data):
+    if hasattr(template, "prepare_sequential_output_file") and "models" in msg.data:
         template.prepare_sequential_output_file(msg.runDir, msg.data)
         r = template_common.read_sequential_result(msg.runDir)
     return r
+
 
 def _do_stateful_compute(msg, template):
     return _dispatch_compute(msg)
@@ -280,11 +288,11 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
             if f.exists():
                 a = _parse_python_errors(pkio.read_text(f))
         if not a:
-            a = 'non-zero exit code'
+            a = "non-zero exit code"
         return PKDict(state=job.ERROR, error=a)
 
     def _post_processing():
-        if hasattr(template, 'post_execution_processing'):
+        if hasattr(template, "post_execution_processing"):
             return template.post_execution_processing(**kwargs)
         return None
 
@@ -293,6 +301,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
             state=job.COMPLETED,
             alert=_post_processing(),
         )
+
     try:
         return _success_exit() if success_exit else _failure_exit()
     except Exception as e:
@@ -313,18 +322,18 @@ def _mtime_or_now(path):
 
 def _parse_python_errors(text):
     m = re.search(
-        r'^Traceback .*?^\w*(?:Error|Exception):\s*(.*)',
+        r"^Traceback .*?^\w*(?:Error|Exception):\s*(.*)",
         text,
-        re.MULTILINE|re.DOTALL,
+        re.MULTILINE | re.DOTALL,
     )
     if m:
-        return re.sub(r'\nTraceback.*$', '', m.group(1), flags=re.S).strip()
-    return ''
+        return re.sub(r"\nTraceback.*$", "", m.group(1), flags=re.S).strip()
+    return ""
 
 
 def _validate_msg(msg):
-    if len(msg) >=  job.cfg.max_message_bytes:
-        return PKDict(state=job.COMPLETED, error='Response is too large to send')
+    if len(msg) >= job.cfg.max_message_bytes:
+        return PKDict(state=job.COMPLETED, error="Response is too large to send")
     return None
 
 
@@ -333,7 +342,7 @@ def _validate_msg_and_jsonl(msg):
     r = _validate_msg(m)
     if r:
         m = pkjson.dump_bytes(r)
-    return m + b'\n'
+    return m + b"\n"
 
 
 def _write_parallel_status(msg, template, is_running):
@@ -344,5 +353,6 @@ def _write_parallel_status(msg, template, is_running):
                 parallelStatus=_background_percent_complete(msg, template, is_running),
             ),
             pretty=False,
-        ) + '\n',
+        )
+        + "\n",
     )
