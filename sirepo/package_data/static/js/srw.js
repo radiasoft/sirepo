@@ -324,13 +324,13 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     self.updateRSOptElements = function() {
         const optElModel = 'rsOptElement';
         const optEls = SIREPO.APP_SCHEMA.constants.rsOptElements;
-        let items = (appState.models.beamline || []).filter(function(i) {
-            return optEls[i.type];
-        });
-        let els = appState.models.exportRsOpt.elements;
-        for (let item of items) {
+        const items = (appState.models.beamline || []).filter(i => optEls[i.type]);
+        const els = appState.models.exportRsOpt.elements;
+        for (const item of items) {
             let e = self.findRSOptElement(item.id);
             if (e) {
+                // element name may have changed
+                e.title = item.title;
                 continue;
             }
             e = appState.setModelDefaults({}, optElModel);
@@ -340,7 +340,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             e.type = item.type;
             e.id = item.id;
             let props = optEls[item.type];
-            for (let p in props) {
+            for (const p in props) {
                 appState.setFieldDefaults(
                     e,
                     self.rsOptElementOffsetField(p),
@@ -352,7 +352,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     initial: [],
                     offsets: [],
                 };
-                for (let f of props[p].fieldNames || []) {
+                for (const f of props[p].fieldNames || []) {
                     e[p].initial.push(item[f] ? parseFloat(item[f]) : 0.0);
                 }
             }
