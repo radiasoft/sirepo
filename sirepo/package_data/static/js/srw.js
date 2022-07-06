@@ -339,7 +339,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             e.title = item.title;
             e.type = item.type;
             e.id = item.id;
-            let props = optEls[item.type];
+            const props = optEls[item.type];
             for (const p in props) {
                 appState.setFieldDefaults(
                     e,
