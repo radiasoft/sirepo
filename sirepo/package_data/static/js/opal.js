@@ -45,7 +45,7 @@ SIREPO.app.config(function() {
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'TRIMCOIL', 'UNDULATOR', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
             rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
