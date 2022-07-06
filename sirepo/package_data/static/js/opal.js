@@ -45,7 +45,7 @@ SIREPO.app.config(function() {
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'TRIMCOIL', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'UNDULATOR', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
             rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
@@ -126,7 +126,7 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
 SIREPO.app.controller('CommandController', function(commandService, panelState) {
     var self = this;
     self.activeTab = 'basic';
-    self.basicNames = [
+    self.basicNames = [// TODO (gurhar1133): add new commands here
         'beam', 'distribution', 'fieldsolver', 'filter', 'geometry',
         'option', 'particlematterinteraction', 'select', 'track', 'wake',
     ];
@@ -158,7 +158,7 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
         'HKICKER', 'KICKER', 'LOCAL_CARTESIAN_OFFSET', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
         'OCTUPOLE', 'PROBE', 'RBEND', 'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
         'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
-        'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
+        'TRIMCOIL', 'UNDULATOR', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
     ];
     self.basicNames = [
         'DRIFT', 'ECOLLIMATOR', 'MARKER', 'QUADRUPOLE', 'RFCAVITY', 'SOLENOID', 'SOURCE',
