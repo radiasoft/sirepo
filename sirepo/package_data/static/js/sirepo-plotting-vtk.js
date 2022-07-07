@@ -1959,8 +1959,21 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapePoints(shape, dim) {
-                var labDim = shape.elev[dim].axis;
-                return [];
+                if (! shape.points) {
+                    return null;
+                }
+                srdbg(shape.points);
+                const labDim = shape.elev[dim].axis;
+                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(labDim);
+                let pts = '';
+                for (const p of shape.points[labDim]) {
+                    let pp = p.slice();
+                    pp.splice(i, 1);
+                    //pts += (pp.map(x => axes[dim].scale(x)).join(',') + ' ');
+                    pts += (pp.join(',') + ' ');
+                }
+                srdbg('pts', pts);
+                return pts;
             }
 
             function shapeCenter(shape, dim) {

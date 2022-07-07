@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
             <div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>
         </div>
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
-            <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
+            <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
         <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
           <select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
@@ -47,7 +47,6 @@ SIREPO.app.config(function() {
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
-          <div data-report-content="pointEditor" data-model-key="extrudedPoly"></div>
           <label class="control-label col-sm-5" style="text-align: center">{{ model.widthAxis }}</label> <label class="control-label col-sm-5"  style="text-align: center">{{ model.heightAxis }}</label>
           <div data-ng-repeat="p in model[field]">
             <input class="form-control sr-number-list" data-string-to-number="float" data-ng-model="p[0]"  style="text-align: right" required />
@@ -452,7 +451,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.editObject = function(o) {
         self.selectObject(o);
-        panelState.showModalEditor(o.model);
+        panelState.showModalEditor(o.type);
     };
 
     self.showDesigner = function() {
@@ -555,7 +554,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (o) {
             self.selectedObject = o;
             radiaService.setSelectedObject(o);
-            appState.models[panelState.getBaseModelKey(o.model)] = o;
+            appState.models[panelState.getBaseModelKey(o.type)] = o;
         }
         return o;
     };
@@ -580,15 +579,20 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             size = b.map(c => Math.abs(c[1] - c[0]));
         }
 
-        if ('extrudedPoly' in appState.superClasses(o.type)) {
+        let pts = {};
+        if (appState.superClasses(o.type).includes('extrudedPoly')) {
             o.layoutShape = 'polygon'
+            let dim = o.extrusionAxis;
+            pts[dim] = o.points;
+            dim = SIREPO.GEOMETRY.GeometryUtils.nextAxis(dim);
+            let i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim);
         }
         const shape = vtkPlotting.plotShape(
             o.id, o.name,
             center, size,
             o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
             o.layoutShape,
-            o.points
+            pts
         );
         if (isGroup) {
             shape.outlineOffset = 5.0;
@@ -989,27 +993,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return sh;
     }
 
-    //TODO(mvk): move to view logic
-    function updateObjectEditor() {
-        var o = self.selectedObject;
-        if (! o) {
-            return;
-        }
-        panelState.showField(
-            'geomObject',
-            'materialFile',
-            o.material === 'custom'
-        );
-        panelState.enableArrayField(
-            'geomObject',
-            'size',
-            SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(o.extrusionAxis),
-            o.type !== 'extrudedPoints'
-        );
-
-        radiaService.validateMagnetization(o.magnetization, o.material);
-    }
-
     function virtualShapeId(shape) {
         return `${shape.id}-${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
     }
@@ -1023,9 +1006,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     // initial setup
-    appState.watchModelFields($scope, editorFields, function(d) {
-        updateObjectEditor();
-    });
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
@@ -1071,14 +1051,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     });
 
-    $scope.$on('geomObject.editor.show', updateObjectEditor);
-
     $scope.$on('layout.object.dropped', function (e, lo) {
-        var m = appState.setModelDefaults({}, lo.model);
+        const m = appState.setModelDefaults({}, lo.type);
         m.center = lo.center;
         m.name = lo.type;
         m.name = newObjectName(m);
-        m.model = lo.model;
+        //m.model = lo.model;
         self.editObject(m);
     });
 
@@ -3688,7 +3666,7 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
 
     const availableShapes = ['cuboid', 'ell', 'cee', 'jay', 'extrudedPoints',];
     let sel = new SIREPO.DOM.UISelect('', [
-        new SIREPO.DOM.UIAttribute('data-ng-model', 'model[field]'),
+        new SIREPO.DOM.UIAttribute('data-ng-model', 'field'),
     ]);
     sel.addClasses('form-control');
     sel.addOptions(SIREPO.APP_SCHEMA.enum.ObjectType
@@ -3729,7 +3707,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
             "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
-        ], updateObjectEditor,
+        ], updateShapeEditor,
         [
             "extrudedPoly.pointsFile",
         ], loadPoints,
@@ -3739,32 +3717,32 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         modelType = appState.models.geomObject.type;
         $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
-        updateObjectEditor();
+        updateShapeEditor();
     };
 
     $scope.$on('geomObject.changed', () => {
         if (editedModels.includes('extrudedPoly')) {
-            $scope.modelData.widthAxis = nextAxis($scope.modelData.extrusionAxis);
-            $scope.modelData.heightAxis = nextAxis($scope.modelData.widthAxis);
+            $scope.modelData.widthAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.extrusionAxis);
+            $scope.modelData.heightAxis = SIREPO.GEOMETRY.GeometryUtils.nextAxis($scope.modelData.widthAxis);
         }
         appState.saveQuietly($scope.modelName);
         editedModels = [];
     });
 
-    function nextAxis(axis) {
-        const b = SIREPO.GEOMETRY.GeometryUtils.BASIS();
-        return b[b.indexOf(axis) + 1 % b.length];
-    }
-
     function setPoints(d) {
         $scope.modelData.points = d.points;
-        // the size is determined by the points
-        //let s = [0, 0, 0];
-        //const sz = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
-        //const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf($scope.modelData.extrusionAxis);
-        //s[i] = sz[i];
+        // the cross-sectional size is determined by the points
+        let sz = utilities.splitCommaDelimitedString($scope.modelData.size, parseFloat);
+        const b = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+        [$scope.modelData.widthAxis, $scope.modelData.heightAxis].forEach((dim, i) => {
+            const p = d.points.map(x => x[i]);
+            sz[b.indexOf(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+        });
+        srdbg('NEW SZ', sz);
+        $scope.modelData.size = sz.join(',');
+
         appState.saveChanges(editedModels);
-        updateObjectEditor();
+        updateShapeEditor();
     }
 
     function loadPoints() {
@@ -3805,7 +3783,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
         return m ? m : [parent.modelName, f];
     }
 
-    function updateObjectEditor() {
+    function updateShapeEditor() {
         modelType = appState.models.geomObject.type;
         parent.activePage.items.forEach((f) => {
             const m = modelField(f);
@@ -3816,6 +3794,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
                 hasField || appState.isSubclass(modelType, m[0])
             );
         });
+        panelState.showField('extrudedPoints', 'points', ($scope.modelData.points || []).length > 0);
     }
 
     buildTriangulationLevelDelegate();
@@ -3824,9 +3803,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, $scope) {
 
     let editedModels = [];
-
-    $scope.modelData = appState.models[$scope.modelName];
-
+    
     $scope.watchFields = [
         [
             'geomObject.type',
@@ -3834,16 +3811,36 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     ];
 
     $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
-        //appState.saveChanges(editedModels);
+        updateObjectEditor();
     }
 
     $scope.$on('geomObject.changed', () => {
         editedModels = [];
     });
 
-    function updateObjectEditor()  {
+    function updateObjectEditor() {
+        const o = $scope.modelData;
+        if (! o) {
+            return;
+        }
+        panelState.showField('geomObject', 'materialFile', o.material === 'custom');
+
+        panelState.enableField('geomObject', 'size', true);
+        if (o.type !== 'extrudedPoints') {
+            return;
+        }
+        for (const dim of [o.widthAxis, o.heightAxis]) {
+            panelState.enableArrayField(
+                'geomObject',
+                'size',
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim),
+                false
+            );
+        }
     }
+
     const self = {};
 
     self.getBaseObject = () => $scope.modelData;

@@ -672,7 +672,8 @@
         },
         "extrudedPoints": {
             "_super": ["_", "model", "extrudedPoly"],
-            "pointsFile": ["File", "InputFile", "", ""]
+            "pointsFile": ["File", "InputFile", "", ""],
+            "type": ["_", "ObjectType", "extrudedPoints"]
         },
         "extrudedPoly": {
             "_super": ["_", "model", "geomObject"],
