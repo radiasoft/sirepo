@@ -999,6 +999,7 @@
             "cutoff": ["CUTOFF", "RPNValue", 3, "Longitudinal cutoff for Gaussian in units of sigma."]
         },
         "command_dumpemfields": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "file_name": ["FILE_NAME", "OutputFile", "", "Name of the file to which field data is dumped"],
             "coordinate_system": ["COORDINATE_SYSTEM", "OptionalString", "{CARTESIAN, CYLINDRICAL}, CARTESIAN", "Choose to use CARTESIAN or CYLINDRICAL coordinates"],
             "x_start": ["X_START [m]", "RPNValue", 0, "(Cartesian) Start point in the grid in x"],
@@ -2216,85 +2217,6 @@
                 "outfn"
             ]
         },
-
-        "VERTICALFFAMAGNET": {
-            "title": "VERTICALFFAMAGNET",
-            "description": "",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "l",
-                "b0",
-                "field_index",
-                "width",
-                "max_horizontal_power",
-                "end_length",
-                "centre_length",
-                "bb_length",
-                "height_pos_extent",
-                "height_neg_extent",
-                "aperture",
-                "wakef",
-                "particlematterinteraction",
-                "theta",
-                "phi",
-                "psi",
-                "dx",
-                "dy",
-                "dz",
-                "dtheta",
-                "dphi",
-                "dpsi",
-                "outfn"
-            ]
-        },
-
-        "command_dumpemfields": {
-            "title": "dumpemfields",
-            "description": "The DUMPEMFIELDS statement dumps a field map to a user-defined field file, for checking that fields are generated correctly. The fields are written out on a grid in space and time.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "file_name",
-                "coordinate_system",
-                "x_start",
-                "dx",
-                "x_steps",
-                "y_start",
-                "dy",
-                "y_steps",
-                "z_start",
-                "dz",
-                "z_steps",
-                "t_start",
-                "dt",
-                "t_steps",
-                "r_start",
-                "dr",
-                "r_steps",
-                "phi_start",
-                "dphi",
-                "phi_steps"
-            ]
-        },
-        "command_dumpfields": {
-            "title": "dumpfields",
-            "description": "The DUMPFIELDS statement dumps a field map to a user-defined field file, for checking that fields are read in correctly from disk. The fields are written out on a Cartesian grid.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "file_name",
-                "x_start",
-                "dx",
-                "x_steps",
-                "y_start",
-                "dy",
-                "y_steps",
-                "z_start",
-                "dz",
-                "z_steps"
-            ]
-        },
         "VARIABLE_RF_CAVITY": {
             "title": "VARIABLE_RF_CAVITY",
             "description": "The VARIABLE_RF_CAVITY element defines an RF cavity with time dependent frequency, phase and amplitude.",
@@ -2349,6 +2271,37 @@
                 "dtheta",
                 "dphi",
                 "dpsi"
+            ]
+        },
+        "VERTICALFFAMAGNET": {
+            "title": "VERTICALFFAMAGNET",
+            "description": "",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "b0",
+                "field_index",
+                "width",
+                "max_horizontal_power",
+                "end_length",
+                "centre_length",
+                "bb_length",
+                "height_pos_extent",
+                "height_neg_extent",
+                "aperture",
+                "wakef",
+                "particlematterinteraction",
+                "theta",
+                "phi",
+                "psi",
+                "dx",
+                "dy",
+                "dz",
+                "dtheta",
+                "dphi",
+                "dpsi",
+                "outfn"
             ]
         },
         "VKICKER": {
@@ -2516,6 +2469,52 @@
                     "nbin",
                     "sbin"
                 ]]
+            ]
+        },
+        "command_dumpemfields": {
+            "title": "dumpemfields",
+            "description": "The DUMPEMFIELDS statement dumps a field map to a user-defined field file, for checking that fields are generated correctly. The fields are written out on a grid in space and time.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "file_name",
+                "coordinate_system",
+                "x_start",
+                "dx",
+                "x_steps",
+                "y_start",
+                "dy",
+                "y_steps",
+                "z_start",
+                "dz",
+                "z_steps",
+                "t_start",
+                "dt",
+                "t_steps",
+                "r_start",
+                "dr",
+                "r_steps",
+                "phi_start",
+                "dphi",
+                "phi_steps"
+            ]
+        },
+        "command_dumpfields": {
+            "title": "dumpfields",
+            "description": "The DUMPFIELDS statement dumps a field map to a user-defined field file, for checking that fields are read in correctly from disk. The fields are written out on a Cartesian grid.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "file_name",
+                "x_start",
+                "dx",
+                "x_steps",
+                "y_start",
+                "dy",
+                "y_steps",
+                "z_start",
+                "dz",
+                "z_steps"
             ]
         },
         "command_fieldsolver": {

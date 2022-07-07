@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
             SEXTUPOLE: 'lightgreen',
             OCTUPOLE: 'yellow',
         },
-        elementPic: {// TODO (gurhar1133): add new elements here
+        elementPic: {// TODO (gurhar1133): add new elements (VACUUM and VERTICALFFAMAGENT not showing for some reason?)
             alpha: [],
             aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'RCOLLIMATOR'],
             bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
@@ -45,7 +45,7 @@ SIREPO.app.config(function() {
             magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VKICKER', 'WIRE'],
+                     'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VERTICALFFAMAGNET', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
             rf: ['RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
@@ -126,8 +126,8 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
 SIREPO.app.controller('CommandController', function(commandService, panelState) {
     var self = this;
     self.activeTab = 'basic';
-    self.basicNames = [// TODO (gurhar1133): add new commands here
-        'beam', 'distribution', 'fieldsolver', 'filter', 'geometry',
+    self.basicNames = [ //TODO (gurhar1133): follow up on if ok that dumpemfields breaks some sims
+        'beam', 'distribution', 'dumpemfields', 'dumpfields', 'fieldsolver', 'filter', 'geometry',
         'option', 'particlematterinteraction', 'select', 'track', 'wake',
     ];
     self.advancedNames = [];
