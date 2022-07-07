@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
             SEXTUPOLE: 'lightgreen',
             OCTUPOLE: 'yellow',
         },
-        elementPic: {// TODO (gurhar1133): add new elements (VACUUM and VERTICALFFAMAGENT not showing for some reason?)
+        elementPic: {
             alpha: [],
             aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'RCOLLIMATOR'],
             bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
@@ -126,7 +126,7 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
 SIREPO.app.controller('CommandController', function(commandService, panelState) {
     var self = this;
     self.activeTab = 'basic';
-    self.basicNames = [ //TODO (gurhar1133): follow up on if ok that dumpemfields breaks some sims
+    self.basicNames = [
         'beam', 'distribution', 'dumpemfields', 'dumpfields', 'fieldsolver', 'filter', 'geometry',
         'option', 'particlematterinteraction', 'select', 'track', 'wake',
     ];
@@ -158,7 +158,7 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
         'HKICKER', 'KICKER', 'LOCAL_CARTESIAN_OFFSET', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
         'OCTUPOLE', 'PROBE', 'RBEND', 'RBEND3D', 'RCOLLIMATOR', 'RINGDEFINITION', 'SBEND3D',
         'SCALINGFFAMAGNET', 'SEPTUM', 'SEXTUPOLE', 'SBEND', 'TRAVELINGWAVE',
-        'TRIMCOIL', 'UNDULATOR', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
+        'TRIMCOIL', 'UNDULATOR', 'VACUUM', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VERTICALFFAMAGNET', 'VKICKER',
     ];
     self.basicNames = [
         'DRIFT', 'ECOLLIMATOR', 'MARKER', 'QUADRUPOLE', 'RFCAVITY', 'SOLENOID', 'SOURCE',

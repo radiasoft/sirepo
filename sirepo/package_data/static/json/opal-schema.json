@@ -860,7 +860,8 @@
             "centre_length": ["CENTRE_LENGTH [m]", "RPNValue", 0, "The centre length of the FFA (i.e. length of the flat top)"],
             "bb_length": ["BB_LENGTH [m]", "RPNValue", 0, "Determines the length of the bounding box. Magnet is situated symmetrically in the bounding box."],
             "height_pos_extent": ["HEIGHT_POS_EXTENT [m]", "RPNValue", 0, "Height of the magnet above z=0. Particles moving upwards more than HEIGHT_POS_EXTENT are out of the aperture"],
-            "height_neg_extent": ["HEIGHT_NEG_EXTENT [m]", "RPNValue", 0, "Height of the magnet below z=0. Particles moving downwards more than HEIGHT_NEG_EXTENT are out of the aperture"]
+            "height_neg_extent": ["HEIGHT_NEG_EXTENT [m]", "RPNValue", 0, "Height of the magnet below z=0. Particles moving downwards more than HEIGHT_NEG_EXTENT are out of the aperture"],
+            "outfn": ["OUTFN", "OutputFile", "", "Output filename"]
         },
         "VARIABLE_RF_CAVITY": {
             "_super": ["_", "model", "_ELEMENT"],
