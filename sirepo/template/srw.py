@@ -482,9 +482,9 @@ def get_application_data(data, **kwargs):
                 srw_common.process_beam_parameters(beam)
         return PKDict(modelList=res)
     if data.method == "create_shadow_simulation":
-        from sirepo.template.srw_shadow_converter import Converter
+        from sirepo.template.srw_shadow import Convert
 
-        return Converter().srw_to_shadow(data)
+        return Convert().to_shadow(data)
     if data.method == "delete_user_models":
         return _delete_user_models(data.electron_beam, data.tabulated_undulator)
     elif data.method == "compute_undulator_length":
@@ -830,9 +830,9 @@ def stateful_compute_compute_undulator_length(data):
 
 
 def stateful_compute_create_shadow_simulation(data):
-    from sirepo.template.srw_shadow_converter import Converter
+    from sirepo.template.srw_shadow import Convert
 
-    return Converter().srw_to_shadow(data)
+    return Convert().to_shadow(data)
 
 
 def stateful_compute_delete_user_models(data):

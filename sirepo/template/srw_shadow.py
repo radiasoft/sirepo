@@ -16,7 +16,7 @@ _SRW = sirepo.sim_data.get_class("srw")
 _SHADOW = sirepo.sim_data.get_class("shadow")
 
 
-class Converter:
+class Convert:
     __FIELD_MAP = [
         # [shadow model, srw model, field map (field=field or field=[field, scale])
         [
@@ -255,7 +255,7 @@ class Converter:
                 n[field_map[k]] = k
         return n
 
-    def shadow_to_srw(self, data):
+    def to_srw(self, data):
         self._CONVERSION_DIRECTION = "srw"
         res = simulation_db.default_data(sirepo.sim_data.get_class("srw").sim_type())
         self.beamline = res.models.beamline
@@ -271,7 +271,7 @@ class Converter:
         _SRW.fixup_old_data(res)
         return res
 
-    def srw_to_shadow(self, models):
+    def to_shadow(self, models):
         self._CONVERSION_DIRECTION = "shadow"
         res = simulation_db.default_data(_SHADOW.sim_type())
         self.beamline = res.models.beamline

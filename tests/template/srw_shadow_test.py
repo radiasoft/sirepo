@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PyTest for :mod:`sirepo.template.srw_shadow_converter`
+"""PyTest for :mod:`sirepo.template.srw_shadow`
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,12 +14,12 @@ import pytest
 def test_convert_srw_to_shadow():
     from pykern import pkio, pkjson
     from pykern.pkunit import pkeq
-    from sirepo.template.srw_shadow_converter import Converter
+    from sirepo.template.srw_shadow import Convert
 
     with pkunit.save_chdir_work():
         for name in ("crl", "gaussian", "grating"):
             srw = _read_json_from_data_dir(f"{name}-srw.json")
-            actual = Converter().srw_to_shadow(srw.models)
+            actual = Convert().to_shadow(srw.models)
             del actual["version"]
             actual.models.simulation.pkdel("lastModified")
             pkjson.dump_pretty(actual, f"{name}-shadow.json")
@@ -34,12 +34,13 @@ def _read_json_from_data_dir(name):
 
 
 def test_convert_shadow_to_srw():
-    from sirepo.template.srw_shadow_converter import Converter
+    from sirepo.template.srw_shadow import Convert
     from pykern import pkunit
     from pykern import pkjson
     from pykern.pkcollections import PKDict
 
     for d in pkunit.case_dirs():
-        data = pkjson.load_any(d.join("example_shadow_data.json"))
-        actual = Converter().shadow_to_srw(data).models
-        pkjson.dump_pretty(actual, d.join("example_srw_result_data.json"))
+        pkjson.dump_pretty(
+            Convert().to_srw(pkjson.load_any(d.join("example_shadow_data.json"))).models,
+            d.join("example_srw_result_data.json"),
+        )
