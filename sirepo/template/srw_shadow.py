@@ -734,15 +734,14 @@ class Convert:
             srw.electronBeam[k] = shadow.electronBeam[e[k]]
 
     def __set_source_distance(self, shadow, srw):
-        k = [
+        for n in (
             "coherentModesAnimation",
             "fluxReport",
             "intensityReport",
             "powerDensityReport",
             "simulation",
             "sourceIntensityReport",
-        ]
-        for n in k:
+        ):
             srw[n]["distanceFromSource"] = shadow.beamline[0].position
 
     def __next_id(self):
