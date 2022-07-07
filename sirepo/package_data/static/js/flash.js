@@ -601,6 +601,9 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
             false,
             err => {
                 setProcessing(false, err.error);
+                appState.models.problemFiles.archive = null;
+                appState.saveChanges('problemFiles');
+                showArchiveFields();
             });
     }
 
@@ -650,9 +653,7 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
             updateLibFile();
         }
         panelState.showFields('problemFiles', [
-            'archive',
-            ! (isProcessing || (flashService.hasArchiveFiles()
-                                && ! flashService.zipFileStatusText)),
+            'archive', ! isProcessing && ! flashService.hasArchiveFiles(),
             'archiveFiles', flashService.hasArchiveFiles(),
         ]);
     }
